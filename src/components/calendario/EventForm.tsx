@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 interface ProfileOption { id: string; nome: string; }
 
 interface Props {
-  action: (formData: FormData) => Promise<{ error?: string } | void>;
+  action: (formData: FormData) => void | Promise<void>;
   defaults?: Partial<{
     id: string;
     titulo: string;
@@ -23,7 +23,7 @@ export function EventForm({ action, defaults = {}, profiles, submitLabel = "Salv
   const selected = new Set(defaults.participantes_ids ?? []);
 
   return (
-    <form action={action} className="space-y-5">
+    <form action={action as any} className="space-y-5">
       {defaults.id && <input type="hidden" name="id" value={defaults.id} />}
 
       <div className="space-y-2">
