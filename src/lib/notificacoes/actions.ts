@@ -7,7 +7,7 @@ import { listMyNotifications, countMyUnread } from "./queries";
 import { markReadSchema } from "./schema";
 
 export async function markNotificationReadAction(formData: FormData) {
-  await requireAuth();
+  const actor = await requireAuth();
   const parsed = markReadSchema.safeParse({ id: String(formData.get("id") ?? "") });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
@@ -15,7 +15,8 @@ export async function markNotificationReadAction(formData: FormData) {
   const { error } = await supabase
     .from("notifications")
     .update({ lida: true })
-    .eq("id", parsed.data.id);
+    .eq("id", parsed.data.id)
+    .eq("user_id", actor.id);
   if (error) return { error: error.message };
 
   revalidatePath("/notificacoes");

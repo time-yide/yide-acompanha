@@ -14,7 +14,7 @@ export const markReadSchema = z.object({
 export interface Notification {
   id: string;
   user_id: string;
-  tipo: string;
+  tipo: NotificationType;
   titulo: string;
   mensagem: string;
   link: string | null;

@@ -1,3 +1,4 @@
+// SERVER ONLY: do not import from client components
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import type { NotificationType } from "./schema";
 import type { Database } from "@/types/database";
@@ -26,7 +27,8 @@ async function notify({ recipientId, sourceId, tipo, titulo, mensagem, link }: N
     mensagem,
     link: link ?? null,
   };
-  await supabase.from("notifications").insert(insert);
+  const { error } = await supabase.from("notifications").insert(insert);
+  if (error) console.error("[notificacoes/trigger] insert failed:", error.message);
 }
 
 export async function notifyTaskAssigned(args: {
