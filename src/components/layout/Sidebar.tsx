@@ -1,3 +1,5 @@
+"use client";
+
 import {
   LayoutGrid, Users, Briefcase, KanbanSquare, ListChecks,
   DollarSign, Smile, Calendar, UserCog, Settings,
