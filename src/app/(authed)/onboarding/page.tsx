@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireAuth } from "@/lib/auth/session";
 import { listLeadsByStage } from "@/lib/leads/queries";
 import { KanbanBoard } from "@/components/onboarding/KanbanBoard";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 
 export default async function OnboardingPage() {
@@ -25,9 +25,9 @@ export default async function OnboardingPage() {
           </p>
         </div>
         {canCreate && (
-          <Button asChild>
-            <Link href="/onboarding/novo"><Plus className="mr-2 h-4 w-4" />Novo prospect</Link>
-          </Button>
+          <Link href="/onboarding/novo" className={buttonVariants()}>
+            <Plus className="mr-2 h-4 w-4" />Novo prospect
+          </Link>
         )}
       </header>
 

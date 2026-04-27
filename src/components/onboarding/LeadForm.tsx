@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -32,8 +35,26 @@ interface Props {
 }
 
 export function LeadForm({ action, defaults = {}, coordenadores = [], assessores = [], isEdit = false, submitLabel = "Salvar" }: Props) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+
+    const form = e.currentTarget;
+    const fd = new FormData(form);
+    const result = await action(fd);
+
+    setBusy(false);
+    if (result && "error" in result && result.error) {
+      setError(result.error);
+    }
+  }
+
   return (
-    <form action={action} className="space-y-5">
+    <form onSubmit={handleSubmit} className="space-y-5">
       {defaults.id && <input type="hidden" name="id" value={defaults.id} />}
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -129,7 +150,10 @@ export function LeadForm({ action, defaults = {}, coordenadores = [], assessores
         </div>
       </div>
 
-      <Button type="submit">{submitLabel}</Button>
+      {error && <p className="text-xs text-destructive">{error}</p>}
+      <Button type="submit" disabled={busy}>
+        {busy ? "Salvando..." : submitLabel}
+      </Button>
     </form>
   );
 }

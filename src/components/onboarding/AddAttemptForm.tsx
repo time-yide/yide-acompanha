@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { addAttemptAction } from "@/lib/lead-attempts/actions";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -6,8 +9,32 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function AddAttemptForm({ leadId }: { leadId: string }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    setSuccess(false);
+
+    const form = e.currentTarget;
+    const fd = new FormData(form);
+    const result = await addAttemptAction(fd);
+
+    setBusy(false);
+    if (result && "error" in result && result.error) {
+      setError(result.error);
+    } else if (result && "success" in result) {
+      setSuccess(true);
+      form.reset();
+      setTimeout(() => setSuccess(false), 3000);
+    }
+  }
+
   return (
-    <form action={addAttemptAction} className="rounded-xl border bg-card p-4 space-y-3">
+    <form onSubmit={handleSubmit} className="rounded-xl border bg-card p-4 space-y-3">
       <input type="hidden" name="lead_id" value={leadId} />
       <h3 className="text-sm font-semibold">Registrar tentativa de contato</h3>
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -50,7 +77,11 @@ export function AddAttemptForm({ leadId }: { leadId: string }) {
           <Input id="data_proximo_passo" name="data_proximo_passo" type="date" />
         </div>
       </div>
-      <Button type="submit">Adicionar</Button>
+      {error && <p className="text-xs text-destructive">{error}</p>}
+      {success && <p className="text-xs text-green-600 dark:text-green-400">Registro adicionado com sucesso!</p>}
+      <Button type="submit" disabled={busy}>
+        {busy ? "Adicionando..." : "Adicionar"}
+      </Button>
     </form>
   );
 }

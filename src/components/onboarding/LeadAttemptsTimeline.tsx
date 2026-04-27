@@ -9,7 +9,6 @@ interface Attempt {
   proximo_passo: string | null;
   data_proximo_passo: string | null;
   created_at: string;
-  // @ts-expect-error nested
   autor?: { nome: string } | null;
 }
 
@@ -39,7 +38,7 @@ export function LeadAttemptsTimeline({ attempts }: { attempts: Attempt[] }) {
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Badge variant="secondary">{canalLabel[a.canal]}</Badge>
               <Badge variant="outline">{resultadoLabel[a.resultado]}</Badge>
-              <span>· {a.autor?.nome ?? "—"}</span>
+              <span>· {(a as any).autor?.nome ?? "—"}</span>
               <span>· {new Date(a.created_at).toLocaleString("pt-BR")}</span>
             </div>
             {a.observacao && <p className="text-sm">{a.observacao}</p>}
