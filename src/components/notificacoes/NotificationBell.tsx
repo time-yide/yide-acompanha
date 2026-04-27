@@ -20,24 +20,29 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [unread, setUnread] = useState(0);
   const [items, setItems] = useState<Item[]>([]);
+  const [markingAll, setMarkingAll] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  async function fetchData() {
-    try {
-      const data = await getMyNotificationsAction();
-      setItems(data.items);
-      setUnread(data.unread);
-    } catch {
-      // silencioso — falha de fetch não deve quebrar UI
-    }
-  }
-
   useEffect(() => {
+    let cancelled = false;
+
+    async function fetchData() {
+      try {
+        const data = await getMyNotificationsAction();
+        if (cancelled) return;
+        setItems(data.items);
+        setUnread(data.unread);
+      } catch {
+        // silencioso — falha de fetch não deve quebrar UI
+      }
+    }
+
     fetchData();
     const interval = setInterval(fetchData, 60_000);
     const onFocus = () => fetchData();
     window.addEventListener("focus", onFocus);
     return () => {
+      cancelled = true;
       clearInterval(interval);
       window.removeEventListener("focus", onFocus);
     };
@@ -50,13 +55,28 @@ export function NotificationBell() {
         setOpen(false);
       }
     };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
     document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
   }, [open]);
 
   async function handleMarkAll() {
-    await markAllNotificationsReadAction();
-    await fetchData();
+    if (markingAll) return;
+    setMarkingAll(true);
+    try {
+      await markAllNotificationsReadAction();
+      const data = await getMyNotificationsAction();
+      setItems(data.items);
+      setUnread(data.unread);
+    } finally {
+      setMarkingAll(false);
+    }
   }
 
   return (
@@ -65,6 +85,8 @@ export function NotificationBell() {
         variant="ghost"
         size="icon"
         aria-label="Notificações"
+        aria-expanded={open}
+        aria-haspopup="true"
         onClick={() => setOpen((v) => !v)}
       >
         <Bell className="h-4 w-4" />
@@ -83,7 +105,8 @@ export function NotificationBell() {
               <button
                 type="button"
                 onClick={handleMarkAll}
-                className="text-[11px] text-primary hover:underline"
+                disabled={markingAll}
+                className="text-[11px] text-primary hover:underline disabled:opacity-50"
               >
                 Marcar todas como lidas
               </button>
