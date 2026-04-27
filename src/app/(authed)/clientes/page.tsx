@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireAuth } from "@/lib/auth/session";
+import { canAccess } from "@/lib/auth/permissions";
 import { listClientes, getClientesStats } from "@/lib/clientes/queries";
 import { ClientesTable } from "@/components/clientes/ClientesTable";
 import { Plus } from "lucide-react";
@@ -9,7 +10,7 @@ export default async function ClientesPage({ searchParams }: { searchParams: Pro
   const params = await searchParams;
   const user = await requireAuth();
   const canManage = ["adm", "socio"].includes(user.role);
-  const canSeeMoney = ["adm", "socio"].includes(user.role);
+  const canSeeMoney = canAccess(user.role, "view:client_money_all");
 
   const status = (params.status as "ativo" | "churn" | undefined) ?? undefined;
   const rows = await listClientes({ status });

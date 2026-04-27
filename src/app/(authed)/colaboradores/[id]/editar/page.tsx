@@ -1,14 +1,17 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth/session";
 import { canAccess } from "@/lib/auth/permissions";
 import { getColaboradorById } from "@/lib/colaboradores/queries";
 import { ColaboradorForm } from "@/components/colaboradores/ColaboradorForm";
+import { AvatarUpload } from "@/components/colaboradores/AvatarUpload";
 import { Card } from "@/components/ui/card";
 
-export default async function EditColaboradorPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function EditarColaboradorPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await requireAuth();
-  if (!canAccess(user.role, "edit:colaboradores")) redirect("/colaboradores");
+  if (!canAccess(user.role, "edit:colaboradores") && user.id !== id) {
+    notFound();
+  }
 
   let colab;
   try {
@@ -17,16 +20,39 @@ export default async function EditColaboradorPage({ params }: { params: Promise<
     notFound();
   }
 
+  const canEditFinance = user.role === "socio";
+  const canEditRole = user.role === "socio";
+
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <header>
-        <h1 className="text-2xl font-bold tracking-tight">Editar {colab.nome}</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Editar colaborador</h1>
       </header>
+
       <Card className="p-6">
+        <h2 className="mb-4 text-lg font-semibold">Foto</h2>
+        <AvatarUpload userId={colab.id} nome={colab.nome} currentUrl={colab.avatar_url} />
+      </Card>
+
+      <Card className="p-6">
+        <h2 className="mb-4 text-lg font-semibold">Dados</h2>
         <ColaboradorForm
-          data={colab}
-          canEditFinance={user.role === "socio"}
-          canEditRole={user.role === "socio"}
+          data={{
+            id: colab.id,
+            nome: colab.nome,
+            telefone: colab.telefone,
+            endereco: colab.endereco,
+            pix: colab.pix,
+            data_nascimento: colab.data_nascimento,
+            data_admissao: colab.data_admissao,
+            fixo_mensal: colab.fixo_mensal,
+            comissao_percent: colab.comissao_percent,
+            comissao_primeiro_mes_percent: colab.comissao_primeiro_mes_percent,
+            role: colab.role,
+            ativo: colab.ativo,
+          }}
+          canEditFinance={canEditFinance}
+          canEditRole={canEditRole}
         />
       </Card>
     </div>

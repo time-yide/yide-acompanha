@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth/session";
+import { canAccess } from "@/lib/auth/permissions";
 import { getClienteById } from "@/lib/clientes/queries";
 import { ClienteHeader } from "@/components/clientes/ClienteHeader";
 import { ClienteSidebar } from "@/components/clientes/ClienteSidebar";
@@ -18,7 +19,7 @@ export default async function ClienteFolderLayout({
   try { cliente = await getClienteById(id); } catch { notFound(); }
 
   const canSeeMoney =
-    ["adm", "socio"].includes(user.role) ||
+    canAccess(user.role, "view:client_money_all") ||
     user.id === cliente.assessor_id ||
     user.id === cliente.coordenador_id;
   const canSeeHistorico = ["adm", "socio"].includes(user.role);

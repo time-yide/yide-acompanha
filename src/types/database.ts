@@ -826,7 +826,16 @@ export type Database = {
       task_priority: "alta" | "media" | "baixa"
       task_status: "aberta" | "em_andamento" | "concluida"
       theme_preference: "light" | "dark" | "system"
-      user_role: "adm" | "socio" | "comercial" | "coordenador" | "assessor"
+      user_role:
+        | "adm"
+        | "socio"
+        | "comercial"
+        | "coordenador"
+        | "assessor"
+        | "videomaker"
+        | "designer"
+        | "editor"
+        | "audiovisual_chefe"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -983,7 +992,17 @@ export const Constants = {
       task_priority: ["alta", "media", "baixa"],
       task_status: ["aberta", "em_andamento", "concluida"],
       theme_preference: ["light", "dark", "system"],
-      user_role: ["adm", "socio", "comercial", "coordenador", "assessor"],
+      user_role: [
+        "adm",
+        "socio",
+        "comercial",
+        "coordenador",
+        "assessor",
+        "videomaker",
+        "designer",
+        "editor",
+        "audiovisual_chefe",
+      ],
     },
   },
 } as const
