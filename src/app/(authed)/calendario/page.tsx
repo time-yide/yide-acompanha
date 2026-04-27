@@ -43,17 +43,17 @@ export default async function CalendarioPage({ searchParams }: { searchParams: P
           <p className="text-sm text-muted-foreground">{formatRange} · {events.length} eventos</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button asChild variant="outline" size="sm">
-            <Link href={prevHref}><ChevronLeft className="h-4 w-4" /></Link>
+          <Button render={<Link href={prevHref} />} variant="outline" size="sm">
+            <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button asChild variant="outline" size="sm">
-            <Link href={todayHref}>Hoje</Link>
+          <Button render={<Link href={todayHref} />} variant="outline" size="sm">
+            Hoje
           </Button>
-          <Button asChild variant="outline" size="sm">
-            <Link href={nextHref}><ChevronRight className="h-4 w-4" /></Link>
+          <Button render={<Link href={nextHref} />} variant="outline" size="sm">
+            <ChevronRight className="h-4 w-4" />
           </Button>
-          <Button asChild>
-            <Link href="/calendario/novo"><Plus className="mr-2 h-4 w-4" />Novo evento</Link>
+          <Button render={<Link href="/calendario/novo" />}>
+            <Plus className="mr-2 h-4 w-4" />Novo evento
           </Button>
         </div>
       </header>
