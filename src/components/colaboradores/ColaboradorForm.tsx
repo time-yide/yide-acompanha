@@ -69,6 +69,10 @@ export function ColaboradorForm({ data, canEditFinance, canEditRole }: Props) {
               <SelectItem value="comercial">Comercial</SelectItem>
               <SelectItem value="coordenador">Coordenador</SelectItem>
               <SelectItem value="assessor">Assessor</SelectItem>
+              <SelectItem value="audiovisual_chefe">Audiovisual Chefe</SelectItem>
+              <SelectItem value="videomaker">Videomaker</SelectItem>
+              <SelectItem value="designer">Designer</SelectItem>
+              <SelectItem value="editor">Editor</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -113,6 +117,13 @@ export function ColaboradorForm({ data, canEditFinance, canEditRole }: Props) {
             disabled={!canEditFinance}
           />
         </div>
+
+        {(data.role === "videomaker" || data.role === "designer" || data.role === "editor") && (
+          <p className="md:col-span-2 text-xs text-muted-foreground">
+            Produtores audiovisuais (videomaker / designer / editor) recebem apenas fixo —
+            os campos de % de comissão são zerados automaticamente ao salvar.
+          </p>
+        )}
 
         <div className="flex items-center gap-3 md:col-span-2">
           <Switch id="ativo" name="ativo" defaultChecked={data.ativo} />

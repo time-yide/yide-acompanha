@@ -30,8 +30,16 @@ export function ConviteForm({ canSetCommission }: { canSetCommission: boolean })
               <SelectItem value="comercial">Comercial</SelectItem>
               <SelectItem value="coordenador">Coordenador</SelectItem>
               <SelectItem value="assessor">Assessor</SelectItem>
+              <SelectItem value="audiovisual_chefe">Audiovisual Chefe</SelectItem>
+              <SelectItem value="videomaker">Videomaker</SelectItem>
+              <SelectItem value="designer">Designer</SelectItem>
+              <SelectItem value="editor">Editor</SelectItem>
             </SelectContent>
           </Select>
+          <p className="text-[11px] text-muted-foreground">
+            Produtores audiovisuais (videomaker / designer / editor) recebem apenas fixo —
+            os campos de % serão zerados automaticamente.
+          </p>
         </div>
         <div className="space-y-2">
           <Label htmlFor="fixo_mensal">Fixo mensal (R$)</Label>
