@@ -8,6 +8,18 @@ import { logAudit } from "@/lib/audit/log";
 import {
   createLeadSchema, editLeadSchema, moveStageSchema, markLostSchema, type Stage,
 } from "./schema";
+import { dispatchNotification } from "@/lib/notificacoes/dispatch";
+
+function prettyStage(stage: string): string {
+  switch (stage) {
+    case "prospeccao": return "Prospecção";
+    case "comercial": return "Reunião Comercial";
+    case "contrato": return "Contrato";
+    case "marco_zero": return "Marco Zero";
+    case "ativo": return "Cliente Ativo";
+    default: return stage;
+  }
+}
 
 function fd(formData: FormData, key: string) {
   const v = formData.get(key);
@@ -79,6 +91,17 @@ export async function createLeadAction(formData: FormData) {
     dados_depois: insertPayload,
     ator_id: actor.id,
   });
+
+  // Se já vem com data agendada, notifica prospeccao_agendada
+  if (parsed.data.data_prospeccao_agendada) {
+    await dispatchNotification({
+      evento_tipo: "prospeccao_agendada",
+      titulo: "Prospecção agendada",
+      mensagem: `${parsed.data.nome_prospect} — ${new Date(parsed.data.data_prospeccao_agendada).toLocaleDateString("pt-BR")}`,
+      link: `/onboarding/${created.id}`,
+      source_user_id: actor.id,
+    });
+  }
 
   revalidatePath("/onboarding");
   redirect(`/onboarding/${created.id}`);
@@ -237,6 +260,34 @@ export async function moveStageAction(formData: FormData) {
   revalidatePath("/onboarding");
   revalidatePath(`/onboarding/${parsed.data.id}`);
   if (toStage === "ativo") revalidatePath("/clientes");
+
+  // kanban_moved (sempre)
+  const nextResponsibleId =
+    toStage === "comercial" ? lead.comercial_id :
+    toStage === "marco_zero" ? lead.coord_alocado_id :
+    toStage === "ativo" ? lead.assessor_alocado_id :
+    null;
+
+  await dispatchNotification({
+    evento_tipo: "kanban_moved",
+    titulo: `Card movido para "${prettyStage(toStage)}"`,
+    mensagem: `${actor.nome} moveu "${lead.nome_prospect}"`,
+    link: `/onboarding/${parsed.data.id}`,
+    source_user_id: actor.id,
+    user_ids_extras: nextResponsibleId ? [nextResponsibleId] : undefined,
+  });
+
+  // deal_fechado (só quando move pra ativo)
+  if (toStage === "ativo") {
+    await dispatchNotification({
+      evento_tipo: "deal_fechado",
+      titulo: `Deal fechado: ${lead.nome_prospect}`,
+      mensagem: `${actor.nome} marcou ${lead.nome_prospect} como cliente ativo`,
+      link: `/clientes/${updatePayload.client_id}`,
+      source_user_id: actor.id,
+    });
+  }
+
   return { success: `Movido para ${toStage}` };
 }
 
