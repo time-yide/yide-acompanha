@@ -6,7 +6,6 @@ interface Note {
   tipo: string;
   texto_rico: string;
   created_at: string;
-  // @ts-expect-error nested select
   autor?: { nome: string } | null;
 }
 

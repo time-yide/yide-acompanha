@@ -35,7 +35,6 @@ export default async function ClienteOverviewPage({ params }: { params: Promise<
             <div className="mt-2">
               <div className="line-clamp-3 text-sm">{lastNote.texto_rico}</div>
               <div className="mt-1 text-xs text-muted-foreground">
-                {/* @ts-expect-error nested select */}
                 {lastNote.autor?.nome ?? "?"} · {new Date(lastNote.created_at).toLocaleDateString("pt-BR")}
               </div>
             </div>

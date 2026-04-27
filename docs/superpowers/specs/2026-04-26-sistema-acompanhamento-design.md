@@ -100,7 +100,7 @@ Entidades principais. Detalhes de PK/FK ficam para o plano de implementação.
 
 - **organization** — linha única (estruturada para futuro multi-tenant, mas não usada agora). Guarda nome da agência, CNPJ, logo.
 - **profiles** — vinculado a `auth.users`. Campos: `role` (enum: adm, socio, comercial, coordenador, assessor), `nome`, `email`, `telefone`, `endereco`, `pix`, `data_nascimento`, `data_admissao`, `fixo_mensal` (R$), `comissao_percent` (decimal — usado para assessor/coordenador), `comissao_primeiro_mes_percent` (decimal — usado apenas para comercial; % aplicado sobre o valor do 1º mês de cada deal fechado), `tema_preferido` (light/dark/system), `ativo` (bool), `avatar_url`.
-- **clients** — `nome`, `contato_principal`, `email`, `telefone`, `valor_mensal` (R$), `status` (ativo, churn, em_onboarding), `data_entrada`, `data_churn`, `motivo_churn`, `assessor_id`, `coordenador_id`, `data_aniversario_socio_cliente`.
+- **clients** — `nome`, `contato_principal`, `email`, `telefone`, `valor_mensal` (R$), `servico_contratado` (texto livre — ex.: "Social media + Tráfego pago"), `status` (ativo, churn, em_onboarding), `data_entrada`, `data_churn`, `motivo_churn`, `assessor_id`, `coordenador_id`, `data_aniversario_socio_cliente`.
 
 ### Pasta do cliente
 
@@ -158,6 +158,7 @@ Entidades principais. Detalhes de PK/FK ficam para o plano de implementação.
 
 - Lista paginada com filtros: status, assessor, coordenador, faixa de valor, tag de satisfação.
 - Cadastro de cliente (manual ou automático, vindo do kanban quando atinge stage "Cliente ativo").
+- **Import em lote** — Sócio/ADM podem colar dados do Excel/Sheets (TSV) ou CSV no formato `Nome | Valor mensal | Serviço contratado` para criar vários clientes de uma vez. Útil para a migração inicial do sistema.
 - Cada cliente tem **pasta dedicada** com sidebar lateral de navegação (preferida pelo usuário em vez de tabs no topo) e suporte a tema claro/escuro:
   - **Visão geral** — próximas datas, última reunião, satisfação atual, tarefas em aberto, valor do contrato, tempo de casa
   - **Briefing** — markdown editor + arquivos do briefing inicial

@@ -24,9 +24,9 @@ export default async function ClientTasksPage({ params }: { params: Promise<{ id
           <h2 className="text-lg font-semibold">Tarefas deste cliente</h2>
           <p className="text-xs text-muted-foreground">{tasks.length} tarefa{tasks.length !== 1 ? "s" : ""}</p>
         </div>
-        <Button asChild size="sm">
-          <Link href={`/tarefas/nova?client_id=${id}`}><Plus className="mr-1 h-3.5 w-3.5" />Nova tarefa</Link>
-        </Button>
+        <Link href={`/tarefas/nova?client_id=${id}`}>
+          <Button size="sm"><Plus className="mr-1 h-3.5 w-3.5" />Nova tarefa</Button>
+        </Link>
       </header>
 
       {tasks.length === 0 ? (
@@ -48,7 +48,6 @@ export default async function ClientTasksPage({ params }: { params: Promise<{ id
                     </div>
                     <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       <Badge variant="outline" className={priorityClass[t.prioridade]}>{t.prioridade}</Badge>
-                      {/* @ts-expect-error nested */}
                       {t.atribuido?.nome && <span>→ {t.atribuido.nome}</span>}
                       {t.due_date && <span>· prazo: {new Date(t.due_date).toLocaleDateString("pt-BR")}</span>}
                     </div>

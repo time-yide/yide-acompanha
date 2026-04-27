@@ -7,7 +7,14 @@ import {
   LayoutGrid, FileText, MessagesSquare, Folder, Calendar, ListChecks, History, Pencil,
 } from "lucide-react";
 
-const items = [
+type NavItem = {
+  slug: string;
+  icon: any;
+  label: string;
+  privileged?: boolean;
+};
+
+const items: NavItem[] = [
   { slug: "", icon: LayoutGrid, label: "Visão geral" },
   { slug: "/briefing", icon: FileText, label: "Briefing" },
   { slug: "/reunioes", icon: MessagesSquare, label: "Reuniões" },
@@ -16,7 +23,7 @@ const items = [
   { slug: "/tarefas", icon: ListChecks, label: "Tarefas" },
   { slug: "/historico", icon: History, label: "Histórico", privileged: true },
   { slug: "/editar", icon: Pencil, label: "Editar dados" },
-] as const;
+];
 
 export function ClienteSidebar({ clientId, canSeeHistorico }: { clientId: string; canSeeHistorico: boolean }) {
   const pathname = usePathname();

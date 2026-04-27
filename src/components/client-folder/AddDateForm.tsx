@@ -1,12 +1,29 @@
+"use client";
+
 import { addDateAction } from "@/lib/client-folder/dates-actions";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useState } from "react";
 
 export function AddDateForm({ clientId }: { clientId: string }) {
+  const [error, setError] = useState<string | null>(null);
+
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    const fd = new FormData(e.currentTarget);
+    const result = await addDateAction(fd);
+    if (result && "error" in result && result.error) {
+      setError(result.error);
+    } else {
+      (e.currentTarget as HTMLFormElement).reset();
+    }
+  }
+
   return (
-    <form action={addDateAction} className="rounded-xl border bg-card p-4">
+    <form onSubmit={onSubmit} className="rounded-xl border bg-card p-4">
       <input type="hidden" name="client_id" value={clientId} />
       <div className="grid grid-cols-1 gap-3 md:grid-cols-4 md:items-end">
         <div className="space-y-2">
@@ -32,6 +49,7 @@ export function AddDateForm({ clientId }: { clientId: string }) {
         <Button type="submit">Adicionar</Button>
       </div>
       <p className="mt-2 text-xs text-muted-foreground">Notificação será enviada automaticamente 30, 7 e 1 dia antes.</p>
+      {error && <p className="mt-2 text-xs text-destructive">{error}</p>}
     </form>
   );
 }

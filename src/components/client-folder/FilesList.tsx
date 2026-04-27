@@ -12,7 +12,6 @@ interface FileRow {
   size_bytes: number;
   mime_type: string | null;
   created_at: string;
-  // @ts-expect-error nested select
   uploader?: { nome: string } | null;
 }
 
