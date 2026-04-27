@@ -44,12 +44,9 @@ export async function listLeadsByStage(): Promise<Record<Stage, LeadRow[]>> {
     const row: LeadRow = {
       ...r,
       valor_proposto: Number(r.valor_proposto),
-      // @ts-expect-error nested
-      comercial_nome: r.comercial?.nome ?? null,
-      // @ts-expect-error nested
-      coord_nome: r.coord?.nome ?? null,
-      // @ts-expect-error nested
-      assessor_nome: r.assessor?.nome ?? null,
+      comercial_nome: (r as any).comercial?.nome ?? null,
+      coord_nome: (r as any).coord?.nome ?? null,
+      assessor_nome: (r as any).assessor?.nome ?? null,
     };
     groups[r.stage as Stage].push(row);
   }
