@@ -8,7 +8,7 @@ interface ProfileOption { id: string; nome: string; }
 interface ClientOption { id: string; nome: string; }
 
 interface Props {
-  action: (formData: FormData) => Promise<{ error?: string } | void>;
+  action: (formData: FormData) => Promise<any> | void;
   profiles: ProfileOption[];
   clientes: ClientOption[];
   defaults?: Partial<{

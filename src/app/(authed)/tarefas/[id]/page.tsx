@@ -41,9 +41,8 @@ export default async function TarefaPage({ params }: { params: Promise<{ id: str
         )}
       </header>
 
-      {task.client_id && (
-        // @ts-expect-error nested
-        <p className="text-sm">Vinculada ao cliente <Link href={`/clientes/${task.client_id}`} className="text-primary hover:underline">{task.cliente?.nome}</Link></p>
+      {task.client_id && task.cliente?.nome && (
+        <p className="text-sm">Vinculada ao cliente <Link href={`/clientes/${task.client_id}`} className="text-primary hover:underline">{task.cliente.nome}</Link></p>
       )}
 
       <Card className="p-6">
@@ -70,8 +69,7 @@ export default async function TarefaPage({ params }: { params: Promise<{ id: str
             <h2 className="text-lg font-semibold">{task.titulo}</h2>
             {task.descricao && <p className="whitespace-pre-wrap text-sm">{task.descricao}</p>}
             <div className="text-xs text-muted-foreground">
-              {/* @ts-expect-error nested */}
-              Status: {task.status} · Atribuído a {task.atribuido?.nome} · Criado por {task.criador?.nome}
+              Status: {task.status} · Atribuído a {task.atribuido?.nome ?? "desconhecido"} · Criado por {task.criador?.nome ?? "desconhecido"}
             </div>
           </div>
         )}

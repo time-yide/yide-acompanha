@@ -33,9 +33,11 @@ export default async function TarefasPage({ searchParams }: { searchParams: Prom
           <h1 className="text-2xl font-bold tracking-tight">Tarefas</h1>
           <p className="text-sm text-muted-foreground">Gestão de tarefas entre coordenadores e assessores.</p>
         </div>
-        <Button asChild>
-          <Link href="/tarefas/nova"><Plus className="mr-2 h-4 w-4" />Nova tarefa</Link>
-        </Button>
+        <Link href="/tarefas/nova">
+          <Button>
+            <Plus className="mr-2 h-4 w-4" />Nova tarefa
+          </Button>
+        </Link>
       </header>
 
       <div className="flex gap-3 text-sm">

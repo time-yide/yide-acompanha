@@ -10,9 +10,7 @@ interface Task {
   status: string;
   due_date: string | null;
   client_id: string | null;
-  // @ts-expect-error nested
   atribuido?: { nome: string } | null;
-  // @ts-expect-error nested
   cliente?: { id: string; nome: string } | null;
 }
 
