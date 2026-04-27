@@ -50,6 +50,83 @@ export type Database = {
         }
         Relationships: []
       }
+      calendar_events: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          criado_por: string
+          descricao: string | null
+          fim: string
+          id: string
+          inicio: string
+          lead_id: string | null
+          organization_id: string
+          participantes_ids: string[]
+          sub_calendar: Database["public"]["Enums"]["sub_calendar"]
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          criado_por: string
+          descricao?: string | null
+          fim: string
+          id?: string
+          inicio: string
+          lead_id?: string | null
+          organization_id: string
+          participantes_ids?: string[]
+          sub_calendar?: Database["public"]["Enums"]["sub_calendar"]
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          criado_por?: string
+          descricao?: string | null
+          fim?: string
+          id?: string
+          inicio?: string
+          lead_id?: string | null
+          organization_id?: string
+          participantes_ids?: string[]
+          sub_calendar?: Database["public"]["Enums"]["sub_calendar"]
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_events_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_briefing: {
         Row: {
           client_id: string
@@ -704,6 +781,7 @@ export type Database = {
         | "marco_zero"
         | "ativo"
       note_type: "reuniao" | "observacao" | "mudanca_status"
+      sub_calendar: "agencia" | "onboarding" | "aniversarios"
       task_priority: "alta" | "media" | "baixa"
       task_status: "aberta" | "em_andamento" | "concluida"
       theme_preference: "light" | "dark" | "system"
@@ -860,6 +938,7 @@ export const Constants = {
         "ativo",
       ],
       note_type: ["reuniao", "observacao", "mudanca_status"],
+      sub_calendar: ["agencia", "onboarding", "aniversarios"],
       task_priority: ["alta", "media", "baixa"],
       task_status: ["aberta", "em_andamento", "concluida"],
       theme_preference: ["light", "dark", "system"],
