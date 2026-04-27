@@ -1,4 +1,6 @@
-export type Role = "adm" | "socio" | "comercial" | "coordenador" | "assessor";
+export type Role =
+  | "adm" | "socio" | "comercial" | "coordenador" | "assessor"
+  | "videomaker" | "designer" | "editor" | "audiovisual_chefe";
 
 export type Action =
   // Gestão de usuários
@@ -66,6 +68,31 @@ const matrix: Record<Role, Action[]> = {
   ],
   assessor: [
     "view:all_clients",
+    "view:own_commission",
+    "create:tasks", "create:calendar_event", "customize:notification_recipients",
+    "feed:satisfaction",
+  ],
+  videomaker: [
+    "view:all_clients",
+    "view:own_commission",
+    "create:tasks", "create:calendar_event", "customize:notification_recipients",
+    "feed:satisfaction",
+  ],
+  designer: [
+    "view:all_clients",
+    "view:own_commission",
+    "create:tasks", "create:calendar_event", "customize:notification_recipients",
+    "feed:satisfaction",
+  ],
+  editor: [
+    "view:all_clients",
+    "view:own_commission",
+    "create:tasks", "create:calendar_event", "customize:notification_recipients",
+    "feed:satisfaction",
+  ],
+  audiovisual_chefe: [
+    "view:all_clients",
+    "view:client_money_all",
     "view:own_commission",
     "create:tasks", "create:calendar_event", "customize:notification_recipients",
     "feed:satisfaction",
