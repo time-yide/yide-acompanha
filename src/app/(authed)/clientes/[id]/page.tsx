@@ -18,7 +18,7 @@ export default async function ClienteOverviewPage({ params }: { params: Promise<
   const [notes, dates, tasks] = await Promise.all([
     listNotes(id),
     listDates(id),
-    listTasks({ clientId: id, status: "aberta" }),
+    listTasks({ clientId: id, status: ["aberta"] }),
   ]);
 
   const lastNote = notes[0];
