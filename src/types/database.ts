@@ -299,6 +299,216 @@ export type Database = {
           },
         ]
       }
+      lead_attempts: {
+        Row: {
+          autor_id: string
+          canal: Database["public"]["Enums"]["attempt_channel"]
+          created_at: string
+          data_proximo_passo: string | null
+          id: string
+          lead_id: string
+          observacao: string | null
+          proximo_passo: string | null
+          resultado: Database["public"]["Enums"]["attempt_result"]
+        }
+        Insert: {
+          autor_id: string
+          canal?: Database["public"]["Enums"]["attempt_channel"]
+          created_at?: string
+          data_proximo_passo?: string | null
+          id?: string
+          lead_id: string
+          observacao?: string | null
+          proximo_passo?: string | null
+          resultado?: Database["public"]["Enums"]["attempt_result"]
+        }
+        Update: {
+          autor_id?: string
+          canal?: Database["public"]["Enums"]["attempt_channel"]
+          created_at?: string
+          data_proximo_passo?: string | null
+          id?: string
+          lead_id?: string
+          observacao?: string | null
+          proximo_passo?: string | null
+          resultado?: Database["public"]["Enums"]["attempt_result"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_attempts_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_attempts_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_history: {
+        Row: {
+          ator_id: string
+          created_at: string
+          from_stage: Database["public"]["Enums"]["lead_stage"] | null
+          id: string
+          lead_id: string
+          observacao: string | null
+          to_stage: Database["public"]["Enums"]["lead_stage"]
+        }
+        Insert: {
+          ator_id: string
+          created_at?: string
+          from_stage?: Database["public"]["Enums"]["lead_stage"] | null
+          id?: string
+          lead_id: string
+          observacao?: string | null
+          to_stage: Database["public"]["Enums"]["lead_stage"]
+        }
+        Update: {
+          ator_id?: string
+          created_at?: string
+          from_stage?: Database["public"]["Enums"]["lead_stage"] | null
+          id?: string
+          lead_id?: string
+          observacao?: string | null
+          to_stage?: Database["public"]["Enums"]["lead_stage"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_history_ator_id_fkey"
+            columns: ["ator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leads: {
+        Row: {
+          assessor_alocado_id: string | null
+          client_id: string | null
+          comercial_id: string
+          contato_principal: string | null
+          coord_alocado_id: string | null
+          created_at: string
+          data_fechamento: string | null
+          data_prospeccao_agendada: string | null
+          data_reuniao_marco_zero: string | null
+          duracao_meses: number | null
+          email: string | null
+          id: string
+          info_briefing: string | null
+          motivo_perdido: string | null
+          nome_prospect: string
+          organization_id: string
+          prioridade: Database["public"]["Enums"]["lead_priority"]
+          servico_proposto: string | null
+          site: string | null
+          stage: Database["public"]["Enums"]["lead_stage"]
+          telefone: string | null
+          updated_at: string
+          valor_proposto: number
+        }
+        Insert: {
+          assessor_alocado_id?: string | null
+          client_id?: string | null
+          comercial_id: string
+          contato_principal?: string | null
+          coord_alocado_id?: string | null
+          created_at?: string
+          data_fechamento?: string | null
+          data_prospeccao_agendada?: string | null
+          data_reuniao_marco_zero?: string | null
+          duracao_meses?: number | null
+          email?: string | null
+          id?: string
+          info_briefing?: string | null
+          motivo_perdido?: string | null
+          nome_prospect: string
+          organization_id: string
+          prioridade?: Database["public"]["Enums"]["lead_priority"]
+          servico_proposto?: string | null
+          site?: string | null
+          stage?: Database["public"]["Enums"]["lead_stage"]
+          telefone?: string | null
+          updated_at?: string
+          valor_proposto?: number
+        }
+        Update: {
+          assessor_alocado_id?: string | null
+          client_id?: string | null
+          comercial_id?: string
+          contato_principal?: string | null
+          coord_alocado_id?: string | null
+          created_at?: string
+          data_fechamento?: string | null
+          data_prospeccao_agendada?: string | null
+          data_reuniao_marco_zero?: string | null
+          duracao_meses?: number | null
+          email?: string | null
+          id?: string
+          info_briefing?: string | null
+          motivo_perdido?: string | null
+          nome_prospect?: string
+          organization_id?: string
+          prioridade?: Database["public"]["Enums"]["lead_priority"]
+          servico_proposto?: string | null
+          site?: string | null
+          stage?: Database["public"]["Enums"]["lead_stage"]
+          telefone?: string | null
+          updated_at?: string
+          valor_proposto?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_assessor_alocado_id_fkey"
+            columns: ["assessor_alocado_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_comercial_id_fkey"
+            columns: ["comercial_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_coord_alocado_id_fkey"
+            columns: ["coord_alocado_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           cnpj: string | null
@@ -472,6 +682,13 @@ export type Database = {
       }
     }
     Enums: {
+      attempt_channel: "whatsapp" | "email" | "ligacao" | "presencial" | "outro"
+      attempt_result:
+        | "sem_resposta"
+        | "agendou"
+        | "recusou"
+        | "pediu_proposta"
+        | "outro"
       client_status: "ativo" | "churn" | "em_onboarding"
       file_category: "briefing" | "contrato" | "criativo" | "outro"
       important_date_type:
@@ -479,6 +696,13 @@ export type Database = {
         | "renovacao"
         | "kickoff"
         | "custom"
+      lead_priority: "alta" | "media" | "baixa"
+      lead_stage:
+        | "prospeccao"
+        | "comercial"
+        | "contrato"
+        | "marco_zero"
+        | "ativo"
       note_type: "reuniao" | "observacao" | "mudanca_status"
       task_priority: "alta" | "media" | "baixa"
       task_status: "aberta" | "em_andamento" | "concluida"
@@ -611,6 +835,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      attempt_channel: ["whatsapp", "email", "ligacao", "presencial", "outro"],
+      attempt_result: [
+        "sem_resposta",
+        "agendou",
+        "recusou",
+        "pediu_proposta",
+        "outro",
+      ],
       client_status: ["ativo", "churn", "em_onboarding"],
       file_category: ["briefing", "contrato", "criativo", "outro"],
       important_date_type: [
@@ -618,6 +850,14 @@ export const Constants = {
         "renovacao",
         "kickoff",
         "custom",
+      ],
+      lead_priority: ["alta", "media", "baixa"],
+      lead_stage: [
+        "prospeccao",
+        "comercial",
+        "contrato",
+        "marco_zero",
+        "ativo",
       ],
       note_type: ["reuniao", "observacao", "mudanca_status"],
       task_priority: ["alta", "media", "baixa"],
