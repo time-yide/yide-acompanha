@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { localIsoDate } from "@/lib/utils/date";
 
 const PRIORITY_RANK: Record<string, number> = { alta: 0, media: 1, baixa: 2 };
 
@@ -39,10 +40,10 @@ export function filterTasksByPrazo<T extends { due_date: string | null }>(
   prazo: PrazoFilter,
   today: Date = new Date(),
 ): T[] {
-  const todayIso = today.toISOString().slice(0, 10);
+  const todayIso = localIsoDate(today);
   const in7 = new Date(today);
   in7.setDate(in7.getDate() + 7);
-  const in7Iso = in7.toISOString().slice(0, 10);
+  const in7Iso = localIsoDate(in7);
 
   return tasks.filter((t) => {
     switch (prazo) {
@@ -122,7 +123,7 @@ export async function countOpenTasksForUser(userId: string): Promise<number> {
 }
 
 export async function countOverdueTasksForUser(userId: string): Promise<number> {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localIsoDate();
   const supabase = await createClient();
   const { count } = await supabase
     .from("tasks")

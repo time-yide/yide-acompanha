@@ -49,7 +49,7 @@ describe("sortTasks", () => {
 });
 
 describe("filterTasksByPrazo", () => {
-  const today = new Date("2026-04-27T12:00:00Z");
+  const today = new Date(2026, 3, 27, 12, 0, 0); // April 27, 2026 at noon LOCAL
 
   it("'hoje' inclui tarefa com prazo de hoje", () => {
     const tasks = [

@@ -1,9 +1,10 @@
 import { z } from "zod";
+import { localIsoDate } from "@/lib/utils/date";
 
 export const PRIORITIES = ["alta", "media", "baixa"] as const;
 export const TASK_STATUSES = ["aberta", "em_andamento", "concluida"] as const;
 
-const todayIso = () => new Date().toISOString().slice(0, 10);
+const todayIso = () => localIsoDate();
 
 export const createTaskSchema = z.object({
   titulo: z.string().min(2, "Título muito curto").max(200, "Título muito longo"),
