@@ -32,12 +32,12 @@ export function TaskForm({ action, profiles, clientes, defaults = {}, isEdit = f
 
       <div className="space-y-2">
         <Label htmlFor="titulo">Título</Label>
-        <Input id="titulo" name="titulo" defaultValue={defaults.titulo ?? ""} required minLength={3} />
+        <Input id="titulo" name="titulo" defaultValue={defaults.titulo ?? ""} required minLength={2} maxLength={200} />
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="descricao">Descrição (opcional)</Label>
-        <Textarea id="descricao" name="descricao" defaultValue={defaults.descricao ?? ""} rows={4} />
+        <Textarea id="descricao" name="descricao" defaultValue={defaults.descricao ?? ""} rows={4} maxLength={4000} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
