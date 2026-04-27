@@ -50,6 +50,255 @@ export type Database = {
         }
         Relationships: []
       }
+      client_briefing: {
+        Row: {
+          client_id: string
+          texto_markdown: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          client_id: string
+          texto_markdown?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          client_id?: string
+          texto_markdown?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_briefing_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_briefing_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_files: {
+        Row: {
+          categoria: Database["public"]["Enums"]["file_category"]
+          client_id: string
+          created_at: string
+          id: string
+          mime_type: string | null
+          nome_arquivo: string
+          size_bytes: number
+          storage_path: string
+          uploaded_by: string
+        }
+        Insert: {
+          categoria?: Database["public"]["Enums"]["file_category"]
+          client_id: string
+          created_at?: string
+          id?: string
+          mime_type?: string | null
+          nome_arquivo: string
+          size_bytes: number
+          storage_path: string
+          uploaded_by: string
+        }
+        Update: {
+          categoria?: Database["public"]["Enums"]["file_category"]
+          client_id?: string
+          created_at?: string
+          id?: string
+          mime_type?: string | null
+          nome_arquivo?: string
+          size_bytes?: number
+          storage_path?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_files_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_files_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_important_dates: {
+        Row: {
+          client_id: string
+          created_at: string
+          data: string
+          descricao: string
+          id: string
+          notify_days_before: number[]
+          tipo: Database["public"]["Enums"]["important_date_type"]
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          data: string
+          descricao: string
+          id?: string
+          notify_days_before?: number[]
+          tipo?: Database["public"]["Enums"]["important_date_type"]
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          data?: string
+          descricao?: string
+          id?: string
+          notify_days_before?: number[]
+          tipo?: Database["public"]["Enums"]["important_date_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_important_dates_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_notes: {
+        Row: {
+          autor_id: string
+          client_id: string
+          created_at: string
+          id: string
+          texto_rico: string
+          tipo: Database["public"]["Enums"]["note_type"]
+        }
+        Insert: {
+          autor_id: string
+          client_id: string
+          created_at?: string
+          id?: string
+          texto_rico: string
+          tipo?: Database["public"]["Enums"]["note_type"]
+        }
+        Update: {
+          autor_id?: string
+          client_id?: string
+          created_at?: string
+          id?: string
+          texto_rico?: string
+          tipo?: Database["public"]["Enums"]["note_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_notes_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_notes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clients: {
+        Row: {
+          assessor_id: string | null
+          contato_principal: string | null
+          coordenador_id: string | null
+          created_at: string
+          data_aniversario_socio_cliente: string | null
+          data_churn: string | null
+          data_entrada: string
+          email: string | null
+          id: string
+          motivo_churn: string | null
+          nome: string
+          organization_id: string
+          servico_contratado: string | null
+          status: Database["public"]["Enums"]["client_status"]
+          telefone: string | null
+          updated_at: string
+          valor_mensal: number
+        }
+        Insert: {
+          assessor_id?: string | null
+          contato_principal?: string | null
+          coordenador_id?: string | null
+          created_at?: string
+          data_aniversario_socio_cliente?: string | null
+          data_churn?: string | null
+          data_entrada?: string
+          email?: string | null
+          id?: string
+          motivo_churn?: string | null
+          nome: string
+          organization_id: string
+          servico_contratado?: string | null
+          status?: Database["public"]["Enums"]["client_status"]
+          telefone?: string | null
+          updated_at?: string
+          valor_mensal?: number
+        }
+        Update: {
+          assessor_id?: string | null
+          contato_principal?: string | null
+          coordenador_id?: string | null
+          created_at?: string
+          data_aniversario_socio_cliente?: string | null
+          data_churn?: string | null
+          data_entrada?: string
+          email?: string | null
+          id?: string
+          motivo_churn?: string | null
+          nome?: string
+          organization_id?: string
+          servico_contratado?: string | null
+          status?: Database["public"]["Enums"]["client_status"]
+          telefone?: string | null
+          updated_at?: string
+          valor_mensal?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clients_assessor_id_fkey"
+            columns: ["assessor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clients_coordenador_id_fkey"
+            columns: ["coordenador_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clients_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           cnpj: string | null
@@ -145,6 +394,73 @@ export type Database = {
           },
         ]
       }
+      tasks: {
+        Row: {
+          atribuido_a: string
+          client_id: string | null
+          completed_at: string | null
+          created_at: string
+          criado_por: string
+          descricao: string | null
+          due_date: string | null
+          id: string
+          prioridade: Database["public"]["Enums"]["task_priority"]
+          status: Database["public"]["Enums"]["task_status"]
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          atribuido_a: string
+          client_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          criado_por: string
+          descricao?: string | null
+          due_date?: string | null
+          id?: string
+          prioridade?: Database["public"]["Enums"]["task_priority"]
+          status?: Database["public"]["Enums"]["task_status"]
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          atribuido_a?: string
+          client_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          criado_por?: string
+          descricao?: string | null
+          due_date?: string | null
+          id?: string
+          prioridade?: Database["public"]["Enums"]["task_priority"]
+          status?: Database["public"]["Enums"]["task_status"]
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_atribuido_a_fkey"
+            columns: ["atribuido_a"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -156,6 +472,16 @@ export type Database = {
       }
     }
     Enums: {
+      client_status: "ativo" | "churn" | "em_onboarding"
+      file_category: "briefing" | "contrato" | "criativo" | "outro"
+      important_date_type:
+        | "aniversario_socio"
+        | "renovacao"
+        | "kickoff"
+        | "custom"
+      note_type: "reuniao" | "observacao" | "mudanca_status"
+      task_priority: "alta" | "media" | "baixa"
+      task_status: "aberta" | "em_andamento" | "concluida"
       theme_preference: "light" | "dark" | "system"
       user_role: "adm" | "socio" | "comercial" | "coordenador" | "assessor"
     }
@@ -285,6 +611,17 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      client_status: ["ativo", "churn", "em_onboarding"],
+      file_category: ["briefing", "contrato", "criativo", "outro"],
+      important_date_type: [
+        "aniversario_socio",
+        "renovacao",
+        "kickoff",
+        "custom",
+      ],
+      note_type: ["reuniao", "observacao", "mudanca_status"],
+      task_priority: ["alta", "media", "baixa"],
+      task_status: ["aberta", "em_andamento", "concluida"],
       theme_preference: ["light", "dark", "system"],
       user_role: ["adm", "socio", "comercial", "coordenador", "assessor"],
     },
