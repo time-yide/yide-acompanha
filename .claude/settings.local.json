@@ -42,7 +42,14 @@
       "Bash(mv yide-acompanha/* .)",
       "Bash(mv yide-acompanha/.[^.]* .)",
       "Bash(rmdir yide-acompanha *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git restore *)",
+      "Bash(npx shadcn@latest init -d)",
+      "Bash(npx shadcn@latest add button input label dialog dropdown-menu avatar badge form select toast separator switch table card alert)",
+      "Bash(npx shadcn@latest add input)",
+      "Bash(npx shadcn@latest add sonner)",
+      "Bash(npx shadcn@latest add form)"
     ]
   }
 }
