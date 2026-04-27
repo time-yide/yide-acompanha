@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 export function ConviteForm({ canSetCommission }: { canSetCommission: boolean }) {
   return (
-    <form action={inviteColaboradorAction as any} className="space-y-5">
+    <form action={inviteColaboradorAction as unknown as (formData: FormData) => Promise<void>} className="space-y-5">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="nome">Nome completo</Label>

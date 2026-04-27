@@ -38,7 +38,6 @@ describe("permissions.canAccess", () => {
   });
 
   it("returns false for unknown role/action combo", () => {
-    // @ts-expect-error testing invalid input
-    expect(canAccess("invalid", "manage:users")).toBe(false);
+    expect(canAccess("invalid" as any, "manage:users")).toBe(false);
   });
 });

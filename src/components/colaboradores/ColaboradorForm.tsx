@@ -28,7 +28,7 @@ interface Props {
 
 export function ColaboradorForm({ data, canEditFinance, canEditRole }: Props) {
   return (
-    <form action={editColaboradorAction as any} className="space-y-5">
+    <form action={editColaboradorAction as unknown as (formData: FormData) => Promise<void>} className="space-y-5">
       <input type="hidden" name="id" value={data.id} />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

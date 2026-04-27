@@ -74,7 +74,7 @@ export default async function ConfiguracoesPage() {
       <Card className="p-6">
         <h2 className="text-lg font-semibold">Senha</h2>
         <p className="text-sm text-muted-foreground">
-          Para trocar a senha, use o link em "Esqueceu a senha" da tela de
+          Para trocar a senha, use o link em &quot;Esqueceu a senha&quot; da tela de
           login.
         </p>
       </Card>
