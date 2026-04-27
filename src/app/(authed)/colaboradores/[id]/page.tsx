@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import Image from "next/image";
 import { requireAuth } from "@/lib/auth/session";
 import { canAccess } from "@/lib/auth/permissions";
 import { getColaboradorById } from "@/lib/colaboradores/queries";
@@ -13,7 +14,20 @@ const roleLabels: Record<string, string> = {
   comercial: "Comercial",
   coordenador: "Coordenador",
   assessor: "Assessor",
+  videomaker: "Videomaker",
+  designer: "Designer",
+  editor: "Editor",
+  audiovisual_chefe: "Audiovisual Chefe",
 };
+
+function initials(nome: string): string {
+  return nome
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? "")
+    .join("");
+}
 
 export default async function ColaboradorPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -30,18 +44,34 @@ export default async function ColaboradorPage({ params }: { params: Promise<{ id
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <header className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">{colab.nome}</h1>
-          <div className="mt-1 flex items-center gap-2">
-            <Badge variant="secondary">{roleLabels[colab.role] ?? colab.role}</Badge>
-            {colab.ativo ? (
-              <Badge variant="outline" className="border-green-500/40 text-green-600 dark:text-green-400">
-                Ativo
-              </Badge>
-            ) : (
-              <Badge variant="outline">Inativo</Badge>
-            )}
+      <header className="flex items-start justify-between gap-4">
+        <div className="flex items-center gap-4">
+          {colab.avatar_url ? (
+            <Image
+              src={colab.avatar_url}
+              alt={colab.nome}
+              width={96}
+              height={96}
+              className="h-24 w-24 rounded-full object-cover"
+              unoptimized
+            />
+          ) : (
+            <div className="flex h-24 w-24 items-center justify-center rounded-full bg-muted text-2xl font-semibold text-muted-foreground">
+              {initials(colab.nome)}
+            </div>
+          )}
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">{colab.nome}</h1>
+            <div className="mt-1 flex items-center gap-2">
+              <Badge variant="secondary">{roleLabels[colab.role] ?? colab.role}</Badge>
+              {colab.ativo ? (
+                <Badge variant="outline" className="border-green-500/40 text-green-600 dark:text-green-400">
+                  Ativo
+                </Badge>
+              ) : (
+                <Badge variant="outline">Inativo</Badge>
+              )}
+            </div>
           </div>
         </div>
         {canEdit && (
