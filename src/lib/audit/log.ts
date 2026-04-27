@@ -4,7 +4,7 @@ import type { Database } from "@/types/database";
 interface AuditEntry {
   entidade: string;
   entidade_id: string;
-  acao: "create" | "update" | "soft_delete" | "approve";
+  acao: "create" | "update" | "soft_delete" | "delete" | "complete" | "reopen" | "approve";
   dados_antes?: Record<string, unknown>;
   dados_depois?: Record<string, unknown>;
   ator_id: string;

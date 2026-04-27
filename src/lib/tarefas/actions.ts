@@ -196,7 +196,7 @@ export async function toggleTaskCompletionAction(taskId: string) {
   await logAudit({
     entidade: "tasks",
     entidade_id: taskId,
-    acao: "update",
+    acao: novoStatus === "concluida" ? "complete" : "reopen",
     dados_antes: { status: t.status, completed_at: t.completed_at } as Record<string, unknown>,
     dados_depois: { status: novoStatus, completed_at } as Record<string, unknown>,
     ator_id: actor.id,
@@ -233,7 +233,7 @@ export async function deleteTaskAction(taskId: string) {
   await logAudit({
     entidade: "tasks",
     entidade_id: taskId,
-    acao: "soft_delete",
+    acao: "delete",
     dados_antes: t as unknown as Record<string, unknown>,
     ator_id: actor.id,
   });
