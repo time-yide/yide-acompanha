@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth, requirePermission, type CurrentUser } from "@/lib/auth/session";
 import { logAudit } from "@/lib/audit/log";
-import { notifyTaskAssigned, notifyTaskCompleted } from "@/lib/notificacoes/trigger";
+import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 import { createTaskSchema, editTaskSchema } from "./schema";
 
 function fd(formData: FormData, key: string) {
@@ -67,12 +67,13 @@ export async function createTaskAction(formData: FormData) {
     ator_id: actor.id,
   });
 
-  await notifyTaskAssigned({
-    taskId: created.id,
-    assigneeId: parsed.data.atribuido_a,
-    creatorId: actor.id,
-    taskTitle: created.titulo,
-    creatorName: actor.nome,
+  await dispatchNotification({
+    evento_tipo: "task_assigned",
+    titulo: "Nova tarefa atribuída a você",
+    mensagem: `${actor.nome} atribuiu: "${created.titulo}"`,
+    link: `/tarefas/${created.id}`,
+    user_ids_extras: [parsed.data.atribuido_a],
+    source_user_id: actor.id,
   });
 
   revalidatePath("/tarefas");
@@ -144,22 +145,24 @@ export async function updateTaskAction(formData: FormData) {
   });
 
   if (parsed.data.atribuido_a !== before.atribuido_a) {
-    await notifyTaskAssigned({
-      taskId: parsed.data.id,
-      assigneeId: parsed.data.atribuido_a,
-      creatorId: actor.id,
-      taskTitle: parsed.data.titulo,
-      creatorName: actor.nome,
+    await dispatchNotification({
+      evento_tipo: "task_assigned",
+      titulo: "Nova tarefa atribuída a você",
+      mensagem: `${actor.nome} atribuiu: "${parsed.data.titulo}"`,
+      link: `/tarefas/${parsed.data.id}`,
+      user_ids_extras: [parsed.data.atribuido_a],
+      source_user_id: actor.id,
     });
   }
 
   if (parsed.data.status === "concluida" && before.status !== "concluida") {
-    await notifyTaskCompleted({
-      taskId: parsed.data.id,
-      completerId: actor.id,
-      creatorId: before.criado_por,
-      taskTitle: parsed.data.titulo,
-      completerName: actor.nome,
+    await dispatchNotification({
+      evento_tipo: "task_completed",
+      titulo: "Tarefa concluída",
+      mensagem: `${actor.nome} concluiu: "${parsed.data.titulo}"`,
+      link: `/tarefas/${parsed.data.id}`,
+      user_ids_extras: [before.criado_por],
+      source_user_id: actor.id,
     });
   }
 
@@ -203,12 +206,13 @@ export async function toggleTaskCompletionAction(taskId: string) {
   });
 
   if (novoStatus === "concluida") {
-    await notifyTaskCompleted({
-      taskId,
-      completerId: actor.id,
-      creatorId: t.criado_por,
-      taskTitle: t.titulo,
-      completerName: actor.nome,
+    await dispatchNotification({
+      evento_tipo: "task_completed",
+      titulo: "Tarefa concluída",
+      mensagem: `${actor.nome} concluiu: "${t.titulo}"`,
+      link: `/tarefas/${taskId}`,
+      user_ids_extras: [t.criado_por],
+      source_user_id: actor.id,
     });
   }
 
