@@ -8,6 +8,8 @@ const serverSchema = z.object({
   RESEND_API_KEY: z.string().min(10),
   RESEND_FROM: z.string().min(5),
   NEXT_PUBLIC_APP_URL: z.string().url(),
+  // Opcional: usado pelo endpoint do cron. Sem isso, o endpoint retorna 401 pra qualquer request.
+  CRON_SECRET: z.string().optional(),
 });
 
 const clientSchema = z.object({

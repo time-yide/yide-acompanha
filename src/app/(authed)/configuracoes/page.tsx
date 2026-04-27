@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { Bell } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { updateOwnProfileAction } from "@/lib/profile/actions";
@@ -69,6 +71,20 @@ export default async function ConfiguracoesPage() {
           </div>
           <Button type="submit">Salvar</Button>
         </form>
+      </Card>
+
+      <Card className="p-6">
+        <h2 className="mb-2 text-lg font-semibold">Notificações</h2>
+        <p className="mb-3 text-sm text-muted-foreground">
+          Configure quais notificações você recebe e por qual canal.
+        </p>
+        <Link
+          href="/configuracoes/notificacoes"
+          className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+        >
+          <Bell className="h-4 w-4" />
+          Gerenciar notificações →
+        </Link>
       </Card>
 
       <Card className="p-6">

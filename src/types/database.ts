@@ -376,6 +376,27 @@ export type Database = {
           },
         ]
       }
+      cron_runs: {
+        Row: {
+          details: Json | null
+          job_name: string
+          ran_at: string
+          run_date: string
+        }
+        Insert: {
+          details?: Json | null
+          job_name: string
+          ran_at?: string
+          run_date: string
+        }
+        Update: {
+          details?: Json | null
+          job_name?: string
+          ran_at?: string
+          run_date?: string
+        }
+        Relationships: []
+      }
       lead_attempts: {
         Row: {
           autor_id: string
@@ -582,6 +603,82 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_preferences: {
+        Row: {
+          email: boolean
+          evento_tipo: Database["public"]["Enums"]["notification_event"]
+          in_app: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          email?: boolean
+          evento_tipo: Database["public"]["Enums"]["notification_event"]
+          in_app?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          email?: boolean
+          evento_tipo?: Database["public"]["Enums"]["notification_event"]
+          in_app?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_rules: {
+        Row: {
+          ativo: boolean
+          default_roles: string[]
+          default_user_ids: string[]
+          email_default: boolean
+          evento_tipo: Database["public"]["Enums"]["notification_event"]
+          mandatory: boolean
+          permite_destinatarios_extras: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          default_roles?: string[]
+          default_user_ids?: string[]
+          email_default?: boolean
+          evento_tipo: Database["public"]["Enums"]["notification_event"]
+          mandatory?: boolean
+          permite_destinatarios_extras?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          default_roles?: string[]
+          default_user_ids?: string[]
+          email_default?: boolean
+          evento_tipo?: Database["public"]["Enums"]["notification_event"]
+          mandatory?: boolean
+          permite_destinatarios_extras?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_rules_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -822,6 +919,23 @@ export type Database = {
         | "marco_zero"
         | "ativo"
       note_type: "reuniao" | "observacao" | "mudanca_status"
+      notification_event:
+        | "task_assigned"
+        | "task_completed"
+        | "kanban_moved"
+        | "prospeccao_agendada"
+        | "deal_fechado"
+        | "mes_aguardando_aprovacao"
+        | "mes_aprovado"
+        | "cliente_perto_churn"
+        | "task_prazo_amanha"
+        | "task_overdue"
+        | "evento_calendario_hoje"
+        | "marco_zero_24h"
+        | "aniversario_socio_cliente"
+        | "aniversario_colaborador"
+        | "renovacao_contrato"
+        | "satisfacao_pendente"
       sub_calendar: "agencia" | "onboarding" | "aniversarios"
       task_priority: "alta" | "media" | "baixa"
       task_status: "aberta" | "em_andamento" | "concluida"
@@ -988,6 +1102,24 @@ export const Constants = {
         "ativo",
       ],
       note_type: ["reuniao", "observacao", "mudanca_status"],
+      notification_event: [
+        "task_assigned",
+        "task_completed",
+        "kanban_moved",
+        "prospeccao_agendada",
+        "deal_fechado",
+        "mes_aguardando_aprovacao",
+        "mes_aprovado",
+        "cliente_perto_churn",
+        "task_prazo_amanha",
+        "task_overdue",
+        "evento_calendario_hoje",
+        "marco_zero_24h",
+        "aniversario_socio_cliente",
+        "aniversario_colaborador",
+        "renovacao_contrato",
+        "satisfacao_pendente",
+      ],
       sub_calendar: ["agencia", "onboarding", "aniversarios"],
       task_priority: ["alta", "media", "baixa"],
       task_status: ["aberta", "em_andamento", "concluida"],
