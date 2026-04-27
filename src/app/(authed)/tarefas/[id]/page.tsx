@@ -1,12 +1,18 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { Trash2 } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
+import type { CurrentUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { getTaskById } from "@/lib/tarefas/queries";
-import { updateTaskAction, toggleTaskCompletionAction } from "@/lib/tarefas/actions";
+import { updateTaskAction, toggleTaskCompletionAction, deleteTaskAction } from "@/lib/tarefas/actions";
 import { TaskForm } from "@/components/tarefas/TaskForm";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+
+function isPrivileged(user: CurrentUser): boolean {
+  return user.role === "adm" || user.role === "socio";
+}
 
 export default async function TarefaPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -21,24 +27,40 @@ export default async function TarefaPage({ params }: { params: Promise<{ id: str
     supabase.from("clients").select("id, nome").eq("status", "ativo").order("nome"),
   ]);
 
-  const canEdit = task.criado_por === user.id || task.atribuido_a === user.id;
+  const canEdit = task.criado_por === user.id || task.atribuido_a === user.id || isPrivileged(user);
+  const canDelete = task.criado_por === user.id || isPrivileged(user);
 
   async function toggle() {
     "use server";
     await toggleTaskCompletionAction(id);
   }
 
+  async function deleteTask() {
+    "use server";
+    await deleteTaskAction(id);
+  }
+
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <header className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">Detalhes da tarefa</h1>
-        {canEdit && (
-          <form action={toggle}>
-            <Button type="submit" variant={task.status === "concluida" ? "outline" : "default"}>
-              {task.status === "concluida" ? "Reabrir" : "Marcar como concluída"}
-            </Button>
-          </form>
-        )}
+        <div className="flex items-center gap-2">
+          {canEdit && (
+            <form action={toggle}>
+              <Button type="submit" variant={task.status === "concluida" ? "outline" : "default"}>
+                {task.status === "concluida" ? "Reabrir" : "Marcar como concluída"}
+              </Button>
+            </form>
+          )}
+          {canDelete && (
+            <form action={deleteTask}>
+              <Button type="submit" variant="ghost" className="text-destructive hover:text-destructive">
+                <Trash2 className="h-4 w-4 mr-1" />
+                Excluir
+              </Button>
+            </form>
+          )}
+        </div>
       </header>
 
       {task.client_id && task.cliente?.nome && (

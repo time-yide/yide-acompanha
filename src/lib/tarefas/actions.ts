@@ -3,7 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { requireAuth } from "@/lib/auth/session";
+import { requireAuth, requirePermission, type CurrentUser } from "@/lib/auth/session";
+import { logAudit } from "@/lib/audit/log";
+import { notifyTaskAssigned, notifyTaskCompleted } from "@/lib/notificacoes/trigger";
 import { createTaskSchema, editTaskSchema } from "./schema";
 
 function fd(formData: FormData, key: string) {
@@ -11,8 +13,17 @@ function fd(formData: FormData, key: string) {
   return v === null || v === "" ? undefined : String(v);
 }
 
+function isPrivileged(user: CurrentUser): boolean {
+  return user.role === "adm" || user.role === "socio";
+}
+
+async function getProfileNameAndActive(supabase: Awaited<ReturnType<typeof createClient>>, profileId: string) {
+  const { data } = await supabase.from("profiles").select("nome, ativo").eq("id", profileId).single();
+  return data ?? null;
+}
+
 export async function createTaskAction(formData: FormData) {
-  const actor = await requireAuth();
+  const actor = await requirePermission("create:tasks");
 
   const parsed = createTaskSchema.safeParse({
     titulo: fd(formData, "titulo"),
@@ -26,21 +37,43 @@ export async function createTaskAction(formData: FormData) {
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
   const supabase = await createClient();
+
+  const assignee = await getProfileNameAndActive(supabase, parsed.data.atribuido_a);
+  if (!assignee || !assignee.ativo) return { error: "Responsável inválido ou desativado" };
+
+  const insertPayload = {
+    titulo: parsed.data.titulo,
+    descricao: parsed.data.descricao || null,
+    prioridade: parsed.data.prioridade,
+    atribuido_a: parsed.data.atribuido_a,
+    client_id: parsed.data.client_id || null,
+    due_date: parsed.data.due_date || null,
+    criado_por: actor.id,
+  };
+
   const { data: created, error } = await supabase
     .from("tasks")
-    .insert({
-      titulo: parsed.data.titulo,
-      descricao: parsed.data.descricao || null,
-      prioridade: parsed.data.prioridade,
-      atribuido_a: parsed.data.atribuido_a,
-      client_id: parsed.data.client_id || null,
-      due_date: parsed.data.due_date || null,
-      criado_por: actor.id,
-    })
-    .select("id, client_id")
+    .insert(insertPayload)
+    .select("id, client_id, titulo")
     .single();
 
   if (error || !created) return { error: error?.message ?? "Falha ao criar tarefa" };
+
+  await logAudit({
+    entidade: "tasks",
+    entidade_id: created.id,
+    acao: "create",
+    dados_depois: insertPayload as unknown as Record<string, unknown>,
+    ator_id: actor.id,
+  });
+
+  await notifyTaskAssigned({
+    taskId: created.id,
+    assigneeId: parsed.data.atribuido_a,
+    creatorId: actor.id,
+    taskTitle: created.titulo,
+    creatorName: actor.nome,
+  });
 
   revalidatePath("/tarefas");
   if (created.client_id) revalidatePath(`/clientes/${created.client_id}/tarefas`);
@@ -67,10 +100,19 @@ export async function updateTaskAction(formData: FormData) {
   const { data: before } = await supabase.from("tasks").select("*").eq("id", parsed.data.id).single();
   if (!before) return { error: "Tarefa não encontrada" };
 
-  if (before.criado_por !== actor.id && before.atribuido_a !== actor.id) {
-    return { error: "Apenas criador ou responsável podem editar" };
-  }
+  const canEdit =
+    before.criado_por === actor.id ||
+    before.atribuido_a === actor.id ||
+    isPrivileged(actor);
+  if (!canEdit) return { error: "Sem permissão" };
 
+  const assignee = await getProfileNameAndActive(supabase, parsed.data.atribuido_a);
+  if (!assignee || !assignee.ativo) return { error: "Responsável inválido ou desativado" };
+
+  // Three cases:
+  // 1. Transitioning to concluida (was not concluida before) → stamp now
+  // 2. Status not concluida (reopen or changing to non-complete) → clear stamp
+  // 3. Status remains concluida (re-save without status change) → preserve existing stamp
   const completed_at =
     parsed.data.status === "concluida" && before.status !== "concluida"
       ? new Date().toISOString()
@@ -78,21 +120,48 @@ export async function updateTaskAction(formData: FormData) {
         ? null
         : before.completed_at;
 
-  const { error } = await supabase
-    .from("tasks")
-    .update({
-      titulo: parsed.data.titulo,
-      descricao: parsed.data.descricao || null,
-      prioridade: parsed.data.prioridade,
-      atribuido_a: parsed.data.atribuido_a,
-      client_id: parsed.data.client_id || null,
-      due_date: parsed.data.due_date || null,
-      status: parsed.data.status,
-      completed_at,
-    })
-    .eq("id", parsed.data.id);
+  const updatePayload = {
+    titulo: parsed.data.titulo,
+    descricao: parsed.data.descricao || null,
+    prioridade: parsed.data.prioridade,
+    atribuido_a: parsed.data.atribuido_a,
+    client_id: parsed.data.client_id || null,
+    due_date: parsed.data.due_date || null,
+    status: parsed.data.status,
+    completed_at,
+  };
 
+  const { error } = await supabase.from("tasks").update(updatePayload).eq("id", parsed.data.id);
   if (error) return { error: error.message };
+
+  await logAudit({
+    entidade: "tasks",
+    entidade_id: parsed.data.id,
+    acao: "update",
+    dados_antes: before as unknown as Record<string, unknown>,
+    dados_depois: updatePayload as unknown as Record<string, unknown>,
+    ator_id: actor.id,
+  });
+
+  if (parsed.data.atribuido_a !== before.atribuido_a) {
+    await notifyTaskAssigned({
+      taskId: parsed.data.id,
+      assigneeId: parsed.data.atribuido_a,
+      creatorId: actor.id,
+      taskTitle: parsed.data.titulo,
+      creatorName: actor.nome,
+    });
+  }
+
+  if (parsed.data.status === "concluida" && before.status !== "concluida") {
+    await notifyTaskCompleted({
+      taskId: parsed.data.id,
+      completerId: actor.id,
+      creatorId: before.criado_por,
+      taskTitle: parsed.data.titulo,
+      completerName: actor.nome,
+    });
+  }
 
   revalidatePath("/tarefas");
   revalidatePath(`/tarefas/${parsed.data.id}`);
@@ -108,9 +177,12 @@ export async function toggleTaskCompletionAction(taskId: string) {
   const supabase = await createClient();
   const { data: t } = await supabase.from("tasks").select("*").eq("id", taskId).single();
   if (!t) return { error: "Tarefa não encontrada" };
-  if (t.criado_por !== actor.id && t.atribuido_a !== actor.id) {
-    return { error: "Sem permissão" };
-  }
+
+  const canToggle =
+    t.criado_por === actor.id ||
+    t.atribuido_a === actor.id ||
+    isPrivileged(actor);
+  if (!canToggle) return { error: "Sem permissão" };
 
   const novoStatus = t.status === "concluida" ? "aberta" : "concluida";
   const completed_at = novoStatus === "concluida" ? new Date().toISOString() : null;
@@ -119,10 +191,54 @@ export async function toggleTaskCompletionAction(taskId: string) {
     .from("tasks")
     .update({ status: novoStatus, completed_at })
     .eq("id", taskId);
-
   if (error) return { error: error.message };
+
+  await logAudit({
+    entidade: "tasks",
+    entidade_id: taskId,
+    acao: novoStatus === "concluida" ? "complete" : "reopen",
+    dados_antes: { status: t.status, completed_at: t.completed_at } as Record<string, unknown>,
+    dados_depois: { status: novoStatus, completed_at } as Record<string, unknown>,
+    ator_id: actor.id,
+  });
+
+  if (novoStatus === "concluida") {
+    await notifyTaskCompleted({
+      taskId,
+      completerId: actor.id,
+      creatorId: t.criado_por,
+      taskTitle: t.titulo,
+      completerName: actor.nome,
+    });
+  }
+
+  revalidatePath("/tarefas");
+  revalidatePath(`/tarefas/${taskId}`);
+  if (t.client_id) revalidatePath(`/clientes/${t.client_id}/tarefas`);
+  return { success: novoStatus === "concluida" ? "Tarefa concluída" : "Tarefa reaberta" };
+}
+
+export async function deleteTaskAction(taskId: string) {
+  const actor = await requireAuth();
+  const supabase = await createClient();
+  const { data: t } = await supabase.from("tasks").select("*").eq("id", taskId).single();
+  if (!t) return { error: "Tarefa não encontrada" };
+
+  const canDelete = t.criado_por === actor.id || isPrivileged(actor);
+  if (!canDelete) return { error: "Sem permissão" };
+
+  const { error } = await supabase.from("tasks").delete().eq("id", taskId);
+  if (error) return { error: error.message };
+
+  await logAudit({
+    entidade: "tasks",
+    entidade_id: taskId,
+    acao: "delete",
+    dados_antes: t as unknown as Record<string, unknown>,
+    ator_id: actor.id,
+  });
 
   revalidatePath("/tarefas");
   if (t.client_id) revalidatePath(`/clientes/${t.client_id}/tarefas`);
-  return { success: novoStatus === "concluida" ? "Tarefa concluída" : "Tarefa reaberta" };
+  redirect("/tarefas");
 }
