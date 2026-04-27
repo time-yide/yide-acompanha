@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { requireAuth, type CurrentUser } from "@/lib/auth/session";
+import { requireAuth, requirePermission, type CurrentUser } from "@/lib/auth/session";
 import { logAudit } from "@/lib/audit/log";
 import { notifyTaskAssigned, notifyTaskCompleted } from "@/lib/notificacoes/trigger";
 import { createTaskSchema, editTaskSchema } from "./schema";
@@ -23,7 +23,7 @@ async function getProfileNameAndActive(supabase: Awaited<ReturnType<typeof creat
 }
 
 export async function createTaskAction(formData: FormData) {
-  const actor = await requireAuth();
+  const actor = await requirePermission("create:tasks");
 
   const parsed = createTaskSchema.safeParse({
     titulo: fd(formData, "titulo"),
@@ -109,6 +109,10 @@ export async function updateTaskAction(formData: FormData) {
   const assignee = await getProfileNameAndActive(supabase, parsed.data.atribuido_a);
   if (!assignee || !assignee.ativo) return { error: "Responsável inválido ou desativado" };
 
+  // Three cases:
+  // 1. Transitioning to concluida (was not concluida before) → stamp now
+  // 2. Status not concluida (reopen or changing to non-complete) → clear stamp
+  // 3. Status remains concluida (re-save without status change) → preserve existing stamp
   const completed_at =
     parsed.data.status === "concluida" && before.status !== "concluida"
       ? new Date().toISOString()
