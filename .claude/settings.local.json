@@ -50,7 +50,9 @@
       "Bash(npx shadcn@latest add input)",
       "Bash(npx shadcn@latest add sonner)",
       "Bash(npx shadcn@latest add form)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(npm ls *)",
+      "Bash(export SUPABASE_ACCESS_TOKEN=$\\(grep '^SUPABASE_ACCESS_TOKEN=' .env.local)"
     ]
   }
 }

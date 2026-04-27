@@ -27,8 +27,8 @@ export function UserMenu({ nome, email }: { nome: string; email: string }) {
           <div className="text-xs font-normal text-muted-foreground">{email}</div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link href="/configuracoes" className="cursor-pointer">
+        <DropdownMenuItem>
+          <Link href="/configuracoes" className="flex cursor-pointer items-center">
             <Settings className="mr-2 h-4 w-4" />
             Configurações
           </Link>
