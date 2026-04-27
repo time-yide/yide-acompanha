@@ -37,12 +37,10 @@ export async function listClientes(filters?: {
 
   const { data, error } = await query;
   if (error) throw error;
-  return (data ?? []).map((r) => ({
+  return (data ?? []).map((r: any) => ({
     ...r,
     valor_mensal: Number(r.valor_mensal),
-    // @ts-expect-error supabase nested select shape
     assessor_nome: r.assessor?.nome ?? null,
-    // @ts-expect-error supabase nested select shape
     coordenador_nome: r.coordenador?.nome ?? null,
   }));
 }
