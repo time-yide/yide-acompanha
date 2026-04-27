@@ -49,7 +49,8 @@
       "Bash(npx shadcn@latest add button input label dialog dropdown-menu avatar badge form select toast separator switch table card alert)",
       "Bash(npx shadcn@latest add input)",
       "Bash(npx shadcn@latest add sonner)",
-      "Bash(npx shadcn@latest add form)"
+      "Bash(npx shadcn@latest add form)",
+      "Bash(npm run *)"
     ]
   }
 }
