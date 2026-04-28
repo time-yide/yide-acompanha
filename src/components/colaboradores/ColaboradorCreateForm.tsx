@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState } from "react";
 import { useRouter } from "next/navigation";
 import { createColaboradorAction } from "@/lib/colaboradores/actions";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { RevealedPasswordBlock } from "@/components/colaboradores/RevealedPasswordBlock";
 
 type ActionState =
   | { success: true; password: string; userId: string }
@@ -31,21 +32,9 @@ async function createColaboradorActionWrapper(
 export function ColaboradorCreateForm({ canSetCommission }: { canSetCommission: boolean }) {
   const [state, formAction, isPending] = useActionState(createColaboradorActionWrapper, null);
   const router = useRouter();
-  const [copied, setCopied] = useState(false);
 
   const success = state && "success" in state ? state : null;
   const errorMsg = state && "error" in state ? state.error : null;
-
-  async function handleCopy() {
-    if (!success) return;
-    try {
-      await navigator.clipboard.writeText(success.password);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // se a clipboard falhar, deixa o usuário copiar manualmente do bloco visível.
-    }
-  }
 
   function handleClose() {
     router.push("/colaboradores");
@@ -137,17 +126,10 @@ export function ColaboradorCreateForm({ canSetCommission }: { canSetCommission: 
           </DialogHeader>
 
           {success && (
-            <div className="space-y-3">
-              <div className="rounded-md border bg-muted/50 p-3 font-mono text-sm break-all select-all">
-                {success.password}
-              </div>
-              <Button type="button" variant="secondary" onClick={handleCopy} className="w-full">
-                {copied ? "Copiado!" : "Copiar"}
-              </Button>
-              <p className="text-xs text-muted-foreground">
-                Se você fechar antes de copiar, será possível gerar uma nova senha em &quot;Editar colaborador → Resetar senha&quot;.
-              </p>
-            </div>
+            <RevealedPasswordBlock
+              password={success.password}
+              hint="Se você fechar antes de copiar, será possível gerar uma nova senha em “Editar colaborador → Resetar senha”."
+            />
           )}
 
           <DialogFooter>

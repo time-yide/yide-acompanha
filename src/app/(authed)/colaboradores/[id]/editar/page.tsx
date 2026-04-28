@@ -4,6 +4,7 @@ import { canAccess } from "@/lib/auth/permissions";
 import { getColaboradorById } from "@/lib/colaboradores/queries";
 import { ColaboradorForm } from "@/components/colaboradores/ColaboradorForm";
 import { AvatarUpload } from "@/components/colaboradores/AvatarUpload";
+import { ResetSenhaButton } from "@/components/colaboradores/ResetSenhaButton";
 import { Card } from "@/components/ui/card";
 
 export default async function EditarColaboradorPage({ params }: { params: Promise<{ id: string }> }) {
@@ -60,6 +61,16 @@ export default async function EditarColaboradorPage({ params }: { params: Promis
           canEditMetas={canEditMetas}
         />
       </Card>
+
+      {(user.role === "socio" || user.role === "adm") && user.id !== colab.id && (
+        <Card className="p-6">
+          <h2 className="mb-2 text-lg font-semibold">Senha</h2>
+          <p className="mb-4 text-sm text-muted-foreground">
+            Gera uma nova senha aleatória e invalida a atual. A senha aparecerá uma única vez para você copiar e enviar ao colaborador.
+          </p>
+          <ResetSenhaButton userId={colab.id} userNome={colab.nome} />
+        </Card>
+      )}
     </div>
   );
 }
