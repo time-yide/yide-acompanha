@@ -126,3 +126,46 @@ describe("getKpis", () => {
     expect(r.custoComissaoPct.pct).toBe(0);
   });
 });
+
+import { getCarteiraTimeline } from "@/lib/dashboard/queries";
+
+describe("getCarteiraTimeline", () => {
+  it("calcula carteira mes a mes considerando entrada e churn", async () => {
+    fromMock.mockImplementation((table) => {
+      if (table === "clients") {
+        return {
+          select: vi.fn().mockResolvedValue({
+            data: [
+              // Cliente ativo de 01/2026 em diante
+              { id: "c1", valor_mensal: 5000, data_entrada: "2026-01-15", data_churn: null },
+              // Cliente ativo de 02/2026 a 03/2026 (churnou em 03)
+              { id: "c2", valor_mensal: 3000, data_entrada: "2026-02-01", data_churn: "2026-03-20" },
+            ],
+          }),
+        };
+      }
+      return {};
+    });
+
+    const timeline = await getCarteiraTimeline(4, new Date(Date.UTC(2026, 3, 28)));
+    expect(timeline).toHaveLength(4);
+    expect(timeline.map((p) => p.mes)).toEqual(["2026-01", "2026-02", "2026-03", "2026-04"]);
+    // Janeiro: só c1 ativo no fim de janeiro
+    expect(timeline[0].valorTotal).toBe(5000);
+    // Fevereiro: c1 + c2 ativos
+    expect(timeline[1].valorTotal).toBe(8000);
+    // Março: c1 ativo, c2 churnou em 20/03 → no fim de março não estava ativo
+    expect(timeline[2].valorTotal).toBe(5000);
+    // Abril: só c1
+    expect(timeline[3].valorTotal).toBe(5000);
+  });
+
+  it("retorna 0 em meses sem clientes ativos", async () => {
+    fromMock.mockImplementation(() => ({
+      select: vi.fn().mockResolvedValue({ data: [] }),
+    }));
+    const timeline = await getCarteiraTimeline(3, new Date(Date.UTC(2026, 3, 28)));
+    expect(timeline).toHaveLength(3);
+    expect(timeline.every((p) => p.valorTotal === 0)).toBe(true);
+  });
+});
