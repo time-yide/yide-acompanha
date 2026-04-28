@@ -376,6 +376,136 @@ export type Database = {
           },
         ]
       }
+      commission_snapshot_items: {
+        Row: {
+          base: number
+          client_id: string | null
+          created_at: string
+          descricao: string
+          id: string
+          lead_id: string | null
+          percentual: number
+          snapshot_id: string
+          tipo: Database["public"]["Enums"]["snapshot_item_tipo"]
+          valor: number
+        }
+        Insert: {
+          base?: number
+          client_id?: string | null
+          created_at?: string
+          descricao: string
+          id?: string
+          lead_id?: string | null
+          percentual?: number
+          snapshot_id: string
+          tipo: Database["public"]["Enums"]["snapshot_item_tipo"]
+          valor?: number
+        }
+        Update: {
+          base?: number
+          client_id?: string | null
+          created_at?: string
+          descricao?: string
+          id?: string
+          lead_id?: string | null
+          percentual?: number
+          snapshot_id?: string
+          tipo?: Database["public"]["Enums"]["snapshot_item_tipo"]
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_snapshot_items_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_snapshot_items_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_snapshot_items_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "commission_snapshots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      commission_snapshots: {
+        Row: {
+          ajuste_manual: number
+          aprovado_em: string | null
+          aprovado_por: string | null
+          base_calculo: number
+          created_at: string
+          fixo: number
+          id: string
+          justificativa_ajuste: string | null
+          mes_referencia: string
+          papel_naquele_mes: string
+          percentual_aplicado: number
+          status: Database["public"]["Enums"]["snapshot_status"]
+          user_id: string
+          valor_total: number
+          valor_variavel: number
+        }
+        Insert: {
+          ajuste_manual?: number
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          base_calculo?: number
+          created_at?: string
+          fixo?: number
+          id?: string
+          justificativa_ajuste?: string | null
+          mes_referencia: string
+          papel_naquele_mes: string
+          percentual_aplicado?: number
+          status?: Database["public"]["Enums"]["snapshot_status"]
+          user_id: string
+          valor_total?: number
+          valor_variavel?: number
+        }
+        Update: {
+          ajuste_manual?: number
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          base_calculo?: number
+          created_at?: string
+          fixo?: number
+          id?: string
+          justificativa_ajuste?: string | null
+          mes_referencia?: string
+          papel_naquele_mes?: string
+          percentual_aplicado?: number
+          status?: Database["public"]["Enums"]["snapshot_status"]
+          user_id?: string
+          valor_total?: number
+          valor_variavel?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_snapshots_aprovado_por_fkey"
+            columns: ["aprovado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_snapshots_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cron_runs: {
         Row: {
           details: Json | null
@@ -936,6 +1066,12 @@ export type Database = {
         | "aniversario_colaborador"
         | "renovacao_contrato"
         | "satisfacao_pendente"
+      snapshot_item_tipo:
+        | "fixo"
+        | "carteira_assessor"
+        | "carteira_coord_agencia"
+        | "deal_fechado_comercial"
+      snapshot_status: "pending_approval" | "aprovado"
       sub_calendar: "agencia" | "onboarding" | "aniversarios"
       task_priority: "alta" | "media" | "baixa"
       task_status: "aberta" | "em_andamento" | "concluida"
@@ -1120,6 +1256,13 @@ export const Constants = {
         "renovacao_contrato",
         "satisfacao_pendente",
       ],
+      snapshot_item_tipo: [
+        "fixo",
+        "carteira_assessor",
+        "carteira_coord_agencia",
+        "deal_fechado_comercial",
+      ],
+      snapshot_status: ["pending_approval", "aprovado"],
       sub_calendar: ["agencia", "onboarding", "aniversarios"],
       task_priority: ["alta", "media", "baixa"],
       task_status: ["aberta", "em_andamento", "concluida"],
