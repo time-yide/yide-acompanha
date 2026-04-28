@@ -391,3 +391,85 @@ describe("getMesAguardandoAprovacao", () => {
     expect(r).toBeNull();
   });
 });
+
+describe("getKpis with filter", () => {
+  it("filtra clientes por assessorId quando passado", async () => {
+    const eqMock = vi.fn().mockReturnValue({
+      eq: vi.fn().mockResolvedValue({
+        data: [
+          { id: "c1", valor_mensal: 5000, data_entrada: "2025-01-01", data_churn: null, status: "ativo", assessor_id: "a1" },
+        ],
+      }),
+    });
+    fromMock.mockImplementation((table) => {
+      if (table === "clients") {
+        return { select: () => ({ eq: eqMock }) };
+      }
+      if (table === "commission_snapshots") {
+        return { select: () => ({ order: () => ({ limit: vi.fn().mockResolvedValue({ data: [] }) }) }) };
+      }
+      return {};
+    });
+
+    const r = await getKpis(new Date(Date.UTC(2026, 3, 28)), { assessorId: "a1" });
+    expect(r.carteiraAtiva.valor).toBe(5000);
+    expect(r.clientesAtivos.quantidade).toBe(1);
+  });
+
+  it("filtra clientes por coordenadorId quando passado", async () => {
+    const eqMock = vi.fn().mockReturnValue({
+      eq: vi.fn().mockResolvedValue({
+        data: [
+          { id: "c1", valor_mensal: 3000, data_entrada: "2025-01-01", data_churn: null, status: "ativo", coordenador_id: "co1" },
+          { id: "c2", valor_mensal: 4000, data_entrada: "2025-01-01", data_churn: null, status: "ativo", coordenador_id: "co1" },
+        ],
+      }),
+    });
+    fromMock.mockImplementation((table) => {
+      if (table === "clients") {
+        return { select: () => ({ eq: eqMock }) };
+      }
+      if (table === "commission_snapshots") {
+        return { select: () => ({ order: () => ({ limit: vi.fn().mockResolvedValue({ data: [] }) }) }) };
+      }
+      return {};
+    });
+
+    const r = await getKpis(new Date(Date.UTC(2026, 3, 28)), { coordenadorId: "co1" });
+    expect(r.carteiraAtiva.valor).toBe(7000);
+    expect(r.clientesAtivos.quantidade).toBe(2);
+  });
+});
+
+describe("getCarteiraTimeline with filter", () => {
+  it("filtra clientes por assessorId quando passado", async () => {
+    const eqMock = vi.fn().mockResolvedValue({
+      data: [
+        { id: "c1", valor_mensal: 5000, data_entrada: "2026-01-15", data_churn: null, assessor_id: "a1" },
+      ],
+    });
+    fromMock.mockImplementation(() => ({
+      select: vi.fn().mockReturnValue({ eq: eqMock }),
+    }));
+
+    const timeline = await getCarteiraTimeline(2, new Date(Date.UTC(2026, 3, 28)), { assessorId: "a1" });
+    expect(timeline).toHaveLength(2);
+    expect(timeline[1].valorTotal).toBe(5000);
+  });
+});
+
+describe("getEntradaChurn with filter", () => {
+  it("filtra entradas e churns por coordenadorId quando passado", async () => {
+    const eqMock = vi.fn().mockResolvedValue({
+      data: [
+        { id: "c1", data_entrada: "2026-04-01", data_churn: null, coordenador_id: "co1" },
+      ],
+    });
+    fromMock.mockImplementation(() => ({
+      select: vi.fn().mockReturnValue({ eq: eqMock }),
+    }));
+
+    const data = await getEntradaChurn(2, new Date(Date.UTC(2026, 3, 28)), { coordenadorId: "co1" });
+    expect(data[1].entradas).toBe(1);
+  });
+});

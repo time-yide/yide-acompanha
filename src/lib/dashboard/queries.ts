@@ -8,6 +8,8 @@ interface ClientRow {
   data_entrada: string;
   data_churn: string | null;
   status: string;
+  assessor_id?: string | null;
+  coordenador_id?: string | null;
 }
 
 export interface KpiData {
@@ -17,6 +19,21 @@ export interface KpiData {
   custoComissaoPct: { pct: number };
 }
 
+export interface ClientFilter {
+  assessorId?: string;
+  coordenadorId?: string;
+}
+
+function buildClientFilterQuery<T extends { eq: (col: string, val: string) => T }>(
+  query: T,
+  filter?: ClientFilter,
+): T {
+  let q = query;
+  if (filter?.assessorId) q = q.eq("assessor_id", filter.assessorId);
+  if (filter?.coordenadorId) q = q.eq("coordenador_id", filter.coordenadorId);
+  return q;
+}
+
 function isActiveOn(c: ClientRow, dateIso: string): boolean {
   // Cliente está ativo no dia X se entrou até X e (não churnou OU churnou depois de X)
   if (c.data_entrada > dateIso) return false;
@@ -24,21 +41,22 @@ function isActiveOn(c: ClientRow, dateIso: string): boolean {
   return true;
 }
 
-export async function getKpis(now: Date = new Date()): Promise<KpiData> {
+export async function getKpis(now: Date = new Date(), filter?: ClientFilter): Promise<KpiData> {
   const supabase = await createClient();
   const monthRef = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
   const todayIso = now.toISOString().slice(0, 10);
 
-  // Calcular última data do mês ANTERIOR (para delta)
   const prevMonthLastDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 0))
     .toISOString()
     .slice(0, 10);
 
-  const { data: clientsData } = await supabase
+  let clientsQuery = supabase
     .from("clients")
-    .select("id, valor_mensal, data_entrada, data_churn, status")
+    .select("id, valor_mensal, data_entrada, data_churn, status, assessor_id, coordenador_id")
     .eq("status", "ativo");
+  clientsQuery = buildClientFilterQuery(clientsQuery, filter);
 
+  const { data: clientsData } = await clientsQuery;
   const allClients = (clientsData ?? []) as ClientRow[];
 
   const ativosHoje = allClients.filter((c) => isActiveOn(c, todayIso));
@@ -50,12 +68,11 @@ export async function getKpis(now: Date = new Date()): Promise<KpiData> {
   const churnsDoMes = allClients.filter((c) => isInMonth(c.data_churn, monthRef));
   const valorChurnado = churnsDoMes.reduce((acc, c) => acc + Number(c.valor_mensal), 0);
 
-  // Custo de comissão = soma do último commission_snapshot dividida pela carteira ativa
   const { data: snapshotsData } = await supabase
     .from("commission_snapshots")
     .select("mes_referencia, valor_total")
     .order("mes_referencia", { ascending: false })
-    .limit(50); // pega vários do mesmo mês mais recente
+    .limit(50);
   const snapshots = (snapshotsData ?? []) as Array<{ mes_referencia: string; valor_total: number }>;
   const ultimoMes = snapshots[0]?.mes_referencia;
   const totalComissao = ultimoMes
@@ -64,21 +81,10 @@ export async function getKpis(now: Date = new Date()): Promise<KpiData> {
   const pctComissao = carteiraAtivaValor > 0 ? (totalComissao / carteiraAtivaValor) * 100 : 0;
 
   return {
-    carteiraAtiva: {
-      valor: carteiraAtivaValor,
-      deltaValor: carteiraAtivaValor - carteiraMesAnteriorValor,
-    },
-    clientesAtivos: {
-      quantidade: ativosHoje.length,
-      deltaQuantidade: ativosHoje.length - ativosFimMesAnterior.length,
-    },
-    churnMes: {
-      quantidade: churnsDoMes.length,
-      valorPerdido: valorChurnado,
-    },
-    custoComissaoPct: {
-      pct: pctComissao,
-    },
+    carteiraAtiva: { valor: carteiraAtivaValor, deltaValor: carteiraAtivaValor - carteiraMesAnteriorValor },
+    clientesAtivos: { quantidade: ativosHoje.length, deltaQuantidade: ativosHoje.length - ativosFimMesAnterior.length },
+    churnMes: { quantidade: churnsDoMes.length, valorPerdido: valorChurnado },
+    custoComissaoPct: { pct: pctComissao },
   };
 }
 
@@ -90,19 +96,24 @@ export interface TimelinePoint {
 export async function getCarteiraTimeline(
   months: number = 12,
   now: Date = new Date(),
+  filter?: ClientFilter,
 ): Promise<TimelinePoint[]> {
   const supabase = await createClient();
   const meses = monthRange(months, now);
 
-  const { data: clientsData } = await supabase
+  let clientsQuery = supabase
     .from("clients")
-    .select("id, valor_mensal, data_entrada, data_churn");
+    .select("id, valor_mensal, data_entrada, data_churn, assessor_id, coordenador_id");
+  clientsQuery = buildClientFilterQuery(clientsQuery as never, filter) as never;
 
+  const { data: clientsData } = await clientsQuery;
   const clients = (clientsData ?? []) as Array<{
     id: string;
     valor_mensal: number;
     data_entrada: string;
     data_churn: string | null;
+    assessor_id?: string | null;
+    coordenador_id?: string | null;
   }>;
 
   return meses.map((mes) => {
@@ -126,18 +137,23 @@ export interface EntradaChurnPoint {
 export async function getEntradaChurn(
   months: number = 6,
   now: Date = new Date(),
+  filter?: ClientFilter,
 ): Promise<EntradaChurnPoint[]> {
   const supabase = await createClient();
   const meses = monthRange(months, now);
 
-  const { data: clientsData } = await supabase
+  let clientsQuery = supabase
     .from("clients")
-    .select("id, data_entrada, data_churn");
+    .select("id, data_entrada, data_churn, assessor_id, coordenador_id");
+  clientsQuery = buildClientFilterQuery(clientsQuery as never, filter) as never;
 
+  const { data: clientsData } = await clientsQuery;
   const clients = (clientsData ?? []) as Array<{
     id: string;
     data_entrada: string;
     data_churn: string | null;
+    assessor_id?: string | null;
+    coordenador_id?: string | null;
   }>;
 
   return meses.map((mes) => {
