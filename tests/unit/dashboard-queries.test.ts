@@ -205,3 +205,54 @@ describe("getEntradaChurn", () => {
     ]);
   });
 });
+
+import { getCarteiraPorAssessor } from "@/lib/dashboard/queries";
+
+describe("getCarteiraPorAssessor", () => {
+  it("agrupa por assessor e calcula percentuais", async () => {
+    fromMock.mockImplementation((table) => {
+      if (table === "clients") {
+        return {
+          select: () => ({
+            eq: vi.fn().mockResolvedValue({
+              data: [
+                { id: "c1", valor_mensal: 5000, assessor_id: "a1", assessor: { nome: "Ana" } },
+                { id: "c2", valor_mensal: 3000, assessor_id: "a1", assessor: { nome: "Ana" } },
+                { id: "c3", valor_mensal: 4000, assessor_id: "a2", assessor: { nome: "Bruno" } },
+                // cliente sem assessor: ignorado
+                { id: "c4", valor_mensal: 1000, assessor_id: null, assessor: null },
+              ],
+            }),
+          }),
+        };
+      }
+      return {};
+    });
+
+    const list = await getCarteiraPorAssessor();
+    expect(list).toHaveLength(2);
+    // Ordenado por valorTotal desc: Ana (8000) > Bruno (4000)
+    expect(list[0]).toEqual({
+      assessorId: "a1",
+      assessorNome: "Ana",
+      qtdClientes: 2,
+      valorTotal: 8000,
+      pctDoTotal: expect.closeTo(66.67, 1),
+    });
+    expect(list[1]).toEqual({
+      assessorId: "a2",
+      assessorNome: "Bruno",
+      qtdClientes: 1,
+      valorTotal: 4000,
+      pctDoTotal: expect.closeTo(33.33, 1),
+    });
+  });
+
+  it("retorna lista vazia quando sem clientes", async () => {
+    fromMock.mockImplementation(() => ({
+      select: () => ({ eq: vi.fn().mockResolvedValue({ data: [] }) }),
+    }));
+    const list = await getCarteiraPorAssessor();
+    expect(list).toEqual([]);
+  });
+});

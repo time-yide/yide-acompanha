@@ -146,3 +146,50 @@ export async function getEntradaChurn(
     return { mes, entradas, churns };
   });
 }
+
+export interface AssessorCarteira {
+  assessorId: string;
+  assessorNome: string;
+  qtdClientes: number;
+  valorTotal: number;
+  pctDoTotal: number;
+}
+
+export async function getCarteiraPorAssessor(): Promise<AssessorCarteira[]> {
+  const supabase = await createClient();
+
+  const { data: clientsData } = await supabase
+    .from("clients")
+    .select("id, valor_mensal, assessor_id, assessor:profiles!clients_assessor_id_fkey(nome)")
+    .eq("status", "ativo");
+
+  const clients = (clientsData ?? []) as unknown as Array<{
+    id: string;
+    valor_mensal: number;
+    assessor_id: string | null;
+    assessor: { nome: string } | null;
+  }>;
+
+  // Agrupa por assessor_id
+  const groups = new Map<string, { nome: string; qtd: number; valor: number }>();
+  for (const c of clients) {
+    if (!c.assessor_id || !c.assessor) continue;
+    const cur = groups.get(c.assessor_id) ?? { nome: c.assessor.nome, qtd: 0, valor: 0 };
+    cur.qtd += 1;
+    cur.valor += Number(c.valor_mensal);
+    groups.set(c.assessor_id, cur);
+  }
+
+  const total = [...groups.values()].reduce((a, g) => a + g.valor, 0);
+
+  const list: AssessorCarteira[] = [...groups.entries()].map(([id, g]) => ({
+    assessorId: id,
+    assessorNome: g.nome,
+    qtdClientes: g.qtd,
+    valorTotal: g.valor,
+    pctDoTotal: total > 0 ? (g.valor / total) * 100 : 0,
+  }));
+
+  list.sort((a, b) => b.valorTotal - a.valorTotal);
+  return list;
+}
