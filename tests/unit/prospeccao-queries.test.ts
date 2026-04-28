@@ -6,7 +6,7 @@ vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({ from: fromMock }),
 }));
 
-import { getProspectsList } from "@/lib/prospeccao/queries";
+import { getProspectsList, getProspectDetail, getLeadAttempts } from "@/lib/prospeccao/queries";
 
 beforeEach(() => {
   fromMock.mockReset();
@@ -90,5 +90,113 @@ describe("getProspectsList", () => {
     const r = await getProspectsList({ comercialId: "u1", valorMin: 3000, valorMax: 7000 });
     expect(r).toHaveLength(1);
     expect(r[0].id).toBe("l2");
+  });
+});
+
+describe("getProspectDetail", () => {
+  it("retorna o lead com dados do comercial", async () => {
+    fromMock.mockImplementation((table) => {
+      if (table === "leads") {
+        return {
+          select: () => ({
+            eq: () => ({
+              single: vi.fn().mockResolvedValue({
+                data: {
+                  id: "l1",
+                  nome_prospect: "Empresa A",
+                  site: "https://a.com",
+                  contato_principal: "Maria",
+                  email: "maria@a.com",
+                  telefone: "11999999999",
+                  stage: "prospeccao",
+                  valor_proposto: 5000,
+                  comercial_id: "u1",
+                  motivo_perdido: null,
+                  data_fechamento: null,
+                  data_prospeccao_agendada: null,
+                  data_reuniao_marco_zero: null,
+                  duracao_meses: 12,
+                  servico_proposto: "Social media",
+                  prioridade: "alta",
+                  info_briefing: "Cliente quer pacote completo",
+                  client_id: null,
+                  created_at: "2026-04-01",
+                  updated_at: "2026-04-01",
+                  comercial: { nome: "Carla", email: "carla@y.com" },
+                },
+              }),
+            }),
+          }),
+        };
+      }
+      return {};
+    });
+
+    const r = await getProspectDetail("l1");
+    expect(r).not.toBeNull();
+    expect(r!.nome_prospect).toBe("Empresa A");
+    expect(r!.comercial?.nome).toBe("Carla");
+  });
+
+  it("retorna null quando lead não existe", async () => {
+    fromMock.mockImplementation((table) => {
+      if (table === "leads") {
+        return {
+          select: () => ({
+            eq: () => ({
+              single: vi.fn().mockResolvedValue({ data: null }),
+            }),
+          }),
+        };
+      }
+      return {};
+    });
+
+    const r = await getProspectDetail("nonexistent");
+    expect(r).toBeNull();
+  });
+});
+
+describe("getLeadAttempts", () => {
+  it("retorna attempts ordenados por created_at desc", async () => {
+    fromMock.mockImplementation((table) => {
+      if (table === "lead_attempts") {
+        return {
+          select: () => ({
+            eq: () => ({
+              order: vi.fn().mockResolvedValue({
+                data: [
+                  { id: "a2", lead_id: "l1", canal: "email", resultado: "sem_resposta", observacao: "Email enviado", proximo_passo: "Ligar amanhã", data_proximo_passo: "2026-04-15", created_at: "2026-04-10T10:00:00Z", autor_id: "u1", autor: { nome: "Carla" } },
+                  { id: "a1", lead_id: "l1", canal: "whatsapp", resultado: "agendou", observacao: null, proximo_passo: null, data_proximo_passo: null, created_at: "2026-04-08T14:00:00Z", autor_id: "u1", autor: { nome: "Carla" } },
+                ],
+              }),
+            }),
+          }),
+        };
+      }
+      return {};
+    });
+
+    const r = await getLeadAttempts("l1");
+    expect(r).toHaveLength(2);
+    expect(r[0].id).toBe("a2");
+  });
+
+  it("retorna lista vazia quando sem attempts", async () => {
+    fromMock.mockImplementation((table) => {
+      if (table === "lead_attempts") {
+        return {
+          select: () => ({
+            eq: () => ({
+              order: vi.fn().mockResolvedValue({ data: [] }),
+            }),
+          }),
+        };
+      }
+      return {};
+    });
+
+    const r = await getLeadAttempts("l1");
+    expect(r).toEqual([]);
   });
 });

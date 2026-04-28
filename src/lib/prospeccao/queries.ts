@@ -61,3 +61,61 @@ export async function getProspectsList(filter: ProspectsFilter = {}): Promise<Pr
 
   return rows;
 }
+
+export interface ProspectDetail {
+  id: string;
+  nome_prospect: string;
+  site: string | null;
+  contato_principal: string | null;
+  email: string | null;
+  telefone: string | null;
+  stage: "prospeccao" | "comercial" | "contrato" | "marco_zero" | "ativo";
+  valor_proposto: number;
+  comercial_id: string;
+  motivo_perdido: string | null;
+  data_fechamento: string | null;
+  data_prospeccao_agendada: string | null;
+  data_reuniao_marco_zero: string | null;
+  duracao_meses: number | null;
+  servico_proposto: string | null;
+  prioridade: "alta" | "media" | "baixa";
+  info_briefing: string | null;
+  client_id: string | null;
+  created_at: string;
+  updated_at: string;
+  comercial: { nome: string; email: string } | null;
+}
+
+export async function getProspectDetail(leadId: string): Promise<ProspectDetail | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("leads")
+    .select("id, nome_prospect, site, contato_principal, email, telefone, stage, valor_proposto, comercial_id, motivo_perdido, data_fechamento, data_prospeccao_agendada, data_reuniao_marco_zero, duracao_meses, servico_proposto, prioridade, info_briefing, client_id, created_at, updated_at, comercial:profiles!leads_comercial_id_fkey(nome, email)")
+    .eq("id", leadId)
+    .single();
+  return (data as unknown as ProspectDetail | null) ?? null;
+}
+
+export interface LeadAttemptRow {
+  id: string;
+  lead_id: string;
+  canal: "whatsapp" | "email" | "ligacao" | "presencial" | "outro";
+  resultado: "sem_resposta" | "agendou" | "recusou" | "pediu_proposta" | "outro";
+  observacao: string | null;
+  proximo_passo: string | null;
+  data_proximo_passo: string | null;
+  created_at: string;
+  autor_id: string;
+  autor: { nome: string } | null;
+}
+
+export async function getLeadAttempts(leadId: string): Promise<LeadAttemptRow[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("lead_attempts")
+    .select("id, lead_id, canal, resultado, observacao, proximo_passo, data_proximo_passo, created_at, autor_id, autor:profiles!lead_attempts_autor_id_fkey(nome)")
+    .eq("lead_id", leadId)
+    .order("created_at", { ascending: false });
+
+  return (data ?? []) as unknown as LeadAttemptRow[];
+}
