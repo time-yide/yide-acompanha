@@ -8,6 +8,7 @@ import { detectClientBirthdays } from "./detectors/aniversario-socio-cliente";
 import { detectColaboradorBirthdays } from "./detectors/aniversario-colaborador";
 import { detectRenovacoes } from "./detectors/renovacao-contrato";
 import { detectSatisfacaoPendente } from "./detectors/satisfacao-pendente";
+import { detectChecklistPainel } from "./detectors/checklist-painel";
 
 export interface DigestCounters {
   task_overdue: number;
@@ -18,6 +19,7 @@ export interface DigestCounters {
   aniversario_colaborador: number;
   renovacao_contrato: number;
   satisfacao_pendente: number;
+  checklist_painel: number;
 }
 
 type DigestResult =
@@ -47,6 +49,7 @@ export async function runDailyDigest(): Promise<DigestResult> {
     aniversario_colaborador: 0,
     renovacao_contrato: 0,
     satisfacao_pendente: 0,
+    checklist_painel: 0,
   };
 
   await safeDetect(() => detectOverdueTasks(counters));
@@ -60,6 +63,8 @@ export async function runDailyDigest(): Promise<DigestResult> {
   if (new Date().getUTCDay() === 1) {
     await safeDetect(() => detectSatisfacaoPendente(counters));
   }
+
+  await safeDetect(() => detectChecklistPainel(counters));
 
   await supabase
     .from("cron_runs")
