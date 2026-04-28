@@ -6,7 +6,7 @@ vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({ from: fromMock }),
 }));
 
-import { getProspectsList, getProspectDetail, getLeadAttempts, getHistoricoFechamentos } from "@/lib/prospeccao/queries";
+import { getProspectsList, getProspectDetail, getLeadAttempts, getHistoricoFechamentos, getMetasComercial } from "@/lib/prospeccao/queries";
 
 beforeEach(() => {
   fromMock.mockReset();
@@ -291,5 +291,192 @@ describe("getHistoricoFechamentos", () => {
     const r = await getHistoricoFechamentos("u1", 12, new Date(Date.UTC(2026, 3, 28)));
     expect(r).toHaveLength(1);
     expect(r[0].comissaoRecebida).toBe(0);
+  });
+});
+
+describe("getMetasComercial", () => {
+  it("usa metas configuradas quando não-null", async () => {
+    fromMock.mockImplementation((table) => {
+      if (table === "profiles") {
+        return {
+          select: () => ({
+            eq: () => ({
+              single: vi.fn().mockResolvedValue({
+                data: {
+                  fixo_mensal: 3000,
+                  comissao_percent: 10,
+                  meta_prospects_mes: 30,
+                  meta_fechamentos_mes: 5,
+                  meta_receita_mes: 100000,
+                },
+              }),
+            }),
+          }),
+        };
+      }
+      if (table === "leads") {
+        return {
+          select: () => ({
+            eq: () => ({
+              gte: () => ({
+                lte: vi.fn().mockResolvedValue({
+                  data: [
+                    { id: "l1", stage: "comercial", valor_proposto: 30000, data_fechamento: null, created_at: "2026-04-05" },
+                    { id: "l2", stage: "ativo", valor_proposto: 50000, data_fechamento: "2026-04-15", created_at: "2026-04-01" },
+                  ],
+                }),
+              }),
+            }),
+          }),
+        };
+      }
+      return {};
+    });
+
+    const r = await getMetasComercial("u1", new Date(Date.UTC(2026, 3, 28)));
+    expect(r.prospects.realizado).toBe(2);
+    expect(r.prospects.meta).toBe(30);
+    expect(r.prospects.configurada).toBe(true);
+    expect(r.fechamentos.realizado).toBe(1);
+    expect(r.fechamentos.meta).toBe(5);
+    expect(r.receita.realizado).toBe(50000);
+    expect(r.receita.meta).toBe(100000);
+  });
+
+  it("usa fallback automático quando metas são null", async () => {
+    fromMock.mockImplementation((table) => {
+      if (table === "profiles") {
+        return {
+          select: () => ({
+            eq: () => ({
+              single: vi.fn().mockResolvedValue({
+                data: {
+                  fixo_mensal: 3000,
+                  comissao_percent: 10,
+                  meta_prospects_mes: null,
+                  meta_fechamentos_mes: null,
+                  meta_receita_mes: null,
+                },
+              }),
+            }),
+          }),
+        };
+      }
+      if (table === "leads") {
+        return {
+          select: () => ({
+            eq: () => ({
+              gte: () => ({ lte: vi.fn().mockResolvedValue({ data: [] }) }),
+            }),
+          }),
+        };
+      }
+      return {};
+    });
+
+    const r = await getMetasComercial("u1", new Date(Date.UTC(2026, 3, 28)));
+    expect(r.prospects.meta).toBe(20);
+    expect(r.prospects.configurada).toBe(false);
+    expect(r.fechamentos.meta).toBe(3);
+    expect(r.fechamentos.configurada).toBe(false);
+    expect(r.receita.meta).toBe(90000);
+    expect(r.receita.configurada).toBe(false);
+  });
+
+  it("calcula pctMeta e status corretamente", async () => {
+    fromMock.mockImplementation((table) => {
+      if (table === "profiles") {
+        return {
+          select: () => ({
+            eq: () => ({
+              single: vi.fn().mockResolvedValue({
+                data: {
+                  fixo_mensal: 3000,
+                  comissao_percent: 10,
+                  meta_prospects_mes: 10,
+                  meta_fechamentos_mes: 5,
+                  meta_receita_mes: 50000,
+                },
+              }),
+            }),
+          }),
+        };
+      }
+      if (table === "leads") {
+        return {
+          select: () => ({
+            eq: () => ({
+              gte: () => ({
+                lte: vi.fn().mockResolvedValue({
+                  data: [
+                    { id: "l1", stage: "prospeccao", valor_proposto: 10000, data_fechamento: null, created_at: "2026-04-01" },
+                    { id: "l2", stage: "prospeccao", valor_proposto: 10000, data_fechamento: null, created_at: "2026-04-02" },
+                    { id: "l3", stage: "prospeccao", valor_proposto: 10000, data_fechamento: null, created_at: "2026-04-03" },
+                    { id: "l4", stage: "prospeccao", valor_proposto: 10000, data_fechamento: null, created_at: "2026-04-04" },
+                    { id: "l5", stage: "prospeccao", valor_proposto: 10000, data_fechamento: null, created_at: "2026-04-05" },
+                    { id: "l6", stage: "prospeccao", valor_proposto: 10000, data_fechamento: null, created_at: "2026-04-06" },
+                    { id: "l7", stage: "prospeccao", valor_proposto: 10000, data_fechamento: null, created_at: "2026-04-07" },
+                    { id: "l8", stage: "prospeccao", valor_proposto: 10000, data_fechamento: null, created_at: "2026-04-08" },
+                    { id: "l9", stage: "ativo", valor_proposto: 60000, data_fechamento: "2026-04-15", created_at: "2026-04-01" },
+                  ],
+                }),
+              }),
+            }),
+          }),
+        };
+      }
+      return {};
+    });
+
+    const r = await getMetasComercial("u1", new Date(Date.UTC(2026, 3, 28)));
+    expect(r.prospects.pctMeta).toBeCloseTo(90);
+    expect(r.prospects.status).toBe("perto");
+    expect(r.fechamentos.status).toBe("abaixo");
+    expect(r.receita.status).toBe("atingido");
+  });
+
+  it("status 'no-caminho' quando 30 <= pctMeta < 80", async () => {
+    fromMock.mockImplementation((table) => {
+      if (table === "profiles") {
+        return {
+          select: () => ({
+            eq: () => ({
+              single: vi.fn().mockResolvedValue({
+                data: {
+                  fixo_mensal: 3000,
+                  comissao_percent: 10,
+                  meta_prospects_mes: 10,
+                  meta_fechamentos_mes: 10,
+                  meta_receita_mes: 100000,
+                },
+              }),
+            }),
+          }),
+        };
+      }
+      if (table === "leads") {
+        return {
+          select: () => ({
+            eq: () => ({
+              gte: () => ({
+                lte: vi.fn().mockResolvedValue({
+                  data: [
+                    { id: "l1", stage: "prospeccao", valor_proposto: 10000, data_fechamento: null, created_at: "2026-04-01" },
+                    { id: "l2", stage: "prospeccao", valor_proposto: 10000, data_fechamento: null, created_at: "2026-04-02" },
+                    { id: "l3", stage: "prospeccao", valor_proposto: 10000, data_fechamento: null, created_at: "2026-04-03" },
+                    { id: "l4", stage: "prospeccao", valor_proposto: 10000, data_fechamento: null, created_at: "2026-04-04" },
+                    { id: "l5", stage: "prospeccao", valor_proposto: 10000, data_fechamento: null, created_at: "2026-04-05" },
+                  ],
+                }),
+              }),
+            }),
+          }),
+        };
+      }
+      return {};
+    });
+
+    const r = await getMetasComercial("u1", new Date(Date.UTC(2026, 3, 28)));
+    expect(r.prospects.status).toBe("no-caminho");
   });
 });

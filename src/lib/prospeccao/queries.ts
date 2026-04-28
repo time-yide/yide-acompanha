@@ -191,3 +191,100 @@ export async function getHistoricoFechamentos(
   result.sort((a, b) => b.dataFechamento.localeCompare(a.dataFechamento));
   return result;
 }
+
+const FALLBACK_META_PROSPECTS = 20;
+const FALLBACK_META_FECHAMENTOS = 3;
+const FALLBACK_META_MULTIPLIER_RECEITA = 3;
+
+export interface MetaItem {
+  meta: number;
+  realizado: number;
+  pctMeta: number;
+  status: "abaixo" | "no-caminho" | "perto" | "atingido";
+  configurada: boolean;
+}
+
+export interface MetasComercialData {
+  prospects: MetaItem;
+  fechamentos: MetaItem;
+  receita: MetaItem;
+}
+
+function calcStatus(pct: number): MetaItem["status"] {
+  if (pct >= 100) return "atingido";
+  if (pct >= 80) return "perto";
+  if (pct >= 30) return "no-caminho";
+  return "abaixo";
+}
+
+function buildMetaItem(meta: number, realizado: number, configurada: boolean): MetaItem {
+  const pctMeta = meta > 0 ? (realizado / meta) * 100 : 0;
+  return { meta, realizado, pctMeta, status: calcStatus(pctMeta), configurada };
+}
+
+export async function getMetasComercial(
+  userId: string,
+  now: Date = new Date(),
+): Promise<MetasComercialData> {
+  const supabase = await createClient();
+  const monthRef = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+  const inicioMes = `${monthRef}-01`;
+  const fimMes = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0))
+    .toISOString()
+    .slice(0, 10);
+
+  const { data: profileData } = await supabase
+    .from("profiles")
+    .select("fixo_mensal, comissao_percent, meta_prospects_mes, meta_fechamentos_mes, meta_receita_mes")
+    .eq("id", userId)
+    .single();
+
+  const profile = (profileData as {
+    fixo_mensal: number;
+    comissao_percent: number;
+    meta_prospects_mes: number | null;
+    meta_fechamentos_mes: number | null;
+    meta_receita_mes: number | null;
+  } | null) ?? {
+    fixo_mensal: 0,
+    comissao_percent: 0,
+    meta_prospects_mes: null,
+    meta_fechamentos_mes: null,
+    meta_receita_mes: null,
+  };
+
+  // Leads do mês corrente (criados no mês)
+  const { data: leadsData } = await supabase
+    .from("leads")
+    .select("id, stage, valor_proposto, data_fechamento, created_at")
+    .eq("comercial_id", userId)
+    .gte("created_at", inicioMes)
+    .lte("created_at", fimMes + "T23:59:59");
+
+  const leadsMes = (leadsData ?? []) as Array<{ id: string; stage: string; valor_proposto: number; data_fechamento: string | null; created_at: string }>;
+
+  // Realizado: prospects abordados no mês = leads CRIADOS no mês
+  const realizadoProspects = leadsMes.length;
+
+  // Realizado: fechamentos no mês
+  const fechadosNoMes = leadsMes.filter(
+    (l) => l.stage === "ativo" && l.data_fechamento && l.data_fechamento >= inicioMes && l.data_fechamento <= fimMes,
+  );
+  const realizadoFechamentos = fechadosNoMes.length;
+  const realizadoReceita = fechadosNoMes.reduce((a, l) => a + Number(l.valor_proposto), 0);
+
+  // Metas
+  const fixo = Number(profile.fixo_mensal);
+  const pct = Number(profile.comissao_percent);
+
+  const metaProspects = profile.meta_prospects_mes ?? FALLBACK_META_PROSPECTS;
+  const metaFechamentos = profile.meta_fechamentos_mes ?? FALLBACK_META_FECHAMENTOS;
+  const metaReceitaAuto = pct > 0 ? (FALLBACK_META_MULTIPLIER_RECEITA * fixo) / (pct / 100) : 0;
+  const metaReceita = profile.meta_receita_mes !== null ? Number(profile.meta_receita_mes) : metaReceitaAuto;
+
+  return {
+    prospects: buildMetaItem(metaProspects, realizadoProspects, profile.meta_prospects_mes !== null),
+    fechamentos: buildMetaItem(metaFechamentos, realizadoFechamentos, profile.meta_fechamentos_mes !== null),
+    receita: buildMetaItem(metaReceita, realizadoReceita, profile.meta_receita_mes !== null),
+  };
+}
