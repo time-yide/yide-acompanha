@@ -96,6 +96,13 @@ export async function updateClienteAction(formData: FormData) {
     assessor_id: fd(formData, "assessor_id"),
     coordenador_id: fd(formData, "coordenador_id"),
     data_aniversario_socio_cliente: fd(formData, "data_aniversario_socio_cliente"),
+    designer_id: fd(formData, "designer_id"),
+    videomaker_id: fd(formData, "videomaker_id"),
+    editor_id: fd(formData, "editor_id"),
+    instagram_url: fd(formData, "instagram_url") ?? "",
+    gmn_url: fd(formData, "gmn_url") ?? "",
+    drive_url: fd(formData, "drive_url") ?? "",
+    pacote_post_padrao: fd(formData, "pacote_post_padrao"),
   });
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
@@ -118,6 +125,13 @@ export async function updateClienteAction(formData: FormData) {
     assessor_id: parsed.data.assessor_id || null,
     coordenador_id: parsed.data.coordenador_id || null,
     data_aniversario_socio_cliente: parsed.data.data_aniversario_socio_cliente || null,
+    designer_id: parsed.data.designer_id || null,
+    videomaker_id: parsed.data.videomaker_id || null,
+    editor_id: parsed.data.editor_id || null,
+    instagram_url: parsed.data.instagram_url || null,
+    gmn_url: parsed.data.gmn_url || null,
+    drive_url: parsed.data.drive_url || null,
+    pacote_post_padrao: parsed.data.pacote_post_padrao ?? null,
   };
 
   const { error } = await supabase.from("clients").update(updatePayload).eq("id", id);

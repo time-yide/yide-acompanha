@@ -32,6 +32,9 @@ export default async function NovoClientePage() {
           action={createClienteAction}
           assessores={assessores}
           coordenadores={coordenadores}
+          designers={[]}
+          videomakers={[]}
+          editors={[]}
           canEditAlocacao={true}
           submitLabel="Criar cliente"
         />
