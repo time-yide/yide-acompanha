@@ -71,12 +71,14 @@ describe("getFunnelData", () => {
       if (table === "leads") {
         return {
           select: () => ({
-            eq: vi.fn().mockResolvedValue({
-              data: [
-                { id: "l1", stage: "prospeccao", valor_proposto: 10000 },
-                { id: "l2", stage: "prospeccao", valor_proposto: 20000 },
-                { id: "l3", stage: "ativo", valor_proposto: 50000 },
-              ],
+            eq: () => ({
+              gte: vi.fn().mockResolvedValue({
+                data: [
+                  { id: "l1", stage: "prospeccao", valor_proposto: 10000, created_at: "2026-04-01" },
+                  { id: "l2", stage: "prospeccao", valor_proposto: 20000, created_at: "2026-04-02" },
+                  { id: "l3", stage: "ativo", valor_proposto: 50000, created_at: "2026-04-03" },
+                ],
+              }),
             }),
           }),
         };
@@ -260,5 +262,72 @@ describe("getMetaComercial", () => {
     const r = await getMetaComercial("u1", new Date(Date.UTC(2026, 3, 28)));
     expect(r.pctMeta).toBeGreaterThanOrEqual(100);
     expect(r.status).toBe("atingido");
+  });
+});
+
+describe("getFunnelData with filters", () => {
+  it("retorna todos os leads quando comercialId é undefined", async () => {
+    fromMock.mockImplementation((table) => {
+      if (table === "leads") {
+        return {
+          select: () => ({
+            gte: vi.fn().mockResolvedValue({
+              data: [
+                { id: "l1", stage: "prospeccao", valor_proposto: 10000, created_at: "2026-04-01" },
+                { id: "l2", stage: "ativo", valor_proposto: 50000, created_at: "2026-04-02" },
+              ],
+            }),
+          }),
+        };
+      }
+      return {};
+    });
+
+    const data = await getFunnelData(undefined, 12, new Date(Date.UTC(2026, 3, 28)));
+    expect(data).toHaveLength(5);
+    expect(data[0].count).toBe(1);  // prospeccao
+    expect(data[4].count).toBe(1);  // ativo
+  });
+
+  it("filtra por comercialId quando passado", async () => {
+    const eqMock = vi.fn().mockReturnValue({
+      gte: vi.fn().mockResolvedValue({
+        data: [{ id: "l1", stage: "comercial", valor_proposto: 30000, created_at: "2026-04-01" }],
+      }),
+    });
+    fromMock.mockImplementation((table) => {
+      if (table === "leads") {
+        return { select: () => ({ eq: eqMock }) };
+      }
+      return {};
+    });
+
+    const data = await getFunnelData("u1", 12, new Date(Date.UTC(2026, 3, 28)));
+    expect(data[1].count).toBe(1);  // comercial
+  });
+
+  it("calcula taxaConversaoAposEsta entre estágios consecutivos", async () => {
+    fromMock.mockImplementation((table) => {
+      if (table === "leads") {
+        return {
+          select: () => ({
+            gte: vi.fn().mockResolvedValue({
+              data: [
+                { id: "l1", stage: "prospeccao", valor_proposto: 10000, created_at: "2026-04-01" },
+                { id: "l2", stage: "prospeccao", valor_proposto: 10000, created_at: "2026-04-02" },
+                { id: "l3", stage: "comercial", valor_proposto: 20000, created_at: "2026-04-03" },
+                { id: "l4", stage: "ativo", valor_proposto: 50000, created_at: "2026-04-04" },
+              ],
+            }),
+          }),
+        };
+      }
+      return {};
+    });
+
+    const data = await getFunnelData(undefined, 12, new Date(Date.UTC(2026, 3, 28)));
+    // Total = 4. prospeccao count em superiores = 4 - 2 = 2. count nesse e superiores = 4. taxa = 2/4 = 50%
+    expect(data[0].taxaConversaoAposEsta).toBe(50); // prospeccao → comercial+
+    expect(data[4].taxaConversaoAposEsta).toBeNull(); // ativo é o último
   });
 });

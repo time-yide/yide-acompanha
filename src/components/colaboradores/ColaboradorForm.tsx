@@ -21,12 +21,16 @@ interface Props {
     comissao_primeiro_mes_percent: number | string;
     role: string;
     ativo: boolean;
+    meta_prospects_mes?: number | null;
+    meta_fechamentos_mes?: number | null;
+    meta_receita_mes?: number | null;
   };
   canEditFinance: boolean;
   canEditRole: boolean;
+  canEditMetas: boolean;
 }
 
-export function ColaboradorForm({ data, canEditFinance, canEditRole }: Props) {
+export function ColaboradorForm({ data, canEditFinance, canEditRole, canEditMetas }: Props) {
   return (
     <form action={editColaboradorAction as unknown as (formData: FormData) => Promise<void>} className="space-y-5">
       <input type="hidden" name="id" value={data.id} />
@@ -140,6 +144,50 @@ export function ColaboradorForm({ data, canEditFinance, canEditRole }: Props) {
             />
           </div>
         )}
+      </div>
+
+      {/* Metas comerciais (opcional) */}
+      <div className="space-y-3 rounded-lg bg-muted/20 p-3">
+        <h4 className="text-sm font-semibold">Metas comerciais (opcionais)</h4>
+        <p className="text-xs text-muted-foreground">
+          Aplicável apenas para usuários com role &quot;comercial&quot;. Vazio = fallback automático.
+        </p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Prospects abordados/mês</label>
+            <input
+              type="number"
+              name="meta_prospects_mes"
+              defaultValue={data.meta_prospects_mes ?? ""}
+              min={0}
+              disabled={!canEditMetas}
+              className="mt-1 block w-full h-9 rounded-md border bg-card px-2 text-sm disabled:opacity-60"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Fechamentos/mês</label>
+            <input
+              type="number"
+              name="meta_fechamentos_mes"
+              defaultValue={data.meta_fechamentos_mes ?? ""}
+              min={0}
+              disabled={!canEditMetas}
+              className="mt-1 block w-full h-9 rounded-md border bg-card px-2 text-sm disabled:opacity-60"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Receita/mês (R$)</label>
+            <input
+              type="number"
+              name="meta_receita_mes"
+              defaultValue={data.meta_receita_mes ?? ""}
+              min={0}
+              step={0.01}
+              disabled={!canEditMetas}
+              className="mt-1 block w-full h-9 rounded-md border bg-card px-2 text-sm disabled:opacity-60"
+            />
+          </div>
+        </div>
       </div>
 
       <Button type="submit">Salvar alterações</Button>

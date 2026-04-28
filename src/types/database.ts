@@ -891,6 +891,9 @@ export type Database = {
           endereco: string | null
           fixo_mensal: number
           id: string
+          meta_fechamentos_mes: number | null
+          meta_prospects_mes: number | null
+          meta_receita_mes: number | null
           nome: string
           organization_id: string
           pix: string | null
@@ -911,6 +914,9 @@ export type Database = {
           endereco?: string | null
           fixo_mensal?: number
           id: string
+          meta_fechamentos_mes?: number | null
+          meta_prospects_mes?: number | null
+          meta_receita_mes?: number | null
           nome: string
           organization_id: string
           pix?: string | null
@@ -931,6 +937,9 @@ export type Database = {
           endereco?: string | null
           fixo_mensal?: number
           id?: string
+          meta_fechamentos_mes?: number | null
+          meta_prospects_mes?: number | null
+          meta_receita_mes?: number | null
           nome?: string
           organization_id?: string
           pix?: string | null

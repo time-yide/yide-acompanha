@@ -56,6 +56,7 @@ export interface FunnelStage {
   label: string;
   count: number;
   totalValor: number;
+  taxaConversaoAposEsta: number | null;
 }
 
 const STAGE_LABELS: Record<FunnelStageKey, string> = {
@@ -66,23 +67,53 @@ const STAGE_LABELS: Record<FunnelStageKey, string> = {
   ativo: "Ativo",
 };
 
-export async function getFunnelData(comercialId: string): Promise<FunnelStage[]> {
+export async function getFunnelData(
+  comercialId?: string,
+  periodMonths: number = 12,
+  now: Date = new Date(),
+): Promise<FunnelStage[]> {
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("leads")
-    .select("id, stage, valor_proposto")
-    .eq("comercial_id", comercialId);
+  const cutoff = new Date(now.getTime() - periodMonths * 30 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
 
-  const leads = (data ?? []) as Array<{ id: string; stage: FunnelStageKey; valor_proposto: number }>;
+  let query = supabase
+    .from("leads")
+    .select("id, stage, valor_proposto, created_at");
+  if (comercialId) {
+    query = query.eq("comercial_id", comercialId);
+  }
+  const { data } = await query.gte("created_at", cutoff);
+
+  const leads = (data ?? []) as Array<{ id: string; stage: FunnelStageKey; valor_proposto: number; created_at: string }>;
 
   const stages: FunnelStageKey[] = ["prospeccao", "comercial", "contrato", "marco_zero", "ativo"];
-  return stages.map((stage) => {
+  const STAGE_INDEX: Record<FunnelStageKey, number> = {
+    prospeccao: 0,
+    comercial: 1,
+    contrato: 2,
+    marco_zero: 3,
+    ativo: 4,
+  };
+
+  return stages.map((stage, i) => {
     const inStage = leads.filter((l) => l.stage === stage);
+    const inThisOrLater = leads.filter((l) => STAGE_INDEX[l.stage] >= i);
+    const inLater = leads.filter((l) => STAGE_INDEX[l.stage] > i);
+
+    const isLast = i === stages.length - 1;
+    const taxaConversaoAposEsta = isLast
+      ? null
+      : inThisOrLater.length > 0
+        ? (inLater.length / inThisOrLater.length) * 100
+        : 0;
+
     return {
       stage,
       label: STAGE_LABELS[stage],
       count: inStage.length,
       totalValor: inStage.reduce((a, l) => a + Number(l.valor_proposto), 0),
+      taxaConversaoAposEsta,
     };
   });
 }
