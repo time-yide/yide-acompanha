@@ -127,6 +127,61 @@ export type Database = {
           },
         ]
       }
+      checklist_step: {
+        Row: {
+          checklist_id: string
+          completed_at: string | null
+          completed_by: string | null
+          id: string
+          iniciado_em: string | null
+          responsavel_id: string | null
+          status: Database["public"]["Enums"]["checklist_step_status"]
+          step_key: Database["public"]["Enums"]["checklist_step_key"]
+        }
+        Insert: {
+          checklist_id: string
+          completed_at?: string | null
+          completed_by?: string | null
+          id?: string
+          iniciado_em?: string | null
+          responsavel_id?: string | null
+          status?: Database["public"]["Enums"]["checklist_step_status"]
+          step_key: Database["public"]["Enums"]["checklist_step_key"]
+        }
+        Update: {
+          checklist_id?: string
+          completed_at?: string | null
+          completed_by?: string | null
+          id?: string
+          iniciado_em?: string | null
+          responsavel_id?: string | null
+          status?: Database["public"]["Enums"]["checklist_step_status"]
+          step_key?: Database["public"]["Enums"]["checklist_step_key"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_step_checklist_id_fkey"
+            columns: ["checklist_id"]
+            isOneToOne: false
+            referencedRelation: "client_monthly_checklist"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_step_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_step_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_briefing: {
         Row: {
           client_id: string
@@ -252,6 +307,57 @@ export type Database = {
           },
         ]
       }
+      client_monthly_checklist: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          mes_referencia: string
+          organization_id: string
+          pacote_post: number | null
+          quantidade_postada: number | null
+          updated_at: string
+          valor_trafego_mes: number | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          mes_referencia: string
+          organization_id: string
+          pacote_post?: number | null
+          quantidade_postada?: number | null
+          updated_at?: string
+          valor_trafego_mes?: number | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          mes_referencia?: string
+          organization_id?: string
+          pacote_post?: number | null
+          quantidade_postada?: number | null
+          updated_at?: string
+          valor_trafego_mes?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_monthly_checklist_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_monthly_checklist_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_notes: {
         Row: {
           autor_id: string
@@ -303,16 +409,23 @@ export type Database = {
           data_aniversario_socio_cliente: string | null
           data_churn: string | null
           data_entrada: string
+          designer_id: string | null
+          drive_url: string | null
+          editor_id: string | null
           email: string | null
+          gmn_url: string | null
           id: string
+          instagram_url: string | null
           motivo_churn: string | null
           nome: string
           organization_id: string
+          pacote_post_padrao: number | null
           servico_contratado: string | null
           status: Database["public"]["Enums"]["client_status"]
           telefone: string | null
           updated_at: string
           valor_mensal: number
+          videomaker_id: string | null
         }
         Insert: {
           assessor_id?: string | null
@@ -322,16 +435,23 @@ export type Database = {
           data_aniversario_socio_cliente?: string | null
           data_churn?: string | null
           data_entrada?: string
+          designer_id?: string | null
+          drive_url?: string | null
+          editor_id?: string | null
           email?: string | null
+          gmn_url?: string | null
           id?: string
+          instagram_url?: string | null
           motivo_churn?: string | null
           nome: string
           organization_id: string
+          pacote_post_padrao?: number | null
           servico_contratado?: string | null
           status?: Database["public"]["Enums"]["client_status"]
           telefone?: string | null
           updated_at?: string
           valor_mensal?: number
+          videomaker_id?: string | null
         }
         Update: {
           assessor_id?: string | null
@@ -341,16 +461,23 @@ export type Database = {
           data_aniversario_socio_cliente?: string | null
           data_churn?: string | null
           data_entrada?: string
+          designer_id?: string | null
+          drive_url?: string | null
+          editor_id?: string | null
           email?: string | null
+          gmn_url?: string | null
           id?: string
+          instagram_url?: string | null
           motivo_churn?: string | null
           nome?: string
           organization_id?: string
+          pacote_post_padrao?: number | null
           servico_contratado?: string | null
           status?: Database["public"]["Enums"]["client_status"]
           telefone?: string | null
           updated_at?: string
           valor_mensal?: number
+          videomaker_id?: string | null
         }
         Relationships: [
           {
@@ -368,10 +495,31 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "clients_designer_id_fkey"
+            columns: ["designer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clients_editor_id_fkey"
+            columns: ["editor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "clients_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clients_videomaker_id_fkey"
+            columns: ["videomaker_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1144,6 +1292,19 @@ export type Database = {
         | "recusou"
         | "pediu_proposta"
         | "outro"
+      checklist_step_key:
+        | "cronograma"
+        | "design"
+        | "tpg"
+        | "tpm"
+        | "valor_trafego"
+        | "gmn_post"
+        | "camera"
+        | "mobile"
+        | "edicao"
+        | "reuniao"
+        | "postagem"
+      checklist_step_status: "pendente" | "em_andamento" | "pronto" | "atrasada"
       client_status: "ativo" | "churn" | "em_onboarding"
       file_category: "briefing" | "contrato" | "criativo" | "outro"
       important_date_type:
@@ -1176,6 +1337,9 @@ export type Database = {
         | "aniversario_colaborador"
         | "renovacao_contrato"
         | "satisfacao_pendente"
+        | "checklist_step_delegada"
+        | "checklist_step_atrasada"
+        | "checklist_step_concluida"
       satisfaction_color: "verde" | "amarelo" | "vermelho"
       snapshot_item_tipo:
         | "fixo"
@@ -1332,6 +1496,20 @@ export const Constants = {
         "pediu_proposta",
         "outro",
       ],
+      checklist_step_key: [
+        "cronograma",
+        "design",
+        "tpg",
+        "tpm",
+        "valor_trafego",
+        "gmn_post",
+        "camera",
+        "mobile",
+        "edicao",
+        "reuniao",
+        "postagem",
+      ],
+      checklist_step_status: ["pendente", "em_andamento", "pronto", "atrasada"],
       client_status: ["ativo", "churn", "em_onboarding"],
       file_category: ["briefing", "contrato", "criativo", "outro"],
       important_date_type: [
@@ -1366,6 +1544,9 @@ export const Constants = {
         "aniversario_colaborador",
         "renovacao_contrato",
         "satisfacao_pendente",
+        "checklist_step_delegada",
+        "checklist_step_atrasada",
+        "checklist_step_concluida",
       ],
       satisfaction_color: ["verde", "amarelo", "vermelho"],
       snapshot_item_tipo: [
