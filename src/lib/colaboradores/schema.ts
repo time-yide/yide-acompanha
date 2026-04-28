@@ -50,6 +50,10 @@ export const editColaboradorSchema = z
     role: z.enum(ROLES),
     ativo: z.coerce.boolean(),
     justificativa: z.string().optional(),
+    // Metas comerciais (opcionais, só relevantes para role='comercial')
+    meta_prospects_mes: z.coerce.number().int().min(0).optional().nullable(),
+    meta_fechamentos_mes: z.coerce.number().int().min(0).optional().nullable(),
+    meta_receita_mes: z.coerce.number().min(0).optional().nullable(),
   })
   .transform(zeroPercentForProducers);
 

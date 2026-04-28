@@ -100,6 +100,9 @@ export async function editColaboradorAction(formData: FormData) {
     role: formData.get("role"),
     ativo: formData.get("ativo") === "on",
     justificativa: formData.get("justificativa") || undefined,
+    meta_prospects_mes: formData.get("meta_prospects_mes") || null,
+    meta_fechamentos_mes: formData.get("meta_fechamentos_mes") || null,
+    meta_receita_mes: formData.get("meta_receita_mes") || null,
   });
 
   if (!parsed.success) {
@@ -140,6 +143,9 @@ export async function editColaboradorAction(formData: FormData) {
       comissao_primeiro_mes_percent: parsed.data.comissao_primeiro_mes_percent,
       role: parsed.data.role,
       ativo: parsed.data.ativo,
+      meta_prospects_mes: parsed.data.meta_prospects_mes ?? null,
+      meta_fechamentos_mes: parsed.data.meta_fechamentos_mes ?? null,
+      meta_receita_mes: parsed.data.meta_receita_mes ?? null,
     })
     .eq("id", parsed.data.id);
 

@@ -22,6 +22,7 @@ export default async function EditarColaboradorPage({ params }: { params: Promis
 
   const canEditFinance = user.role === "socio";
   const canEditRole = user.role === "socio";
+  const canEditMetas = user.role === "socio" || user.role === "adm";
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -50,9 +51,13 @@ export default async function EditarColaboradorPage({ params }: { params: Promis
             comissao_primeiro_mes_percent: colab.comissao_primeiro_mes_percent,
             role: colab.role,
             ativo: colab.ativo,
+            meta_prospects_mes: colab.meta_prospects_mes,
+            meta_fechamentos_mes: colab.meta_fechamentos_mes,
+            meta_receita_mes: colab.meta_receita_mes,
           }}
           canEditFinance={canEditFinance}
           canEditRole={canEditRole}
+          canEditMetas={canEditMetas}
         />
       </Card>
     </div>
