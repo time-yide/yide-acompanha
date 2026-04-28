@@ -52,3 +52,77 @@ describe("isInMonth", () => {
     expect(isInMonth(undefined, "2026-04")).toBe(false);
   });
 });
+
+import { vi, beforeEach } from "vitest";
+
+const fromMock = vi.hoisted(() => vi.fn());
+
+vi.mock("@/lib/supabase/server", () => ({
+  createClient: async () => ({ from: fromMock }),
+}));
+
+import { getKpis } from "@/lib/dashboard/queries";
+
+beforeEach(() => {
+  fromMock.mockReset();
+});
+
+describe("getKpis", () => {
+  it("calcula carteira ativa e clientes ativos a partir de clients ativos", async () => {
+    fromMock.mockImplementation((table) => {
+      if (table === "clients") {
+        return {
+          select: () => ({
+            eq: vi.fn().mockResolvedValue({
+              data: [
+                { id: "c1", valor_mensal: 5000, data_entrada: "2025-01-01", data_churn: null, status: "ativo" },
+                { id: "c2", valor_mensal: 3000, data_entrada: "2025-06-01", data_churn: null, status: "ativo" },
+                { id: "c3", valor_mensal: 4000, data_entrada: "2024-08-01", data_churn: "2026-04-15", status: "ativo" },
+              ],
+            }),
+          }),
+        };
+      }
+      if (table === "commission_snapshots") {
+        return {
+          select: () => ({
+            order: () => ({
+              limit: vi.fn().mockResolvedValue({
+                data: [{ mes_referencia: "2026-03", valor_total: 800 }],
+              }),
+            }),
+          }),
+        };
+      }
+      return {};
+    });
+
+    const r = await getKpis(new Date(Date.UTC(2026, 3, 28)));
+    // c1 e c2 são ativos sem churn; c3 churnou em abril (ainda no mês de referência)
+    // Carteira ativa hoje (28/abr/2026): c1 + c2 = 8000 (c3 churnou em 15/abr, não está mais ativo)
+    expect(r.carteiraAtiva.valor).toBe(8000);
+    expect(r.clientesAtivos.quantidade).toBe(2);
+    expect(r.churnMes.quantidade).toBe(1);    // c3 churnou em abril
+    expect(r.churnMes.valorPerdido).toBe(4000);
+    // Custo de comissão: 800 / 8000 = 10%
+    expect(r.custoComissaoPct.pct).toBeCloseTo(10);
+  });
+
+  it("retorna zeros quando não há clientes", async () => {
+    fromMock.mockImplementation((table) => {
+      if (table === "clients") {
+        return { select: () => ({ eq: vi.fn().mockResolvedValue({ data: [] }) }) };
+      }
+      if (table === "commission_snapshots") {
+        return { select: () => ({ order: () => ({ limit: vi.fn().mockResolvedValue({ data: [] }) }) }) };
+      }
+      return {};
+    });
+
+    const r = await getKpis(new Date(Date.UTC(2026, 3, 28)));
+    expect(r.carteiraAtiva.valor).toBe(0);
+    expect(r.clientesAtivos.quantidade).toBe(0);
+    expect(r.churnMes.quantidade).toBe(0);
+    expect(r.custoComissaoPct.pct).toBe(0);
+  });
+});
