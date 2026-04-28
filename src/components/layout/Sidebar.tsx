@@ -2,7 +2,7 @@
 
 import {
   LayoutGrid, Users, Briefcase, KanbanSquare, ListChecks,
-  DollarSign, Smile, Calendar, UserCog, Settings,
+  DollarSign, Smile, Calendar, UserCog, Settings, ClipboardList,
 } from "lucide-react";
 import { SidebarItem } from "./SidebarItem";
 import { BrandMark } from "@/components/brand/BrandMark";
@@ -14,6 +14,7 @@ const navItems = [
   { href: "/prospeccao", icon: Briefcase, label: "Prospecção", roles: ["adm", "socio", "comercial"] },
   { href: "/onboarding", icon: KanbanSquare, label: "Onboarding", roles: "all" },
   { href: "/tarefas", icon: ListChecks, label: "Tarefas", roles: "all" },
+  { href: "/painel", icon: ClipboardList, label: "Painel mensal", roles: ["adm", "socio", "coordenador", "assessor", "designer", "videomaker", "editor", "audiovisual_chefe"] },
   { href: "/comissoes", icon: DollarSign, label: "Comissões", roles: "all" },
   { href: "/satisfacao", icon: Smile, label: "Satisfação", roles: "all" },
   { href: "/calendario", icon: Calendar, label: "Calendário Interno", roles: "all" },

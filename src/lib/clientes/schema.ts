@@ -17,6 +17,13 @@ export const createClienteSchema = z.object({
 
 export const editClienteSchema = createClienteSchema.extend({
   id: z.string().uuid(),
+  designer_id: z.string().min(1).optional().nullable(),
+  videomaker_id: z.string().min(1).optional().nullable(),
+  editor_id: z.string().min(1).optional().nullable(),
+  instagram_url: z.string().url().or(z.literal("")).optional().nullable(),
+  gmn_url: z.string().url().or(z.literal("")).optional().nullable(),
+  drive_url: z.string().url().or(z.literal("")).optional().nullable(),
+  pacote_post_padrao: z.coerce.number().int().min(0).optional().nullable(),
 });
 
 export const churnClienteSchema = z.object({
