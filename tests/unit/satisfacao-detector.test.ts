@@ -3,8 +3,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const fromMock = vi.hoisted(() => vi.fn());
 const dispatchMock = vi.hoisted(() => vi.fn());
 const synthesizeStoreMock = vi.hoisted(() => vi.fn());
-const listClientsAtivosMock = vi.hoisted(() => vi.fn());
-const listAssessoresMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/supabase/service-role", () => ({
   createServiceRoleClient: () => ({ from: fromMock }),
