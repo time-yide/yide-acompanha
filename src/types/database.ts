@@ -949,6 +949,107 @@ export type Database = {
           },
         ]
       }
+      satisfaction_entries: {
+        Row: {
+          autor_id: string
+          client_id: string
+          comentario: string | null
+          cor: Database["public"]["Enums"]["satisfaction_color"] | null
+          created_at: string
+          id: string
+          papel_autor: string
+          semana_iso: string
+          updated_at: string
+        }
+        Insert: {
+          autor_id: string
+          client_id: string
+          comentario?: string | null
+          cor?: Database["public"]["Enums"]["satisfaction_color"] | null
+          created_at?: string
+          id?: string
+          papel_autor: string
+          semana_iso: string
+          updated_at?: string
+        }
+        Update: {
+          autor_id?: string
+          client_id?: string
+          comentario?: string | null
+          cor?: Database["public"]["Enums"]["satisfaction_color"] | null
+          created_at?: string
+          id?: string
+          papel_autor?: string
+          semana_iso?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "satisfaction_entries_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "satisfaction_entries_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      satisfaction_synthesis: {
+        Row: {
+          acao_sugerida: string | null
+          ai_input_hash: string | null
+          ai_tokens_used: number | null
+          client_id: string
+          cor_final: Database["public"]["Enums"]["satisfaction_color"]
+          created_at: string
+          divergencia_detectada: boolean
+          id: string
+          resumo_ia: string
+          score_final: number
+          semana_iso: string
+        }
+        Insert: {
+          acao_sugerida?: string | null
+          ai_input_hash?: string | null
+          ai_tokens_used?: number | null
+          client_id: string
+          cor_final: Database["public"]["Enums"]["satisfaction_color"]
+          created_at?: string
+          divergencia_detectada?: boolean
+          id?: string
+          resumo_ia: string
+          score_final: number
+          semana_iso: string
+        }
+        Update: {
+          acao_sugerida?: string | null
+          ai_input_hash?: string | null
+          ai_tokens_used?: number | null
+          client_id?: string
+          cor_final?: Database["public"]["Enums"]["satisfaction_color"]
+          created_at?: string
+          divergencia_detectada?: boolean
+          id?: string
+          resumo_ia?: string
+          score_final?: number
+          semana_iso?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "satisfaction_synthesis_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           atribuido_a: string
@@ -1066,6 +1167,7 @@ export type Database = {
         | "aniversario_colaborador"
         | "renovacao_contrato"
         | "satisfacao_pendente"
+      satisfaction_color: "verde" | "amarelo" | "vermelho"
       snapshot_item_tipo:
         | "fixo"
         | "carteira_assessor"
@@ -1256,6 +1358,7 @@ export const Constants = {
         "renovacao_contrato",
         "satisfacao_pendente",
       ],
+      satisfaction_color: ["verde", "amarelo", "vermelho"],
       snapshot_item_tipo: [
         "fixo",
         "carteira_assessor",
