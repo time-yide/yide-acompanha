@@ -10,6 +10,8 @@ const serverSchema = z.object({
   NEXT_PUBLIC_APP_URL: z.string().url(),
   // Opcional: usado pelo endpoint do cron. Sem isso, o endpoint retorna 401 pra qualquer request.
   CRON_SECRET: z.string().optional(),
+  // Opcional: usado pelo synthesizer da satisfação. Sem isso, IA não roda mas avaliação manual continua.
+  ANTHROPIC_API_KEY: z.string().optional(),
 });
 
 const clientSchema = z.object({
