@@ -473,3 +473,81 @@ describe("getEntradaChurn with filter", () => {
     expect(data[1].entradas).toBe(1);
   });
 });
+
+describe("getCarteiraPorAssessor with filter", () => {
+  it("filtra clientes por coordenadorId quando passado (mostra só os assessores que ele coordena)", async () => {
+    const eqMock = vi.fn().mockResolvedValue({
+      data: [
+        { id: "c1", valor_mensal: 5000, assessor_id: "a1", assessor: { nome: "Ana" }, coordenador_id: "co1" },
+        { id: "c2", valor_mensal: 3000, assessor_id: "a2", assessor: { nome: "Bruno" }, coordenador_id: "co1" },
+      ],
+    });
+    fromMock.mockImplementation(() => ({
+      select: () => ({ eq: vi.fn().mockReturnValue({ eq: eqMock }) }),
+    }));
+
+    const list = await getCarteiraPorAssessor({ coordenadorId: "co1" });
+    expect(list).toHaveLength(2);
+    expect(list[0].valorTotal).toBe(5000);
+    expect(list[1].valorTotal).toBe(3000);
+  });
+});
+
+describe("getRankingSatisfacao with filter", () => {
+  it("filtra sínteses por assessorId quando passado", async () => {
+    fromMock.mockImplementation((table) => {
+      if (table === "satisfaction_synthesis") {
+        return {
+          select: (cols: string) => {
+            if (cols === "semana_iso") {
+              return {
+                order: () => ({
+                  limit: vi.fn().mockResolvedValue({ data: [{ semana_iso: "2026-W17" }] }),
+                }),
+              };
+            }
+            return {
+              eq: vi.fn().mockResolvedValue({
+                data: [
+                  { id: "s1", client_id: "c1", semana_iso: "2026-W17", score_final: 9.5, cor_final: "verde", resumo_ia: "ok", divergencia_detectada: false, acao_sugerida: null, created_at: "2026-04-27", cliente: { nome: "Alpha", assessor_id: "a1", coordenador_id: "co1" } },
+                  { id: "s2", client_id: "c2", semana_iso: "2026-W17", score_final: 8.0, cor_final: "verde", resumo_ia: "ok", divergencia_detectada: false, acao_sugerida: null, created_at: "2026-04-27", cliente: { nome: "Beta", assessor_id: "a2", coordenador_id: "co1" } },
+                ],
+              }),
+            };
+          },
+        };
+      }
+      return {};
+    });
+
+    const r = await getRankingSatisfacao({ assessorId: "a1" });
+    expect(r.top).toHaveLength(1);
+    expect(r.top[0].client_id).toBe("c1");
+  });
+});
+
+describe("getProximosEventos with filter", () => {
+  it("filtra eventos por participantes_ids contendo userId quando passado", async () => {
+    const containsMock = vi.fn().mockReturnValue({
+      gte: () => ({
+        lte: () => ({
+          order: () => ({
+            limit: vi.fn().mockResolvedValue({
+              data: [{ id: "e1", titulo: "Reunião X", inicio: "2026-04-29T10:00:00Z", fim: "2026-04-29T11:00:00Z", sub_calendar: "agencia" }],
+            }),
+          }),
+        }),
+      }),
+    });
+    fromMock.mockImplementation((table) => {
+      if (table === "calendar_events") {
+        return { select: () => ({ contains: containsMock }) };
+      }
+      return {};
+    });
+
+    const eventos = await getProximosEventos(30, 10, { userId: "u1" });
+    expect(eventos).toHaveLength(1);
+    expect(containsMock).toHaveBeenCalledWith("participantes_ids", ["u1"]);
+  });
+});

@@ -171,22 +171,25 @@ export interface AssessorCarteira {
   pctDoTotal: number;
 }
 
-export async function getCarteiraPorAssessor(): Promise<AssessorCarteira[]> {
+export async function getCarteiraPorAssessor(filter?: ClientFilter): Promise<AssessorCarteira[]> {
   const supabase = await createClient();
 
-  const { data: clientsData } = await supabase
+  let clientsQuery = supabase
     .from("clients")
-    .select("id, valor_mensal, assessor_id, assessor:profiles!clients_assessor_id_fkey(nome)")
+    .select("id, valor_mensal, assessor_id, coordenador_id, assessor:profiles!clients_assessor_id_fkey(nome)")
     .eq("status", "ativo");
+  clientsQuery = buildClientFilterQuery(clientsQuery as never, filter) as never;
+
+  const { data: clientsData } = await clientsQuery;
 
   const clients = (clientsData ?? []) as unknown as Array<{
     id: string;
     valor_mensal: number;
     assessor_id: string | null;
+    coordenador_id: string | null;
     assessor: { nome: string } | null;
   }>;
 
-  // Agrupa por assessor_id
   const groups = new Map<string, { nome: string; qtd: number; valor: number }>();
   for (const c of clients) {
     if (!c.assessor_id || !c.assessor) continue;
@@ -225,13 +228,12 @@ export interface SynthesisRowWithCliente {
   cliente: { nome: string; assessor_id: string | null; coordenador_id: string | null } | null;
 }
 
-export async function getRankingSatisfacao(): Promise<{
+export async function getRankingSatisfacao(filter?: ClientFilter): Promise<{
   top: SynthesisRowWithCliente[];
   bottom: SynthesisRowWithCliente[];
 }> {
   const supabase = await createClient();
 
-  // Pegar a semana_iso mais recente de qualquer síntese
   const { data: latestData } = await supabase
     .from("satisfaction_synthesis")
     .select("semana_iso")
@@ -245,7 +247,15 @@ export async function getRankingSatisfacao(): Promise<{
     .select("*, cliente:clients(nome, assessor_id, coordenador_id)")
     .eq("semana_iso", latestWeek);
 
-  const all = (synthData ?? []) as unknown as SynthesisRowWithCliente[];
+  let all = (synthData ?? []) as unknown as SynthesisRowWithCliente[];
+
+  // Filtra em memória (Supabase não filtra por campo nested via join facilmente)
+  if (filter?.assessorId) {
+    all = all.filter((s) => s.cliente?.assessor_id === filter.assessorId);
+  }
+  if (filter?.coordenadorId) {
+    all = all.filter((s) => s.cliente?.coordenador_id === filter.coordenadorId);
+  }
 
   const top = all
     .filter((s) => s.cor_final === "verde")
@@ -272,15 +282,29 @@ export interface EventoRow {
   sub_calendar: "agencia" | "onboarding" | "aniversarios";
 }
 
-export async function getProximosEventos(days: number = 30, limit: number = 10): Promise<EventoRow[]> {
+export interface EventoFilter {
+  userId?: string;
+}
+
+export async function getProximosEventos(
+  days: number = 30,
+  limit: number = 10,
+  filter?: EventoFilter,
+): Promise<EventoRow[]> {
   const supabase = await createClient();
   const now = new Date();
   const start = now.toISOString();
   const end = new Date(now.getTime() + days * 24 * 60 * 60 * 1000).toISOString();
 
-  const { data } = await supabase
+  let query = supabase
     .from("calendar_events")
-    .select("id, titulo, inicio, fim, sub_calendar")
+    .select("id, titulo, inicio, fim, sub_calendar");
+
+  if (filter?.userId) {
+    query = query.contains("participantes_ids", [filter.userId]);
+  }
+
+  const { data } = await query
     .gte("inicio", start)
     .lte("inicio", end)
     .order("inicio", { ascending: true })
