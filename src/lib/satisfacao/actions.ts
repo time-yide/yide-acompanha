@@ -42,11 +42,7 @@ export async function setSatisfactionColorAction(formData: FormData): Promise<Ac
   if (filledCount >= 2) {
     const existing = await getExistingSynthesis(parsed.data.client_id, weekIso);
     if (!existing) {
-      // Pass the current entry so synthesizeAndStore doesn't need to re-query entries
-      const seedEntries: Array<{ papel: string; cor: SatisfactionColor; comentario: string | null }> = [
-        { papel: actor.role, cor: parsed.data.cor, comentario: null },
-      ];
-      await synthesizeAndStore(parsed.data.client_id, weekIso, actor.id, seedEntries);
+      await synthesizeAndStore(parsed.data.client_id, weekIso, actor.id);
       triggeredSynthesis = true;
     }
   }
@@ -97,31 +93,24 @@ async function countFilledForClient(clientId: string, weekIso: string): Promise<
 }
 
 async function getExistingSynthesis(clientId: string, weekIso: string): Promise<{ id: string; cor_final: SatisfactionColor } | null> {
-  try {
-    const supabase = createServiceRoleClient();
-    const { data } = await supabase
-      .from("satisfaction_synthesis")
-      .select("id, cor_final")
-      .eq("client_id", clientId)
-      .eq("semana_iso", weekIso)
-      .maybeSingle();
-    return (data as { id: string; cor_final: SatisfactionColor } | null) ?? null;
-  } catch {
-    return null;
-  }
+  const supabase = createServiceRoleClient();
+  const { data } = await supabase
+    .from("satisfaction_synthesis")
+    .select("id, cor_final")
+    .eq("client_id", clientId)
+    .eq("semana_iso", weekIso)
+    .maybeSingle();
+  return (data as { id: string; cor_final: SatisfactionColor } | null) ?? null;
 }
 
 /**
  * Roda IA, persiste síntese, e dispara churn alert se aplicável.
  * Exportada pra o detector (cron quinta-feira) também usar.
- *
- * @param prefetchedEntries - When provided, skips DB fetch for current entries (used by real-time trigger).
  */
 export async function synthesizeAndStore(
   clientId: string,
   weekIso: string,
   sourceUserId?: string,
-  prefetchedEntries?: Array<{ papel: string; cor: SatisfactionColor; comentario: string | null }>,
 ): Promise<void> {
   const supabase = createServiceRoleClient();
 
@@ -133,20 +122,15 @@ export async function synthesizeAndStore(
     .single();
   if (!client) return;
 
-  // Entries da semana: use prefetched if provided, otherwise fetch from DB
-  let currentEntries: Array<{ papel: string; cor: SatisfactionColor; comentario: string | null }>;
-  if (prefetchedEntries && prefetchedEntries.length > 0) {
-    currentEntries = prefetchedEntries;
-  } else {
-    const { data: entriesRows } = await supabase
-      .from("satisfaction_entries")
-      .select("papel_autor, cor, comentario")
-      .eq("client_id", clientId)
-      .eq("semana_iso", weekIso)
-      .not("cor", "is", null);
-    currentEntries = ((entriesRows ?? []) as Array<{ papel_autor: string; cor: SatisfactionColor; comentario: string | null }>)
-      .map((e) => ({ papel: e.papel_autor, cor: e.cor, comentario: e.comentario }));
-  }
+  // Entries da semana
+  const { data: entriesRows } = await supabase
+    .from("satisfaction_entries")
+    .select("papel_autor, cor, comentario")
+    .eq("client_id", clientId)
+    .eq("semana_iso", weekIso)
+    .not("cor", "is", null);
+  const currentEntries = ((entriesRows ?? []) as Array<{ papel_autor: string; cor: SatisfactionColor; comentario: string | null }>)
+    .map((e) => ({ papel: e.papel_autor, cor: e.cor, comentario: e.comentario }));
   if (currentEntries.length === 0) return;
 
   // Histórico 4 semanas

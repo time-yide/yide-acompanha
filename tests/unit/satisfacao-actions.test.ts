@@ -89,14 +89,33 @@ describe("setSatisfactionColorAction", () => {
 
     fromServiceMock.mockImplementation((table) => {
       if (table === "satisfaction_entries") {
+        // .select(cols, opts) needs to differentiate: count query vs data query
         return {
-          select: () => ({
-            eq: () => ({
+          select: (_cols: string, opts?: { head?: boolean }) => {
+            if (opts?.head) {
+              // countFilledForClient
+              return {
+                eq: () => ({
+                  eq: () => ({
+                    not: vi.fn().mockResolvedValue({ count: 2 }),
+                  }),
+                }),
+              };
+            }
+            // synthesizeAndStore internal entries fetch
+            return {
               eq: () => ({
-                not: vi.fn().mockResolvedValue({ count: 2 }),
+                eq: () => ({
+                  not: vi.fn().mockResolvedValue({
+                    data: [
+                      { papel_autor: "coordenador", cor: "verde", comentario: "ok" },
+                      { papel_autor: "assessor", cor: "verde", comentario: null },
+                    ],
+                  }),
+                }),
               }),
-            }),
-          }),
+            };
+          },
         };
       }
       if (table === "clients") {
@@ -111,10 +130,17 @@ describe("setSatisfactionColorAction", () => {
         };
       }
       if (table === "satisfaction_synthesis") {
+        // Two call chains used:
+        //  - getExistingSynthesis: .select().eq().eq().maybeSingle()
+        //  - synthesizeAndStore history: .select().eq().order().limit()
+        //  - synthesizeAndStore upsert
         return {
           upsert: upsertSynthMock,
           select: () => ({
             eq: () => ({
+              eq: () => ({
+                maybeSingle: vi.fn().mockResolvedValue({ data: null }),
+              }),
               order: () => ({
                 limit: vi.fn().mockResolvedValue({ data: [] }),
               }),
@@ -140,6 +166,9 @@ describe("setSatisfactionColorAction", () => {
     const r = await setSatisfactionColorAction(fd);
     expect(r).toEqual(expect.objectContaining({ success: true, triggeredSynthesis: true }));
     expect(synthesizeMock).toHaveBeenCalledTimes(1);
+    // Confirma que ambas as entries foram passadas (não só a "seed")
+    const callArgs = synthesizeMock.mock.calls[0][0];
+    expect(callArgs.current_entries).toHaveLength(2);
     expect(upsertSynthMock).toHaveBeenCalled();
   });
 
