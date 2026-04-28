@@ -186,3 +186,49 @@ export async function editColaboradorAction(formData: FormData) {
   revalidatePath("/colaboradores");
   redirect(`/colaboradores/${parsed.data.id}`);
 }
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+type ResetPasswordResult =
+  | { success: true; password: string }
+  | { error: string };
+
+export async function resetColaboradorPasswordAction(
+  formData: FormData,
+): Promise<ResetPasswordResult> {
+  const actor = await requireAuth();
+  if (!canAccess(actor.role, "manage:users")) {
+    return { error: "Sem permissão" };
+  }
+
+  const userIdRaw = formData.get("user_id");
+  const userId = typeof userIdRaw === "string" ? userIdRaw.trim() : "";
+  if (!userId || !UUID_RE.test(userId)) {
+    return { error: "ID inválido" };
+  }
+
+  if (actor.id === userId) {
+    return { error: "Use a página de configurações para trocar sua própria senha" };
+  }
+
+  const password = generateStrongPassword();
+
+  const admin = createServiceRoleClient();
+  const { error: updateErr } = await admin.auth.admin.updateUserById(userId, { password });
+
+  if (updateErr) {
+    return { error: "Falha ao resetar senha" };
+  }
+
+  await logAudit({
+    entidade: "profiles",
+    entidade_id: userId,
+    acao: "update",
+    dados_depois: { senha_resetada: true } as Record<string, unknown>,
+    ator_id: actor.id,
+    justificativa: "Reset de senha solicitado pelo sócio/ADM",
+  });
+
+  revalidatePath(`/colaboradores/${userId}/editar`);
+  return { success: true, password };
+}
