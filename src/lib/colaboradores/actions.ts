@@ -74,7 +74,20 @@ export async function createColaboradorAction(
     .eq("id", created.user.id);
 
   if (updateErr) {
-    return { error: "Colaborador criado, mas falha ao atualizar dados financeiros" };
+    // Rollback: deleta o auth user pra não deixar conta órfã com senha
+    // que ninguém sabe (sócio nunca viu a senha porque não chegou na tela
+    // de sucesso). Sem isso, o email fica preso e não pode ser recriado.
+    const { error: deleteErr } = await admin.auth.admin.deleteUser(created.user.id);
+    if (deleteErr) {
+      // Estado irrecuperável: createUser passou, update falhou, delete falhou.
+      // Loga direto no console pra aparecer nos logs do servidor — o logger
+      // de auditoria não cobre isso porque não há entidade consistente.
+      console.error(
+        "[createColaboradorAction] FAILED TO ROLLBACK auth user after profile update error",
+        { userId: created.user.id, email: parsed.data.email, deleteErr, updateErr },
+      );
+    }
+    return { error: "Falha ao atualizar dados financeiros — colaborador não foi criado, tente novamente" };
   }
 
   await logAudit({

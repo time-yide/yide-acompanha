@@ -144,6 +144,9 @@ export function ColaboradorCreateForm({ canSetCommission }: { canSetCommission: 
               <Button type="button" variant="secondary" onClick={handleCopy} className="w-full">
                 {copied ? "Copiado!" : "Copiar"}
               </Button>
+              <p className="text-xs text-muted-foreground">
+                Se você fechar antes de copiar, será possível gerar uma nova senha em &quot;Editar colaborador → Resetar senha&quot;.
+              </p>
             </div>
           )}
 
