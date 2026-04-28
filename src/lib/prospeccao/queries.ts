@@ -119,3 +119,75 @@ export async function getLeadAttempts(leadId: string): Promise<LeadAttemptRow[]>
 
   return (data ?? []) as unknown as LeadAttemptRow[];
 }
+
+export interface HistoricoFechamento {
+  leadId: string;
+  clienteId: string | null;
+  clienteNome: string;
+  valorMensal: number;
+  dataFechamento: string;
+  comissaoRecebida: number;
+}
+
+export async function getHistoricoFechamentos(
+  comercialId: string,
+  monthsBack: number = 12,
+  now: Date = new Date(),
+): Promise<HistoricoFechamento[]> {
+  const supabase = await createClient();
+  const cutoff = new Date(now.getTime() - monthsBack * 31 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+
+  const { data: leadsData } = await supabase
+    .from("leads")
+    .select("id, client_id, data_fechamento, cliente:clients(id, nome, valor_mensal)")
+    .eq("comercial_id", comercialId)
+    .eq("stage", "ativo")
+    .gte("data_fechamento", cutoff);
+
+  const leads = (leadsData ?? []) as unknown as Array<{
+    id: string;
+    client_id: string | null;
+    data_fechamento: string | null;
+    cliente: { id: string; nome: string; valor_mensal: number } | null;
+  }>;
+
+  // Buscar todos os snapshots desse user pros meses cobertos
+  const monthsSet = new Set<string>();
+  for (const l of leads) {
+    if (l.data_fechamento) monthsSet.add(l.data_fechamento.slice(0, 7));
+  }
+  const monthsList = [...monthsSet];
+
+  let snapshotByMes = new Map<string, number>();
+  if (monthsList.length > 0) {
+    const { data: snapshotsData } = await supabase
+      .from("commission_snapshots")
+      .select("user_id, mes_referencia, valor_total")
+      .eq("user_id", comercialId)
+      .in("mes_referencia", monthsList);
+    snapshotByMes = new Map(
+      ((snapshotsData ?? []) as Array<{ mes_referencia: string; valor_total: number }>).map(
+        (s) => [s.mes_referencia, Number(s.valor_total)],
+      ),
+    );
+  }
+
+  const result: HistoricoFechamento[] = [];
+  for (const l of leads) {
+    if (!l.data_fechamento || !l.cliente) continue;
+    const mes = l.data_fechamento.slice(0, 7);
+    result.push({
+      leadId: l.id,
+      clienteId: l.client_id,
+      clienteNome: l.cliente.nome,
+      valorMensal: Number(l.cliente.valor_mensal),
+      dataFechamento: l.data_fechamento,
+      comissaoRecebida: snapshotByMes.get(mes) ?? 0,
+    });
+  }
+
+  result.sort((a, b) => b.dataFechamento.localeCompare(a.dataFechamento));
+  return result;
+}

@@ -6,7 +6,7 @@ vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({ from: fromMock }),
 }));
 
-import { getProspectsList, getProspectDetail, getLeadAttempts } from "@/lib/prospeccao/queries";
+import { getProspectsList, getProspectDetail, getLeadAttempts, getHistoricoFechamentos } from "@/lib/prospeccao/queries";
 
 beforeEach(() => {
   fromMock.mockReset();
@@ -198,5 +198,98 @@ describe("getLeadAttempts", () => {
 
     const r = await getLeadAttempts("l1");
     expect(r).toEqual([]);
+  });
+});
+
+describe("getHistoricoFechamentos", () => {
+  it("une leads fechados com clients e commission_snapshots", async () => {
+    fromMock.mockImplementation((table) => {
+      if (table === "leads") {
+        return {
+          select: () => ({
+            eq: () => ({
+              eq: () => ({
+                gte: vi.fn().mockResolvedValue({
+                  data: [
+                    {
+                      id: "l1",
+                      client_id: "c1",
+                      data_fechamento: "2026-03-15",
+                      cliente: { id: "c1", nome: "Cliente A", valor_mensal: 5000 },
+                    },
+                    {
+                      id: "l2",
+                      client_id: "c2",
+                      data_fechamento: "2026-04-10",
+                      cliente: { id: "c2", nome: "Cliente B", valor_mensal: 3000 },
+                    },
+                  ],
+                }),
+              }),
+            }),
+          }),
+        };
+      }
+      if (table === "commission_snapshots") {
+        return {
+          select: () => ({
+            eq: () => ({
+              in: vi.fn().mockResolvedValue({
+                data: [
+                  { user_id: "u1", mes_referencia: "2026-03", valor_total: 800 },
+                  { user_id: "u1", mes_referencia: "2026-04", valor_total: 1200 },
+                ],
+              }),
+            }),
+          }),
+        };
+      }
+      return {};
+    });
+
+    const r = await getHistoricoFechamentos("u1", 12, new Date(Date.UTC(2026, 3, 28)));
+    expect(r).toHaveLength(2);
+    expect(r[0].clienteNome).toBe("Cliente B");  // ordenado por data desc
+    expect(r[0].comissaoRecebida).toBe(1200);
+    expect(r[1].comissaoRecebida).toBe(800);
+  });
+
+  it("retorna comissaoRecebida=0 quando snapshot não existe pra aquele mês", async () => {
+    fromMock.mockImplementation((table) => {
+      if (table === "leads") {
+        return {
+          select: () => ({
+            eq: () => ({
+              eq: () => ({
+                gte: vi.fn().mockResolvedValue({
+                  data: [
+                    {
+                      id: "l1",
+                      client_id: "c1",
+                      data_fechamento: "2026-04-10",
+                      cliente: { id: "c1", nome: "Cliente A", valor_mensal: 5000 },
+                    },
+                  ],
+                }),
+              }),
+            }),
+          }),
+        };
+      }
+      if (table === "commission_snapshots") {
+        return {
+          select: () => ({
+            eq: () => ({
+              in: vi.fn().mockResolvedValue({ data: [] }),
+            }),
+          }),
+        };
+      }
+      return {};
+    });
+
+    const r = await getHistoricoFechamentos("u1", 12, new Date(Date.UTC(2026, 3, 28)));
+    expect(r).toHaveLength(1);
+    expect(r[0].comissaoRecebida).toBe(0);
   });
 });
