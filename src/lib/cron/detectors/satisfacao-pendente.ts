@@ -93,5 +93,5 @@ async function bootstrapPendingEntriesForWeek(weekIso: string): Promise<void> {
   // Insert ignora conflitos (entry pode já existir se rodou antes)
   await supabase
     .from("satisfaction_entries")
-    .insert(entriesToInsert);
+    .upsert(entriesToInsert, { onConflict: "client_id,autor_id,semana_iso", ignoreDuplicates: true });
 }

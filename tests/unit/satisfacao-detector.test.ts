@@ -37,7 +37,7 @@ describe("detectSatisfacaoPendente", () => {
     // Segunda-feira: 2026-04-13 é segunda
     vi.setSystemTime(new Date(Date.UTC(2026, 3, 13, 12, 0, 0)));
 
-    const insertMock = vi.fn().mockResolvedValue({ error: null });
+    const upsertMock = vi.fn().mockResolvedValue({ error: null });
     fromMock.mockImplementation((table) => {
       if (table === "clients") {
         return {
@@ -64,7 +64,7 @@ describe("detectSatisfacaoPendente", () => {
         };
       }
       if (table === "satisfaction_entries") {
-        return { insert: insertMock };
+        return { upsert: upsertMock };
       }
       return {};
     });
@@ -72,7 +72,7 @@ describe("detectSatisfacaoPendente", () => {
     const counters = { satisfacao_pendente: 0 };
     await detectSatisfacaoPendente(counters);
 
-    expect(insertMock).toHaveBeenCalled();
+    expect(upsertMock).toHaveBeenCalled();
     expect(dispatchMock).toHaveBeenCalledWith(
       expect.objectContaining({ evento_tipo: "satisfacao_pendente" }),
     );
