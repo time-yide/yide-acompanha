@@ -169,3 +169,39 @@ describe("getCarteiraTimeline", () => {
     expect(timeline.every((p) => p.valorTotal === 0)).toBe(true);
   });
 });
+
+import { getEntradaChurn } from "@/lib/dashboard/queries";
+
+describe("getEntradaChurn", () => {
+  it("conta entradas e churns por mes", async () => {
+    fromMock.mockImplementation(() => ({
+      select: vi.fn().mockResolvedValue({
+        data: [
+          { id: "c1", data_entrada: "2026-02-15", data_churn: null },
+          { id: "c2", data_entrada: "2026-02-20", data_churn: null },
+          { id: "c3", data_entrada: "2026-03-05", data_churn: null },
+          { id: "c4", data_entrada: "2025-08-01", data_churn: "2026-03-10" },
+          { id: "c5", data_entrada: "2025-09-01", data_churn: "2026-04-15" },
+        ],
+      }),
+    }));
+
+    const data = await getEntradaChurn(3, new Date(Date.UTC(2026, 3, 28)));
+    expect(data).toHaveLength(3);
+    expect(data.map((p) => p.mes)).toEqual(["2026-02", "2026-03", "2026-04"]);
+    expect(data[0]).toEqual({ mes: "2026-02", entradas: 2, churns: 0 });
+    expect(data[1]).toEqual({ mes: "2026-03", entradas: 1, churns: 1 });
+    expect(data[2]).toEqual({ mes: "2026-04", entradas: 0, churns: 1 });
+  });
+
+  it("retorna zeros para meses sem dados", async () => {
+    fromMock.mockImplementation(() => ({
+      select: vi.fn().mockResolvedValue({ data: [] }),
+    }));
+    const data = await getEntradaChurn(2, new Date(Date.UTC(2026, 3, 28)));
+    expect(data).toEqual([
+      { mes: "2026-03", entradas: 0, churns: 0 },
+      { mes: "2026-04", entradas: 0, churns: 0 },
+    ]);
+  });
+});

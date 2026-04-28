@@ -116,3 +116,33 @@ export async function getCarteiraTimeline(
     return { mes, valorTotal };
   });
 }
+
+export interface EntradaChurnPoint {
+  mes: string;
+  entradas: number;
+  churns: number;
+}
+
+export async function getEntradaChurn(
+  months: number = 6,
+  now: Date = new Date(),
+): Promise<EntradaChurnPoint[]> {
+  const supabase = await createClient();
+  const meses = monthRange(months, now);
+
+  const { data: clientsData } = await supabase
+    .from("clients")
+    .select("id, data_entrada, data_churn");
+
+  const clients = (clientsData ?? []) as Array<{
+    id: string;
+    data_entrada: string;
+    data_churn: string | null;
+  }>;
+
+  return meses.map((mes) => {
+    const entradas = clients.filter((c) => isInMonth(c.data_entrada, mes)).length;
+    const churns = clients.filter((c) => isInMonth(c.data_churn, mes)).length;
+    return { mes, entradas, churns };
+  });
+}
