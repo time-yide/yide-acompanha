@@ -1,6 +1,6 @@
 import { requireAuth } from "@/lib/auth/session";
 import { canAccess } from "@/lib/auth/permissions";
-import { ConviteForm } from "@/components/colaboradores/ConviteForm";
+import { ColaboradorCreateForm } from "@/components/colaboradores/ColaboradorCreateForm";
 import { Card } from "@/components/ui/card";
 import { redirect } from "next/navigation";
 
@@ -14,12 +14,12 @@ export default async function NovoColaboradorPage() {
       <header>
         <h1 className="text-2xl font-bold tracking-tight">Novo colaborador</h1>
         <p className="text-sm text-muted-foreground">
-          Um email de convite será enviado. O colaborador define a senha pelo link.
+          O sistema gera uma senha aleatória e ela aparecerá uma única vez para você copiar e enviar ao colaborador.
           {!canSetCommission && " % de comissão só pode ser editado pelo sócio."}
         </p>
       </header>
       <Card className="p-6">
-        <ConviteForm canSetCommission={canSetCommission} />
+        <ColaboradorCreateForm canSetCommission={canSetCommission} />
       </Card>
     </div>
   );

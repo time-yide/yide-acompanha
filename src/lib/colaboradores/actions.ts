@@ -7,16 +7,22 @@ import { canAccess } from "@/lib/auth/permissions";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { createClient } from "@/lib/supabase/server";
 import { logAudit } from "@/lib/audit/log";
-import { inviteSchema, editColaboradorSchema } from "./schema";
-import { env } from "@/lib/env";
+import { createColaboradorSchema, editColaboradorSchema } from "./schema";
+import { generateStrongPassword } from "@/lib/auth/password-generator";
 
-export async function inviteColaboradorAction(formData: FormData) {
+type CreateColaboradorResult =
+  | { success: true; password: string; userId: string }
+  | { error: string };
+
+export async function createColaboradorAction(
+  formData: FormData,
+): Promise<CreateColaboradorResult> {
   const actor = await requireAuth();
   if (!canAccess(actor.role, "manage:users")) {
     return { error: "Sem permissão" };
   }
 
-  const parsed = inviteSchema.safeParse({
+  const parsed = createColaboradorSchema.safeParse({
     nome: formData.get("nome"),
     email: formData.get("email"),
     role: formData.get("role"),
@@ -37,19 +43,22 @@ export async function inviteColaboradorAction(formData: FormData) {
     return { error: "Apenas sócio pode definir % de comissão" };
   }
 
+  // Gera senha forte ANTES de chamar o Supabase para que ela exista
+  // mesmo se a chamada falhar mais à frente (e seja inutilizada).
+  const password = generateStrongPassword();
+
   const admin = createServiceRoleClient();
 
-  // Convite por email — Supabase envia link de definição de senha
-  const { data: invited, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(
-    parsed.data.email,
-    {
-      data: { role: parsed.data.role, nome: parsed.data.nome },
-      redirectTo: `${env.NEXT_PUBLIC_APP_URL}/definir-senha`,
-    },
-  );
+  // Cria o usuário direto (sem email de confirmação).
+  const { data: created, error: createErr } = await admin.auth.admin.createUser({
+    email: parsed.data.email,
+    password,
+    email_confirm: true,
+    user_metadata: { role: parsed.data.role, nome: parsed.data.nome },
+  });
 
-  if (inviteErr || !invited.user) {
-    return { error: inviteErr?.message ?? "Falha ao enviar convite" };
+  if (createErr || !created.user) {
+    return { error: createErr?.message ?? "Falha ao criar colaborador" };
   }
 
   // O trigger já criou o profile com role e nome via raw_user_meta_data.
@@ -62,22 +71,22 @@ export async function inviteColaboradorAction(formData: FormData) {
       comissao_percent: parsed.data.comissao_percent,
       comissao_primeiro_mes_percent: parsed.data.comissao_primeiro_mes_percent,
     })
-    .eq("id", invited.user.id);
+    .eq("id", created.user.id);
 
   if (updateErr) {
-    return { error: "Convite enviado, mas falha ao atualizar dados financeiros" };
+    return { error: "Colaborador criado, mas falha ao atualizar dados financeiros" };
   }
 
   await logAudit({
     entidade: "profiles",
-    entidade_id: invited.user.id,
+    entidade_id: created.user.id,
     acao: "create",
     dados_depois: parsed.data as unknown as Record<string, unknown>,
     ator_id: actor.id,
   });
 
   revalidatePath("/colaboradores");
-  redirect("/colaboradores");
+  return { success: true, password, userId: created.user.id };
 }
 
 export async function editColaboradorAction(formData: FormData) {
