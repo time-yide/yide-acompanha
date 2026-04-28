@@ -256,3 +256,138 @@ describe("getCarteiraPorAssessor", () => {
     expect(list).toEqual([]);
   });
 });
+
+import { getRankingSatisfacao, getProximosEventos, getMesAguardandoAprovacao } from "@/lib/dashboard/queries";
+
+describe("getRankingSatisfacao", () => {
+  it("retorna top 3 verde por score desc e bottom 2 (vermelho > amarelo) por score asc", async () => {
+    fromMock.mockImplementation((table) => {
+      if (table === "satisfaction_synthesis") {
+        // Two call chains: .select().order().limit() for latest week, and .select().eq() for the rows
+        return {
+          select: (cols: string) => {
+            if (cols === "semana_iso") {
+              return {
+                order: () => ({
+                  limit: vi.fn().mockResolvedValue({
+                    data: [{ semana_iso: "2026-W17" }],
+                  }),
+                }),
+              };
+            }
+            return {
+              eq: vi.fn().mockResolvedValue({
+                data: [
+                  { id: "s1", client_id: "c1", semana_iso: "2026-W17", score_final: 9.5, cor_final: "verde", resumo_ia: "ok", divergencia_detectada: false, acao_sugerida: null, created_at: "2026-04-27", cliente: { nome: "Alpha", assessor_id: "a1", coordenador_id: "co1" } },
+                  { id: "s2", client_id: "c2", semana_iso: "2026-W17", score_final: 8.5, cor_final: "verde", resumo_ia: "ok", divergencia_detectada: false, acao_sugerida: null, created_at: "2026-04-27", cliente: { nome: "Beta", assessor_id: "a1", coordenador_id: "co1" } },
+                  { id: "s3", client_id: "c3", semana_iso: "2026-W17", score_final: 9.0, cor_final: "verde", resumo_ia: "ok", divergencia_detectada: false, acao_sugerida: null, created_at: "2026-04-27", cliente: { nome: "Gamma", assessor_id: "a1", coordenador_id: "co1" } },
+                  { id: "s4", client_id: "c4", semana_iso: "2026-W17", score_final: 2.0, cor_final: "vermelho", resumo_ia: "x", divergencia_detectada: false, acao_sugerida: "ação", created_at: "2026-04-27", cliente: { nome: "Delta", assessor_id: "a1", coordenador_id: "co1" } },
+                  { id: "s5", client_id: "c5", semana_iso: "2026-W17", score_final: 5.0, cor_final: "amarelo", resumo_ia: "x", divergencia_detectada: false, acao_sugerida: "ação", created_at: "2026-04-27", cliente: { nome: "Epsilon", assessor_id: "a1", coordenador_id: "co1" } },
+                  { id: "s6", client_id: "c6", semana_iso: "2026-W17", score_final: 3.5, cor_final: "vermelho", resumo_ia: "x", divergencia_detectada: false, acao_sugerida: "ação", created_at: "2026-04-27", cliente: { nome: "Zeta", assessor_id: "a1", coordenador_id: "co1" } },
+                ],
+              }),
+            };
+          },
+        };
+      }
+      return {};
+    });
+
+    const r = await getRankingSatisfacao();
+    expect(r.top.map((s) => s.client_id)).toEqual(["c1", "c3", "c2"]); // 9.5, 9.0, 8.5
+    expect(r.bottom.map((s) => s.client_id)).toEqual(["c4", "c6"]);    // vermelhos primeiro: 2.0, 3.5
+  });
+
+  it("retorna listas vazias quando sem sínteses", async () => {
+    fromMock.mockImplementation((table) => {
+      if (table === "satisfaction_synthesis") {
+        return {
+          select: () => ({
+            order: () => ({
+              limit: vi.fn().mockResolvedValue({ data: [] }),
+            }),
+          }),
+        };
+      }
+      return {};
+    });
+    const r = await getRankingSatisfacao();
+    expect(r.top).toEqual([]);
+    expect(r.bottom).toEqual([]);
+  });
+});
+
+describe("getProximosEventos", () => {
+  it("retorna eventos ordenados por inicio asc com limite", async () => {
+    fromMock.mockImplementation((table) => {
+      if (table === "calendar_events") {
+        return {
+          select: () => ({
+            gte: () => ({
+              lte: () => ({
+                order: () => ({
+                  limit: vi.fn().mockResolvedValue({
+                    data: [
+                      { id: "e1", titulo: "Reunião A", inicio: "2026-04-29T10:00:00Z", fim: "2026-04-29T11:00:00Z", sub_calendar: "agencia" },
+                      { id: "e2", titulo: "Aniversário B", inicio: "2026-05-02T00:00:00Z", fim: "2026-05-02T23:59:59Z", sub_calendar: "aniversarios" },
+                    ],
+                  }),
+                }),
+              }),
+            }),
+          }),
+        };
+      }
+      return {};
+    });
+
+    const eventos = await getProximosEventos(30, 10);
+    expect(eventos).toHaveLength(2);
+    expect(eventos[0].titulo).toBe("Reunião A");
+    expect(eventos[1].sub_calendar).toBe("aniversarios");
+  });
+});
+
+describe("getMesAguardandoAprovacao", () => {
+  it("retorna mes_referencia mais recente com status pending_approval", async () => {
+    fromMock.mockImplementation((table) => {
+      if (table === "commission_snapshots") {
+        return {
+          select: () => ({
+            eq: () => ({
+              order: () => ({
+                limit: vi.fn().mockResolvedValue({
+                  data: [{ mes_referencia: "2026-03" }],
+                }),
+              }),
+            }),
+          }),
+        };
+      }
+      return {};
+    });
+
+    const r = await getMesAguardandoAprovacao();
+    expect(r).toEqual({ mes: "2026-03" });
+  });
+
+  it("retorna null quando todos snapshots aprovados", async () => {
+    fromMock.mockImplementation((table) => {
+      if (table === "commission_snapshots") {
+        return {
+          select: () => ({
+            eq: () => ({
+              order: () => ({
+                limit: vi.fn().mockResolvedValue({ data: [] }),
+              }),
+            }),
+          }),
+        };
+      }
+      return {};
+    });
+
+    const r = await getMesAguardandoAprovacao();
+    expect(r).toBeNull();
+  });
+});

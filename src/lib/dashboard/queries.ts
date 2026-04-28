@@ -193,3 +193,95 @@ export async function getCarteiraPorAssessor(): Promise<AssessorCarteira[]> {
   list.sort((a, b) => b.valorTotal - a.valorTotal);
   return list;
 }
+
+import type { SatisfactionColor } from "@/lib/satisfacao/schema";
+
+export interface SynthesisRowWithCliente {
+  id: string;
+  client_id: string;
+  semana_iso: string;
+  score_final: number;
+  cor_final: SatisfactionColor;
+  resumo_ia: string;
+  divergencia_detectada: boolean;
+  acao_sugerida: string | null;
+  created_at: string;
+  cliente: { nome: string; assessor_id: string | null; coordenador_id: string | null } | null;
+}
+
+export async function getRankingSatisfacao(): Promise<{
+  top: SynthesisRowWithCliente[];
+  bottom: SynthesisRowWithCliente[];
+}> {
+  const supabase = await createClient();
+
+  // Pegar a semana_iso mais recente de qualquer síntese
+  const { data: latestData } = await supabase
+    .from("satisfaction_synthesis")
+    .select("semana_iso")
+    .order("semana_iso", { ascending: false })
+    .limit(1);
+  const latestWeek = (latestData?.[0] as { semana_iso?: string } | undefined)?.semana_iso;
+  if (!latestWeek) return { top: [], bottom: [] };
+
+  const { data: synthData } = await supabase
+    .from("satisfaction_synthesis")
+    .select("*, cliente:clients(nome, assessor_id, coordenador_id)")
+    .eq("semana_iso", latestWeek);
+
+  const all = (synthData ?? []) as unknown as SynthesisRowWithCliente[];
+
+  const top = all
+    .filter((s) => s.cor_final === "verde")
+    .sort((a, b) => Number(b.score_final) - Number(a.score_final))
+    .slice(0, 3);
+
+  const bottom = all
+    .filter((s) => s.cor_final === "vermelho" || s.cor_final === "amarelo")
+    .sort((a, b) => {
+      if (a.cor_final === "vermelho" && b.cor_final !== "vermelho") return -1;
+      if (a.cor_final !== "vermelho" && b.cor_final === "vermelho") return 1;
+      return Number(a.score_final) - Number(b.score_final);
+    })
+    .slice(0, 2);
+
+  return { top, bottom };
+}
+
+export interface EventoRow {
+  id: string;
+  titulo: string;
+  inicio: string;
+  fim: string;
+  sub_calendar: "agencia" | "onboarding" | "aniversarios";
+}
+
+export async function getProximosEventos(days: number = 30, limit: number = 10): Promise<EventoRow[]> {
+  const supabase = await createClient();
+  const now = new Date();
+  const start = now.toISOString();
+  const end = new Date(now.getTime() + days * 24 * 60 * 60 * 1000).toISOString();
+
+  const { data } = await supabase
+    .from("calendar_events")
+    .select("id, titulo, inicio, fim, sub_calendar")
+    .gte("inicio", start)
+    .lte("inicio", end)
+    .order("inicio", { ascending: true })
+    .limit(limit);
+
+  return (data ?? []) as EventoRow[];
+}
+
+export async function getMesAguardandoAprovacao(): Promise<{ mes: string } | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("commission_snapshots")
+    .select("mes_referencia")
+    .eq("status", "pending_approval")
+    .order("mes_referencia", { ascending: false })
+    .limit(1);
+
+  const row = (data?.[0] as { mes_referencia?: string } | undefined);
+  return row?.mes_referencia ? { mes: row.mes_referencia } : null;
+}
