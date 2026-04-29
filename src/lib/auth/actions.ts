@@ -7,6 +7,7 @@ import { requireAuth } from "@/lib/auth/session";
 import { logAudit } from "@/lib/audit/log";
 import { env } from "@/lib/env";
 import { z } from "zod";
+import { changePasswordSchema } from "@/lib/auth/schemas";
 
 const signinSchema = z.object({
   email: z.string().email("Email inválido"),
@@ -82,21 +83,6 @@ export async function setPasswordAction(formData: FormData) {
   revalidatePath("/", "layout");
   redirect("/");
 }
-
-export const changePasswordSchema = z
-  .object({
-    currentPassword: z.string().min(8, "Senha atual obrigatória"),
-    newPassword: z.string().min(8, "Nova senha precisa ter ao menos 8 caracteres"),
-    confirmPassword: z.string(),
-  })
-  .refine((d) => d.newPassword === d.confirmPassword, {
-    message: "Confirmação não bate com a nova senha",
-    path: ["confirmPassword"],
-  })
-  .refine((d) => d.currentPassword !== d.newPassword, {
-    message: "Nova senha precisa ser diferente da atual",
-    path: ["newPassword"],
-  });
 
 export async function changeOwnPasswordAction(
   formData: FormData,

@@ -38,7 +38,8 @@ vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
 }));
 
-import { changePasswordSchema, changeOwnPasswordAction } from "@/lib/auth/actions";
+import { changeOwnPasswordAction } from "@/lib/auth/actions";
+import { changePasswordSchema } from "@/lib/auth/schemas";
 
 describe("changePasswordSchema", () => {
   it("rejeita quando newPassword não bate com confirmPassword", () => {
