@@ -215,6 +215,17 @@ describe("toggleColaboradorAtivoAction", () => {
     expect(r).toEqual({ error: "Você não pode arquivar a si mesmo" });
   });
 
+  it("rejeita quando ativo não é \"true\" nem \"false\"", async () => {
+    const { update, auditInsert } = setupSupabaseMock({ beforeAtivo: true });
+    const fd = new FormData();
+    fd.set("user_id", VALID_UUID);
+    // ativo ausente (poderia também ser "" ou "1" — qualquer string fora de {true,false})
+    const r = await toggleColaboradorAtivoAction(fd);
+    expect(r).toEqual({ error: "Estado-alvo inválido" });
+    expect(update).not.toHaveBeenCalled();
+    expect(auditInsert).not.toHaveBeenCalled();
+  });
+
   it("retorna erro se profile não existe", async () => {
     setupSupabaseMock({ beforeAtivo: null });
     const fd = new FormData();

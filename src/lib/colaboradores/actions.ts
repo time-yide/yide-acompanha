@@ -256,7 +256,13 @@ export async function toggleColaboradorAtivoAction(
   }
 
   // O cliente decide o estado-alvo e manda — evita race condition entre 2 abas.
-  const novoAtivo = formData.get("ativo") === "true";
+  // Validação estrita: server action é endpoint público, não pode coagir
+  // qualquer valor diferente de "true" para false (arquivaria por omissão).
+  const ativoRaw = formData.get("ativo");
+  if (ativoRaw !== "true" && ativoRaw !== "false") {
+    return { error: "Estado-alvo inválido" };
+  }
+  const novoAtivo = ativoRaw === "true";
 
   const supabase = await createClient();
   const { data: before } = await supabase
