@@ -3,6 +3,8 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/auth/session";
+import { logAudit } from "@/lib/audit/log";
 import { env } from "@/lib/env";
 import { z } from "zod";
 
@@ -79,4 +81,83 @@ export async function setPasswordAction(formData: FormData) {
 
   revalidatePath("/", "layout");
   redirect("/");
+}
+
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(8, "Senha atual obrigatória"),
+    newPassword: z.string().min(8, "Nova senha precisa ter ao menos 8 caracteres"),
+    confirmPassword: z.string(),
+  })
+  .refine((d) => d.newPassword === d.confirmPassword, {
+    message: "Confirmação não bate com a nova senha",
+    path: ["confirmPassword"],
+  })
+  .refine((d) => d.currentPassword !== d.newPassword, {
+    message: "Nova senha precisa ser diferente da atual",
+    path: ["newPassword"],
+  });
+
+export async function changeOwnPasswordAction(
+  formData: FormData,
+): Promise<{ success: true } | { error: string }> {
+  const user = await requireAuth();
+
+  const parsed = changePasswordSchema.safeParse({
+    currentPassword: formData.get("currentPassword"),
+    newPassword: formData.get("newPassword"),
+    confirmPassword: formData.get("confirmPassword"),
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message };
+  }
+
+  const supabase = await createClient();
+
+  // Source the email from auth.users directly to avoid drift with profiles.email
+  // (profiles.email is denormalized; if it ever drifts, signInWithPassword would
+  // reject otherwise-correct credentials).
+  const {
+    data: { user: authUser },
+  } = await supabase.auth.getUser();
+  if (!authUser?.email) {
+    return { error: "Sessão inválida" };
+  }
+
+  // Re-authenticate to enforce knowledge of the current password.
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email: authUser.email,
+    password: parsed.data.currentPassword,
+  });
+
+  if (signInError) {
+    const isInvalidCredentials =
+      signInError.status === 400 ||
+      /invalid.*credentials|invalid.*grant/i.test(signInError.message);
+    return {
+      error: isInvalidCredentials
+        ? "Senha atual incorreta"
+        : "Não foi possível verificar sua senha atual. Tente novamente em instantes.",
+    };
+  }
+
+  const { error: updateError } = await supabase.auth.updateUser({
+    password: parsed.data.newPassword,
+  });
+
+  if (updateError) {
+    return { error: "Não foi possível atualizar a senha" };
+  }
+
+  await logAudit({
+    entidade: "profiles",
+    entidade_id: user.id,
+    acao: "update",
+    dados_depois: { senha_alterada_pelo_proprio_usuario: true },
+    ator_id: user.id,
+  });
+
+  revalidatePath("/", "layout");
+  return { success: true };
 }

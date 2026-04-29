@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { inviteSchema } from "@/lib/colaboradores/schema";
+import { createColaboradorSchema } from "@/lib/colaboradores/schema";
 
-describe("inviteSchema", () => {
+describe("createColaboradorSchema", () => {
   it("aceita convite válido com todos os campos", () => {
-    const result = inviteSchema.safeParse({
+    const result = createColaboradorSchema.safeParse({
       nome: "João Silva",
       email: "joao@yide.com",
       role: "assessor",
@@ -15,7 +15,7 @@ describe("inviteSchema", () => {
   });
 
   it("rejeita email inválido", () => {
-    const result = inviteSchema.safeParse({
+    const result = createColaboradorSchema.safeParse({
       nome: "João Silva",
       email: "não-é-email",
       role: "assessor",
@@ -24,7 +24,7 @@ describe("inviteSchema", () => {
   });
 
   it("rejeita comissão > 100%", () => {
-    const result = inviteSchema.safeParse({
+    const result = createColaboradorSchema.safeParse({
       nome: "João",
       email: "j@y.com",
       role: "assessor",
@@ -34,7 +34,7 @@ describe("inviteSchema", () => {
   });
 
   it("aceita role 'comercial'", () => {
-    const result = inviteSchema.safeParse({
+    const result = createColaboradorSchema.safeParse({
       nome: "Roberta",
       email: "roberta@yide.com",
       role: "comercial",
@@ -44,7 +44,7 @@ describe("inviteSchema", () => {
   });
 
   it("rejeita role inválido", () => {
-    const result = inviteSchema.safeParse({
+    const result = createColaboradorSchema.safeParse({
       nome: "X",
       email: "x@y.com",
       role: "papel-inexistente",

@@ -24,7 +24,7 @@ function zeroPercentForProducers<T extends { role: string; comissao_percent: num
   return data;
 }
 
-export const inviteSchema = z
+export const createColaboradorSchema = z
   .object({
     nome: z.string().min(2, "Nome muito curto"),
     email: z.string().email("Email inválido"),
@@ -57,5 +57,5 @@ export const editColaboradorSchema = z
   })
   .transform(zeroPercentForProducers);
 
-export type InviteInput = z.infer<typeof inviteSchema>;
+export type CreateColaboradorInput = z.infer<typeof createColaboradorSchema>;
 export type EditColaboradorInput = z.infer<typeof editColaboradorSchema>;

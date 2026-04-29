@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { inviteSchema, editColaboradorSchema, ROLES } from "@/lib/colaboradores/schema";
+import { createColaboradorSchema, editColaboradorSchema, ROLES } from "@/lib/colaboradores/schema";
 
 const VALID_UUID = "00000000-0000-0000-0000-000000000000";
 
@@ -12,9 +12,9 @@ describe("ROLES", () => {
   });
 });
 
-describe("inviteSchema", () => {
+describe("createColaboradorSchema", () => {
   it("aceita videomaker válido", () => {
-    const r = inviteSchema.safeParse({
+    const r = createColaboradorSchema.safeParse({
       nome: "João",
       email: "joao@yide.com",
       role: "videomaker",
@@ -26,7 +26,7 @@ describe("inviteSchema", () => {
   });
 
   it("zera comissao_percent quando role é videomaker mesmo se enviar > 0", () => {
-    const r = inviteSchema.safeParse({
+    const r = createColaboradorSchema.safeParse({
       nome: "João",
       email: "joao@yide.com",
       role: "videomaker",
@@ -42,7 +42,7 @@ describe("inviteSchema", () => {
   });
 
   it("zera comissao_percent quando role é designer", () => {
-    const r = inviteSchema.safeParse({
+    const r = createColaboradorSchema.safeParse({
       nome: "Ana",
       email: "ana@yide.com",
       role: "designer",
@@ -55,7 +55,7 @@ describe("inviteSchema", () => {
   });
 
   it("zera comissao_percent quando role é editor", () => {
-    const r = inviteSchema.safeParse({
+    const r = createColaboradorSchema.safeParse({
       nome: "Bruno",
       email: "bruno@yide.com",
       role: "editor",
@@ -68,7 +68,7 @@ describe("inviteSchema", () => {
   });
 
   it("preserva comissao_percent quando role é audiovisual_chefe", () => {
-    const r = inviteSchema.safeParse({
+    const r = createColaboradorSchema.safeParse({
       nome: "Carla",
       email: "carla@yide.com",
       role: "audiovisual_chefe",
@@ -81,7 +81,7 @@ describe("inviteSchema", () => {
   });
 
   it("preserva comissao_percent quando role é coordenador", () => {
-    const r = inviteSchema.safeParse({
+    const r = createColaboradorSchema.safeParse({
       nome: "Diego",
       email: "diego@yide.com",
       role: "coordenador",
@@ -94,7 +94,7 @@ describe("inviteSchema", () => {
   });
 
   it("rejeita role inválido", () => {
-    const r = inviteSchema.safeParse({
+    const r = createColaboradorSchema.safeParse({
       nome: "Eva",
       email: "eva@yide.com",
       role: "fotografo",
@@ -104,7 +104,7 @@ describe("inviteSchema", () => {
   });
 
   it("rejeita email mal-formado", () => {
-    const r = inviteSchema.safeParse({
+    const r = createColaboradorSchema.safeParse({
       nome: "Felipe",
       email: "nao-eh-email",
       role: "assessor",
@@ -114,7 +114,7 @@ describe("inviteSchema", () => {
   });
 
   it("rejeita nome com 1 char", () => {
-    const r = inviteSchema.safeParse({
+    const r = createColaboradorSchema.safeParse({
       nome: "G",
       email: "g@yide.com",
       role: "assessor",

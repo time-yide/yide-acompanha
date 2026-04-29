@@ -7,16 +7,22 @@ import { canAccess } from "@/lib/auth/permissions";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { createClient } from "@/lib/supabase/server";
 import { logAudit } from "@/lib/audit/log";
-import { inviteSchema, editColaboradorSchema } from "./schema";
-import { env } from "@/lib/env";
+import { createColaboradorSchema, editColaboradorSchema } from "./schema";
+import { generateStrongPassword } from "@/lib/auth/password-generator";
 
-export async function inviteColaboradorAction(formData: FormData) {
+type CreateColaboradorResult =
+  | { success: true; password: string; userId: string }
+  | { error: string };
+
+export async function createColaboradorAction(
+  formData: FormData,
+): Promise<CreateColaboradorResult> {
   const actor = await requireAuth();
   if (!canAccess(actor.role, "manage:users")) {
     return { error: "Sem permissão" };
   }
 
-  const parsed = inviteSchema.safeParse({
+  const parsed = createColaboradorSchema.safeParse({
     nome: formData.get("nome"),
     email: formData.get("email"),
     role: formData.get("role"),
@@ -37,19 +43,22 @@ export async function inviteColaboradorAction(formData: FormData) {
     return { error: "Apenas sócio pode definir % de comissão" };
   }
 
+  // Gera senha forte ANTES de chamar o Supabase para que ela exista
+  // mesmo se a chamada falhar mais à frente (e seja inutilizada).
+  const password = generateStrongPassword();
+
   const admin = createServiceRoleClient();
 
-  // Convite por email — Supabase envia link de definição de senha
-  const { data: invited, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(
-    parsed.data.email,
-    {
-      data: { role: parsed.data.role, nome: parsed.data.nome },
-      redirectTo: `${env.NEXT_PUBLIC_APP_URL}/definir-senha`,
-    },
-  );
+  // Cria o usuário direto (sem email de confirmação).
+  const { data: created, error: createErr } = await admin.auth.admin.createUser({
+    email: parsed.data.email,
+    password,
+    email_confirm: true,
+    user_metadata: { role: parsed.data.role, nome: parsed.data.nome },
+  });
 
-  if (inviteErr || !invited.user) {
-    return { error: inviteErr?.message ?? "Falha ao enviar convite" };
+  if (createErr || !created.user) {
+    return { error: createErr?.message ?? "Falha ao criar colaborador" };
   }
 
   // O trigger já criou o profile com role e nome via raw_user_meta_data.
@@ -62,22 +71,35 @@ export async function inviteColaboradorAction(formData: FormData) {
       comissao_percent: parsed.data.comissao_percent,
       comissao_primeiro_mes_percent: parsed.data.comissao_primeiro_mes_percent,
     })
-    .eq("id", invited.user.id);
+    .eq("id", created.user.id);
 
   if (updateErr) {
-    return { error: "Convite enviado, mas falha ao atualizar dados financeiros" };
+    // Rollback: deleta o auth user pra não deixar conta órfã com senha
+    // que ninguém sabe (sócio nunca viu a senha porque não chegou na tela
+    // de sucesso). Sem isso, o email fica preso e não pode ser recriado.
+    const { error: deleteErr } = await admin.auth.admin.deleteUser(created.user.id);
+    if (deleteErr) {
+      // Estado irrecuperável: createUser passou, update falhou, delete falhou.
+      // Loga direto no console pra aparecer nos logs do servidor — o logger
+      // de auditoria não cobre isso porque não há entidade consistente.
+      console.error(
+        "[createColaboradorAction] FAILED TO ROLLBACK auth user after profile update error",
+        { userId: created.user.id, email: parsed.data.email, deleteErr, updateErr },
+      );
+    }
+    return { error: "Falha ao atualizar dados financeiros — colaborador não foi criado, tente novamente" };
   }
 
   await logAudit({
     entidade: "profiles",
-    entidade_id: invited.user.id,
+    entidade_id: created.user.id,
     acao: "create",
     dados_depois: parsed.data as unknown as Record<string, unknown>,
     ator_id: actor.id,
   });
 
   revalidatePath("/colaboradores");
-  redirect("/colaboradores");
+  return { success: true, password, userId: created.user.id };
 }
 
 export async function editColaboradorAction(formData: FormData) {
@@ -163,4 +185,50 @@ export async function editColaboradorAction(formData: FormData) {
 
   revalidatePath("/colaboradores");
   redirect(`/colaboradores/${parsed.data.id}`);
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+type ResetPasswordResult =
+  | { success: true; password: string }
+  | { error: string };
+
+export async function resetColaboradorPasswordAction(
+  formData: FormData,
+): Promise<ResetPasswordResult> {
+  const actor = await requireAuth();
+  if (!canAccess(actor.role, "manage:users")) {
+    return { error: "Sem permissão" };
+  }
+
+  const userIdRaw = formData.get("user_id");
+  const userId = typeof userIdRaw === "string" ? userIdRaw.trim() : "";
+  if (!userId || !UUID_RE.test(userId)) {
+    return { error: "ID inválido" };
+  }
+
+  if (actor.id === userId) {
+    return { error: "Use a página de configurações para trocar sua própria senha" };
+  }
+
+  const password = generateStrongPassword();
+
+  const admin = createServiceRoleClient();
+  const { error: updateErr } = await admin.auth.admin.updateUserById(userId, { password });
+
+  if (updateErr) {
+    return { error: "Falha ao resetar senha" };
+  }
+
+  await logAudit({
+    entidade: "profiles",
+    entidade_id: userId,
+    acao: "update",
+    dados_depois: { senha_resetada: true } as Record<string, unknown>,
+    ator_id: actor.id,
+    justificativa: "Reset de senha solicitado pelo sócio/ADM",
+  });
+
+  revalidatePath(`/colaboradores/${userId}/editar`);
+  return { success: true, password };
 }

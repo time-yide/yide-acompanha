@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bell } from "lucide-react";
+import { Bell, Lock } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { updateOwnProfileAction } from "@/lib/profile/actions";
@@ -88,11 +88,18 @@ export default async function ConfiguracoesPage() {
       </Card>
 
       <Card className="p-6">
-        <h2 className="text-lg font-semibold">Senha</h2>
-        <p className="text-sm text-muted-foreground">
-          Para trocar a senha, use o link em &quot;Esqueceu a senha&quot; da tela de
-          login.
+        <h2 className="mb-2 text-lg font-semibold">Senha</h2>
+        <p className="mb-3 text-sm text-muted-foreground">
+          Atualize sua senha de acesso. A senha atual será solicitada para
+          confirmação.
         </p>
+        <Link
+          href="/configuracoes/senha"
+          className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+        >
+          <Lock className="h-4 w-4" />
+          Alterar senha →
+        </Link>
       </Card>
     </div>
   );
