@@ -34,7 +34,7 @@ export function Sidebar({ role, nome }: { role: Role; nome: string }) {
           alt="Yide Digital"
           width={811}
           height={450}
-          className="h-auto w-32"
+          className="h-auto w-20"
           priority
         />
       </div>
