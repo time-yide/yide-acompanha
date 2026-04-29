@@ -5,17 +5,26 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LogOut, Settings } from "lucide-react";
 import Link from "next/link";
 
-export function UserMenu({ nome, email }: { nome: string; email: string }) {
+export function UserMenu({
+  nome,
+  email,
+  avatarUrl,
+}: {
+  nome: string;
+  email: string;
+  avatarUrl: string | null;
+}) {
   const initial = nome.charAt(0).toUpperCase();
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="rounded-full outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring">
         <Avatar className="h-8 w-8">
+          {avatarUrl ? <AvatarImage src={avatarUrl} alt={nome} /> : null}
           <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 text-xs font-semibold text-primary-foreground">
             {initial}
           </AvatarFallback>

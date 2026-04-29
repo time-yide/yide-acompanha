@@ -14,13 +14,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
+import { AvatarUpload } from "@/components/colaboradores/AvatarUpload";
 
 export default async function ConfiguracoesPage() {
   const user = await requireAuth();
   const supabase = await createClient();
   const { data: profile } = await supabase
     .from("profiles")
-    .select("nome, telefone, tema_preferido")
+    .select("nome, telefone, tema_preferido, avatar_url")
     .eq("id", user.id)
     .single();
 
@@ -32,6 +33,15 @@ export default async function ConfiguracoesPage() {
           Gerencie seu perfil e preferências.
         </p>
       </header>
+
+      <Card className="space-y-4 p-6">
+        <h2 className="text-lg font-semibold">Foto de perfil</h2>
+        <AvatarUpload
+          userId={user.id}
+          nome={user.nome}
+          currentUrl={profile?.avatar_url ?? null}
+        />
+      </Card>
 
       <Card className="p-6">
         <form action={updateOwnProfileAction} className="space-y-4">
