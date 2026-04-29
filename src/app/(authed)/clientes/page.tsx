@@ -3,6 +3,8 @@ import { requireAuth } from "@/lib/auth/session";
 import { canAccess } from "@/lib/auth/permissions";
 import { listClientes, getClientesStats } from "@/lib/clientes/queries";
 import { ClientesTable } from "@/components/clientes/ClientesTable";
+import { ClientesAssignmentTable } from "@/components/clientes/ClientesAssignmentTable";
+import { listColaboradores } from "@/lib/colaboradores/queries";
 import { Plus } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 
@@ -15,6 +17,17 @@ export default async function ClientesPage({ searchParams }: { searchParams: Pro
   const status = (params.status as "ativo" | "churn" | undefined) ?? undefined;
   const rows = await listClientes({ status });
   const stats = await getClientesStats();
+
+  // Listas só são necessárias para a versão editável da tabela.
+  const [assessores, coordenadores] = canManage
+    ? await Promise.all([
+        listColaboradores({ ativo: true, role: "assessor" }),
+        listColaboradores({ ativo: true, role: "coordenador" }),
+      ]).then(([a, c]) => [
+        a.map((r) => ({ id: r.id, nome: r.nome })),
+        c.map((r) => ({ id: r.id, nome: r.nome })),
+      ])
+    : [[], []];
 
   return (
     <div className="space-y-6">
@@ -55,7 +68,16 @@ export default async function ClientesPage({ searchParams }: { searchParams: Pro
       </div>
 
       <div className="rounded-xl border bg-card">
-        <ClientesTable rows={rows} canSeeMoney={canSeeMoney} />
+        {canManage ? (
+          <ClientesAssignmentTable
+            rows={rows}
+            canSeeMoney={canSeeMoney}
+            assessores={assessores}
+            coordenadores={coordenadores}
+          />
+        ) : (
+          <ClientesTable rows={rows} canSeeMoney={canSeeMoney} />
+        )}
       </div>
     </div>
   );
