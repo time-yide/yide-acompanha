@@ -23,7 +23,10 @@ vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
 }));
 
-import { resetColaboradorPasswordAction } from "@/lib/colaboradores/actions";
+import {
+  resetColaboradorPasswordAction,
+  toggleColaboradorAtivoAction,
+} from "@/lib/colaboradores/actions";
 
 const VALID_UUID = "11111111-1111-1111-1111-111111111111";
 const ACTOR_UUID = "22222222-2222-2222-2222-222222222222";
@@ -138,5 +141,167 @@ describe("resetColaboradorPasswordAction — validação", () => {
         }),
       );
     }
+  });
+});
+
+describe("toggleColaboradorAtivoAction", () => {
+  // Helper: monta o mock do supabase para o action — controla o `before.ativo`
+  // que a query `.select("ativo").eq().single()` retorna, captura o update e
+  // captura o insert no audit_log.
+  function setupSupabaseMock(opts: {
+    beforeAtivo: boolean | null; // null = profile não encontrado
+    updateError?: { message: string } | null;
+  }) {
+    const updateEq = vi.fn().mockResolvedValue({ error: opts.updateError ?? null });
+    const update = vi.fn(() => ({ eq: updateEq }));
+    const auditInsert = vi.fn().mockResolvedValue({ error: null });
+
+    fromMock.mockImplementation((table: string) => {
+      if (table === "audit_log") {
+        return { insert: auditInsert };
+      }
+      // table === "profiles"
+      return {
+        select: () => ({
+          eq: () => ({
+            single: vi.fn().mockResolvedValue({
+              data: opts.beforeAtivo === null ? null : { ativo: opts.beforeAtivo },
+              error: opts.beforeAtivo === null ? { message: "not found" } : null,
+            }),
+          }),
+        }),
+        update,
+      };
+    });
+
+    return { update, updateEq, auditInsert };
+  }
+
+  it("retorna erro de permissão se ator não tem edit:colaboradores", async () => {
+    requireAuthMock.mockResolvedValueOnce({
+      id: ACTOR_UUID,
+      role: "assessor",
+      nome: "Maria",
+      email: "m@x.com",
+      ativo: true,
+    });
+    const fd = new FormData();
+    fd.set("user_id", VALID_UUID);
+    fd.set("ativo", "false");
+    const r = await toggleColaboradorAtivoAction(fd);
+    expect(r).toEqual({ error: "Sem permissão" });
+  });
+
+  it("retorna erro se user_id está ausente", async () => {
+    const fd = new FormData();
+    fd.set("ativo", "false");
+    const r = await toggleColaboradorAtivoAction(fd);
+    expect(r).toEqual({ error: "ID inválido" });
+  });
+
+  it("retorna erro se user_id é inválido (não-UUID)", async () => {
+    const fd = new FormData();
+    fd.set("user_id", "not-a-uuid");
+    fd.set("ativo", "false");
+    const r = await toggleColaboradorAtivoAction(fd);
+    expect(r).toEqual({ error: "ID inválido" });
+  });
+
+  it("bloqueia self-archive (actor.id === userId)", async () => {
+    const fd = new FormData();
+    fd.set("user_id", ACTOR_UUID);
+    fd.set("ativo", "false");
+    const r = await toggleColaboradorAtivoAction(fd);
+    expect(r).toEqual({ error: "Você não pode arquivar a si mesmo" });
+  });
+
+  it("rejeita quando ativo não é \"true\" nem \"false\"", async () => {
+    const { update, auditInsert } = setupSupabaseMock({ beforeAtivo: true });
+    const fd = new FormData();
+    fd.set("user_id", VALID_UUID);
+    // ativo ausente (poderia também ser "" ou "1" — qualquer string fora de {true,false})
+    const r = await toggleColaboradorAtivoAction(fd);
+    expect(r).toEqual({ error: "Estado-alvo inválido" });
+    expect(update).not.toHaveBeenCalled();
+    expect(auditInsert).not.toHaveBeenCalled();
+  });
+
+  it("retorna erro se profile não existe", async () => {
+    setupSupabaseMock({ beforeAtivo: null });
+    const fd = new FormData();
+    fd.set("user_id", VALID_UUID);
+    fd.set("ativo", "false");
+    const r = await toggleColaboradorAtivoAction(fd);
+    expect(r).toEqual({ error: "Colaborador não encontrado" });
+  });
+
+  it("idempotente: se já está no estado-alvo, retorna sucesso sem update nem audit", async () => {
+    const { update, auditInsert } = setupSupabaseMock({ beforeAtivo: false });
+    const fd = new FormData();
+    fd.set("user_id", VALID_UUID);
+    fd.set("ativo", "false"); // já inativo
+    const r = await toggleColaboradorAtivoAction(fd);
+    expect(r).toEqual({ success: true, ativo: false });
+    expect(update).not.toHaveBeenCalled();
+    expect(auditInsert).not.toHaveBeenCalled();
+  });
+
+  it("sucesso: arquivar — update ativo=false, audit com justificativa correta", async () => {
+    const { update, updateEq, auditInsert } = setupSupabaseMock({ beforeAtivo: true });
+    const fd = new FormData();
+    fd.set("user_id", VALID_UUID);
+    fd.set("ativo", "false");
+    const r = await toggleColaboradorAtivoAction(fd);
+
+    expect(r).toEqual({ success: true, ativo: false });
+    expect(update).toHaveBeenCalledWith({ ativo: false });
+    expect(updateEq).toHaveBeenCalledWith("id", VALID_UUID);
+
+    expect(auditInsert).toHaveBeenCalledTimes(1);
+    expect(auditInsert.mock.calls[0][0]).toEqual(
+      expect.objectContaining({
+        entidade: "profiles",
+        entidade_id: VALID_UUID,
+        acao: "update",
+        ator_id: ACTOR_UUID,
+        justificativa: "Colaborador arquivado",
+        dados_antes: { ativo: true },
+        dados_depois: { ativo: false },
+      }),
+    );
+  });
+
+  it("sucesso: desarquivar — update ativo=true, audit com justificativa correta", async () => {
+    const { update, updateEq, auditInsert } = setupSupabaseMock({ beforeAtivo: false });
+    const fd = new FormData();
+    fd.set("user_id", VALID_UUID);
+    fd.set("ativo", "true");
+    const r = await toggleColaboradorAtivoAction(fd);
+
+    expect(r).toEqual({ success: true, ativo: true });
+    expect(update).toHaveBeenCalledWith({ ativo: true });
+    expect(updateEq).toHaveBeenCalledWith("id", VALID_UUID);
+
+    expect(auditInsert).toHaveBeenCalledTimes(1);
+    expect(auditInsert.mock.calls[0][0]).toEqual(
+      expect.objectContaining({
+        entidade: "profiles",
+        entidade_id: VALID_UUID,
+        acao: "update",
+        ator_id: ACTOR_UUID,
+        justificativa: "Colaborador desarquivado",
+        dados_antes: { ativo: false },
+        dados_depois: { ativo: true },
+      }),
+    );
+  });
+
+  it("retorna erro se update falha", async () => {
+    setupSupabaseMock({ beforeAtivo: true, updateError: { message: "boom" } });
+    const fd = new FormData();
+    fd.set("user_id", VALID_UUID);
+    fd.set("ativo", "false");
+    const r = await toggleColaboradorAtivoAction(fd);
+    expect(r).toEqual({ error: "Falha ao atualizar status" });
   });
 });

@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { RowActionsMenu } from "@/components/colaboradores/RowActionsMenu";
 
 interface Row {
   id: string;
@@ -65,7 +66,20 @@ function commissionLabel(role: string, comissao: number, comissao1Mes: number): 
   return `${comissao}%`;
 }
 
-export function ColaboradoresTable({ rows, canSeeFinance }: { rows: Row[]; canSeeFinance: boolean }) {
+export function ColaboradoresTable({
+  rows,
+  canSeeFinance,
+  canEdit,
+  canArchive,
+  currentUserId,
+}: {
+  rows: Row[];
+  canSeeFinance: boolean;
+  canEdit: boolean;
+  canArchive: boolean;
+  currentUserId: string;
+}) {
+  const showActionsCol = canEdit || canArchive;
   return (
     <Table>
       <TableHeader>
@@ -78,6 +92,7 @@ export function ColaboradoresTable({ rows, canSeeFinance }: { rows: Row[]; canSe
           <TableHead>Status</TableHead>
           {canSeeFinance && <TableHead className="text-right">Fixo</TableHead>}
           {canSeeFinance && <TableHead className="text-right">% Comissão</TableHead>}
+          {showActionsCol && <TableHead className="w-12" aria-label="Ações"></TableHead>}
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -120,6 +135,18 @@ export function ColaboradoresTable({ rows, canSeeFinance }: { rows: Row[]; canSe
             {canSeeFinance && (
               <TableCell className="text-right tabular-nums">
                 {commissionLabel(r.role, Number(r.comissao_percent), Number(r.comissao_primeiro_mes_percent))}
+              </TableCell>
+            )}
+            {showActionsCol && (
+              <TableCell className="text-right">
+                <RowActionsMenu
+                  userId={r.id}
+                  userNome={r.nome}
+                  ativo={r.ativo}
+                  canEdit={canEdit}
+                  canArchive={canArchive}
+                  isSelf={r.id === currentUserId}
+                />
               </TableCell>
             )}
           </TableRow>

@@ -5,6 +5,7 @@ import { getColaboradorById } from "@/lib/colaboradores/queries";
 import { ColaboradorForm } from "@/components/colaboradores/ColaboradorForm";
 import { AvatarUpload } from "@/components/colaboradores/AvatarUpload";
 import { ResetSenhaButton } from "@/components/colaboradores/ResetSenhaButton";
+import { StatusCard } from "@/components/colaboradores/StatusCard";
 import { Card } from "@/components/ui/card";
 
 export default async function EditarColaboradorPage({ params }: { params: Promise<{ id: string }> }) {
@@ -61,6 +62,15 @@ export default async function EditarColaboradorPage({ params }: { params: Promis
           canEditMetas={canEditMetas}
         />
       </Card>
+
+      {canAccess(user.role, "edit:colaboradores") && (
+        <StatusCard
+          userId={colab.id}
+          userNome={colab.nome}
+          ativo={colab.ativo}
+          isSelf={user.id === colab.id}
+        />
+      )}
 
       {(user.role === "socio" || user.role === "adm") && user.id !== colab.id && (
         <Card className="p-6">

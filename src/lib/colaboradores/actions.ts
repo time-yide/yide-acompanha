@@ -232,3 +232,74 @@ export async function resetColaboradorPasswordAction(
   revalidatePath(`/colaboradores/${userId}/editar`);
   return { success: true, password };
 }
+
+type ToggleAtivoResult =
+  | { success: true; ativo: boolean }
+  | { error: string };
+
+export async function toggleColaboradorAtivoAction(
+  formData: FormData,
+): Promise<ToggleAtivoResult> {
+  const actor = await requireAuth();
+  if (!canAccess(actor.role, "edit:colaboradores")) {
+    return { error: "Sem permissão" };
+  }
+
+  const userIdRaw = formData.get("user_id");
+  const userId = typeof userIdRaw === "string" ? userIdRaw.trim() : "";
+  if (!userId || !UUID_RE.test(userId)) {
+    return { error: "ID inválido" };
+  }
+
+  if (actor.id === userId) {
+    return { error: "Você não pode arquivar a si mesmo" };
+  }
+
+  // O cliente decide o estado-alvo e manda — evita race condition entre 2 abas.
+  // Validação estrita: server action é endpoint público, não pode coagir
+  // qualquer valor diferente de "true" para false (arquivaria por omissão).
+  const ativoRaw = formData.get("ativo");
+  if (ativoRaw !== "true" && ativoRaw !== "false") {
+    return { error: "Estado-alvo inválido" };
+  }
+  const novoAtivo = ativoRaw === "true";
+
+  const supabase = await createClient();
+  const { data: before } = await supabase
+    .from("profiles")
+    .select("ativo")
+    .eq("id", userId)
+    .single();
+
+  if (!before) return { error: "Colaborador não encontrado" };
+
+  // Idempotente: já está no estado desejado, não toca no DB nem loga audit.
+  if (before.ativo === novoAtivo) {
+    return { success: true, ativo: novoAtivo };
+  }
+
+  const { error: updateErr } = await supabase
+    .from("profiles")
+    .update({ ativo: novoAtivo })
+    .eq("id", userId);
+
+  if (updateErr) {
+    return { error: "Falha ao atualizar status" };
+  }
+
+  await logAudit({
+    entidade: "profiles",
+    entidade_id: userId,
+    acao: "update",
+    dados_antes: { ativo: before.ativo },
+    dados_depois: { ativo: novoAtivo },
+    ator_id: actor.id,
+    justificativa: novoAtivo ? "Colaborador desarquivado" : "Colaborador arquivado",
+  });
+
+  revalidatePath("/colaboradores");
+  revalidatePath(`/colaboradores/${userId}`);
+  revalidatePath(`/colaboradores/${userId}/editar`);
+
+  return { success: true, ativo: novoAtivo };
+}
