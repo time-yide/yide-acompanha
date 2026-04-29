@@ -21,11 +21,11 @@ export function UserMenu({ nome, email }: { nome: string; email: string }) {
           </AvatarFallback>
         </Avatar>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="end" className="min-w-56">
         <DropdownMenuGroup>
           <DropdownMenuLabel>
-            <div className="text-sm font-semibold">{nome}</div>
-            <div className="text-xs font-normal text-muted-foreground">{email}</div>
+            <div className="truncate text-sm font-semibold">{nome}</div>
+            <div className="truncate text-xs font-normal text-muted-foreground">{email}</div>
           </DropdownMenuLabel>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
