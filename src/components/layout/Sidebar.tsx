@@ -4,8 +4,8 @@ import {
   LayoutGrid, Users, Briefcase, KanbanSquare, ListChecks,
   DollarSign, Smile, Calendar, UserCog, Settings, ClipboardList,
 } from "lucide-react";
+import Image from "next/image";
 import { SidebarItem } from "./SidebarItem";
-import { BrandMark } from "@/components/brand/BrandMark";
 import type { Role } from "@/lib/auth/permissions";
 
 const navItems = [
@@ -28,9 +28,15 @@ export function Sidebar({ role, nome }: { role: Role; nome: string }) {
 
   return (
     <aside className="hidden w-[210px] flex-col border-r bg-card md:flex">
-      <div className="flex items-center gap-2 px-4 py-5">
-        <BrandMark className="h-8 w-8" />
-        <span className="text-sm font-bold tracking-tight">Yide</span>
+      <div className="flex items-center justify-center px-4 py-5">
+        <Image
+          src="/brand/logo-yide.png"
+          alt="Yide Digital"
+          width={811}
+          height={450}
+          className="h-auto w-32"
+          priority
+        />
       </div>
 
       <nav className="flex-1 space-y-1 px-3">
