@@ -54,5 +54,9 @@ export async function uploadAvatarAction(
 
   revalidatePath(`/colaboradores/${targetUserId}`);
   revalidatePath("/colaboradores");
+  if (actor.id === targetUserId) {
+    revalidatePath("/configuracoes");
+    revalidatePath("/", "layout");
+  }
   return { success: true, avatarUrl: urlWithBust };
 }
