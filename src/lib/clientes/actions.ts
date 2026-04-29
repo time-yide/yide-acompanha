@@ -212,3 +212,199 @@ export async function reactivateClienteAction(id: string) {
   revalidatePath(`/clientes/${id}`);
   return { success: "Cliente reativado" };
 }
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+type AssignmentField = "assessor_id" | "coordenador_id";
+
+const FIELD_TO_ROLE: Record<AssignmentField, "assessor" | "coordenador"> = {
+  assessor_id: "assessor",
+  coordenador_id: "coordenador",
+};
+
+async function validateProfileRole(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  expectedRole: "assessor" | "coordenador",
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", userId)
+    .single();
+  if (error || !data) return { ok: false, error: "Papel inválido para essa atribuição" };
+  if (data.role !== expectedRole) {
+    return { ok: false, error: "Papel inválido para essa atribuição" };
+  }
+  return { ok: true };
+}
+
+export async function updateClienteAssignmentAction(formData: FormData) {
+  const actor = await requireAuth();
+  if (!["adm", "socio"].includes(actor.role)) {
+    return { error: "Sem permissão" };
+  }
+
+  const clienteIdRaw = formData.get("cliente_id");
+  const clienteId = typeof clienteIdRaw === "string" ? clienteIdRaw.trim() : "";
+  if (!clienteId || !UUID_RE.test(clienteId)) {
+    return { error: "ID do cliente inválido" };
+  }
+
+  const hasAssessor = formData.has("assessor_id");
+  const hasCoordenador = formData.has("coordenador_id");
+  if (!hasAssessor && !hasCoordenador) {
+    return { error: "Nada para atualizar" };
+  }
+
+  // Parse cada field presente: "" -> null (unassign), uuid -> set, must be UUID.
+  const proposed: Partial<Record<AssignmentField, string | null>> = {};
+  for (const field of ["assessor_id", "coordenador_id"] as const) {
+    if (!formData.has(field)) continue;
+    const raw = formData.get(field);
+    const v = typeof raw === "string" ? raw.trim() : "";
+    if (v === "") {
+      proposed[field] = null;
+    } else if (!UUID_RE.test(v)) {
+      return { error: "ID inválido" };
+    } else {
+      proposed[field] = v;
+    }
+  }
+
+  const supabase = await createClient();
+
+  // Valida role antes de tocar no cliente — barra atribuição cruzada.
+  for (const [field, value] of Object.entries(proposed) as Array<
+    [AssignmentField, string | null]
+  >) {
+    if (value === null) continue;
+    const check = await validateProfileRole(supabase, value, FIELD_TO_ROLE[field]);
+    if (!check.ok) return { error: check.error };
+  }
+
+  const { data: before, error: beforeErr } = await supabase
+    .from("clients")
+    .select("id, assessor_id, coordenador_id")
+    .eq("id", clienteId)
+    .single();
+  if (beforeErr || !before) return { error: "Cliente não encontrado" };
+
+  // Idempotência: monta patch só com fields que de fato mudam.
+  const patch: Partial<Record<AssignmentField, string | null>> = {};
+  const dadosAntes: Record<string, unknown> = {};
+  const dadosDepois: Record<string, unknown> = {};
+  for (const [field, value] of Object.entries(proposed) as Array<
+    [AssignmentField, string | null]
+  >) {
+    const beforeValue = (before as Record<string, unknown>)[field] ?? null;
+    if (beforeValue !== value) {
+      patch[field] = value;
+      dadosAntes[field] = beforeValue;
+      dadosDepois[field] = value;
+    }
+  }
+
+  if (Object.keys(patch).length === 0) {
+    return { success: true };
+  }
+
+  const { error: updErr } = await supabase
+    .from("clients")
+    .update(patch)
+    .eq("id", clienteId);
+  if (updErr) return { error: updErr.message };
+
+  await logAudit({
+    entidade: "clients",
+    entidade_id: clienteId,
+    acao: "update",
+    dados_antes: dadosAntes,
+    dados_depois: dadosDepois,
+    ator_id: actor.id,
+    justificativa: "Atribuição alterada via listagem",
+  });
+
+  revalidatePath("/clientes");
+  revalidatePath(`/clientes/${clienteId}`);
+  return { success: true };
+}
+
+export async function bulkAssignClientesAction(formData: FormData) {
+  const actor = await requireAuth();
+  if (!["adm", "socio"].includes(actor.role)) {
+    return { error: "Sem permissão" };
+  }
+
+  const idsRaw = formData.get("cliente_ids");
+  let parsedIds: unknown;
+  try {
+    parsedIds = typeof idsRaw === "string" ? JSON.parse(idsRaw) : null;
+  } catch {
+    return { error: "Selecione ao menos um cliente" };
+  }
+  if (!Array.isArray(parsedIds) || parsedIds.length === 0) {
+    return { error: "Selecione ao menos um cliente" };
+  }
+  if (parsedIds.length > 500) {
+    return { error: "Limite de 500 clientes por operação" };
+  }
+  for (const id of parsedIds) {
+    if (typeof id !== "string" || !UUID_RE.test(id)) {
+      return { error: "ID do cliente inválido" };
+    }
+  }
+  const clienteIds = parsedIds as string[];
+
+  const hasAssessor = formData.has("assessor_id");
+  const hasCoordenador = formData.has("coordenador_id");
+  if (!hasAssessor && !hasCoordenador) {
+    return { error: "Selecione assessor ou coordenador para atribuir" };
+  }
+
+  const proposed: Partial<Record<AssignmentField, string | null>> = {};
+  for (const field of ["assessor_id", "coordenador_id"] as const) {
+    if (!formData.has(field)) continue;
+    const raw = formData.get(field);
+    const v = typeof raw === "string" ? raw.trim() : "";
+    if (v === "") {
+      proposed[field] = null;
+    } else if (!UUID_RE.test(v)) {
+      return { error: "ID inválido" };
+    } else {
+      proposed[field] = v;
+    }
+  }
+
+  const supabase = await createClient();
+
+  for (const [field, value] of Object.entries(proposed) as Array<
+    [AssignmentField, string | null]
+  >) {
+    if (value === null) continue;
+    const check = await validateProfileRole(supabase, value, FIELD_TO_ROLE[field]);
+    if (!check.ok) return { error: check.error };
+  }
+
+  const patch: Partial<Record<AssignmentField, string | null>> = { ...proposed };
+
+  const { error: updErr } = await supabase
+    .from("clients")
+    .update(patch)
+    .in("id", clienteIds);
+  if (updErr) return { error: updErr.message };
+
+  for (const id of clienteIds) {
+    await logAudit({
+      entidade: "clients",
+      entidade_id: id,
+      acao: "update",
+      dados_depois: patch as Record<string, unknown>,
+      ator_id: actor.id,
+      justificativa: "Atribuição em massa via listagem",
+    });
+  }
+
+  revalidatePath("/clientes");
+  return { success: true, count: clienteIds.length };
+}
