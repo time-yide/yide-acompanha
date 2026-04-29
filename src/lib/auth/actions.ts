@@ -115,14 +115,31 @@ export async function changeOwnPasswordAction(
 
   const supabase = await createClient();
 
+  // Source the email from auth.users directly to avoid drift with profiles.email
+  // (profiles.email is denormalized; if it ever drifts, signInWithPassword would
+  // reject otherwise-correct credentials).
+  const {
+    data: { user: authUser },
+  } = await supabase.auth.getUser();
+  if (!authUser?.email) {
+    return { error: "Sessão inválida" };
+  }
+
   // Re-authenticate to enforce knowledge of the current password.
   const { error: signInError } = await supabase.auth.signInWithPassword({
-    email: user.email,
+    email: authUser.email,
     password: parsed.data.currentPassword,
   });
 
   if (signInError) {
-    return { error: "Senha atual incorreta" };
+    const isInvalidCredentials =
+      signInError.status === 400 ||
+      /invalid.*credentials|invalid.*grant/i.test(signInError.message);
+    return {
+      error: isInvalidCredentials
+        ? "Senha atual incorreta"
+        : "Não foi possível verificar sua senha atual. Tente novamente em instantes.",
+    };
   }
 
   const { error: updateError } = await supabase.auth.updateUser({
