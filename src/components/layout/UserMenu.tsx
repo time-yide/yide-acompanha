@@ -2,7 +2,7 @@
 
 import { signoutAction } from "@/lib/auth/actions";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -22,10 +22,12 @@ export function UserMenu({ nome, email }: { nome: string; email: string }) {
         </Avatar>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuLabel>
-          <div className="text-sm font-semibold">{nome}</div>
-          <div className="text-xs font-normal text-muted-foreground">{email}</div>
-        </DropdownMenuLabel>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>
+            <div className="text-sm font-semibold">{nome}</div>
+            <div className="text-xs font-normal text-muted-foreground">{email}</div>
+          </DropdownMenuLabel>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem>
           <Link href="/configuracoes" className="flex cursor-pointer items-center">
