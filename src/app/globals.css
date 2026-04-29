@@ -66,10 +66,10 @@
     --background: 240 10% 4%;        /* #0a0a0f */
     --foreground: 0 0% 98%;
 
-    --card: 240 10% 6%;
+    --card: 240 10% 8%;
     --card-foreground: 0 0% 98%;
 
-    --popover: 240 10% 4%;
+    --popover: 240 10% 12%;
     --popover-foreground: 0 0% 98%;
 
     --primary: 176 60% 60%;          /* lighter teal in dark mode */
