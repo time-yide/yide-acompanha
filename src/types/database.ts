@@ -1169,7 +1169,7 @@ export type Database = {
         Row: {
           arquivado: boolean
           atualizado_em: string
-          autor_id: string
+          autor_id: string | null
           autor_role_snapshot: string
           corpo: string
           criado_em: string
@@ -1181,7 +1181,7 @@ export type Database = {
         Insert: {
           arquivado?: boolean
           atualizado_em?: string
-          autor_id: string
+          autor_id?: string | null
           autor_role_snapshot: string
           corpo: string
           criado_em?: string
@@ -1193,7 +1193,7 @@ export type Database = {
         Update: {
           arquivado?: boolean
           atualizado_em?: string
-          autor_id?: string
+          autor_id?: string | null
           autor_role_snapshot?: string
           corpo?: string
           criado_em?: string
