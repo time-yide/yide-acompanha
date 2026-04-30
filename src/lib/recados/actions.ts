@@ -30,11 +30,15 @@ async function resolveRecipientIds(
   const admin = createServiceRoleClient();
 
   if (scope === "todos") {
-    const { data } = await admin
+    const { data, error } = await admin
       .from("profiles")
       .select("id")
       .eq("ativo", true)
       .neq("id", autorId);
+    if (error) {
+      console.error("[recados/actions] todos query error:", error.message);
+      return [];
+    }
     return (data ?? []).map((r) => r.id);
   }
 
@@ -176,8 +180,14 @@ export async function fixarRecadoAction(recadoId: string, fixar: boolean) {
   if (actor.role !== "socio") return { error: "Apenas Sócio pode fixar recados" };
 
   const supabase = await createClient();
-  const { error } = await supabase.from("recados").update({ permanente: fixar }).eq("id", recadoId);
+  const { data: updated, error } = await supabase
+    .from("recados")
+    .update({ permanente: fixar })
+    .eq("id", recadoId)
+    .select("id")
+    .maybeSingle();
   if (error) return { error: error.message };
+  if (!updated) return { error: "Recado não encontrado" };
 
   revalidatePath("/recados");
   return { success: true };
