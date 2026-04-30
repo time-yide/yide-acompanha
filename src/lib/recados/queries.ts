@@ -51,7 +51,7 @@ export async function countRecadosNaoLidos(userId: string): Promise<number> {
     .select("id", { count: "exact", head: true })
     .eq("arquivado", false)
     .eq("permanente", false)
-    .neq("autor_id", userId)
+    .or(`autor_id.is.null,autor_id.neq.${userId}`)
     .gt("criado_em", cutoff);
 
   if (error) {
@@ -63,10 +63,14 @@ export async function countRecadosNaoLidos(userId: string): Promise<number> {
 
 export async function getMyLastSeen(userId: string): Promise<string | null> {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("recado_visualizacoes")
     .select("last_seen_at")
     .eq("user_id", userId)
     .maybeSingle();
+  if (error) {
+    console.error("[recados/queries] getMyLastSeen error:", error.message);
+    return null;
+  }
   return data?.last_seen_at ?? null;
 }
