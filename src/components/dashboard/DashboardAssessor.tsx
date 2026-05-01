@@ -7,6 +7,7 @@ import {
 } from "@/lib/dashboard/queries";
 import { getComissaoPrevista } from "@/lib/dashboard/comissao-prevista";
 import { KpiRowAssessor } from "./KpiRowAssessor";
+import { RemuneracaoCard } from "./RemuneracaoCard";
 import { ChartCarteiraTimeline } from "./ChartCarteiraTimeline";
 import { ChartEntradaChurn } from "./ChartEntradaChurn";
 import { RankingResumo } from "./RankingResumo";
@@ -37,7 +38,8 @@ export async function DashboardAssessor({ userId, nome }: Props) {
         <p className="text-sm text-muted-foreground">Sua carteira</p>
       </header>
 
-      <KpiRowAssessor kpis={kpis} comissao={comissao} />
+      <KpiRowAssessor kpis={kpis} />
+      <RemuneracaoCard comissao={comissao} />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Section title="Evolução da minha carteira" subtitle="Últimos 12 meses">

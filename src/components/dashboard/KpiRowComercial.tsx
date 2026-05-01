@@ -1,7 +1,6 @@
-import { Users, CheckCircle2, Coins, TrendingUp, Target } from "lucide-react";
+import { Users, CheckCircle2, TrendingUp, Target } from "lucide-react";
 import { KpiCard } from "./KpiCard";
 import type { LeadsKpis } from "@/lib/dashboard/comercial-queries";
-import type { ComissaoPrevista } from "@/lib/dashboard/comissao-prevista";
 
 function formatBRL(v: number): string {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(v);
@@ -9,12 +8,11 @@ function formatBRL(v: number): string {
 
 interface Props {
   leadsKpis: LeadsKpis;
-  comissao: ComissaoPrevista;
 }
 
-export function KpiRowComercial({ leadsKpis, comissao }: Props) {
+export function KpiRowComercial({ leadsKpis }: Props) {
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
       <KpiCard
         label="Leads ativos"
         valor={String(leadsKpis.leadsAtivos)}
@@ -38,12 +36,6 @@ export function KpiRowComercial({ leadsKpis, comissao }: Props) {
         valor={`${leadsKpis.taxaConversao.toFixed(1)}%`}
         helperText="últimos 90 dias"
         icon={Target}
-      />
-      <KpiCard
-        label="Minha comissão prevista"
-        valor={formatBRL(comissao.valor)}
-        helperText={`${comissao.percentual}% sobre ${formatBRL(comissao.baseCalculo)} + fixo ${formatBRL(comissao.fixo)}`}
-        icon={Coins}
       />
     </div>
   );

@@ -1,7 +1,6 @@
-import { Wallet, Users, TrendingDown, Percent, Coins } from "lucide-react";
+import { Wallet, Users, TrendingDown, Percent } from "lucide-react";
 import { KpiCard } from "./KpiCard";
 import type { KpiData } from "@/lib/dashboard/queries";
-import type { ComissaoPrevista } from "@/lib/dashboard/comissao-prevista";
 
 function formatBRL(v: number): string {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(v);
@@ -15,12 +14,11 @@ function formatDelta(v: number, currency: boolean): { valor: string; direction: 
 
 interface Props {
   kpis: KpiData;
-  comissao: ComissaoPrevista;
 }
 
-export function KpiRowCoord({ kpis, comissao }: Props) {
+export function KpiRowCoord({ kpis }: Props) {
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
       <KpiCard
         label="Carteira sob coord."
         valor={formatBRL(kpis.carteiraAtiva.valor)}
@@ -46,12 +44,6 @@ export function KpiRowCoord({ kpis, comissao }: Props) {
         valor={`${kpis.custoComissaoPct.pct.toFixed(1)}%`}
         helperText="da carteira"
         icon={Percent}
-      />
-      <KpiCard
-        label="Minha comissão prevista"
-        valor={formatBRL(comissao.valor)}
-        helperText={`${comissao.percentual}% sobre ${formatBRL(comissao.baseCalculo)} + fixo ${formatBRL(comissao.fixo)}`}
-        icon={Coins}
       />
     </div>
   );

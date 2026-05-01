@@ -6,6 +6,7 @@ import {
 } from "@/lib/dashboard/comercial-queries";
 import { getComissaoPrevista } from "@/lib/dashboard/comissao-prevista";
 import { KpiRowComercial } from "./KpiRowComercial";
+import { RemuneracaoCard } from "./RemuneracaoCard";
 import { ChartFunil } from "./ChartFunil";
 import { MetaTracker } from "./MetaTracker";
 import { ProximasReunioesList } from "./ProximasReunioesList";
@@ -32,7 +33,8 @@ export async function DashboardComercial({ userId, nome }: Props) {
         <p className="text-sm text-muted-foreground">Sua prospecção</p>
       </header>
 
-      <KpiRowComercial leadsKpis={leadsKpis} comissao={comissao} />
+      <KpiRowComercial leadsKpis={leadsKpis} />
+      <RemuneracaoCard comissao={comissao} />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Section title="Funil de conversão" subtitle="5 estágios atuais">
