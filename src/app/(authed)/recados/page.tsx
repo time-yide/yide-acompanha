@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireAuth } from "@/lib/auth/session";
+import { createClient } from "@/lib/supabase/server";
 import { listRecados } from "@/lib/recados/queries";
-import { marcarRecadosVistosAction } from "@/lib/recados/actions";
 import { NovoRecadoDialog } from "@/components/recados/NovoRecadoDialog";
 import { RecadoFeed } from "@/components/recados/RecadoFeed";
 import { cn } from "@/lib/utils";
@@ -18,7 +18,13 @@ export default async function RecadosPage({ searchParams }: { searchParams: Prom
   const recados = await listRecados(aba === "arquivados");
 
   if (aba === "ativos") {
-    await marcarRecadosVistosAction();
+    const supabase = await createClient();
+    await supabase
+      .from("recado_visualizacoes")
+      .upsert(
+        { user_id: user.id, last_seen_at: new Date().toISOString() },
+        { onConflict: "user_id" },
+      );
   }
 
   function tabHref(slug: "ativos" | "arquivados") {
