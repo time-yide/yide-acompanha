@@ -73,6 +73,10 @@ export function OverviewTable({ rows }: { rows: Row[] }) {
                     <span className="inline-flex rounded-full border border-green-500/40 bg-green-500/10 px-2 py-0.5 text-[11px] text-green-600 dark:text-green-400">
                       Aprovado
                     </span>
+                  ) : r.status === "preview" ? (
+                    <span className="inline-flex rounded-full border border-sky-500/40 bg-sky-500/10 px-2 py-0.5 text-[11px] text-sky-600 dark:text-sky-400">
+                      Em curso
+                    </span>
                   ) : (
                     <span className="inline-flex rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[11px] text-amber-600 dark:text-amber-400">
                       Aguardando

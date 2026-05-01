@@ -5,11 +5,11 @@ import { canAccess } from "@/lib/auth/permissions";
 import { CommissionTabs } from "@/components/comissoes/CommissionTabs";
 import { OverviewTable } from "@/components/comissoes/OverviewTable";
 import { listSnapshotsForMonth, getMonthsAwaitingApproval } from "@/lib/comissoes/queries";
+import { previewAllForMonth } from "@/lib/comissoes/preview";
 
 function defaultMonth(): string {
   const now = new Date();
-  const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  return `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, "0")}`;
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }
 
 function formatMonthLong(monthRef: string): string {
@@ -33,7 +33,9 @@ export default async function VisaoGeralPage({
   const showFechamento = canAccess(user.role, "approve:monthly_closing");
   const pending = await getMonthsAwaitingApproval();
   const monthRef = params.mes && /^\d{4}-\d{2}$/.test(params.mes) ? params.mes : defaultMonth();
-  const rows = await listSnapshotsForMonth(monthRef);
+  const snapshots = await listSnapshotsForMonth(monthRef);
+  const isPreview = snapshots.length === 0;
+  const rows = isPreview ? await previewAllForMonth(monthRef) : snapshots;
 
   return (
     <div className="mx-auto max-w-5xl space-y-5">
@@ -63,6 +65,11 @@ export default async function VisaoGeralPage({
       <div className="flex items-center gap-3">
         <span className="text-sm font-medium">Mês:</span>
         <span className="text-sm">{formatMonthLong(monthRef)}</span>
+        {isPreview && (
+          <span className="inline-flex rounded-full border border-sky-500/40 bg-sky-500/10 px-2 py-0.5 text-[11px] text-sky-600 dark:text-sky-400">
+            Preview ao vivo (mês ainda não fechado)
+          </span>
+        )}
       </div>
 
       <OverviewTable rows={rows as unknown as Parameters<typeof OverviewTable>[0]["rows"]} />
