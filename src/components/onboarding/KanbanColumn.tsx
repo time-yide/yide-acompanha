@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 const STAGE_LABEL: Record<Stage, string> = {
   prospeccao: "Prospecção",
   comercial: "Reunião Comercial",
-  contrato: "Contrato (ADM)",
+  contrato: "Contrato",
   marco_zero: "Marco Zero",
   ativo: "Cliente ativo",
 };
