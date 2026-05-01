@@ -142,10 +142,10 @@ export function NovoRecadoDialog(props: Props) {
                 value={notifScope}
                 onValueChange={(v) => setNotifScope(v as typeof notifScope)}
               >
-                <SelectTrigger id="recado-notif">
+                <SelectTrigger id="recado-notif" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent alignItemWithTrigger={false} className="min-w-[var(--anchor-width)]">
                   <SelectItem value="todos">Notificar todo mundo</SelectItem>
                   <SelectItem value="meu_time">Notificar só meu time</SelectItem>
                   <SelectItem value="nenhum">Não notificar (só fica no mural)</SelectItem>
