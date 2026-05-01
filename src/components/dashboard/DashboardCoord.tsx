@@ -8,6 +8,7 @@ import {
 } from "@/lib/dashboard/queries";
 import { getComissaoPrevista } from "@/lib/dashboard/comissao-prevista";
 import { KpiRowCoord } from "./KpiRowCoord";
+import { RemuneracaoCard } from "./RemuneracaoCard";
 import { ChartCarteiraTimeline } from "./ChartCarteiraTimeline";
 import { ChartEntradaChurn } from "./ChartEntradaChurn";
 import { CarteiraPorAssessorList } from "./CarteiraPorAssessorList";
@@ -41,7 +42,8 @@ export async function DashboardCoord({ userId, nome }: Props) {
         <p className="text-sm text-muted-foreground">Visão da sua coordenação</p>
       </header>
 
-      <KpiRowCoord kpis={kpis} comissao={comissao} />
+      <KpiRowCoord kpis={kpis} />
+      <RemuneracaoCard comissao={comissao} />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Section title="Evolução da carteira" subtitle="Últimos 12 meses">

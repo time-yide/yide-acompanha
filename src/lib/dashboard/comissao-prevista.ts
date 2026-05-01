@@ -4,6 +4,7 @@ import { isInMonth } from "./date-utils";
 
 export interface ComissaoPrevista {
   valor: number;
+  valorVariavel: number;
   baseCalculo: number;
   fixo: number;
   percentual: number;
@@ -79,10 +80,12 @@ export async function getComissaoPrevista(
     }
   }
 
+  const fixo = Number(profile.fixo_mensal);
   return {
-    valor: valorComissao + Number(profile.fixo_mensal),
+    valor: valorComissao + fixo,
+    valorVariavel: valorComissao,
     baseCalculo,
-    fixo: Number(profile.fixo_mensal),
+    fixo,
     percentual: Number(profile.comissao_percent),
   };
 }
