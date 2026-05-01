@@ -91,10 +91,14 @@ export function NovoRecadoDialog(props: Props) {
   }
 
   const trigger = !isEdit ? (
-    <DialogTrigger render={<Button />}>
-      <Plus className="mr-2 h-4 w-4" />
-      Novo recado
-    </DialogTrigger>
+    <DialogTrigger
+      render={
+        <Button>
+          <Plus className="mr-2 h-4 w-4" />
+          Novo recado
+        </Button>
+      }
+    />
   ) : null;
 
   return (

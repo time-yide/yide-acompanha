@@ -20,7 +20,10 @@ import {
   reagirRecadoAction,
 } from "@/lib/recados/actions";
 import type { RecadoRow } from "@/lib/recados/queries";
+import { REACAO_EMOJIS } from "@/lib/recados/schema";
 import { cn } from "@/lib/utils";
+
+const EMOJI_ORDER = new Map<string, number>(REACAO_EMOJIS.map((e, i) => [e, i]));
 
 interface Props {
   recado: RecadoRow;
@@ -29,7 +32,7 @@ interface Props {
 }
 
 function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
+  const diff = Math.max(0, Date.now() - new Date(iso).getTime());
   const min = Math.floor(diff / 60000);
   if (min < 1) return "agora";
   if (min < 60) return `há ${min}m`;
@@ -56,7 +59,9 @@ function aggregateReacoes(reacoes: RecadoRow["reacoes"], userId: string) {
     if (r.user_id === userId) cur.iReacted = true;
     counts.set(r.emoji, cur);
   }
-  return [...counts.entries()].map(([emoji, v]) => ({ emoji, ...v }));
+  return [...counts.entries()]
+    .map(([emoji, v]) => ({ emoji, ...v }))
+    .sort((a, b) => (EMOJI_ORDER.get(a.emoji) ?? 99) - (EMOJI_ORDER.get(b.emoji) ?? 99));
 }
 
 export function RecadoCard({ recado, currentUserId, currentUserRole }: Props) {
