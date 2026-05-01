@@ -82,7 +82,7 @@ describe("criarRecadoAction", () => {
 
   it("permite sócio criar recado permanente e captura permanente=true no insert", async () => {
     requireAuthMock.mockResolvedValue(ACTOR_SOCIO);
-    const insertCapture = vi.fn((_payload: Record<string, unknown>) => ({
+    const insertCapture = vi.fn<(payload: Record<string, unknown>) => unknown>(() => ({
       select: () => ({ single: async () => ({ data: { id: "r2", titulo: "ok" }, error: null }) }),
     }));
     fromMock.mockReturnValue({ insert: insertCapture });
