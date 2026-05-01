@@ -1106,6 +1106,112 @@ export type Database = {
           },
         ]
       }
+      recado_reacoes: {
+        Row: {
+          criado_em: string
+          emoji: string
+          recado_id: string
+          user_id: string
+        }
+        Insert: {
+          criado_em?: string
+          emoji: string
+          recado_id: string
+          user_id: string
+        }
+        Update: {
+          criado_em?: string
+          emoji?: string
+          recado_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recado_reacoes_recado_id_fkey"
+            columns: ["recado_id"]
+            isOneToOne: false
+            referencedRelation: "recados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recado_reacoes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recado_visualizacoes: {
+        Row: {
+          last_seen_at: string
+          user_id: string
+        }
+        Insert: {
+          last_seen_at?: string
+          user_id: string
+        }
+        Update: {
+          last_seen_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recado_visualizacoes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recados: {
+        Row: {
+          arquivado: boolean
+          atualizado_em: string
+          autor_id: string | null
+          autor_role_snapshot: string
+          corpo: string
+          criado_em: string
+          id: string
+          notif_scope: string
+          permanente: boolean
+          titulo: string
+        }
+        Insert: {
+          arquivado?: boolean
+          atualizado_em?: string
+          autor_id?: string | null
+          autor_role_snapshot: string
+          corpo: string
+          criado_em?: string
+          id?: string
+          notif_scope: string
+          permanente?: boolean
+          titulo: string
+        }
+        Update: {
+          arquivado?: boolean
+          atualizado_em?: string
+          autor_id?: string | null
+          autor_role_snapshot?: string
+          corpo?: string
+          criado_em?: string
+          id?: string
+          notif_scope?: string
+          permanente?: boolean
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recados_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       satisfaction_entries: {
         Row: {
           autor_id: string
@@ -1283,6 +1389,7 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      recados_team_member_ids: { Args: { autor: string }; Returns: string[] }
     }
     Enums: {
       attempt_channel: "whatsapp" | "email" | "ligacao" | "presencial" | "outro"
@@ -1340,6 +1447,7 @@ export type Database = {
         | "checklist_step_delegada"
         | "checklist_step_atrasada"
         | "checklist_step_concluida"
+        | "recado_novo"
       satisfaction_color: "verde" | "amarelo" | "vermelho"
       snapshot_item_tipo:
         | "fixo"
@@ -1547,6 +1655,7 @@ export const Constants = {
         "checklist_step_delegada",
         "checklist_step_atrasada",
         "checklist_step_concluida",
+        "recado_novo",
       ],
       satisfaction_color: ["verde", "amarelo", "vermelho"],
       snapshot_item_tipo: [
