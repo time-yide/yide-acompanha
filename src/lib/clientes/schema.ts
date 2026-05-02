@@ -3,6 +3,8 @@ import type { Database } from "@/types/database";
 
 type TipoPacote = Database["public"]["Enums"]["tipo_pacote"];
 
+const HAS_IA = /\bia\b/i;
+
 /** Infere tipo_pacote a partir do campo livre servico_contratado.
  *  Mesma lógica da migration 20260502000031. */
 export function inferTipoPacote(servico: string | null | undefined): TipoPacote {
@@ -18,9 +20,9 @@ export function inferTipoPacote(servico: string | null | undefined): TipoPacote 
   if (s.includes("estrat")) return "estrategia";
   if (s.includes("audiovisual") || s.includes("video") || s.includes("vídeo")) return "audiovisual";
   if (s.includes("site")) return "site";
-  if ((s.includes("crm") && s.includes("ia")) || (s.includes("ia") && s.includes("crm"))) return "crm_ia";
+  if (s.includes("crm") && HAS_IA.test(servico)) return "crm_ia";
   if (s.includes("crm")) return "crm";
-  if (s.includes("ia")) return "ia";
+  if (HAS_IA.test(servico)) return "ia";
   return "trafego_estrategia";
 }
 
