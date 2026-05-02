@@ -60,6 +60,10 @@ export type Database = {
           id: string
           inicio: string
           lead_id: string | null
+          link_roteiro: string | null
+          localizacao_endereco: string | null
+          localizacao_maps_url: string | null
+          observacoes_gravacao: string | null
           organization_id: string
           participantes_ids: string[]
           sub_calendar: Database["public"]["Enums"]["sub_calendar"]
@@ -75,6 +79,10 @@ export type Database = {
           id?: string
           inicio: string
           lead_id?: string | null
+          link_roteiro?: string | null
+          localizacao_endereco?: string | null
+          localizacao_maps_url?: string | null
+          observacoes_gravacao?: string | null
           organization_id: string
           participantes_ids?: string[]
           sub_calendar?: Database["public"]["Enums"]["sub_calendar"]
@@ -90,6 +98,10 @@ export type Database = {
           id?: string
           inicio?: string
           lead_id?: string | null
+          link_roteiro?: string | null
+          localizacao_endereco?: string | null
+          localizacao_maps_url?: string | null
+          observacoes_gravacao?: string | null
           organization_id?: string
           participantes_ids?: string[]
           sub_calendar?: Database["public"]["Enums"]["sub_calendar"]
@@ -1455,7 +1467,13 @@ export type Database = {
         | "carteira_coord_agencia"
         | "deal_fechado_comercial"
       snapshot_status: "pending_approval" | "aprovado"
-      sub_calendar: "agencia" | "onboarding" | "aniversarios"
+      sub_calendar:
+        | "agencia"
+        | "onboarding"
+        | "aniversarios"
+        | "videomakers"
+        | "assessores"
+        | "coordenadores"
       task_priority: "alta" | "media" | "baixa"
       task_status: "aberta" | "em_andamento" | "concluida"
       theme_preference: "light" | "dark" | "system"
@@ -1665,7 +1683,14 @@ export const Constants = {
         "deal_fechado_comercial",
       ],
       snapshot_status: ["pending_approval", "aprovado"],
-      sub_calendar: ["agencia", "onboarding", "aniversarios"],
+      sub_calendar: [
+        "agencia",
+        "onboarding",
+        "aniversarios",
+        "videomakers",
+        "assessores",
+        "coordenadores",
+      ],
       task_priority: ["alta", "media", "baixa"],
       task_status: ["aberta", "em_andamento", "concluida"],
       theme_preference: ["light", "dark", "system"],
