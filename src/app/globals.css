@@ -110,3 +110,27 @@
     letter-spacing: -0.02em;
   }
 }
+
+/* Animação dos blobs do background da tela de login */
+@keyframes blob-drift-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(40px, -30px) scale(1.05); }
+  66% { transform: translate(-20px, 20px) scale(0.95); }
+}
+
+@keyframes blob-drift-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-50px, 30px) scale(1.08); }
+  66% { transform: translate(30px, -20px) scale(0.92); }
+}
+
+@keyframes blob-drift-3 {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  50% { transform: translate(-45%, -55%) scale(1.1); }
+}
+
+@layer utilities {
+  .animate-blob-slow { animation: blob-drift-1 22s ease-in-out infinite; }
+  .animate-blob-slower { animation: blob-drift-2 28s ease-in-out infinite; }
+  .animate-blob-medium { animation: blob-drift-3 18s ease-in-out infinite; }
+}
