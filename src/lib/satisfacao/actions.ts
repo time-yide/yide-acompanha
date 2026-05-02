@@ -50,6 +50,9 @@ export async function setSatisfactionColorAction(formData: FormData): Promise<Ac
   revalidatePath("/satisfacao/avaliar");
   revalidatePath("/satisfacao");
   revalidatePath(`/clientes/${parsed.data.client_id}/satisfacao`);
+  // Layout (autenticado) também precisa revalidar pra a SatisfactionLockGate
+  // sumir assim que o último cliente da semana for preenchido.
+  revalidatePath("/", "layout");
   return { success: true, triggeredSynthesis };
 }
 

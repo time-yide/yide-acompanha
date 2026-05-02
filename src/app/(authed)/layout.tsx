@@ -2,10 +2,15 @@ import { requireAuth } from "@/lib/auth/session";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
 import { countRecadosNaoLidos } from "@/lib/recados/queries";
+import { checkSatisfactionLock } from "@/lib/satisfacao/lock";
+import { SatisfactionLockGate } from "@/components/satisfacao/SatisfactionLockGate";
 
 export default async function AuthedLayout({ children }: { children: React.ReactNode }) {
   const user = await requireAuth();
-  const recadosNaoLidos = await countRecadosNaoLidos(user.id);
+  const [recadosNaoLidos, lockState] = await Promise.all([
+    countRecadosNaoLidos(user.id),
+    checkSatisfactionLock(user.id, user.role),
+  ]);
 
   return (
     <div className="flex min-h-screen">
@@ -14,6 +19,7 @@ export default async function AuthedLayout({ children }: { children: React.React
         <TopBar nome={user.nome} email={user.email} avatarUrl={user.avatarUrl} />
         <main className="flex-1 overflow-auto bg-muted/20 p-6">{children}</main>
       </div>
+      <SatisfactionLockGate state={lockState} />
     </div>
   );
 }
