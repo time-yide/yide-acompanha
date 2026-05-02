@@ -8,27 +8,44 @@ import { SubCalendarChips } from "@/components/calendario/SubCalendarChips";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 
+const FILTER_KEYS = [...SUB_CALENDARS, "meus"] as const;
+type FilterKey = typeof FILTER_KEYS[number];
+
 export default async function CalendarioPage({ searchParams }: { searchParams: Promise<{ week?: string; sub?: string | string[] }> }) {
   const params = await searchParams;
-  await requireAuth();
+  const user = await requireAuth();
 
   const ref = params.week ? new Date(params.week) : new Date();
   const { start, end } = getWeekRange(ref);
 
-  const subFilter: SubCalendar[] =
+  // Default: tudo selecionado (exceto "meus", que é opt-in).
+  const filter: FilterKey[] =
     params.sub
-      ? (Array.isArray(params.sub) ? params.sub : [params.sub]).filter((s): s is SubCalendar => SUB_CALENDARS.includes(s as SubCalendar))
+      ? (Array.isArray(params.sub) ? params.sub : [params.sub]).filter((s): s is FilterKey =>
+          (FILTER_KEYS as readonly string[]).includes(s),
+        )
       : [...SUB_CALENDARS];
+
+  const onlyMine = filter.includes("meus");
+  const subFilter = filter.filter((s): s is SubCalendar => s !== "meus") as SubCalendar[];
 
   let events = await listEventsForWeek(start, end);
   events = events.filter((e) => subFilter.includes(e.sub_calendar));
+
+  if (onlyMine) {
+    events = events.filter(
+      (e) =>
+        e.criado_por === user.id ||
+        (e.participantes_ids ?? []).includes(user.id),
+    );
+  }
 
   const prevWeek = new Date(start);
   prevWeek.setUTCDate(prevWeek.getUTCDate() - 7);
   const nextWeek = new Date(start);
   nextWeek.setUTCDate(nextWeek.getUTCDate() + 7);
 
-  const subQuery = subFilter.map((s) => `sub=${s}`).join("&");
+  const subQuery = filter.map((s) => `sub=${s}`).join("&");
   const prevHref = `/calendario?week=${prevWeek.toISOString().slice(0, 10)}&${subQuery}`;
   const nextHref = `/calendario?week=${nextWeek.toISOString().slice(0, 10)}&${subQuery}`;
   const todayHref = `/calendario?${subQuery}`;
@@ -58,7 +75,7 @@ export default async function CalendarioPage({ searchParams }: { searchParams: P
         </div>
       </header>
 
-      <SubCalendarChips active={subFilter} />
+      <SubCalendarChips active={filter} />
 
       <WeekView weekStart={start} events={events} />
     </div>

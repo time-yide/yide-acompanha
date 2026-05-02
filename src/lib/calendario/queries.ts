@@ -45,7 +45,7 @@ export async function listEventsForWeek(weekStart: Date, weekEnd: Date): Promise
   // 1) Manual events
   const { data: manual = [] } = await supabase
     .from("calendar_events")
-    .select(`id, titulo, descricao, inicio, fim, sub_calendar, client_id, lead_id`)
+    .select(`id, titulo, descricao, inicio, fim, sub_calendar, client_id, lead_id, criado_por, participantes_ids, localizacao_endereco, localizacao_maps_url, link_roteiro, observacoes_gravacao`)
     .gte("inicio", weekStart.toISOString())
     .lt("inicio", weekEnd.toISOString());
 
@@ -59,6 +59,12 @@ export async function listEventsForWeek(weekStart: Date, weekEnd: Date): Promise
       fim: m.fim,
       sub_calendar: m.sub_calendar as SubCalendar,
       link: `/calendario/${m.id}`,
+      criado_por: m.criado_por,
+      participantes_ids: (m.participantes_ids ?? []) as string[],
+      localizacao_endereco: m.localizacao_endereco,
+      localizacao_maps_url: m.localizacao_maps_url,
+      link_roteiro: m.link_roteiro,
+      observacoes_gravacao: m.observacoes_gravacao,
     });
   }
 
