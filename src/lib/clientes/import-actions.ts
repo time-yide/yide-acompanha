@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/auth/session";
 import { logAudit } from "@/lib/audit/log";
 import { parseBulkImport } from "./import";
+import { inferTipoPacote } from "./schema";
 
 export async function bulkImportClientesAction(formData: FormData) {
   const actor = await requireAuth();
@@ -33,6 +34,7 @@ export async function bulkImportClientesAction(formData: FormData) {
     valor_mensal: r.valor_mensal,
     servico_contratado: r.servico_contratado,
     data_entrada: today,
+    tipo_pacote: inferTipoPacote(r.servico_contratado),
   }));
 
   const { data: inserted, error } = await supabase

@@ -1,4 +1,30 @@
 import { z } from "zod";
+import type { Database } from "@/types/database";
+
+type TipoPacote = Database["public"]["Enums"]["tipo_pacote"];
+
+const HAS_IA = /\bia\b/i;
+
+/** Infere tipo_pacote a partir do campo livre servico_contratado.
+ *  Mesma lógica da migration 20260502000031. */
+export function inferTipoPacote(servico: string | null | undefined): TipoPacote {
+  if (!servico) return "trafego_estrategia";
+  const s = servico.toLowerCase();
+  if (
+    (s.includes("trafego") || s.includes("tráfego") || s.includes("trafégo")) &&
+    s.includes("estrat")
+  ) return "trafego_estrategia";
+  if (s.includes("yide") && s.includes("360")) return "yide_360";
+  if (s.includes("full") || s.includes("premium")) return "yide_360";
+  if (s.includes("trafego") || s.includes("tráfego") || s.includes("trafégo")) return "trafego";
+  if (s.includes("estrat")) return "estrategia";
+  if (s.includes("audiovisual") || s.includes("video") || s.includes("vídeo")) return "audiovisual";
+  if (s.includes("site")) return "site";
+  if (s.includes("crm") && HAS_IA.test(servico)) return "crm_ia";
+  if (s.includes("crm")) return "crm";
+  if (HAS_IA.test(servico)) return "ia";
+  return "trafego_estrategia";
+}
 
 export const STATUSES = ["ativo", "churn", "em_onboarding"] as const;
 

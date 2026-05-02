@@ -323,33 +323,51 @@ export type Database = {
         Row: {
           client_id: string
           created_at: string
+          gmn_avaliacoes: number
+          gmn_comentarios: number
+          gmn_nota_media: number | null
+          gmn_observacoes: string | null
           id: string
           mes_referencia: string
           organization_id: string
           pacote_post: number | null
           quantidade_postada: number | null
+          tpg_ativo: boolean | null
+          tpm_ativo: boolean | null
           updated_at: string
           valor_trafego_mes: number | null
         }
         Insert: {
           client_id: string
           created_at?: string
+          gmn_avaliacoes?: number
+          gmn_comentarios?: number
+          gmn_nota_media?: number | null
+          gmn_observacoes?: string | null
           id?: string
           mes_referencia: string
           organization_id: string
           pacote_post?: number | null
           quantidade_postada?: number | null
+          tpg_ativo?: boolean | null
+          tpm_ativo?: boolean | null
           updated_at?: string
           valor_trafego_mes?: number | null
         }
         Update: {
           client_id?: string
           created_at?: string
+          gmn_avaliacoes?: number
+          gmn_comentarios?: number
+          gmn_nota_media?: number | null
+          gmn_observacoes?: string | null
           id?: string
           mes_referencia?: string
           organization_id?: string
           pacote_post?: number | null
           quantidade_postada?: number | null
+          tpg_ativo?: boolean | null
+          tpm_ativo?: boolean | null
           updated_at?: string
           valor_trafego_mes?: number | null
         }
@@ -415,6 +433,9 @@ export type Database = {
       clients: {
         Row: {
           assessor_id: string | null
+          cadencia_reuniao:
+            | Database["public"]["Enums"]["cadencia_reuniao"]
+            | null
           contato_principal: string | null
           coordenador_id: string | null
           created_at: string
@@ -430,17 +451,25 @@ export type Database = {
           instagram_url: string | null
           motivo_churn: string | null
           nome: string
+          numero_unidades: number
           organization_id: string
           pacote_post_padrao: number | null
           servico_contratado: string | null
           status: Database["public"]["Enums"]["client_status"]
           telefone: string | null
+          tipo_pacote: Database["public"]["Enums"]["tipo_pacote"]
+          tipo_pacote_revisado: boolean
           updated_at: string
           valor_mensal: number
+          valor_trafego_google: number | null
+          valor_trafego_meta: number | null
           videomaker_id: string | null
         }
         Insert: {
           assessor_id?: string | null
+          cadencia_reuniao?:
+            | Database["public"]["Enums"]["cadencia_reuniao"]
+            | null
           contato_principal?: string | null
           coordenador_id?: string | null
           created_at?: string
@@ -456,17 +485,25 @@ export type Database = {
           instagram_url?: string | null
           motivo_churn?: string | null
           nome: string
+          numero_unidades?: number
           organization_id: string
           pacote_post_padrao?: number | null
           servico_contratado?: string | null
           status?: Database["public"]["Enums"]["client_status"]
           telefone?: string | null
+          tipo_pacote: Database["public"]["Enums"]["tipo_pacote"]
+          tipo_pacote_revisado?: boolean
           updated_at?: string
           valor_mensal?: number
+          valor_trafego_google?: number | null
+          valor_trafego_meta?: number | null
           videomaker_id?: string | null
         }
         Update: {
           assessor_id?: string | null
+          cadencia_reuniao?:
+            | Database["public"]["Enums"]["cadencia_reuniao"]
+            | null
           contato_principal?: string | null
           coordenador_id?: string | null
           created_at?: string
@@ -482,13 +519,18 @@ export type Database = {
           instagram_url?: string | null
           motivo_churn?: string | null
           nome?: string
+          numero_unidades?: number
           organization_id?: string
           pacote_post_padrao?: number | null
           servico_contratado?: string | null
           status?: Database["public"]["Enums"]["client_status"]
           telefone?: string | null
+          tipo_pacote?: Database["public"]["Enums"]["tipo_pacote"]
+          tipo_pacote_revisado?: boolean
           updated_at?: string
           valor_mensal?: number
+          valor_trafego_google?: number | null
+          valor_trafego_meta?: number | null
           videomaker_id?: string | null
         }
         Relationships: [
@@ -1411,6 +1453,7 @@ export type Database = {
         | "recusou"
         | "pediu_proposta"
         | "outro"
+      cadencia_reuniao: "semanal" | "quinzenal" | "mensal" | "trimestral"
       checklist_step_key:
         | "cronograma"
         | "design"
@@ -1423,7 +1466,12 @@ export type Database = {
         | "edicao"
         | "reuniao"
         | "postagem"
-      checklist_step_status: "pendente" | "em_andamento" | "pronto" | "atrasada"
+      checklist_step_status:
+        | "pendente"
+        | "em_andamento"
+        | "pronto"
+        | "atrasada"
+        | "delegado"
       client_status: "ativo" | "churn" | "em_onboarding"
       file_category: "briefing" | "contrato" | "criativo" | "outro"
       important_date_type:
@@ -1477,6 +1525,16 @@ export type Database = {
       task_priority: "alta" | "media" | "baixa"
       task_status: "aberta" | "em_andamento" | "concluida"
       theme_preference: "light" | "dark" | "system"
+      tipo_pacote:
+        | "trafego_estrategia"
+        | "trafego"
+        | "estrategia"
+        | "audiovisual"
+        | "yide_360"
+        | "site"
+        | "ia"
+        | "crm"
+        | "crm_ia"
       user_role:
         | "adm"
         | "socio"
@@ -1622,6 +1680,7 @@ export const Constants = {
         "pediu_proposta",
         "outro",
       ],
+      cadencia_reuniao: ["semanal", "quinzenal", "mensal", "trimestral"],
       checklist_step_key: [
         "cronograma",
         "design",
@@ -1635,7 +1694,13 @@ export const Constants = {
         "reuniao",
         "postagem",
       ],
-      checklist_step_status: ["pendente", "em_andamento", "pronto", "atrasada"],
+      checklist_step_status: [
+        "pendente",
+        "em_andamento",
+        "pronto",
+        "atrasada",
+        "delegado",
+      ],
       client_status: ["ativo", "churn", "em_onboarding"],
       file_category: ["briefing", "contrato", "criativo", "outro"],
       important_date_type: [
@@ -1694,6 +1759,17 @@ export const Constants = {
       task_priority: ["alta", "media", "baixa"],
       task_status: ["aberta", "em_andamento", "concluida"],
       theme_preference: ["light", "dark", "system"],
+      tipo_pacote: [
+        "trafego_estrategia",
+        "trafego",
+        "estrategia",
+        "audiovisual",
+        "yide_360",
+        "site",
+        "ia",
+        "crm",
+        "crm_ia",
+      ],
       user_role: [
         "adm",
         "socio",
