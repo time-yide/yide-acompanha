@@ -9,6 +9,7 @@ import {
   createLeadSchema, editLeadSchema, moveStageSchema, markLostSchema, type Stage,
 } from "./schema";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
+import { inferTipoPacote } from "@/lib/clientes/schema";
 
 function prettyStage(stage: string): string {
   switch (stage) {
@@ -226,6 +227,7 @@ export async function moveStageAction(formData: FormData) {
         data_entrada: today,
         assessor_id: lead.assessor_alocado_id,
         coordenador_id: lead.coord_alocado_id,
+        tipo_pacote: inferTipoPacote(lead.servico_proposto),
       })
       .select("id")
       .single();

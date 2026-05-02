@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/auth/session";
 import { logAudit } from "@/lib/audit/log";
-import { createClienteSchema, editClienteSchema, churnClienteSchema } from "./schema";
+import { createClienteSchema, editClienteSchema, churnClienteSchema, inferTipoPacote } from "./schema";
 
 function fd(formData: FormData, key: string) {
   const v = formData.get(key);
@@ -49,6 +49,7 @@ export async function createClienteAction(formData: FormData) {
     assessor_id: parsed.data.assessor_id || null,
     coordenador_id: parsed.data.coordenador_id || null,
     data_aniversario_socio_cliente: parsed.data.data_aniversario_socio_cliente || null,
+    tipo_pacote: inferTipoPacote(parsed.data.servico_contratado),
   };
 
   const { data: created, error } = await supabase
