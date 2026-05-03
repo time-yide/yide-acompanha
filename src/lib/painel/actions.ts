@@ -72,7 +72,7 @@ export async function markStepProntoAction(formData: FormData): Promise<ActionRe
   if (updateErr) return { error: updateErr.message };
 
   // Caso especial: camera ou mobile pronto → checa se o outro já está pronto
-  let nextCtx: { cameraAlreadyPronto?: boolean; mobileAlreadyPronto?: boolean } = {};
+  const nextCtx: { cameraAlreadyPronto?: boolean; mobileAlreadyPronto?: boolean } = {};
   if (step.step_key === "camera" || step.step_key === "mobile") {
     const otherKey = step.step_key === "camera" ? "mobile" : "camera";
     const { data: otherSteps } = await supabase

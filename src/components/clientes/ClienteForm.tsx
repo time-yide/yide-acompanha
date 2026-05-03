@@ -12,6 +12,7 @@ interface ProfileOption {
 }
 
 interface Props {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   action: (formData: FormData) => any;
   defaults?: Partial<{
     id: string;
