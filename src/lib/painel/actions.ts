@@ -72,7 +72,7 @@ export async function markStepProntoAction(formData: FormData): Promise<ActionRe
   if (updateErr) return { error: updateErr.message };
 
   // Caso especial: camera ou mobile pronto → checa se o outro já está pronto
-  let nextCtx: { cameraAlreadyPronto?: boolean; mobileAlreadyPronto?: boolean } = {};
+  const nextCtx: { cameraAlreadyPronto?: boolean; mobileAlreadyPronto?: boolean } = {};
   if (step.step_key === "camera" || step.step_key === "mobile") {
     const otherKey = step.step_key === "camera" ? "mobile" : "camera";
     const { data: otherSteps } = await supabase
@@ -161,6 +161,159 @@ export async function updateChecklistFieldAction(formData: FormData): Promise<Ac
     .eq("id", parsed.data.checklist_id);
 
   if (error) return { error: error.message };
+
+  revalidatePath("/painel");
+  return { success: true };
+}
+
+// =============================================
+// Fase 1 — actions novas
+// =============================================
+
+const setGmnSchema = z.object({
+  checklist_id: uuidLike,
+  gmn_comentarios: z.coerce.number().int().min(0),
+  gmn_avaliacoes: z.coerce.number().int().min(0),
+  gmn_nota_media: z.coerce.number().min(0).max(5).nullable().optional(),
+  gmn_observacoes: z.string().max(2000).nullable().optional(),
+});
+
+export async function setGmnDataAction(formData: FormData): Promise<ActionResult> {
+  await requireAuth();
+  const parsed = setGmnSchema.safeParse({
+    checklist_id: formData.get("checklist_id"),
+    gmn_comentarios: formData.get("gmn_comentarios"),
+    gmn_avaliacoes: formData.get("gmn_avaliacoes"),
+    gmn_nota_media: formData.get("gmn_nota_media") || null,
+    gmn_observacoes: formData.get("gmn_observacoes") || null,
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("client_monthly_checklist")
+    .update({
+      gmn_comentarios: parsed.data.gmn_comentarios,
+      gmn_avaliacoes: parsed.data.gmn_avaliacoes,
+      gmn_nota_media: parsed.data.gmn_nota_media ?? null,
+      gmn_observacoes: parsed.data.gmn_observacoes ?? null,
+    })
+    .eq("id", parsed.data.checklist_id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/painel");
+  return { success: true };
+}
+
+const setTpgTpmSchema = z.object({
+  checklist_id: uuidLike,
+  field: z.enum(["tpg_ativo", "tpm_ativo"]),
+  ativo: z.coerce.boolean(),
+});
+
+export async function setTpgTpmAction(formData: FormData): Promise<ActionResult> {
+  await requireAuth();
+  const parsed = setTpgTpmSchema.safeParse({
+    checklist_id: formData.get("checklist_id"),
+    field: formData.get("field"),
+    ativo: formData.get("ativo"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const supabase = await createClient();
+  const payload = parsed.data.field === "tpg_ativo"
+    ? { tpg_ativo: parsed.data.ativo }
+    : { tpm_ativo: parsed.data.ativo };
+
+  const { error } = await supabase
+    .from("client_monthly_checklist")
+    .update(payload)
+    .eq("id", parsed.data.checklist_id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/painel");
+  return { success: true };
+}
+
+const setMonthlyPostsSchema = z.object({
+  checklist_id: uuidLike,
+  pacote_post: z.coerce.number().int().min(0),
+  quantidade_postada: z.coerce.number().int().min(0),
+});
+
+export async function setMonthlyPostsAction(formData: FormData): Promise<ActionResult> {
+  await requireAuth();
+  const parsed = setMonthlyPostsSchema.safeParse({
+    checklist_id: formData.get("checklist_id"),
+    pacote_post: formData.get("pacote_post"),
+    quantidade_postada: formData.get("quantidade_postada"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("client_monthly_checklist")
+    .update({
+      pacote_post: parsed.data.pacote_post,
+      quantidade_postada: parsed.data.quantidade_postada,
+    })
+    .eq("id", parsed.data.checklist_id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/painel");
+  return { success: true };
+}
+
+const delegarDesignSchema = z.object({
+  step_id: uuidLike,
+});
+
+export async function delegarDesignAction(formData: FormData): Promise<ActionResult> {
+  const actor = await requireAuth();
+  const parsed = delegarDesignSchema.safeParse({ step_id: formData.get("step_id") });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const supabase = await createClient();
+  const { data: step } = await supabase
+    .from("checklist_step")
+    .select("id, step_key, status, responsavel_id, client_monthly_checklist(client_id, cliente:clients(designer_id))")
+    .eq("id", parsed.data.step_id)
+    .single();
+
+  if (!step) return { error: "Etapa não encontrada" };
+  const s = step as unknown as {
+    id: string;
+    step_key: string;
+    status: string;
+    responsavel_id: string | null;
+    client_monthly_checklist: {
+      client_id: string;
+      cliente: { designer_id: string | null };
+    };
+  };
+
+  if (s.step_key !== "design") return { error: "Action só para design" };
+
+  const designerId = s.client_monthly_checklist.cliente.designer_id;
+  if (!designerId) return { error: "Cliente sem designer cadastrado" };
+
+  const { error } = await supabase
+    .from("checklist_step")
+    .update({
+      status: "delegado",
+      responsavel_id: designerId,
+      iniciado_em: new Date().toISOString(),
+    })
+    .eq("id", s.id);
+  if (error) return { error: error.message };
+
+  await dispatchNotification({
+    evento_tipo: "checklist_step_delegada",
+    titulo: `Design delegado pra você`,
+    mensagem: `Por ${actor.nome}`,
+    link: "/painel",
+    user_ids_extras: [designerId],
+  });
 
   revalidatePath("/painel");
   return { success: true };

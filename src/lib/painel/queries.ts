@@ -1,6 +1,9 @@
 // SERVER ONLY: do not import from client components
 import { createClient } from "@/lib/supabase/server";
 import type { StepKey, StepStatus } from "./deadlines";
+import type { TipoPacote } from "./pacote-matrix";
+
+type CadenciaReuniao = "semanal" | "quinzenal" | "mensal" | "trimestral";
 
 export interface ChecklistFilter {
   assessorId?: string;
@@ -30,10 +33,22 @@ export interface ChecklistRow {
   client_editor_id: string | null;
   client_drive_url: string | null;
   client_instagram_url: string | null;
+  client_tipo_pacote: TipoPacote;
+  client_tipo_pacote_revisado: boolean;
+  client_cadencia_reuniao: CadenciaReuniao | null;
+  client_numero_unidades: number;
+  client_valor_trafego_google: number | null;
+  client_valor_trafego_meta: number | null;
   mes_referencia: string;
   pacote_post: number | null;
   quantidade_postada: number | null;
   valor_trafego_mes: number | null;
+  tpg_ativo: boolean | null;
+  tpm_ativo: boolean | null;
+  gmn_comentarios: number;
+  gmn_avaliacoes: number;
+  gmn_nota_media: number | null;
+  gmn_observacoes: string | null;
   steps: ChecklistStepRow[];
 }
 
@@ -43,11 +58,19 @@ export async function getMonthlyChecklists(
 ): Promise<ChecklistRow[]> {
   const supabase = await createClient();
 
-  // 1) Lista clientes filtrados
+  // 1) Lista clientes filtrados (apenas pacotes do painel mensal)
   let clientsQuery = supabase
     .from("clients")
-    .select("id, nome, assessor_id, coordenador_id, designer_id, videomaker_id, editor_id, drive_url, instagram_url")
-    .eq("status", "ativo");
+    .select(`
+      id, nome, assessor_id, coordenador_id, designer_id, videomaker_id, editor_id,
+      drive_url, instagram_url,
+      tipo_pacote, tipo_pacote_revisado, cadencia_reuniao, numero_unidades,
+      valor_trafego_google, valor_trafego_meta
+    `)
+    .eq("status", "ativo")
+    .in("tipo_pacote", [
+      "trafego_estrategia", "trafego", "estrategia", "audiovisual", "yide_360",
+    ]);
 
   if (filter.assessorId) clientsQuery = clientsQuery.eq("assessor_id", filter.assessorId);
   if (filter.coordenadorId) clientsQuery = clientsQuery.eq("coordenador_id", filter.coordenadorId);
@@ -66,6 +89,12 @@ export async function getMonthlyChecklists(
     editor_id: string | null;
     drive_url: string | null;
     instagram_url: string | null;
+    tipo_pacote: TipoPacote;
+    tipo_pacote_revisado: boolean;
+    cadencia_reuniao: CadenciaReuniao | null;
+    numero_unidades: number;
+    valor_trafego_google: number | null;
+    valor_trafego_meta: number | null;
   }>;
 
   if (clients.length === 0) return [];
@@ -75,7 +104,12 @@ export async function getMonthlyChecklists(
   // 2) Carrega checklists do mês
   const { data: checklistsData } = await supabase
     .from("client_monthly_checklist")
-    .select("id, client_id, mes_referencia, pacote_post, quantidade_postada, valor_trafego_mes")
+    .select(`
+      id, client_id, mes_referencia,
+      pacote_post, quantidade_postada, valor_trafego_mes,
+      tpg_ativo, tpm_ativo,
+      gmn_comentarios, gmn_avaliacoes, gmn_nota_media, gmn_observacoes
+    `)
     .eq("mes_referencia", mesReferencia)
     .in("client_id", clientIds);
 
@@ -86,6 +120,12 @@ export async function getMonthlyChecklists(
     pacote_post: number | null;
     quantidade_postada: number | null;
     valor_trafego_mes: number | null;
+    tpg_ativo: boolean | null;
+    tpm_ativo: boolean | null;
+    gmn_comentarios: number;
+    gmn_avaliacoes: number;
+    gmn_nota_media: number | null;
+    gmn_observacoes: string | null;
   }>;
 
   if (checklists.length === 0) {
@@ -98,10 +138,22 @@ export async function getMonthlyChecklists(
       client_editor_id: c.editor_id,
       client_drive_url: c.drive_url,
       client_instagram_url: c.instagram_url,
+      client_tipo_pacote: c.tipo_pacote,
+      client_tipo_pacote_revisado: c.tipo_pacote_revisado,
+      client_cadencia_reuniao: c.cadencia_reuniao,
+      client_numero_unidades: c.numero_unidades,
+      client_valor_trafego_google: c.valor_trafego_google,
+      client_valor_trafego_meta: c.valor_trafego_meta,
       mes_referencia: mesReferencia,
       pacote_post: null,
       quantidade_postada: null,
       valor_trafego_mes: null,
+      tpg_ativo: null,
+      tpm_ativo: null,
+      gmn_comentarios: 0,
+      gmn_avaliacoes: 0,
+      gmn_nota_media: null,
+      gmn_observacoes: null,
       steps: [],
     }));
   }
@@ -155,10 +207,22 @@ export async function getMonthlyChecklists(
       client_editor_id: c.editor_id,
       client_drive_url: c.drive_url,
       client_instagram_url: c.instagram_url,
+      client_tipo_pacote: c.tipo_pacote,
+      client_tipo_pacote_revisado: c.tipo_pacote_revisado,
+      client_cadencia_reuniao: c.cadencia_reuniao,
+      client_numero_unidades: c.numero_unidades,
+      client_valor_trafego_google: c.valor_trafego_google,
+      client_valor_trafego_meta: c.valor_trafego_meta,
       mes_referencia: mesReferencia,
       pacote_post: cl?.pacote_post ?? null,
       quantidade_postada: cl?.quantidade_postada ?? null,
       valor_trafego_mes: cl?.valor_trafego_mes ?? null,
+      tpg_ativo: cl?.tpg_ativo ?? null,
+      tpm_ativo: cl?.tpm_ativo ?? null,
+      gmn_comentarios: cl?.gmn_comentarios ?? 0,
+      gmn_avaliacoes: cl?.gmn_avaliacoes ?? 0,
+      gmn_nota_media: cl?.gmn_nota_media ?? null,
+      gmn_observacoes: cl?.gmn_observacoes ?? null,
       steps: cl ? (stepsByChecklist.get(cl.id) ?? []) : [],
     };
   });

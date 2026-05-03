@@ -63,6 +63,12 @@ export default async function EditClientePage({ params }: { params: Promise<{ id
             gmn_url: cliente.gmn_url ?? null,
             drive_url: cliente.drive_url ?? null,
             pacote_post_padrao: cliente.pacote_post_padrao ?? null,
+            tipo_pacote: cliente.tipo_pacote ?? null,
+            cadencia_reuniao: cliente.cadencia_reuniao ?? null,
+            numero_unidades: cliente.numero_unidades ?? 1,
+            valor_trafego_google: cliente.valor_trafego_google ?? null,
+            valor_trafego_meta: cliente.valor_trafego_meta ?? null,
+            tipo_pacote_revisado: cliente.tipo_pacote_revisado ?? false,
           }}
           assessores={assessores}
           coordenadores={coordenadores}

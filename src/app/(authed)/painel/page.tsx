@@ -3,6 +3,7 @@ import { requireAuth } from "@/lib/auth/session";
 import { getMonthlyChecklists, type ChecklistFilter } from "@/lib/painel/queries";
 import { PainelHeader } from "@/components/painel/PainelHeader";
 import { PainelTable } from "@/components/painel/PainelTable";
+import { PACOTES_NO_PAINEL_MENSAL, type TipoPacote } from "@/lib/painel/pacote-matrix";
 
 const ALLOWED_ROLES = ["adm", "socio", "coordenador", "assessor", "designer", "videomaker", "editor", "audiovisual_chefe"];
 
@@ -20,13 +21,17 @@ function previousMonthRef(monthRef: string): string {
 export default async function PainelPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mes?: string }>;
+  searchParams: Promise<{ mes?: string; tipo?: string }>;
 }) {
   const user = await requireAuth();
   if (!ALLOWED_ROLES.includes(user.role)) notFound();
   const params = await searchParams;
 
   const mesAtual = params.mes && /^\d{4}-\d{2}$/.test(params.mes) ? params.mes : currentMonthRef();
+  const tipoFiltro: TipoPacote | "todos" =
+    params.tipo && (PACOTES_NO_PAINEL_MENSAL as readonly string[]).includes(params.tipo)
+      ? (params.tipo as TipoPacote)
+      : "todos";
 
   const filter: ChecklistFilter = {};
   if (user.role === "assessor") filter.assessorId = user.id;
@@ -35,7 +40,11 @@ export default async function PainelPage({
   else if (user.role === "videomaker") filter.videomakerId = user.id;
   else if (user.role === "editor") filter.editorId = user.id;
 
-  const checklists = await getMonthlyChecklists(mesAtual, filter);
+  const allChecklists = await getMonthlyChecklists(mesAtual, filter);
+  const checklists =
+    tipoFiltro === "todos"
+      ? allChecklists
+      : allChecklists.filter((c) => c.client_tipo_pacote === tipoFiltro);
 
   const mesesDisponiveis: string[] = [];
   let cursor = currentMonthRef();
@@ -46,7 +55,7 @@ export default async function PainelPage({
 
   return (
     <div className="space-y-5">
-      <PainelHeader mesAtual={mesAtual} mesesDisponiveis={mesesDisponiveis} />
+      <PainelHeader mesAtual={mesAtual} mesesDisponiveis={mesesDisponiveis} tipoFiltro={tipoFiltro} />
       <PainelTable
         checklists={checklists}
         userRole={user.role}

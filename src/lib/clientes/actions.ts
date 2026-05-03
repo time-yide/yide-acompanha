@@ -29,6 +29,12 @@ export async function createClienteAction(formData: FormData) {
     assessor_id: fd(formData, "assessor_id"),
     coordenador_id: fd(formData, "coordenador_id"),
     data_aniversario_socio_cliente: fd(formData, "data_aniversario_socio_cliente"),
+    tipo_pacote: fd(formData, "tipo_pacote"),
+    cadencia_reuniao: fd(formData, "cadencia_reuniao"),
+    numero_unidades: fd(formData, "numero_unidades") ?? 1,
+    valor_trafego_google: fd(formData, "valor_trafego_google"),
+    valor_trafego_meta: fd(formData, "valor_trafego_meta"),
+    tipo_pacote_revisado: fd(formData, "tipo_pacote_revisado"),
   });
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
@@ -37,6 +43,9 @@ export async function createClienteAction(formData: FormData) {
   const { data: org } = await supabase.from("organizations").select("id").limit(1).single();
   if (!org) return { error: "Organização não encontrada" };
 
+  // If user explicitly chose tipo_pacote, respect it and mark as reviewed.
+  // Otherwise infer from servico_contratado and leave revisado=false.
+  const tipoPacoteExplicito = parsed.data.tipo_pacote ?? null;
   const insertPayload = {
     organization_id: org.id,
     nome: parsed.data.nome,
@@ -49,7 +58,12 @@ export async function createClienteAction(formData: FormData) {
     assessor_id: parsed.data.assessor_id || null,
     coordenador_id: parsed.data.coordenador_id || null,
     data_aniversario_socio_cliente: parsed.data.data_aniversario_socio_cliente || null,
-    tipo_pacote: inferTipoPacote(parsed.data.servico_contratado),
+    tipo_pacote: tipoPacoteExplicito ?? inferTipoPacote(parsed.data.servico_contratado),
+    tipo_pacote_revisado: tipoPacoteExplicito !== null ? true : false,
+    cadencia_reuniao: parsed.data.cadencia_reuniao ?? null,
+    numero_unidades: parsed.data.numero_unidades ?? 1,
+    valor_trafego_google: parsed.data.valor_trafego_google ?? null,
+    valor_trafego_meta: parsed.data.valor_trafego_meta ?? null,
   };
 
   const { data: created, error } = await supabase
@@ -104,6 +118,12 @@ export async function updateClienteAction(formData: FormData) {
     gmn_url: fd(formData, "gmn_url") ?? "",
     drive_url: fd(formData, "drive_url") ?? "",
     pacote_post_padrao: fd(formData, "pacote_post_padrao"),
+    tipo_pacote: fd(formData, "tipo_pacote"),
+    cadencia_reuniao: fd(formData, "cadencia_reuniao"),
+    numero_unidades: fd(formData, "numero_unidades") ?? 1,
+    valor_trafego_google: fd(formData, "valor_trafego_google"),
+    valor_trafego_meta: fd(formData, "valor_trafego_meta"),
+    tipo_pacote_revisado: fd(formData, "tipo_pacote_revisado"),
   });
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
@@ -115,6 +135,8 @@ export async function updateClienteAction(formData: FormData) {
     return { error: "Apenas ADM/Sócio podem trocar assessor/coordenador" };
   }
 
+  // tipo_pacote_revisado=true whenever the form is submitted (user reviewed fields).
+  const tipoPacoteExplicitoEdit = parsed.data.tipo_pacote ?? null;
   const updatePayload = {
     nome: parsed.data.nome,
     contato_principal: parsed.data.contato_principal || null,
@@ -133,6 +155,12 @@ export async function updateClienteAction(formData: FormData) {
     gmn_url: parsed.data.gmn_url || null,
     drive_url: parsed.data.drive_url || null,
     pacote_post_padrao: parsed.data.pacote_post_padrao ?? null,
+    tipo_pacote: tipoPacoteExplicitoEdit ?? inferTipoPacote(parsed.data.servico_contratado),
+    tipo_pacote_revisado: true,
+    cadencia_reuniao: parsed.data.cadencia_reuniao ?? null,
+    numero_unidades: parsed.data.numero_unidades ?? 1,
+    valor_trafego_google: parsed.data.valor_trafego_google ?? null,
+    valor_trafego_meta: parsed.data.valor_trafego_meta ?? null,
   };
 
   const { error } = await supabase.from("clients").update(updatePayload).eq("id", id);
