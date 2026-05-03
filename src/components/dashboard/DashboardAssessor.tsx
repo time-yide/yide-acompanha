@@ -23,9 +23,9 @@ export async function DashboardAssessor({ userId, nome }: Props) {
   const filter = { assessorId: userId };
 
   const [kpis, carteiraTimeline, entradaChurn, ranking, eventos, comissao] = await Promise.all([
-    getKpis(undefined, filter),
-    getCarteiraTimeline(12, undefined, filter),
-    getEntradaChurn(6, undefined, filter),
+    getKpis(filter),
+    getCarteiraTimeline(12, filter),
+    getEntradaChurn(6, filter),
     getRankingSatisfacao(filter),
     getProximosEventos(30, 10, { userId }),
     getComissaoPrevista(userId, "assessor"),

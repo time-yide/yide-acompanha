@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { requireAuth } from "@/lib/auth/session";
@@ -53,6 +53,7 @@ export async function setSatisfactionColorAction(formData: FormData): Promise<Ac
   // Layout (autenticado) também precisa revalidar pra a SatisfactionLockGate
   // sumir assim que o último cliente da semana for preenchido.
   revalidatePath("/", "layout");
+  revalidateTag("dashboard", {});
   return { success: true, triggeredSynthesis };
 }
 
