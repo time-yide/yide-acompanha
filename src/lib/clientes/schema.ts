@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { Database } from "@/types/database";
+import { TIPOS_PACOTE } from "@/lib/painel/pacote-matrix";
 
 type TipoPacote = Database["public"]["Enums"]["tipo_pacote"];
 
@@ -28,6 +29,9 @@ export function inferTipoPacote(servico: string | null | undefined): TipoPacote 
 
 export const STATUSES = ["ativo", "churn", "em_onboarding"] as const;
 
+export const CADENCIAS_REUNIAO = ["semanal", "quinzenal", "mensal", "trimestral"] as const;
+export type CadenciaReuniao = (typeof CADENCIAS_REUNIAO)[number];
+
 export const createClienteSchema = z.object({
   nome: z.string().min(2, "Nome muito curto"),
   contato_principal: z.string().optional().nullable(),
@@ -39,6 +43,12 @@ export const createClienteSchema = z.object({
   assessor_id: z.string().uuid().optional().nullable(),
   coordenador_id: z.string().uuid().optional().nullable(),
   data_aniversario_socio_cliente: z.string().optional().nullable(),
+  tipo_pacote: z.enum(TIPOS_PACOTE).optional().nullable(),
+  cadencia_reuniao: z.enum(CADENCIAS_REUNIAO).optional().nullable(),
+  numero_unidades: z.coerce.number().int().min(1).default(1),
+  valor_trafego_google: z.coerce.number().min(0).optional().nullable(),
+  valor_trafego_meta: z.coerce.number().min(0).optional().nullable(),
+  tipo_pacote_revisado: z.coerce.boolean().optional(),
 });
 
 export const editClienteSchema = createClienteSchema.extend({
@@ -50,6 +60,7 @@ export const editClienteSchema = createClienteSchema.extend({
   gmn_url: z.string().url().or(z.literal("")).optional().nullable(),
   drive_url: z.string().url().or(z.literal("")).optional().nullable(),
   pacote_post_padrao: z.coerce.number().int().min(0).optional().nullable(),
+  // new fields already in base schema — inherited; explicit here for clarity
 });
 
 export const churnClienteSchema = z.object({
