@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/auth/session";
@@ -83,6 +83,7 @@ export async function createClienteAction(formData: FormData) {
   });
 
   revalidatePath("/clientes");
+  revalidateTag("dashboard", {});
   redirect(`/clientes/${created.id}`);
 }
 
@@ -177,6 +178,7 @@ export async function updateClienteAction(formData: FormData) {
 
   revalidatePath(`/clientes/${id}`);
   revalidatePath("/clientes");
+  revalidateTag("dashboard", {});
   redirect(`/clientes/${id}`);
 }
 
@@ -214,6 +216,7 @@ export async function churnClienteAction(formData: FormData) {
   });
 
   revalidatePath("/clientes");
+  revalidateTag("dashboard", {});
   redirect(`/clientes/${parsed.data.id}`);
 }
 

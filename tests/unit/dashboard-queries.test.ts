@@ -57,11 +57,17 @@ import { vi, beforeEach } from "vitest";
 
 const fromMock = vi.hoisted(() => vi.fn());
 
+vi.mock("next/cache", () => ({
+  unstable_cache: (fn: (...args: unknown[]) => unknown) => fn,
+  revalidatePath: vi.fn(),
+  revalidateTag: vi.fn(),
+}));
+
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({ from: fromMock }),
 }));
 
-import { getKpis } from "@/lib/dashboard/queries";
+import { _getKpis as getKpis } from "@/lib/dashboard/queries";
 
 beforeEach(() => {
   fromMock.mockReset();
@@ -127,7 +133,7 @@ describe("getKpis", () => {
   });
 });
 
-import { getCarteiraTimeline } from "@/lib/dashboard/queries";
+import { _getCarteiraTimeline as getCarteiraTimeline } from "@/lib/dashboard/queries";
 
 describe("getCarteiraTimeline", () => {
   it("calcula carteira mes a mes considerando entrada e churn", async () => {
@@ -170,7 +176,7 @@ describe("getCarteiraTimeline", () => {
   });
 });
 
-import { getEntradaChurn } from "@/lib/dashboard/queries";
+import { _getEntradaChurn as getEntradaChurn } from "@/lib/dashboard/queries";
 
 describe("getEntradaChurn", () => {
   it("conta entradas e churns por mes", async () => {
@@ -206,7 +212,7 @@ describe("getEntradaChurn", () => {
   });
 });
 
-import { getCarteiraPorAssessor } from "@/lib/dashboard/queries";
+import { _getCarteiraPorAssessor as getCarteiraPorAssessor } from "@/lib/dashboard/queries";
 
 describe("getCarteiraPorAssessor", () => {
   it("agrupa por assessor e calcula percentuais", async () => {
@@ -257,7 +263,11 @@ describe("getCarteiraPorAssessor", () => {
   });
 });
 
-import { getRankingSatisfacao, getProximosEventos, getMesAguardandoAprovacao } from "@/lib/dashboard/queries";
+import {
+  _getRankingSatisfacao as getRankingSatisfacao,
+  _getProximosEventos as getProximosEventos,
+  _getMesAguardandoAprovacao as getMesAguardandoAprovacao,
+} from "@/lib/dashboard/queries";
 
 describe("getRankingSatisfacao", () => {
   it("retorna top 3 verde por score desc e bottom 2 (vermelho > amarelo) por score asc", async () => {
