@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PACOTES_NO_PAINEL_MENSAL, tipoPacoteBadge, type TipoPacote } from "@/lib/painel/pacote-matrix";
 import { cn } from "@/lib/utils";
@@ -40,23 +39,15 @@ export function PainelHeader({ mesAtual, mesesDisponiveis, tipoFiltro }: Props) 
           <h1 className="text-2xl font-bold tracking-tight">Painel mensal</h1>
           <p className="text-sm text-muted-foreground">Acompanhamento de etapas por cliente</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Link
-            href="/painel/legacy"
-            className="text-[11px] text-muted-foreground hover:text-foreground hover:underline"
-          >
-            Versão antiga →
-          </Link>
-          <select
-            value={mesAtual}
-            onChange={(e) => setMes(e.target.value)}
-            className="rounded-md border bg-card px-2 py-1.5 text-sm"
-          >
-            {mesesDisponiveis.map((m) => (
-              <option key={m} value={m}>{formatMonthLabel(m)}</option>
-            ))}
-          </select>
-        </div>
+        <select
+          value={mesAtual}
+          onChange={(e) => setMes(e.target.value)}
+          className="rounded-md border bg-card px-2 py-1.5 text-sm"
+        >
+          {mesesDisponiveis.map((m) => (
+            <option key={m} value={m}>{formatMonthLabel(m)}</option>
+          ))}
+        </select>
       </div>
 
       <div className="flex flex-wrap gap-1.5">
