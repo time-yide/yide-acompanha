@@ -9,7 +9,7 @@ export function GroupBySelector({ current }: { current: GroupBy }) {
   const router = useRouter();
   const params = useSearchParams();
 
-  function setGroupBy(v: string) {
+  function setGroupBy(v: string | null) {
     const sp = new URLSearchParams(params.toString());
     if (!v || v === "prazo") sp.delete("groupBy");
     else sp.set("groupBy", v);
