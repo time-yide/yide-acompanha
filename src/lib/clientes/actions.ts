@@ -499,6 +499,7 @@ export async function updateClienteFieldAction(formData: FormData) {
     servico_contratado?: string | null;
     valor_mensal?: number;
     tipo_pacote?: ReturnType<typeof inferTipoPacote>;
+    tipo_pacote_revisado?: boolean;
   };
   const patch: Patch = {};
   const dadosAntes: Record<string, unknown> = {};
@@ -510,10 +511,11 @@ export async function updateClienteFieldAction(formData: FormData) {
       patch.servico_contratado = novoServico;
       dadosAntes.servico_contratado = beforeRow.servico_contratado;
       dadosDepois.servico_contratado = novoServico;
-      // Re-infere tipo_pacote se ainda não foi revisado manualmente
-      if (!beforeRow.tipo_pacote_revisado) {
-        patch.tipo_pacote = inferTipoPacote(novoServico);
-      }
+      // O popover de serviço usa a lista canônica (TIPOS_PACOTE), então
+      // toda mudança via inline-edit é uma escolha explícita: re-infere o
+      // tipo_pacote a partir do novo label e marca como revisado.
+      patch.tipo_pacote = inferTipoPacote(novoServico);
+      patch.tipo_pacote_revisado = true;
     }
   }
 

@@ -9,17 +9,25 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { updateClienteFieldAction } from "@/lib/clientes/actions";
+import { TIPOS_PACOTE, tipoPacoteBadge } from "@/lib/painel/pacote-matrix";
 
 interface Props {
   clienteId: string;
   current: string | null;
 }
 
+// Lista canônica de serviços (label exibido na tabela e na lista de seleção).
+const SERVICO_OPTIONS = TIPOS_PACOTE.map((p) => tipoPacoteBadge(p).label);
+
 export function ServicoPopover({ clienteId, current }: Props) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState<string>(current ?? "");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  // Se o valor atual não bate com nenhuma opção canônica (ex.: dado antigo
+  // tipo "Tráfego+Comercial"), mostra um aviso pra contexto.
+  const isCanonical = !current || SERVICO_OPTIONS.includes(current);
 
   function handleSave() {
     setError(null);
@@ -59,18 +67,29 @@ export function ServicoPopover({ clienteId, current }: Props) {
       <PopoverContent align="start" className="w-72">
         <div className="space-y-3">
           <div className="text-sm font-medium text-foreground">Serviço contratado</div>
-          <input
-            type="text"
-            value={value}
+
+          {!isCanonical && current && (
+            <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1.5 text-[11px] text-amber-700 dark:text-amber-400">
+              Valor atual <strong>{current}</strong> está fora da lista padrão. Ao escolher uma opção abaixo, ele será substituído.
+            </p>
+          )}
+
+          <select
+            value={isCanonical ? value : ""}
             onChange={(e) => setValue(e.target.value)}
             disabled={pending}
-            placeholder="Ex.: Tráfego+Estratégia"
             className="w-full rounded-md border border-input bg-card px-2 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
-          />
-          <p className="text-[11px] text-muted-foreground">
-            Tipo de pacote será re-inferido automaticamente caso ainda não tenha sido revisado manualmente.
-          </p>
+          >
+            <option value="">(Sem serviço)</option>
+            {SERVICO_OPTIONS.map((label) => (
+              <option key={label} value={label}>
+                {label}
+              </option>
+            ))}
+          </select>
+
           {error && <p className="text-xs text-destructive">{error}</p>}
+
           <div className="flex justify-end gap-2">
             <Button type="button" variant="ghost" size="sm" onClick={() => handleOpenChange(false)} disabled={pending}>
               Cancelar
