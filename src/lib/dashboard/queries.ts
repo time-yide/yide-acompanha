@@ -55,10 +55,13 @@ export async function _getKpisImpl(filter?: ClientFilter): Promise<KpiData> {
     .toISOString()
     .slice(0, 10);
 
+  // Não filtra por status='ativo' no SQL — precisamos dos churnados pra contar
+  // o churn do mês e o delta vs mês anterior. Onboarding é excluído porque
+  // ainda não entrou no ciclo de vida da carteira.
   let clientsQuery = supabase
     .from("clients")
     .select("id, valor_mensal, data_entrada, data_churn, status, tipo_relacao, assessor_id, coordenador_id")
-    .eq("status", "ativo");
+    .neq("status", "em_onboarding");
   clientsQuery = buildClientFilterQuery(clientsQuery, filter);
 
   const { data: clientsData } = await clientsQuery;

@@ -57,17 +57,19 @@ import { vi, beforeEach } from "vitest";
 
 const fromMock = vi.hoisted(() => vi.fn());
 
-/** Cria um objeto que suporta N chamadas encadeadas de .eq() e se resolve como Promise com { data }. */
+/** Cria um objeto que suporta N chamadas encadeadas de .eq()/.neq() e se resolve como Promise com { data }. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function makeChainableQuery(data: unknown[]): any {
   const resolved = Promise.resolve({ data });
   const chainable = {
     eq: vi.fn(),
+    neq: vi.fn(),
     then: resolved.then.bind(resolved),
     catch: resolved.catch.bind(resolved),
     finally: resolved.finally.bind(resolved),
   };
   chainable.eq.mockReturnValue(chainable);
+  chainable.neq.mockReturnValue(chainable);
   return chainable;
 }
 
@@ -101,7 +103,10 @@ beforeEach(() => {
 });
 
 describe("getKpis", () => {
-  it("calcula carteira ativa e clientes ativos a partir de clients ativos", async () => {
+  it("conta churn do mês mesmo quando cliente já tem status='churn' (não some no SQL)", async () => {
+    // Regressão: query antes filtrava .eq('status','ativo'), então clientes
+    // com status='churn' (estado real após churnClienteAction) eram excluídos
+    // do dataset e nunca contavam no churnMes.
     vi.useFakeTimers();
     vi.setSystemTime(new Date(Date.UTC(2026, 3, 28)));
 
@@ -111,7 +116,8 @@ describe("getKpis", () => {
           select: () => makeChainableQuery([
             { id: "c1", valor_mensal: 5000, data_entrada: "2025-01-01", data_churn: null, status: "ativo", tipo_relacao: "comum" },
             { id: "c2", valor_mensal: 3000, data_entrada: "2025-06-01", data_churn: null, status: "ativo", tipo_relacao: "comum" },
-            { id: "c3", valor_mensal: 4000, data_entrada: "2024-08-01", data_churn: "2026-04-15", status: "ativo", tipo_relacao: "comum" },
+            // Cliente que churnou em abril — status='churn' como em produção
+            { id: "c3", valor_mensal: 4000, data_entrada: "2024-08-01", data_churn: "2026-04-15", status: "churn", tipo_relacao: "comum" },
           ]),
         };
       }
@@ -130,14 +136,46 @@ describe("getKpis", () => {
     });
 
     const r = await _getKpisImpl();
-    // c1 e c2 são ativos sem churn; c3 churnou em abril (ainda no mês de referência)
-    // Carteira ativa hoje (28/abr/2026): c1 + c2 = 8000 (c3 churnou em 15/abr, não está mais ativo)
     expect(r.carteiraAtiva.valor).toBe(8000);
     expect(r.clientesAtivos.quantidade).toBe(2);
-    expect(r.churnMes.quantidade).toBe(1);    // c3 churnou em abril
+    // Delta: hoje 2 ativos, fim de março = 3 (c3 ainda estava ativo em 31/mar)
+    expect(r.clientesAtivos.deltaQuantidade).toBe(-1);
+    expect(r.churnMes.quantidade).toBe(1);
     expect(r.churnMes.valorPerdido).toBe(4000);
-    // Custo de comissão: 800 / 8000 = 10%
     expect(r.custoComissaoPct.pct).toBeCloseTo(10);
+
+    vi.useRealTimers();
+  });
+
+  it("ignora clientes em onboarding (não conta como ativo nem como churn)", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(Date.UTC(2026, 3, 28)));
+
+    fromMock.mockImplementation((table) => {
+      if (table === "clients") {
+        // SQL tem .neq('status','em_onboarding'), então mock simula o filtro
+        return {
+          select: () => makeChainableQuery([
+            { id: "c1", valor_mensal: 5000, data_entrada: "2025-01-01", data_churn: null, status: "ativo", tipo_relacao: "comum" },
+          ]),
+        };
+      }
+      if (table === "commission_snapshots") {
+        // Snapshot não-vazio pra evitar fallback no previewAllForMonth (que precisa de profiles)
+        return {
+          select: () => ({
+            order: () => ({
+              limit: vi.fn().mockResolvedValue({ data: [{ mes_referencia: "2026-03", valor_total: 100 }] }),
+            }),
+          }),
+        };
+      }
+      return {};
+    });
+
+    const r = await _getKpisImpl();
+    expect(r.clientesAtivos.quantidade).toBe(1);
+    expect(r.churnMes.quantidade).toBe(0);
 
     vi.useRealTimers();
   });
