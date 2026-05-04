@@ -57,6 +57,20 @@ import { vi, beforeEach } from "vitest";
 
 const fromMock = vi.hoisted(() => vi.fn());
 
+/** Cria um objeto que suporta N chamadas encadeadas de .eq() e se resolve como Promise com { data }. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function makeChainableQuery(data: unknown[]): any {
+  const resolved = Promise.resolve({ data });
+  const chainable = {
+    eq: vi.fn(),
+    then: resolved.then.bind(resolved),
+    catch: resolved.catch.bind(resolved),
+    finally: resolved.finally.bind(resolved),
+  };
+  chainable.eq.mockReturnValue(chainable);
+  return chainable;
+}
+
 vi.mock("@/lib/supabase/service-role", () => ({
   createServiceRoleClient: () => ({ from: fromMock }),
 }));
@@ -94,15 +108,11 @@ describe("getKpis", () => {
     fromMock.mockImplementation((table) => {
       if (table === "clients") {
         return {
-          select: () => ({
-            eq: vi.fn().mockResolvedValue({
-              data: [
-                { id: "c1", valor_mensal: 5000, data_entrada: "2025-01-01", data_churn: null, status: "ativo" },
-                { id: "c2", valor_mensal: 3000, data_entrada: "2025-06-01", data_churn: null, status: "ativo" },
-                { id: "c3", valor_mensal: 4000, data_entrada: "2024-08-01", data_churn: "2026-04-15", status: "ativo" },
-              ],
-            }),
-          }),
+          select: () => makeChainableQuery([
+            { id: "c1", valor_mensal: 5000, data_entrada: "2025-01-01", data_churn: null, status: "ativo", tipo_relacao: "comum" },
+            { id: "c2", valor_mensal: 3000, data_entrada: "2025-06-01", data_churn: null, status: "ativo", tipo_relacao: "comum" },
+            { id: "c3", valor_mensal: 4000, data_entrada: "2024-08-01", data_churn: "2026-04-15", status: "ativo", tipo_relacao: "comum" },
+          ]),
         };
       }
       if (table === "commission_snapshots") {
@@ -138,7 +148,7 @@ describe("getKpis", () => {
 
     fromMock.mockImplementation((table) => {
       if (table === "clients") {
-        return { select: () => ({ eq: vi.fn().mockResolvedValue({ data: [] }) }) };
+        return { select: () => makeChainableQuery([]) };
       }
       if (table === "commission_snapshots") {
         return { select: () => ({ order: () => ({ limit: vi.fn().mockResolvedValue({ data: [] }) }) }) };
@@ -164,14 +174,12 @@ describe("getCarteiraTimeline", () => {
     fromMock.mockImplementation((table) => {
       if (table === "clients") {
         return {
-          select: vi.fn().mockResolvedValue({
-            data: [
-              // Cliente ativo de 01/2026 em diante
-              { id: "c1", valor_mensal: 5000, data_entrada: "2026-01-15", data_churn: null },
-              // Cliente ativo de 02/2026 a 03/2026 (churnou em 03)
-              { id: "c2", valor_mensal: 3000, data_entrada: "2026-02-01", data_churn: "2026-03-20" },
-            ],
-          }),
+          select: () => makeChainableQuery([
+            // Cliente ativo de 01/2026 em diante
+            { id: "c1", valor_mensal: 5000, data_entrada: "2026-01-15", data_churn: null },
+            // Cliente ativo de 02/2026 a 03/2026 (churnou em 03)
+            { id: "c2", valor_mensal: 3000, data_entrada: "2026-02-01", data_churn: "2026-03-20" },
+          ]),
         };
       }
       return {};
@@ -197,7 +205,7 @@ describe("getCarteiraTimeline", () => {
     vi.setSystemTime(new Date(Date.UTC(2026, 3, 28)));
 
     fromMock.mockImplementation(() => ({
-      select: vi.fn().mockResolvedValue({ data: [] }),
+      select: () => makeChainableQuery([]),
     }));
     const timeline = await _getCarteiraTimelineImpl(3);
     expect(timeline).toHaveLength(3);
@@ -213,15 +221,13 @@ describe("getEntradaChurn", () => {
     vi.setSystemTime(new Date(Date.UTC(2026, 3, 28)));
 
     fromMock.mockImplementation(() => ({
-      select: vi.fn().mockResolvedValue({
-        data: [
-          { id: "c1", data_entrada: "2026-02-15", data_churn: null },
-          { id: "c2", data_entrada: "2026-02-20", data_churn: null },
-          { id: "c3", data_entrada: "2026-03-05", data_churn: null },
-          { id: "c4", data_entrada: "2025-08-01", data_churn: "2026-03-10" },
-          { id: "c5", data_entrada: "2025-09-01", data_churn: "2026-04-15" },
-        ],
-      }),
+      select: () => makeChainableQuery([
+        { id: "c1", data_entrada: "2026-02-15", data_churn: null },
+        { id: "c2", data_entrada: "2026-02-20", data_churn: null },
+        { id: "c3", data_entrada: "2026-03-05", data_churn: null },
+        { id: "c4", data_entrada: "2025-08-01", data_churn: "2026-03-10" },
+        { id: "c5", data_entrada: "2025-09-01", data_churn: "2026-04-15" },
+      ]),
     }));
 
     const data = await _getEntradaChurnImpl(3);
@@ -239,7 +245,7 @@ describe("getEntradaChurn", () => {
     vi.setSystemTime(new Date(Date.UTC(2026, 3, 28)));
 
     fromMock.mockImplementation(() => ({
-      select: vi.fn().mockResolvedValue({ data: [] }),
+      select: () => makeChainableQuery([]),
     }));
     const data = await _getEntradaChurnImpl(2);
     expect(data).toEqual([
@@ -256,17 +262,13 @@ describe("getCarteiraPorAssessor", () => {
     fromMock.mockImplementation((table) => {
       if (table === "clients") {
         return {
-          select: () => ({
-            eq: vi.fn().mockResolvedValue({
-              data: [
-                { id: "c1", valor_mensal: 5000, assessor_id: "a1", assessor: { nome: "Ana" } },
-                { id: "c2", valor_mensal: 3000, assessor_id: "a1", assessor: { nome: "Ana" } },
-                { id: "c3", valor_mensal: 4000, assessor_id: "a2", assessor: { nome: "Bruno" } },
-                // cliente sem assessor: ignorado
-                { id: "c4", valor_mensal: 1000, assessor_id: null, assessor: null },
-              ],
-            }),
-          }),
+          select: () => makeChainableQuery([
+            { id: "c1", valor_mensal: 5000, assessor_id: "a1", assessor: { nome: "Ana" } },
+            { id: "c2", valor_mensal: 3000, assessor_id: "a1", assessor: { nome: "Ana" } },
+            { id: "c3", valor_mensal: 4000, assessor_id: "a2", assessor: { nome: "Bruno" } },
+            // cliente sem assessor: ignorado
+            { id: "c4", valor_mensal: 1000, assessor_id: null, assessor: null },
+          ]),
         };
       }
       return {};
@@ -293,7 +295,7 @@ describe("getCarteiraPorAssessor", () => {
 
   it("retorna lista vazia quando sem clientes", async () => {
     fromMock.mockImplementation(() => ({
-      select: () => ({ eq: vi.fn().mockResolvedValue({ data: [] }) }),
+      select: () => makeChainableQuery([]),
     }));
     const list = await getCarteiraPorAssessor();
     expect(list).toEqual([]);
@@ -438,16 +440,13 @@ describe("getKpis with filter", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(Date.UTC(2026, 3, 28)));
 
-    const eqMock = vi.fn().mockReturnValue({
-      eq: vi.fn().mockResolvedValue({
-        data: [
-          { id: "c1", valor_mensal: 5000, data_entrada: "2025-01-01", data_churn: null, status: "ativo", assessor_id: "a1" },
-        ],
-      }),
-    });
     fromMock.mockImplementation((table) => {
       if (table === "clients") {
-        return { select: () => ({ eq: eqMock }) };
+        return {
+          select: () => makeChainableQuery([
+            { id: "c1", valor_mensal: 5000, data_entrada: "2025-01-01", data_churn: null, status: "ativo", tipo_relacao: "comum", assessor_id: "a1" },
+          ]),
+        };
       }
       if (table === "commission_snapshots") {
         return { select: () => ({ order: () => ({ limit: vi.fn().mockResolvedValue({ data: [] }) }) }) };
@@ -466,17 +465,14 @@ describe("getKpis with filter", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(Date.UTC(2026, 3, 28)));
 
-    const eqMock = vi.fn().mockReturnValue({
-      eq: vi.fn().mockResolvedValue({
-        data: [
-          { id: "c1", valor_mensal: 3000, data_entrada: "2025-01-01", data_churn: null, status: "ativo", coordenador_id: "co1" },
-          { id: "c2", valor_mensal: 4000, data_entrada: "2025-01-01", data_churn: null, status: "ativo", coordenador_id: "co1" },
-        ],
-      }),
-    });
     fromMock.mockImplementation((table) => {
       if (table === "clients") {
-        return { select: () => ({ eq: eqMock }) };
+        return {
+          select: () => makeChainableQuery([
+            { id: "c1", valor_mensal: 3000, data_entrada: "2025-01-01", data_churn: null, status: "ativo", tipo_relacao: "comum", coordenador_id: "co1" },
+            { id: "c2", valor_mensal: 4000, data_entrada: "2025-01-01", data_churn: null, status: "ativo", tipo_relacao: "comum", coordenador_id: "co1" },
+          ]),
+        };
       }
       if (table === "commission_snapshots") {
         return { select: () => ({ order: () => ({ limit: vi.fn().mockResolvedValue({ data: [] }) }) }) };
@@ -497,13 +493,10 @@ describe("getCarteiraTimeline with filter", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(Date.UTC(2026, 3, 28)));
 
-    const eqMock = vi.fn().mockResolvedValue({
-      data: [
-        { id: "c1", valor_mensal: 5000, data_entrada: "2026-01-15", data_churn: null, assessor_id: "a1" },
-      ],
-    });
     fromMock.mockImplementation(() => ({
-      select: vi.fn().mockReturnValue({ eq: eqMock }),
+      select: () => makeChainableQuery([
+        { id: "c1", valor_mensal: 5000, data_entrada: "2026-01-15", data_churn: null, assessor_id: "a1" },
+      ]),
     }));
 
     const timeline = await _getCarteiraTimelineImpl(2, { assessorId: "a1" });
@@ -519,13 +512,10 @@ describe("getEntradaChurn with filter", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(Date.UTC(2026, 3, 28)));
 
-    const eqMock = vi.fn().mockResolvedValue({
-      data: [
-        { id: "c1", data_entrada: "2026-04-01", data_churn: null, coordenador_id: "co1" },
-      ],
-    });
     fromMock.mockImplementation(() => ({
-      select: vi.fn().mockReturnValue({ eq: eqMock }),
+      select: () => makeChainableQuery([
+        { id: "c1", data_entrada: "2026-04-01", data_churn: null, coordenador_id: "co1" },
+      ]),
     }));
 
     const data = await _getEntradaChurnImpl(2, { coordenadorId: "co1" });
@@ -537,14 +527,11 @@ describe("getEntradaChurn with filter", () => {
 
 describe("getCarteiraPorAssessor with filter", () => {
   it("filtra clientes por coordenadorId quando passado (mostra só os assessores que ele coordena)", async () => {
-    const eqMock = vi.fn().mockResolvedValue({
-      data: [
+    fromMock.mockImplementation(() => ({
+      select: () => makeChainableQuery([
         { id: "c1", valor_mensal: 5000, assessor_id: "a1", assessor: { nome: "Ana" }, coordenador_id: "co1" },
         { id: "c2", valor_mensal: 3000, assessor_id: "a2", assessor: { nome: "Bruno" }, coordenador_id: "co1" },
-      ],
-    });
-    fromMock.mockImplementation(() => ({
-      select: () => ({ eq: vi.fn().mockReturnValue({ eq: eqMock }) }),
+      ]),
     }));
 
     const list = await _getCarteiraPorAssessorImpl({ coordenadorId: "co1" });

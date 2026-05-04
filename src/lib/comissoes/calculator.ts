@@ -1,6 +1,8 @@
 // SERVER ONLY: do not import from client components
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import type { CommissionResult, SnapshotItem } from "./schema";
+import { valorEfetivoCliente } from "@/lib/clientes/ajustes";
+import type { MonthlyAdjustment, TipoRelacao } from "@/lib/clientes/ajustes";
 
 interface ProfileRow {
   id: string;
@@ -36,11 +38,29 @@ export async function calculateCommission(
     const percentual = Number(p.comissao_percent) || 0;
     const { data: clientsRows } = await supabase
       .from("clients")
-      .select("valor_mensal, nome, id")
+      .select("valor_mensal, nome, id, tipo_relacao")
       .eq("assessor_id", userId)
-      .eq("status", "ativo");
-    const rows = (clientsRows ?? []) as Array<{ valor_mensal: number; nome: string; id: string }>;
-    const base = rows.reduce((sum, c) => sum + Number(c.valor_mensal || 0), 0);
+      .eq("status", "ativo")
+      .eq("tipo_relacao", "comum");
+    const rows = (clientsRows ?? []) as Array<{ valor_mensal: number; nome: string; id: string; tipo_relacao: string }>;
+
+    // Carregar ajustes do mês para aplicar valor efetivo
+    const ajustesRes = await supabase
+      .from("client_monthly_adjustments")
+      .select("*")
+      .in("client_id", rows.map((r) => r.id))
+      .eq("mes_referencia", monthRef);
+    const ajustesMap = new Map(
+      ((ajustesRes.data ?? []) as MonthlyAdjustment[]).map((a) => [a.client_id, a])
+    );
+
+    const base = rows.reduce((sum, c) => {
+      const ajuste = ajustesMap.get(c.id) ?? null;
+      return sum + valorEfetivoCliente(
+        { tipo_relacao: c.tipo_relacao as TipoRelacao, valor_mensal: c.valor_mensal },
+        ajuste,
+      );
+    }, 0);
     const valor_variavel = MONEY(base * percentual / 100);
     items.push({
       tipo: "carteira_assessor",
@@ -59,10 +79,28 @@ export async function calculateCommission(
     const percentual = Number(p.comissao_percent) || 0;
     const { data: clientsRows } = await supabase
       .from("clients")
-      .select("valor_mensal")
-      .eq("status", "ativo");
-    const rows = (clientsRows ?? []) as Array<{ valor_mensal: number }>;
-    const base = rows.reduce((sum, c) => sum + Number(c.valor_mensal || 0), 0);
+      .select("valor_mensal, id, tipo_relacao")
+      .eq("status", "ativo")
+      .eq("tipo_relacao", "comum");
+    const rows = (clientsRows ?? []) as Array<{ valor_mensal: number; id: string; tipo_relacao: string }>;
+
+    // Carregar ajustes do mês para aplicar valor efetivo
+    const ajustesRes = await supabase
+      .from("client_monthly_adjustments")
+      .select("*")
+      .in("client_id", rows.map((r) => r.id))
+      .eq("mes_referencia", monthRef);
+    const ajustesMap = new Map(
+      ((ajustesRes.data ?? []) as MonthlyAdjustment[]).map((a) => [a.client_id, a])
+    );
+
+    const base = rows.reduce((sum, c) => {
+      const ajuste = ajustesMap.get(c.id) ?? null;
+      return sum + valorEfetivoCliente(
+        { tipo_relacao: c.tipo_relacao as TipoRelacao, valor_mensal: c.valor_mensal },
+        ajuste,
+      );
+    }, 0);
     const valor_variavel = MONEY(base * percentual / 100);
     items.push({
       tipo: "carteira_coord_agencia",

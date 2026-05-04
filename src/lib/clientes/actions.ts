@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/auth/session";
 import { logAudit } from "@/lib/audit/log";
-import { createClienteSchema, editClienteSchema, churnClienteSchema, inferTipoPacote } from "./schema";
+import { createClienteSchema, editClienteSchema, churnClienteSchema, inferTipoPacote, TIPOS_RELACAO } from "./schema";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -38,6 +38,7 @@ export async function createClienteAction(formData: FormData) {
     valor_trafego_google: fd(formData, "valor_trafego_google"),
     valor_trafego_meta: fd(formData, "valor_trafego_meta"),
     tipo_pacote_revisado: fd(formData, "tipo_pacote_revisado"),
+    tipo_relacao: fd(formData, "tipo_relacao") ?? "comum",
   });
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
@@ -49,13 +50,16 @@ export async function createClienteAction(formData: FormData) {
   // If user explicitly chose tipo_pacote, respect it and mark as reviewed.
   // Otherwise infer from servico_contratado and leave revisado=false.
   const tipoPacoteExplicito = parsed.data.tipo_pacote ?? null;
+  // Parceria/permuta: força valor_mensal = 0
+  const tipoRelacao = parsed.data.tipo_relacao ?? "comum";
+  const valorMensal = tipoRelacao !== "comum" ? 0 : parsed.data.valor_mensal;
   const insertPayload = {
     organization_id: org.id,
     nome: parsed.data.nome,
     contato_principal: parsed.data.contato_principal || null,
     email: parsed.data.email || null,
     telefone: parsed.data.telefone || null,
-    valor_mensal: parsed.data.valor_mensal,
+    valor_mensal: valorMensal,
     servico_contratado: parsed.data.servico_contratado || null,
     data_entrada: parsed.data.data_entrada || new Date().toISOString().slice(0, 10),
     assessor_id: parsed.data.assessor_id || null,
@@ -67,6 +71,7 @@ export async function createClienteAction(formData: FormData) {
     numero_unidades: parsed.data.numero_unidades ?? 1,
     valor_trafego_google: parsed.data.valor_trafego_google ?? null,
     valor_trafego_meta: parsed.data.valor_trafego_meta ?? null,
+    tipo_relacao: tipoRelacao,
   };
 
   const { data: created, error } = await supabase
@@ -128,6 +133,7 @@ export async function updateClienteAction(formData: FormData) {
     valor_trafego_google: fd(formData, "valor_trafego_google"),
     valor_trafego_meta: fd(formData, "valor_trafego_meta"),
     tipo_pacote_revisado: fd(formData, "tipo_pacote_revisado"),
+    tipo_relacao: fd(formData, "tipo_relacao") ?? "comum",
   });
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
@@ -141,12 +147,15 @@ export async function updateClienteAction(formData: FormData) {
 
   // tipo_pacote_revisado=true whenever the form is submitted (user reviewed fields).
   const tipoPacoteExplicitoEdit = parsed.data.tipo_pacote ?? null;
+  // Parceria/permuta: força valor_mensal = 0
+  const tipoRelacaoEdit = parsed.data.tipo_relacao ?? "comum";
+  const valorMensalEdit = tipoRelacaoEdit !== "comum" ? 0 : parsed.data.valor_mensal;
   const updatePayload = {
     nome: parsed.data.nome,
     contato_principal: parsed.data.contato_principal || null,
     email: parsed.data.email || null,
     telefone: parsed.data.telefone || null,
-    valor_mensal: parsed.data.valor_mensal,
+    valor_mensal: valorMensalEdit,
     servico_contratado: parsed.data.servico_contratado || null,
     data_entrada: parsed.data.data_entrada || before.data_entrada,
     assessor_id: parsed.data.assessor_id || null,
@@ -165,6 +174,7 @@ export async function updateClienteAction(formData: FormData) {
     numero_unidades: parsed.data.numero_unidades ?? 1,
     valor_trafego_google: parsed.data.valor_trafego_google ?? null,
     valor_trafego_meta: parsed.data.valor_trafego_meta ?? null,
+    tipo_relacao: tipoRelacaoEdit,
   };
 
   const { error } = await supabase.from("clients").update(updatePayload).eq("id", id);
@@ -511,4 +521,88 @@ export async function bulkAssignClientesAction(formData: FormData) {
   revalidatePath("/clientes");
   revalidateTag("dashboard", "default");
   return { success: true, count: clienteIds.length };
+}
+
+// ─── Ajustes mensais ──────────────────────────────────────────────────────────
+
+const ajusteMensalSchema = z.object({
+  client_id: z.string().uuid(),
+  mes_referencia: z.string().regex(/^\d{4}-\d{2}$/),
+  tipo: z.enum(["desconto_parcial", "gratuidade_total"]),
+  valor_desconto: z.coerce.number().min(0).optional().nullable(),
+  motivo: z.string().min(3, "Informe o motivo (mín. 3 caracteres)"),
+});
+
+export async function setAjusteMensalAction(formData: FormData) {
+  const actor = await requireAuth();
+  if (!["adm", "socio"].includes(actor.role)) {
+    return { error: "Apenas ADM/Sócio podem lançar ajustes" };
+  }
+
+  const parsed = ajusteMensalSchema.safeParse({
+    client_id: fd(formData, "client_id"),
+    mes_referencia: fd(formData, "mes_referencia"),
+    tipo: fd(formData, "tipo"),
+    valor_desconto: fd(formData, "valor_desconto") ?? null,
+    motivo: fd(formData, "motivo"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  // Validação extra: desconto_parcial precisa de valor
+  if (parsed.data.tipo === "desconto_parcial" && (!parsed.data.valor_desconto || parsed.data.valor_desconto <= 0)) {
+    return { error: "Desconto parcial precisa de um valor maior que zero" };
+  }
+  if (parsed.data.tipo === "gratuidade_total" && parsed.data.valor_desconto) {
+    return { error: "Gratuidade total não usa valor de desconto" };
+  }
+
+  const supabase = await createClient();
+  const payload = {
+    client_id: parsed.data.client_id,
+    mes_referencia: parsed.data.mes_referencia,
+    tipo: parsed.data.tipo,
+    valor_desconto: parsed.data.tipo === "desconto_parcial" ? parsed.data.valor_desconto : null,
+    motivo: parsed.data.motivo.trim(),
+    criado_por: actor.id,
+  };
+
+  // Upsert: se já tem ajuste pra esse mês, sobrescreve
+  const { error } = await supabase
+    .from("client_monthly_adjustments")
+    .upsert(payload, { onConflict: "client_id,mes_referencia" });
+  if (error) return { error: error.message };
+
+  await logAudit({
+    entidade: "client_monthly_adjustments",
+    entidade_id: parsed.data.client_id,
+    acao: "create",
+    dados_depois: payload as unknown as Record<string, unknown>,
+    ator_id: actor.id,
+    justificativa: parsed.data.motivo,
+  });
+
+  revalidatePath(`/clientes/${parsed.data.client_id}`);
+  revalidatePath("/clientes");
+  revalidateTag("dashboard", "default");
+  return { success: true };
+}
+
+export async function removeAjusteMensalAction(clientId: string, mesReferencia: string) {
+  const actor = await requireAuth();
+  if (!["adm", "socio"].includes(actor.role)) {
+    return { error: "Apenas ADM/Sócio podem remover ajustes" };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("client_monthly_adjustments")
+    .delete()
+    .eq("client_id", clientId)
+    .eq("mes_referencia", mesReferencia);
+  if (error) return { error: error.message };
+
+  revalidatePath(`/clientes/${clientId}`);
+  revalidatePath("/clientes");
+  revalidateTag("dashboard", "default");
+  return { success: true };
 }
