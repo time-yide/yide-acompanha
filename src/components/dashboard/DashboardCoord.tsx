@@ -26,9 +26,9 @@ export async function DashboardCoord({ userId, nome }: Props) {
 
   const [kpis, carteiraTimeline, entradaChurn, carteiraPorAssessor, ranking, eventos, comissao] =
     await Promise.all([
-      getKpis(undefined, filter),
-      getCarteiraTimeline(12, undefined, filter),
-      getEntradaChurn(6, undefined, filter),
+      getKpis(filter),
+      getCarteiraTimeline(12, filter),
+      getEntradaChurn(6, filter),
       getCarteiraPorAssessor(filter),
       getRankingSatisfacao(filter),
       getProximosEventos(30, 10, { userId }),

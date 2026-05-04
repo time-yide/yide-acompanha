@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/auth/session";
@@ -55,5 +55,6 @@ export async function bulkImportClientesAction(formData: FormData) {
   }
 
   revalidatePath("/clientes");
+  revalidateTag("dashboard", "default");
   redirect(`/clientes?imported=${inserted?.length ?? 0}`);
 }

@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/auth/session";
@@ -261,7 +261,10 @@ export async function moveStageAction(formData: FormData) {
 
   revalidatePath("/onboarding");
   revalidatePath(`/onboarding/${parsed.data.id}`);
-  if (toStage === "ativo") revalidatePath("/clientes");
+  if (toStage === "ativo") {
+    revalidatePath("/clientes");
+    revalidateTag("dashboard", "default");
+  }
 
   // kanban_moved (sempre)
   const nextResponsibleId =

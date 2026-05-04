@@ -1,5 +1,6 @@
 // SERVER ONLY: do not import from client components
-import { createClient } from "@/lib/supabase/server";
+import { unstable_cache } from "next/cache";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { isInMonth, monthRange, lastDayOfMonth } from "./date-utils";
 
 interface ClientRow {
@@ -41,8 +42,11 @@ function isActiveOn(c: ClientRow, dateIso: string): boolean {
   return true;
 }
 
-export async function getKpis(now: Date = new Date(), filter?: ClientFilter): Promise<KpiData> {
-  const supabase = await createClient();
+// ─── getKpis ────────────────────────────────────────────────────────────────
+
+export async function _getKpisImpl(filter?: ClientFilter): Promise<KpiData> {
+  const supabase = createServiceRoleClient();
+  const now = new Date();
   const monthRef = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
   const todayIso = now.toISOString().slice(0, 10);
 
@@ -88,17 +92,31 @@ export async function getKpis(now: Date = new Date(), filter?: ClientFilter): Pr
   };
 }
 
+export async function getKpis(filter?: ClientFilter): Promise<KpiData> {
+  const cached = unstable_cache(
+    async (filterJson: string) => {
+      const f = filterJson !== "null" ? (JSON.parse(filterJson) as ClientFilter) : undefined;
+      return _getKpisImpl(f);
+    },
+    ["dashboard-kpis"],
+    { revalidate: 300, tags: ["dashboard"] },
+  );
+  return cached(JSON.stringify(filter ?? null));
+}
+
+// ─── getCarteiraTimeline ─────────────────────────────────────────────────────
+
 export interface TimelinePoint {
   mes: string;          // 'YYYY-MM'
   valorTotal: number;
 }
 
-export async function getCarteiraTimeline(
-  months: number = 12,
-  now: Date = new Date(),
+export async function _getCarteiraTimelineImpl(
+  months: number,
   filter?: ClientFilter,
 ): Promise<TimelinePoint[]> {
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
+  const now = new Date();
   const meses = monthRange(months, now);
 
   let clientsQuery = supabase
@@ -128,18 +146,32 @@ export async function getCarteiraTimeline(
   });
 }
 
+export async function getCarteiraTimeline(months = 12, filter?: ClientFilter): Promise<TimelinePoint[]> {
+  const cached = unstable_cache(
+    async (paramsJson: string) => {
+      const { months: m, filter: f } = JSON.parse(paramsJson) as { months: number; filter: ClientFilter | null };
+      return _getCarteiraTimelineImpl(m, f ?? undefined);
+    },
+    ["dashboard-carteira-timeline"],
+    { revalidate: 300, tags: ["dashboard"] },
+  );
+  return cached(JSON.stringify({ months, filter: filter ?? null }));
+}
+
+// ─── getEntradaChurn ─────────────────────────────────────────────────────────
+
 export interface EntradaChurnPoint {
   mes: string;
   entradas: number;
   churns: number;
 }
 
-export async function getEntradaChurn(
-  months: number = 6,
-  now: Date = new Date(),
+export async function _getEntradaChurnImpl(
+  months: number,
   filter?: ClientFilter,
 ): Promise<EntradaChurnPoint[]> {
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
+  const now = new Date();
   const meses = monthRange(months, now);
 
   let clientsQuery = supabase
@@ -163,6 +195,20 @@ export async function getEntradaChurn(
   });
 }
 
+export async function getEntradaChurn(months = 6, filter?: ClientFilter): Promise<EntradaChurnPoint[]> {
+  const cached = unstable_cache(
+    async (paramsJson: string) => {
+      const { months: m, filter: f } = JSON.parse(paramsJson) as { months: number; filter: ClientFilter | null };
+      return _getEntradaChurnImpl(m, f ?? undefined);
+    },
+    ["dashboard-entrada-churn"],
+    { revalidate: 300, tags: ["dashboard"] },
+  );
+  return cached(JSON.stringify({ months, filter: filter ?? null }));
+}
+
+// ─── getCarteiraPorAssessor ──────────────────────────────────────────────────
+
 export interface AssessorCarteira {
   assessorId: string;
   assessorNome: string;
@@ -171,8 +217,8 @@ export interface AssessorCarteira {
   pctDoTotal: number;
 }
 
-export async function getCarteiraPorAssessor(filter?: ClientFilter): Promise<AssessorCarteira[]> {
-  const supabase = await createClient();
+export async function _getCarteiraPorAssessorImpl(filter?: ClientFilter): Promise<AssessorCarteira[]> {
+  const supabase = createServiceRoleClient();
 
   let clientsQuery = supabase
     .from("clients")
@@ -213,6 +259,20 @@ export async function getCarteiraPorAssessor(filter?: ClientFilter): Promise<Ass
   return list;
 }
 
+export async function getCarteiraPorAssessor(filter?: ClientFilter): Promise<AssessorCarteira[]> {
+  const cached = unstable_cache(
+    async (filterJson: string) => {
+      const f = filterJson !== "null" ? (JSON.parse(filterJson) as ClientFilter) : undefined;
+      return _getCarteiraPorAssessorImpl(f);
+    },
+    ["dashboard-carteira-por-assessor"],
+    { revalidate: 300, tags: ["dashboard"] },
+  );
+  return cached(JSON.stringify(filter ?? null));
+}
+
+// ─── getRankingSatisfacao ────────────────────────────────────────────────────
+
 import type { SatisfactionColor } from "@/lib/satisfacao/schema";
 
 export interface SynthesisRowWithCliente {
@@ -228,11 +288,11 @@ export interface SynthesisRowWithCliente {
   cliente: { nome: string; assessor_id: string | null; coordenador_id: string | null } | null;
 }
 
-export async function getRankingSatisfacao(filter?: ClientFilter): Promise<{
+export async function _getRankingSatisfacaoImpl(filter?: ClientFilter): Promise<{
   top: SynthesisRowWithCliente[];
   bottom: SynthesisRowWithCliente[];
 }> {
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
 
   const { data: latestData } = await supabase
     .from("satisfaction_synthesis")
@@ -274,6 +334,23 @@ export async function getRankingSatisfacao(filter?: ClientFilter): Promise<{
   return { top, bottom };
 }
 
+export async function getRankingSatisfacao(filter?: ClientFilter): Promise<{
+  top: SynthesisRowWithCliente[];
+  bottom: SynthesisRowWithCliente[];
+}> {
+  const cached = unstable_cache(
+    async (filterJson: string) => {
+      const f = filterJson !== "null" ? (JSON.parse(filterJson) as ClientFilter) : undefined;
+      return _getRankingSatisfacaoImpl(f);
+    },
+    ["dashboard-ranking-satisfacao"],
+    { revalidate: 300, tags: ["dashboard"] },
+  );
+  return cached(JSON.stringify(filter ?? null));
+}
+
+// ─── getProximosEventos ──────────────────────────────────────────────────────
+
 export interface EventoRow {
   id: string;
   titulo: string;
@@ -286,12 +363,12 @@ export interface EventoFilter {
   userId?: string;
 }
 
-export async function getProximosEventos(
-  days: number = 30,
-  limit: number = 10,
+export async function _getProximosEventosImpl(
+  days: number,
+  limit: number,
   filter?: EventoFilter,
 ): Promise<EventoRow[]> {
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
   const now = new Date();
   const start = now.toISOString();
   const end = new Date(now.getTime() + days * 24 * 60 * 60 * 1000).toISOString();
@@ -313,8 +390,26 @@ export async function getProximosEventos(
   return (data ?? []) as EventoRow[];
 }
 
-export async function getMesAguardandoAprovacao(): Promise<{ mes: string } | null> {
-  const supabase = await createClient();
+export async function getProximosEventos(
+  days = 30,
+  limit = 10,
+  filter?: EventoFilter,
+): Promise<EventoRow[]> {
+  const cached = unstable_cache(
+    async (paramsJson: string) => {
+      const { days: d, limit: l, filter: f } = JSON.parse(paramsJson) as { days: number; limit: number; filter: EventoFilter | null };
+      return _getProximosEventosImpl(d, l, f ?? undefined);
+    },
+    ["dashboard-proximos-eventos"],
+    { revalidate: 300, tags: ["dashboard"] },
+  );
+  return cached(JSON.stringify({ days, limit, filter: filter ?? null }));
+}
+
+// ─── getMesAguardandoAprovacao ───────────────────────────────────────────────
+
+export async function _getMesAguardandoAprovacaoImpl(): Promise<{ mes: string } | null> {
+  const supabase = createServiceRoleClient();
   const { data } = await supabase
     .from("commission_snapshots")
     .select("mes_referencia")
@@ -324,4 +419,15 @@ export async function getMesAguardandoAprovacao(): Promise<{ mes: string } | nul
 
   const row = (data?.[0] as { mes_referencia?: string } | undefined);
   return row?.mes_referencia ? { mes: row.mes_referencia } : null;
+}
+
+export async function getMesAguardandoAprovacao(): Promise<{ mes: string } | null> {
+  const cached = unstable_cache(
+    async () => {
+      return _getMesAguardandoAprovacaoImpl();
+    },
+    ["dashboard-mes-aguardando-aprovacao"],
+    { revalidate: 300, tags: ["dashboard"] },
+  );
+  return cached();
 }
