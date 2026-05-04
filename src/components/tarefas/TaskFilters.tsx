@@ -17,37 +17,22 @@ export function TaskFilters({ profiles, clientes, showAtribuido }: Props) {
   const router = useRouter();
   const params = useSearchParams();
 
-  function setParam(key: string, value: string) {
+  function setParam(key: string, value: string | null) {
     const sp = new URLSearchParams(params.toString());
     if (!value || value === "qualquer") sp.delete(key);
     else sp.set(key, value);
     router.push(`/tarefas?${sp.toString()}`);
   }
 
-  const status = params.get("status") ?? "abertas";
   const prioridade = params.get("prioridade") ?? "qualquer";
-  const prazo = params.get("prazo") ?? "qualquer";
   const clientId = params.get("client") ?? "qualquer";
   const atribuido = params.get("atribuido") ?? "qualquer";
 
   return (
-    <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-card p-3">
-      <div className="space-y-1">
-        <Label className="text-[11px]">Status</Label>
-        <Select value={status} onValueChange={(v) => setParam("status", v as string)}>
-          <SelectTrigger className="h-8 w-32"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="abertas">Abertas</SelectItem>
-            <SelectItem value="em_andamento">Em andamento</SelectItem>
-            <SelectItem value="concluida">Concluídas</SelectItem>
-            <SelectItem value="todas">Todas</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
+    <div className="flex flex-wrap items-end gap-3">
       <div className="space-y-1">
         <Label className="text-[11px]">Prioridade</Label>
-        <Select value={prioridade} onValueChange={(v) => setParam("prioridade", v as string)}>
+        <Select value={prioridade} onValueChange={(v) => setParam("prioridade", v)}>
           <SelectTrigger className="h-8 w-32"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="qualquer">Qualquer</SelectItem>
@@ -59,22 +44,8 @@ export function TaskFilters({ profiles, clientes, showAtribuido }: Props) {
       </div>
 
       <div className="space-y-1">
-        <Label className="text-[11px]">Prazo</Label>
-        <Select value={prazo} onValueChange={(v) => setParam("prazo", v as string)}>
-          <SelectTrigger className="h-8 w-36"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="qualquer">Qualquer</SelectItem>
-            <SelectItem value="hoje">Hoje</SelectItem>
-            <SelectItem value="semana">Esta semana</SelectItem>
-            <SelectItem value="vencidas">Vencidas</SelectItem>
-            <SelectItem value="sem_prazo">Sem prazo</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-1">
         <Label className="text-[11px]">Cliente</Label>
-        <Select value={clientId} onValueChange={(v) => setParam("client", v as string)}>
+        <Select value={clientId} onValueChange={(v) => setParam("client", v)}>
           <SelectTrigger className="h-8 w-44"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="qualquer">Qualquer</SelectItem>
@@ -85,8 +56,8 @@ export function TaskFilters({ profiles, clientes, showAtribuido }: Props) {
 
       {showAtribuido && (
         <div className="space-y-1">
-          <Label className="text-[11px]">Atribuído</Label>
-          <Select value={atribuido} onValueChange={(v) => setParam("atribuido", v as string)}>
+          <Label className="text-[11px]">Responsável</Label>
+          <Select value={atribuido} onValueChange={(v) => setParam("atribuido", v)}>
             <SelectTrigger className="h-8 w-44"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="qualquer">Qualquer</SelectItem>
