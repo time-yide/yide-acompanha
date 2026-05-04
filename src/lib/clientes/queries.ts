@@ -11,6 +11,7 @@ export interface ClienteRow {
   data_entrada: string;
   assessor_id: string | null;
   coordenador_id: string | null;
+  tipo_relacao: "comum" | "parceria" | "permuta";
   assessor_nome?: string | null;
   coordenador_nome?: string | null;
 }
@@ -25,7 +26,7 @@ export async function listClientes(filters?: {
     .from("clients")
     .select(`
       id, nome, email, telefone, valor_mensal, servico_contratado, status, data_entrada,
-      assessor_id, coordenador_id,
+      assessor_id, coordenador_id, tipo_relacao,
       assessor:profiles!clients_assessor_id_fkey(nome),
       coordenador:profiles!clients_coordenador_id_fkey(nome)
     `)
