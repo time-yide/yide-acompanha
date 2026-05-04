@@ -104,16 +104,6 @@ export async function getSynthesisHistory(clientId: string, limit = 12): Promise
   return (data ?? []) as SynthesisRow[];
 }
 
-export async function getSynthesisForWeek(weekIso: string): Promise<Array<SynthesisRow & { cliente: { nome: string; assessor_id: string | null; coordenador_id: string | null } | null }>> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("satisfaction_synthesis")
-    .select("*, cliente:clients(nome, assessor_id, coordenador_id)")
-    .eq("semana_iso", weekIso);
-  if (error) throw error;
-  return (data ?? []) as unknown as Array<SynthesisRow & { cliente: { nome: string; assessor_id: string | null; coordenador_id: string | null } | null }>;
-}
-
 /**
  * Conta entries com cor preenchida pra um cliente em uma semana.
  * Usada pelo trigger real-time pra saber quando disparar a síntese.
