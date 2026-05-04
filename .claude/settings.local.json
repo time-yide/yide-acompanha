@@ -101,6 +101,7 @@
       "Read(//tmp/**)",
       "Bash(curl -s -L -o /tmp/yide-clientes.html -w \"/clientes HTTP: %{http_code}\\\\n\" \"https://yide-acompanha.vercel.app/clientes\")",
       "mcp__supabase__list_tables",
+<<<<<<< Updated upstream
       "Bash(git checkout *)",
       "Bash(npx vitest *)",
       "Bash(/opt/homebrew/bin/gh pr create --title 'security\\(rls\\): fix critical role escalation + PII exposure + audit injection' --body ' *)",
@@ -110,6 +111,40 @@
       "Bash(git revert *)",
       "Bash(git pull *)",
       "Bash(grep -rB1 -A6 '<Image' src/)"
+=======
+      "mcp__supabase__list_migrations",
+      "Bash(git -C \"/Users/yasminmonteiro/Documents/Sistema Acompanhamento/.claude/worktrees/determined-montalcini-752e73\" status)",
+      "Bash(git -C \"/Users/yasminmonteiro/Documents/Sistema Acompanhamento/.claude/worktrees/determined-montalcini-752e73\" diff)",
+      "Bash(gh pr create --title 'fix\\(perfil\\): subir bodySizeLimit pra 2MB no upload de avatar' --body ' *)",
+      "Read(//opt/homebrew/Cellar/gh/2.91.0/bin/**)",
+      "Bash([ -x \"$p/gh\" ])",
+      "Bash(/opt/homebrew/bin/gh pr create --title 'fix\\(perfil\\): subir bodySizeLimit pra 2MB no upload de avatar' --body ' *)",
+      "Bash(npx vitest *)",
+      "Bash(npx tsc *)",
+      "Bash(/opt/homebrew/bin/gh pr *)",
+      "Bash(git fetch *)",
+      "Bash(git checkout *)",
+      "Bash(git cherry-pick *)",
+      "Bash(git pull *)",
+      "Bash(curl -sI \"https://yide-acompanha.vercel.app/icon.svg\")",
+      "Bash(curl -sI \"https://yide-acompanha.vercel.app/favicon.ico\")",
+      "Bash(curl -s \"https://yide-acompanha.vercel.app/login\")",
+      "Bash(curl -s \"https://yide-acompanha.vercel.app/icon.svg?icon.0lg.x~6h_yao9.svg\")",
+      "Bash(curl -s \"https://yide-acompanha.vercel.app/\")",
+      "Bash(curl -sI \"https://yideequipe.com\")",
+      "Bash(curl -sL \"https://yideequipe.com\" -o /dev/null -w \"Final URL: %{url_effective}\\\\nHTTP: %{http_code}\\\\n\")",
+      "Bash(cp \"/Users/yasminmonteiro/Documents/Sistema Acompanhamento/package.json\" package.json)",
+      "Bash(cp \"/Users/yasminmonteiro/Documents/Sistema Acompanhamento/package-lock.json\" package-lock.json)",
+      "Bash(git -C \"/Users/yasminmonteiro/Documents/Sistema Acompanhamento/.claude/worktrees/determined-montalcini-752e73\" log --oneline -5)",
+      "mcp__supabase__execute_sql",
+      "mcp__supabase__apply_migration",
+      "Bash(grep -r \"next/cache\" tests/)",
+      "Bash(grep -r \"unstable_cache\" tests/)",
+      "Bash(cat vitest.config.ts)",
+      "Bash(cat vitest.config.js)",
+      "Bash(gh pr create --title 'perf\\(dashboard\\): cache 5min nas 7 queries com unstable_cache' --body ' *)",
+      "Bash(brew list *)"
+>>>>>>> Stashed changes
     ]
   }
 }
