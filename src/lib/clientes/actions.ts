@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/auth/session";
@@ -86,6 +86,7 @@ export async function createClienteAction(formData: FormData) {
   });
 
   revalidatePath("/clientes");
+  revalidateTag("dashboard", "default");
   redirect(`/clientes/${created.id}`);
 }
 
@@ -180,6 +181,7 @@ export async function updateClienteAction(formData: FormData) {
 
   revalidatePath(`/clientes/${id}`);
   revalidatePath("/clientes");
+  revalidateTag("dashboard", "default");
   redirect(`/clientes/${id}`);
 }
 
@@ -217,6 +219,7 @@ export async function churnClienteAction(formData: FormData) {
   });
 
   revalidatePath("/clientes");
+  revalidateTag("dashboard", "default");
   redirect(`/clientes/${parsed.data.id}`);
 }
 
@@ -242,6 +245,7 @@ export async function reactivateClienteAction(id: string) {
   });
 
   revalidatePath(`/clientes/${id}`);
+  revalidateTag("dashboard", "default");
   return { success: "Cliente reativado" };
 }
 
@@ -300,6 +304,7 @@ export async function deleteClienteAction(formData: FormData) {
   if (error) return { error: error.message };
 
   revalidatePath("/clientes");
+  revalidateTag("dashboard", "default");
   redirect("/clientes");
 }
 
@@ -415,6 +420,7 @@ export async function updateClienteAssignmentAction(formData: FormData) {
 
   revalidatePath("/clientes");
   revalidatePath(`/clientes/${clienteId}`);
+  revalidateTag("dashboard", "default");
   return { success: true };
 }
 
@@ -494,5 +500,6 @@ export async function bulkAssignClientesAction(formData: FormData) {
   }
 
   revalidatePath("/clientes");
+  revalidateTag("dashboard", "default");
   return { success: true, count: clienteIds.length };
 }

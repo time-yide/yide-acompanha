@@ -57,11 +57,30 @@ import { vi, beforeEach } from "vitest";
 
 const fromMock = vi.hoisted(() => vi.fn());
 
-vi.mock("@/lib/supabase/server", () => ({
-  createClient: async () => ({ from: fromMock }),
+vi.mock("@/lib/supabase/service-role", () => ({
+  createServiceRoleClient: () => ({ from: fromMock }),
 }));
 
-import { getKpis } from "@/lib/dashboard/queries";
+// unstable_cache: executa o callback diretamente (sem cache no ambiente de teste)
+vi.mock("next/cache", () => ({
+  unstable_cache: (fn: (...args: unknown[]) => unknown) => fn,
+  revalidatePath: vi.fn(),
+  revalidateTag: vi.fn(),
+}));
+
+import {
+  _getKpisImpl,
+  _getCarteiraTimelineImpl,
+  _getEntradaChurnImpl,
+  _getCarteiraPorAssessorImpl,
+  _getRankingSatisfacaoImpl,
+  _getProximosEventosImpl,
+  _getMesAguardandoAprovacaoImpl,
+  getRankingSatisfacao,
+  getProximosEventos,
+  getMesAguardandoAprovacao,
+  getCarteiraPorAssessor,
+} from "@/lib/dashboard/queries";
 
 beforeEach(() => {
   fromMock.mockReset();
@@ -69,6 +88,9 @@ beforeEach(() => {
 
 describe("getKpis", () => {
   it("calcula carteira ativa e clientes ativos a partir de clients ativos", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(Date.UTC(2026, 3, 28)));
+
     fromMock.mockImplementation((table) => {
       if (table === "clients") {
         return {
@@ -97,7 +119,7 @@ describe("getKpis", () => {
       return {};
     });
 
-    const r = await getKpis(new Date(Date.UTC(2026, 3, 28)));
+    const r = await _getKpisImpl();
     // c1 e c2 são ativos sem churn; c3 churnou em abril (ainda no mês de referência)
     // Carteira ativa hoje (28/abr/2026): c1 + c2 = 8000 (c3 churnou em 15/abr, não está mais ativo)
     expect(r.carteiraAtiva.valor).toBe(8000);
@@ -106,9 +128,14 @@ describe("getKpis", () => {
     expect(r.churnMes.valorPerdido).toBe(4000);
     // Custo de comissão: 800 / 8000 = 10%
     expect(r.custoComissaoPct.pct).toBeCloseTo(10);
+
+    vi.useRealTimers();
   });
 
   it("retorna zeros quando não há clientes", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(Date.UTC(2026, 3, 28)));
+
     fromMock.mockImplementation((table) => {
       if (table === "clients") {
         return { select: () => ({ eq: vi.fn().mockResolvedValue({ data: [] }) }) };
@@ -119,18 +146,21 @@ describe("getKpis", () => {
       return {};
     });
 
-    const r = await getKpis(new Date(Date.UTC(2026, 3, 28)));
+    const r = await _getKpisImpl();
     expect(r.carteiraAtiva.valor).toBe(0);
     expect(r.clientesAtivos.quantidade).toBe(0);
     expect(r.churnMes.quantidade).toBe(0);
     expect(r.custoComissaoPct.pct).toBe(0);
+
+    vi.useRealTimers();
   });
 });
 
-import { getCarteiraTimeline } from "@/lib/dashboard/queries";
-
 describe("getCarteiraTimeline", () => {
   it("calcula carteira mes a mes considerando entrada e churn", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(Date.UTC(2026, 3, 28)));
+
     fromMock.mockImplementation((table) => {
       if (table === "clients") {
         return {
@@ -147,7 +177,7 @@ describe("getCarteiraTimeline", () => {
       return {};
     });
 
-    const timeline = await getCarteiraTimeline(4, new Date(Date.UTC(2026, 3, 28)));
+    const timeline = await _getCarteiraTimelineImpl(4);
     expect(timeline).toHaveLength(4);
     expect(timeline.map((p) => p.mes)).toEqual(["2026-01", "2026-02", "2026-03", "2026-04"]);
     // Janeiro: só c1 ativo no fim de janeiro
@@ -158,22 +188,30 @@ describe("getCarteiraTimeline", () => {
     expect(timeline[2].valorTotal).toBe(5000);
     // Abril: só c1
     expect(timeline[3].valorTotal).toBe(5000);
+
+    vi.useRealTimers();
   });
 
   it("retorna 0 em meses sem clientes ativos", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(Date.UTC(2026, 3, 28)));
+
     fromMock.mockImplementation(() => ({
       select: vi.fn().mockResolvedValue({ data: [] }),
     }));
-    const timeline = await getCarteiraTimeline(3, new Date(Date.UTC(2026, 3, 28)));
+    const timeline = await _getCarteiraTimelineImpl(3);
     expect(timeline).toHaveLength(3);
     expect(timeline.every((p) => p.valorTotal === 0)).toBe(true);
+
+    vi.useRealTimers();
   });
 });
 
-import { getEntradaChurn } from "@/lib/dashboard/queries";
-
 describe("getEntradaChurn", () => {
   it("conta entradas e churns por mes", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(Date.UTC(2026, 3, 28)));
+
     fromMock.mockImplementation(() => ({
       select: vi.fn().mockResolvedValue({
         data: [
@@ -186,27 +224,32 @@ describe("getEntradaChurn", () => {
       }),
     }));
 
-    const data = await getEntradaChurn(3, new Date(Date.UTC(2026, 3, 28)));
+    const data = await _getEntradaChurnImpl(3);
     expect(data).toHaveLength(3);
     expect(data.map((p) => p.mes)).toEqual(["2026-02", "2026-03", "2026-04"]);
     expect(data[0]).toEqual({ mes: "2026-02", entradas: 2, churns: 0 });
     expect(data[1]).toEqual({ mes: "2026-03", entradas: 1, churns: 1 });
     expect(data[2]).toEqual({ mes: "2026-04", entradas: 0, churns: 1 });
+
+    vi.useRealTimers();
   });
 
   it("retorna zeros para meses sem dados", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(Date.UTC(2026, 3, 28)));
+
     fromMock.mockImplementation(() => ({
       select: vi.fn().mockResolvedValue({ data: [] }),
     }));
-    const data = await getEntradaChurn(2, new Date(Date.UTC(2026, 3, 28)));
+    const data = await _getEntradaChurnImpl(2);
     expect(data).toEqual([
       { mes: "2026-03", entradas: 0, churns: 0 },
       { mes: "2026-04", entradas: 0, churns: 0 },
     ]);
+
+    vi.useRealTimers();
   });
 });
-
-import { getCarteiraPorAssessor } from "@/lib/dashboard/queries";
 
 describe("getCarteiraPorAssessor", () => {
   it("agrupa por assessor e calcula percentuais", async () => {
@@ -256,8 +299,6 @@ describe("getCarteiraPorAssessor", () => {
     expect(list).toEqual([]);
   });
 });
-
-import { getRankingSatisfacao, getProximosEventos, getMesAguardandoAprovacao } from "@/lib/dashboard/queries";
 
 describe("getRankingSatisfacao", () => {
   it("retorna top 3 verde por score desc e bottom 2 (vermelho > amarelo) por score asc", async () => {
@@ -394,6 +435,9 @@ describe("getMesAguardandoAprovacao", () => {
 
 describe("getKpis with filter", () => {
   it("filtra clientes por assessorId quando passado", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(Date.UTC(2026, 3, 28)));
+
     const eqMock = vi.fn().mockReturnValue({
       eq: vi.fn().mockResolvedValue({
         data: [
@@ -411,12 +455,17 @@ describe("getKpis with filter", () => {
       return {};
     });
 
-    const r = await getKpis(new Date(Date.UTC(2026, 3, 28)), { assessorId: "a1" });
+    const r = await _getKpisImpl({ assessorId: "a1" });
     expect(r.carteiraAtiva.valor).toBe(5000);
     expect(r.clientesAtivos.quantidade).toBe(1);
+
+    vi.useRealTimers();
   });
 
   it("filtra clientes por coordenadorId quando passado", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(Date.UTC(2026, 3, 28)));
+
     const eqMock = vi.fn().mockReturnValue({
       eq: vi.fn().mockResolvedValue({
         data: [
@@ -435,14 +484,19 @@ describe("getKpis with filter", () => {
       return {};
     });
 
-    const r = await getKpis(new Date(Date.UTC(2026, 3, 28)), { coordenadorId: "co1" });
+    const r = await _getKpisImpl({ coordenadorId: "co1" });
     expect(r.carteiraAtiva.valor).toBe(7000);
     expect(r.clientesAtivos.quantidade).toBe(2);
+
+    vi.useRealTimers();
   });
 });
 
 describe("getCarteiraTimeline with filter", () => {
   it("filtra clientes por assessorId quando passado", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(Date.UTC(2026, 3, 28)));
+
     const eqMock = vi.fn().mockResolvedValue({
       data: [
         { id: "c1", valor_mensal: 5000, data_entrada: "2026-01-15", data_churn: null, assessor_id: "a1" },
@@ -452,14 +506,19 @@ describe("getCarteiraTimeline with filter", () => {
       select: vi.fn().mockReturnValue({ eq: eqMock }),
     }));
 
-    const timeline = await getCarteiraTimeline(2, new Date(Date.UTC(2026, 3, 28)), { assessorId: "a1" });
+    const timeline = await _getCarteiraTimelineImpl(2, { assessorId: "a1" });
     expect(timeline).toHaveLength(2);
     expect(timeline[1].valorTotal).toBe(5000);
+
+    vi.useRealTimers();
   });
 });
 
 describe("getEntradaChurn with filter", () => {
   it("filtra entradas e churns por coordenadorId quando passado", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(Date.UTC(2026, 3, 28)));
+
     const eqMock = vi.fn().mockResolvedValue({
       data: [
         { id: "c1", data_entrada: "2026-04-01", data_churn: null, coordenador_id: "co1" },
@@ -469,8 +528,10 @@ describe("getEntradaChurn with filter", () => {
       select: vi.fn().mockReturnValue({ eq: eqMock }),
     }));
 
-    const data = await getEntradaChurn(2, new Date(Date.UTC(2026, 3, 28)), { coordenadorId: "co1" });
+    const data = await _getEntradaChurnImpl(2, { coordenadorId: "co1" });
     expect(data[1].entradas).toBe(1);
+
+    vi.useRealTimers();
   });
 });
 
@@ -486,7 +547,7 @@ describe("getCarteiraPorAssessor with filter", () => {
       select: () => ({ eq: vi.fn().mockReturnValue({ eq: eqMock }) }),
     }));
 
-    const list = await getCarteiraPorAssessor({ coordenadorId: "co1" });
+    const list = await _getCarteiraPorAssessorImpl({ coordenadorId: "co1" });
     expect(list).toHaveLength(2);
     expect(list[0].valorTotal).toBe(5000);
     expect(list[1].valorTotal).toBe(3000);
@@ -520,7 +581,7 @@ describe("getRankingSatisfacao with filter", () => {
       return {};
     });
 
-    const r = await getRankingSatisfacao({ assessorId: "a1" });
+    const r = await _getRankingSatisfacaoImpl({ assessorId: "a1" });
     expect(r.top).toHaveLength(1);
     expect(r.top[0].client_id).toBe("c1");
   });
@@ -546,7 +607,7 @@ describe("getProximosEventos with filter", () => {
       return {};
     });
 
-    const eventos = await getProximosEventos(30, 10, { userId: "u1" });
+    const eventos = await _getProximosEventosImpl(30, 10, { userId: "u1" });
     expect(eventos).toHaveLength(1);
     expect(containsMock).toHaveBeenCalledWith("participantes_ids", ["u1"]);
   });
