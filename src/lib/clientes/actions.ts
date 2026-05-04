@@ -300,8 +300,17 @@ export async function deleteClienteAction(formData: FormData) {
   // Hard delete — FKs em outras tabelas usam ON DELETE CASCADE
   // (client_monthly_checklist, satisfaction_entries, client_files, etc.)
   // ou ON DELETE SET NULL (tasks.client_id, calendar_events.client_id, leads.client_id).
-  const { error } = await supabase.from("clients").delete().eq("id", parsed.data.id);
+  // .select() retorna as linhas deletadas — se vier vazio, RLS bloqueou
+  // silenciosamente (não dá erro mas zero rows afetadas).
+  const { data: deleted, error } = await supabase
+    .from("clients")
+    .delete()
+    .eq("id", parsed.data.id)
+    .select("id");
   if (error) return { error: error.message };
+  if (!deleted || deleted.length === 0) {
+    return { error: "Falha ao excluir: cliente não foi removido (verifique permissões)" };
+  }
 
   revalidatePath("/clientes");
   revalidateTag("dashboard", "default");

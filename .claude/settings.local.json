@@ -93,6 +93,7 @@
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('id:', d.get\\('id'\\)\\); print\\('login:', d.get\\('login'\\)\\); print\\('email:', d.get\\('email'\\)\\); print\\('noreply email:', f\\\\\"{d.get\\('id'\\)}+{d.get\\('login'\\)}@users.noreply.github.com\\\\\"\\)\")",
       "Bash(curl -s \"https://api.github.com/repos/time-yide/yide-acompanha\")",
       "Bash(git filter-branch -f --env-filter ' *)",
+<<<<<<< Updated upstream
       "Bash(git stash *)",
       "Bash(curl -s \"https://api.github.com/repos/time-yide/yide-acompanha/commits?per_page=3\")",
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(c['sha'][:7], c.get\\('commit',{}\\).get\\('author',{}\\).get\\('email','?'\\), '-', c['commit']['message'].split\\(chr\\(10\\)\\)[0]\\) for c in d[:3]]\")",
@@ -144,6 +145,9 @@
       "Bash(cat vitest.config.js)",
       "Bash(gh pr create --title 'perf\\(dashboard\\): cache 5min nas 7 queries com unstable_cache' --body ' *)",
       "Bash(brew list *)"
+>>>>>>> Stashed changes
+=======
+      "Bash(git stash *)"
 >>>>>>> Stashed changes
     ]
   }
