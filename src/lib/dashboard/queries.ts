@@ -72,6 +72,9 @@ export async function _getKpisImpl(filter?: ClientFilter): Promise<KpiData> {
   const churnsDoMes = allClients.filter((c) => isInMonth(c.data_churn, monthRef));
   const valorChurnado = churnsDoMes.reduce((acc, c) => acc + Number(c.valor_mensal), 0);
 
+  // Custo de comissão: prefere snapshot oficial (mês fechado) — se não tem,
+  // calcula live usando o preview de comissões (mesma fonte que a página
+  // /comissoes mostra como "Em curso").
   const { data: snapshotsData } = await supabase
     .from("commission_snapshots")
     .select("mes_referencia, valor_total")
@@ -79,9 +82,18 @@ export async function _getKpisImpl(filter?: ClientFilter): Promise<KpiData> {
     .limit(50);
   const snapshots = (snapshotsData ?? []) as Array<{ mes_referencia: string; valor_total: number }>;
   const ultimoMes = snapshots[0]?.mes_referencia;
-  const totalComissao = ultimoMes
+  let totalComissao = ultimoMes
     ? snapshots.filter((s) => s.mes_referencia === ultimoMes).reduce((a, s) => a + Number(s.valor_total), 0)
     : 0;
+
+  // Sem snapshot e sem filtro (dashboard sócio): calcula preview live.
+  // Pra assessor/coord, KPI não é relevante — mantém 0.
+  if (totalComissao === 0 && !filter?.assessorId && !filter?.coordenadorId) {
+    const { previewAllForMonth } = await import("@/lib/comissoes/preview");
+    const previewRows = await previewAllForMonth(monthRef);
+    totalComissao = previewRows.reduce((acc, r) => acc + Number(r.valor_total), 0);
+  }
+
   const pctComissao = carteiraAtivaValor > 0 ? (totalComissao / carteiraAtivaValor) * 100 : 0;
 
   return {
