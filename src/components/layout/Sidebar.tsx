@@ -11,8 +11,8 @@ import type { Role } from "@/lib/auth/permissions";
 const navItems = [
   { href: "/", icon: LayoutGrid, label: "Dashboard", roles: "all", badgeKey: null },
   { href: "/clientes", icon: Users, label: "Clientes", roles: "all", badgeKey: null },
-  { href: "/prospeccao", icon: Briefcase, label: "Prospecção", roles: ["adm", "socio", "comercial"], badgeKey: null },
   { href: "/onboarding", icon: KanbanSquare, label: "Onboarding", roles: "all", badgeKey: null },
+  { href: "/prospeccao", icon: Briefcase, label: "Prospecção", roles: ["adm", "socio", "comercial"], badgeKey: null },
   { href: "/tarefas", icon: ListChecks, label: "Tarefas", roles: "all", badgeKey: null },
   { href: "/recados", icon: MessageSquare, label: "Recados", roles: "all", badgeKey: "recados" as const },
   { href: "/painel", icon: ClipboardList, label: "Painel mensal", roles: ["adm", "socio", "coordenador", "assessor", "designer", "videomaker", "editor", "audiovisual_chefe"], badgeKey: null },
