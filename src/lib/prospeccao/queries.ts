@@ -86,6 +86,32 @@ export interface ProspectDetail {
   comercial: { nome: string; email: string } | null;
 }
 
+export interface LeadAgendavel {
+  id: string;
+  nome_prospect: string;
+  stage: "prospeccao" | "comercial" | "contrato" | "marco_zero" | "ativo";
+}
+
+/**
+ * Lista de leads disponíveis pra agendar reunião:
+ * exclui quem já fechou (stage="ativo") ou foi marcado perdido.
+ * Filtra por comercial quando passado.
+ */
+export async function getLeadsAgendaveis(comercialId?: string): Promise<LeadAgendavel[]> {
+  const supabase = await createClient();
+  let query = supabase
+    .from("leads")
+    .select("id, nome_prospect, stage, motivo_perdido")
+    .neq("stage", "ativo")
+    .order("nome_prospect");
+  if (comercialId) query = query.eq("comercial_id", comercialId);
+  const { data } = await query;
+  const rows = (data ?? []) as Array<LeadAgendavel & { motivo_perdido: string | null }>;
+  return rows
+    .filter((r) => !r.motivo_perdido)
+    .map(({ id, nome_prospect, stage }) => ({ id, nome_prospect, stage }));
+}
+
 export async function getProspectDetail(leadId: string): Promise<ProspectDetail | null> {
   const supabase = await createClient();
   const { data } = await supabase
