@@ -52,8 +52,8 @@ export default async function ColaboradorPage({ params }: { params: Promise<{ id
               alt={colab.nome}
               width={96}
               height={96}
+              sizes="96px"
               className="h-24 w-24 rounded-full object-cover"
-              unoptimized
             />
           ) : (
             <div className="flex h-24 w-24 items-center justify-center rounded-full bg-muted text-2xl font-semibold text-muted-foreground">

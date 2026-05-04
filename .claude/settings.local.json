@@ -100,7 +100,16 @@
       "Bash(curl -s \"https://yide-acompanha.vercel.app/\" -o /tmp/yide-home.html -w \"HTTP: %{http_code}\\\\n\")",
       "Read(//tmp/**)",
       "Bash(curl -s -L -o /tmp/yide-clientes.html -w \"/clientes HTTP: %{http_code}\\\\n\" \"https://yide-acompanha.vercel.app/clientes\")",
-      "mcp__supabase__list_tables"
+      "mcp__supabase__list_tables",
+      "Bash(git checkout *)",
+      "Bash(npx vitest *)",
+      "Bash(/opt/homebrew/bin/gh pr create --title 'security\\(rls\\): fix critical role escalation + PII exposure + audit injection' --body ' *)",
+      "Bash(/opt/homebrew/bin/gh pr *)",
+      "Bash(git fetch *)",
+      "Bash(curl -sL \"https://yide-acompanha.vercel.app/\" -o /tmp/yide-home.html -w \"HTTP: %{http_code}\\\\nFinal URL: %{url_effective}\\\\n\")",
+      "Bash(git revert *)",
+      "Bash(git pull *)",
+      "Bash(grep -rB1 -A6 '<Image' src/)"
     ]
   }
 }

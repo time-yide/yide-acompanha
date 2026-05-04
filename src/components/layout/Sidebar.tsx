@@ -39,6 +39,7 @@ export function Sidebar({ role, nome, badges }: { role: Role; nome: string; badg
           alt="Yide Digital"
           width={811}
           height={450}
+          sizes="80px"
           className="h-auto w-20"
           priority
         />

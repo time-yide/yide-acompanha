@@ -27,6 +27,7 @@ export default function LoginPage() {
           alt="Yide Digital"
           width={811}
           height={450}
+          sizes="176px"
           priority
           className="h-auto w-44 drop-shadow-[0_0_24px_rgba(61,196,188,0.35)]"
         />

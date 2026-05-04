@@ -48,8 +48,8 @@ function Avatar({ url, nome }: { url: string | null; nome: string }) {
         alt={nome}
         width={32}
         height={32}
+        sizes="32px"
         className="h-8 w-8 rounded-full object-cover"
-        unoptimized
       />
     );
   }

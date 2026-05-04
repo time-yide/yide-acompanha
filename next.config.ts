@@ -6,6 +6,13 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "*.supabase.co" },
     ],
+    // AVIF é ~30% menor que WebP, mas demora um pouco mais pra codificar.
+    // Next.js cacheia o resultado, então o custo é só na primeira requisição.
+    formats: ["image/avif", "image/webp"],
+    // Por padrão Next gera muitos tamanhos. Reduzimos pra os que realmente
+    // usamos: avatares (32, 96), logos (80, 144, 176) e algumas variações.
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
+    imageSizes: [16, 32, 48, 64, 96, 128, 176, 256, 384],
   },
   experimental: {
     serverActions: {
