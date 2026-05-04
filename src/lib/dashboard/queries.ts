@@ -1,5 +1,4 @@
 // SERVER ONLY: do not import from client components
-import { unstable_cache } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { isInMonth, monthRange, lastDayOfMonth } from "./date-utils";
 
@@ -42,9 +41,7 @@ function isActiveOn(c: ClientRow, dateIso: string): boolean {
   return true;
 }
 
-// ─── Internal implementations (exported for testing) ────────────────────────
-
-export async function _getKpis(now: Date = new Date(), filter?: ClientFilter): Promise<KpiData> {
+export async function getKpis(now: Date = new Date(), filter?: ClientFilter): Promise<KpiData> {
   const supabase = await createClient();
   const monthRef = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
   const todayIso = now.toISOString().slice(0, 10);
@@ -96,7 +93,7 @@ export interface TimelinePoint {
   valorTotal: number;
 }
 
-export async function _getCarteiraTimeline(
+export async function getCarteiraTimeline(
   months: number = 12,
   now: Date = new Date(),
   filter?: ClientFilter,
@@ -137,7 +134,7 @@ export interface EntradaChurnPoint {
   churns: number;
 }
 
-export async function _getEntradaChurn(
+export async function getEntradaChurn(
   months: number = 6,
   now: Date = new Date(),
   filter?: ClientFilter,
@@ -174,7 +171,7 @@ export interface AssessorCarteira {
   pctDoTotal: number;
 }
 
-export async function _getCarteiraPorAssessor(filter?: ClientFilter): Promise<AssessorCarteira[]> {
+export async function getCarteiraPorAssessor(filter?: ClientFilter): Promise<AssessorCarteira[]> {
   const supabase = await createClient();
 
   let clientsQuery = supabase
@@ -231,7 +228,7 @@ export interface SynthesisRowWithCliente {
   cliente: { nome: string; assessor_id: string | null; coordenador_id: string | null } | null;
 }
 
-export async function _getRankingSatisfacao(filter?: ClientFilter): Promise<{
+export async function getRankingSatisfacao(filter?: ClientFilter): Promise<{
   top: SynthesisRowWithCliente[];
   bottom: SynthesisRowWithCliente[];
 }> {
@@ -289,7 +286,7 @@ export interface EventoFilter {
   userId?: string;
 }
 
-export async function _getProximosEventos(
+export async function getProximosEventos(
   days: number = 30,
   limit: number = 10,
   filter?: EventoFilter,
@@ -316,7 +313,7 @@ export async function _getProximosEventos(
   return (data ?? []) as EventoRow[];
 }
 
-export async function _getMesAguardandoAprovacao(): Promise<{ mes: string } | null> {
+export async function getMesAguardandoAprovacao(): Promise<{ mes: string } | null> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("commission_snapshots")
@@ -328,96 +325,3 @@ export async function _getMesAguardandoAprovacao(): Promise<{ mes: string } | nu
   const row = (data?.[0] as { mes_referencia?: string } | undefined);
   return row?.mes_referencia ? { mes: row.mes_referencia } : null;
 }
-
-// ─── Public cached wrappers ──────────────────────────────────────────────────
-// Each public function serializes its filter args into the cache key so that
-// different users with different filters get separate cache entries.
-
-export async function getKpis(filter?: ClientFilter): Promise<KpiData> {
-  const cached = unstable_cache(
-    async (filterJson: string) =>
-      _getKpis(new Date(), filterJson !== "null" ? (JSON.parse(filterJson) as ClientFilter) : undefined),
-    ["dashboard-kpis"],
-    { revalidate: 300, tags: ["dashboard", "dashboard-kpis"] },
-  );
-  return cached(JSON.stringify(filter ?? null));
-}
-
-export async function getCarteiraTimeline(
-  months?: number,
-  filter?: ClientFilter,
-): Promise<TimelinePoint[]> {
-  const cached = unstable_cache(
-    async (argsJson: string) => {
-      const { months: m, filter: f } = JSON.parse(argsJson) as { months: number; filter?: ClientFilter };
-      return _getCarteiraTimeline(m, new Date(), f);
-    },
-    ["dashboard-carteira-timeline"],
-    { revalidate: 300, tags: ["dashboard", "dashboard-carteira-timeline"] },
-  );
-  return cached(JSON.stringify({ months: months ?? 12, filter: filter ?? null }));
-}
-
-export async function getEntradaChurn(
-  months?: number,
-  filter?: ClientFilter,
-): Promise<EntradaChurnPoint[]> {
-  const cached = unstable_cache(
-    async (argsJson: string) => {
-      const { months: m, filter: f } = JSON.parse(argsJson) as { months: number; filter?: ClientFilter };
-      return _getEntradaChurn(m, new Date(), f);
-    },
-    ["dashboard-entrada-churn"],
-    { revalidate: 300, tags: ["dashboard", "dashboard-entrada-churn"] },
-  );
-  return cached(JSON.stringify({ months: months ?? 6, filter: filter ?? null }));
-}
-
-export async function getCarteiraPorAssessor(filter?: ClientFilter): Promise<AssessorCarteira[]> {
-  const cached = unstable_cache(
-    async (filterJson: string) =>
-      _getCarteiraPorAssessor(filterJson !== "null" ? (JSON.parse(filterJson) as ClientFilter) : undefined),
-    ["dashboard-carteira-por-assessor"],
-    { revalidate: 300, tags: ["dashboard", "dashboard-carteira-por-assessor"] },
-  );
-  return cached(JSON.stringify(filter ?? null));
-}
-
-export async function getRankingSatisfacao(filter?: ClientFilter): Promise<{
-  top: SynthesisRowWithCliente[];
-  bottom: SynthesisRowWithCliente[];
-}> {
-  const cached = unstable_cache(
-    async (filterJson: string) =>
-      _getRankingSatisfacao(filterJson !== "null" ? (JSON.parse(filterJson) as ClientFilter) : undefined),
-    ["dashboard-ranking-satisfacao"],
-    { revalidate: 300, tags: ["dashboard", "dashboard-ranking-satisfacao"] },
-  );
-  return cached(JSON.stringify(filter ?? null));
-}
-
-export async function getProximosEventos(
-  days?: number,
-  limit?: number,
-  filter?: EventoFilter,
-): Promise<EventoRow[]> {
-  const cached = unstable_cache(
-    async (argsJson: string) => {
-      const { days: d, limit: l, filter: f } = JSON.parse(argsJson) as {
-        days: number;
-        limit: number;
-        filter?: EventoFilter;
-      };
-      return _getProximosEventos(d, l, f);
-    },
-    ["dashboard-proximos-eventos"],
-    { revalidate: 300, tags: ["dashboard", "dashboard-proximos-eventos"] },
-  );
-  return cached(JSON.stringify({ days: days ?? 30, limit: limit ?? 10, filter: filter ?? null }));
-}
-
-export const getMesAguardandoAprovacao = unstable_cache(
-  _getMesAguardandoAprovacao,
-  ["dashboard-mes-aprovacao"],
-  { revalidate: 300, tags: ["dashboard", "dashboard-mes-aprovacao"] },
-);
