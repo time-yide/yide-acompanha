@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAuth, requirePermission, type CurrentUser } from "@/lib/auth/session";
 import { logAudit } from "@/lib/audit/log";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
-import { createTaskSchema, editTaskSchema } from "./schema";
+import { createTaskSchema, editTaskSchema, moveStatusSchema } from "./schema";
 
 function fd(formData: FormData, key: string) {
   const v = formData.get(key);
@@ -220,6 +220,76 @@ export async function toggleTaskCompletionAction(taskId: string) {
   revalidatePath(`/tarefas/${taskId}`);
   if (t.client_id) revalidatePath(`/clientes/${t.client_id}/tarefas`);
   return { success: novoStatus === "concluida" ? "Tarefa concluída" : "Tarefa reaberta" };
+}
+
+/**
+ * Atualiza apenas o status de uma tarefa (usado por drag-drop no Quadro Kanban).
+ * Para toggle simples aberta↔concluida via quick-complete, usa toggleTaskCompletionAction.
+ *
+ * Permissão: criador, atribuído, ou sócio/adm.
+ * Side effects: atualiza completed_at, audit log, dispatch de notificação quando vai pra concluida.
+ */
+export async function moveTaskStatusAction(formData: FormData) {
+  const actor = await requireAuth();
+
+  const parsed = moveStatusSchema.safeParse({
+    id: fd(formData, "id"),
+    to_status: fd(formData, "to_status"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const supabase = await createClient();
+  const { data: before } = await supabase.from("tasks").select("*").eq("id", parsed.data.id).single();
+  if (!before) return { error: "Tarefa não encontrada" };
+
+  const canMove =
+    before.criado_por === actor.id ||
+    before.atribuido_a === actor.id ||
+    isPrivileged(actor);
+  if (!canMove) return { error: "Sem permissão" };
+
+  if (before.status === parsed.data.to_status) {
+    return { success: true as const };
+  }
+
+  // Lógica do completed_at idêntica ao updateTaskAction
+  const completed_at =
+    parsed.data.to_status === "concluida" && before.status !== "concluida"
+      ? new Date().toISOString()
+      : parsed.data.to_status !== "concluida"
+        ? null
+        : before.completed_at;
+
+  type Patch = { status: "aberta" | "em_andamento" | "concluida"; completed_at: string | null };
+  const patch: Patch = { status: parsed.data.to_status, completed_at };
+
+  const { error } = await supabase.from("tasks").update(patch).eq("id", parsed.data.id);
+  if (error) return { error: error.message };
+
+  await logAudit({
+    entidade: "tasks",
+    entidade_id: parsed.data.id,
+    acao: parsed.data.to_status === "concluida" ? "complete" : before.status === "concluida" ? "reopen" : "update",
+    dados_antes: { status: before.status, completed_at: before.completed_at },
+    dados_depois: patch as unknown as Record<string, unknown>,
+    ator_id: actor.id,
+  });
+
+  if (parsed.data.to_status === "concluida" && before.status !== "concluida") {
+    await dispatchNotification({
+      evento_tipo: "task_completed",
+      titulo: "Tarefa concluída",
+      mensagem: `${actor.nome} concluiu: "${before.titulo}"`,
+      link: `/tarefas/${parsed.data.id}`,
+      user_ids_extras: [before.criado_por],
+      source_user_id: actor.id,
+    });
+  }
+
+  revalidatePath("/tarefas");
+  revalidatePath(`/tarefas/${parsed.data.id}`);
+  if (before.client_id) revalidatePath(`/clientes/${before.client_id}/tarefas`);
+  return { success: true as const };
 }
 
 export async function deleteTaskAction(taskId: string) {

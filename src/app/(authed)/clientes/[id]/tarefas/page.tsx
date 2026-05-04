@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { listTasksForClient } from "@/lib/tarefas/queries";
-import { TasksList } from "@/components/tarefas/TasksList";
+import { TaskCard } from "@/components/tarefas/TaskCard";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 
@@ -42,14 +42,18 @@ export default async function ClienteTarefasPage({ params }: { params: Promise<{
       {abertas.length > 0 && (
         <section className="space-y-2">
           <h3 className="text-sm font-semibold">Em aberto</h3>
-          <TasksList tasks={abertas} />
+          <div className="space-y-2">
+            {abertas.map((t) => <TaskCard key={t.id} task={t} />)}
+          </div>
         </section>
       )}
 
       {concluidas.length > 0 && (
         <section className="space-y-2">
           <h3 className="text-sm font-semibold text-muted-foreground">Concluídas</h3>
-          <TasksList tasks={concluidas} />
+          <div className="space-y-2">
+            {concluidas.map((t) => <TaskCard key={t.id} task={t} />)}
+          </div>
         </section>
       )}
 

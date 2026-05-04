@@ -1,25 +1,25 @@
 import Link from "next/link";
 import { requireAuth } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import { listTasks, filterTasksByPrazo, type PrazoFilter, type TaskFilters as TaskFiltersData } from "@/lib/tarefas/queries";
-import { TasksList } from "@/components/tarefas/TasksList";
+import { listTasks, type TaskFilters as TaskFiltersData } from "@/lib/tarefas/queries";
+import { TasksBoard } from "@/components/tarefas/TasksBoard";
+import { TasksGroupedList, type GroupBy } from "@/components/tarefas/TasksGroupedList";
 import { TaskFilters } from "@/components/tarefas/TaskFilters";
+import { ViewToggle } from "@/components/tarefas/ViewToggle";
+import { GroupBySelector } from "@/components/tarefas/GroupBySelector";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 
 type Aba = "minhas" | "criadas" | "todas";
+type View = "board" | "list";
 
-const PRAZO_VALUES: PrazoFilter[] = ["hoje", "semana", "vencidas", "sem_prazo", "qualquer"];
-
-function parsePrazo(v: string | undefined): PrazoFilter {
-  return PRAZO_VALUES.includes(v as PrazoFilter) ? (v as PrazoFilter) : "qualquer";
-}
+const VALID_GROUP_BY: GroupBy[] = ["prazo", "cliente", "responsavel", "prioridade"];
 
 interface SearchParams {
   aba?: string;
-  status?: string;
+  view?: string;
+  groupBy?: string;
   prioridade?: string;
-  prazo?: string;
   client?: string;
   atribuido?: string;
 }
@@ -30,6 +30,10 @@ export default async function TarefasPage({ searchParams }: { searchParams: Prom
 
   const aba: Aba =
     params.aba === "criadas" ? "criadas" : params.aba === "todas" ? "todas" : "minhas";
+  const view: View = params.view === "list" ? "list" : "board";
+  const groupBy: GroupBy = VALID_GROUP_BY.includes(params.groupBy as GroupBy)
+    ? (params.groupBy as GroupBy)
+    : "prazo";
 
   const filters: TaskFiltersData = {};
   if (params.prioridade && params.prioridade !== "qualquer") {
@@ -37,19 +41,14 @@ export default async function TarefasPage({ searchParams }: { searchParams: Prom
   }
   if (params.client && params.client !== "qualquer") filters.clientId = params.client;
 
-  if (params.status === "em_andamento") filters.status = ["em_andamento"];
-  else if (params.status === "concluida") filters.status = ["concluida"];
-  else if (params.status === "todas") filters.status = undefined;
-  else filters.status = ["aberta", "em_andamento"]; // 'abertas' default
-
+  // Sem filtro de status — Quadro mostra todas as colunas; Lista agrupa concluídas em seção própria
   if (aba === "minhas") filters.atribuidoA = user.id;
   else if (aba === "criadas") filters.criadoPor = user.id;
   else if (aba === "todas" && params.atribuido && params.atribuido !== "qualquer") {
     filters.atribuidoA = params.atribuido;
   }
 
-  let tasks = await listTasks(filters);
-  tasks = filterTasksByPrazo(tasks, parsePrazo(params.prazo));
+  const tasks = await listTasks(filters);
 
   const supabase = await createClient();
   const [{ data: profiles = [] }, { data: clientes = [] }] = await Promise.all([
@@ -60,6 +59,7 @@ export default async function TarefasPage({ searchParams }: { searchParams: Prom
   function tabHref(slug: Aba) {
     const sp = new URLSearchParams();
     if (slug !== "minhas") sp.set("aba", slug);
+    if (view !== "board") sp.set("view", view);
     return `/tarefas?${sp.toString()}`;
   }
 
@@ -98,13 +98,23 @@ export default async function TarefasPage({ searchParams }: { searchParams: Prom
         {tabLink("todas", "Todas")}
       </div>
 
-      <TaskFilters
-        profiles={(profiles ?? []) as { id: string; nome: string }[]}
-        clientes={(clientes ?? []) as { id: string; nome: string }[]}
-        showAtribuido={aba === "todas"}
-      />
+      <div className="flex flex-wrap items-end justify-between gap-3 rounded-lg border bg-card p-3">
+        <div className="flex flex-wrap items-end gap-3">
+          <ViewToggle current={view} />
+          {view === "list" && <GroupBySelector current={groupBy} />}
+        </div>
+        <TaskFilters
+          profiles={(profiles ?? []) as { id: string; nome: string }[]}
+          clientes={(clientes ?? []) as { id: string; nome: string }[]}
+          showAtribuido={aba === "todas"}
+        />
+      </div>
 
-      <TasksList tasks={tasks} />
+      {view === "board" ? (
+        <TasksBoard tasks={tasks} />
+      ) : (
+        <TasksGroupedList tasks={tasks} groupBy={groupBy} />
+      )}
     </div>
   );
 }
