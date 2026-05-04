@@ -1,9 +1,13 @@
+"use client";
+
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TIPOS_PACOTE, tipoPacoteBadge } from "@/lib/painel/pacote-matrix";
-import { CADENCIAS_REUNIAO } from "@/lib/clientes/schema";
+import { CADENCIAS_REUNIAO, TIPOS_RELACAO } from "@/lib/clientes/schema";
+import type { TipoRelacaoCliente } from "@/lib/clientes/schema";
 
 interface ProfileOption {
   id: string;
@@ -39,6 +43,7 @@ interface Props {
     valor_trafego_google: number | null;
     valor_trafego_meta: number | null;
     tipo_pacote_revisado: boolean;
+    tipo_relacao: string | null;
   }>;
   assessores: ProfileOption[];
   coordenadores: ProfileOption[];
@@ -49,7 +54,17 @@ interface Props {
   submitLabel?: string;
 }
 
+const TIPO_RELACAO_LABELS: Record<TipoRelacaoCliente, string> = {
+  comum: "Comum (cliente pagante)",
+  parceria: "Parceria (sem cobrança)",
+  permuta: "Permuta (troca de serviços)",
+};
+
 export function ClienteForm({ action, defaults = {}, assessores, coordenadores, designers, videomakers, editors, canEditAlocacao, submitLabel = "Salvar" }: Props) {
+  const [tipoRelacao, setTipoRelacao] = useState<TipoRelacaoCliente>(
+    (defaults.tipo_relacao as TipoRelacaoCliente) ?? "comum"
+  );
+
   return (
     <form action={action} className="space-y-5">
       {defaults.id && <input type="hidden" name="id" value={defaults.id} />}
@@ -58,6 +73,29 @@ export function ClienteForm({ action, defaults = {}, assessores, coordenadores, 
         <div className="space-y-2 md:col-span-2">
           <Label htmlFor="nome">Nome do cliente</Label>
           <Input id="nome" name="nome" defaultValue={defaults.nome ?? ""} required minLength={2} />
+        </div>
+
+        <div className="space-y-2 md:col-span-2">
+          <Label htmlFor="tipo_relacao">Tipo de relação</Label>
+          <Select
+            name="tipo_relacao"
+            value={tipoRelacao}
+            onValueChange={(v) => setTipoRelacao(v as TipoRelacaoCliente)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione" />
+            </SelectTrigger>
+            <SelectContent>
+              {TIPOS_RELACAO.map((t) => (
+                <SelectItem key={t} value={t}>{TIPO_RELACAO_LABELS[t]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {tipoRelacao !== "comum" && (
+            <p className="text-xs text-muted-foreground">
+              {tipoRelacao === "parceria" ? "Parceria" : "Permuta"} não gera cobrança — valor mensal será R$ 0,00.
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -75,7 +113,18 @@ export function ClienteForm({ action, defaults = {}, assessores, coordenadores, 
 
         <div className="space-y-2">
           <Label htmlFor="valor_mensal">Valor mensal (R$)</Label>
-          <Input id="valor_mensal" name="valor_mensal" type="number" step="0.01" min="0" defaultValue={String(defaults.valor_mensal ?? 0)} />
+          <Input
+            id="valor_mensal"
+            name="valor_mensal"
+            type="number"
+            step="0.01"
+            min="0"
+            defaultValue={tipoRelacao !== "comum" ? "0" : String(defaults.valor_mensal ?? 0)}
+            value={tipoRelacao !== "comum" ? "0" : undefined}
+            readOnly={tipoRelacao !== "comum"}
+            disabled={tipoRelacao !== "comum"}
+            className={tipoRelacao !== "comum" ? "opacity-50 cursor-not-allowed" : ""}
+          />
         </div>
         <div className="space-y-2">
           <Label htmlFor="servico_contratado">Serviço contratado</Label>

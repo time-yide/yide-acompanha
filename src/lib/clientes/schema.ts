@@ -27,6 +27,9 @@ export function inferTipoPacote(servico: string | null | undefined): TipoPacote 
   return "trafego_estrategia";
 }
 
+export const TIPOS_RELACAO = ["comum", "parceria", "permuta"] as const;
+export type TipoRelacaoCliente = (typeof TIPOS_RELACAO)[number];
+
 export const STATUSES = ["ativo", "churn", "em_onboarding"] as const;
 
 export const CADENCIAS_REUNIAO = ["semanal", "quinzenal", "mensal", "trimestral"] as const;
@@ -49,6 +52,7 @@ export const createClienteSchema = z.object({
   valor_trafego_google: z.coerce.number().min(0).optional().nullable(),
   valor_trafego_meta: z.coerce.number().min(0).optional().nullable(),
   tipo_pacote_revisado: z.coerce.boolean().optional(),
+  tipo_relacao: z.enum(TIPOS_RELACAO).default("comum"),
 });
 
 export const editClienteSchema = createClienteSchema.extend({

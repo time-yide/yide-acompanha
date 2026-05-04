@@ -9,6 +9,7 @@ interface ClientRow {
   data_entrada: string;
   data_churn: string | null;
   status: string;
+  tipo_relacao?: string | null;
   assessor_id?: string | null;
   coordenador_id?: string | null;
 }
@@ -56,7 +57,7 @@ export async function _getKpisImpl(filter?: ClientFilter): Promise<KpiData> {
 
   let clientsQuery = supabase
     .from("clients")
-    .select("id, valor_mensal, data_entrada, data_churn, status, assessor_id, coordenador_id")
+    .select("id, valor_mensal, data_entrada, data_churn, status, tipo_relacao, assessor_id, coordenador_id")
     .eq("status", "ativo");
   clientsQuery = buildClientFilterQuery(clientsQuery, filter);
 
@@ -66,11 +67,18 @@ export async function _getKpisImpl(filter?: ClientFilter): Promise<KpiData> {
   const ativosHoje = allClients.filter((c) => isActiveOn(c, todayIso));
   const ativosFimMesAnterior = allClients.filter((c) => isActiveOn(c, prevMonthLastDay));
 
-  const carteiraAtivaValor = ativosHoje.reduce((acc, c) => acc + Number(c.valor_mensal), 0);
-  const carteiraMesAnteriorValor = ativosFimMesAnterior.reduce((acc, c) => acc + Number(c.valor_mensal), 0);
+  // KPI financeiro: apenas clientes 'comum' (parceria/permuta excluídos — sem $ circulando)
+  const ativosHojeComum = ativosHoje.filter((c) => !c.tipo_relacao || c.tipo_relacao === "comum");
+  const ativosFimMesAnteriorComum = ativosFimMesAnterior.filter((c) => !c.tipo_relacao || c.tipo_relacao === "comum");
+
+  const carteiraAtivaValor = ativosHojeComum.reduce((acc, c) => acc + Number(c.valor_mensal), 0);
+  const carteiraMesAnteriorValor = ativosFimMesAnteriorComum.reduce((acc, c) => acc + Number(c.valor_mensal), 0);
 
   const churnsDoMes = allClients.filter((c) => isInMonth(c.data_churn, monthRef));
-  const valorChurnado = churnsDoMes.reduce((acc, c) => acc + Number(c.valor_mensal), 0);
+  // valorChurnado: apenas comum
+  const valorChurnado = churnsDoMes
+    .filter((c) => !c.tipo_relacao || c.tipo_relacao === "comum")
+    .reduce((acc, c) => acc + Number(c.valor_mensal), 0);
 
   // Custo de comissão: prefere snapshot oficial (mês fechado) — se não tem,
   // calcula live usando o preview de comissões (mesma fonte que a página
@@ -133,7 +141,8 @@ export async function _getCarteiraTimelineImpl(
 
   let clientsQuery = supabase
     .from("clients")
-    .select("id, valor_mensal, data_entrada, data_churn, assessor_id, coordenador_id");
+    .select("id, valor_mensal, data_entrada, data_churn, tipo_relacao, assessor_id, coordenador_id")
+    .eq("tipo_relacao", "comum");
   clientsQuery = buildClientFilterQuery(clientsQuery as never, filter) as never;
 
   const { data: clientsData } = await clientsQuery;
@@ -142,6 +151,7 @@ export async function _getCarteiraTimelineImpl(
     valor_mensal: number;
     data_entrada: string;
     data_churn: string | null;
+    tipo_relacao?: string | null;
     assessor_id?: string | null;
     coordenador_id?: string | null;
   }>;
@@ -188,7 +198,8 @@ export async function _getEntradaChurnImpl(
 
   let clientsQuery = supabase
     .from("clients")
-    .select("id, data_entrada, data_churn, assessor_id, coordenador_id");
+    .select("id, data_entrada, data_churn, tipo_relacao, assessor_id, coordenador_id")
+    .eq("tipo_relacao", "comum");
   clientsQuery = buildClientFilterQuery(clientsQuery as never, filter) as never;
 
   const { data: clientsData } = await clientsQuery;
@@ -196,6 +207,7 @@ export async function _getEntradaChurnImpl(
     id: string;
     data_entrada: string;
     data_churn: string | null;
+    tipo_relacao?: string | null;
     assessor_id?: string | null;
     coordenador_id?: string | null;
   }>;
@@ -234,8 +246,9 @@ export async function _getCarteiraPorAssessorImpl(filter?: ClientFilter): Promis
 
   let clientsQuery = supabase
     .from("clients")
-    .select("id, valor_mensal, assessor_id, coordenador_id, assessor:profiles!clients_assessor_id_fkey(nome)")
-    .eq("status", "ativo");
+    .select("id, valor_mensal, assessor_id, coordenador_id, tipo_relacao, assessor:profiles!clients_assessor_id_fkey(nome)")
+    .eq("status", "ativo")
+    .eq("tipo_relacao", "comum");
   clientsQuery = buildClientFilterQuery(clientsQuery as never, filter) as never;
 
   const { data: clientsData } = await clientsQuery;

@@ -340,6 +340,54 @@ export type Database = {
           },
         ]
       }
+      client_monthly_adjustments: {
+        Row: {
+          client_id: string
+          created_at: string
+          criado_por: string
+          id: string
+          mes_referencia: string
+          motivo: string
+          tipo: Database["public"]["Enums"]["tipo_ajuste_mensal"]
+          valor_desconto: number | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          criado_por: string
+          id?: string
+          mes_referencia: string
+          motivo: string
+          tipo: Database["public"]["Enums"]["tipo_ajuste_mensal"]
+          valor_desconto?: number | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          criado_por?: string
+          id?: string
+          mes_referencia?: string
+          motivo?: string
+          tipo?: Database["public"]["Enums"]["tipo_ajuste_mensal"]
+          valor_desconto?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_monthly_adjustments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_monthly_adjustments_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_monthly_checklist: {
         Row: {
           client_id: string
@@ -480,6 +528,7 @@ export type Database = {
           telefone: string | null
           tipo_pacote: Database["public"]["Enums"]["tipo_pacote"]
           tipo_pacote_revisado: boolean
+          tipo_relacao: Database["public"]["Enums"]["tipo_relacao_cliente"]
           updated_at: string
           valor_mensal: number
           valor_trafego_google: number | null
@@ -514,6 +563,7 @@ export type Database = {
           telefone?: string | null
           tipo_pacote: Database["public"]["Enums"]["tipo_pacote"]
           tipo_pacote_revisado?: boolean
+          tipo_relacao?: Database["public"]["Enums"]["tipo_relacao_cliente"]
           updated_at?: string
           valor_mensal?: number
           valor_trafego_google?: number | null
@@ -548,6 +598,7 @@ export type Database = {
           telefone?: string | null
           tipo_pacote?: Database["public"]["Enums"]["tipo_pacote"]
           tipo_pacote_revisado?: boolean
+          tipo_relacao?: Database["public"]["Enums"]["tipo_relacao_cliente"]
           updated_at?: string
           valor_mensal?: number
           valor_trafego_google?: number | null
@@ -1575,6 +1626,7 @@ export type Database = {
       task_priority: "alta" | "media" | "baixa"
       task_status: "aberta" | "em_andamento" | "concluida"
       theme_preference: "light" | "dark" | "system"
+      tipo_ajuste_mensal: "desconto_parcial" | "gratuidade_total"
       tipo_pacote:
         | "trafego_estrategia"
         | "trafego"
@@ -1585,6 +1637,7 @@ export type Database = {
         | "ia"
         | "crm"
         | "crm_ia"
+      tipo_relacao_cliente: "comum" | "parceria" | "permuta"
       user_role:
         | "adm"
         | "socio"
@@ -1809,6 +1862,7 @@ export const Constants = {
       task_priority: ["alta", "media", "baixa"],
       task_status: ["aberta", "em_andamento", "concluida"],
       theme_preference: ["light", "dark", "system"],
+      tipo_ajuste_mensal: ["desconto_parcial", "gratuidade_total"],
       tipo_pacote: [
         "trafego_estrategia",
         "trafego",
@@ -1820,6 +1874,7 @@ export const Constants = {
         "crm",
         "crm_ia",
       ],
+      tipo_relacao_cliente: ["comum", "parceria", "permuta"],
       user_role: [
         "adm",
         "socio",

@@ -4,6 +4,7 @@ import { canAccess } from "@/lib/auth/permissions";
 import { getClienteById } from "@/lib/clientes/queries";
 import { ClienteHeader } from "@/components/clientes/ClienteHeader";
 import { ClienteSidebar } from "@/components/clientes/ClienteSidebar";
+import { getAjusteCliente } from "@/lib/clientes/ajustes";
 
 export default async function ClienteFolderLayout({
   children,
@@ -24,10 +25,22 @@ export default async function ClienteFolderLayout({
     user.id === cliente.coordenador_id;
   const canSeeHistorico = ["adm", "socio"].includes(user.role);
   const canDelete = ["adm", "socio"].includes(user.role);
+  const canLancarAjuste = ["adm", "socio"].includes(user.role);
+
+  // Ajuste do mês atual
+  const now = new Date();
+  const mesAtual = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const ajusteMes = canLancarAjuste ? await getAjusteCliente(id, mesAtual) : null;
 
   return (
     <div className="space-y-5">
-      <ClienteHeader cliente={cliente} canSeeMoney={canSeeMoney} canDelete={canDelete} />
+      <ClienteHeader
+        cliente={cliente}
+        canSeeMoney={canSeeMoney}
+        canDelete={canDelete}
+        canLancarAjuste={canLancarAjuste}
+        ajusteMes={ajusteMes}
+      />
       <div className="flex flex-col gap-5 md:flex-row">
         <ClienteSidebar clientId={id} canSeeHistorico={canSeeHistorico} />
         <main className="flex-1 min-w-0">{children}</main>
