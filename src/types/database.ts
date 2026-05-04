@@ -50,6 +50,27 @@ export type Database = {
         }
         Relationships: []
       }
+      auth_rate_limit: {
+        Row: {
+          attempts: number
+          blocked_until: string | null
+          key: string
+          window_start: string
+        }
+        Insert: {
+          attempts?: number
+          blocked_until?: string | null
+          key: string
+          window_start?: string
+        }
+        Update: {
+          attempts?: number
+          blocked_until?: string | null
+          key?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       calendar_events: {
         Row: {
           client_id: string | null
@@ -1439,11 +1460,40 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_auth_rate_limit: {
+        Args: {
+          block_seconds?: number
+          max_attempts: number
+          rate_key: string
+          window_seconds: number
+        }
+        Returns: {
+          allowed: boolean
+          retry_after_seconds: number
+        }[]
+      }
       current_user_role: {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      get_my_profile_sensitive: {
+        Args: never
+        Returns: {
+          comissao_percent: number
+          comissao_primeiro_mes_percent: number
+          data_admissao: string
+          data_nascimento: string
+          endereco: string
+          fixo_mensal: number
+          meta_fechamentos_mes: number
+          meta_prospects_mes: number
+          meta_receita_mes: number
+          pix: string
+          telefone: string
+        }[]
+      }
       recados_team_member_ids: { Args: { autor: string }; Returns: string[] }
+      reset_auth_rate_limit: { Args: { rate_key: string }; Returns: undefined }
     }
     Enums: {
       attempt_channel: "whatsapp" | "email" | "ligacao" | "presencial" | "outro"

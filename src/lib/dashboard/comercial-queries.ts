@@ -184,7 +184,8 @@ const META_MULTIPLIER = 3;
 
 export async function getMetaComercial(userId: string, now: Date = new Date()): Promise<MetaComercial> {
   const supabase = await createClient();
-  // service-role para ler colunas sensíveis (fixo_mensal, comissao_percent) REVOKEadas do authenticated.
+  // service-role para ler colunas sensíveis (fixo_mensal, comissao_percent)
+  // que foram REVOKEadas do role authenticated.
   const adminSupabase = createServiceRoleClient();
   const monthRef = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
   const inicioMes = `${monthRef}-01`;
