@@ -1,11 +1,14 @@
 "use server";
 
+import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/auth/session";
 import { logAudit } from "@/lib/audit/log";
 import { createClienteSchema, editClienteSchema, churnClienteSchema, inferTipoPacote } from "./schema";
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function fd(formData: FormData, key: string) {
   const v = formData.get(key);
@@ -242,7 +245,63 @@ export async function reactivateClienteAction(id: string) {
   return { success: "Cliente reativado" };
 }
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const deleteClienteSchema = z.object({
+  id: z.string().uuid(),
+  // O usuário tem que digitar o nome exato do cliente como confirmação
+  // (mesmo padrão do GitHub pra deletar repo).
+  confirmacao_nome: z.string().min(1, "Digite o nome do cliente para confirmar"),
+  justificativa: z.string().min(3, "Informe o motivo da exclusão (mín. 3 caracteres)"),
+});
+
+export async function deleteClienteAction(formData: FormData) {
+  const actor = await requireAuth();
+  if (!["adm", "socio"].includes(actor.role)) {
+    return { error: "Apenas ADM/Sócio podem excluir clientes" };
+  }
+
+  const parsed = deleteClienteSchema.safeParse({
+    id: fd(formData, "id"),
+    confirmacao_nome: fd(formData, "confirmacao_nome"),
+    justificativa: fd(formData, "justificativa"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const supabase = await createClient();
+  const { data: cliente } = await supabase
+    .from("clients")
+    .select("*")
+    .eq("id", parsed.data.id)
+    .single();
+
+  if (!cliente) return { error: "Cliente não encontrado" };
+
+  // Confirmação de nome (case-insensitive, trim)
+  if (
+    parsed.data.confirmacao_nome.trim().toLowerCase() !==
+    cliente.nome.trim().toLowerCase()
+  ) {
+    return { error: "Nome digitado não confere com o nome do cliente" };
+  }
+
+  // Loga ANTES de deletar (depois o id some). Audit log preserva tudo.
+  await logAudit({
+    entidade: "clients",
+    entidade_id: parsed.data.id,
+    acao: "delete",
+    dados_antes: cliente as unknown as Record<string, unknown>,
+    ator_id: actor.id,
+    justificativa: parsed.data.justificativa,
+  });
+
+  // Hard delete — FKs em outras tabelas usam ON DELETE CASCADE
+  // (client_monthly_checklist, satisfaction_entries, client_files, etc.)
+  // ou ON DELETE SET NULL (tasks.client_id, calendar_events.client_id, leads.client_id).
+  const { error } = await supabase.from("clients").delete().eq("id", parsed.data.id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/clientes");
+  redirect("/clientes");
+}
 
 type AssignmentField = "assessor_id" | "coordenador_id";
 
