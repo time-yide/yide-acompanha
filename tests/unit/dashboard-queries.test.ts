@@ -302,57 +302,141 @@ describe("getCarteiraPorAssessor", () => {
   });
 });
 
+/** Mock do supabase para o ranking de satisfação live (entries + synthesis). */
+function mockSatisfacaoRanking({
+  clients,
+  entries,
+  synthesis,
+}: {
+  clients: Array<{ id: string; nome: string; assessor_id: string | null; coordenador_id: string | null }>;
+  entries: Array<{ client_id: string; autor_id: string; papel_autor: string; cor: "verde" | "amarelo" | "vermelho" }>;
+  synthesis: Array<{ id: string; client_id: string; score_final: number; cor_final: "verde" | "amarelo" | "vermelho"; resumo_ia: string; divergencia_detectada: boolean; acao_sugerida: string | null; created_at: string }>;
+}) {
+  fromMock.mockImplementation((table) => {
+    if (table === "clients") {
+      return { select: () => makeChainableQuery(clients) };
+    }
+    if (table === "satisfaction_entries") {
+      // Cadeia: .select().eq().in().not() → resolve com { data: entries }
+      const final = Promise.resolve({ data: entries });
+      const chain = {
+        eq: vi.fn(),
+        in: vi.fn(),
+        not: vi.fn(),
+        then: final.then.bind(final),
+        catch: final.catch.bind(final),
+        finally: final.finally.bind(final),
+      };
+      chain.eq.mockReturnValue(chain);
+      chain.in.mockReturnValue(chain);
+      chain.not.mockReturnValue(chain);
+      return { select: () => chain };
+    }
+    if (table === "satisfaction_synthesis") {
+      // Cadeia: .select().eq().in() → resolve com { data: synthesis }
+      const final = Promise.resolve({ data: synthesis });
+      const chain = {
+        eq: vi.fn(),
+        in: vi.fn(),
+        then: final.then.bind(final),
+        catch: final.catch.bind(final),
+        finally: final.finally.bind(final),
+      };
+      chain.eq.mockReturnValue(chain);
+      chain.in.mockReturnValue(chain);
+      return { select: () => chain };
+    }
+    return {};
+  });
+}
+
 describe("getRankingSatisfacao", () => {
-  it("retorna top 3 verde por score desc e bottom 2 (vermelho > amarelo) por score asc", async () => {
-    fromMock.mockImplementation((table) => {
-      if (table === "satisfaction_synthesis") {
-        // Two call chains: .select().order().limit() for latest week, and .select().eq() for the rows
-        return {
-          select: (cols: string) => {
-            if (cols === "semana_iso") {
-              return {
-                order: () => ({
-                  limit: vi.fn().mockResolvedValue({
-                    data: [{ semana_iso: "2026-W17" }],
-                  }),
-                }),
-              };
-            }
-            return {
-              eq: vi.fn().mockResolvedValue({
-                data: [
-                  { id: "s1", client_id: "c1", semana_iso: "2026-W17", score_final: 9.5, cor_final: "verde", resumo_ia: "ok", divergencia_detectada: false, acao_sugerida: null, created_at: "2026-04-27", cliente: { nome: "Alpha", assessor_id: "a1", coordenador_id: "co1" } },
-                  { id: "s2", client_id: "c2", semana_iso: "2026-W17", score_final: 8.5, cor_final: "verde", resumo_ia: "ok", divergencia_detectada: false, acao_sugerida: null, created_at: "2026-04-27", cliente: { nome: "Beta", assessor_id: "a1", coordenador_id: "co1" } },
-                  { id: "s3", client_id: "c3", semana_iso: "2026-W17", score_final: 9.0, cor_final: "verde", resumo_ia: "ok", divergencia_detectada: false, acao_sugerida: null, created_at: "2026-04-27", cliente: { nome: "Gamma", assessor_id: "a1", coordenador_id: "co1" } },
-                  { id: "s4", client_id: "c4", semana_iso: "2026-W17", score_final: 2.0, cor_final: "vermelho", resumo_ia: "x", divergencia_detectada: false, acao_sugerida: "ação", created_at: "2026-04-27", cliente: { nome: "Delta", assessor_id: "a1", coordenador_id: "co1" } },
-                  { id: "s5", client_id: "c5", semana_iso: "2026-W17", score_final: 5.0, cor_final: "amarelo", resumo_ia: "x", divergencia_detectada: false, acao_sugerida: "ação", created_at: "2026-04-27", cliente: { nome: "Epsilon", assessor_id: "a1", coordenador_id: "co1" } },
-                  { id: "s6", client_id: "c6", semana_iso: "2026-W17", score_final: 3.5, cor_final: "vermelho", resumo_ia: "x", divergencia_detectada: false, acao_sugerida: "ação", created_at: "2026-04-27", cliente: { nome: "Zeta", assessor_id: "a1", coordenador_id: "co1" } },
-                ],
-              }),
-            };
-          },
-        };
-      }
-      return {};
+  it("ranqueia top (verde desc) e bottom (vermelho asc), usa síntese quando existe", async () => {
+    mockSatisfacaoRanking({
+      clients: [
+        { id: "c1", nome: "Alpha", assessor_id: "a1", coordenador_id: "co1" },
+        { id: "c2", nome: "Beta", assessor_id: "a1", coordenador_id: "co1" },
+        { id: "c3", nome: "Gamma", assessor_id: "a1", coordenador_id: "co1" },
+        { id: "c4", nome: "Delta", assessor_id: "a1", coordenador_id: "co1" },
+        { id: "c5", nome: "Epsilon", assessor_id: "a1", coordenador_id: "co1" },
+        { id: "c6", nome: "Zeta", assessor_id: "a1", coordenador_id: "co1" },
+      ],
+      entries: [
+        { client_id: "c1", autor_id: "a1", papel_autor: "assessor", cor: "verde" },
+        { client_id: "c2", autor_id: "a1", papel_autor: "assessor", cor: "verde" },
+        { client_id: "c3", autor_id: "a1", papel_autor: "assessor", cor: "verde" },
+        { client_id: "c4", autor_id: "a1", papel_autor: "assessor", cor: "vermelho" },
+        { client_id: "c5", autor_id: "a1", papel_autor: "assessor", cor: "amarelo" },
+        { client_id: "c6", autor_id: "a1", papel_autor: "assessor", cor: "vermelho" },
+      ],
+      synthesis: [
+        { id: "s1", client_id: "c1", score_final: 9.5, cor_final: "verde", resumo_ia: "ok", divergencia_detectada: false, acao_sugerida: null, created_at: "2026-04-27" },
+        { id: "s2", client_id: "c2", score_final: 8.5, cor_final: "verde", resumo_ia: "ok", divergencia_detectada: false, acao_sugerida: null, created_at: "2026-04-27" },
+        { id: "s3", client_id: "c3", score_final: 9.0, cor_final: "verde", resumo_ia: "ok", divergencia_detectada: false, acao_sugerida: null, created_at: "2026-04-27" },
+        { id: "s4", client_id: "c4", score_final: 2.0, cor_final: "vermelho", resumo_ia: "x", divergencia_detectada: false, acao_sugerida: "ação", created_at: "2026-04-27" },
+        { id: "s5", client_id: "c5", score_final: 5.0, cor_final: "amarelo", resumo_ia: "x", divergencia_detectada: false, acao_sugerida: "ação", created_at: "2026-04-27" },
+        { id: "s6", client_id: "c6", score_final: 3.5, cor_final: "vermelho", resumo_ia: "x", divergencia_detectada: false, acao_sugerida: "ação", created_at: "2026-04-27" },
+      ],
     });
 
     const r = await getRankingSatisfacao();
-    expect(r.top.map((s) => s.client_id)).toEqual(["c1", "c3", "c2"]); // 9.5, 9.0, 8.5
-    expect(r.bottom.map((s) => s.client_id)).toEqual(["c4", "c6"]);    // vermelhos primeiro: 2.0, 3.5
+    // Top: 3 verdes ordenados desc + amarelo (faltam 7 verdes pra completar 10)
+    expect(r.top.map((s) => s.client_id)).toEqual(["c1", "c3", "c2", "c5"]);
+    // Bottom: 2 vermelhos asc + amarelo (faltam 8 vermelhos pra completar 10)
+    expect(r.bottom.map((s) => s.client_id)).toEqual(["c4", "c6", "c5"]);
   });
 
-  it("retorna listas vazias quando sem sínteses", async () => {
-    fromMock.mockImplementation((table) => {
-      if (table === "satisfaction_synthesis") {
-        return {
-          select: () => ({
-            order: () => ({
-              limit: vi.fn().mockResolvedValue({ data: [] }),
-            }),
-          }),
-        };
-      }
-      return {};
+  it("inclui cliente no ranking mesmo sem síntese (live por entries)", async () => {
+    mockSatisfacaoRanking({
+      clients: [
+        { id: "c1", nome: "Alpha", assessor_id: "a1", coordenador_id: "co1" },
+      ],
+      entries: [
+        // Só assessor votou verde → score live = 10, status em_curso
+        { client_id: "c1", autor_id: "a1", papel_autor: "assessor", cor: "verde" },
+      ],
+      synthesis: [],
+    });
+
+    const r = await getRankingSatisfacao();
+    expect(r.top).toHaveLength(1);
+    expect(r.top[0].client_id).toBe("c1");
+    expect(r.top[0].score_final).toBe(10);
+    expect(r.top[0].cor_final).toBe("verde");
+    expect(r.top[0].status).toBe("em_curso");
+    expect(r.top[0].votos_atuais).toBe(1);
+    expect(r.top[0].votos_esperados).toBe(2); // assessor + coord
+  });
+
+  it("status 'completo' quando assessor + coord já votaram", async () => {
+    mockSatisfacaoRanking({
+      clients: [
+        { id: "c1", nome: "Alpha", assessor_id: "a1", coordenador_id: "co1" },
+      ],
+      entries: [
+        { client_id: "c1", autor_id: "a1", papel_autor: "assessor", cor: "verde" },
+        { client_id: "c1", autor_id: "co1", papel_autor: "coordenador", cor: "amarelo" },
+      ],
+      synthesis: [],
+    });
+
+    const r = await getRankingSatisfacao();
+    expect(r.top[0].status).toBe("completo");
+    expect(r.top[0].votos_atuais).toBe(2);
+  });
+
+  it("retorna listas vazias quando não há clientes", async () => {
+    mockSatisfacaoRanking({ clients: [], entries: [], synthesis: [] });
+    const r = await getRankingSatisfacao();
+    expect(r.top).toEqual([]);
+    expect(r.bottom).toEqual([]);
+  });
+
+  it("retorna listas vazias quando há clientes mas nenhum tem voto", async () => {
+    mockSatisfacaoRanking({
+      clients: [{ id: "c1", nome: "Alpha", assessor_id: "a1", coordenador_id: "co1" }],
+      entries: [],
+      synthesis: [],
     });
     const r = await getRankingSatisfacao();
     expect(r.top).toEqual([]);
@@ -542,30 +626,14 @@ describe("getCarteiraPorAssessor with filter", () => {
 });
 
 describe("getRankingSatisfacao with filter", () => {
-  it("filtra sínteses por assessorId quando passado", async () => {
-    fromMock.mockImplementation((table) => {
-      if (table === "satisfaction_synthesis") {
-        return {
-          select: (cols: string) => {
-            if (cols === "semana_iso") {
-              return {
-                order: () => ({
-                  limit: vi.fn().mockResolvedValue({ data: [{ semana_iso: "2026-W17" }] }),
-                }),
-              };
-            }
-            return {
-              eq: vi.fn().mockResolvedValue({
-                data: [
-                  { id: "s1", client_id: "c1", semana_iso: "2026-W17", score_final: 9.5, cor_final: "verde", resumo_ia: "ok", divergencia_detectada: false, acao_sugerida: null, created_at: "2026-04-27", cliente: { nome: "Alpha", assessor_id: "a1", coordenador_id: "co1" } },
-                  { id: "s2", client_id: "c2", semana_iso: "2026-W17", score_final: 8.0, cor_final: "verde", resumo_ia: "ok", divergencia_detectada: false, acao_sugerida: null, created_at: "2026-04-27", cliente: { nome: "Beta", assessor_id: "a2", coordenador_id: "co1" } },
-                ],
-              }),
-            };
-          },
-        };
-      }
-      return {};
+  it("filtra clientes por assessorId quando passado (filtra antes de calcular ranking)", async () => {
+    // Apenas c1 (do assessor a1) é retornado pela query — filtro é aplicado no .eq("assessor_id", ...)
+    mockSatisfacaoRanking({
+      clients: [{ id: "c1", nome: "Alpha", assessor_id: "a1", coordenador_id: "co1" }],
+      entries: [{ client_id: "c1", autor_id: "a1", papel_autor: "assessor", cor: "verde" }],
+      synthesis: [
+        { id: "s1", client_id: "c1", score_final: 9.5, cor_final: "verde", resumo_ia: "ok", divergencia_detectada: false, acao_sugerida: null, created_at: "2026-04-27" },
+      ],
     });
 
     const r = await _getRankingSatisfacaoImpl({ assessorId: "a1" });

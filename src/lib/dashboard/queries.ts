@@ -298,180 +298,22 @@ export async function getCarteiraPorAssessor(filter?: ClientFilter): Promise<Ass
 
 // ─── getRankingSatisfacao ────────────────────────────────────────────────────
 
-import type { SatisfactionColor } from "@/lib/satisfacao/schema";
 import { currentIsoWeek } from "@/lib/satisfacao/iso-week";
+import { computeWeeklyRanking, sliceTopBottom, type RankedClient } from "@/lib/satisfacao/ranking";
 
-export interface SynthesisRowWithCliente {
-  id: string;
-  client_id: string;
-  semana_iso: string;
-  score_final: number;
-  cor_final: SatisfactionColor;
-  /** "completo" quando todos os avaliadores esperados (assessor + coord) já votaram. */
-  status: "em_curso" | "completo";
-  /** Quantos avaliaram até agora (entre os esperados). */
-  votos_atuais: number;
-  /** Quantos avaliadores são esperados pra "completo". */
-  votos_esperados: number;
-  resumo_ia?: string;
-  divergencia_detectada?: boolean;
-  acao_sugerida?: string | null;
-  created_at?: string;
-  cliente: { nome: string; assessor_id: string | null; coordenador_id: string | null } | null;
-}
-
-const COR_TO_SCORE: Record<SatisfactionColor, number> = {
-  verde: 10,
-  amarelo: 5,
-  vermelho: 0,
-};
-
-function colorFromScore(score: number): SatisfactionColor {
-  if (score >= 7.5) return "verde";
-  if (score >= 4) return "amarelo";
-  return "vermelho";
-}
+export type SynthesisRowWithCliente = RankedClient;
 
 export async function _getRankingSatisfacaoImpl(filter?: ClientFilter): Promise<{
-  top: SynthesisRowWithCliente[];
-  bottom: SynthesisRowWithCliente[];
+  top: RankedClient[];
+  bottom: RankedClient[];
 }> {
-  const supabase = createServiceRoleClient();
-  const weekIso = currentIsoWeek();
-
-  // 1) Carrega clientes ativos (com assessor/coord pra calcular esperados)
-  let clientsQuery = supabase
-    .from("clients")
-    .select("id, nome, assessor_id, coordenador_id")
-    .eq("status", "ativo");
-  clientsQuery = buildClientFilterQuery(clientsQuery as never, filter) as never;
-  const { data: clientsData } = await clientsQuery;
-  const clients = (clientsData ?? []) as Array<{
-    id: string;
-    nome: string;
-    assessor_id: string | null;
-    coordenador_id: string | null;
-  }>;
-  if (clients.length === 0) return { top: [], bottom: [] };
-
-  const clientIds = clients.map((c) => c.id);
-
-  // 2) Pega entries preenchidas da semana atual + síntese (se existir)
-  const [entriesRes, synthRes] = await Promise.all([
-    supabase
-      .from("satisfaction_entries")
-      .select("client_id, autor_id, papel_autor, cor")
-      .eq("semana_iso", weekIso)
-      .in("client_id", clientIds)
-      .not("cor", "is", null),
-    supabase
-      .from("satisfaction_synthesis")
-      .select("*")
-      .eq("semana_iso", weekIso)
-      .in("client_id", clientIds),
-  ]);
-
-  const entries = (entriesRes.data ?? []) as Array<{
-    client_id: string;
-    autor_id: string;
-    papel_autor: string;
-    cor: SatisfactionColor;
-  }>;
-  const synthMap = new Map(
-    ((synthRes.data ?? []) as Array<{
-      id: string;
-      client_id: string;
-      score_final: number;
-      cor_final: SatisfactionColor;
-      resumo_ia: string;
-      divergencia_detectada: boolean;
-      acao_sugerida: string | null;
-      created_at: string;
-    }>).map((s) => [s.client_id, s]),
-  );
-
-  // 3) Agrupa entries por cliente pra computar score live
-  const entriesByClient = new Map<string, Array<{ autor_id: string; papel_autor: string; cor: SatisfactionColor }>>();
-  for (const e of entries) {
-    const arr = entriesByClient.get(e.client_id) ?? [];
-    arr.push({ autor_id: e.autor_id, papel_autor: e.papel_autor, cor: e.cor });
-    entriesByClient.set(e.client_id, arr);
-  }
-
-  // 4) Pra cada cliente, calcula linha do ranking (live + status)
-  const all: SynthesisRowWithCliente[] = [];
-  for (const c of clients) {
-    const clientEntries = entriesByClient.get(c.id) ?? [];
-    if (clientEntries.length === 0) continue; // sem nenhuma avaliação ainda → fora do ranking
-
-    // Esperados: assessor + coord do cliente. Sócio é opcional.
-    const expectedAuthors = [c.assessor_id, c.coordenador_id].filter(
-      (x): x is string => x !== null,
-    );
-    const respondedExpected = expectedAuthors.filter((aid) =>
-      clientEntries.some((e) => e.autor_id === aid),
-    ).length;
-    const status: "em_curso" | "completo" =
-      expectedAuthors.length > 0 && respondedExpected >= expectedAuthors.length
-        ? "completo"
-        : "em_curso";
-
-    // Score: usa síntese se existir (mais preciso); senão média das entries.
-    const synthesis = synthMap.get(c.id);
-    const score = synthesis
-      ? Number(synthesis.score_final)
-      : clientEntries.reduce((acc, e) => acc + COR_TO_SCORE[e.cor], 0) / clientEntries.length;
-    const cor: SatisfactionColor = synthesis
-      ? synthesis.cor_final
-      : colorFromScore(score);
-
-    all.push({
-      id: synthesis?.id ?? `live-${c.id}`,
-      client_id: c.id,
-      semana_iso: weekIso,
-      score_final: Math.round(score * 10) / 10,
-      cor_final: cor,
-      status,
-      votos_atuais: clientEntries.length,
-      votos_esperados: expectedAuthors.length,
-      resumo_ia: synthesis?.resumo_ia,
-      divergencia_detectada: synthesis?.divergencia_detectada,
-      acao_sugerida: synthesis?.acao_sugerida,
-      created_at: synthesis?.created_at,
-      cliente: {
-        nome: c.nome,
-        assessor_id: c.assessor_id,
-        coordenador_id: c.coordenador_id,
-      },
-    });
-  }
-
-  // Top 10 mais satisfeitos: prioriza verde por score, mas se faltarem
-  // verdes pra completar 10, complementa com amarelos (próximos do verde)
-  const verdes = all
-    .filter((s) => s.cor_final === "verde")
-    .sort((a, b) => Number(b.score_final) - Number(a.score_final));
-  const amareloPraTop = all
-    .filter((s) => s.cor_final === "amarelo")
-    .sort((a, b) => Number(b.score_final) - Number(a.score_final));
-  const top = [...verdes, ...amareloPraTop].slice(0, 10);
-
-  // Top 10 menos satisfeitos: vermelhos primeiro (ordenados por pior score),
-  // depois amarelos por pior score
-  const vermelhos = all
-    .filter((s) => s.cor_final === "vermelho")
-    .sort((a, b) => Number(a.score_final) - Number(b.score_final));
-  const amareloPraBottom = all
-    .filter((s) => s.cor_final === "amarelo")
-    .sort((a, b) => Number(a.score_final) - Number(b.score_final));
-  const bottom = [...vermelhos, ...amareloPraBottom].slice(0, 10);
-
-  return { top, bottom };
+  const all = await computeWeeklyRanking(currentIsoWeek(), filter);
+  return sliceTopBottom(all);
 }
 
 export async function getRankingSatisfacao(filter?: ClientFilter): Promise<{
-  top: SynthesisRowWithCliente[];
-  bottom: SynthesisRowWithCliente[];
+  top: RankedClient[];
+  bottom: RankedClient[];
 }> {
   const cached = unstable_cache(
     async (filterJson: string) => {
