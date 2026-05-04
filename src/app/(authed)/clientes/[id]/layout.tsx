@@ -23,10 +23,11 @@ export default async function ClienteFolderLayout({
     user.id === cliente.assessor_id ||
     user.id === cliente.coordenador_id;
   const canSeeHistorico = ["adm", "socio"].includes(user.role);
+  const canDelete = ["adm", "socio"].includes(user.role);
 
   return (
     <div className="space-y-5">
-      <ClienteHeader cliente={cliente} canSeeMoney={canSeeMoney} />
+      <ClienteHeader cliente={cliente} canSeeMoney={canSeeMoney} canDelete={canDelete} />
       <div className="flex flex-col gap-5 md:flex-row">
         <ClienteSidebar clientId={id} canSeeHistorico={canSeeHistorico} />
         <main className="flex-1 min-w-0">{children}</main>

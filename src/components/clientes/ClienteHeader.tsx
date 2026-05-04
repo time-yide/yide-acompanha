@@ -1,7 +1,9 @@
 import { StatusBadge } from "./StatusBadge";
+import { DeleteClienteButton } from "./DeleteClienteButton";
 
 interface Props {
   cliente: {
+    id: string;
     nome: string;
     status: string;
     valor_mensal: number;
@@ -10,6 +12,7 @@ interface Props {
     coordenador?: { nome: string } | null;
   };
   canSeeMoney: boolean;
+  canDelete: boolean;
 }
 
 function formatMonths(dataEntrada: string) {
@@ -19,7 +22,7 @@ function formatMonths(dataEntrada: string) {
   return months <= 0 ? "menos de 1 mês" : `${months} meses`;
 }
 
-export function ClienteHeader({ cliente, canSeeMoney }: Props) {
+export function ClienteHeader({ cliente, canSeeMoney, canDelete }: Props) {
   return (
     <header className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-5">
       <div>
@@ -33,14 +36,19 @@ export function ClienteHeader({ cliente, canSeeMoney }: Props) {
           {cliente.coordenador?.nome && ` · Coord: ${cliente.coordenador.nome}`}
         </p>
       </div>
-      {canSeeMoney && (
-        <div className="text-right">
-          <div className="text-xs uppercase tracking-wider text-muted-foreground">Valor mensal</div>
-          <div className="text-xl font-bold tabular-nums">
-            {Number(cliente.valor_mensal).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+      <div className="flex items-center gap-3">
+        {canSeeMoney && (
+          <div className="text-right">
+            <div className="text-xs uppercase tracking-wider text-muted-foreground">Valor mensal</div>
+            <div className="text-xl font-bold tabular-nums">
+              {Number(cliente.valor_mensal).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+        {canDelete && (
+          <DeleteClienteButton clienteId={cliente.id} clienteNome={cliente.nome} />
+        )}
+      </div>
     </header>
   );
 }
