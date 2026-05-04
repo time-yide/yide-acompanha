@@ -446,19 +446,25 @@ export async function _getRankingSatisfacaoImpl(filter?: ClientFilter): Promise<
     });
   }
 
-  const top = all
+  // Top 10 mais satisfeitos: prioriza verde por score, mas se faltarem
+  // verdes pra completar 10, complementa com amarelos (próximos do verde)
+  const verdes = all
     .filter((s) => s.cor_final === "verde")
-    .sort((a, b) => Number(b.score_final) - Number(a.score_final))
-    .slice(0, 3);
+    .sort((a, b) => Number(b.score_final) - Number(a.score_final));
+  const amareloPraTop = all
+    .filter((s) => s.cor_final === "amarelo")
+    .sort((a, b) => Number(b.score_final) - Number(a.score_final));
+  const top = [...verdes, ...amareloPraTop].slice(0, 10);
 
-  const bottom = all
-    .filter((s) => s.cor_final === "vermelho" || s.cor_final === "amarelo")
-    .sort((a, b) => {
-      if (a.cor_final === "vermelho" && b.cor_final !== "vermelho") return -1;
-      if (a.cor_final !== "vermelho" && b.cor_final === "vermelho") return 1;
-      return Number(a.score_final) - Number(b.score_final);
-    })
-    .slice(0, 2);
+  // Top 10 menos satisfeitos: vermelhos primeiro (ordenados por pior score),
+  // depois amarelos por pior score
+  const vermelhos = all
+    .filter((s) => s.cor_final === "vermelho")
+    .sort((a, b) => Number(a.score_final) - Number(b.score_final));
+  const amareloPraBottom = all
+    .filter((s) => s.cor_final === "amarelo")
+    .sort((a, b) => Number(a.score_final) - Number(b.score_final));
+  const bottom = [...vermelhos, ...amareloPraBottom].slice(0, 10);
 
   return { top, bottom };
 }

@@ -50,14 +50,13 @@ export async function DashboardAssessor({ userId, nome }: Props) {
         </Section>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Section title="Satisfação dos meus clientes" cta={{ href: "/satisfacao", label: "Ver completo →" }}>
-          <RankingResumo top={ranking.top} bottom={ranking.bottom} />
-        </Section>
-        <Section title="Próximos eventos meus" cta={{ href: "/calendario", label: "Ver agenda →" }}>
-          <ProximosEventosList eventos={eventos} />
-        </Section>
-      </div>
+      <Section title="Satisfação dos meus clientes" subtitle="Top 10 mais e menos satisfeitos da semana" cta={{ href: "/satisfacao", label: "Ver completo →" }}>
+        <RankingResumo top={ranking.top} bottom={ranking.bottom} />
+      </Section>
+
+      <Section title="Próximos eventos meus" cta={{ href: "/calendario", label: "Ver agenda →" }}>
+        <ProximosEventosList eventos={eventos} />
+      </Section>
     </div>
   );
 }

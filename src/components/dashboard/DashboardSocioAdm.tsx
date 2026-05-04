@@ -63,14 +63,13 @@ export async function DashboardSocioAdm({ nome }: Props) {
         <CarteiraPorAssessorList items={carteiraPorAssessor} />
       </Section>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Section title="Satisfação" cta={{ href: "/satisfacao", label: "Ver completo →" }}>
-          <RankingResumo top={ranking.top} bottom={ranking.bottom} />
-        </Section>
-        <Section title="Próximos eventos" cta={{ href: "/calendario", label: "Ver agenda →" }}>
-          <ProximosEventosList eventos={eventos} />
-        </Section>
-      </div>
+      <Section title="Satisfação" subtitle="Top 10 mais e menos satisfeitos da semana" cta={{ href: "/satisfacao", label: "Ver completo →" }}>
+        <RankingResumo top={ranking.top} bottom={ranking.bottom} />
+      </Section>
+
+      <Section title="Próximos eventos" cta={{ href: "/calendario", label: "Ver agenda →" }}>
+        <ProximosEventosList eventos={eventos} />
+      </Section>
     </div>
   );
 }
