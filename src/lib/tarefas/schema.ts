@@ -33,5 +33,10 @@ export const editTaskSchema = z.object({
   status: z.enum(TASK_STATUSES),
 });
 
+export const moveStatusSchema = z.object({
+  id: z.string().uuid(),
+  to_status: z.enum(TASK_STATUSES),
+});
+
 export type CreateTaskInput = z.infer<typeof createTaskSchema>;
 export type EditTaskInput = z.infer<typeof editTaskSchema>;
