@@ -26,6 +26,7 @@ export default function RecuperarSenhaPage() {
           alt="Yide Digital"
           width={811}
           height={450}
+          sizes="144px"
           priority
           className="h-auto w-36 drop-shadow-[0_0_24px_rgba(61,196,188,0.35)]"
         />
