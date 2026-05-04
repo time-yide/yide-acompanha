@@ -12,9 +12,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { StatusBadge } from "./StatusBadge";
 import { AssignmentPopover } from "./AssignmentPopover";
 import { BulkAssignmentBar } from "./BulkAssignmentBar";
+import { StatusPopover } from "./StatusPopover";
+import { ServicoPopover } from "./ServicoPopover";
+import { ValorMensalPopover } from "./ValorMensalPopover";
 import type { ClienteRow } from "@/lib/clientes/queries";
 
 interface Option {
@@ -120,10 +122,10 @@ export function ClientesAssignmentTable({
                   </Link>
                 </TableCell>
                 <TableCell>
-                  <StatusBadge status={r.status} />
+                  <StatusPopover clienteId={r.id} current={r.status} />
                 </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {r.servico_contratado ?? "—"}
+                <TableCell className="text-sm">
+                  <ServicoPopover clienteId={r.id} current={r.servico_contratado} />
                 </TableCell>
                 <TableCell>
                   <AssignmentPopover
@@ -144,11 +146,12 @@ export function ClientesAssignmentTable({
                   />
                 </TableCell>
                 {canSeeMoney && (
-                  <TableCell className="text-right tabular-nums">
-                    {Number(r.valor_mensal).toLocaleString("pt-BR", {
-                      style: "currency",
-                      currency: "BRL",
-                    })}
+                  <TableCell className="text-right">
+                    <ValorMensalPopover
+                      clienteId={r.id}
+                      current={Number(r.valor_mensal)}
+                      tipoRelacao={r.tipo_relacao ?? "comum"}
+                    />
                   </TableCell>
                 )}
               </TableRow>

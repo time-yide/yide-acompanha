@@ -229,8 +229,9 @@ export async function churnClienteAction(formData: FormData) {
   });
 
   revalidatePath("/clientes");
+  revalidatePath(`/clientes/${parsed.data.id}`);
   revalidateTag("dashboard", "default");
-  redirect(`/clientes/${parsed.data.id}`);
+  return { success: true as const };
 }
 
 export async function reactivateClienteAction(id: string) {
@@ -254,6 +255,7 @@ export async function reactivateClienteAction(id: string) {
     ator_id: actor.id,
   });
 
+  revalidatePath("/clientes");
   revalidatePath(`/clientes/${id}`);
   revalidateTag("dashboard", "default");
   return { success: "Cliente reativado" };
@@ -441,6 +443,116 @@ export async function updateClienteAssignmentAction(formData: FormData) {
   revalidatePath(`/clientes/${clienteId}`);
   revalidateTag("dashboard", "default");
   return { success: true };
+}
+
+const updateFieldSchema = z.object({
+  cliente_id: z.string().uuid(),
+  servico_contratado: z.string().trim().max(500).optional(),
+  valor_mensal: z.coerce.number().min(0).optional(),
+});
+
+/**
+ * Edição inline de campos do cliente direto na listagem.
+ * Suporta servico_contratado e valor_mensal — ambos opcionais (envia só
+ * o que mudou). Idempotente.
+ *
+ * Parceria/permuta: bloqueia mudança de valor_mensal (forçado a 0 pelo
+ * schema da relação). Servico permanece editável.
+ *
+ * Quando servico_contratado muda e tipo_pacote ainda não foi revisado,
+ * re-infere o tipo_pacote (mesma regra do create/update full).
+ */
+export async function updateClienteFieldAction(formData: FormData) {
+  const actor = await requireAuth();
+  if (!["adm", "socio"].includes(actor.role)) {
+    return { error: "Sem permissão" };
+  }
+
+  const parsed = updateFieldSchema.safeParse({
+    cliente_id: fd(formData, "cliente_id"),
+    servico_contratado: fd(formData, "servico_contratado"),
+    valor_mensal: fd(formData, "valor_mensal"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const hasServico = formData.has("servico_contratado");
+  const hasValor = formData.has("valor_mensal");
+  if (!hasServico && !hasValor) return { error: "Nada para atualizar" };
+
+  const supabase = await createClient();
+  const { data: before, error: beforeErr } = await supabase
+    .from("clients")
+    .select("id, servico_contratado, valor_mensal, tipo_relacao, tipo_pacote_revisado")
+    .eq("id", parsed.data.cliente_id)
+    .single();
+  if (beforeErr || !before) return { error: "Cliente não encontrado" };
+
+  const beforeRow = before as {
+    id: string;
+    servico_contratado: string | null;
+    valor_mensal: number;
+    tipo_relacao: string | null;
+    tipo_pacote_revisado: boolean;
+  };
+
+  type Patch = {
+    servico_contratado?: string | null;
+    valor_mensal?: number;
+    tipo_pacote?: ReturnType<typeof inferTipoPacote>;
+  };
+  const patch: Patch = {};
+  const dadosAntes: Record<string, unknown> = {};
+  const dadosDepois: Record<string, unknown> = {};
+
+  if (hasServico) {
+    const novoServico = parsed.data.servico_contratado?.trim() || null;
+    if (novoServico !== beforeRow.servico_contratado) {
+      patch.servico_contratado = novoServico;
+      dadosAntes.servico_contratado = beforeRow.servico_contratado;
+      dadosDepois.servico_contratado = novoServico;
+      // Re-infere tipo_pacote se ainda não foi revisado manualmente
+      if (!beforeRow.tipo_pacote_revisado) {
+        patch.tipo_pacote = inferTipoPacote(novoServico);
+      }
+    }
+  }
+
+  if (hasValor) {
+    if (beforeRow.tipo_relacao && beforeRow.tipo_relacao !== "comum") {
+      return { error: "Cliente em parceria/permuta tem valor fixo em R$ 0. Mude o tipo de relação no detalhe pra editar." };
+    }
+    const novoValor = parsed.data.valor_mensal ?? 0;
+    if (novoValor !== Number(beforeRow.valor_mensal)) {
+      patch.valor_mensal = novoValor;
+      dadosAntes.valor_mensal = Number(beforeRow.valor_mensal);
+      dadosDepois.valor_mensal = novoValor;
+    }
+  }
+
+  if (Object.keys(patch).length === 0) {
+    return { success: true as const };
+  }
+
+  const { error: updErr } = await supabase
+    .from("clients")
+    .update(patch)
+    .eq("id", parsed.data.cliente_id);
+  if (updErr) return { error: updErr.message };
+
+  await logAudit({
+    entidade: "clients",
+    entidade_id: parsed.data.cliente_id,
+    acao: "update",
+    dados_antes: dadosAntes,
+    dados_depois: dadosDepois,
+    ator_id: actor.id,
+    justificativa: "Edição inline via listagem",
+  });
+
+  revalidatePath("/clientes");
+  revalidatePath(`/clientes/${parsed.data.cliente_id}`);
+  revalidateTag("dashboard", "default");
+  return { success: true as const };
 }
 
 export async function bulkAssignClientesAction(formData: FormData) {
