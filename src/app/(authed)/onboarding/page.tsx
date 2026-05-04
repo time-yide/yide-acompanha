@@ -31,7 +31,7 @@ export default async function OnboardingPage() {
         )}
       </header>
 
-      <KanbanBoard groups={groups} />
+      <KanbanBoard groups={groups} currentUserId={user.id} currentUserRole={user.role} />
     </div>
   );
 }

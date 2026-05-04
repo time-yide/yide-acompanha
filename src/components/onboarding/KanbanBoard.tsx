@@ -9,7 +9,13 @@ import type { Stage } from "@/lib/leads/schema";
 
 const STAGES: Stage[] = ["prospeccao", "comercial", "contrato", "marco_zero", "ativo"];
 
-export function KanbanBoard({ groups }: { groups: Record<Stage, LeadRow[]> }) {
+interface Props {
+  groups: Record<Stage, LeadRow[]>;
+  currentUserId: string;
+  currentUserRole: string;
+}
+
+export function KanbanBoard({ groups, currentUserId, currentUserRole }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -47,6 +53,8 @@ export function KanbanBoard({ groups }: { groups: Record<Stage, LeadRow[]> }) {
               stage={s}
               leads={groups[s]}
               onDropLead={(leadId, fromStage) => handleDrop(leadId, fromStage, s)}
+              currentUserId={currentUserId}
+              currentUserRole={currentUserRole}
             />
           ))}
         </div>
