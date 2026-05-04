@@ -1,5 +1,6 @@
 // SERVER ONLY: do not import from client components
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { isInMonth } from "./date-utils";
 
 export interface LeadsKpis {
@@ -183,13 +184,15 @@ const META_MULTIPLIER = 3;
 
 export async function getMetaComercial(userId: string, now: Date = new Date()): Promise<MetaComercial> {
   const supabase = await createClient();
+  // service-role para ler colunas sensíveis (fixo_mensal, comissao_percent) REVOKEadas do authenticated.
+  const adminSupabase = createServiceRoleClient();
   const monthRef = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
   const inicioMes = `${monthRef}-01`;
   const fimMes = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0))
     .toISOString()
     .slice(0, 10);
 
-  const { data: profileData } = await supabase
+  const { data: profileData } = await adminSupabase
     .from("profiles")
     .select("fixo_mensal, comissao_percent, comissao_primeiro_mes_percent")
     .eq("id", userId)

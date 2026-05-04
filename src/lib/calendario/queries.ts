@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import type { CalendarEvent, SubCalendar } from "./schema";
 
 const HOUR = 60 * 60 * 1000;
@@ -136,8 +137,9 @@ export async function listEventsForWeek(weekStart: Date, weekEnd: Date): Promise
     }
   }
 
-  // 4) Collaborator birthdays
-  const { data: colabsBirthdays = [] } = await supabase
+  // 4) Collaborator birthdays — service-role pois data_nascimento foi REVOKEada do authenticated
+  const adminSupabase = createServiceRoleClient();
+  const { data: colabsBirthdays = [] } = await adminSupabase
     .from("profiles")
     .select("id, nome, data_nascimento")
     .eq("ativo", true)

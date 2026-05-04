@@ -5,7 +5,6 @@ import { redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth/session";
 import { canAccess } from "@/lib/auth/permissions";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { createClient } from "@/lib/supabase/server";
 import { logAudit } from "@/lib/audit/log";
 import { createColaboradorSchema, editColaboradorSchema } from "./schema";
 import { generateStrongPassword } from "@/lib/auth/password-generator";
@@ -62,9 +61,8 @@ export async function createColaboradorAction(
   }
 
   // O trigger já criou o profile com role e nome via raw_user_meta_data.
-  // Atualiza fixo e percentuais.
-  const supabase = await createClient();
-  const { error: updateErr } = await supabase
+  // Atualiza fixo e percentuais — usa service-role para gravar colunas sensíveis.
+  const { error: updateErr } = await admin
     .from("profiles")
     .update({
       fixo_mensal: parsed.data.fixo_mensal,
@@ -132,7 +130,8 @@ export async function editColaboradorAction(formData: FormData) {
   }
 
   // Sócio é o único que pode mudar % e fixo de outro usuário
-  const supabase = await createClient();
+  // Usa service-role para ler/gravar colunas sensíveis (RLS REVOKE em authenticated).
+  const supabase = createServiceRoleClient();
   const { data: before } = await supabase
     .from("profiles")
     .select("*")
@@ -264,7 +263,8 @@ export async function toggleColaboradorAtivoAction(
   }
   const novoAtivo = ativoRaw === "true";
 
-  const supabase = await createClient();
+  // service-role porque UPDATE em ativo é bloqueado pelo trigger para não-admin via auth.uid()
+  const supabase = createServiceRoleClient();
   const { data: before } = await supabase
     .from("profiles")
     .select("ativo")

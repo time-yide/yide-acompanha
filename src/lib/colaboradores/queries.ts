@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export interface ColaboradorRow {
   id: string;
@@ -33,7 +33,7 @@ export function filterColaboradoresByAdmissionAfter<T extends Pick<ColaboradorRo
 }
 
 export async function listColaboradores(filters?: ColaboradorFilters): Promise<ColaboradorRow[]> {
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
   let query = supabase
     .from("profiles")
     .select(
@@ -67,7 +67,7 @@ export async function listColaboradores(filters?: ColaboradorFilters): Promise<C
 }
 
 export async function getColaboradorById(id: string) {
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
   const { data, error } = await supabase.from("profiles").select("*").eq("id", id).single();
   if (error) throw error;
   return data;
