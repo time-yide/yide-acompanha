@@ -36,5 +36,10 @@ export const markLostSchema = z.object({
   motivo_perdido: z.string().min(3, "Informe o motivo"),
 });
 
+export const deleteLeadSchema = z.object({
+  id: z.string().uuid(),
+  justificativa: z.string().min(3, "Informe o motivo (mín. 3 caracteres)"),
+});
+
 export type CreateLeadInput = z.infer<typeof createLeadSchema>;
 export type EditLeadInput = z.infer<typeof editLeadSchema>;

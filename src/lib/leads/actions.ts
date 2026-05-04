@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/auth/session";
 import { logAudit } from "@/lib/audit/log";
 import {
-  createLeadSchema, editLeadSchema, moveStageSchema, markLostSchema, type Stage,
+  createLeadSchema, editLeadSchema, moveStageSchema, markLostSchema, deleteLeadSchema, type Stage,
 } from "./schema";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 import { inferTipoPacote } from "@/lib/clientes/schema";
@@ -333,4 +333,64 @@ export async function markLostAction(formData: FormData) {
 
   revalidatePath("/onboarding");
   return { success: "Lead marcado como perdido" };
+}
+
+/**
+ * Hard delete de um lead/card do onboarding.
+ * Permissão: socio OU criador do lead (comercial_id).
+ *
+ * Audita ANTES de deletar pra preservar histórico completo. FKs em
+ * lead_history, lead_attempts, calendar_events.lead_id já têm cascade/set null
+ * configurado pelas migrations.
+ */
+export async function deleteLeadAction(formData: FormData) {
+  const actor = await requireAuth();
+  const parsed = deleteLeadSchema.safeParse({
+    id: fd(formData, "id"),
+    justificativa: fd(formData, "justificativa"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const supabase = await createClient();
+  const { data: lead } = await supabase
+    .from("leads")
+    .select("*")
+    .eq("id", parsed.data.id)
+    .single();
+  if (!lead) return { error: "Lead não encontrado" };
+
+  const isSocio = actor.role === "socio";
+  const isCreator = actor.id === lead.comercial_id;
+  if (!isSocio && !isCreator) {
+    return { error: "Apenas sócio ou o criador do card pode excluir" };
+  }
+
+  // Lead já virou cliente — exclusão precisa ser feita pelo /clientes
+  // (commission_snapshots referenciam lead_id sem cascade).
+  if (lead.stage === "ativo" || lead.client_id) {
+    return { error: "Lead já virou cliente. Use a página de clientes pra excluir." };
+  }
+
+  // Audita ANTES — depois o id some, mas o histórico fica.
+  await logAudit({
+    entidade: "leads",
+    entidade_id: parsed.data.id,
+    acao: "delete",
+    dados_antes: lead as unknown as Record<string, unknown>,
+    ator_id: actor.id,
+    justificativa: parsed.data.justificativa,
+  });
+
+  const { data: deleted, error } = await supabase
+    .from("leads")
+    .delete()
+    .eq("id", parsed.data.id)
+    .select("id");
+  if (error) return { error: error.message };
+  if (!deleted || deleted.length === 0) {
+    return { error: "Falha ao excluir: lead não foi removido (verifique permissões)" };
+  }
+
+  revalidatePath("/onboarding");
+  return { success: true as const };
 }

@@ -20,7 +20,15 @@ function formatBR(date: string | null) {
   return d.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 }
 
-export function LeadCard({ lead }: { lead: LeadRow }) {
+interface Props {
+  lead: LeadRow;
+  currentUserId: string;
+  currentUserRole: string;
+}
+
+export function LeadCard({ lead, currentUserId, currentUserRole }: Props) {
+  const canDelete = currentUserRole === "socio" || currentUserId === lead.comercial_id;
+
   function onDragStart(e: React.DragEvent) {
     e.dataTransfer.setData("text/lead-id", lead.id);
     e.dataTransfer.setData("text/from-stage", lead.stage);
@@ -77,7 +85,7 @@ export function LeadCard({ lead }: { lead: LeadRow }) {
         {lead.assessor_nome && <span>· Asses: {lead.assessor_nome}</span>}
       </div>
 
-      <StageTransitionButtons leadId={lead.id} currentStage={lead.stage as Stage} compact />
+      <StageTransitionButtons leadId={lead.id} currentStage={lead.stage as Stage} compact canDelete={canDelete} />
     </Card>
   );
 }

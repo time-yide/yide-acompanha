@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { moveStageAction, markLostAction } from "@/lib/leads/actions";
+import { useRouter } from "next/navigation";
+import { moveStageAction, markLostAction, deleteLeadAction } from "@/lib/leads/actions";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, ChevronLeft, X } from "lucide-react";
+import { ChevronRight, ChevronLeft, X, Trash2 } from "lucide-react";
 import type { Stage } from "@/lib/leads/schema";
 
 const STAGE_ORDER: Stage[] = ["prospeccao", "comercial", "contrato", "marco_zero", "ativo"];
@@ -20,13 +21,18 @@ interface Props {
   leadId: string;
   currentStage: Stage;
   compact?: boolean;
+  /** Quando true, exibe o botão "Excluir card" (sócio ou criador do lead). */
+  canDelete?: boolean;
 }
 
-export function StageTransitionButtons({ leadId, currentStage, compact = false }: Props) {
+export function StageTransitionButtons({ leadId, currentStage, compact = false, canDelete = false }: Props) {
+  const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showLost, setShowLost] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
   const [motivo, setMotivo] = useState("");
+  const [deleteJustificativa, setDeleteJustificativa] = useState("");
 
   const idx = STAGE_ORDER.indexOf(currentStage);
   const next = idx < STAGE_ORDER.length - 1 ? STAGE_ORDER[idx + 1] : null;
@@ -55,6 +61,22 @@ export function StageTransitionButtons({ leadId, currentStage, compact = false }
     else { setShowLost(false); setMotivo(""); }
   }
 
+  async function deleteLead() {
+    if (deleteJustificativa.length < 3) { setError("Informe o motivo da exclusão (mín. 3 caracteres)"); return; }
+    setBusy(true); setError(null);
+    const fd = new FormData();
+    fd.set("id", leadId);
+    fd.set("justificativa", deleteJustificativa);
+    const r = await deleteLeadAction(fd);
+    setBusy(false);
+    if (r && "error" in r && r.error) {
+      setError(r.error);
+    } else {
+      // Após exclusão, página de detalhe ficaria 404. Sempre vai pra listagem.
+      router.push("/onboarding");
+    }
+  }
+
   if (isActive) {
     return <p className="text-xs text-muted-foreground">Lead virou cliente ativo. Veja em /clientes.</p>;
   }
@@ -74,10 +96,22 @@ export function StageTransitionButtons({ leadId, currentStage, compact = false }
             <ChevronRight className="ml-1 h-3.5 w-3.5" />
           </Button>
         )}
-        {!showLost && (
+        {!showLost && !showDelete && (
           <Button size={compact ? "sm" : "default"} variant="ghost" onClick={() => setShowLost(true)} disabled={busy}>
             <X className="mr-1 h-3.5 w-3.5" />
             Marcar perdido
+          </Button>
+        )}
+        {canDelete && !showLost && !showDelete && (
+          <Button
+            size={compact ? "sm" : "default"}
+            variant="ghost"
+            onClick={() => setShowDelete(true)}
+            disabled={busy}
+            className="text-destructive hover:text-destructive"
+          >
+            <Trash2 className="mr-1 h-3.5 w-3.5" />
+            Excluir
           </Button>
         )}
       </div>
@@ -93,6 +127,28 @@ export function StageTransitionButtons({ leadId, currentStage, compact = false }
           <div className="flex gap-2">
             <Button size="sm" variant="destructive" onClick={markLost} disabled={busy}>Confirmar</Button>
             <Button size="sm" variant="ghost" onClick={() => { setShowLost(false); setMotivo(""); setError(null); }}>Cancelar</Button>
+          </div>
+        </div>
+      )}
+
+      {showDelete && (
+        <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 space-y-2">
+          <p className="text-xs text-destructive">
+            Excluir o card é <strong>permanente</strong>. Histórico e tentativas vão junto. Use &quot;Marcar perdido&quot; se só quer arquivar.
+          </p>
+          <input
+            value={deleteJustificativa}
+            onChange={(e) => setDeleteJustificativa(e.target.value)}
+            placeholder="Motivo da exclusão (ex.: criado por engano)"
+            className="w-full rounded-md border bg-background px-2 py-1.5 text-sm"
+          />
+          <div className="flex gap-2">
+            <Button size="sm" variant="destructive" onClick={deleteLead} disabled={busy}>
+              {busy ? "Excluindo..." : "Excluir definitivamente"}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => { setShowDelete(false); setDeleteJustificativa(""); setError(null); }} disabled={busy}>
+              Cancelar
+            </Button>
           </div>
         </div>
       )}

@@ -19,10 +19,12 @@ const STAGE_LABEL: Record<string, string> = {
 
 export default async function LeadDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  await requireAuth();
+  const user = await requireAuth();
 
   let lead;
   try { lead = await getLeadById(id); } catch { notFound(); }
+
+  const canDelete = user.role === "socio" || user.id === lead.comercial_id;
 
   const supabase = await createClient();
   const [{ data: profiles = [] }, history, attempts] = await Promise.all([
@@ -52,7 +54,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
 
       <Card className="p-5">
         <h2 className="mb-3 text-lg font-semibold">Mover de estágio</h2>
-        <StageTransitionButtons leadId={lead.id} currentStage={lead.stage as Stage} />
+        <StageTransitionButtons leadId={lead.id} currentStage={lead.stage as Stage} canDelete={canDelete} />
       </Card>
 
       <Card className="p-5">

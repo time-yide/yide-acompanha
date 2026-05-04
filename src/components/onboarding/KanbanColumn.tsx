@@ -26,9 +26,11 @@ interface Props {
   stage: Stage;
   leads: LeadRow[];
   onDropLead: (leadId: string, fromStage: Stage) => void;
+  currentUserId: string;
+  currentUserRole: string;
 }
 
-export function KanbanColumn({ stage, leads, onDropLead }: Props) {
+export function KanbanColumn({ stage, leads, onDropLead, currentUserId, currentUserRole }: Props) {
   const [isOver, setIsOver] = useState(false);
 
   function onDragOver(e: React.DragEvent) {
@@ -76,7 +78,9 @@ export function KanbanColumn({ stage, leads, onDropLead }: Props) {
         {leads.length === 0 ? (
           <p className="px-2 py-4 text-center text-xs text-muted-foreground">Vazio</p>
         ) : (
-          leads.map((l) => <LeadCard key={l.id} lead={l} />)
+          leads.map((l) => (
+            <LeadCard key={l.id} lead={l} currentUserId={currentUserId} currentUserRole={currentUserRole} />
+          ))
         )}
       </div>
     </div>
