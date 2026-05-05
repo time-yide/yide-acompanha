@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,13 @@ interface Props {
 export function ArtesPromptModal({ open, onOpenChange, onConfirm, pending }: Props) {
   const [valor, setValor] = useState<string>("");
   const [erro, setErro] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) {
+      setValor("");
+      setErro(null);
+    }
+  }, [open]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
