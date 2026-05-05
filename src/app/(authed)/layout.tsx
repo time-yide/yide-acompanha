@@ -15,9 +15,15 @@ export default async function AuthedLayout({ children }: { children: React.React
   return (
     <div className="flex min-h-screen">
       <Sidebar role={user.role} nome={user.nome} badges={{ recados: recadosNaoLidos }} />
-      <div className="flex flex-1 flex-col">
-        <TopBar nome={user.nome} email={user.email} avatarUrl={user.avatarUrl} />
-        <main className="flex-1 overflow-auto bg-muted/20 p-6">{children}</main>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <TopBar
+          nome={user.nome}
+          email={user.email}
+          avatarUrl={user.avatarUrl}
+          role={user.role}
+          badges={{ recados: recadosNaoLidos }}
+        />
+        <main className="flex-1 overflow-auto bg-muted/20 p-3 md:p-6">{children}</main>
       </div>
       <SatisfactionLockGate state={lockState} />
     </div>

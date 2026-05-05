@@ -1,37 +1,17 @@
 "use client";
 
-import {
-  LayoutGrid, Users, Briefcase, KanbanSquare, ListChecks,
-  DollarSign, Smile, Calendar, UserCog, Settings, ClipboardList, MessageSquare,
-  TrendingUp,
-} from "lucide-react";
+import { Settings } from "lucide-react";
 import Image from "next/image";
 import { SidebarItem } from "./SidebarItem";
+import { visibleNavItems } from "./nav-config";
 import type { Role } from "@/lib/auth/permissions";
-
-const navItems = [
-  { href: "/", icon: LayoutGrid, label: "Dashboard", roles: "all", badgeKey: null },
-  { href: "/clientes", icon: Users, label: "Clientes", roles: "all", badgeKey: null },
-  { href: "/onboarding", icon: KanbanSquare, label: "Onboarding", roles: "all", badgeKey: null },
-  { href: "/prospeccao", icon: Briefcase, label: "Prospecção", roles: ["adm", "socio", "comercial"], badgeKey: null },
-  { href: "/tarefas", icon: ListChecks, label: "Tarefas", roles: "all", badgeKey: null },
-  { href: "/recados", icon: MessageSquare, label: "Recados", roles: "all", badgeKey: "recados" as const },
-  { href: "/painel", icon: ClipboardList, label: "Painel mensal", roles: ["adm", "socio", "coordenador", "assessor", "designer", "videomaker", "editor", "audiovisual_chefe"], badgeKey: null },
-  { href: "/comissoes", icon: DollarSign, label: "Comissões", roles: "all", badgeKey: null },
-  { href: "/financeiro", icon: TrendingUp, label: "Financeiro", roles: ["socio"], badgeKey: null },
-  { href: "/satisfacao", icon: Smile, label: "Satisfação", roles: "all", badgeKey: null },
-  { href: "/calendario", icon: Calendar, label: "Calendário Interno", roles: "all", badgeKey: null },
-  { href: "/colaboradores", icon: UserCog, label: "Colaboradores", roles: "all", badgeKey: null },
-] as const;
 
 export interface SidebarBadges {
   recados?: number;
 }
 
 export function Sidebar({ role, nome, badges }: { role: Role; nome: string; badges?: SidebarBadges }) {
-  const visible = navItems.filter(
-    (item) => item.roles === "all" || (Array.isArray(item.roles) && item.roles.includes(role)),
-  );
+  const visible = visibleNavItems(role);
 
   return (
     <aside className="hidden w-[210px] flex-col border-r bg-card md:flex">
