@@ -56,5 +56,6 @@ export async function bulkImportClientesAction(formData: FormData) {
 
   revalidatePath("/clientes");
   revalidateTag("dashboard", "default");
+  revalidateTag("clients", "default");
   redirect(`/clientes?imported=${inserted?.length ?? 0}`);
 }

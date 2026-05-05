@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import type { CalendarEvent, SubCalendar } from "./schema";
@@ -39,8 +40,16 @@ export function getWeekRange(reference: Date = new Date()): WeekRange {
   return { start, end };
 }
 
-export async function listEventsForWeek(weekStart: Date, weekEnd: Date): Promise<CalendarEvent[]> {
-  const supabase = await createClient();
+/**
+ * Implementação interna que faz as 5 queries pesadas. Usa service-role pra
+ * funcionar dentro de unstable_cache (não há request context). RLS é
+ * permissiva pra todos esses recursos (`using (true)` em authenticated),
+ * então o resultado é idêntico ao cookie-based.
+ */
+async function _listEventsForWeekImpl(weekStartIso: string, weekEndIso: string): Promise<CalendarEvent[]> {
+  const weekStart = new Date(weekStartIso);
+  const weekEnd = new Date(weekEndIso);
+  const supabase = createServiceRoleClient();
   const events: CalendarEvent[] = [];
 
   // 1) Manual events
@@ -137,9 +146,8 @@ export async function listEventsForWeek(weekStart: Date, weekEnd: Date): Promise
     }
   }
 
-  // 4) Collaborator birthdays — service-role pois data_nascimento foi REVOKEada do authenticated
-  const adminSupabase = createServiceRoleClient();
-  const { data: colabsBirthdays = [] } = await adminSupabase
+  // 4) Collaborator birthdays
+  const { data: colabsBirthdays = [] } = await supabase
     .from("profiles")
     .select("id, nome, data_nascimento")
     .eq("ativo", true)
@@ -191,6 +199,23 @@ export async function listEventsForWeek(weekStart: Date, weekEnd: Date): Promise
 
   events.sort((a, b) => a.inicio.localeCompare(b.inicio));
   return events;
+}
+
+/**
+ * Versão cacheada (60s) com tag "calendar". Mutations no calendário
+ * (createEventAction, updateEventAction, deleteEventAction) chamam
+ * revalidateTag("calendar") pra invalidar imediatamente.
+ */
+export async function listEventsForWeek(weekStart: Date, weekEnd: Date): Promise<CalendarEvent[]> {
+  const cached = unstable_cache(
+    async (paramsJson: string) => {
+      const { from, to } = JSON.parse(paramsJson) as { from: string; to: string };
+      return _listEventsForWeekImpl(from, to);
+    },
+    ["calendario-week-events"],
+    { revalidate: 60, tags: ["calendar"] },
+  );
+  return cached(JSON.stringify({ from: weekStart.toISOString(), to: weekEnd.toISOString() }));
 }
 
 export async function getEventById(id: string) {

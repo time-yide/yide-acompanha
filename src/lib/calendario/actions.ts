@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/auth/session";
@@ -95,6 +95,8 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
   });
 
   revalidatePath("/calendario");
+  revalidateTag("calendar", "default");
+  revalidateTag("dashboard", "default");
   redirect(`/calendario`);
 }
 
@@ -160,6 +162,8 @@ export async function updateEventAction(_prevState: ActionResult, formData: Form
 
   revalidatePath("/calendario");
   revalidatePath(`/calendario/${id}`);
+  revalidateTag("calendar", "default");
+  revalidateTag("dashboard", "default");
   redirect("/calendario");
 }
 
@@ -177,5 +181,7 @@ export async function deleteEventAction(eventId: string) {
   });
 
   revalidatePath("/calendario");
+  revalidateTag("calendar", "default");
+  revalidateTag("dashboard", "default");
   return { success: "Evento removido" };
 }
