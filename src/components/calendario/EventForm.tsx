@@ -40,7 +40,7 @@ const SUB_LABELS: Record<SelectableSub, string> = {
 
 const SUB_DESC: Record<SelectableSub, string> = {
   agencia: "Reunião interna, daily, geral.",
-  videomakers: "Gravação. Localização, maps e roteiro são obrigatórios.",
+  videomakers: "Gravação. Localização (endereço) é obrigatória; maps e roteiro são opcionais.",
   assessores: "Reunião de assessoria.",
   coordenadores: "Reunião de coordenação.",
 };
@@ -135,28 +135,26 @@ export function EventForm({ action, defaults = {}, profiles, canCreateVideomaker
 
           <div className="space-y-2">
             <Label htmlFor="localizacao_maps_url" className="flex items-center gap-1.5">
-              <LinkIcon className="h-3.5 w-3.5" /> Link do Google Maps <span className="text-destructive">*</span>
+              <LinkIcon className="h-3.5 w-3.5" /> Link do Google Maps <span className="text-xs text-muted-foreground">(opcional)</span>
             </Label>
             <Input
               id="localizacao_maps_url"
               name="localizacao_maps_url"
               type="url"
               defaultValue={defaults.localizacao_maps_url ?? ""}
-              required
               placeholder="https://maps.google.com/..."
             />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="link_roteiro" className="flex items-center gap-1.5">
-              <FileText className="h-3.5 w-3.5" /> Link do roteiro <span className="text-destructive">*</span>
+              <FileText className="h-3.5 w-3.5" /> Link do roteiro <span className="text-xs text-muted-foreground">(opcional)</span>
             </Label>
             <Input
               id="link_roteiro"
               name="link_roteiro"
               type="url"
               defaultValue={defaults.link_roteiro ?? ""}
-              required
               placeholder="https://docs.google.com/... ou Notion, etc."
             />
           </div>
