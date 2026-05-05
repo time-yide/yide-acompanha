@@ -6,6 +6,7 @@ import { DashboardComercial } from "@/components/dashboard/DashboardComercial";
 import { DashboardVideomaker } from "@/components/dashboard/DashboardVideomaker";
 import { DashboardDesigner } from "@/components/dashboard/DashboardDesigner";
 import { DashboardEditor } from "@/components/dashboard/DashboardEditor";
+import { DashboardAudiovisualChefe } from "@/components/dashboard/DashboardAudiovisualChefe";
 import { StubGreeting } from "@/components/dashboard/StubGreeting";
 import type { Periodo } from "@/lib/dashboard/personal";
 
@@ -41,6 +42,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   }
   if (user.role === "editor") {
     return <DashboardEditor userId={user.id} nome={user.nome} periodo={periodo} />;
+  }
+  if (user.role === "audiovisual_chefe") {
+    return <DashboardAudiovisualChefe userId={user.id} nome={user.nome} periodo={periodo} />;
   }
   return <StubGreeting nome={user.nome} />;
 }
