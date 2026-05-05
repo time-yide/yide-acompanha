@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth, requirePermission, type CurrentUser } from "@/lib/auth/session";
@@ -122,6 +122,8 @@ export async function createTaskAction(_prevState: ActionResult, formData: FormD
 
   revalidatePath("/tarefas");
   if (created.client_id) revalidatePath(`/clientes/${created.client_id}/tarefas`);
+  revalidateTag("dashboard", "default");
+  revalidateTag("tasks", "default");
   redirect(`/tarefas/${created.id}`);
 }
 
@@ -226,6 +228,8 @@ export async function updateTaskAction(_prevState: ActionResult, formData: FormD
   if (parsed.data.client_id && parsed.data.client_id !== before.client_id) {
     revalidatePath(`/clientes/${parsed.data.client_id}/tarefas`);
   }
+  revalidateTag("dashboard", "default");
+  revalidateTag("tasks", "default");
   redirect(`/tarefas/${parsed.data.id}`);
 }
 
@@ -306,6 +310,8 @@ export async function toggleTaskCompletionAction(
   revalidatePath("/tarefas");
   revalidatePath(`/tarefas/${taskId}`);
   if (t.client_id) revalidatePath(`/clientes/${t.client_id}/tarefas`);
+  revalidateTag("dashboard", "default");
+  revalidateTag("tasks", "default");
   return { success: novoStatus === "concluida" ? "Tarefa concluída" : "Tarefa reaberta" };
 }
 
@@ -376,6 +382,8 @@ export async function moveTaskStatusAction(formData: FormData) {
   revalidatePath("/tarefas");
   revalidatePath(`/tarefas/${parsed.data.id}`);
   if (before.client_id) revalidatePath(`/clientes/${before.client_id}/tarefas`);
+  revalidateTag("dashboard", "default");
+  revalidateTag("tasks", "default");
   return { success: true as const };
 }
 
@@ -401,5 +409,7 @@ export async function deleteTaskAction(taskId: string) {
 
   revalidatePath("/tarefas");
   if (t.client_id) revalidatePath(`/clientes/${t.client_id}/tarefas`);
+  revalidateTag("dashboard", "default");
+  revalidateTag("tasks", "default");
   redirect("/tarefas");
 }
