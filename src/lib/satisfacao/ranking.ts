@@ -152,7 +152,7 @@ export async function computeWeeklyRanking(
       score_final: Math.round(score * 10) / 10,
       cor_final: cor,
       status,
-      votos_atuais: respondedExpected,
+      votos_atuais: clientEntries.length,
       votos_esperados: expectedAuthors.length,
       resumo_ia: synthesis?.resumo_ia,
       divergencia_detectada: synthesis?.divergencia_detectada,
