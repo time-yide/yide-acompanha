@@ -1,17 +1,11 @@
 import {
   getKpis,
-  getCarteiraTimeline,
-  getEntradaChurn,
   getCarteiraPorAssessor,
-  getRankingSatisfacao,
   getProximosEventos,
   getMesAguardandoAprovacao,
 } from "@/lib/dashboard/queries";
 import { KpiRow } from "./KpiRow";
-import { ChartCarteiraTimeline } from "./ChartCarteiraTimeline";
-import { ChartEntradaChurn } from "./ChartEntradaChurn";
 import { CarteiraPorAssessorList } from "./CarteiraPorAssessorList";
-import { RankingResumo } from "./RankingResumo";
 import { ProximosEventosList } from "./ProximosEventosList";
 import { AlertaAprovacao } from "./AlertaAprovacao";
 import { Section } from "./Section";
@@ -20,21 +14,18 @@ interface Props {
   nome: string;
 }
 
+// Charts (Recharts) e Satisfação (RankingResumo) removidos temporariamente
+// pra estabilizar produção. Investigação do crash da home em curso —
+// retornam após causa raiz identificada.
 export async function DashboardSocioAdm({ nome }: Props) {
   const [
     kpis,
-    carteiraTimeline,
-    entradaChurn,
     carteiraPorAssessor,
-    ranking,
     eventos,
     aprovacao,
   ] = await Promise.all([
     getKpis(),
-    getCarteiraTimeline(12),
-    getEntradaChurn(6),
     getCarteiraPorAssessor(),
-    getRankingSatisfacao(),
     getProximosEventos(30, 10),
     getMesAguardandoAprovacao(),
   ]);
@@ -50,26 +41,19 @@ export async function DashboardSocioAdm({ nome }: Props) {
 
       <KpiRow kpis={kpis} />
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Section title="Evolução da carteira" subtitle="Últimos 12 meses">
-          <ChartCarteiraTimeline data={carteiraTimeline} />
-        </Section>
-        <Section title="Entrada vs Churn" subtitle="Últimos 6 meses">
-          <ChartEntradaChurn data={entradaChurn} />
-        </Section>
-      </div>
-
       <Section title="Carteira por assessor">
         <CarteiraPorAssessorList items={carteiraPorAssessor} />
-      </Section>
-
-      <Section title="Satisfação" subtitle="Top 10 mais e menos satisfeitos da semana" cta={{ href: "/satisfacao", label: "Ver completo →" }}>
-        <RankingResumo top={ranking.top} bottom={ranking.bottom} />
       </Section>
 
       <Section title="Próximos eventos" cta={{ href: "/calendario", label: "Ver agenda →" }}>
         <ProximosEventosList eventos={eventos} />
       </Section>
+
+      <p className="text-center text-xs text-muted-foreground">
+        Gráficos e ranking de satisfação temporariamente removidos enquanto
+        investigamos um problema técnico. Você pode acessar o ranking completo
+        em <a href="/satisfacao" className="text-primary hover:underline">/satisfacao</a>.
+      </p>
     </div>
   );
 }
