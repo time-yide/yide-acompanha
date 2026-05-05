@@ -6,7 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/auth/session";
 import { logAudit } from "@/lib/audit/log";
 import {
-  createLeadSchema, editLeadSchema, moveStageSchema, markLostSchema, deleteLeadSchema, type Stage,
+  createLeadSchema, editLeadSchema, moveStageSchema, markLostSchema, deleteLeadSchema,
+  canInteractWithStage, type Stage,
 } from "./schema";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 import { inferTipoPacote } from "@/lib/clientes/schema";
@@ -27,20 +28,6 @@ function fd(formData: FormData, key: string) {
   return v === null || v === "" ? undefined : String(v);
 }
 
-/**
- * Estágios de venda — só comercial/adm/sócio podem mexer.
- * Marco zero e ativo têm regras próprias (coord toma conta).
- */
-const SALES_STAGES: ReadonlySet<Stage> = new Set(["prospeccao", "comercial", "contrato"]);
-const SALES_ROLES = new Set(["adm", "socio", "comercial"]);
-
-function isSalesStage(stage: Stage): boolean {
-  return SALES_STAGES.has(stage);
-}
-
-function isSalesRole(role: string): boolean {
-  return SALES_ROLES.has(role);
-}
 
 export async function createLeadAction(formData: FormData) {
   const actor = await requireAuth();
@@ -203,10 +190,9 @@ export async function moveStageAction(formData: FormData) {
   const fromStage = lead.stage as Stage;
   const toStage = parsed.data.to_stage;
 
-  // Estágios de venda (prospecção/comercial/contrato): só comercial/adm/sócio
-  // podem mexer. Coord/assessor visualizam mas não interagem.
-  if (isSalesStage(fromStage) && !isSalesRole(actor.role)) {
-    return { error: "Apenas Comercial, ADM ou Sócio podem mover cards nesta fase" };
+  // Permissão por estágio (ver STAGE_INTERACTORS em schema.ts)
+  if (!canInteractWithStage(actor.role, fromStage)) {
+    return { error: `Seu papel não tem permissão pra mexer em cards na fase "${fromStage}"` };
   }
 
   // Regras de transição
@@ -221,8 +207,8 @@ export async function moveStageAction(formData: FormData) {
     if (lead.stage !== "marco_zero") {
       return { error: "Só é possível ativar a partir do estágio Marco Zero" };
     }
-    if (!["adm", "socio", "coordenador"].includes(actor.role)) {
-      return { error: "Apenas Coord, ADM ou Sócio ativam o cliente após marco zero" };
+    if (!canInteractWithStage(actor.role, "ativo")) {
+      return { error: "Apenas Sócio, Coord ou Assessor ativam o cliente após marco zero" };
     }
   }
 
@@ -329,9 +315,9 @@ export async function markLostAction(formData: FormData) {
   const { data: lead } = await supabase.from("leads").select("*").eq("id", parsed.data.id).single();
   if (!lead) return { error: "Lead não encontrado" };
 
-  // Mesma regra do moveStage: estágios de venda só comercial/adm/sócio
-  if (isSalesStage(lead.stage as Stage) && !isSalesRole(actor.role)) {
-    return { error: "Apenas Comercial, ADM ou Sócio podem marcar como perdido nesta fase" };
+  // Mesma regra do moveStage — papel precisa interagir com o estágio atual
+  if (!canInteractWithStage(actor.role, lead.stage as Stage)) {
+    return { error: `Seu papel não tem permissão pra marcar como perdido nesta fase` };
   }
 
   const { error } = await supabase

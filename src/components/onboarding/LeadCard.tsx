@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Globe, ClipboardList, Wallet, Calendar, Rocket } from "lucide-react";
 import { StageTransitionButtons } from "./StageTransitionButtons";
 import type { LeadRow } from "@/lib/leads/queries";
-import type { Stage } from "@/lib/leads/schema";
+import { canInteractWithStage, type Stage } from "@/lib/leads/schema";
 
 const priorityClass: Record<string, string> = {
   alta: "border-rose-500/40 text-rose-600 dark:text-rose-400",
@@ -26,14 +26,10 @@ interface Props {
   currentUserRole: string;
 }
 
-const SALES_STAGES = new Set(["prospeccao", "comercial", "contrato"]);
-const SALES_ROLES = new Set(["adm", "socio", "comercial"]);
-
 export function LeadCard({ lead, currentUserId, currentUserRole }: Props) {
   const canDelete = currentUserRole === "socio" || currentUserRole === "adm" || currentUserId === lead.comercial_id;
-  // Estágios de venda: só comercial/adm/sócio interagem. Outros papéis veem read-only.
-  const isSalesStage = SALES_STAGES.has(lead.stage);
-  const canInteract = !isSalesStage || SALES_ROLES.has(currentUserRole);
+  // Permissão por estágio (mapa em src/lib/leads/schema.ts)
+  const canInteract = canInteractWithStage(currentUserRole, lead.stage as Stage);
 
   function onDragStart(e: React.DragEvent) {
     e.dataTransfer.setData("text/lead-id", lead.id);

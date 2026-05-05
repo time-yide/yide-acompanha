@@ -10,7 +10,7 @@ import { AddAttemptForm } from "@/components/onboarding/AddAttemptForm";
 import { LeadAttemptsTimeline } from "@/components/onboarding/LeadAttemptsTimeline";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { Stage } from "@/lib/leads/schema";
+import { canInteractWithStage, type Stage } from "@/lib/leads/schema";
 
 const STAGE_LABEL: Record<string, string> = {
   prospeccao: "Prospecção", comercial: "Reunião Comercial",
@@ -25,11 +25,8 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
   try { lead = await getLeadById(id); } catch { notFound(); }
 
   const canDelete = user.role === "socio" || user.role === "adm" || user.id === lead.comercial_id;
-  // Estágios de venda só comercial/adm/sócio interagem
-  const SALES_STAGES = new Set(["prospeccao", "comercial", "contrato"]);
-  const SALES_ROLES = new Set(["adm", "socio", "comercial"]);
-  const isSalesStage = SALES_STAGES.has(lead.stage);
-  const canInteract = !isSalesStage || SALES_ROLES.has(user.role);
+  // Permissão por estágio (mapa em src/lib/leads/schema.ts)
+  const canInteract = canInteractWithStage(user.role, lead.stage as Stage);
 
   const supabase = await createClient();
   const [{ data: profiles = [] }, history, attempts] = await Promise.all([
@@ -63,7 +60,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
           <StageTransitionButtons leadId={lead.id} currentStage={lead.stage as Stage} canDelete={canDelete} />
         ) : (
           <p className="text-sm text-muted-foreground">
-            Apenas Comercial, ADM ou Sócio podem mexer em cards na fase de venda. Visualização apenas.
+            Seu papel não tem permissão pra mexer em cards nesta fase. Visualização apenas.
           </p>
         )}
       </Card>
