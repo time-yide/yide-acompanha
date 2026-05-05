@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -11,8 +11,10 @@ import { cn } from "@/lib/utils";
 
 interface ProfileOption { id: string; nome: string; }
 
+type ActionResult = { error?: string } | undefined;
+
 interface Props {
-  action: (formData: FormData) => void | Promise<void>;
+  action: (state: ActionResult, formData: FormData) => Promise<ActionResult>;
   defaults?: Partial<{
     id: string;
     titulo: string;
@@ -46,6 +48,7 @@ const SUB_DESC: Record<SelectableSub, string> = {
 };
 
 export function EventForm({ action, defaults = {}, profiles, canCreateVideomaker, submitLabel = "Salvar" }: Props) {
+  const [state, formAction, pending] = useActionState(action, undefined);
   const selected = new Set(defaults.participantes_ids ?? []);
   const [sub, setSub] = useState<SelectableSub>(defaults.sub_calendar ?? "agencia");
   const isVideomaker = sub === "videomakers";
@@ -53,8 +56,7 @@ export function EventForm({ action, defaults = {}, profiles, canCreateVideomaker
   const subOptions = SELECTABLE_SUBS.filter((s) => s !== "videomakers" || canCreateVideomaker);
 
   return (
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    <form action={action as any} className="space-y-5">
+    <form action={formAction} className="space-y-5">
       {defaults.id && <input type="hidden" name="id" value={defaults.id} />}
 
       <div className="space-y-2">
@@ -187,7 +189,13 @@ export function EventForm({ action, defaults = {}, profiles, canCreateVideomaker
         </div>
       </div>
 
-      <Button type="submit">{submitLabel}</Button>
+      {state?.error && (
+        <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {state.error}
+        </p>
+      )}
+
+      <Button type="submit" disabled={pending}>{pending ? "Salvando..." : submitLabel}</Button>
     </form>
   );
 }
