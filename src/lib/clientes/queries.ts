@@ -19,6 +19,8 @@ export interface ClienteRow {
 export async function listClientes(filters?: {
   status?: "ativo" | "churn" | "em_onboarding";
   assessorId?: string;
+  /** Filtra clientes onde o usuário é assessor OU coordenador. */
+  responsibleUserId?: string;
   search?: string;
 }) {
   const supabase = await createClient();
@@ -34,6 +36,11 @@ export async function listClientes(filters?: {
 
   if (filters?.status) query = query.eq("status", filters.status);
   if (filters?.assessorId) query = query.eq("assessor_id", filters.assessorId);
+  if (filters?.responsibleUserId) {
+    query = query.or(
+      `assessor_id.eq.${filters.responsibleUserId},coordenador_id.eq.${filters.responsibleUserId}`,
+    );
+  }
   if (filters?.search) query = query.ilike("nome", `%${filters.search}%`);
 
   const { data, error } = await query;
