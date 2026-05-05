@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/auth/session";
 import { logAudit } from "@/lib/audit/log";
+import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 import {
   createEventSchema,
   editEventSchema,
@@ -16,6 +17,47 @@ import {
 function fd(formData: FormData, key: string) {
   const v = formData.get(key);
   return v === null || v === "" ? undefined : String(v);
+}
+
+/**
+ * Dispara notificação pra cada participante recém-marcado num evento.
+ * Pula o próprio actor (não notifica quem criou/editou). Best-effort:
+ * falha silenciosa pra não impedir o save do evento.
+ */
+async function notifyCalendarParticipants(params: {
+  eventId: string;
+  titulo: string;
+  inicio: string;
+  participantesNovos: string[];
+  actorId: string;
+  actorNome: string;
+}): Promise<void> {
+  const recipients = params.participantesNovos.filter((id) => id !== params.actorId);
+  if (recipients.length === 0) return;
+
+  const dataFmt = new Date(params.inicio).toLocaleString("pt-BR", {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  try {
+    await dispatchNotification({
+      // Cast: enum value adicionado em migration nova; types serão regerados
+      // após `npm run db:types` pós-merge da migration.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      evento_tipo: "evento_calendario_marcado" as any,
+      titulo: "Você foi adicionado em um evento",
+      mensagem: `${params.actorNome} adicionou você no evento "${params.titulo}" — ${dataFmt}`,
+      link: `/calendario/${params.eventId}`,
+      user_ids_extras: recipients,
+      source_user_id: params.actorId,
+    });
+  } catch {
+    // Falha de notificação não deve impedir o save do evento.
+  }
 }
 
 function parseSub(raw: string | undefined): SelectableSub {
@@ -94,6 +136,16 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
     ator_id: actor.id,
   });
 
+  // Notifica os participantes do evento novo (exceto o próprio criador)
+  await notifyCalendarParticipants({
+    eventId: created.id,
+    titulo: parsed.data.titulo,
+    inicio: parsed.data.inicio,
+    participantesNovos: parsed.data.participantes_ids,
+    actorId: actor.id,
+    actorNome: actor.nome,
+  });
+
   revalidatePath("/calendario");
   redirect(`/calendario`);
 }
@@ -157,6 +209,24 @@ export async function updateEventAction(_prevState: ActionResult, formData: Form
     dados_depois: updatePayload as unknown as Record<string, unknown>,
     ator_id: actor.id,
   });
+
+  // Notifica APENAS os participantes que foram adicionados nesta edição
+  // (não re-notifica quem já estava). Compara before vs new.
+  const participantesAntes = ((before as unknown as { participantes_ids: string[] | null })
+    .participantes_ids ?? []);
+  const adicionados = parsed.data.participantes_ids.filter(
+    (pid) => !participantesAntes.includes(pid),
+  );
+  if (adicionados.length > 0) {
+    await notifyCalendarParticipants({
+      eventId: id,
+      titulo: parsed.data.titulo,
+      inicio: parsed.data.inicio,
+      participantesNovos: adicionados,
+      actorId: actor.id,
+      actorNome: actor.nome,
+    });
+  }
 
   revalidatePath("/calendario");
   revalidatePath(`/calendario/${id}`);
