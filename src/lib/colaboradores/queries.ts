@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export interface ColaboradorRow {
@@ -32,7 +33,7 @@ export function filterColaboradoresByAdmissionAfter<T extends Pick<ColaboradorRo
   return rows.filter((r) => r.data_admissao !== null && r.data_admissao >= admissionAfter);
 }
 
-export async function listColaboradores(filters?: ColaboradorFilters): Promise<ColaboradorRow[]> {
+async function _listColaboradoresImpl(filters?: ColaboradorFilters): Promise<ColaboradorRow[]> {
   const supabase = createServiceRoleClient();
   let query = supabase
     .from("profiles")
@@ -64,6 +65,18 @@ export async function listColaboradores(filters?: ColaboradorFilters): Promise<C
   rows = sortColaboradoresByName(rows);
   rows = filterColaboradoresByAdmissionAfter(rows, filters?.admissionAfter);
   return rows;
+}
+
+export async function listColaboradores(filters?: ColaboradorFilters): Promise<ColaboradorRow[]> {
+  const cached = unstable_cache(
+    async (filtersJson: string) => {
+      const f = filtersJson !== "null" ? (JSON.parse(filtersJson) as ColaboradorFilters) : undefined;
+      return _listColaboradoresImpl(f);
+    },
+    ["colaboradores-list"],
+    { revalidate: 60, tags: ["colaboradores"] },
+  );
+  return cached(JSON.stringify(filters ?? null));
 }
 
 export async function getColaboradorById(id: string) {
