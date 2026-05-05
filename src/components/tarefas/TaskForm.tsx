@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
   uploadTaskAttachmentAction,
   removeTaskAttachmentAction,
@@ -148,23 +149,27 @@ export function TaskForm({
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="client_id">Cliente (opcional)</Label>
-          <Select name="client_id" value={clientId} onValueChange={(v) => setClientId(v ?? PROFILE_NONE)}>
-            <SelectTrigger><SelectValue placeholder="Sem cliente" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value={PROFILE_NONE}>Sem cliente</SelectItem>
-              {clientes.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <input type="hidden" name="client_id" value={clientId === PROFILE_NONE ? "" : clientId} />
+          <SearchableSelect
+            options={clientes.map((c) => ({ value: c.id, label: c.nome }))}
+            value={clientId === PROFILE_NONE ? null : clientId}
+            onChange={(v) => setClientId(v ?? PROFILE_NONE)}
+            placeholder="Sem cliente"
+            emptyText="Nenhum cliente encontrado"
+            clearLabel="Sem cliente"
+          />
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="atribuido_a">Responsável principal</Label>
-          <Select name="atribuido_a" value={atribuidoA} onValueChange={(v) => setAtribuidoA(v ?? "")} required>
-            <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-            <SelectContent>
-              {profiles.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <input type="hidden" name="atribuido_a" value={atribuidoA} />
+          <SearchableSelect
+            options={profiles.map((p) => ({ value: p.id, label: p.nome }))}
+            value={atribuidoA || null}
+            onChange={(v) => setAtribuidoA(v ?? "")}
+            placeholder="Selecione"
+            emptyText="Nenhum colaborador encontrado"
+          />
         </div>
 
         <div className="space-y-2 md:col-span-2">
@@ -191,16 +196,16 @@ export function TaskForm({
               </span>
             ))}
           </div>
-          <Select value="" onValueChange={(v) => v && toggleParticipante(v)}>
-            <SelectTrigger className="w-full md:w-64">
-              <SelectValue placeholder="+ Adicionar atribuído" />
-            </SelectTrigger>
-            <SelectContent>
-              {profiles
-                .filter((p) => p.id !== atribuidoA && !participantes.includes(p.id))
-                .map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <SearchableSelect
+            options={profiles
+              .filter((p) => p.id !== atribuidoA && !participantes.includes(p.id))
+              .map((p) => ({ value: p.id, label: p.nome }))}
+            value={null}
+            onChange={(v) => v && toggleParticipante(v)}
+            placeholder="+ Adicionar atribuído"
+            emptyText="Sem mais colaboradores pra adicionar"
+            className="w-full md:w-64"
+          />
         </div>
 
         <div className="space-y-2">
