@@ -4,7 +4,18 @@ import { env } from "@/lib/env";
 
 const PUBLIC_PATHS = ["/login", "/recuperar-senha", "/definir-senha", "/auth/callback", "/monitoring"];
 
+const LEGACY_HOST = "yide-acompanha.vercel.app";
+const CANONICAL_HOST = "sistemaacompanha.yidedigital.com.br";
+
 export async function middleware(request: NextRequest) {
+  if (request.headers.get("host") === LEGACY_HOST) {
+    const url = new URL(
+      request.nextUrl.pathname + request.nextUrl.search,
+      `https://${CANONICAL_HOST}`,
+    );
+    return NextResponse.redirect(url, { status: 308 });
+  }
+
   const { pathname } = request.nextUrl;
   const isPublic = PUBLIC_PATHS.some(p => pathname.startsWith(p));
 
