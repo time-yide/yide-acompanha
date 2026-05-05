@@ -15,6 +15,8 @@ export default async function CalendarioPage({ searchParams }: { searchParams: P
 
   const ref = params.week ? new Date(params.week) : new Date();
   const { start, end } = getWeekRange(ref);
+  const todayStart = getWeekRange(new Date()).start;
+  const isOnTodayWeek = start.getTime() === todayStart.getTime();
 
   // Radio: um valor só. Aceita string ou string[] (compatibilidade com URLs antigas).
   const rawSub = typeof params.sub === "string"
@@ -57,9 +59,15 @@ export default async function CalendarioPage({ searchParams }: { searchParams: P
           <Button render={<Link href={prevHref} />} variant="outline" size="sm">
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button render={<Link href={todayHref} />} variant="outline" size="sm">
-            Hoje
-          </Button>
+          {isOnTodayWeek ? (
+            <Button variant="outline" size="sm" disabled>
+              Hoje
+            </Button>
+          ) : (
+            <Button render={<Link href={todayHref} />} variant="default" size="sm">
+              ← Hoje
+            </Button>
+          )}
           <Button render={<Link href={nextHref} />} variant="outline" size="sm">
             <ChevronRight className="h-4 w-4" />
           </Button>
