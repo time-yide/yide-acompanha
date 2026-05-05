@@ -1,15 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useTransition } from "react";
-import { Check, Paperclip, Link as LinkIcon } from "lucide-react";
-import { toggleTaskCompletionAction } from "@/lib/tarefas/actions";
+import { Paperclip, Link as LinkIcon } from "lucide-react";
 import { prazoUrgency, formatPrazoLabel, type PrazoUrgency } from "@/lib/tarefas/grouping";
 import type { TaskRow } from "@/lib/tarefas/queries";
 import { cn } from "@/lib/utils";
+import { CompleteTaskButton } from "./CompleteTaskButton";
 
 interface Props {
   task: TaskRow;
+  userRole: string;
   /** Quando true, card é arrastável (Quadro). Padrão: false (Lista). */
   draggable?: boolean;
 }
@@ -54,21 +54,11 @@ function avatarBg(userId: string | undefined | null): string {
   return palette[Math.abs(hash) % palette.length];
 }
 
-export function TaskCard({ task, draggable = false }: Props) {
-  const [pending, startTransition] = useTransition();
-
+export function TaskCard({ task, userRole, draggable = false }: Props) {
   function onDragStart(e: React.DragEvent) {
     e.dataTransfer.setData("text/task-id", task.id);
     e.dataTransfer.setData("text/from-status", task.status);
     e.dataTransfer.effectAllowed = "move";
-  }
-
-  function handleQuickComplete(e: React.MouseEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    startTransition(async () => {
-      await toggleTaskCompletionAction(task.id);
-    });
   }
 
   const urgency = prazoUrgency(task.due_date);
@@ -136,17 +126,15 @@ export function TaskCard({ task, draggable = false }: Props) {
             )}
           </div>
         </div>
-        {!isCompleted && (
-          <button
-            type="button"
-            onClick={handleQuickComplete}
-            disabled={pending}
-            title="Marcar concluída"
-            className="absolute right-2 top-2 hidden h-6 w-6 items-center justify-center rounded-md bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25 group-hover:inline-flex dark:text-emerald-400 disabled:opacity-50"
-          >
-            <Check className="h-3.5 w-3.5" />
-          </button>
-        )}
+        <CompleteTaskButton
+          taskId={task.id}
+          isCompleted={task.status === "concluida"}
+          userRole={userRole}
+          size="sm"
+          variant="ghost"
+          label={task.status === "concluida" ? "↩" : "✓"}
+          className="absolute right-2 top-2 hidden h-6 w-6 items-center justify-center rounded-md bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25 group-hover:inline-flex dark:text-emerald-400 disabled:opacity-50"
+        />
       </div>
     </Link>
   );
