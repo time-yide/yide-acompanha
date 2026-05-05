@@ -48,12 +48,7 @@ function videomakerRefinement<T extends {
     if (!val.localizacao_endereco?.trim()) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["localizacao_endereco"], message: "Localização (endereço) é obrigatória para videomaker" });
     }
-    if (!val.localizacao_maps_url?.trim()) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["localizacao_maps_url"], message: "Link do Google Maps é obrigatório para videomaker" });
-    }
-    if (!val.link_roteiro?.trim()) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["link_roteiro"], message: "Link do roteiro é obrigatório para videomaker" });
-    }
+    // Maps URL e roteiro são opcionais — videomaker pode preencher depois.
   });
 }
 
