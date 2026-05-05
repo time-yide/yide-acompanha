@@ -1,20 +1,31 @@
-import { CalendarClock, Cake, Briefcase } from "lucide-react";
+import { CalendarClock, Cake, Briefcase, Video, Users, type LucideIcon } from "lucide-react";
 import type { EventoRow } from "@/lib/dashboard/queries";
 
 interface Props {
   eventos: EventoRow[];
 }
 
-const subCalendarIcon = {
+// Mapeia cada sub_calendar pro seu ícone. IMPORTANTE: precisa cobrir TODOS
+// os valores possíveis de sub_calendar — caso contrário, lookup retorna
+// undefined e o React quebra com error #130 ("Element type is invalid").
+// Fallback CalendarClock + cor muted garantem segurança caso surjam novos
+// sub_calendars no futuro sem que esse mapa seja atualizado.
+const subCalendarIcon: Record<string, LucideIcon> = {
   agencia: CalendarClock,
   onboarding: Briefcase,
   aniversarios: Cake,
+  videomakers: Video,
+  assessores: Users,
+  coordenadores: Briefcase,
 };
 
-const subCalendarColor = {
+const subCalendarColor: Record<string, string> = {
   agencia: "text-blue-600 dark:text-blue-400",
   onboarding: "text-purple-600 dark:text-purple-400",
   aniversarios: "text-pink-600 dark:text-pink-400",
+  videomakers: "text-fuchsia-600 dark:text-fuchsia-400",
+  assessores: "text-amber-600 dark:text-amber-400",
+  coordenadores: "text-orange-600 dark:text-orange-400",
 };
 
 function formatRelative(iso: string): string {
@@ -42,8 +53,8 @@ export function ProximosEventosList({ eventos }: Props) {
   return (
     <ul className="space-y-2">
       {eventos.map((e) => {
-        const Icon = subCalendarIcon[e.sub_calendar];
-        const color = subCalendarColor[e.sub_calendar];
+        const Icon = subCalendarIcon[e.sub_calendar] ?? CalendarClock;
+        const color = subCalendarColor[e.sub_calendar] ?? "text-muted-foreground";
         return (
           <li key={e.id} className="flex items-center gap-3 text-sm">
             <Icon className={`h-4 w-4 shrink-0 ${color}`} />
