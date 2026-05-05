@@ -1,4 +1,6 @@
+import { unstable_cache } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { localIsoDate } from "@/lib/utils/date";
 
 const PRIORITY_RANK: Record<string, number> = { alta: 0, media: 1, baixa: 2 };
@@ -75,8 +77,10 @@ export interface TaskFilters {
   prioridade?: ("alta" | "media" | "baixa")[];
 }
 
-export async function listTasks(filters?: TaskFilters): Promise<TaskRow[]> {
-  const supabase = await createClient();
+async function _listTasksImpl(filters?: TaskFilters): Promise<TaskRow[]> {
+  // Service-role pra funcionar dentro de unstable_cache. RLS de SELECT em
+  // `tasks` é permissiva (`using (true)`) — resultado idêntico ao cookie-based.
+  const supabase = createServiceRoleClient();
   let query = supabase
     .from("tasks")
     .select(`
@@ -102,6 +106,18 @@ export async function listTasks(filters?: TaskFilters): Promise<TaskRow[]> {
   if (error) throw error;
   // Cast via unknown — types ainda não regenerados c/ os campos novos.
   return sortTasks((data ?? []) as unknown as TaskRow[]);
+}
+
+export async function listTasks(filters?: TaskFilters): Promise<TaskRow[]> {
+  const cached = unstable_cache(
+    async (filtersJson: string) => {
+      const f = filtersJson !== "null" ? (JSON.parse(filtersJson) as TaskFilters) : undefined;
+      return _listTasksImpl(f);
+    },
+    ["tarefas-list"],
+    { revalidate: 60, tags: ["tasks"] },
+  );
+  return cached(JSON.stringify(filters ?? null));
 }
 
 export async function listTasksForClient(clientId: string): Promise<TaskRow[]> {

@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth, requirePermission, type CurrentUser } from "@/lib/auth/session";
@@ -121,6 +121,8 @@ export async function createTaskAction(_prevState: ActionResult, formData: FormD
   }
 
   revalidatePath("/tarefas");
+  revalidateTag("tasks", "default");
+  revalidateTag("dashboard", "default");
   if (created.client_id) revalidatePath(`/clientes/${created.client_id}/tarefas`);
   redirect(`/tarefas/${created.id}`);
 }
@@ -221,6 +223,8 @@ export async function updateTaskAction(_prevState: ActionResult, formData: FormD
   }
 
   revalidatePath("/tarefas");
+  revalidateTag("tasks", "default");
+  revalidateTag("dashboard", "default");
   revalidatePath(`/tarefas/${parsed.data.id}`);
   if (before.client_id) revalidatePath(`/clientes/${before.client_id}/tarefas`);
   if (parsed.data.client_id && parsed.data.client_id !== before.client_id) {
@@ -271,6 +275,8 @@ export async function toggleTaskCompletionAction(taskId: string) {
   }
 
   revalidatePath("/tarefas");
+  revalidateTag("tasks", "default");
+  revalidateTag("dashboard", "default");
   revalidatePath(`/tarefas/${taskId}`);
   if (t.client_id) revalidatePath(`/clientes/${t.client_id}/tarefas`);
   return { success: novoStatus === "concluida" ? "Tarefa concluída" : "Tarefa reaberta" };
@@ -341,6 +347,8 @@ export async function moveTaskStatusAction(formData: FormData) {
   }
 
   revalidatePath("/tarefas");
+  revalidateTag("tasks", "default");
+  revalidateTag("dashboard", "default");
   revalidatePath(`/tarefas/${parsed.data.id}`);
   if (before.client_id) revalidatePath(`/clientes/${before.client_id}/tarefas`);
   return { success: true as const };
@@ -367,6 +375,8 @@ export async function deleteTaskAction(taskId: string) {
   });
 
   revalidatePath("/tarefas");
+  revalidateTag("tasks", "default");
+  revalidateTag("dashboard", "default");
   if (t.client_id) revalidatePath(`/clientes/${t.client_id}/tarefas`);
   redirect("/tarefas");
 }

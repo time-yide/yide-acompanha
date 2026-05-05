@@ -92,6 +92,7 @@ export async function createClienteAction(formData: FormData) {
 
   revalidatePath("/clientes");
   revalidateTag("dashboard", "default");
+  revalidateTag("clients", "default");
   redirect(`/clientes/${created.id}`);
 }
 
@@ -192,6 +193,7 @@ export async function updateClienteAction(formData: FormData) {
   revalidatePath(`/clientes/${id}`);
   revalidatePath("/clientes");
   revalidateTag("dashboard", "default");
+  revalidateTag("clients", "default");
   redirect(`/clientes/${id}`);
 }
 
@@ -231,6 +233,7 @@ export async function churnClienteAction(formData: FormData) {
   revalidatePath("/clientes");
   revalidatePath(`/clientes/${parsed.data.id}`);
   revalidateTag("dashboard", "default");
+  revalidateTag("clients", "default");
   return { success: true as const };
 }
 
@@ -258,6 +261,7 @@ export async function reactivateClienteAction(id: string) {
   revalidatePath("/clientes");
   revalidatePath(`/clientes/${id}`);
   revalidateTag("dashboard", "default");
+  revalidateTag("clients", "default");
   return { success: "Cliente reativado" };
 }
 
@@ -326,6 +330,7 @@ export async function deleteClienteAction(formData: FormData) {
 
   revalidatePath("/clientes");
   revalidateTag("dashboard", "default");
+  revalidateTag("clients", "default");
   redirect("/clientes");
 }
 
@@ -442,6 +447,7 @@ export async function updateClienteAssignmentAction(formData: FormData) {
   revalidatePath("/clientes");
   revalidatePath(`/clientes/${clienteId}`);
   revalidateTag("dashboard", "default");
+  revalidateTag("clients", "default");
   return { success: true };
 }
 
@@ -554,6 +560,7 @@ export async function updateClienteFieldAction(formData: FormData) {
   revalidatePath("/clientes");
   revalidatePath(`/clientes/${parsed.data.cliente_id}`);
   revalidateTag("dashboard", "default");
+  revalidateTag("clients", "default");
   return { success: true as const };
 }
 
@@ -634,6 +641,7 @@ export async function bulkAssignClientesAction(formData: FormData) {
 
   revalidatePath("/clientes");
   revalidateTag("dashboard", "default");
+  revalidateTag("clients", "default");
   return { success: true, count: clienteIds.length };
 }
 
@@ -698,6 +706,7 @@ export async function setAjusteMensalAction(formData: FormData) {
   revalidatePath(`/clientes/${parsed.data.client_id}`);
   revalidatePath("/clientes");
   revalidateTag("dashboard", "default");
+  revalidateTag("clients", "default");
   return { success: true };
 }
 
@@ -718,5 +727,6 @@ export async function removeAjusteMensalAction(clientId: string, mesReferencia: 
   revalidatePath(`/clientes/${clientId}`);
   revalidatePath("/clientes");
   revalidateTag("dashboard", "default");
+  revalidateTag("clients", "default");
   return { success: true };
 }

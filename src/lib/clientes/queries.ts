@@ -1,4 +1,6 @@
+import { unstable_cache } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export interface ClienteRow {
   id: string;
@@ -16,14 +18,19 @@ export interface ClienteRow {
   coordenador_nome?: string | null;
 }
 
-export async function listClientes(filters?: {
+export interface ListClientesFilters {
   status?: "ativo" | "churn" | "em_onboarding";
   assessorId?: string;
   /** Filtra clientes onde o usuário é assessor OU coordenador. */
   responsibleUserId?: string;
   search?: string;
-}) {
-  const supabase = await createClient();
+}
+
+async function _listClientesImpl(filters?: ListClientesFilters): Promise<ClienteRow[]> {
+  // Usa service-role pra funcionar dentro de unstable_cache (sem request context).
+  // RLS de SELECT em `clients` é permissiva (`using (true)` pra authenticated),
+  // então o resultado é idêntico ao cookie-based.
+  const supabase = createServiceRoleClient();
   let query = supabase
     .from("clients")
     .select(`
@@ -57,7 +64,21 @@ export async function listClientes(filters?: {
   }));
 }
 
+export async function listClientes(filters?: ListClientesFilters): Promise<ClienteRow[]> {
+  const cached = unstable_cache(
+    async (filtersJson: string) => {
+      const f = filtersJson !== "null" ? (JSON.parse(filtersJson) as ListClientesFilters) : undefined;
+      return _listClientesImpl(f);
+    },
+    ["clientes-list"],
+    { revalidate: 60, tags: ["clients"] },
+  );
+  return cached(JSON.stringify(filters ?? null));
+}
+
 export async function getClienteById(id: string) {
+  // Não cacheado: detalhe muda mais frequentemente que a lista, e revalidação
+  // por id seria mais granular. Simples assim por enquanto.
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("clients")
@@ -72,8 +93,8 @@ export async function getClienteById(id: string) {
   return data;
 }
 
-export async function getClientesStats() {
-  const supabase = await createClient();
+async function _getClientesStatsImpl() {
+  const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from("clients")
     .select("status, valor_mensal");
@@ -85,4 +106,13 @@ export async function getClientesStats() {
     total_churn: (data ?? []).filter((c) => c.status === "churn").length,
     carteira_total: ativos.reduce((sum, c) => sum + Number(c.valor_mensal), 0),
   };
+}
+
+export async function getClientesStats() {
+  const cached = unstable_cache(
+    async () => _getClientesStatsImpl(),
+    ["clientes-stats"],
+    { revalidate: 60, tags: ["clients"] },
+  );
+  return cached();
 }
