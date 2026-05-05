@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/auth/session";
 import { listMyNotifications, countMyUnread } from "./queries";
@@ -20,6 +20,7 @@ export async function markNotificationReadAction(formData: FormData) {
   if (error) return { error: error.message };
 
   revalidatePath("/notificacoes");
+  revalidateTag("notifications", "default");
   return { success: true };
 }
 
@@ -34,6 +35,7 @@ export async function markAllNotificationsReadAction() {
   if (error) return { error: error.message };
 
   revalidatePath("/notificacoes");
+  revalidateTag("notifications", "default");
   return { success: true };
 }
 

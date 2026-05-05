@@ -1,4 +1,5 @@
 // SERVER ONLY: do not import from client components
+import { revalidateTag } from "next/cache";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { sendEmail } from "@/lib/email/client";
 import { renderNotificationEmail } from "@/lib/email/templates/notification";
@@ -98,6 +99,10 @@ export async function dispatchNotification(args: DispatchArgs): Promise<void> {
       await sendEmail({ to: profile.email, subject: args.titulo, html, text });
     }
   }
+
+  // Após inserir notificações, invalida o cache do contador de não-lidas
+  // pra que os destinatários vejam o novo número na próxima request.
+  revalidateTag("notifications", "default");
 }
 
 async function resolveRecipients(
