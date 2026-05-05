@@ -1,15 +1,13 @@
 import Link from "next/link";
 import { requireAuth } from "@/lib/auth/session";
 import { listEventsForWeek, getWeekRange } from "@/lib/calendario/queries";
-import type { SubCalendar } from "@/lib/calendario/schema";
 import { SUB_CALENDARS } from "@/lib/calendario/schema";
 import { WeekView } from "@/components/calendario/WeekView";
 import { SubCalendarChips } from "@/components/calendario/SubCalendarChips";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 
-const FILTER_KEYS = [...SUB_CALENDARS, "meus"] as const;
-type FilterKey = typeof FILTER_KEYS[number];
+const VALID_SUBS: ReadonlySet<string> = new Set([...SUB_CALENDARS, "meus"]);
 
 export default async function CalendarioPage({ searchParams }: { searchParams: Promise<{ week?: string; sub?: string | string[] }> }) {
   const params = await searchParams;
@@ -18,37 +16,33 @@ export default async function CalendarioPage({ searchParams }: { searchParams: P
   const ref = params.week ? new Date(params.week) : new Date();
   const { start, end } = getWeekRange(ref);
 
-  // Default: tudo selecionado (exceto "meus", que é opt-in).
-  const filter: FilterKey[] =
-    params.sub
-      ? (Array.isArray(params.sub) ? params.sub : [params.sub]).filter((s): s is FilterKey =>
-          (FILTER_KEYS as readonly string[]).includes(s),
-        )
-      : [...SUB_CALENDARS];
-
-  const onlyMine = filter.includes("meus");
-  const subFilter = filter.filter((s): s is SubCalendar => s !== "meus") as SubCalendar[];
+  // Radio: um valor só. Aceita string ou string[] (compatibilidade com URLs antigas).
+  const rawSub = typeof params.sub === "string"
+    ? params.sub
+    : Array.isArray(params.sub) ? params.sub[0] : undefined;
+  const sub = rawSub && VALID_SUBS.has(rawSub) ? rawSub : null;
 
   let events = await listEventsForWeek(start, end);
-  events = events.filter((e) => subFilter.includes(e.sub_calendar));
-
-  if (onlyMine) {
+  if (sub === "meus") {
     events = events.filter(
       (e) =>
         e.criado_por === user.id ||
         (e.participantes_ids ?? []).includes(user.id),
     );
+  } else if (sub) {
+    events = events.filter((e) => e.sub_calendar === sub);
   }
+  // sub === null → mostra tudo, sem filtro
 
   const prevWeek = new Date(start);
   prevWeek.setUTCDate(prevWeek.getUTCDate() - 7);
   const nextWeek = new Date(start);
   nextWeek.setUTCDate(nextWeek.getUTCDate() + 7);
 
-  const subQuery = filter.map((s) => `sub=${s}`).join("&");
-  const prevHref = `/calendario?week=${prevWeek.toISOString().slice(0, 10)}&${subQuery}`;
-  const nextHref = `/calendario?week=${nextWeek.toISOString().slice(0, 10)}&${subQuery}`;
-  const todayHref = `/calendario?${subQuery}`;
+  const subQuery = sub ? `sub=${sub}` : "";
+  const prevHref = `/calendario?week=${prevWeek.toISOString().slice(0, 10)}${subQuery ? `&${subQuery}` : ""}`;
+  const nextHref = `/calendario?week=${nextWeek.toISOString().slice(0, 10)}${subQuery ? `&${subQuery}` : ""}`;
+  const todayHref = subQuery ? `/calendario?${subQuery}` : "/calendario";
 
   const formatRange = `${start.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })} – ${new Date(end.getTime() - 1).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}`;
 
@@ -75,7 +69,7 @@ export default async function CalendarioPage({ searchParams }: { searchParams: P
         </div>
       </header>
 
-      <SubCalendarChips active={filter} />
+      <SubCalendarChips current={sub} />
 
       <WeekView weekStart={start} events={events} />
     </div>
