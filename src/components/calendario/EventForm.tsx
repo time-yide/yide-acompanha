@@ -42,7 +42,7 @@ const SUB_LABELS: Record<SelectableSub, string> = {
 
 const SUB_DESC: Record<SelectableSub, string> = {
   agencia: "Reunião interna, daily, geral.",
-  videomakers: "Gravação. Localização (endereço) é obrigatória; maps e roteiro são opcionais.",
+  videomakers: "Gravação. Todos os campos extras são opcionais — preenche o que tiver.",
   assessores: "Reunião de assessoria.",
   coordenadores: "Reunião de coordenação.",
 };
@@ -124,13 +124,12 @@ export function EventForm({ action, defaults = {}, profiles, canCreateVideomaker
 
           <div className="space-y-2">
             <Label htmlFor="localizacao_endereco" className="flex items-center gap-1.5">
-              <MapPin className="h-3.5 w-3.5" /> Localização (endereço) <span className="text-destructive">*</span>
+              <MapPin className="h-3.5 w-3.5" /> Localização (endereço) <span className="text-xs text-muted-foreground">(opcional)</span>
             </Label>
             <Input
               id="localizacao_endereco"
               name="localizacao_endereco"
               defaultValue={defaults.localizacao_endereco ?? ""}
-              required
               placeholder="Rua, número, bairro, cidade"
             />
           </div>
