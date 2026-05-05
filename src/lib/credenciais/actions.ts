@@ -56,7 +56,17 @@ export async function createCredentialAction(
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  const encrypted = encryptPassword(parsed.data.password);
+  let encrypted: string;
+  try {
+    encrypted = encryptPassword(parsed.data.password);
+  } catch (e) {
+    return {
+      error:
+        e instanceof Error
+          ? `Falha na criptografia: ${e.message}`
+          : "Falha na criptografia. Verifique se CREDENTIALS_ENCRYPTION_KEY está configurada no Vercel.",
+    };
+  }
 
   const supabase = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -121,7 +131,16 @@ export async function updateCredentialAction(
     updated_by: actor.id,
   };
   if (parsed.data.password) {
-    updatePayload.password_encrypted = encryptPassword(parsed.data.password);
+    try {
+      updatePayload.password_encrypted = encryptPassword(parsed.data.password);
+    } catch (e) {
+      return {
+        error:
+          e instanceof Error
+            ? `Falha na criptografia: ${e.message}`
+            : "Falha na criptografia. Verifique se CREDENTIALS_ENCRYPTION_KEY está configurada no Vercel.",
+      };
+    }
   }
 
   const supabase = createServiceRoleClient();
