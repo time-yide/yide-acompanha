@@ -41,5 +41,22 @@ export const deleteLeadSchema = z.object({
   justificativa: z.string().min(3, "Informe o motivo (mín. 3 caracteres)"),
 });
 
+/**
+ * Quem pode interagir (mover, marcar perdido, arrastar) com um card baseado
+ * no estágio atual. Mapa compartilhado entre server (actions) e client
+ * (LeadCard) pra UI esconder botões e action bloquear.
+ */
+export const STAGE_INTERACTORS: Record<Stage, readonly string[]> = {
+  prospeccao: ["adm", "socio", "comercial"],
+  comercial: ["adm", "socio", "comercial"],
+  contrato: ["adm", "socio", "coordenador"],
+  marco_zero: ["adm", "socio", "coordenador", "assessor"],
+  ativo: ["socio", "coordenador", "assessor"],
+};
+
+export function canInteractWithStage(role: string, stage: Stage): boolean {
+  return STAGE_INTERACTORS[stage]?.includes(role) ?? false;
+}
+
 export type CreateLeadInput = z.infer<typeof createLeadSchema>;
 export type EditLeadInput = z.infer<typeof editLeadSchema>;
