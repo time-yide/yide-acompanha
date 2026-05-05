@@ -1,10 +1,7 @@
 import { z } from "zod";
-import { localIsoDate } from "@/lib/utils/date";
 
 export const PRIORITIES = ["alta", "media", "baixa"] as const;
 export const TASK_STATUSES = ["aberta", "em_andamento", "concluida"] as const;
-
-const todayIso = () => localIsoDate();
 
 export const createTaskSchema = z.object({
   titulo: z.string().min(2, "Título muito curto").max(200, "Título muito longo"),
@@ -12,14 +9,8 @@ export const createTaskSchema = z.object({
   prioridade: z.enum(PRIORITIES).default("media"),
   atribuido_a: z.string().uuid("Selecione um responsável"),
   client_id: z.string().uuid().optional().nullable(),
-  due_date: z
-    .string()
-    .optional()
-    .nullable()
-    .refine(
-      (v) => !v || v >= todayIso(),
-      "Prazo não pode estar no passado",
-    ),
+  // Prazo aceita qualquer data (incluindo retroativa pra registros tardios).
+  due_date: z.string().optional().nullable(),
 });
 
 export const editTaskSchema = z.object({
