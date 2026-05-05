@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth/session";
 import { canAccess } from "@/lib/auth/permissions";
@@ -97,6 +97,8 @@ export async function createColaboradorAction(
   });
 
   revalidatePath("/colaboradores");
+  revalidateTag("colaboradores", "default");
+  revalidateTag("dashboard", "default");
   return { success: true, password, userId: created.user.id };
 }
 
@@ -183,6 +185,8 @@ export async function editColaboradorAction(formData: FormData) {
   });
 
   revalidatePath("/colaboradores");
+  revalidateTag("colaboradores", "default");
+  revalidateTag("dashboard", "default");
   redirect(`/colaboradores/${parsed.data.id}`);
 }
 
@@ -298,6 +302,8 @@ export async function toggleColaboradorAtivoAction(
   });
 
   revalidatePath("/colaboradores");
+  revalidateTag("colaboradores", "default");
+  revalidateTag("dashboard", "default");
   revalidatePath(`/colaboradores/${userId}`);
   revalidatePath(`/colaboradores/${userId}/editar`);
 

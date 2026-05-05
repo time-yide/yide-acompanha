@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/auth/session";
 import { logAudit } from "@/lib/audit/log";
@@ -68,6 +68,8 @@ export async function adjustSnapshotAction(formData: FormData) {
   });
 
   revalidatePath("/comissoes/fechamento");
+  revalidateTag("commissions", "default");
+  revalidateTag("dashboard", "default");
   revalidatePath("/comissoes/visao-geral");
   return { success: true };
 }
@@ -124,6 +126,8 @@ export async function approveMonthAction(formData: FormData) {
   });
 
   revalidatePath("/comissoes/fechamento");
+  revalidateTag("commissions", "default");
+  revalidateTag("dashboard", "default");
   revalidatePath("/comissoes/visao-geral");
   revalidatePath("/comissoes/minhas");
   return { success: true, count: snaps.length };
