@@ -9,7 +9,7 @@ import type { TaskRow } from "@/lib/tarefas/queries";
 type Status = "aberta" | "em_andamento" | "concluida";
 const STATUSES: Status[] = ["aberta", "em_andamento", "concluida"];
 
-export function TasksBoard({ tasks }: { tasks: TaskRow[] }) {
+export function TasksBoard({ tasks, userRole }: { tasks: TaskRow[]; userRole: string }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -50,6 +50,7 @@ export function TasksBoard({ tasks }: { tasks: TaskRow[] }) {
               key={s}
               status={s}
               tasks={groups[s]}
+              userRole={userRole}
               onDropTask={(taskId, fromStatus) => handleDrop(taskId, fromStatus, s)}
             />
           ))}

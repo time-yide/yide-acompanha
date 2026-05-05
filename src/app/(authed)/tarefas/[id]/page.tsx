@@ -5,10 +5,11 @@ import { requireAuth } from "@/lib/auth/session";
 import type { CurrentUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { getTaskById } from "@/lib/tarefas/queries";
-import { updateTaskAction, toggleTaskCompletionAction, deleteTaskAction } from "@/lib/tarefas/actions";
+import { updateTaskAction, deleteTaskAction } from "@/lib/tarefas/actions";
 import { TaskForm } from "@/components/tarefas/TaskForm";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { CompleteTaskButton } from "@/components/tarefas/CompleteTaskButton";
 
 function isPrivileged(user: CurrentUser): boolean {
   return user.role === "adm" || user.role === "socio";
@@ -30,11 +31,6 @@ export default async function TarefaPage({ params }: { params: Promise<{ id: str
   const canEdit = task.criado_por === user.id || task.atribuido_a === user.id || isPrivileged(user);
   const canDelete = task.criado_por === user.id || isPrivileged(user);
 
-  async function toggle() {
-    "use server";
-    await toggleTaskCompletionAction(id);
-  }
-
   async function deleteTask() {
     "use server";
     await deleteTaskAction(id);
@@ -46,11 +42,11 @@ export default async function TarefaPage({ params }: { params: Promise<{ id: str
         <h1 className="text-2xl font-bold tracking-tight">Detalhes da tarefa</h1>
         <div className="flex items-center gap-2">
           {canEdit && (
-            <form action={toggle}>
-              <Button type="submit" variant={task.status === "concluida" ? "outline" : "default"}>
-                {task.status === "concluida" ? "Reabrir" : "Marcar como concluída"}
-              </Button>
-            </form>
+            <CompleteTaskButton
+              taskId={id}
+              isCompleted={task.status === "concluida"}
+              userRole={user.role}
+            />
           )}
           {canDelete && (
             <form action={deleteTask}>
