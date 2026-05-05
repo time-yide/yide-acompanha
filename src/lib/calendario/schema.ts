@@ -37,23 +37,10 @@ const baseEventFields = {
   observacoes_gravacao: z.string().optional().nullable(),
 };
 
-function videomakerRefinement<T extends {
-  sub_calendar: SelectableSub;
-  localizacao_endereco?: string | null;
-  localizacao_maps_url?: string | null;
-  link_roteiro?: string | null;
-}>(schema: z.ZodType<T>) {
-  return schema.superRefine((val, ctx) => {
-    if (val.sub_calendar !== "videomakers") return;
-    if (!val.localizacao_endereco?.trim()) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["localizacao_endereco"], message: "Localização (endereço) é obrigatória para videomaker" });
-    }
-    // Maps URL e roteiro são opcionais — videomaker pode preencher depois.
-  });
-}
-
-export const createEventSchema = videomakerRefinement(z.object(baseEventFields));
-export const editEventSchema = videomakerRefinement(z.object({ ...baseEventFields, id: z.string().uuid() }));
+// Por enquanto todos os campos do bloco videomaker são opcionais. Quem cria
+// preenche o que tiver; videomaker complementa depois pela tela de detalhe.
+export const createEventSchema = z.object(baseEventFields);
+export const editEventSchema = z.object({ ...baseEventFields, id: z.string().uuid() });
 
 export type CreateEventInput = z.infer<typeof createEventSchema>;
 export type EditEventInput = z.infer<typeof editEventSchema>;
