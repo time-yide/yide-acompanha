@@ -1,19 +1,22 @@
 import {
   getKpis,
+  getProximosEventos,
   getMesAguardandoAprovacao,
 } from "@/lib/dashboard/queries";
 import { KpiRow } from "./KpiRow";
 import { AlertaAprovacao } from "./AlertaAprovacao";
+import { ProximosEventosList } from "./ProximosEventosList";
+import { Section } from "./Section";
 
 interface Props {
   nome: string;
 }
 
-// Bisseção: SÓ KpiRow + AlertaAprovacao. Se quebrar, bug é numa dessas duas.
-// Se funcionar, bug é nas outras (CarteiraPorAssessor, Ranking, ProximosEventos).
+// Bisseção: KPI + Alerta + ProximosEventos. Sem Carteira por Assessor e sem Ranking.
 export async function DashboardSocioAdm({ nome }: Props) {
-  const [kpis, aprovacao] = await Promise.all([
+  const [kpis, eventos, aprovacao] = await Promise.all([
     getKpis(),
+    getProximosEventos(30, 10),
     getMesAguardandoAprovacao(),
   ]);
 
@@ -28,8 +31,12 @@ export async function DashboardSocioAdm({ nome }: Props) {
 
       <KpiRow kpis={kpis} />
 
+      <Section title="Próximos eventos" cta={{ href: "/calendario", label: "Ver agenda →" }}>
+        <ProximosEventosList eventos={eventos} />
+      </Section>
+
       <p className="text-center text-xs text-muted-foreground">
-        Listas e ranking temporariamente removidos enquanto isolamos um problema técnico.
+        Carteira por assessor e ranking de satisfação ainda removidos enquanto isolamos o bug.
       </p>
     </div>
   );
