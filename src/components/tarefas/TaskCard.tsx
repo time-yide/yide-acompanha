@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Paperclip, Link as LinkIcon } from "lucide-react";
+import { Paperclip, Link as LinkIcon, ArrowRight } from "lucide-react";
 import { prazoUrgency, formatPrazoLabel, type PrazoUrgency } from "@/lib/tarefas/grouping";
 import type { TaskRow } from "@/lib/tarefas/queries";
 import { cn } from "@/lib/utils";
@@ -36,6 +36,12 @@ function initials(nome: string | undefined | null): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
+/** Primeiro nome — pra mostrar inline no card sem ocupar muita largura. */
+function firstName(nome: string | undefined | null): string {
+  if (!nome) return "—";
+  return nome.trim().split(/\s+/)[0];
+}
+
 /** Hash do userId em uma das 8 cores da paleta — determinístico. */
 function avatarBg(userId: string | undefined | null): string {
   const palette = [
@@ -65,7 +71,11 @@ export function TaskCard({ task, userRole, draggable = false }: Props) {
   const isCompleted = task.status === "concluida";
   const responsavelNome = task.atribuido?.nome ?? null;
   const responsavelId = task.atribuido?.id ?? null;
+  const criadorNome = task.criador?.nome ?? null;
+  const criadorId = task.criador?.id ?? null;
   const clienteNome = task.cliente?.nome ?? null;
+  // Quando criador e responsável são a mesma pessoa, mostra só um avatar.
+  const sameAuthor = !!criadorId && !!responsavelId && criadorId === responsavelId;
 
   return (
     <Link
@@ -87,18 +97,62 @@ export function TaskCard({ task, userRole, draggable = false }: Props) {
           <div className={cn("text-sm font-medium leading-snug", isCompleted && "line-through text-muted-foreground")}>
             {task.titulo}
           </div>
+          {(criadorNome || responsavelNome) && (
+            <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+              {criadorNome && (
+                <span
+                  className="flex items-center gap-1"
+                  title={sameAuthor ? `Criada por e atribuída a ${criadorNome}` : `Criada por ${criadorNome}`}
+                >
+                  <span
+                    className={cn(
+                      "inline-flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-semibold",
+                      avatarBg(criadorId),
+                    )}
+                  >
+                    {initials(criadorNome)}
+                  </span>
+                  <span className="text-foreground/80">{firstName(criadorNome)}</span>
+                </span>
+              )}
+              {!sameAuthor && responsavelNome && (
+                <>
+                  <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                  <span
+                    className="flex items-center gap-1"
+                    title={`Atribuída a ${responsavelNome}`}
+                  >
+                    <span
+                      className={cn(
+                        "inline-flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-semibold",
+                        avatarBg(responsavelId),
+                      )}
+                    >
+                      {initials(responsavelNome)}
+                    </span>
+                    <span className="text-foreground/80">{firstName(responsavelNome)}</span>
+                  </span>
+                </>
+              )}
+              {!criadorNome && responsavelNome && (
+                <span
+                  className="flex items-center gap-1"
+                  title={`Atribuída a ${responsavelNome}`}
+                >
+                  <span
+                    className={cn(
+                      "inline-flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-semibold",
+                      avatarBg(responsavelId),
+                    )}
+                  >
+                    {initials(responsavelNome)}
+                  </span>
+                  <span className="text-foreground/80">{firstName(responsavelNome)}</span>
+                </span>
+              )}
+            </div>
+          )}
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-            {responsavelNome && (
-              <span
-                title={responsavelNome}
-                className={cn(
-                  "inline-flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-semibold",
-                  avatarBg(responsavelId),
-                )}
-              >
-                {initials(responsavelNome)}
-              </span>
-            )}
             {clienteNome && (
               <span className="truncate rounded-md border bg-muted/40 px-1.5 py-0.5 text-[10px] max-w-[140px]">
                 {clienteNome}
