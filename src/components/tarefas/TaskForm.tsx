@@ -1,11 +1,18 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
+import { Plus, X, Link as LinkIcon, Upload, Image as ImageIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  uploadTaskAttachmentAction,
+  removeTaskAttachmentAction,
+  fetchClienteEquipeAction,
+} from "@/lib/tarefas/upload-actions";
+import type { TaskLink } from "@/lib/tarefas/queries";
 
 interface ProfileOption { id: string; nome: string; }
 interface ClientOption { id: string; nome: string; }
@@ -25,17 +32,108 @@ interface Props {
     atribuido_a: string;
     client_id: string | null;
     due_date: string | null;
+    participantes_ids: string[];
+    links: TaskLink[];
+    attachment_urls: string[];
   }>;
   isEdit?: boolean;
   submitLabel?: string;
+  /** Quando passado, usado como id pré-gerado pra path de upload. */
+  preGeneratedId?: string;
 }
 
-export function TaskForm({ action, profiles, clientes, defaults = {}, isEdit = false, submitLabel = "Salvar" }: Props) {
+const PROFILE_NONE = "_none";
+
+function nomeOf(profiles: ProfileOption[], id: string | null | undefined): string {
+  if (!id) return "—";
+  return profiles.find((p) => p.id === id)?.nome ?? id.slice(0, 8);
+}
+
+export function TaskForm({
+  action, profiles, clientes, defaults = {}, isEdit = false, submitLabel = "Salvar", preGeneratedId,
+}: Props) {
   const [state, formAction, pending] = useActionState(action, undefined);
+
+  // Pré-gera UUID estável pro form (path de upload de anexo precisa do id antes do insert)
+  const [taskId] = useState<string>(() => preGeneratedId ?? defaults.id ?? crypto.randomUUID());
+
+  const [clientId, setClientId] = useState<string>(defaults.client_id ?? PROFILE_NONE);
+  const [atribuidoA, setAtribuidoA] = useState<string>(defaults.atribuido_a ?? "");
+  const [participantes, setParticipantes] = useState<string[]>(defaults.participantes_ids ?? []);
+  const [links, setLinks] = useState<TaskLink[]>(defaults.links ?? []);
+  const [attachments, setAttachments] = useState<string[]>(defaults.attachment_urls ?? []);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploading, startUpload] = useTransition();
+
+  // Ao trocar cliente: puxa equipe e auto-preenche atribuído principal + adicionais
+  useEffect(() => {
+    if (isEdit) return; // edit não auto-puxa pra não atropelar
+    if (!clientId || clientId === PROFILE_NONE) return;
+    let cancelled = false;
+    fetchClienteEquipeAction(clientId).then((equipe) => {
+      if (cancelled || !equipe) return;
+      const principal = equipe.assessor_id ?? equipe.coordenador_id ?? equipe.designer_id;
+      if (principal && !atribuidoA) setAtribuidoA(principal);
+      const extras = [equipe.assessor_id, equipe.coordenador_id, equipe.designer_id]
+        .filter((id): id is string => !!id && id !== principal);
+      setParticipantes((prev) => Array.from(new Set([...prev, ...extras])));
+    });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientId]);
+
+  function addLink() {
+    setLinks((prev) => [...prev, { label: "", url: "" }]);
+  }
+  function updateLink(i: number, patch: Partial<TaskLink>) {
+    setLinks((prev) => prev.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
+  }
+  function removeLink(i: number) {
+    setLinks((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
+  function toggleParticipante(id: string) {
+    setParticipantes((prev) =>
+      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id],
+    );
+  }
+
+  async function onUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    setUploadError(null);
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
+    e.target.value = ""; // reset pro mesmo arquivo poder ser upado de novo
+
+    startUpload(async () => {
+      for (const file of files) {
+        const fd = new FormData();
+        fd.set("file", file);
+        const r = await uploadTaskAttachmentAction(taskId, fd);
+        if ("error" in r) {
+          setUploadError(r.error);
+          break;
+        }
+        setAttachments((prev) => [...prev, r.url]);
+      }
+    });
+  }
+
+  async function onRemoveAttachment(url: string) {
+    setAttachments((prev) => prev.filter((u) => u !== url));
+    // best-effort delete; ignora erro
+    await removeTaskAttachmentAction(url).catch(() => null);
+  }
+
+  // Filtra participantes pra excluir o atribuido principal (visualmente)
+  const participantesVisiveis = participantes.filter((id) => id !== atribuidoA);
+  const linksValidos = links.filter((l) => l.url.trim().length > 0);
 
   return (
     <form action={formAction} className="space-y-5">
-      {defaults.id && <input type="hidden" name="id" value={defaults.id} />}
+      <input type="hidden" name="id" value={taskId} />
+      <input type="hidden" name="participantes_ids" value={JSON.stringify(participantesVisiveis)} />
+      <input type="hidden" name="links" value={JSON.stringify(linksValidos)} />
+      <input type="hidden" name="attachment_urls" value={JSON.stringify(attachments)} />
 
       <div className="space-y-2">
         <Label htmlFor="titulo">Título</Label>
@@ -49,14 +147,62 @@ export function TaskForm({ action, profiles, clientes, defaults = {}, isEdit = f
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="atribuido_a">Atribuir a</Label>
-          <Select name="atribuido_a" defaultValue={defaults.atribuido_a ?? ""} required>
+          <Label htmlFor="client_id">Cliente (opcional)</Label>
+          <Select name="client_id" value={clientId} onValueChange={(v) => setClientId(v ?? PROFILE_NONE)}>
+            <SelectTrigger><SelectValue placeholder="Sem cliente" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value={PROFILE_NONE}>Sem cliente</SelectItem>
+              {clientes.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="atribuido_a">Responsável principal</Label>
+          <Select name="atribuido_a" value={atribuidoA} onValueChange={(v) => setAtribuidoA(v ?? "")} required>
             <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
             <SelectContent>
               {profiles.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
+
+        <div className="space-y-2 md:col-span-2">
+          <Label>Atribuídos adicionais (opcional)</Label>
+          <div className="flex flex-wrap gap-2">
+            {participantesVisiveis.length === 0 && (
+              <span className="text-xs text-muted-foreground py-1">
+                {clientId === PROFILE_NONE
+                  ? "Selecione um cliente pra puxar equipe automática, ou adicione manualmente abaixo."
+                  : "Nenhum adicional. Use o seletor abaixo pra incluir alguém."}
+              </span>
+            )}
+            {participantesVisiveis.map((id) => (
+              <span key={id} className="inline-flex items-center gap-1 rounded-full border bg-muted/40 px-2.5 py-1 text-xs">
+                {nomeOf(profiles, id)}
+                <button
+                  type="button"
+                  onClick={() => toggleParticipante(id)}
+                  className="text-muted-foreground hover:text-destructive"
+                  aria-label="Remover"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+          <Select value="" onValueChange={(v) => v && toggleParticipante(v)}>
+            <SelectTrigger className="w-full md:w-64">
+              <SelectValue placeholder="+ Adicionar atribuído" />
+            </SelectTrigger>
+            <SelectContent>
+              {profiles
+                .filter((p) => p.id !== atribuidoA && !participantes.includes(p.id))
+                .map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+
         <div className="space-y-2">
           <Label htmlFor="prioridade">Prioridade</Label>
           <Select name="prioridade" defaultValue={defaults.prioridade ?? "media"}>
@@ -68,16 +214,7 @@ export function TaskForm({ action, profiles, clientes, defaults = {}, isEdit = f
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="client_id">Cliente (opcional)</Label>
-          <Select name="client_id" defaultValue={defaults.client_id ?? "_none"}>
-            <SelectTrigger><SelectValue placeholder="Sem cliente" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="_none">Sem cliente</SelectItem>
-              {clientes.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
+
         <div className="space-y-2">
           <Label htmlFor="due_date">Prazo</Label>
           <Input id="due_date" name="due_date" type="date" defaultValue={defaults.due_date ?? ""} />
@@ -98,13 +235,91 @@ export function TaskForm({ action, profiles, clientes, defaults = {}, isEdit = f
         )}
       </div>
 
+      {/* Links de referência */}
+      <div className="space-y-2">
+        <Label className="flex items-center gap-1.5"><LinkIcon className="h-3.5 w-3.5" /> Links de referência (opcional)</Label>
+        <div className="space-y-2">
+          {links.map((l, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <Input
+                placeholder="Label (opcional)"
+                value={l.label ?? ""}
+                onChange={(e) => updateLink(i, { label: e.target.value })}
+                className="w-40"
+                maxLength={80}
+              />
+              <Input
+                type="url"
+                placeholder="https://..."
+                value={l.url}
+                onChange={(e) => updateLink(i, { url: e.target.value })}
+                className="flex-1"
+                maxLength={500}
+              />
+              <button
+                type="button"
+                onClick={() => removeLink(i)}
+                className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-destructive"
+                aria-label="Remover link"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+        <Button type="button" variant="outline" size="sm" onClick={addLink}>
+          <Plus className="mr-1 h-3.5 w-3.5" /> Adicionar link
+        </Button>
+      </div>
+
+      {/* Anexos */}
+      <div className="space-y-2">
+        <Label className="flex items-center gap-1.5"><ImageIcon className="h-3.5 w-3.5" /> Anexos / prints (opcional)</Label>
+        <div className="rounded-lg border border-dashed bg-muted/20 p-4">
+          <div className="flex flex-wrap gap-2">
+            {attachments.map((url) => (
+              <div key={url} className="group relative h-20 w-20 overflow-hidden rounded-md border bg-muted">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={url} alt="" className="h-full w-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => onRemoveAttachment(url)}
+                  className="absolute right-0.5 top-0.5 rounded-full bg-black/60 p-0.5 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                  aria-label="Remover"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+            <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-md border-2 border-dashed border-muted-foreground/30 bg-card text-muted-foreground hover:bg-muted/40">
+              <Upload className="h-4 w-4" />
+              <span className="text-[10px]">{uploading ? "Enviando..." : "Adicionar"}</span>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                multiple
+                onChange={onUpload}
+                disabled={uploading}
+                className="hidden"
+              />
+            </label>
+          </div>
+          <p className="mt-2 text-[10px] text-muted-foreground">
+            Imagens: PNG, JPEG, WebP ou GIF. Máx 5MB cada, até 10 arquivos.
+          </p>
+          {uploadError && <p className="mt-1 text-xs text-destructive">{uploadError}</p>}
+        </div>
+      </div>
+
       {state?.error && (
         <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {state.error}
         </p>
       )}
 
-      <Button type="submit" disabled={pending}>{pending ? "Salvando..." : submitLabel}</Button>
+      <Button type="submit" disabled={pending || uploading}>
+        {pending ? "Salvando..." : submitLabel}
+      </Button>
     </form>
   );
 }

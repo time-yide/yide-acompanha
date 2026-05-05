@@ -2,6 +2,14 @@
 
 import { requireAuth } from "@/lib/auth/session";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { getClienteEquipe, type ClienteEquipe } from "./client-team";
+
+/** Server action wrapper pra client component buscar equipe ao mudar cliente. */
+export async function fetchClienteEquipeAction(clientId: string): Promise<ClienteEquipe | null> {
+  await requireAuth();
+  if (!clientId) return null;
+  return getClienteEquipe(clientId);
+}
 
 const MAX_BYTES = 5 * 1024 * 1024;
 const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/gif"];
