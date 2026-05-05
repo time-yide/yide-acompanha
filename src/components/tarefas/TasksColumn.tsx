@@ -16,11 +16,10 @@ const COLUMN_LABEL: Record<Status, string> = {
 interface Props {
   status: Status;
   tasks: TaskRow[];
-  userRole: string;
   onDropTask: (taskId: string, fromStatus: Status) => void;
 }
 
-export function TasksColumn({ status, tasks, userRole, onDropTask }: Props) {
+export function TasksColumn({ status, tasks, onDropTask }: Props) {
   const [isOver, setIsOver] = useState(false);
 
   function onDragOver(e: React.DragEvent) {
@@ -65,7 +64,7 @@ export function TasksColumn({ status, tasks, userRole, onDropTask }: Props) {
         {tasks.length === 0 ? (
           <p className="px-2 py-4 text-center text-xs text-muted-foreground">Vazio</p>
         ) : (
-          tasks.map((t) => <TaskCard key={t.id} task={t} userRole={userRole} draggable />)
+          tasks.map((t) => <TaskCard key={t.id} task={t} draggable />)
         )}
       </div>
     </div>
