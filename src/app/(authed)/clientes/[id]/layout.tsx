@@ -26,6 +26,12 @@ export default async function ClienteFolderLayout({
   const canSeeHistorico = ["adm", "socio"].includes(user.role);
   const canDelete = ["adm", "socio"].includes(user.role);
   const canLancarAjuste = ["adm", "socio"].includes(user.role);
+  // Credenciais (cofre de senhas externas): socio/adm sempre; assessor/coord
+  // só se forem responsáveis pelo cliente.
+  const canSeeCredenciais =
+    ["socio", "adm"].includes(user.role) ||
+    (["assessor", "coordenador"].includes(user.role) &&
+      (user.id === cliente.assessor_id || user.id === cliente.coordenador_id));
 
   // Ajuste do mês atual
   const now = new Date();
@@ -42,7 +48,11 @@ export default async function ClienteFolderLayout({
         ajusteMes={ajusteMes}
       />
       <div className="flex flex-col gap-5 md:flex-row">
-        <ClienteSidebar clientId={id} canSeeHistorico={canSeeHistorico} />
+        <ClienteSidebar
+          clientId={id}
+          canSeeHistorico={canSeeHistorico}
+          canSeeCredenciais={canSeeCredenciais}
+        />
         <main className="flex-1 min-w-0">{children}</main>
       </div>
     </div>

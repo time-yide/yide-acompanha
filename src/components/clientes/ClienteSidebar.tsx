@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
-  LayoutGrid, FileText, MessagesSquare, Folder, Calendar, ListChecks, Smile, History, Pencil,
+  LayoutGrid, FileText, MessagesSquare, Folder, Calendar, ListChecks, Smile, History, Pencil, KeyRound,
 } from "lucide-react";
 
 type NavItem = {
@@ -12,6 +12,7 @@ type NavItem = {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   privileged?: boolean;
+  credenciais?: boolean;
 };
 
 const items: NavItem[] = [
@@ -19,6 +20,7 @@ const items: NavItem[] = [
   { slug: "/briefing", icon: FileText, label: "Briefing" },
   { slug: "/reunioes", icon: MessagesSquare, label: "Reuniões" },
   { slug: "/arquivos", icon: Folder, label: "Arquivos" },
+  { slug: "/credenciais", icon: KeyRound, label: "Credenciais", credenciais: true },
   { slug: "/datas", icon: Calendar, label: "Datas importantes" },
   { slug: "/tarefas", icon: ListChecks, label: "Tarefas" },
   { slug: "/satisfacao", icon: Smile, label: "Satisfação" },
@@ -26,7 +28,15 @@ const items: NavItem[] = [
   { slug: "/editar", icon: Pencil, label: "Editar dados" },
 ];
 
-export function ClienteSidebar({ clientId, canSeeHistorico }: { clientId: string; canSeeHistorico: boolean }) {
+export function ClienteSidebar({
+  clientId,
+  canSeeHistorico,
+  canSeeCredenciais,
+}: {
+  clientId: string;
+  canSeeHistorico: boolean;
+  canSeeCredenciais: boolean;
+}) {
   const pathname = usePathname();
   const base = `/clientes/${clientId}`;
 
@@ -34,7 +44,11 @@ export function ClienteSidebar({ clientId, canSeeHistorico }: { clientId: string
     <aside className="w-full md:w-[200px] md:flex-shrink-0">
       <nav className="space-y-1 rounded-xl border bg-card p-2">
         {items
-          .filter((it) => !it.privileged || canSeeHistorico)
+          .filter((it) => {
+            if (it.privileged && !canSeeHistorico) return false;
+            if (it.credenciais && !canSeeCredenciais) return false;
+            return true;
+          })
           .map((it) => {
             const href = `${base}${it.slug}`;
             const active = pathname === href || (it.slug === "" && pathname === base);
