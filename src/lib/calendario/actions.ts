@@ -29,7 +29,9 @@ function canCreateVideomaker(role: string): boolean {
   return (ROLES_PODEM_CRIAR_VIDEOMAKER as readonly string[]).includes(role);
 }
 
-export async function createEventAction(formData: FormData) {
+type ActionResult = { error?: string } | undefined;
+
+export async function createEventAction(_prevState: ActionResult, formData: FormData): Promise<ActionResult> {
   const actor = await requireAuth();
 
   const participantesRaw = formData.getAll("participantes_ids") as string[];
@@ -96,7 +98,7 @@ export async function createEventAction(formData: FormData) {
   redirect(`/calendario`);
 }
 
-export async function updateEventAction(formData: FormData) {
+export async function updateEventAction(_prevState: ActionResult, formData: FormData): Promise<ActionResult> {
   const actor = await requireAuth();
   const id = String(formData.get("id"));
 

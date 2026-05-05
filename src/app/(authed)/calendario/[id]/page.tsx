@@ -92,8 +92,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
       <Card className="p-6">
         {canEdit ? (
           <EventForm
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            action={updateEventAction as any}
+            action={updateEventAction}
             defaults={{
               id: event.id,
               titulo: event.titulo,

@@ -26,8 +26,7 @@ export default async function NovoEventoPage() {
       </header>
       <Card className="p-6">
         <EventForm
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          action={createEventAction as any}
+          action={createEventAction}
           profiles={profiles ?? []}
           canCreateVideomaker={canCreateVideomaker}
           submitLabel="Criar evento"
