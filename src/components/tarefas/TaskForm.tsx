@@ -1,3 +1,6 @@
+"use client";
+
+import { useActionState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -7,9 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 interface ProfileOption { id: string; nome: string; }
 interface ClientOption { id: string; nome: string; }
 
+type ActionResult = { error?: string } | undefined;
+
 interface Props {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  action: (formData: FormData) => Promise<any> | void;
+  action: (state: ActionResult, formData: FormData) => Promise<ActionResult>;
   profiles: ProfileOption[];
   clientes: ClientOption[];
   defaults?: Partial<{
@@ -27,8 +31,10 @@ interface Props {
 }
 
 export function TaskForm({ action, profiles, clientes, defaults = {}, isEdit = false, submitLabel = "Salvar" }: Props) {
+  const [state, formAction, pending] = useActionState(action, undefined);
+
   return (
-    <form action={action} className="space-y-5">
+    <form action={formAction} className="space-y-5">
       {defaults.id && <input type="hidden" name="id" value={defaults.id} />}
 
       <div className="space-y-2">
@@ -64,10 +70,10 @@ export function TaskForm({ action, profiles, clientes, defaults = {}, isEdit = f
         </div>
         <div className="space-y-2">
           <Label htmlFor="client_id">Cliente (opcional)</Label>
-          <Select name="client_id" defaultValue={defaults.client_id ?? ""}>
+          <Select name="client_id" defaultValue={defaults.client_id ?? "_none"}>
             <SelectTrigger><SelectValue placeholder="Sem cliente" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Sem cliente</SelectItem>
+              <SelectItem value="_none">Sem cliente</SelectItem>
               {clientes.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
             </SelectContent>
           </Select>
@@ -92,7 +98,13 @@ export function TaskForm({ action, profiles, clientes, defaults = {}, isEdit = f
         )}
       </div>
 
-      <Button type="submit">{submitLabel}</Button>
+      {state?.error && (
+        <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {state.error}
+        </p>
+      )}
+
+      <Button type="submit" disabled={pending}>{pending ? "Salvando..." : submitLabel}</Button>
     </form>
   );
 }

@@ -10,8 +10,15 @@ import { createTaskSchema, editTaskSchema, moveStatusSchema } from "./schema";
 
 function fd(formData: FormData, key: string) {
   const v = formData.get(key);
-  return v === null || v === "" ? undefined : String(v);
+  if (v === null || v === "") return undefined;
+  const s = String(v);
+  // Sentinel "_none" do TaskForm: representa "sem valor" pra Selects que
+  // não aceitam value="" (Radix Select).
+  if (s === "_none") return undefined;
+  return s;
 }
+
+type ActionResult = { error?: string } | undefined;
 
 function isPrivileged(user: CurrentUser): boolean {
   return user.role === "adm" || user.role === "socio";
@@ -22,7 +29,7 @@ async function getProfileNameAndActive(supabase: Awaited<ReturnType<typeof creat
   return data ?? null;
 }
 
-export async function createTaskAction(formData: FormData) {
+export async function createTaskAction(_prevState: ActionResult, formData: FormData): Promise<ActionResult> {
   const actor = await requirePermission("create:tasks");
 
   const parsed = createTaskSchema.safeParse({
@@ -81,7 +88,7 @@ export async function createTaskAction(formData: FormData) {
   redirect(`/tarefas/${created.id}`);
 }
 
-export async function updateTaskAction(formData: FormData) {
+export async function updateTaskAction(_prevState: ActionResult, formData: FormData): Promise<ActionResult> {
   const actor = await requireAuth();
 
   const parsed = editTaskSchema.safeParse({

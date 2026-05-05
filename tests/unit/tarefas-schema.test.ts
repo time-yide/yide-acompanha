@@ -56,7 +56,7 @@ describe("createTaskSchema", () => {
     expect(r.success).toBe(true);
   });
 
-  it("rejeita prazo no passado", () => {
+  it("aceita prazo no passado (registro retroativo)", () => {
     const passado = new Date();
     passado.setDate(passado.getDate() - 1);
     const r = createTaskSchema.safeParse({
@@ -64,7 +64,7 @@ describe("createTaskSchema", () => {
       atribuido_a: VALID_UUID,
       due_date: passado.toISOString().slice(0, 10),
     });
-    expect(r.success).toBe(false);
+    expect(r.success).toBe(true);
   });
 
   it("aceita prioridade default 'media'", () => {
