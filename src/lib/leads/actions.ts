@@ -27,6 +27,21 @@ function fd(formData: FormData, key: string) {
   return v === null || v === "" ? undefined : String(v);
 }
 
+/**
+ * Estágios de venda — só comercial/adm/sócio podem mexer.
+ * Marco zero e ativo têm regras próprias (coord toma conta).
+ */
+const SALES_STAGES: ReadonlySet<Stage> = new Set(["prospeccao", "comercial", "contrato"]);
+const SALES_ROLES = new Set(["adm", "socio", "comercial"]);
+
+function isSalesStage(stage: Stage): boolean {
+  return SALES_STAGES.has(stage);
+}
+
+function isSalesRole(role: string): boolean {
+  return SALES_ROLES.has(role);
+}
+
 export async function createLeadAction(formData: FormData) {
   const actor = await requireAuth();
   if (!["adm", "socio", "comercial"].includes(actor.role)) {
@@ -188,6 +203,12 @@ export async function moveStageAction(formData: FormData) {
   const fromStage = lead.stage as Stage;
   const toStage = parsed.data.to_stage;
 
+  // Estágios de venda (prospecção/comercial/contrato): só comercial/adm/sócio
+  // podem mexer. Coord/assessor visualizam mas não interagem.
+  if (isSalesStage(fromStage) && !isSalesRole(actor.role)) {
+    return { error: "Apenas Comercial, ADM ou Sócio podem mover cards nesta fase" };
+  }
+
   // Regras de transição
   if (toStage === "marco_zero" && !lead.data_reuniao_marco_zero) {
     return { error: "Preencha 'Data da reunião de marco zero' antes de mover" };
@@ -308,6 +329,11 @@ export async function markLostAction(formData: FormData) {
   const { data: lead } = await supabase.from("leads").select("*").eq("id", parsed.data.id).single();
   if (!lead) return { error: "Lead não encontrado" };
 
+  // Mesma regra do moveStage: estágios de venda só comercial/adm/sócio
+  if (isSalesStage(lead.stage as Stage) && !isSalesRole(actor.role)) {
+    return { error: "Apenas Comercial, ADM ou Sócio podem marcar como perdido nesta fase" };
+  }
+
   const { error } = await supabase
     .from("leads")
     .update({ motivo_perdido: parsed.data.motivo_perdido })
@@ -359,10 +385,10 @@ export async function deleteLeadAction(formData: FormData) {
     .single();
   if (!lead) return { error: "Lead não encontrado" };
 
-  const isSocio = actor.role === "socio";
+  const isPriv = actor.role === "socio" || actor.role === "adm";
   const isCreator = actor.id === lead.comercial_id;
-  if (!isSocio && !isCreator) {
-    return { error: "Apenas sócio ou o criador do card pode excluir" };
+  if (!isPriv && !isCreator) {
+    return { error: "Apenas sócio, ADM ou o criador do card pode excluir" };
   }
 
   // Lead já virou cliente — exclusão precisa ser feita pelo /clientes

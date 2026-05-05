@@ -26,8 +26,14 @@ interface Props {
   currentUserRole: string;
 }
 
+const SALES_STAGES = new Set(["prospeccao", "comercial", "contrato"]);
+const SALES_ROLES = new Set(["adm", "socio", "comercial"]);
+
 export function LeadCard({ lead, currentUserId, currentUserRole }: Props) {
-  const canDelete = currentUserRole === "socio" || currentUserId === lead.comercial_id;
+  const canDelete = currentUserRole === "socio" || currentUserRole === "adm" || currentUserId === lead.comercial_id;
+  // Estágios de venda: só comercial/adm/sócio interagem. Outros papéis veem read-only.
+  const isSalesStage = SALES_STAGES.has(lead.stage);
+  const canInteract = !isSalesStage || SALES_ROLES.has(currentUserRole);
 
   function onDragStart(e: React.DragEvent) {
     e.dataTransfer.setData("text/lead-id", lead.id);
@@ -37,9 +43,9 @@ export function LeadCard({ lead, currentUserId, currentUserRole }: Props) {
 
   return (
     <Card
-      draggable
-      onDragStart={onDragStart}
-      className="space-y-2 p-3 cursor-grab active:cursor-grabbing transition-opacity [&[draggable=true]:active]:opacity-50"
+      draggable={canInteract}
+      onDragStart={canInteract ? onDragStart : undefined}
+      className={`space-y-2 p-3 transition-opacity ${canInteract ? "cursor-grab active:cursor-grabbing [&[draggable=true]:active]:opacity-50" : ""}`}
     >
       <div className="flex items-start justify-between gap-2">
         <Link href={`/onboarding/${lead.id}`} className="font-semibold hover:underline">
@@ -85,7 +91,9 @@ export function LeadCard({ lead, currentUserId, currentUserRole }: Props) {
         {lead.assessor_nome && <span>· Asses: {lead.assessor_nome}</span>}
       </div>
 
-      <StageTransitionButtons leadId={lead.id} currentStage={lead.stage as Stage} compact canDelete={canDelete} />
+      {canInteract && (
+        <StageTransitionButtons leadId={lead.id} currentStage={lead.stage as Stage} compact canDelete={canDelete} />
+      )}
     </Card>
   );
 }

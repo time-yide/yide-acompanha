@@ -24,7 +24,12 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
   let lead;
   try { lead = await getLeadById(id); } catch { notFound(); }
 
-  const canDelete = user.role === "socio" || user.id === lead.comercial_id;
+  const canDelete = user.role === "socio" || user.role === "adm" || user.id === lead.comercial_id;
+  // Estágios de venda só comercial/adm/sócio interagem
+  const SALES_STAGES = new Set(["prospeccao", "comercial", "contrato"]);
+  const SALES_ROLES = new Set(["adm", "socio", "comercial"]);
+  const isSalesStage = SALES_STAGES.has(lead.stage);
+  const canInteract = !isSalesStage || SALES_ROLES.has(user.role);
 
   const supabase = await createClient();
   const [{ data: profiles = [] }, history, attempts] = await Promise.all([
@@ -54,7 +59,13 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
 
       <Card className="p-5">
         <h2 className="mb-3 text-lg font-semibold">Mover de estágio</h2>
-        <StageTransitionButtons leadId={lead.id} currentStage={lead.stage as Stage} canDelete={canDelete} />
+        {canInteract ? (
+          <StageTransitionButtons leadId={lead.id} currentStage={lead.stage as Stage} canDelete={canDelete} />
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Apenas Comercial, ADM ou Sócio podem mexer em cards na fase de venda. Visualização apenas.
+          </p>
+        )}
       </Card>
 
       <Card className="p-5">
