@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { requireAuth, type CurrentUser } from "@/lib/auth/session";
@@ -98,6 +98,7 @@ export async function criarRecadoAction(formData: FormData) {
   }
 
   revalidatePath("/recados");
+  revalidateTag("recados", "default");
   revalidatePath("/", "layout");
   return { success: true, id: created.id };
 }
@@ -131,6 +132,7 @@ export async function editarRecadoAction(formData: FormData) {
   if (error) return { error: error.message };
 
   revalidatePath("/recados");
+  revalidateTag("recados", "default");
   return { success: true };
 }
 
@@ -153,6 +155,7 @@ export async function apagarRecadoAction(recadoId: string) {
   if (error) return { error: error.message };
 
   revalidatePath("/recados");
+  revalidateTag("recados", "default");
   revalidatePath("/", "layout");
   return { success: true };
 }
@@ -172,6 +175,7 @@ export async function arquivarRecadoAction(recadoId: string, arquivar: boolean) 
   if (error) return { error: error.message };
 
   revalidatePath("/recados");
+  revalidateTag("recados", "default");
   return { success: true };
 }
 
@@ -190,6 +194,7 @@ export async function fixarRecadoAction(recadoId: string, fixar: boolean) {
   if (!updated) return { error: "Recado não encontrado" };
 
   revalidatePath("/recados");
+  revalidateTag("recados", "default");
   return { success: true };
 }
 
@@ -224,6 +229,7 @@ export async function reagirRecadoAction(recadoId: string, emoji: string) {
   }
 
   revalidatePath("/recados");
+  revalidateTag("recados", "default");
   return { success: true };
 }
 

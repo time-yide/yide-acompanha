@@ -1,4 +1,6 @@
+import { unstable_cache } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export interface RecadoRow {
   id: string;
@@ -15,8 +17,8 @@ export interface RecadoRow {
   reacoes: Array<{ emoji: string; user_id: string }>;
 }
 
-export async function listRecados(arquivado: boolean): Promise<RecadoRow[]> {
-  const supabase = await createClient();
+async function _listRecadosImpl(arquivado: boolean): Promise<RecadoRow[]> {
+  const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from("recados")
     .select(`
@@ -35,8 +37,17 @@ export async function listRecados(arquivado: boolean): Promise<RecadoRow[]> {
   return (data ?? []) as unknown as RecadoRow[];
 }
 
-export async function countRecadosNaoLidos(userId: string): Promise<number> {
-  const supabase = await createClient();
+export async function listRecados(arquivado: boolean): Promise<RecadoRow[]> {
+  const cached = unstable_cache(
+    async (a: string) => _listRecadosImpl(a === "true"),
+    ["recados-list"],
+    { revalidate: 60, tags: ["recados"] },
+  );
+  return cached(String(arquivado));
+}
+
+async function _countRecadosNaoLidosImpl(userId: string): Promise<number> {
+  const supabase = createServiceRoleClient();
 
   const { data: vis } = await supabase
     .from("recado_visualizacoes")
@@ -61,7 +72,20 @@ export async function countRecadosNaoLidos(userId: string): Promise<number> {
   return count ?? 0;
 }
 
+export async function countRecadosNaoLidos(userId: string): Promise<number> {
+  // Cacheado 30s — chamado em TODA página autenticada via layout.tsx.
+  // Cache key inclui userId pra cada usuário ter cache próprio. Mutations
+  // em recados (criar, marcar lido) chamam revalidateTag("recados").
+  const cached = unstable_cache(
+    async (uid: string) => _countRecadosNaoLidosImpl(uid),
+    ["recados-count-nao-lidos"],
+    { revalidate: 30, tags: ["recados"] },
+  );
+  return cached(userId);
+}
+
 export async function getMyLastSeen(userId: string): Promise<string | null> {
+  // Não cacheado: usado pontualmente; valor exato muda muito.
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("recado_visualizacoes")
