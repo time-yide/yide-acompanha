@@ -31,7 +31,7 @@ function revalidateAll(expenseId?: string) {
   revalidatePath("/financeiro");
   revalidatePath("/financeiro/despesas");
   if (expenseId) revalidatePath(`/financeiro/despesas/${expenseId}`);
-  revalidateTag(FINANCEIRO_CACHE_TAG);
+  revalidateTag(FINANCEIRO_CACHE_TAG, "default");
 }
 
 export async function createExpenseAction(formData: FormData) {
