@@ -9,7 +9,7 @@ import {
 
 type NavItem = {
   slug: string;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   label: string;
   privileged?: boolean;
 };

@@ -38,6 +38,7 @@ describe("permissions.canAccess", () => {
   });
 
   it("returns false for unknown role/action combo", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect(canAccess("invalid" as any, "manage:users")).toBe(false);
   });
 });

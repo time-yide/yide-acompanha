@@ -38,7 +38,11 @@ export async function listClientes(filters?: {
 
   const { data, error } = await query;
   if (error) throw error;
-  return (data ?? []).map((r: any) => ({
+  type RawRow = ClienteRow & {
+    assessor?: { nome: string } | null;
+    coordenador?: { nome: string } | null;
+  };
+  return ((data ?? []) as unknown as RawRow[]).map((r) => ({
     ...r,
     valor_mensal: Number(r.valor_mensal),
     assessor_nome: r.assessor?.nome ?? null,

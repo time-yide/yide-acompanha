@@ -40,13 +40,19 @@ export async function listLeadsByStage(): Promise<Record<Stage, LeadRow[]>> {
     prospeccao: [], comercial: [], contrato: [], marco_zero: [], ativo: [],
   };
 
-  for (const r of data ?? []) {
+  type JoinedRow = typeof data extends (infer U)[] | null ? U : never;
+  type WithJoins = JoinedRow & {
+    comercial?: { nome: string } | null;
+    coord?: { nome: string } | null;
+    assessor?: { nome: string } | null;
+  };
+  for (const r of (data ?? []) as WithJoins[]) {
     const row: LeadRow = {
       ...r,
       valor_proposto: Number(r.valor_proposto),
-      comercial_nome: (r as any).comercial?.nome ?? null,
-      coord_nome: (r as any).coord?.nome ?? null,
-      assessor_nome: (r as any).assessor?.nome ?? null,
+      comercial_nome: r.comercial?.nome ?? null,
+      coord_nome: r.coord?.nome ?? null,
+      assessor_nome: r.assessor?.nome ?? null,
     };
     groups[r.stage as Stage].push(row);
   }

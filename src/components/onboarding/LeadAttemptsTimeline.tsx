@@ -38,7 +38,7 @@ export function LeadAttemptsTimeline({ attempts }: { attempts: Attempt[] }) {
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Badge variant="secondary">{canalLabel[a.canal]}</Badge>
               <Badge variant="outline">{resultadoLabel[a.resultado]}</Badge>
-              <span>· {(a as any).autor?.nome ?? "—"}</span>
+              <span>· {(a as { autor?: { nome: string } }).autor?.nome ?? "—"}</span>
               <span>· {new Date(a.created_at).toLocaleString("pt-BR")}</span>
             </div>
             {a.observacao && <p className="text-sm">{a.observacao}</p>}
