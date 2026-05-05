@@ -11,6 +11,7 @@ import {
   overrideSchema,
   FINANCEIRO_CACHE_TAG,
 } from "./schema";
+import { parseBulkExpenses } from "./import";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -288,4 +289,53 @@ export async function removeOverrideAction(expenseId: string, mesRef: string) {
 
   revalidateAll(expenseId);
   return { success: true as const };
+}
+
+export async function bulkImportExpensesAction(formData: FormData) {
+  const actor = await requireSocio();
+
+  const text = String(formData.get("import_text") ?? "");
+  if (!text.trim()) return { error: "Cole os dados antes de importar" };
+
+  const parsed = parseBulkExpenses(text);
+  if (parsed.rows.length === 0) {
+    return { error: `Nenhuma linha válida (${parsed.errors.length} erro(s))` };
+  }
+
+  const supabase = await createClient();
+  const { data: org } = await supabase.from("organizations").select("id").limit(1).single();
+  if (!org) return { error: "Organização não encontrada" };
+
+  const payload = parsed.rows.map((r) => ({
+    organization_id: org.id,
+    descricao: r.descricao,
+    categoria: r.categoria,
+    tipo: r.tipo,
+    valor: r.valor,
+    mes_referencia: r.mes_referencia,
+    inicio_mes: r.inicio_mes,
+    fim_mes: r.fim_mes,
+    notas: r.notas,
+    criado_por: actor.id,
+  }));
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const { data: inserted, error } = await sb
+    .from("expenses")
+    .insert(payload)
+    .select("id");
+  if (error) return { error: error.message };
+
+  await logAudit({
+    entidade: "expenses",
+    entidade_id: "bulk-import",
+    acao: "create",
+    dados_depois: { count: inserted?.length ?? 0, errors: parsed.errors.length } as Record<string, unknown>,
+    ator_id: actor.id,
+    justificativa: `Bulk import de ${inserted?.length ?? 0} despesa(s)`,
+  });
+
+  revalidateAll();
+  return { success: true as const, count: inserted?.length ?? 0, errors: parsed.errors.length };
 }
