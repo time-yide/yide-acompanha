@@ -3,6 +3,8 @@ import { localIsoDate } from "@/lib/utils/date";
 
 const PRIORITY_RANK: Record<string, number> = { alta: 0, media: 1, baixa: 2 };
 
+export interface TaskLink { label?: string; url: string; }
+
 export interface TaskRow {
   id: string;
   titulo: string;
@@ -18,6 +20,9 @@ export interface TaskRow {
   cliente?: { id: string; nome: string } | null;
   criado_por?: string;
   atribuido_a?: string;
+  participantes_ids?: string[];
+  links?: TaskLink[];
+  attachment_urls?: string[];
 }
 
 export function sortTasks<T extends Pick<TaskRow, "due_date" | "prioridade">>(tasks: T[]): T[] {
@@ -76,6 +81,7 @@ export async function listTasks(filters?: TaskFilters): Promise<TaskRow[]> {
     .from("tasks")
     .select(`
       id, titulo, descricao, prioridade, status, due_date, created_at, completed_at, client_id, criado_por, atribuido_a,
+      participantes_ids, links, attachment_urls,
       atribuido:profiles!tasks_atribuido_a_fkey(id, nome),
       criador:profiles!tasks_criado_por_fkey(id, nome),
       cliente:clients(id, nome)
@@ -83,13 +89,19 @@ export async function listTasks(filters?: TaskFilters): Promise<TaskRow[]> {
 
   if (filters?.status && filters.status.length > 0) query = query.in("status", filters.status);
   if (filters?.prioridade && filters.prioridade.length > 0) query = query.in("prioridade", filters.prioridade);
-  if (filters?.atribuidoA) query = query.eq("atribuido_a", filters.atribuidoA);
+  // "Atribuídas a mim" agora inclui tarefas onde sou principal OU adicional
+  if (filters?.atribuidoA) {
+    query = query.or(
+      `atribuido_a.eq.${filters.atribuidoA},participantes_ids.cs.{${filters.atribuidoA}}`,
+    );
+  }
   if (filters?.criadoPor) query = query.eq("criado_por", filters.criadoPor);
   if (filters?.clientId) query = query.eq("client_id", filters.clientId);
 
   const { data, error } = await query;
   if (error) throw error;
-  return sortTasks((data ?? []) as TaskRow[]);
+  // Cast via unknown — types ainda não regenerados c/ os campos novos.
+  return sortTasks((data ?? []) as unknown as TaskRow[]);
 }
 
 export async function listTasksForClient(clientId: string): Promise<TaskRow[]> {

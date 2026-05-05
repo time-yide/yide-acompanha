@@ -29,16 +29,32 @@ async function getProfileNameAndActive(supabase: Awaited<ReturnType<typeof creat
   return data ?? null;
 }
 
+/** Serializa array vindo do form (pode vir como string JSON ou múltiplos values). */
+function fdArray(formData: FormData, key: string): unknown[] {
+  const raw = formData.get(key);
+  if (typeof raw !== "string" || !raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 export async function createTaskAction(_prevState: ActionResult, formData: FormData): Promise<ActionResult> {
   const actor = await requirePermission("create:tasks");
 
   const parsed = createTaskSchema.safeParse({
+    id: fd(formData, "id"),
     titulo: fd(formData, "titulo"),
     descricao: fd(formData, "descricao"),
     prioridade: fd(formData, "prioridade") || "media",
     atribuido_a: fd(formData, "atribuido_a"),
     client_id: fd(formData, "client_id"),
     due_date: fd(formData, "due_date"),
+    participantes_ids: fdArray(formData, "participantes_ids"),
+    links: fdArray(formData, "links"),
+    attachment_urls: fdArray(formData, "attachment_urls"),
   });
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
@@ -48,7 +64,11 @@ export async function createTaskAction(_prevState: ActionResult, formData: FormD
   const assignee = await getProfileNameAndActive(supabase, parsed.data.atribuido_a);
   if (!assignee || !assignee.ativo) return { error: "Responsável inválido ou desativado" };
 
+  // Remove o atribuido_a dos participantes (evita duplicação)
+  const participantes = parsed.data.participantes_ids.filter((id) => id !== parsed.data.atribuido_a);
+
   const insertPayload = {
+    ...(parsed.data.id ? { id: parsed.data.id } : {}),
     titulo: parsed.data.titulo,
     descricao: parsed.data.descricao || null,
     prioridade: parsed.data.prioridade,
@@ -56,9 +76,14 @@ export async function createTaskAction(_prevState: ActionResult, formData: FormD
     client_id: parsed.data.client_id || null,
     due_date: parsed.data.due_date || null,
     criado_por: actor.id,
+    participantes_ids: participantes,
+    links: parsed.data.links,
+    attachment_urls: parsed.data.attachment_urls,
   };
 
-  const { data: created, error } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const { data: created, error } = await sb
     .from("tasks")
     .insert(insertPayload)
     .select("id, client_id, titulo")
@@ -83,6 +108,18 @@ export async function createTaskAction(_prevState: ActionResult, formData: FormD
     source_user_id: actor.id,
   });
 
+  // Notificação separada (mais leve) pra atribuídos adicionais
+  if (participantes.length > 0) {
+    await dispatchNotification({
+      evento_tipo: "task_assigned",
+      titulo: "Você foi adicionado a uma tarefa",
+      mensagem: `${actor.nome} atribuiu (como participante): "${created.titulo}"`,
+      link: `/tarefas/${created.id}`,
+      user_ids_extras: participantes,
+      source_user_id: actor.id,
+    });
+  }
+
   revalidatePath("/tarefas");
   if (created.client_id) revalidatePath(`/clientes/${created.client_id}/tarefas`);
   redirect(`/tarefas/${created.id}`);
@@ -100,6 +137,9 @@ export async function updateTaskAction(_prevState: ActionResult, formData: FormD
     client_id: fd(formData, "client_id"),
     due_date: fd(formData, "due_date"),
     status: fd(formData, "status") || "aberta",
+    participantes_ids: fdArray(formData, "participantes_ids"),
+    links: fdArray(formData, "links"),
+    attachment_urls: fdArray(formData, "attachment_urls"),
   });
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
@@ -128,6 +168,8 @@ export async function updateTaskAction(_prevState: ActionResult, formData: FormD
         ? null
         : before.completed_at;
 
+  const participantes = parsed.data.participantes_ids.filter((id) => id !== parsed.data.atribuido_a);
+
   const updatePayload = {
     titulo: parsed.data.titulo,
     descricao: parsed.data.descricao || null,
@@ -137,9 +179,14 @@ export async function updateTaskAction(_prevState: ActionResult, formData: FormD
     due_date: parsed.data.due_date || null,
     status: parsed.data.status,
     completed_at,
+    participantes_ids: participantes,
+    links: parsed.data.links,
+    attachment_urls: parsed.data.attachment_urls,
   };
 
-  const { error } = await supabase.from("tasks").update(updatePayload).eq("id", parsed.data.id);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const { error } = await sb.from("tasks").update(updatePayload).eq("id", parsed.data.id);
   if (error) return { error: error.message };
 
   await logAudit({

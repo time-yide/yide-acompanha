@@ -82,6 +82,9 @@ export default async function TarefaPage({ params }: { params: Promise<{ id: str
               atribuido_a: task.atribuido_a,
               client_id: task.client_id,
               due_date: task.due_date,
+              participantes_ids: task.participantes_ids ?? [],
+              links: task.links ?? [],
+              attachment_urls: task.attachment_urls ?? [],
             }}
             isEdit
             submitLabel="Salvar alterações"
@@ -96,6 +99,36 @@ export default async function TarefaPage({ params }: { params: Promise<{ id: str
           </div>
         )}
       </Card>
+
+      {(task.links?.length ?? 0) > 0 && (
+        <Card className="p-5 space-y-2">
+          <h3 className="text-sm font-semibold">Links de referência</h3>
+          <ul className="space-y-1 text-sm">
+            {task.links?.map((l, i) => (
+              <li key={i}>
+                <a href={l.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                  {l.label || l.url}
+                </a>
+                {l.label && <span className="ml-2 text-xs text-muted-foreground">{l.url}</span>}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
+      {(task.attachment_urls?.length ?? 0) > 0 && (
+        <Card className="p-5 space-y-3">
+          <h3 className="text-sm font-semibold">Anexos</h3>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {task.attachment_urls?.map((url) => (
+              <a key={url} href={url} target="_blank" rel="noopener noreferrer" className="block aspect-square overflow-hidden rounded-lg border bg-muted">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={url} alt="anexo" className="h-full w-full object-cover transition-transform hover:scale-105" />
+              </a>
+            ))}
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

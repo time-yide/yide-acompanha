@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useTransition } from "react";
-import { Check } from "lucide-react";
+import { Check, Paperclip, Link as LinkIcon } from "lucide-react";
 import { toggleTaskCompletionAction } from "@/lib/tarefas/actions";
 import { prazoUrgency, formatPrazoLabel, type PrazoUrgency } from "@/lib/tarefas/grouping";
 import type { TaskRow } from "@/lib/tarefas/queries";
@@ -117,6 +117,23 @@ export function TaskCard({ task, draggable = false }: Props) {
             <span className={cn("inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px]", PRAZO_PILL[urgency])}>
               {formatPrazoLabel(task.due_date)}
             </span>
+            {(task.attachment_urls?.length ?? 0) > 0 && (
+              <span title={`${task.attachment_urls?.length} anexo(s)`} className="inline-flex items-center gap-0.5 text-muted-foreground">
+                <Paperclip className="h-3 w-3" />
+                <span className="text-[10px]">{task.attachment_urls?.length}</span>
+              </span>
+            )}
+            {(task.links?.length ?? 0) > 0 && (
+              <span title={`${task.links?.length} link(s)`} className="inline-flex items-center gap-0.5 text-muted-foreground">
+                <LinkIcon className="h-3 w-3" />
+                <span className="text-[10px]">{task.links?.length}</span>
+              </span>
+            )}
+            {(task.participantes_ids?.length ?? 0) > 0 && (
+              <span title={`+${task.participantes_ids?.length} atribuído(s)`} className="rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-semibold text-muted-foreground">
+                +{task.participantes_ids?.length}
+              </span>
+            )}
           </div>
         </div>
         {!isCompleted && (
