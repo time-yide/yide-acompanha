@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAuth, requirePermission, type CurrentUser } from "@/lib/auth/session";
 import { logAudit } from "@/lib/audit/log";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
-import { createTaskSchema, editTaskSchema, moveStatusSchema } from "./schema";
+import { createTaskSchema, editTaskSchema, moveStatusSchema, artesEntreguesSchema } from "./schema";
 
 function fd(formData: FormData, key: string) {
   const v = formData.get(key);
@@ -229,7 +229,10 @@ export async function updateTaskAction(_prevState: ActionResult, formData: FormD
   redirect(`/tarefas/${parsed.data.id}`);
 }
 
-export async function toggleTaskCompletionAction(taskId: string) {
+export async function toggleTaskCompletionAction(
+  taskId: string,
+  artesEntregues?: number,
+) {
   const actor = await requireAuth();
   const supabase = await createClient();
   const { data: t } = await supabase.from("tasks").select("*").eq("id", taskId).single();
@@ -242,11 +245,37 @@ export async function toggleTaskCompletionAction(taskId: string) {
   if (!canToggle) return { error: "Sem permissão" };
 
   const novoStatus = t.status === "concluida" ? "aberta" : "concluida";
-  const completed_at = novoStatus === "concluida" ? new Date().toISOString() : null;
+  const isClosing = novoStatus === "concluida";
+
+  // Designer fechando sem ter informado quantas artes → pede prompt
+  if (isClosing && actor.role === "designer" && artesEntregues === undefined) {
+    return { requiresArtesPrompt: true };
+  }
+
+  // Valida artesEntregues quando enviado (apenas designer + fechando)
+  let artesValor: number | null = null;
+  if (isClosing && actor.role === "designer" && artesEntregues !== undefined) {
+    const parsed = artesEntreguesSchema.safeParse(artesEntregues);
+    if (!parsed.success) return { error: parsed.error.issues[0].message };
+    artesValor = parsed.data;
+  }
+
+  const completed_at = isClosing ? new Date().toISOString() : null;
+
+  // Payload: só inclui artes_entregues quando designer está fechando.
+  // Reabrir ou outros roles → não toca no campo.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tAny = t as any;
+  type TaskPatch = { status: "aberta" | "concluida"; completed_at: string | null; artes_entregues?: number | null };
+  const updatePayload: TaskPatch = { status: novoStatus as "aberta" | "concluida", completed_at };
+  if (isClosing && actor.role === "designer") {
+    updatePayload.artes_entregues = artesValor;
+  }
 
   const { error } = await supabase
     .from("tasks")
-    .update({ status: novoStatus, completed_at })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .update(updatePayload as any)
     .eq("id", taskId);
   if (error) return { error: error.message };
 
@@ -254,8 +283,12 @@ export async function toggleTaskCompletionAction(taskId: string) {
     entidade: "tasks",
     entidade_id: taskId,
     acao: novoStatus === "concluida" ? "complete" : "reopen",
-    dados_antes: { status: t.status, completed_at: t.completed_at } as Record<string, unknown>,
-    dados_depois: { status: novoStatus, completed_at } as Record<string, unknown>,
+    dados_antes: {
+      status: t.status,
+      completed_at: t.completed_at,
+      artes_entregues: tAny.artes_entregues ?? null,
+    } as Record<string, unknown>,
+    dados_depois: updatePayload as unknown as Record<string, unknown>,
     ator_id: actor.id,
   });
 
