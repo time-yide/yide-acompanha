@@ -3,6 +3,7 @@
 import {
   LayoutGrid, Users, Briefcase, KanbanSquare, ListChecks,
   DollarSign, Smile, Calendar, UserCog, Settings, ClipboardList, MessageSquare,
+  TrendingUp,
 } from "lucide-react";
 import Image from "next/image";
 import { SidebarItem } from "./SidebarItem";
@@ -17,6 +18,7 @@ const navItems = [
   { href: "/recados", icon: MessageSquare, label: "Recados", roles: "all", badgeKey: "recados" as const },
   { href: "/painel", icon: ClipboardList, label: "Painel mensal", roles: ["adm", "socio", "coordenador", "assessor", "designer", "videomaker", "editor", "audiovisual_chefe"], badgeKey: null },
   { href: "/comissoes", icon: DollarSign, label: "Comissões", roles: "all", badgeKey: null },
+  { href: "/financeiro", icon: TrendingUp, label: "Financeiro", roles: ["socio"], badgeKey: null },
   { href: "/satisfacao", icon: Smile, label: "Satisfação", roles: "all", badgeKey: null },
   { href: "/calendario", icon: Calendar, label: "Calendário Interno", roles: "all", badgeKey: null },
   { href: "/colaboradores", icon: UserCog, label: "Colaboradores", roles: "all", badgeKey: null },

@@ -8,6 +8,7 @@ interface ProfileOption { id: string; nome: string; }
 interface ClientOption { id: string; nome: string; }
 
 interface Props {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   action: (formData: FormData) => Promise<any> | void;
   profiles: ProfileOption[];
   clientes: ClientOption[];

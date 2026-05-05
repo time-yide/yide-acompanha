@@ -45,7 +45,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             <Badge variant="secondary">{STAGE_LABEL[lead.stage]}</Badge>
             {lead.client_id && (
               <Link href={`/clientes/${lead.client_id}`} className="text-xs text-primary hover:underline">
-                → Cliente: {(lead as any).cliente?.nome}
+                → Cliente: {(lead as { cliente?: { nome: string } }).cliente?.nome}
               </Link>
             )}
           </div>
@@ -102,7 +102,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                 <Badge variant="secondary">
                   {h.from_stage ? `${STAGE_LABEL[h.from_stage]} → ` : ""}{STAGE_LABEL[h.to_stage]}
                 </Badge>
-                <span className="text-xs text-muted-foreground">por {(h as any).ator?.nome ?? "—"} · {new Date(h.created_at).toLocaleString("pt-BR")}</span>
+                <span className="text-xs text-muted-foreground">por {(h as { ator?: { nome: string } }).ator?.nome ?? "—"} · {new Date(h.created_at).toLocaleString("pt-BR")}</span>
                 {h.observacao && <span className="text-xs italic">— {h.observacao}</span>}
               </li>
             ))}
