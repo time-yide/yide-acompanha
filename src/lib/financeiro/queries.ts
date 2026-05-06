@@ -188,9 +188,12 @@ async function _getDREImpl(mesRef: string): Promise<DREData> {
 }
 
 export async function getDRE(mesRef: string): Promise<DREData> {
+  // Cache key versionado: bumpar quando mudar o shape do DREData (ex: v2 quando
+  // adicionamos `colaboradores`). Sem o bump, entradas antigas no cache distribuído
+  // do Vercel ficavam servindo objetos sem o novo campo, quebrando a UI cliente.
   const cached = unstable_cache(
     async (mes: string) => _getDREImpl(mes),
-    ["financeiro-dre"],
+    ["financeiro-dre-v2"],
     { revalidate: 300, tags: [FINANCEIRO_CACHE_TAG, "dashboard"] },
   );
   return cached(mesRef);

@@ -32,6 +32,10 @@ export function DREView({ data, prev }: { data: DREData; prev?: DREData | null }
   const [editingExpense, setEditingExpense] = useState<{ id: string; descricao: string; valorPadrao: number } | null>(null);
   const [expanded, setExpanded] = useState<Set<ExpandKey>>(new Set());
 
+  // Fallback defensivo: se vier do cache antigo (sem o campo), trata como vazio
+  // e a UI degrada pra modo sem breakdown ao invés de crashar.
+  const colaboradores: ColaboradorBreakdown[] = data.colaboradores ?? [];
+
   function toggle(key: ExpandKey) {
     setExpanded((prev) => {
       const next = new Set(prev);
@@ -75,11 +79,11 @@ export function DREView({ data, prev }: { data: DREData; prev?: DREData | null }
         valor={data.custo_servicos.comissoes}
         expanded={expanded.has("comissoes")}
         onToggle={() => toggle("comissoes")}
-        disabled={data.colaboradores.every((c) => c.comissao === 0)}
+        disabled={colaboradores.every((c) => c.comissao === 0)}
       />
       {expanded.has("comissoes") && (
         <BreakdownList
-          rows={data.colaboradores.filter((c) => c.comissao > 0)}
+          rows={colaboradores.filter((c) => c.comissao > 0)}
           field="comissao"
           emptyMsg="Nenhum colaborador com comissão neste mês."
         />
@@ -96,11 +100,11 @@ export function DREView({ data, prev }: { data: DREData; prev?: DREData | null }
         valor={data.salarios}
         expanded={expanded.has("salarios")}
         onToggle={() => toggle("salarios")}
-        disabled={data.colaboradores.every((c) => c.fixo === 0)}
+        disabled={colaboradores.every((c) => c.fixo === 0)}
       />
       {expanded.has("salarios") && (
         <BreakdownList
-          rows={data.colaboradores.filter((c) => c.fixo > 0)}
+          rows={colaboradores.filter((c) => c.fixo > 0)}
           field="fixo"
           emptyMsg="Nenhum salário fixo cadastrado."
         />
@@ -130,7 +134,7 @@ export function DREView({ data, prev }: { data: DREData; prev?: DREData | null }
       />
 
       {/* Folha por pessoa (custo total) */}
-      {data.colaboradores.some((c) => c.total > 0) && (
+      {colaboradores.some((c) => c.total > 0) && (
         <div className="mt-4 border-t pt-3">
           <button
             type="button"
@@ -139,10 +143,10 @@ export function DREView({ data, prev }: { data: DREData; prev?: DREData | null }
           >
             {expanded.has("folha") ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
             <span>Folha por pessoa (fixo + comissão)</span>
-            <span className="ml-auto tabular-nums">{BRL(data.colaboradores.reduce((a, c) => a + c.total, 0))}</span>
+            <span className="ml-auto tabular-nums">{BRL(colaboradores.reduce((a, c) => a + c.total, 0))}</span>
           </button>
           {expanded.has("folha") && (
-            <FolhaTable rows={data.colaboradores.filter((c) => c.total > 0)} />
+            <FolhaTable rows={colaboradores.filter((c) => c.total > 0)} />
           )}
         </div>
       )}
