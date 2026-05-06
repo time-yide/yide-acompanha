@@ -20,6 +20,15 @@ export interface DRELine {
   overrideAplicado: boolean;
 }
 
+export interface ColaboradorBreakdown {
+  user_id: string;
+  nome: string;
+  role: string;
+  fixo: number;
+  comissao: number;
+  total: number;
+}
+
 export interface DREData {
   mesRef: string;
   receita_bruta: number;
@@ -31,6 +40,8 @@ export interface DREData {
   total_despesas: number;
   lucro_operacional: number;
   margem_operacional_pct: number;
+  /** Breakdown por colaborador (fixo + comissão por pessoa, ordenado por total desc). */
+  colaboradores: ColaboradorBreakdown[];
 }
 
 /** Verifica se cliente estava ativo em algum momento durante o mês (YYYY-MM). */
@@ -55,11 +66,11 @@ async function _getDREImpl(mesRef: string): Promise<DREData> {
       .neq("status", "em_onboarding"),
     supabase
       .from("commission_snapshots")
-      .select("valor_total")
+      .select("user_id, fixo, valor_variavel, valor_total")
       .eq("mes_referencia", mesRef),
     supabase
       .from("profiles")
-      .select("fixo_mensal, role, ativo")
+      .select("id, nome, fixo_mensal, role, ativo")
       .eq("ativo", true)
       .neq("role", "socio"),
     sb
@@ -86,13 +97,23 @@ async function _getDREImpl(mesRef: string): Promise<DREData> {
     0,
   );
 
-  const snapshots = (snapshotsRes.data ?? []) as Array<{ valor_total: number }>;
+  const snapshots = (snapshotsRes.data ?? []) as Array<{
+    user_id: string;
+    fixo: number;
+    valor_variavel: number;
+    valor_total: number;
+  }>;
+  const profiles = (profilesRes.data ?? []) as Array<{
+    id: string;
+    nome: string;
+    fixo_mensal: number;
+    role: string;
+  }>;
   const expenses = (expensesRes.data ?? []) as ExpenseRow[];
   const expenseIds = expenses.map((e) => e.id);
 
   // ── Fase 2: overrides (depende de expenseIds) + previewLive (só se snapshots vazios) em paralelo
-  const snapshotsTotal = snapshots.reduce((a, s) => a + Number(s.valor_total), 0);
-  const needsPreview = snapshotsTotal === 0;
+  const needsPreview = snapshots.length === 0;
 
   const [overridesData, previewRows] = await Promise.all([
     expenseIds.length === 0
@@ -103,18 +124,35 @@ async function _getDREImpl(mesRef: string): Promise<DREData> {
           .eq("mes_referencia", mesRef)
           .in("expense_id", expenseIds)
           .then((r: { data: OverrideRow[] | null }) => r.data ?? []),
-    needsPreview ? previewAllForMonth(mesRef) : Promise.resolve([] as Array<{ valor_total: number }>),
+    needsPreview ? previewAllForMonth(mesRef) : Promise.resolve([]),
   ]);
   const overrides = overridesData as OverrideRow[];
 
-  const comissoes = needsPreview
-    ? previewRows.reduce((a: number, r: { valor_total: number }) => a + Number(r.valor_total), 0)
-    : snapshotsTotal;
+  // ── Comissões = só a parte VARIÁVEL (valor_variavel). O fixo já é contado
+  // em "Salários fixos" abaixo — usar valor_total aqui causaria double-counting.
+  const variavelPorUser = new Map<string, number>();
+  if (needsPreview) {
+    for (const r of previewRows as Array<{ profile: { id: string } | null; valor_variavel: number }>) {
+      if (r.profile?.id) variavelPorUser.set(r.profile.id, Number(r.valor_variavel) || 0);
+    }
+  } else {
+    for (const s of snapshots) {
+      variavelPorUser.set(s.user_id, Number(s.valor_variavel) || 0);
+    }
+  }
+  const comissoes = [...variavelPorUser.values()].reduce((a, v) => a + v, 0);
 
-  const salarios = ((profilesRes.data ?? []) as Array<{ fixo_mensal: number }>).reduce(
-    (a, p) => a + Number(p.fixo_mensal ?? 0),
-    0,
-  );
+  // Salários fixos: profiles.fixo_mensal (single source of truth)
+  const salarios = profiles.reduce((a, p) => a + Number(p.fixo_mensal ?? 0), 0);
+
+  // Breakdown por colaborador (ordenado por total desc)
+  const colaboradores: ColaboradorBreakdown[] = profiles
+    .map((p) => {
+      const fixo = Number(p.fixo_mensal ?? 0);
+      const comissao = variavelPorUser.get(p.id) ?? 0;
+      return { user_id: p.id, nome: p.nome, role: p.role, fixo, comissao, total: fixo + comissao };
+    })
+    .sort((a, b) => b.total - a.total);
 
   const despesas: DRELine[] = expenses
     .filter((e) => expenseAplicaNoMes(e, mesRef))
@@ -145,6 +183,7 @@ async function _getDREImpl(mesRef: string): Promise<DREData> {
     total_despesas,
     lucro_operacional,
     margem_operacional_pct: calcMargem(lucro_operacional, receita_bruta) * 100,
+    colaboradores,
   };
 }
 
