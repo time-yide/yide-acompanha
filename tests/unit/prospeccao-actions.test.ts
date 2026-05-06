@@ -7,12 +7,18 @@ vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({ from: fromMock }),
 }));
 
+vi.mock("@/lib/supabase/service-role", () => ({
+  createServiceRoleClient: () => ({ from: fromMock }),
+}));
+
 vi.mock("@/lib/auth/session", () => ({
   requireAuth: requireAuthMock,
 }));
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
+  revalidateTag: vi.fn(),
+  unstable_cache: (fn: (...args: unknown[]) => unknown) => fn,
 }));
 
 import { agendarReuniaoAction, marcarPerdidoAction, addLeadAttemptAction } from "@/lib/prospeccao/actions";

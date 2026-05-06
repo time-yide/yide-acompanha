@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/auth/session";
 import {
@@ -8,6 +8,7 @@ import {
   marcarPerdidoSchema,
   addAttemptSchema,
 } from "./schema";
+import { PROSPECTS_CACHE_TAG } from "./queries";
 
 interface ActionOk { success: true }
 interface ActionErr { error: string }
@@ -108,6 +109,7 @@ export async function marcarPerdidoAction(formData: FormData): Promise<ActionRes
 
   revalidatePath(`/prospeccao/prospects/${parsed.data.lead_id}`);
   revalidatePath("/prospeccao/prospects");
+  revalidateTag(PROSPECTS_CACHE_TAG, "default");
 
   return { success: true };
 }
