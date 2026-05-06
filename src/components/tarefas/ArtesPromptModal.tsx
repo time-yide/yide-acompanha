@@ -17,11 +17,14 @@ export function ArtesPromptModal({ open, onOpenChange, onConfirm, pending }: Pro
   const [valor, setValor] = useState<string>("");
   const [erro, setErro] = useState<string | null>(null);
 
+  // Reset via cleanup function: roda quando `open` muda de true→false ou no unmount.
+  // Evita setState síncrono no body do effect (regra react-hooks/set-state-in-effect).
   useEffect(() => {
-    if (!open) {
+    if (!open) return;
+    return () => {
       setValor("");
       setErro(null);
-    }
+    };
   }, [open]);
 
   function handleSubmit(e: React.FormEvent) {
