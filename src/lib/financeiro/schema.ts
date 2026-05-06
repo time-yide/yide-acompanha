@@ -70,8 +70,17 @@ export const overrideSchema = z.object({
   motivo: z.string().trim().max(500).optional().nullable(),
 });
 
+export const BULK_DELETE_MAX = 50;
+
+export const bulkDeleteExpensesSchema = z.object({
+  ids: z.array(z.string().uuid()).min(1, "Selecione pelo menos uma despesa")
+    .max(BULK_DELETE_MAX, `Máximo ${BULK_DELETE_MAX} despesas por lote`),
+  justificativa: z.string().trim().min(3, "Informe o motivo (mín. 3 caracteres)").max(500),
+});
+
 export type CreateExpenseInput = z.infer<typeof createExpenseSchema>;
 export type UpdateExpenseInput = z.infer<typeof updateExpenseSchema>;
 export type OverrideInput = z.infer<typeof overrideSchema>;
+export type BulkDeleteExpensesInput = z.infer<typeof bulkDeleteExpensesSchema>;
 
 export const FINANCEIRO_CACHE_TAG = "financeiro";
