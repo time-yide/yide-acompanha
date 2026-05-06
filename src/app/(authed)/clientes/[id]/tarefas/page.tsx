@@ -9,7 +9,7 @@ import { Plus } from "lucide-react";
 
 export default async function ClienteTarefasPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  await requireAuth();
+  const user = await requireAuth();
 
   const supabase = await createClient();
   const { data: client } = await supabase
@@ -43,7 +43,7 @@ export default async function ClienteTarefasPage({ params }: { params: Promise<{
         <section className="space-y-2">
           <h3 className="text-sm font-semibold">Em aberto</h3>
           <div className="space-y-2">
-            {abertas.map((t) => <TaskCard key={t.id} task={t} />)}
+            {abertas.map((t) => <TaskCard key={t.id} task={t} userRole={user.role} />)}
           </div>
         </section>
       )}
@@ -52,7 +52,7 @@ export default async function ClienteTarefasPage({ params }: { params: Promise<{
         <section className="space-y-2">
           <h3 className="text-sm font-semibold text-muted-foreground">Concluídas</h3>
           <div className="space-y-2">
-            {concluidas.map((t) => <TaskCard key={t.id} task={t} />)}
+            {concluidas.map((t) => <TaskCard key={t.id} task={t} userRole={user.role} />)}
           </div>
         </section>
       )}

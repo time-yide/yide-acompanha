@@ -44,3 +44,8 @@ export const moveStatusSchema = z.object({
 export type CreateTaskInput = z.infer<typeof createTaskSchema>;
 export type EditTaskInput = z.infer<typeof editTaskSchema>;
 export type TaskLink = z.infer<typeof taskLinkSchema>;
+
+export const artesEntreguesSchema = z
+  .number()
+  .int()
+  .min(0, "Não pode ser negativo");

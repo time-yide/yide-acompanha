@@ -1,0 +1,174 @@
+// SERVER ONLY: do not import from client components
+import { unstable_cache } from "next/cache";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
+
+export type Periodo = "mes_atual" | "mes_anterior" | "dias_7" | "total";
+
+export function resolvePeriodo(periodo: Periodo, reference: Date = new Date()): {
+  fromIso: string;
+  toIso: string;
+} {
+  const ref = new Date(reference);
+  if (periodo === "mes_anterior") {
+    const from = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth() - 1, 1));
+    const to = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), 1));
+    return { fromIso: from.toISOString(), toIso: to.toISOString() };
+  }
+  if (periodo === "dias_7") {
+    const from = new Date(ref.getTime() - 7 * 24 * 60 * 60 * 1000);
+    return { fromIso: from.toISOString(), toIso: ref.toISOString() };
+  }
+  if (periodo === "total") {
+    return { fromIso: "1970-01-01T00:00:00.000Z", toIso: "2999-12-31T23:59:59.999Z" };
+  }
+  // default: mes_atual
+  const from = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), 1));
+  const to = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth() + 1, 1));
+  return { fromIso: from.toISOString(), toIso: to.toISOString() };
+}
+
+// ─── getMinhasTarefasPendentes ───────────────────────────────────────────────
+
+export interface TarefaPendenteRow {
+  id: string;
+  titulo: string;
+  prioridade: string | null;
+  due_date: string | null;
+  status: string;
+  cliente_nome: string | null;
+}
+
+export async function _getMinhasTarefasPendentesImpl(userId: string): Promise<TarefaPendenteRow[]> {
+  const supabase = createServiceRoleClient();
+  const { data } = await supabase
+    .from("tasks")
+    .select(`
+      id, titulo, prioridade, due_date, status,
+      cliente:clients(nome)
+    `)
+    .neq("status", "concluida")
+    .or(`atribuido_a.eq.${userId},participantes_ids.cs.{${userId}}`)
+    .order("due_date", { ascending: true, nullsFirst: false });
+
+  return ((data ?? []) as Array<{
+    id: string;
+    titulo: string;
+    prioridade: string | null;
+    due_date: string | null;
+    status: string;
+    cliente: { nome: string } | null;
+  }>).map((r) => ({
+    id: r.id,
+    titulo: r.titulo,
+    prioridade: r.prioridade,
+    due_date: r.due_date,
+    status: r.status,
+    cliente_nome: r.cliente?.nome ?? null,
+  }));
+}
+
+export async function getMinhasTarefasPendentes(userId: string): Promise<TarefaPendenteRow[]> {
+  const cached = unstable_cache(
+    async (uid: string) => _getMinhasTarefasPendentesImpl(uid),
+    ["dashboard-personal-tarefas-pendentes"],
+    { revalidate: 60, tags: ["dashboard", "tasks"] },
+  );
+  return cached(userId);
+}
+
+// ─── getProximasGravacoes ────────────────────────────────────────────────────
+
+export interface GravacaoRow {
+  id: string;
+  titulo: string;
+  inicio: string;
+  fim: string;
+  localizacao_endereco: string | null;
+}
+
+export async function _getProximasGravacoesImpl(
+  userId: string,
+  fromIso: string,
+  toIso: string,
+): Promise<GravacaoRow[]> {
+  const supabase = createServiceRoleClient();
+  const { data } = await supabase
+    .from("calendar_events")
+    .select("id, titulo, inicio, fim, localizacao_endereco")
+    .eq("sub_calendar", "videomakers")
+    .contains("participantes_ids", [userId])
+    .gte("inicio", fromIso)
+    .lte("inicio", toIso)
+    .order("inicio", { ascending: true });
+
+  return (data ?? []) as GravacaoRow[];
+}
+
+export async function getProximasGravacoes(
+  userId: string,
+  fromIso: string,
+  toIso: string,
+): Promise<GravacaoRow[]> {
+  const cached = unstable_cache(
+    async (paramsJson: string) => {
+      const { uid, from, to } = JSON.parse(paramsJson) as { uid: string; from: string; to: string };
+      return _getProximasGravacoesImpl(uid, from, to);
+    },
+    ["dashboard-personal-gravacoes"],
+    { revalidate: 60, tags: ["dashboard", "calendar"] },
+  );
+  return cached(JSON.stringify({ uid: userId, from: fromIso, to: toIso }));
+}
+
+// ─── getProducaoNoPeriodo ────────────────────────────────────────────────────
+
+export async function _getProducaoNoPeriodoImpl(
+  userId: string,
+  fromIso: string,
+  toIso: string,
+  kind: "artes" | "tarefas",
+): Promise<number> {
+  const supabase = createServiceRoleClient();
+
+  if (kind === "artes") {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data } = await (supabase as any)
+      .from("tasks")
+      .select("artes_entregues")
+      .eq("atribuido_a", userId)
+      .eq("status", "concluida")
+      .gte("completed_at", fromIso)
+      .lt("completed_at", toIso);
+    return ((data ?? []) as Array<{ artes_entregues: number | null }>)
+      .reduce((acc, r) => acc + (r.artes_entregues ?? 0), 0);
+  }
+
+  // kind === "tarefas"
+  const { count } = await supabase
+    .from("tasks")
+    .select("id", { count: "exact", head: true })
+    .eq("atribuido_a", userId)
+    .eq("status", "concluida")
+    .gte("completed_at", fromIso)
+    .lt("completed_at", toIso);
+  return count ?? 0;
+}
+
+export async function getProducaoNoPeriodo(
+  userId: string,
+  fromIso: string,
+  toIso: string,
+  kind: "artes" | "tarefas",
+): Promise<number> {
+  const cached = unstable_cache(
+    async (paramsJson: string) => {
+      const { uid, from, to, k } = JSON.parse(paramsJson) as {
+        uid: string; from: string; to: string; k: "artes" | "tarefas";
+      };
+      return _getProducaoNoPeriodoImpl(uid, from, to, k);
+    },
+    ["dashboard-personal-producao"],
+    { revalidate: 60, tags: ["dashboard", "tasks"] },
+  );
+  return cached(JSON.stringify({ uid: userId, from: fromIso, to: toIso, k: kind }));
+}
