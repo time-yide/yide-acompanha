@@ -9,6 +9,7 @@ import {
   createExpenseSchema,
   updateExpenseSchema,
   overrideSchema,
+  bulkDeleteExpensesSchema,
   FINANCEIRO_CACHE_TAG,
 } from "./schema";
 import { parseBulkExpenses } from "./import";
@@ -212,6 +213,57 @@ export async function deleteExpenseAction(formData: FormData) {
 
   revalidateAll();
   return { success: true as const };
+}
+
+export async function bulkDeleteExpensesAction(formData: FormData) {
+  const actor = await requireSocio();
+
+  const idsRaw = fd(formData, "ids");
+  const ids = idsRaw ? idsRaw.split(",").map((s) => s.trim()).filter(Boolean) : [];
+
+  const parsed = bulkDeleteExpensesSchema.safeParse({
+    ids,
+    justificativa: fd(formData, "justificativa"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+
+  const { data: beforeRows } = await sb
+    .from("expenses")
+    .select("*")
+    .in("id", parsed.data.ids);
+  const beforeList = (beforeRows ?? []) as Array<Record<string, unknown> & { id: string }>;
+  if (beforeList.length === 0) return { error: "Nenhuma despesa encontrada" };
+
+  await Promise.all(
+    beforeList.map((row) =>
+      logAudit({
+        entidade: "expenses",
+        entidade_id: row.id,
+        acao: "delete",
+        dados_antes: row,
+        ator_id: actor.id,
+        justificativa: parsed.data.justificativa,
+      }),
+    ),
+  );
+
+  const { data: deleted, error } = await sb
+    .from("expenses")
+    .delete()
+    .in("id", parsed.data.ids)
+    .select("id");
+  if (error) return { error: error.message };
+  const deletedCount = (deleted ?? []).length;
+  if (deletedCount === 0) {
+    return { error: "Falha ao excluir (verifique permissões RLS)" };
+  }
+
+  revalidateAll();
+  return { success: true as const, deletedCount };
 }
 
 export async function setOverrideAction(formData: FormData) {
