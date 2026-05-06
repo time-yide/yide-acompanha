@@ -4,6 +4,7 @@ import { requireAuth } from "@/lib/auth/session";
 import { getDRE, getDRESeries, type DREData } from "@/lib/financeiro/queries";
 import { DREView } from "@/components/financeiro/DREView";
 import { DREComposition } from "@/components/financeiro/DREComposition";
+import { DRECompositionSeries } from "@/components/financeiro/DRECompositionSeries";
 import { MesSelector } from "@/components/financeiro/MesSelector";
 import { ViewModeToggle } from "@/components/financeiro/ViewModeToggle";
 import { Button } from "@/components/ui/button";
@@ -128,6 +129,7 @@ export default async function FinanceiroPage({
     const series = await getDRESeries(meses);
     return (
       <PageShell mesRef={mesRef} mode={mode}>
+        <DRECompositionSeries series={series} />
         <SeriesTable series={series} />
       </PageShell>
     );
@@ -142,6 +144,7 @@ export default async function FinanceiroPage({
   const ytdSeries = await getDRESeries(ytdMeses);
   return (
     <PageShell mesRef={mesRef} mode={mode}>
+      <DRECompositionSeries series={ytdSeries} />
       <SeriesTable series={ytdSeries} />
     </PageShell>
   );
