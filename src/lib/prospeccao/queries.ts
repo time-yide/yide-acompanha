@@ -1,5 +1,9 @@
 // SERVER ONLY: do not import from client components
+import { unstable_cache } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
+
+export const PROSPECTS_CACHE_TAG = "prospects";
 
 export type ProspectStatus = "prospeccao" | "comercial" | "contrato" | "marco_zero" | "ativo" | "perdido";
 
@@ -27,8 +31,13 @@ export interface ProspectListRow {
   ultimo_attempt_at: string | null;
 }
 
-export async function getProspectsList(filter: ProspectsFilter = {}): Promise<ProspectListRow[]> {
-  const supabase = await createClient();
+/**
+ * Implementação interna — service-role pra rodar dentro de unstable_cache.
+ * Access control fica no caller (page passa comercialId quando role=comercial).
+ * Filtros aplicados direto no SQL (eq/gte/lte/or) ao invés de em memória.
+ */
+async function _getProspectsListImpl(filter: ProspectsFilter): Promise<ProspectListRow[]> {
+  const supabase = createServiceRoleClient();
 
   let query = supabase
     .from("leads")
@@ -38,28 +47,52 @@ export async function getProspectsList(filter: ProspectsFilter = {}): Promise<Pr
     query = query.eq("comercial_id", filter.comercialId);
   }
 
-  const { data } = await query;
-  let rows = (data ?? []) as unknown as ProspectListRow[];
-
-  // Filtro de status (com 'perdido' como pseudo-status)
+  // Filtro de status (com 'perdido' como pseudo-status — coluna motivo_perdido NOT NULL)
   if (filter.status && filter.status.length > 0) {
-    rows = rows.filter((r) => {
-      if (filter.status!.includes("perdido") && r.motivo_perdido) return true;
-      return filter.status!.includes(r.stage as ProspectStatus) && !r.motivo_perdido;
-    });
+    const wantsPerdido = filter.status.includes("perdido");
+    const realStatuses = filter.status.filter((s) => s !== "perdido");
+
+    if (wantsPerdido && realStatuses.length > 0) {
+      // perdido OR (stage in [...] AND motivo_perdido IS NULL)
+      query = query.or(
+        `motivo_perdido.not.is.null,and(stage.in.(${realStatuses.join(",")}),motivo_perdido.is.null)`,
+      );
+    } else if (wantsPerdido) {
+      query = query.not("motivo_perdido", "is", null);
+    } else {
+      query = query.in("stage", realStatuses).is("motivo_perdido", null);
+    }
   }
 
-  // Filtro de valor
   if (filter.valorMin !== undefined) {
-    rows = rows.filter((r) => Number(r.valor_proposto) >= filter.valorMin!);
+    query = query.gte("valor_proposto", filter.valorMin);
   }
   if (filter.valorMax !== undefined) {
-    rows = rows.filter((r) => Number(r.valor_proposto) <= filter.valorMax!);
+    query = query.lte("valor_proposto", filter.valorMax);
   }
 
   // ultimoContatoApos: feature deferida (sem query do último attempt agora)
 
-  return rows;
+  const { data } = await query;
+  return (data ?? []) as unknown as ProspectListRow[];
+}
+
+/**
+ * Versão cacheada (60s) com tag "prospects". Mutations em leads/prospects
+ * devem chamar revalidateTag("prospects") pra invalidar imediatamente.
+ */
+export async function getProspectsList(filter: ProspectsFilter = {}): Promise<ProspectListRow[]> {
+  const cached = unstable_cache(
+    async (filterJson: string) => _getProspectsListImpl(JSON.parse(filterJson) as ProspectsFilter),
+    ["prospeccao-list"],
+    { revalidate: 60, tags: [PROSPECTS_CACHE_TAG] },
+  );
+  // Normaliza ordem do array de status pra cache key estável
+  const normalized: ProspectsFilter = {
+    ...filter,
+    status: filter.status ? [...filter.status].sort() : undefined,
+  };
+  return cached(JSON.stringify(normalized));
 }
 
 export interface ProspectDetail {

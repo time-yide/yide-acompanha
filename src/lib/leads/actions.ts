@@ -11,6 +11,7 @@ import {
 } from "./schema";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 import { inferTipoPacote } from "@/lib/clientes/schema";
+import { PROSPECTS_CACHE_TAG } from "@/lib/prospeccao/queries";
 
 function prettyStage(stage: string): string {
   switch (stage) {
@@ -107,6 +108,7 @@ export async function createLeadAction(formData: FormData) {
   }
 
   revalidatePath("/onboarding");
+  revalidateTag(PROSPECTS_CACHE_TAG, "default");
   redirect(`/onboarding/${created.id}`);
 }
 
@@ -169,6 +171,7 @@ export async function updateLeadAction(formData: FormData) {
 
   revalidatePath(`/onboarding/${id}`);
   revalidatePath("/onboarding");
+  revalidateTag(PROSPECTS_CACHE_TAG, "default");
   redirect(`/onboarding/${id}`);
 }
 
@@ -267,6 +270,7 @@ export async function moveStageAction(formData: FormData) {
   });
 
   revalidatePath("/onboarding");
+  revalidateTag(PROSPECTS_CACHE_TAG, "default");
   revalidatePath(`/onboarding/${parsed.data.id}`);
   if (toStage === "ativo") {
     revalidatePath("/clientes");
@@ -344,6 +348,7 @@ export async function markLostAction(formData: FormData) {
   });
 
   revalidatePath("/onboarding");
+  revalidateTag(PROSPECTS_CACHE_TAG, "default");
   return { success: "Lead marcado como perdido" };
 }
 
@@ -404,5 +409,6 @@ export async function deleteLeadAction(formData: FormData) {
   }
 
   revalidatePath("/onboarding");
+  revalidateTag(PROSPECTS_CACHE_TAG, "default");
   return { success: true as const };
 }
