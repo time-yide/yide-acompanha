@@ -21,11 +21,14 @@ export default async function MinhasComissoesPage() {
   const user = await requireAuth();
   if (user.role === "socio") redirect("/comissoes/visao-geral");
 
-  const { monthRef, result } = await previewMyCommission(user.id);
-  const snapshots = await listSnapshotsForUser(user.id);
   const showVisaoGeral = canAccess(user.role, "view:other_commissions");
   const showFechamento = canAccess(user.role, "approve:monthly_closing");
-  const pending = await getMonthsAwaitingApproval();
+
+  const [{ monthRef, result }, snapshots, pending] = await Promise.all([
+    previewMyCommission(user.id),
+    listSnapshotsForUser(user.id),
+    getMonthsAwaitingApproval(),
+  ]);
 
   return (
     <div className="mx-auto max-w-3xl space-y-5">
