@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth/session";
 import { getDRE, getDRESeries, type DREData } from "@/lib/financeiro/queries";
 import { DREView } from "@/components/financeiro/DREView";
+import { DREComposition } from "@/components/financeiro/DREComposition";
 import { MesSelector } from "@/components/financeiro/MesSelector";
 import { ViewModeToggle } from "@/components/financeiro/ViewModeToggle";
 import { Button } from "@/components/ui/button";
@@ -116,6 +117,7 @@ export default async function FinanceiroPage({
     ]);
     return (
       <PageShell mesRef={mesRef} mode={mode}>
+        <DREComposition data={data} />
         <DREView data={data} prev={prev} />
       </PageShell>
     );
