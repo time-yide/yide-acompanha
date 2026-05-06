@@ -1,11 +1,13 @@
 import { ArrowDown, ArrowUp, type LucideIcon } from "lucide-react";
+import { type ReactNode } from "react";
 
 interface Props {
   label: string;
-  valor: string;
-  delta?: { valor: string; direction: "up" | "down" | "neutral" };
+  /** Aceita ReactNode pra suportar <Money> (que esconde valor sob toggle). */
+  valor: ReactNode;
+  delta?: { valor: ReactNode; direction: "up" | "down" | "neutral" };
   icon?: LucideIcon;
-  helperText?: string;
+  helperText?: ReactNode;
 }
 
 export function KpiCard({ label, valor, delta, icon: Icon, helperText }: Props) {

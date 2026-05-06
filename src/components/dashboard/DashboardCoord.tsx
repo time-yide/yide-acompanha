@@ -15,6 +15,7 @@ import { CarteiraPorAssessorList } from "./CarteiraPorAssessorList";
 import { RankingResumo } from "./RankingResumo";
 import { ProximosEventosList } from "./ProximosEventosList";
 import { Section } from "./Section";
+import { HiddenValuesProvider, HiddenValueToggle } from "./HiddenValuesContext";
 
 interface Props {
   userId: string;
@@ -36,35 +37,40 @@ export async function DashboardCoord({ userId, nome }: Props) {
     ]);
 
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-bold tracking-tight">Olá, {nome.split(" ")[0]}</h1>
-        <p className="text-sm text-muted-foreground">Visão da sua coordenação</p>
-      </header>
+    <HiddenValuesProvider>
+      <div className="space-y-6">
+        <header className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Olá, {nome.split(" ")[0]}</h1>
+            <p className="text-sm text-muted-foreground">Visão da sua coordenação</p>
+          </div>
+          <HiddenValueToggle />
+        </header>
 
-      <KpiRowCoord kpis={kpis} />
-      <RemuneracaoCard comissao={comissao} />
+        <KpiRowCoord kpis={kpis} />
+        <RemuneracaoCard comissao={comissao} />
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Section title="Evolução da carteira" subtitle="Últimos 12 meses">
-          <ChartCarteiraTimeline data={carteiraTimeline} />
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <Section title="Evolução da carteira" subtitle="Últimos 12 meses">
+            <ChartCarteiraTimeline data={carteiraTimeline} />
+          </Section>
+          <Section title="Entrada vs Churn" subtitle="Últimos 6 meses">
+            <ChartEntradaChurn data={entradaChurn} />
+          </Section>
+        </div>
+
+        <Section title="Carteira por assessor (sob sua coordenação)">
+          <CarteiraPorAssessorList items={carteiraPorAssessor} />
         </Section>
-        <Section title="Entrada vs Churn" subtitle="Últimos 6 meses">
-          <ChartEntradaChurn data={entradaChurn} />
+
+        <Section title="Satisfação dos meus clientes" subtitle="Top 10 mais e menos satisfeitos da semana" cta={{ href: "/satisfacao", label: "Ver completo →" }}>
+          <RankingResumo top={ranking.top} bottom={ranking.bottom} />
+        </Section>
+
+        <Section title="Próximos eventos meus" cta={{ href: "/calendario", label: "Ver agenda →" }}>
+          <ProximosEventosList eventos={eventos} />
         </Section>
       </div>
-
-      <Section title="Carteira por assessor (sob sua coordenação)">
-        <CarteiraPorAssessorList items={carteiraPorAssessor} />
-      </Section>
-
-      <Section title="Satisfação dos meus clientes" subtitle="Top 10 mais e menos satisfeitos da semana" cta={{ href: "/satisfacao", label: "Ver completo →" }}>
-        <RankingResumo top={ranking.top} bottom={ranking.bottom} />
-      </Section>
-
-      <Section title="Próximos eventos meus" cta={{ href: "/calendario", label: "Ver agenda →" }}>
-        <ProximosEventosList eventos={eventos} />
-      </Section>
-    </div>
+    </HiddenValuesProvider>
   );
 }

@@ -1,11 +1,8 @@
 import type { AssessorCarteira } from "@/lib/dashboard/queries";
+import { Money } from "./HiddenValuesContext";
 
 interface Props {
   items: AssessorCarteira[];
-}
-
-function formatBRL(v: number): string {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(v);
 }
 
 export function CarteiraPorAssessorList({ items }: Props) {
@@ -21,7 +18,7 @@ export function CarteiraPorAssessorList({ items }: Props) {
             <span className="font-medium">{a.assessorNome}</span>
             <div className="flex items-center gap-3 text-xs text-muted-foreground tabular-nums">
               <span>{a.qtdClientes} {a.qtdClientes === 1 ? "cliente" : "clientes"}</span>
-              <span className="font-semibold text-foreground">{formatBRL(a.valorTotal)}</span>
+              <span className="font-semibold text-foreground"><Money value={a.valorTotal} noDecimals /></span>
               <span className="w-10 text-right">{a.pctDoTotal.toFixed(0)}%</span>
             </div>
           </div>
