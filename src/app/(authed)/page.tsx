@@ -3,9 +3,14 @@ import { DashboardSocioAdm } from "@/components/dashboard/DashboardSocioAdm";
 import { DashboardCoord } from "@/components/dashboard/DashboardCoord";
 import { DashboardAssessor } from "@/components/dashboard/DashboardAssessor";
 import { DashboardComercial } from "@/components/dashboard/DashboardComercial";
+import { DashboardVideomaker } from "@/components/dashboard/DashboardVideomaker";
+import { DashboardDesigner } from "@/components/dashboard/DashboardDesigner";
+import { DashboardEditor } from "@/components/dashboard/DashboardEditor";
+import { DashboardAudiovisualChefe } from "@/components/dashboard/DashboardAudiovisualChefe";
 import { StubGreeting } from "@/components/dashboard/StubGreeting";
 import { ImpersonateBar } from "@/components/dashboard/ImpersonateBar";
 import { listColaboradores, getColaboradorById } from "@/lib/colaboradores/queries";
+import type { Periodo } from "@/lib/dashboard/personal";
 
 interface TargetUser {
   id: string;
@@ -13,7 +18,14 @@ interface TargetUser {
   nome: string;
 }
 
-function renderDashboardForRole(target: TargetUser) {
+const PERIODOS_VALIDOS: ReadonlySet<Periodo> = new Set(["mes_atual", "mes_anterior", "dias_7", "total"]);
+
+function parsePeriodo(raw: string | undefined): Periodo {
+  if (raw && PERIODOS_VALIDOS.has(raw as Periodo)) return raw as Periodo;
+  return "mes_atual";
+}
+
+function renderDashboardForRole(target: TargetUser, periodo: Periodo) {
   if (target.role === "socio" || target.role === "adm") {
     return <DashboardSocioAdm nome={target.nome} />;
   }
@@ -26,16 +38,29 @@ function renderDashboardForRole(target: TargetUser) {
   if (target.role === "comercial") {
     return <DashboardComercial userId={target.id} nome={target.nome} />;
   }
+  if (target.role === "videomaker") {
+    return <DashboardVideomaker userId={target.id} nome={target.nome} />;
+  }
+  if (target.role === "designer") {
+    return <DashboardDesigner userId={target.id} nome={target.nome} periodo={periodo} />;
+  }
+  if (target.role === "editor") {
+    return <DashboardEditor userId={target.id} nome={target.nome} periodo={periodo} />;
+  }
+  if (target.role === "audiovisual_chefe") {
+    return <DashboardAudiovisualChefe userId={target.id} nome={target.nome} periodo={periodo} />;
+  }
   return <StubGreeting nome={target.nome} />;
 }
 
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ as?: string }>;
+  searchParams: Promise<{ as?: string; periodo?: string }>;
 }) {
   const params = await searchParams;
   const user = await requireAuth();
+  const periodo = parsePeriodo(params.periodo);
 
   const canImpersonate = user.role === "socio" || user.role === "adm";
 
@@ -74,7 +99,7 @@ export default async function DashboardPage({
           isImpersonating={isImpersonating}
         />
       )}
-      {renderDashboardForRole(target)}
+      {renderDashboardForRole(target, periodo)}
     </div>
   );
 }

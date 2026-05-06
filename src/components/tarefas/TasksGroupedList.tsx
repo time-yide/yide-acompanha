@@ -67,7 +67,7 @@ function buildSections(tasks: TaskRow[], groupBy: GroupBy): Section[] {
     .filter((s) => s.tasks.length > 0);
 }
 
-export function TasksGroupedList({ tasks, groupBy }: { tasks: TaskRow[]; groupBy: GroupBy }) {
+export function TasksGroupedList({ tasks, groupBy, userRole }: { tasks: TaskRow[]; groupBy: GroupBy; userRole: string }) {
   const sections = buildSections(tasks, groupBy);
   const [collapsed, setCollapsed] = useState<Set<string>>(
     () => new Set(sections.filter((s) => s.collapsedByDefault).map((s) => s.key)),
@@ -105,7 +105,7 @@ export function TasksGroupedList({ tasks, groupBy }: { tasks: TaskRow[]; groupBy
             </button>
             {!isCollapsed && (
               <div className="space-y-2 pl-6">
-                {s.tasks.map((t) => <TaskCard key={t.id} task={t} />)}
+                {s.tasks.map((t) => <TaskCard key={t.id} task={t} userRole={userRole} />)}
               </div>
             )}
           </section>

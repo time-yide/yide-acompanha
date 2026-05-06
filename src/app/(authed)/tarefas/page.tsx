@@ -111,9 +111,9 @@ export default async function TarefasPage({ searchParams }: { searchParams: Prom
       </div>
 
       {view === "board" ? (
-        <TasksBoard tasks={tasks} />
+        <TasksBoard tasks={tasks} userRole={user.role} />
       ) : (
-        <TasksGroupedList tasks={tasks} groupBy={groupBy} />
+        <TasksGroupedList tasks={tasks} groupBy={groupBy} userRole={user.role} />
       )}
     </div>
   );
