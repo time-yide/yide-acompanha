@@ -31,9 +31,12 @@ export default async function VisaoGeralPage({
   if (!canAccess(user.role, "view:other_commissions")) notFound();
 
   const showFechamento = canAccess(user.role, "approve:monthly_closing");
-  const pending = await getMonthsAwaitingApproval();
   const monthRef = params.mes && /^\d{4}-\d{2}$/.test(params.mes) ? params.mes : defaultMonth();
-  const snapshots = await listSnapshotsForMonth(monthRef);
+
+  const [pending, snapshots] = await Promise.all([
+    getMonthsAwaitingApproval(),
+    listSnapshotsForMonth(monthRef),
+  ]);
   const isPreview = snapshots.length === 0;
   const rows = isPreview ? await previewAllForMonth(monthRef) : snapshots;
 
