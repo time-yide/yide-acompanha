@@ -1,13 +1,6 @@
 import { Coins } from "lucide-react";
+import { Money } from "./HiddenValuesContext";
 import type { ComissaoPrevista } from "@/lib/dashboard/comissao-prevista";
-
-function formatBRL(v: number): string {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    minimumFractionDigits: 2,
-  }).format(v);
-}
 
 export function RemuneracaoCard({ comissao }: { comissao: ComissaoPrevista }) {
   const temBase = comissao.baseCalculo > 0;
@@ -29,21 +22,21 @@ export function RemuneracaoCard({ comissao }: { comissao: ComissaoPrevista }) {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div className="space-y-0.5">
           <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Fixo</div>
-          <div className="text-xl font-semibold tabular-nums">{formatBRL(comissao.fixo)}</div>
+          <div className="text-xl font-semibold tabular-nums"><Money value={comissao.fixo} /></div>
           <div className="text-[11px] text-muted-foreground">salário base do mês</div>
         </div>
         <div className="space-y-0.5">
           <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Comissão</div>
-          <div className="text-xl font-semibold tabular-nums">{formatBRL(comissao.valorVariavel)}</div>
+          <div className="text-xl font-semibold tabular-nums"><Money value={comissao.valorVariavel} /></div>
           <div className="text-[11px] text-muted-foreground">
             {temBase
-              ? `${comissao.percentual}% sobre ${formatBRL(comissao.baseCalculo)}`
+              ? <>{comissao.percentual}% sobre <Money value={comissao.baseCalculo} /></>
               : "sem base no mês"}
           </div>
         </div>
         <div className="space-y-0.5 sm:border-l sm:pl-3">
           <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Total previsto</div>
-          <div className="text-xl font-bold tabular-nums">{formatBRL(comissao.valor)}</div>
+          <div className="text-xl font-bold tabular-nums"><Money value={comissao.valor} /></div>
           <div className="text-[11px] text-muted-foreground">pode variar até o fechamento</div>
         </div>
       </div>

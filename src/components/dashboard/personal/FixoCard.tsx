@@ -1,11 +1,8 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { Money } from "../HiddenValuesContext";
 
 interface Props {
   userId: string;
-}
-
-function formatBRL(n: number): string {
-  return Number(n).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
 async function getFixoMensal(userId: string): Promise<number> {
@@ -23,7 +20,7 @@ export async function FixoCard({ userId }: Props) {
   return (
     <div className="rounded-xl border bg-card p-5">
       <p className="text-xs uppercase tracking-wider text-muted-foreground">Seu fixo mensal</p>
-      <p className="mt-2 text-3xl font-bold tabular-nums">{formatBRL(valor)}</p>
+      <p className="mt-2 text-3xl font-bold tabular-nums"><Money value={valor} /></p>
     </div>
   );
 }

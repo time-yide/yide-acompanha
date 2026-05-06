@@ -1,12 +1,9 @@
 import { Trophy, TrendingUp } from "lucide-react";
+import { Money } from "./HiddenValuesContext";
 import type { MetaComercial } from "@/lib/dashboard/comercial-queries";
 
 interface Props {
   meta: MetaComercial;
-}
-
-function formatBRL(v: number): string {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(v);
 }
 
 const STATUS_FILL: Record<MetaComercial["status"], string> = {
@@ -36,7 +33,7 @@ export function MetaTracker({ meta }: Props) {
         <div className="flex-1 min-w-0">
           <h3 className="text-sm font-semibold tracking-tight">Meta do mês</h3>
           <p className="text-xs text-muted-foreground">
-            Fechar {formatBRL(meta.metaFechamento)} ≈ {formatBRL(meta.metaComissao)} em comissão
+            Fechar <Money value={meta.metaFechamento} noDecimals /> ≈ <Money value={meta.metaComissao} noDecimals /> em comissão
           </p>
         </div>
         <span className="text-xs font-medium text-muted-foreground">{STATUS_LABEL[meta.status]}</span>
@@ -44,7 +41,7 @@ export function MetaTracker({ meta }: Props) {
 
       <div className="space-y-1.5">
         <div className="flex items-baseline justify-between text-sm">
-          <span className="font-semibold tabular-nums">{formatBRL(meta.fechadoMes)}</span>
+          <span className="font-semibold tabular-nums"><Money value={meta.fechadoMes} noDecimals /></span>
           <span className="text-xs text-muted-foreground tabular-nums">{meta.pctMeta.toFixed(0)}% da meta</span>
         </div>
         <div className="h-3 rounded-full bg-muted overflow-hidden">
@@ -58,11 +55,11 @@ export function MetaTracker({ meta }: Props) {
       <div className="text-xs">
         {meta.status === "atingido" ? (
           <p className="text-green-700 dark:text-green-400 font-medium">
-            🎉 Meta atingida! Você já garantiu {formatBRL(meta.comissaoAtual)} de comissão variável este mês.
+            🎉 Meta atingida! Você já garantiu <Money value={meta.comissaoAtual} noDecimals /> de comissão variável este mês.
           </p>
         ) : (
           <p className="text-muted-foreground">
-            Faltam {formatBRL(restanteFechamento)} → mais {formatBRL(restanteComissao)} de comissão se atingir.
+            Faltam <Money value={restanteFechamento} noDecimals /> → mais <Money value={restanteComissao} noDecimals /> de comissão se atingir.
           </p>
         )}
       </div>

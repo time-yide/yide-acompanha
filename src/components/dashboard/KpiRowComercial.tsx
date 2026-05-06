@@ -1,10 +1,7 @@
 import { Users, CheckCircle2, TrendingUp, Target } from "lucide-react";
 import { KpiCard } from "./KpiCard";
+import { Money } from "./HiddenValuesContext";
 import type { LeadsKpis } from "@/lib/dashboard/comercial-queries";
-
-function formatBRL(v: number): string {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(v);
-}
 
 interface Props {
   leadsKpis: LeadsKpis;
@@ -27,7 +24,7 @@ export function KpiRowComercial({ leadsKpis }: Props) {
       />
       <KpiCard
         label="Ticket médio"
-        valor={formatBRL(leadsKpis.ticketMedio)}
+        valor={<Money value={leadsKpis.ticketMedio} noDecimals />}
         helperText="últimos 90 dias"
         icon={TrendingUp}
       />

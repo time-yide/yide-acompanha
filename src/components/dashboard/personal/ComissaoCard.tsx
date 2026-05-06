@@ -1,12 +1,9 @@
 import Link from "next/link";
 import { previewMyCommission } from "@/lib/comissoes/preview";
+import { Money } from "../HiddenValuesContext";
 
 interface Props {
   userId: string;
-}
-
-function formatBRL(n: number): string {
-  return Number(n).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
 export async function ComissaoCard({ userId }: Props) {
@@ -23,7 +20,7 @@ export async function ComissaoCard({ userId }: Props) {
           Ver detalhes →
         </Link>
       </div>
-      <p className="mt-2 text-3xl font-bold tabular-nums">{formatBRL(variavel)}</p>
+      <p className="mt-2 text-3xl font-bold tabular-nums"><Money value={variavel} /></p>
     </div>
   );
 }
