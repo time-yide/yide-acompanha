@@ -44,13 +44,30 @@ function clienteAtivoNoMes(c: { data_entrada: string; data_churn: string | null 
 
 async function _getDREImpl(mesRef: string): Promise<DREData> {
   const supabase = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
 
-  // ── Receita: clientes ativos no mês com tipo_relacao='comum'
-  const { data: clientsData } = await supabase
-    .from("clients")
-    .select("id, valor_mensal, valor_trafego_google, valor_trafego_meta, data_entrada, data_churn, tipo_relacao, status")
-    .neq("status", "em_onboarding");
-  const allClients = (clientsData ?? []) as Array<{
+  // ── Fase 1: 4 queries independentes em paralelo (clients, snapshots, profiles, expenses)
+  const [clientsRes, snapshotsRes, profilesRes, expensesRes] = await Promise.all([
+    supabase
+      .from("clients")
+      .select("id, valor_mensal, valor_trafego_google, valor_trafego_meta, data_entrada, data_churn, tipo_relacao, status")
+      .neq("status", "em_onboarding"),
+    supabase
+      .from("commission_snapshots")
+      .select("valor_total")
+      .eq("mes_referencia", mesRef),
+    supabase
+      .from("profiles")
+      .select("fixo_mensal, role, ativo")
+      .eq("ativo", true)
+      .neq("role", "socio"),
+    sb
+      .from("expenses")
+      .select("id, descricao, categoria, tipo, valor, mes_referencia, inicio_mes, fim_mes"),
+  ]);
+
+  const allClients = (clientsRes.data ?? []) as Array<{
     id: string;
     valor_mensal: number;
     valor_trafego_google: number | null;
@@ -69,47 +86,35 @@ async function _getDREImpl(mesRef: string): Promise<DREData> {
     0,
   );
 
-  // ── Comissões: snapshot ou preview live
-  const { data: snapshotsData } = await supabase
-    .from("commission_snapshots")
-    .select("valor_total")
-    .eq("mes_referencia", mesRef);
-  const snapshots = (snapshotsData ?? []) as Array<{ valor_total: number }>;
-  let comissoes = snapshots.reduce((a, s) => a + Number(s.valor_total), 0);
+  const snapshots = (snapshotsRes.data ?? []) as Array<{ valor_total: number }>;
+  const expenses = (expensesRes.data ?? []) as ExpenseRow[];
+  const expenseIds = expenses.map((e) => e.id);
 
-  if (comissoes === 0) {
-    const previewRows = await previewAllForMonth(mesRef);
-    comissoes = previewRows.reduce((a, r) => a + Number(r.valor_total), 0);
-  }
+  // ── Fase 2: overrides (depende de expenseIds) + previewLive (só se snapshots vazios) em paralelo
+  const snapshotsTotal = snapshots.reduce((a, s) => a + Number(s.valor_total), 0);
+  const needsPreview = snapshotsTotal === 0;
 
-  // ── Salários: profiles ativos, exceto sócio (pró-labore vai como despesa manual)
-  const { data: profilesData } = await supabase
-    .from("profiles")
-    .select("fixo_mensal, role, ativo")
-    .eq("ativo", true)
-    .neq("role", "socio");
-  const salarios = ((profilesData ?? []) as Array<{ fixo_mensal: number }>).reduce(
+  const [overridesData, previewRows] = await Promise.all([
+    expenseIds.length === 0
+      ? Promise.resolve([])
+      : sb
+          .from("expense_overrides")
+          .select("id, expense_id, mes_referencia, valor")
+          .eq("mes_referencia", mesRef)
+          .in("expense_id", expenseIds)
+          .then((r: { data: OverrideRow[] | null }) => r.data ?? []),
+    needsPreview ? previewAllForMonth(mesRef) : Promise.resolve([] as Array<{ valor_total: number }>),
+  ]);
+  const overrides = overridesData as OverrideRow[];
+
+  const comissoes = needsPreview
+    ? previewRows.reduce((a: number, r: { valor_total: number }) => a + Number(r.valor_total), 0)
+    : snapshotsTotal;
+
+  const salarios = ((profilesRes.data ?? []) as Array<{ fixo_mensal: number }>).reduce(
     (a, p) => a + Number(p.fixo_mensal ?? 0),
     0,
   );
-
-  // ── Despesas manuais (tabelas novas — types ainda não regenerados)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sb = supabase as any;
-  const { data: expensesData } = await sb
-    .from("expenses")
-    .select("id, descricao, categoria, tipo, valor, mes_referencia, inicio_mes, fim_mes");
-  const expenses = (expensesData ?? []) as ExpenseRow[];
-
-  const expenseIds = expenses.map((e) => e.id);
-  const overridesData = expenseIds.length === 0
-    ? []
-    : (await sb
-        .from("expense_overrides")
-        .select("id, expense_id, mes_referencia, valor")
-        .eq("mes_referencia", mesRef)
-        .in("expense_id", expenseIds)).data ?? [];
-  const overrides = overridesData as OverrideRow[];
 
   const despesas: DRELine[] = expenses
     .filter((e) => expenseAplicaNoMes(e, mesRef))
