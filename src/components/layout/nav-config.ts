@@ -1,7 +1,7 @@
 import {
   LayoutGrid, Users, Briefcase, KanbanSquare, ListChecks,
   DollarSign, Smile, Calendar, UserCog, ClipboardList, MessageSquare,
-  TrendingUp,
+  TrendingUp, Video,
   type LucideIcon,
 } from "lucide-react";
 import type { Role } from "@/lib/auth/permissions";
@@ -22,6 +22,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: "/onboarding", icon: KanbanSquare, label: "Onboarding", roles: "all", badgeKey: null },
   { href: "/prospeccao", icon: Briefcase, label: "Prospecção", roles: ["adm", "socio", "comercial"], badgeKey: null },
   { href: "/tarefas", icon: ListChecks, label: "Tarefas", roles: "all", badgeKey: null },
+  { href: "/audiovisual", icon: Video, label: "Audiovisual", roles: ["adm", "socio", "coordenador", "assessor", "videomaker", "audiovisual_chefe"], badgeKey: null },
   { href: "/recados", icon: MessageSquare, label: "Recados", roles: "all", badgeKey: "recados" },
   { href: "/painel", icon: ClipboardList, label: "Painel mensal", roles: ["adm", "socio", "coordenador", "assessor", "designer", "videomaker", "editor", "audiovisual_chefe"], badgeKey: null },
   { href: "/comissoes", icon: DollarSign, label: "Comissões", roles: "all", badgeKey: null },
