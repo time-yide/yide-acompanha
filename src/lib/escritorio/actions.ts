@@ -9,7 +9,7 @@ import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 import { canAccessChannel, type ChannelKind } from "./types";
 import { ESCRITORIO_UNREAD_TAG } from "./queries";
 
-type ActionResult = { error?: string; success?: boolean };
+type ActionResult = { error?: string; success?: boolean; id?: string; created_at?: string };
 
 const sendMessageSchema = z.object({
   channel_id: z.string().uuid(),
@@ -77,7 +77,7 @@ export async function sendChatMessageAction(
       attachment_urls: parsed.data.attachment_urls,
       mentioned_user_ids: parsed.data.mentioned_user_ids,
     })
-    .select("id")
+    .select("id, created_at")
     .single();
   if (error || !created) return { error: error?.message ?? "Falha ao enviar mensagem" };
 
@@ -117,9 +117,11 @@ export async function sendChatMessageAction(
     }
   }
 
-  revalidatePath(`/escritorio/${channel.kind}`);
+  // Não revalida o path do canal: o cliente já adicionou a mensagem otimista
+  // e o realtime cobre outros usuários. Revalidar aqui só causa refetch
+  // desnecessário e pode atrapalhar o estado local.
   revalidateTag(ESCRITORIO_UNREAD_TAG, "default");
-  return { success: true };
+  return { success: true, id: created.id, created_at: created.created_at };
 }
 
 const markReadSchema = z.object({
