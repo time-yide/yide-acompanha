@@ -8,6 +8,7 @@ import { PainelCardsList } from "@/components/painel/PainelCardsList";
 import { PainelKpis } from "@/components/painel/PainelKpis";
 import { AreaFilterChips } from "@/components/painel/AreaFilter";
 import { AssessorFilter } from "@/components/painel/AssessorFilter";
+import { ClientSearchInput } from "@/components/painel/ClientSearchInput";
 import { ViewToggle } from "@/components/painel/ViewToggle";
 import { PACOTES_NO_PAINEL_MENSAL, type TipoPacote } from "@/lib/painel/pacote-matrix";
 import { parseArea, matchesArea } from "@/lib/painel/area-filter";
@@ -29,7 +30,7 @@ function previousMonthRef(monthRef: string): string {
 export default async function PainelPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mes?: string; tipo?: string; area?: string; assessor?: string; view?: string }>;
+  searchParams: Promise<{ mes?: string; tipo?: string; area?: string; assessor?: string; view?: string; q?: string }>;
 }) {
   const user = await requireAuth();
   if (!ALLOWED_ROLES.includes(user.role)) notFound();
@@ -42,6 +43,7 @@ export default async function PainelPage({
       : "todos";
   const areaFiltro = parseArea(params.area);
   const view: "cards" | "tabela" = params.view === "tabela" ? "tabela" : "cards";
+  const searchQuery = (params.q ?? "").trim().toLowerCase();
 
   const canFilterAssessor = PRIVILEGED_ROLES.includes(user.role);
   const assessorFiltro = canFilterAssessor && params.assessor ? params.assessor : null;
@@ -62,7 +64,8 @@ export default async function PainelPage({
   const allChecklists = await getMonthlyChecklists(mesAtual, filter);
   const checklists = allChecklists
     .filter((c) => tipoFiltro === "todos" || c.client_tipo_pacote === tipoFiltro)
-    .filter((c) => matchesArea(c.client_tipo_pacote as TipoPacote, areaFiltro));
+    .filter((c) => matchesArea(c.client_tipo_pacote as TipoPacote, areaFiltro))
+    .filter((c) => searchQuery === "" || c.client_nome.toLowerCase().includes(searchQuery));
 
   const mesesDisponiveis: string[] = [];
   let cursor = currentMonthRef();
@@ -96,6 +99,7 @@ export default async function PainelPage({
           <AreaFilterChips current={areaFiltro} />
         </div>
         <div className="flex flex-wrap items-end gap-3">
+          <ClientSearchInput current={params.q ?? ""} />
           {canFilterAssessor && (
             <AssessorFilter current={assessorFiltro} options={assessoresOptions} />
           )}
