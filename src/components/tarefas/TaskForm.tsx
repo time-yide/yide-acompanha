@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState, useTransition } from "react";
+import Link from "next/link";
 import { Plus, X, Link as LinkIcon, Upload, Image as ImageIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,6 +42,8 @@ interface Props {
   submitLabel?: string;
   /** Quando passado, usado como id pré-gerado pra path de upload. */
   preGeneratedId?: string;
+  /** Quando passado, exibe um link "Cancelar" ao lado do submit. */
+  cancelHref?: string;
 }
 
 const PROFILE_NONE = "_none";
@@ -51,7 +54,7 @@ function nomeOf(profiles: ProfileOption[], id: string | null | undefined): strin
 }
 
 export function TaskForm({
-  action, profiles, clientes, defaults = {}, isEdit = false, submitLabel = "Salvar", preGeneratedId,
+  action, profiles, clientes, defaults = {}, isEdit = false, submitLabel = "Salvar", preGeneratedId, cancelHref,
 }: Props) {
   const [state, formAction, pending] = useActionState(action, undefined);
 
@@ -322,9 +325,16 @@ export function TaskForm({
         </p>
       )}
 
-      <Button type="submit" disabled={pending || uploading}>
-        {pending ? "Salvando..." : submitLabel}
-      </Button>
+      <div className="flex items-center gap-3">
+        <Button type="submit" disabled={pending || uploading}>
+          {pending ? "Salvando..." : submitLabel}
+        </Button>
+        {cancelHref && (
+          <Link href={cancelHref} className="text-sm text-muted-foreground hover:text-foreground hover:underline">
+            Cancelar
+          </Link>
+        )}
+      </div>
     </form>
   );
 }
