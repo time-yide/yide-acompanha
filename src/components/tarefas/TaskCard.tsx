@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { Paperclip, Link as LinkIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Paperclip, Link as LinkIcon, ExternalLink } from "lucide-react";
 import { prazoUrgency, formatPrazoLabel, type PrazoUrgency } from "@/lib/tarefas/grouping";
 import type { TaskRow } from "@/lib/tarefas/queries";
 import { cn } from "@/lib/utils";
@@ -28,7 +28,8 @@ const PRAZO_PILL: Record<PrazoUrgency, string> = {
   none: "bg-muted/40 text-muted-foreground border-border",
 };
 
-/** Iniciais do nome (até 2 chars). "Yasmin Monteiro" → "YM" */
+const MAX_VISIBLE_LINKS = 2;
+
 function initials(nome: string | undefined | null): string {
   if (!nome) return "—";
   const parts = nome.trim().split(/\s+/);
@@ -36,7 +37,6 @@ function initials(nome: string | undefined | null): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-/** Hash do userId em uma das 8 cores da paleta — determinístico. */
 function avatarBg(userId: string | undefined | null): string {
   const palette = [
     "bg-emerald-500/30 text-emerald-700 dark:text-emerald-300",
@@ -54,26 +54,58 @@ function avatarBg(userId: string | undefined | null): string {
   return palette[Math.abs(hash) % palette.length];
 }
 
+function shortHostname(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+
 export function TaskCard({ task, userRole, draggable = false }: Props) {
+  const router = useRouter();
+
   function onDragStart(e: React.DragEvent) {
     e.dataTransfer.setData("text/task-id", task.id);
     e.dataTransfer.setData("text/from-status", task.status);
     e.dataTransfer.effectAllowed = "move";
   }
 
+  function navigateToTask(e: React.MouseEvent | React.KeyboardEvent) {
+    // Não navega se o clique foi em algo interativo (link externo, botão, etc.)
+    const target = e.target as HTMLElement;
+    if (target.closest('a, button, [data-no-card-click="true"]')) return;
+    router.push(`/tarefas/${task.id}`);
+  }
+
+  function onKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      navigateToTask(e);
+    }
+  }
+
   const urgency = prazoUrgency(task.due_date);
   const isCompleted = task.status === "concluida";
   const responsavelNome = task.atribuido?.nome ?? null;
   const responsavelId = task.atribuido?.id ?? null;
+  const criadorNome = task.criador?.nome ?? null;
   const clienteNome = task.cliente?.nome ?? null;
+  const visibleLinks = (task.links ?? []).slice(0, MAX_VISIBLE_LINKS);
+  const extraLinksCount = Math.max(0, (task.links?.length ?? 0) - visibleLinks.length);
 
   return (
-    <Link
-      href={`/tarefas/${task.id}`}
+    <div
+      role="link"
+      tabIndex={0}
+      aria-label={`Abrir tarefa ${task.titulo}`}
+      onClick={navigateToTask}
+      onKeyDown={onKeyDown}
       draggable={draggable}
       onDragStart={draggable ? onDragStart : undefined}
       className={cn(
-        "group relative block rounded-lg border bg-card p-3 transition-all hover:bg-card/80 hover:shadow-sm",
+        "group relative rounded-lg border bg-card p-3 transition-all hover:bg-card/80 hover:shadow-sm",
+        "cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         draggable && "cursor-grab active:cursor-grabbing [&[draggable=true]:active]:opacity-50",
         isCompleted && "opacity-70",
       )}
@@ -113,18 +145,42 @@ export function TaskCard({ task, userRole, draggable = false }: Props) {
                 <span className="text-[10px]">{task.attachment_urls?.length}</span>
               </span>
             )}
-            {(task.links?.length ?? 0) > 0 && (
-              <span title={`${task.links?.length} link(s)`} className="inline-flex items-center gap-0.5 text-muted-foreground">
-                <LinkIcon className="h-3 w-3" />
-                <span className="text-[10px]">{task.links?.length}</span>
-              </span>
-            )}
             {(task.participantes_ids?.length ?? 0) > 0 && (
               <span title={`+${task.participantes_ids?.length} atribuído(s)`} className="rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-semibold text-muted-foreground">
                 +{task.participantes_ids?.length}
               </span>
             )}
           </div>
+          {criadorNome && (
+            <div className="text-[10px] text-muted-foreground">
+              Criada por <span className="font-medium">{criadorNome}</span>
+            </div>
+          )}
+          {visibleLinks.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {visibleLinks.map((l, i) => (
+                <a
+                  key={i}
+                  href={l.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  draggable={false}
+                  onDragStart={(e) => e.stopPropagation()}
+                  title={l.url}
+                  className="inline-flex items-center gap-1 rounded-md border border-primary/30 bg-primary/5 px-1.5 py-0.5 text-[10px] text-primary hover:bg-primary/10 hover:underline max-w-[180px]"
+                >
+                  <LinkIcon className="h-2.5 w-2.5 flex-shrink-0" />
+                  <span className="truncate">{l.label || shortHostname(l.url)}</span>
+                  <ExternalLink className="h-2.5 w-2.5 flex-shrink-0 opacity-60" />
+                </a>
+              ))}
+              {extraLinksCount > 0 && (
+                <span className="inline-flex items-center rounded-md border bg-muted/40 px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                  +{extraLinksCount}
+                </span>
+              )}
+            </div>
+          )}
         </div>
         <CompleteTaskButton
           taskId={task.id}
@@ -136,6 +192,6 @@ export function TaskCard({ task, userRole, draggable = false }: Props) {
           className="absolute right-2 top-2 hidden h-6 w-6 items-center justify-center rounded-md bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25 group-hover:inline-flex dark:text-emerald-400 disabled:opacity-50"
         />
       </div>
-    </Link>
+    </div>
   );
 }

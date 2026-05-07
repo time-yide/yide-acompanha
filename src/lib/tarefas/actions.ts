@@ -246,9 +246,12 @@ export async function toggleTaskCompletionAction(
   const { data: t } = await supabase.from("tasks").select("*").eq("id", taskId).single();
   if (!t) return { error: "Tarefa não encontrada" };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tParticipantes = (t as any).participantes_ids as string[] | null | undefined;
   const canToggle =
     t.criado_por === actor.id ||
     t.atribuido_a === actor.id ||
+    (Array.isArray(tParticipantes) && tParticipantes.includes(actor.id)) ||
     isPrivileged(actor);
   if (!canToggle) return { error: "Sem permissão" };
 
@@ -341,9 +344,12 @@ export async function moveTaskStatusAction(formData: FormData) {
   const { data: before } = await supabase.from("tasks").select("*").eq("id", parsed.data.id).single();
   if (!before) return { error: "Tarefa não encontrada" };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const beforeParticipantes = (before as any).participantes_ids as string[] | null | undefined;
   const canMove =
     before.criado_por === actor.id ||
     before.atribuido_a === actor.id ||
+    (Array.isArray(beforeParticipantes) && beforeParticipantes.includes(actor.id)) ||
     isPrivileged(actor);
   if (!canMove) return { error: "Sem permissão" };
 

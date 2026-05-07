@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Pencil, Trash2 } from "lucide-react";
+import { CheckCircle2, Pencil, Trash2 } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import type { CurrentUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
@@ -78,13 +78,6 @@ export default async function TarefaPage({
                 Fazer ajustes
               </Button>
             </Link>
-          )}
-          {canEdit && (
-            <CompleteTaskButton
-              taskId={id}
-              isCompleted={task.status === "concluida"}
-              userRole={user.role}
-            />
           )}
           {canDelete && (
             <form action={deleteTask}>
@@ -205,6 +198,44 @@ export default async function TarefaPage({
                     <img src={url} alt="anexo" className="h-full w-full object-cover transition-transform hover:scale-105" />
                   </a>
                 ))}
+              </div>
+            </Card>
+          )}
+
+          {canEdit && (
+            <Card
+              className={
+                task.status === "concluida"
+                  ? "mt-8 border-muted-foreground/30 bg-muted/30 p-5"
+                  : "mt-8 border-emerald-500/40 bg-emerald-500/5 p-5"
+              }
+            >
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2
+                    className={
+                      task.status === "concluida"
+                        ? "mt-0.5 h-5 w-5 flex-shrink-0 text-muted-foreground"
+                        : "mt-0.5 h-5 w-5 flex-shrink-0 text-emerald-600 dark:text-emerald-400"
+                    }
+                  />
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-semibold">
+                      {task.status === "concluida" ? "Tarefa concluída" : "Finalizar tarefa"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {task.status === "concluida"
+                        ? "Reabra caso ainda haja algo pendente."
+                        : "Marque quando todos os itens estiverem entregues."}
+                    </p>
+                  </div>
+                </div>
+                <CompleteTaskButton
+                  taskId={id}
+                  isCompleted={task.status === "concluida"}
+                  userRole={user.role}
+                  size="lg"
+                />
               </div>
             </Card>
           )}
