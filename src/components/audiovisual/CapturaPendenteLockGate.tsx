@@ -1,21 +1,29 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Lock, AlertTriangle } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import type { PendenteEvento } from "@/lib/audiovisual/queries";
 
 interface Props {
   /** Lista de pendências expiradas (já passaram do prazo D+1 09h). */
   overdue: PendenteEvento[];
-  /** Se true, esconde o gate (ex: já está em /audiovisual). */
-  hidden?: boolean;
 }
 
 function formatDateBR(iso: string): string {
   return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
 }
 
-export function CapturaPendenteLockGate({ overdue, hidden = false }: Props) {
-  if (overdue.length === 0 || hidden) return null;
+export function CapturaPendenteLockGate({ overdue }: Props) {
+  // Decide hidden no client com usePathname() pra reagir a navegação
+  // client-side. Antes era via header x-pathname no server, mas o cache
+  // de layout do App Router às vezes não re-renderiza em soft nav,
+  // travando o user neste modal mesmo após clicar "Ir para Audiovisual".
+  const pathname = usePathname();
+  const isOnAudiovisual = pathname?.startsWith("/audiovisual") ?? false;
+
+  if (overdue.length === 0 || isOnAudiovisual) return null;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-background/95 p-4 backdrop-blur-md sm:p-8">
@@ -62,8 +70,11 @@ export function CapturaPendenteLockGate({ overdue, hidden = false }: Props) {
         </div>
 
         <div className="flex justify-center">
-          <Link href="/audiovisual">
-            <Button>Ir para Audiovisual</Button>
+          {/* Aplica os estilos do Button no próprio <a> do Link — evita
+              ter <button> dentro de <a> (HTML inválido que em Next 16
+              engole o click em alguns browsers). */}
+          <Link href="/audiovisual" className={buttonVariants()}>
+            Ir para Audiovisual
           </Link>
         </div>
       </div>
