@@ -5,12 +5,15 @@ import { TaskCard } from "./TaskCard";
 import type { TaskRow } from "@/lib/tarefas/queries";
 import { cn } from "@/lib/utils";
 
-type Status = "aberta" | "em_andamento" | "concluida";
+type Status = "aberta" | "em_andamento" | "concluida" | "em_aprovacao" | "aprovada" | "postada";
 
 const COLUMN_LABEL: Record<Status, string> = {
   aberta: "A fazer",
   em_andamento: "Em andamento",
   concluida: "Concluídas",
+  em_aprovacao: "Aprovação",
+  aprovada: "Aprovado",
+  postada: "Postado",
 };
 
 interface Props {
@@ -51,7 +54,7 @@ export function TasksColumn({ status, tasks, userRole, onDropTask }: Props) {
       onDragLeave={onDragLeave}
       onDrop={onDrop}
       className={cn(
-        "flex w-[300px] flex-shrink-0 flex-col rounded-xl border bg-muted/20 transition-colors",
+        "flex w-[260px] flex-shrink-0 flex-col rounded-xl border bg-muted/20 transition-colors",
         isOver && "border-primary bg-primary/5 ring-2 ring-primary/30",
       )}
     >

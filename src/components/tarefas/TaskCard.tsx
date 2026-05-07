@@ -1,11 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Paperclip, Link as LinkIcon, ExternalLink } from "lucide-react";
+import { Paperclip, Link as LinkIcon, ExternalLink, Clock } from "lucide-react";
 import { prazoUrgency, formatPrazoLabel, type PrazoUrgency } from "@/lib/tarefas/grouping";
 import type { TaskRow, TaskAprovacao } from "@/lib/tarefas/queries";
 import { cn } from "@/lib/utils";
 import { CompleteTaskButton } from "./CompleteTaskButton";
+
+const APPROVED_STALE_HOURS = 24;
 
 const APROVACAO_PILL: Record<TaskAprovacao, { label: string; cls: string }> = {
   pendente_envio: { label: "Pendente envio", cls: "border-slate-400/40 text-slate-700 bg-slate-500/10 dark:text-slate-300" },
@@ -93,13 +96,22 @@ export function TaskCard({ task, userRole, draggable = false }: Props) {
   }
 
   const urgency = prazoUrgency(task.due_date);
-  const isCompleted = task.status === "concluida";
+  const isCompleted = task.status === "concluida" || task.status === "postada";
   const responsavelNome = task.atribuido?.nome ?? null;
   const responsavelId = task.atribuido?.id ?? null;
   const criadorNome = task.criador?.nome ?? null;
   const clienteNome = task.cliente?.nome ?? null;
   const visibleLinks = (task.links ?? []).slice(0, MAX_VISIBLE_LINKS);
   const extraLinksCount = Math.max(0, (task.links?.length ?? 0) - visibleLinks.length);
+
+  // Alerta visual: tarefa em "Aprovado" há mais de 24h sem virar "Postado".
+  // Lazy initializer roda só no mount; Date.now() é OK aqui pois não acontece em re-renders.
+  const [aprovadaStaleHours] = useState<number | null>(() => {
+    if (task.status !== "aprovada" || !task.aprovada_em) return null;
+    const ms = Date.now() - new Date(task.aprovada_em).getTime();
+    const hours = ms / 36e5;
+    return hours >= APPROVED_STALE_HOURS ? Math.floor(hours) : null;
+  });
 
   return (
     <div
@@ -115,8 +127,15 @@ export function TaskCard({ task, userRole, draggable = false }: Props) {
         "cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         draggable && "cursor-grab active:cursor-grabbing [&[draggable=true]:active]:opacity-50",
         isCompleted && "opacity-70",
+        aprovadaStaleHours !== null && "border-orange-500/60 ring-1 ring-orange-500/30",
       )}
     >
+      {aprovadaStaleHours !== null && (
+        <div className="mb-2 flex items-center gap-1.5 rounded-md border border-orange-500/40 bg-orange-500/10 px-2 py-1 text-[10px] font-medium text-orange-700 dark:text-orange-400">
+          <Clock className="h-3 w-3 flex-shrink-0" />
+          Aprovada há {aprovadaStaleHours}h — falta postar
+        </div>
+      )}
       <div className="flex items-start gap-2">
         <span
           className={cn("mt-1.5 h-2 w-2 flex-shrink-0 rounded-full", PRIORITY_DOT[task.prioridade])}

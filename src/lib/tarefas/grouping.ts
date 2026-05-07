@@ -48,7 +48,7 @@ export function groupTasksByPrazo(
     atrasadas: [], hoje: [], semana: [], sem_prazo: [], futuras: [], concluidas: [],
   };
   for (const t of tasks) {
-    if (t.status === "concluida") {
+    if (t.status === "concluida" || t.status === "postada") {
       groups.concluidas.push(t);
       continue;
     }
