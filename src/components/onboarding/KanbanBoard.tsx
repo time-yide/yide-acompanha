@@ -10,8 +10,8 @@ import type { Stage } from "@/lib/leads/schema";
 const STAGES: Stage[] = [
   "leads_potencial",
   "leads_ativos",
-  "proposta_enviada",
   "reuniao_comercial",
+  "proposta_enviada",
   "contrato",
   "marco_zero",
   "ativo",

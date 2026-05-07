@@ -63,15 +63,18 @@ export function LeadCard({ lead, currentUserId, currentUserRole }: Props) {
             <span className="truncate">{lead.servico_proposto}</span>
           </div>
         )}
-        {/* Valor aparece a partir de proposta_enviada — leads frios e ativos
-            ainda não têm proposta cadastrada. */}
-        {lead.stage !== "leads_potencial" && lead.stage !== "leads_ativos" && Number(lead.valor_proposto) > 0 && (
+        {/* Valor aparece a partir de proposta_enviada — antes disso (frio,
+            ativo, reunião comercial) ainda não tem proposta com valor. */}
+        {lead.stage !== "leads_potencial" &&
+          lead.stage !== "leads_ativos" &&
+          lead.stage !== "reuniao_comercial" &&
+          Number(lead.valor_proposto) > 0 && (
           <div className="flex items-center gap-1.5">
             <Wallet className="h-3.5 w-3.5 flex-shrink-0 text-emerald-600 dark:text-emerald-400" />
             <span>R$ {Number(lead.valor_proposto).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês</span>
           </div>
         )}
-        {(lead.stage === "leads_ativos" || lead.stage === "proposta_enviada" || lead.stage === "reuniao_comercial") &&
+        {(lead.stage === "reuniao_comercial" || lead.stage === "proposta_enviada") &&
           lead.data_prospeccao_agendada && (
           <div className="flex items-center gap-1.5">
             <Calendar className="h-3.5 w-3.5 flex-shrink-0" />

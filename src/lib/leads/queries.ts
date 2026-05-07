@@ -42,8 +42,8 @@ export async function listLeadsByStage(): Promise<Record<Stage, LeadRow[]>> {
   const groups: Record<Stage, LeadRow[]> = {
     leads_potencial: [],
     leads_ativos: [],
-    proposta_enviada: [],
     reuniao_comercial: [],
+    proposta_enviada: [],
     contrato: [],
     marco_zero: [],
     ativo: [],
