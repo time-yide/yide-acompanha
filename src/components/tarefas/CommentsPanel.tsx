@@ -5,6 +5,7 @@ import { Send } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import { addCommentAction } from "@/lib/tarefas/actions";
 import type { TaskComment } from "@/lib/tarefas/queries";
@@ -88,12 +89,14 @@ export function CommentsPanel({ taskId, initialComments, canComment, currentUser
             const isMine = c.autor_id === currentUserId;
             return (
               <div key={c.id} className={isMine ? "flex gap-2.5 flex-row-reverse" : "flex gap-2.5"}>
-                <span
-                  title={c.autor?.nome ?? "—"}
-                  className={`inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-semibold ${avatarBg(c.autor_id)}`}
-                >
-                  {initials(c.autor?.nome)}
-                </span>
+                <Avatar className="h-7 w-7" title={c.autor?.nome ?? "—"}>
+                  {c.autor?.avatar_url ? (
+                    <AvatarImage src={c.autor.avatar_url} alt={c.autor.nome} />
+                  ) : null}
+                  <AvatarFallback className={`text-[10px] font-semibold ${avatarBg(c.autor_id)}`}>
+                    {initials(c.autor?.nome)}
+                  </AvatarFallback>
+                </Avatar>
                 <div className={isMine ? "max-w-[80%] space-y-0.5 text-right" : "max-w-[80%] space-y-0.5"}>
                   <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
                     <span className="font-medium text-foreground">{c.autor?.nome ?? "—"}</span>
