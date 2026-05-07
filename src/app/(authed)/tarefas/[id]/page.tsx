@@ -15,6 +15,7 @@ import { CompleteTaskButton } from "@/components/tarefas/CompleteTaskButton";
 import { ApprovalCard } from "@/components/tarefas/ApprovalCard";
 import { RevisionsTimeline } from "@/components/tarefas/RevisionsTimeline";
 import { CommentsPanel } from "@/components/tarefas/CommentsPanel";
+import { TaskRealtimeWatcher } from "@/components/tarefas/TaskRealtimeWatcher";
 
 function isPrivileged(user: CurrentUser): boolean {
   return user.role === "adm" || user.role === "socio";
@@ -89,6 +90,9 @@ export default async function TarefaPage({
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
+      {/* Subscribe a UPDATEs da task: status, atribuição, aprovação, etc.
+          Quando muda, força re-render da página com dados frescos. */}
+      <TaskRealtimeWatcher taskId={id} />
       <header className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold tracking-tight">Detalhes da tarefa</h1>
         <div className="flex items-center gap-2">
@@ -246,7 +250,7 @@ export default async function TarefaPage({
               taskId={id}
               initialComments={comments}
               canComment={isMember}
-              currentUserId={user.id}
+              currentUser={{ id: user.id, nome: user.nome, avatar_url: user.avatarUrl }}
             />
           )}
 

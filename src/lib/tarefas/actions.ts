@@ -726,7 +726,7 @@ export async function markAsPostedAction(taskId: string): Promise<ApprovalResult
 // Chat (task_comments)
 // ============================================================================
 
-type CommentResult = { error?: string; success?: boolean };
+type CommentResult = { error?: string; success?: boolean; id?: string; criado_em?: string };
 
 export async function addCommentAction(formData: FormData): Promise<CommentResult> {
   const actor = await requireAuth();
@@ -757,12 +757,12 @@ export async function addCommentAction(formData: FormData): Promise<CommentResul
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
-  const { error } = await sb.from("task_comments").insert({
+  const { data: created, error } = await sb.from("task_comments").insert({
     task_id: parsed.data.task_id,
     autor_id: actor.id,
     conteudo: parsed.data.conteudo,
-  });
-  if (error) return { error: error.message };
+  }).select("id, criado_em").single();
+  if (error || !created) return { error: error?.message ?? "Falha ao publicar comentário" };
 
   // Notifica todos os envolvidos exceto o autor
   const recipients = [
@@ -782,6 +782,8 @@ export async function addCommentAction(formData: FormData): Promise<CommentResul
     });
   }
 
-  revalidatePath(`/tarefas/${parsed.data.task_id}`);
-  return { success: true };
+  // Não revalida o path — o cliente já adiciona via optimistic update e
+  // o realtime cobre os outros usuários. Revalidar aqui causa refetch
+  // desnecessário.
+  return { success: true, id: created.id, criado_em: created.criado_em };
 }
