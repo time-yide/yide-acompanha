@@ -1,4 +1,3 @@
-import { headers } from "next/headers";
 import { requireAuth } from "@/lib/auth/session";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
@@ -20,11 +19,6 @@ export default async function AuthedLayout({ children }: { children: React.React
   ]);
   const audiovisualOverdue = audiovisualPendentes.filter((p) => p.isOverdue);
 
-  // Esconde o gate quando user já está em /audiovisual (pra ele poder regularizar)
-  const hdrs = await headers();
-  const path = hdrs.get("x-pathname") ?? "";
-  const isOnAudiovisual = path.startsWith("/audiovisual");
-
   return (
     <div className="flex min-h-screen">
       <Sidebar role={user.role} nome={user.nome} badges={{ recados: recadosNaoLidos, escritorio: escritorioUnread }} />
@@ -40,7 +34,7 @@ export default async function AuthedLayout({ children }: { children: React.React
         <main className="flex-1 overflow-auto bg-muted/20 p-3 md:p-6">{children}</main>
       </div>
       <SatisfactionLockGate state={lockState} />
-      <CapturaPendenteLockGate overdue={audiovisualOverdue} hidden={isOnAudiovisual} />
+      <CapturaPendenteLockGate overdue={audiovisualOverdue} />
     </div>
   );
 }
