@@ -50,7 +50,12 @@ export async function DashboardAdm({ nome }: Props) {
         <p className="text-sm text-muted-foreground">Visão administrativa</p>
       </header>
 
-      <LeadsContratoCard leads={leadsContrato} />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <LeadsContratoCard leads={leadsContrato} />
+        <Section title="Próximos eventos" cta={{ href: "/calendario", label: "Ver agenda →" }}>
+          <ProximosEventosList eventos={eventos} />
+        </Section>
+      </div>
 
       <KpiRowAdm
         clientesAtivos={kpis.clientesAtivos.quantidade}
@@ -71,10 +76,6 @@ export async function DashboardAdm({ nome }: Props) {
         <ClientPaymentsTable rows={clientPayments} mesReferencia={mes} />
         <PayrollPaymentsTable rows={payroll} mesReferencia={mes} />
       </div>
-
-      <Section title="Próximos eventos" cta={{ href: "/calendario", label: "Ver agenda →" }}>
-        <ProximosEventosList eventos={eventos} />
-      </Section>
     </div>
   );
 }
