@@ -22,17 +22,19 @@ function mockProfile(profile: { id: string; role: string; fixo_mensal: number; c
   });
 }
 
-/** Cria um mock que suporta N chamadas encadeadas de .eq() antes de resolver. */
+/** Cria um mock que suporta N chamadas encadeadas de .eq()/.is() antes de resolver. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function makeChainableEqMock(data: unknown[]): any {
   const resolved = Promise.resolve({ data });
   const chainable = {
     eq: vi.fn(),
+    is: vi.fn(),
     then: resolved.then.bind(resolved),
     catch: resolved.catch.bind(resolved),
     finally: resolved.finally.bind(resolved),
   };
   chainable.eq.mockReturnValue(chainable);
+  chainable.is.mockReturnValue(chainable);
   return chainable;
 }
 
@@ -61,11 +63,14 @@ function mockClientsAllAtivos(rows: Array<{ valor_mensal: number; nome?: string;
 }
 
 function mockLeadsQuery(rows: Array<{ id: string; valor_proposto: number; client_id: string | null; cliente: { nome: string } | null }>) {
+  // Chain: select().eq(comercial_id).is(deleted_at, null).gte(data_fechamento).lte(data_fechamento)
   return ({
     select: () => ({
       eq: () => ({
-        gte: () => ({
-          lte: vi.fn().mockResolvedValue({ data: rows }),
+        is: () => ({
+          gte: () => ({
+            lte: vi.fn().mockResolvedValue({ data: rows }),
+          }),
         }),
       }),
     }),

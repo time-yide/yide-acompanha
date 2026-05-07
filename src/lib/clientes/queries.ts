@@ -39,6 +39,7 @@ async function _listClientesImpl(filters?: ListClientesFilters): Promise<Cliente
       assessor:profiles!clients_assessor_id_fkey(nome),
       coordenador:profiles!clients_coordenador_id_fkey(nome)
     `)
+    .is("deleted_at", null)
     .order("nome");
 
   if (filters?.status) query = query.eq("status", filters.status);
@@ -88,6 +89,7 @@ export async function getClienteById(id: string) {
       coordenador:profiles!clients_coordenador_id_fkey(id, nome)
     `)
     .eq("id", id)
+    .is("deleted_at", null)
     .single();
   if (error) throw error;
   return data;
@@ -97,7 +99,8 @@ async function _getClientesStatsImpl() {
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from("clients")
-    .select("status, valor_mensal");
+    .select("status, valor_mensal")
+    .is("deleted_at", null);
   if (error) throw error;
 
   const ativos = (data ?? []).filter((c) => c.status === "ativo");

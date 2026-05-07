@@ -24,6 +24,7 @@ export async function listClientsForUser(userId: string, role: RoleEnum): Promis
     .from("clients")
     .select("id, nome, assessor_id, coordenador_id")
     .eq("status", "ativo")
+    .is("deleted_at", null)
     .order("nome");
 
   if (role === "assessor") {

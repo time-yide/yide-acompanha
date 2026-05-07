@@ -178,7 +178,8 @@ export async function calculateCommission(
       .select("valor_mensal, nome, id, tipo_relacao, assessor_id")
       .eq("assessor_id", userId)
       .eq("status", "ativo")
-      .eq("tipo_relacao", "comum");
+      .eq("tipo_relacao", "comum")
+      .is("deleted_at", null);
     const rows = (clientsRows ?? []) as ClientRow[];
     data.clientsAssessor = rows;
 
@@ -195,7 +196,8 @@ export async function calculateCommission(
       .from("clients")
       .select("valor_mensal, id, tipo_relacao, assessor_id")
       .eq("status", "ativo")
-      .eq("tipo_relacao", "comum");
+      .eq("tipo_relacao", "comum")
+      .is("deleted_at", null);
     const rows = (clientsRows ?? []) as ClientRow[];
     data.clientsAgencia = rows;
 
@@ -213,6 +215,7 @@ export async function calculateCommission(
       .from("leads")
       .select("id, valor_proposto, client_id, comercial_id, cliente:clients(nome)")
       .eq("comercial_id", userId)
+      .is("deleted_at", null)
       .gte("data_fechamento", firstDay)
       .lte("data_fechamento", lastDay);
     data.leadsComercial = (dealsRows ?? []) as unknown as LeadRow[];
@@ -246,7 +249,8 @@ export async function calculateCommissionsBatch(monthRef: string): Promise<Batch
       .from("clients")
       .select("id, nome, valor_mensal, tipo_relacao, assessor_id")
       .eq("status", "ativo")
-      .eq("tipo_relacao", "comum"),
+      .eq("tipo_relacao", "comum")
+      .is("deleted_at", null),
     supabase
       .from("client_monthly_adjustments")
       .select("*")
@@ -254,6 +258,7 @@ export async function calculateCommissionsBatch(monthRef: string): Promise<Batch
     supabase
       .from("leads")
       .select("id, comercial_id, valor_proposto, client_id, cliente:clients(nome)")
+      .is("deleted_at", null)
       .gte("data_fechamento", firstDay)
       .lte("data_fechamento", lastDay),
   ]);

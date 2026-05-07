@@ -313,15 +313,16 @@ export async function deleteClienteAction(formData: FormData) {
     justificativa: parsed.data.justificativa,
   });
 
-  // Hard delete — FKs em outras tabelas usam ON DELETE CASCADE
-  // (client_monthly_checklist, satisfaction_entries, client_files, etc.)
-  // ou ON DELETE SET NULL (tasks.client_id, calendar_events.client_id, leads.client_id).
-  // .select() retorna as linhas deletadas — se vier vazio, RLS bloqueou
-  // silenciosamente (não dá erro mas zero rows afetadas).
-  const { data: deleted, error } = await supabase
+  // Soft delete: marca deleted_at + deleted_by. Recuperável em /lixeira
+  // por 30 dias. Tabelas relacionadas continuam apontando pro id (não usamos
+  // mais ON DELETE CASCADE no flow normal de exclusão).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const { data: deleted, error } = await sb
     .from("clients")
-    .delete()
+    .update({ deleted_at: new Date().toISOString(), deleted_by: actor.id })
     .eq("id", parsed.data.id)
+    .is("deleted_at", null)
     .select("id");
   if (error) return { error: error.message };
   if (!deleted || deleted.length === 0) {

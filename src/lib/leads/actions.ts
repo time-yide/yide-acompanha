@@ -397,7 +397,6 @@ export async function deleteLeadAction(formData: FormData) {
     return { error: "Lead já virou cliente. Use a página de clientes pra excluir." };
   }
 
-  // Audita ANTES — depois o id some, mas o histórico fica.
   await logAudit({
     entidade: "leads",
     entidade_id: parsed.data.id,
@@ -407,10 +406,14 @@ export async function deleteLeadAction(formData: FormData) {
     justificativa: parsed.data.justificativa,
   });
 
-  const { data: deleted, error } = await supabase
+  // Soft delete: recuperável via /lixeira por 30 dias.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const { data: deleted, error } = await sb
     .from("leads")
-    .delete()
+    .update({ deleted_at: new Date().toISOString(), deleted_by: actor.id })
     .eq("id", parsed.data.id)
+    .is("deleted_at", null)
     .select("id");
   if (error) return { error: error.message };
   if (!deleted || deleted.length === 0) {

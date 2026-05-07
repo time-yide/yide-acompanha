@@ -47,6 +47,7 @@ export async function getComissaoPrevista(
       .from("clients")
       .select("id, valor_mensal, data_entrada")
       .eq("status", "ativo")
+      .is("deleted_at", null)
       .eq(filterColumn, userId);
 
     const clients = (clientsData ?? []) as Array<{ id: string; valor_mensal: number; data_entrada: string }>;
@@ -69,6 +70,7 @@ export async function getComissaoPrevista(
       .select("id, valor_proposto, data_fechamento")
       .eq("comercial_id", userId)
       .eq("stage", "ativo")
+      .is("deleted_at", null)
       .gte("data_fechamento", inicioMes)
       .lte("data_fechamento", fimMes);
 

@@ -460,7 +460,14 @@ export async function deleteTaskAction(taskId: string) {
   const canDelete = t.criado_por === actor.id || isPrivileged(actor);
   if (!canDelete) return { error: "Sem permissão" };
 
-  const { error } = await supabase.from("tasks").delete().eq("id", taskId);
+  // Soft delete: recuperável via /lixeira por 30 dias.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const { error } = await sb
+    .from("tasks")
+    .update({ deleted_at: new Date().toISOString(), deleted_by: actor.id })
+    .eq("id", taskId)
+    .is("deleted_at", null);
   if (error) return { error: error.message };
 
   await logAudit({

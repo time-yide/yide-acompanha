@@ -125,7 +125,8 @@ async function _listTasksImpl(filters?: TaskFilters): Promise<TaskRow[]> {
       atribuido:profiles!tasks_atribuido_a_fkey(id, nome),
       criador:profiles!tasks_criado_por_fkey(id, nome),
       cliente:clients(id, nome)
-    `);
+    `)
+    .is("deleted_at", null);
 
   if (filters?.status && filters.status.length > 0) {
     // Cast: types do Supabase não conhecem os novos status enum (em_aprovacao/aprovada/postada).
@@ -175,6 +176,7 @@ export async function getTaskById(id: string): Promise<TaskRow> {
       cliente:clients(id, nome)
     `)
     .eq("id", id)
+    .is("deleted_at", null)
     .single();
   if (error) throw error;
   return data as TaskRow;
@@ -219,6 +221,7 @@ export async function countOpenTasksForUser(userId: string): Promise<number> {
     .from("tasks")
     .select("id", { count: "exact", head: true })
     .eq("atribuido_a", userId)
+    .is("deleted_at", null)
     .not("status", "in", "(concluida,postada)");
   return count ?? 0;
 }
@@ -230,6 +233,7 @@ export async function countOverdueTasksForUser(userId: string): Promise<number> 
     .from("tasks")
     .select("id", { count: "exact", head: true })
     .eq("atribuido_a", userId)
+    .is("deleted_at", null)
     .not("status", "in", "(concluida,postada)")
     .lt("due_date", today);
   return count ?? 0;

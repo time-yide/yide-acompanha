@@ -32,6 +32,7 @@ export async function listLeadsByStage(): Promise<Record<Stage, LeadRow[]>> {
       coord:profiles!leads_coord_alocado_id_fkey(nome),
       assessor:profiles!leads_assessor_alocado_id_fkey(nome)
     `)
+    .is("deleted_at", null)
     .order("created_at", { ascending: false });
 
   if (error) throw error;
@@ -87,6 +88,7 @@ export async function getLeadById(id: string) {
       cliente:clients(id, nome)
     `)
     .eq("id", id)
+    .is("deleted_at", null)
     .single();
   if (error) throw error;
   return data;

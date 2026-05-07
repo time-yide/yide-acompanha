@@ -41,7 +41,8 @@ async function _getProspectsListImpl(filter: ProspectsFilter): Promise<ProspectL
 
   let query = supabase
     .from("leads")
-    .select("id, nome_prospect, site, contato_principal, stage, valor_proposto, comercial_id, motivo_perdido, data_fechamento, prioridade, created_at, comercial:profiles!leads_comercial_id_fkey(nome)");
+    .select("id, nome_prospect, site, contato_principal, stage, valor_proposto, comercial_id, motivo_perdido, data_fechamento, prioridade, created_at, comercial:profiles!leads_comercial_id_fkey(nome)")
+    .is("deleted_at", null);
 
   if (filter.comercialId) {
     query = query.eq("comercial_id", filter.comercialId);
