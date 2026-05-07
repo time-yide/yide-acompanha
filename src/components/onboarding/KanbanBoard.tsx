@@ -7,7 +7,14 @@ import { moveStageAction } from "@/lib/leads/actions";
 import type { LeadRow } from "@/lib/leads/queries";
 import type { Stage } from "@/lib/leads/schema";
 
-const STAGES: Stage[] = ["prospeccao", "comercial", "contrato", "marco_zero", "ativo"];
+const STAGES: Stage[] = [
+  "leads_potencial",
+  "leads_ativos",
+  "reuniao_comercial",
+  "contrato",
+  "marco_zero",
+  "ativo",
+];
 
 interface Props {
   groups: Record<Stage, LeadRow[]>;

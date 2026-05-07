@@ -15,11 +15,15 @@ import { PROSPECTS_CACHE_TAG } from "@/lib/prospeccao/queries";
 
 function prettyStage(stage: string): string {
   switch (stage) {
-    case "prospeccao": return "Prospecção";
-    case "comercial": return "Reunião Comercial";
+    case "leads_potencial": return "Leads em potencial";
+    case "leads_ativos": return "Leads ativos";
+    case "reuniao_comercial": return "Reunião comercial";
     case "contrato": return "Contrato";
-    case "marco_zero": return "Marco Zero";
-    case "ativo": return "Cliente Ativo";
+    case "marco_zero": return "Marco zero";
+    case "ativo": return "Ativação do lead";
+    // Legados (caso de algum lead não migrado)
+    case "prospeccao": return "Leads ativos";
+    case "comercial": return "Reunião comercial";
     default: return stage;
   }
 }
@@ -69,21 +73,24 @@ export async function createLeadAction(formData: FormData) {
     info_briefing: parsed.data.info_briefing || null,
     prioridade: parsed.data.prioridade,
     data_prospeccao_agendada: parsed.data.data_prospeccao_agendada || null,
-    stage: "prospeccao" as const,
+    stage: "leads_potencial" as const,
     comercial_id: actor.id,
   };
 
-  const { data: created, error } = await supabase
+  // Cast: types do Supabase ainda não conhecem os novos valores do enum lead_stage.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const { data: created, error } = await sb
     .from("leads")
     .insert(insertPayload)
     .select("id")
     .single();
   if (error || !created) return { error: error?.message ?? "Falha ao criar lead" };
 
-  await supabase.from("lead_history").insert({
+  await sb.from("lead_history").insert({
     lead_id: created.id,
     from_stage: null,
-    to_stage: "prospeccao",
+    to_stage: "leads_potencial",
     ator_id: actor.id,
     observacao: "Lead criado",
   });
@@ -248,10 +255,12 @@ export async function moveStageAction(formData: FormData) {
     updatePayload.data_fechamento = today;
   }
 
-  const { error } = await supabase.from("leads").update(updatePayload).eq("id", parsed.data.id);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const { error } = await sb.from("leads").update(updatePayload).eq("id", parsed.data.id);
   if (error) return { error: error.message };
 
-  await supabase.from("lead_history").insert({
+  await sb.from("lead_history").insert({
     lead_id: parsed.data.id,
     from_stage: fromStage,
     to_stage: toStage,
@@ -279,7 +288,7 @@ export async function moveStageAction(formData: FormData) {
 
   // kanban_moved (sempre)
   const nextResponsibleId =
-    toStage === "comercial" ? lead.comercial_id :
+    (toStage === "leads_ativos" || toStage === "reuniao_comercial") ? lead.comercial_id :
     toStage === "marco_zero" ? lead.coord_alocado_id :
     toStage === "ativo" ? lead.assessor_alocado_id :
     null;

@@ -1,6 +1,13 @@
 import { z } from "zod";
 
-export const STAGES = ["prospeccao", "comercial", "contrato", "marco_zero", "ativo"] as const;
+export const STAGES = [
+  "leads_potencial",
+  "leads_ativos",
+  "reuniao_comercial",
+  "contrato",
+  "marco_zero",
+  "ativo",
+] as const;
 export const PRIORITIES = ["alta", "media", "baixa"] as const;
 export type Stage = typeof STAGES[number];
 
@@ -47,8 +54,9 @@ export const deleteLeadSchema = z.object({
  * (LeadCard) pra UI esconder botões e action bloquear.
  */
 export const STAGE_INTERACTORS: Record<Stage, readonly string[]> = {
-  prospeccao: ["adm", "socio", "comercial"],
-  comercial: ["adm", "socio", "comercial"],
+  leads_potencial: ["adm", "socio", "comercial"],
+  leads_ativos: ["adm", "socio", "comercial"],
+  reuniao_comercial: ["adm", "socio", "comercial"],
   contrato: ["adm", "socio", "coordenador"],
   marco_zero: ["adm", "socio", "coordenador", "assessor"],
   ativo: ["socio", "coordenador", "assessor"],

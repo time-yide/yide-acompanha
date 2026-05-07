@@ -10,7 +10,7 @@ export default async function OnboardingPage() {
   const groups = await listLeadsByStage();
 
   const total =
-    groups.prospeccao.length + groups.comercial.length +
+    groups.leads_potencial.length + groups.leads_ativos.length + groups.reuniao_comercial.length +
     groups.contrato.length + groups.marco_zero.length + groups.ativo.length;
 
   const canCreate = ["adm", "socio", "comercial"].includes(user.role);
