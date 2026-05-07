@@ -32,7 +32,7 @@ export default async function CanalPage({ params }: { params: Promise<{ kind: st
   if (!channel) notFound();
 
   const [messages, sidebarChannels, mentionables] = await Promise.all([
-    listMessages(channel.id, 100),
+    listMessages(channel.id, 50),
     listChannelsWithUnread(user.id, user.role),
     listMentionables(),
   ]);
