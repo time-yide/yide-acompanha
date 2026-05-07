@@ -60,7 +60,7 @@ export interface TaskComment {
   autor_id: string;
   conteudo: string;
   criado_em: string;
-  autor?: { id?: string; nome: string } | null;
+  autor?: { id?: string; nome: string; avatar_url?: string | null } | null;
 }
 
 export function sortTasks<T extends Pick<TaskRow, "due_date" | "prioridade">>(tasks: T[]): T[] {
@@ -190,7 +190,7 @@ export async function listTaskComments(taskId: string): Promise<TaskComment[]> {
     .from("task_comments")
     .select(`
       id, task_id, autor_id, conteudo, criado_em,
-      autor:profiles!task_comments_autor_id_fkey(id, nome)
+      autor:profiles!task_comments_autor_id_fkey(id, nome, avatar_url)
     `)
     .eq("task_id", taskId)
     .order("criado_em", { ascending: true });

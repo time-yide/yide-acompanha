@@ -1,6 +1,7 @@
 "use client";
 
 import { ExternalLink, FileText, Reply } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { ChatMessage } from "@/lib/escritorio/types";
 import { cn } from "@/lib/utils";
 
@@ -83,15 +84,14 @@ function isImage(url: string): boolean {
 export function MessageBubble({ message, isMine, onReply }: Props) {
   return (
     <div className={cn("group flex gap-2", isMine && "flex-row-reverse")}>
-      <span
-        className={cn(
-          "inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-semibold",
-          avatarBg(message.autor_id),
-        )}
-        title={message.autor?.nome ?? "—"}
-      >
-        {initials(message.autor?.nome)}
-      </span>
+      <Avatar className="h-8 w-8" title={message.autor?.nome ?? "—"}>
+        {message.autor?.avatar_url ? (
+          <AvatarImage src={message.autor.avatar_url} alt={message.autor.nome} />
+        ) : null}
+        <AvatarFallback className={cn("text-[10px] font-semibold", avatarBg(message.autor_id))}>
+          {initials(message.autor?.nome)}
+        </AvatarFallback>
+      </Avatar>
       <div className={cn("min-w-0 max-w-[75%] space-y-0.5", isMine && "text-right")}>
         <div className="flex flex-wrap items-baseline gap-x-2 text-[11px] text-muted-foreground">
           <span className="font-medium text-foreground">{message.autor?.nome ?? "—"}</span>
