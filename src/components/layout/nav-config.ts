@@ -19,7 +19,10 @@ export interface NavItem {
 export const NAV_ITEMS: readonly NavItem[] = [
   { href: "/", icon: LayoutGrid, label: "Dashboard", roles: "all", badgeKey: null },
   { href: "/clientes", icon: Users, label: "Clientes", roles: "all", badgeKey: null },
-  { href: "/onboarding", icon: KanbanSquare, label: "Onboarding", roles: "all", badgeKey: null },
+  // LGPD: dados de prospects/leads (telefone, email, valor) só pra quem
+  // precisa operar — comercial cria/contata, assessor/coord acompanham,
+  // audiovisual_chefe é coord audiovisual. Designer/videomaker/editor não veem.
+  { href: "/onboarding", icon: KanbanSquare, label: "Onboarding", roles: ["adm", "socio", "comercial", "assessor", "coordenador", "audiovisual_chefe"], badgeKey: null },
   { href: "/prospeccao", icon: Briefcase, label: "Prospecção", roles: ["adm", "socio", "comercial"], badgeKey: null },
   { href: "/tarefas", icon: ListChecks, label: "Tarefas", roles: "all", badgeKey: null },
   { href: "/audiovisual", icon: Video, label: "Audiovisual", roles: ["adm", "socio", "coordenador", "assessor", "videomaker", "audiovisual_chefe"], badgeKey: null },

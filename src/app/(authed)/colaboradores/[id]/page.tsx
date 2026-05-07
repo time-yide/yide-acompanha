@@ -17,7 +17,7 @@ const roleLabels: Record<string, string> = {
   videomaker: "Videomaker",
   designer: "Designer",
   editor: "Editor",
-  audiovisual_chefe: "Audiovisual Chefe",
+  audiovisual_chefe: "Coordenador audiovisual",
 };
 
 function initials(nome: string): string {

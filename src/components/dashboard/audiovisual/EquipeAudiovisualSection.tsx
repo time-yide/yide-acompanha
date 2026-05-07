@@ -10,7 +10,7 @@ interface Props {
 
 function roleLabel(role: string): string {
   if (role === "videomaker") return "Videomaker";
-  if (role === "audiovisual_chefe") return "Audiovisual chefe";
+  if (role === "audiovisual_chefe") return "Coordenador audiovisual";
   if (role === "editor") return "Editor";
   return role;
 }
@@ -84,7 +84,7 @@ export async function EquipeAudiovisualSection({ periodo }: Props) {
       <div className="space-y-3">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground/70">Edição</h3>
         <p className="text-xs text-muted-foreground">
-          Inclui editores, videomakers e audiovisual chefe que estão fazendo edição em tarefas.
+          Inclui editores, videomakers e coordenador audiovisual que estão fazendo edição em tarefas.
         </p>
         {editores.length === 0 ? (
           <p className="rounded-lg border border-dashed p-4 text-center text-xs text-muted-foreground">
