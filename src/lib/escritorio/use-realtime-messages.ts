@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { authenticateRealtime } from "@/lib/supabase/realtime-auth";
 import type { ChatMessage } from "./types";
 import { playNotificationSound } from "./notification-sound";
 
@@ -46,12 +47,11 @@ export function useRealtimeMessages(
     let cancelled = false;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let channelRef: any = null;
+    let unsubAuth: (() => void) | null = null;
 
     async function start() {
-      // 1. Pega o JWT atual da sessão (vinda do cookie SSR) e injeta no realtime.
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token ?? null;
-      if (token) supabase.realtime.setAuth(token);
+      // 1. Autentica o websocket (ver src/lib/supabase/realtime-auth.ts)
+      unsubAuth = await authenticateRealtime(supabase);
       if (cancelled) return;
 
       // 2. Subscribe no canal de postgres_changes.
@@ -110,16 +110,9 @@ export function useRealtimeMessages(
 
     void start();
 
-    // 3. Re-aplica o token quando ele renovar (sessão vence em ~1h por default).
-    const { data: authSub } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.access_token) {
-        supabase.realtime.setAuth(session.access_token);
-      }
-    });
-
     return () => {
       cancelled = true;
-      authSub.subscription.unsubscribe();
+      unsubAuth?.();
       if (channelRef) supabase.removeChannel(channelRef);
     };
   }, [channelId, currentUserId]);

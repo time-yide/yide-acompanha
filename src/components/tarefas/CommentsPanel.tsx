@@ -8,13 +8,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import { addCommentAction } from "@/lib/tarefas/actions";
+import { useRealtimeTaskComments } from "@/lib/tarefas/use-realtime-comments";
 import type { TaskComment } from "@/lib/tarefas/queries";
+
+interface CurrentUser {
+  id: string;
+  nome: string;
+  avatar_url: string | null;
+}
 
 interface Props {
   taskId: string;
   initialComments: TaskComment[];
   canComment: boolean;
-  currentUserId: string;
+  currentUser: CurrentUser;
 }
 
 function initials(nome: string | undefined | null): string {
@@ -48,7 +55,8 @@ function formatDateTimeBR(iso: string): string {
   return `${date} às ${time}`;
 }
 
-export function CommentsPanel({ taskId, initialComments, canComment, currentUserId }: Props) {
+export function CommentsPanel({ taskId, initialComments, canComment, currentUser }: Props) {
+  const { comments, setComments } = useRealtimeTaskComments(taskId, initialComments);
   const [draft, setDraft] = useState("");
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -59,18 +67,40 @@ export function CommentsPanel({ taskId, initialComments, canComment, currentUser
     const content = draft.trim();
     if (content.length === 0) return;
 
+    // Optimistic insert — UI atualiza imediato, antes do round-trip do server.
+    const tempId = `optimistic-${crypto.randomUUID()}`;
+    const optimistic: TaskComment = {
+      id: tempId,
+      task_id: taskId,
+      autor_id: currentUser.id,
+      conteudo: content,
+      criado_em: new Date().toISOString(),
+      autor: { id: currentUser.id, nome: currentUser.nome, avatar_url: currentUser.avatar_url },
+    };
+    setComments((prev) => [...prev, optimistic]);
+    setDraft("");
+
     startTransition(async () => {
       const fd = new FormData();
       fd.set("task_id", taskId);
       fd.set("conteudo", content);
       const r = await addCommentAction(fd);
       if (r?.error) {
+        // Remove a otimista e devolve o texto pro user.
+        setComments((prev) => prev.filter((c) => c.id !== tempId));
+        setDraft(content);
         setError(r.error);
         toast.error(r.error);
         return;
       }
-      setDraft("");
-      toast.success("Comentário publicado");
+      // Substitui temp_id pelo id real — dedup do realtime cobre o resto.
+      if (r?.id) {
+        const realId = r.id;
+        const realCriadoEm = r.criado_em ?? optimistic.criado_em;
+        setComments((prev) =>
+          prev.map((c) => (c.id === tempId ? { ...c, id: realId, criado_em: realCriadoEm } : c)),
+        );
+      }
     });
   }
 
@@ -82,11 +112,11 @@ export function CommentsPanel({ taskId, initialComments, canComment, currentUser
       </div>
 
       <div className="space-y-3">
-        {initialComments.length === 0 ? (
+        {comments.length === 0 ? (
           <p className="text-xs italic text-muted-foreground">Nenhum comentário ainda.</p>
         ) : (
-          initialComments.map((c) => {
-            const isMine = c.autor_id === currentUserId;
+          comments.map((c) => {
+            const isMine = c.autor_id === currentUser.id;
             return (
               <div key={c.id} className={isMine ? "flex gap-2.5 flex-row-reverse" : "flex gap-2.5"}>
                 <Avatar className="h-7 w-7" title={c.autor?.nome ?? "—"}>
