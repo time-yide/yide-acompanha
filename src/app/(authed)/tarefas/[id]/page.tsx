@@ -159,7 +159,7 @@ export default async function TarefaPage({
             </div>
 
             <div className="grid grid-cols-1 gap-4 border-t pt-5 text-sm sm:grid-cols-2">
-              <Field label="Responsável principal" value={task.atribuido?.nome ?? "—"} />
+              <Field label="Responsável pela execução" value={task.atribuido?.nome ?? "—"} />
               <Field label="Criado por" value={task.criador?.nome ?? "—"} />
               <Field
                 label="Prioridade"
