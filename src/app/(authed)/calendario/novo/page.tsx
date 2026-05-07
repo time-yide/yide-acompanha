@@ -8,11 +8,10 @@ import { Card } from "@/components/ui/card";
 export default async function NovoEventoPage() {
   const user = await requireAuth();
   const supabase = await createClient();
-  const { data: profiles = [] } = await supabase
-    .from("profiles")
-    .select("id, nome")
-    .eq("ativo", true)
-    .order("nome");
+  const [{ data: profiles = [] }, { data: clientes = [] }] = await Promise.all([
+    supabase.from("profiles").select("id, nome").eq("ativo", true).order("nome"),
+    supabase.from("clients").select("id, nome").eq("status", "ativo").order("nome"),
+  ]);
 
   const canCreateVideomaker = (ROLES_PODEM_CRIAR_VIDEOMAKER as readonly string[]).includes(user.role);
 
@@ -28,6 +27,7 @@ export default async function NovoEventoPage() {
         <EventForm
           action={createEventAction}
           profiles={profiles ?? []}
+          clientes={clientes ?? []}
           canCreateVideomaker={canCreateVideomaker}
           submitLabel="Criar evento"
         />
