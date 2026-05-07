@@ -84,6 +84,8 @@ export default async function EditClientePage({ params }: { params: Promise<{ id
             valor_trafego_google: cliente.valor_trafego_google ?? null,
             valor_trafego_meta: cliente.valor_trafego_meta ?? null,
             tipo_pacote_revisado: cliente.tipo_pacote_revisado ?? false,
+            tipo_relacao: (cliente as { tipo_relacao?: string | null }).tipo_relacao ?? "comum",
+            modalidade: (cliente as { modalidade?: string | null }).modalidade ?? "mensal",
           }}
           assessores={assessores}
           coordenadores={coordenadores}

@@ -39,6 +39,7 @@ export async function createClienteAction(formData: FormData) {
     valor_trafego_meta: fd(formData, "valor_trafego_meta"),
     tipo_pacote_revisado: fd(formData, "tipo_pacote_revisado"),
     tipo_relacao: fd(formData, "tipo_relacao") ?? "comum",
+    modalidade: fd(formData, "modalidade") ?? "mensal",
   });
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
@@ -72,11 +73,13 @@ export async function createClienteAction(formData: FormData) {
     valor_trafego_google: parsed.data.valor_trafego_google ?? null,
     valor_trafego_meta: parsed.data.valor_trafego_meta ?? null,
     tipo_relacao: tipoRelacao,
+    modalidade: parsed.data.modalidade ?? "mensal",
   };
 
   const { data: created, error } = await supabase
     .from("clients")
-    .insert(insertPayload)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .insert(insertPayload as any)
     .select("id")
     .single();
 
@@ -135,6 +138,7 @@ export async function updateClienteAction(formData: FormData) {
     valor_trafego_meta: fd(formData, "valor_trafego_meta"),
     tipo_pacote_revisado: fd(formData, "tipo_pacote_revisado"),
     tipo_relacao: fd(formData, "tipo_relacao") ?? "comum",
+    modalidade: fd(formData, "modalidade") ?? "mensal",
   });
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
@@ -176,9 +180,11 @@ export async function updateClienteAction(formData: FormData) {
     valor_trafego_google: parsed.data.valor_trafego_google ?? null,
     valor_trafego_meta: parsed.data.valor_trafego_meta ?? null,
     tipo_relacao: tipoRelacaoEdit,
+    modalidade: parsed.data.modalidade ?? "mensal",
   };
 
-  const { error } = await supabase.from("clients").update(updatePayload).eq("id", id);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await supabase.from("clients").update(updatePayload as any).eq("id", id);
   if (error) return { error: error.message };
 
   await logAudit({

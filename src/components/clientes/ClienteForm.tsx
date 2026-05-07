@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TIPOS_PACOTE, tipoPacoteBadge } from "@/lib/painel/pacote-matrix";
-import { CADENCIAS_REUNIAO, TIPOS_RELACAO } from "@/lib/clientes/schema";
+import { CADENCIAS_REUNIAO, MODALIDADES, TIPOS_RELACAO } from "@/lib/clientes/schema";
 import type { TipoRelacaoCliente } from "@/lib/clientes/schema";
 
 interface ProfileOption {
@@ -44,6 +44,7 @@ interface Props {
     valor_trafego_meta: number | null;
     tipo_pacote_revisado: boolean;
     tipo_relacao: string | null;
+    modalidade: string | null;
   }>;
   assessores: ProfileOption[];
   coordenadores: ProfileOption[];
@@ -58,6 +59,11 @@ const TIPO_RELACAO_LABELS: Record<TipoRelacaoCliente, string> = {
   comum: "Comum (cliente pagante)",
   parceria: "Parceria (sem cobrança)",
   permuta: "Permuta (troca de serviços)",
+};
+
+const MODALIDADE_LABELS: Record<string, string> = {
+  mensal: "Mensal (recorrente)",
+  pontual: "Pontual (serviço único)",
 };
 
 export function ClienteForm({ action, defaults = {}, assessores, coordenadores, designers, videomakers, editors, canEditAlocacao, submitLabel = "Salvar" }: Props) {
@@ -96,6 +102,23 @@ export function ClienteForm({ action, defaults = {}, assessores, coordenadores, 
               {tipoRelacao === "parceria" ? "Parceria" : "Permuta"} não gera cobrança — valor mensal será R$ 0,00.
             </p>
           )}
+        </div>
+
+        <div className="space-y-2 md:col-span-2">
+          <Label htmlFor="modalidade">Modalidade</Label>
+          <Select name="modalidade" defaultValue={defaults.modalidade ?? "mensal"}>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione" />
+            </SelectTrigger>
+            <SelectContent>
+              {MODALIDADES.map((m) => (
+                <SelectItem key={m} value={m}>{MODALIDADE_LABELS[m]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            Pontual (vídeo avulso, projeto fechado): conta na carteira enquanto vigente, mas <strong>não vira churn</strong> ao encerrar — fica em &quot;Serviços pontuais concluídos no mês&quot;.
+          </p>
         </div>
 
         <div className="space-y-2">
