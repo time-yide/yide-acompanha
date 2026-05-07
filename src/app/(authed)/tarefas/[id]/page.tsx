@@ -4,7 +4,7 @@ import { CheckCircle2, Pencil, Trash2 } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import type { CurrentUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import { getTaskById } from "@/lib/tarefas/queries";
+import { getTaskById, listTaskRevisoes, type TaskAprovacao, type TaskFormato } from "@/lib/tarefas/queries";
 import { updateTaskAction, deleteTaskAction } from "@/lib/tarefas/actions";
 import { TaskForm } from "@/components/tarefas/TaskForm";
 import { PriorityBadge } from "@/components/tarefas/PriorityBadge";
@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CompleteTaskButton } from "@/components/tarefas/CompleteTaskButton";
+import { ApprovalCard } from "@/components/tarefas/ApprovalCard";
+import { RevisionsTimeline } from "@/components/tarefas/RevisionsTimeline";
 
 function isPrivileged(user: CurrentUser): boolean {
   return user.role === "adm" || user.role === "socio";
@@ -49,12 +51,19 @@ export default async function TarefaPage({
   const isEditing = edit === "1" && canEdit;
 
   const supabase = await createClient();
-  const [{ data: profiles = [] }, { data: clientes = [] }] = await Promise.all([
+  const isApprovalTask = task.tipo === "video" || task.tipo === "arte";
+  const [{ data: profiles = [] }, { data: clientes = [] }, revisoes] = await Promise.all([
     supabase.from("profiles").select("id, nome").eq("ativo", true).order("nome"),
     isEditing
       ? supabase.from("clients").select("id, nome").eq("status", "ativo").order("nome")
       : Promise.resolve({ data: [] as { id: string; nome: string }[] }),
+    isApprovalTask && !isEditing ? listTaskRevisoes(id) : Promise.resolve([]),
   ]);
+
+  const isExecutor =
+    task.atribuido_a === user.id ||
+    (Array.isArray(task.participantes_ids) && task.participantes_ids.includes(user.id));
+  const isApprover = task.criado_por === user.id || isPrivileged(user);
 
   async function deleteTask() {
     "use server";
@@ -111,6 +120,8 @@ export default async function TarefaPage({
               descricao: task.descricao,
               prioridade: task.prioridade,
               status: task.status,
+              tipo: task.tipo ?? "geral",
+              formatos: task.formatos ?? [],
               atribuido_a: task.atribuido_a,
               client_id: task.client_id,
               due_date: task.due_date,
@@ -172,6 +183,17 @@ export default async function TarefaPage({
             </div>
           </Card>
 
+          {isApprovalTask && task.status_aprovacao && (
+            <ApprovalCard
+              taskId={id}
+              tipo={task.tipo as "video" | "arte"}
+              formatos={(task.formatos ?? []) as TaskFormato[]}
+              statusAprovacao={task.status_aprovacao as TaskAprovacao}
+              isExecutor={isExecutor}
+              isApprover={isApprover}
+            />
+          )}
+
           {(task.links?.length ?? 0) > 0 && (
             <Card className="p-5 space-y-2">
               <h3 className="text-sm font-semibold">Links de referência</h3>
@@ -201,6 +223,8 @@ export default async function TarefaPage({
               </div>
             </Card>
           )}
+
+          {isApprovalTask && <RevisionsTimeline revisoes={revisoes} />}
 
           {canEdit && (
             <Card

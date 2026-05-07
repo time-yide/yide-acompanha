@@ -6,7 +6,14 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAuth, requirePermission, type CurrentUser } from "@/lib/auth/session";
 import { logAudit } from "@/lib/audit/log";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
-import { createTaskSchema, editTaskSchema, moveStatusSchema, artesEntreguesSchema } from "./schema";
+import {
+  createTaskSchema,
+  editTaskSchema,
+  moveStatusSchema,
+  artesEntreguesSchema,
+  requestAdjustmentsSchema,
+  TASK_FORMATOS,
+} from "./schema";
 
 function fd(formData: FormData, key: string) {
   const v = formData.get(key);
@@ -49,6 +56,10 @@ export async function createTaskAction(_prevState: ActionResult, formData: FormD
     titulo: fd(formData, "titulo"),
     descricao: fd(formData, "descricao"),
     prioridade: fd(formData, "prioridade") || "media",
+    tipo: fd(formData, "tipo") || "geral",
+    formatos: fdArray(formData, "formatos").filter((f): f is string =>
+      typeof f === "string" && (TASK_FORMATOS as readonly string[]).includes(f),
+    ),
     atribuido_a: fd(formData, "atribuido_a"),
     client_id: fd(formData, "client_id"),
     due_date: fd(formData, "due_date"),
@@ -67,11 +78,15 @@ export async function createTaskAction(_prevState: ActionResult, formData: FormD
   // Remove o atribuido_a dos participantes (evita duplicação)
   const participantes = parsed.data.participantes_ids.filter((id) => id !== parsed.data.atribuido_a);
 
+  const requiresApproval = parsed.data.tipo === "video" || parsed.data.tipo === "arte";
   const insertPayload = {
     ...(parsed.data.id ? { id: parsed.data.id } : {}),
     titulo: parsed.data.titulo,
     descricao: parsed.data.descricao || null,
     prioridade: parsed.data.prioridade,
+    tipo: parsed.data.tipo,
+    formatos: requiresApproval ? parsed.data.formatos : [],
+    status_aprovacao: requiresApproval ? ("pendente_envio" as const) : null,
     atribuido_a: parsed.data.atribuido_a,
     client_id: parsed.data.client_id || null,
     due_date: parsed.data.due_date || null,
@@ -137,6 +152,10 @@ export async function updateTaskAction(_prevState: ActionResult, formData: FormD
     titulo: fd(formData, "titulo"),
     descricao: fd(formData, "descricao"),
     prioridade: fd(formData, "prioridade") || "media",
+    tipo: fd(formData, "tipo") || "geral",
+    formatos: fdArray(formData, "formatos").filter((f): f is string =>
+      typeof f === "string" && (TASK_FORMATOS as readonly string[]).includes(f),
+    ),
     atribuido_a: fd(formData, "atribuido_a"),
     client_id: fd(formData, "client_id"),
     due_date: fd(formData, "due_date"),
@@ -174,10 +193,23 @@ export async function updateTaskAction(_prevState: ActionResult, formData: FormD
 
   const participantes = parsed.data.participantes_ids.filter((id) => id !== parsed.data.atribuido_a);
 
+  // status_aprovacao: bootstrap quando tipo passa a ser video/arte;
+  // limpa quando volta pra geral. Caso contrário, preserva o que estava.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const beforeAny = before as any;
+  const wasApprovalTipo = beforeAny.tipo === "video" || beforeAny.tipo === "arte";
+  const isApprovalTipo = parsed.data.tipo === "video" || parsed.data.tipo === "arte";
+  const status_aprovacao = isApprovalTipo
+    ? (wasApprovalTipo ? beforeAny.status_aprovacao : "pendente_envio")
+    : null;
+
   const updatePayload = {
     titulo: parsed.data.titulo,
     descricao: parsed.data.descricao || null,
     prioridade: parsed.data.prioridade,
+    tipo: parsed.data.tipo,
+    formatos: isApprovalTipo ? parsed.data.formatos : [],
+    status_aprovacao,
     atribuido_a: parsed.data.atribuido_a,
     client_id: parsed.data.client_id || null,
     due_date: parsed.data.due_date || null,
@@ -428,4 +460,179 @@ export async function deleteTaskAction(taskId: string) {
   revalidateTag("dashboard", "default");
   revalidateTag("tasks", "default");
   redirect("/tarefas");
+}
+
+// ============================================================================
+// Fluxo de aprovação (vídeo/arte): submit → approve / request adjustments
+// ============================================================================
+
+type ApprovalResult = { error?: string; success?: boolean };
+
+async function loadTaskForApproval(taskId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("tasks").select("*").eq("id", taskId).single();
+  if (error || !data) return { error: "Tarefa não encontrada" as const, supabase };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const t = data as any;
+  if (t.tipo !== "video" && t.tipo !== "arte") {
+    return { error: "Esta tarefa não tem fluxo de aprovação" as const, supabase };
+  }
+  return { task: t, supabase };
+}
+
+async function insertRevisao(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  args: { taskId: string; autorId: string; tipo: "envio" | "aprovacao" | "ajustes"; observacoes?: string | null },
+) {
+  await supabase.from("task_revisoes").insert({
+    task_id: args.taskId,
+    autor_id: args.autorId,
+    tipo: args.tipo,
+    observacoes: args.observacoes ?? null,
+  });
+}
+
+/** Atribuído ou participante marca a tarefa como entregue para análise. */
+export async function submitForApprovalAction(taskId: string): Promise<ApprovalResult> {
+  const actor = await requireAuth();
+  const loaded = await loadTaskForApproval(taskId);
+  if ("error" in loaded && loaded.error) return { error: loaded.error };
+  const { task, supabase } = loaded as { task: { atribuido_a: string; participantes_ids: string[] | null; status_aprovacao: string; criado_por: string; titulo: string; client_id: string | null }; supabase: Awaited<ReturnType<typeof createClient>> };
+
+  const isExecutor =
+    task.atribuido_a === actor.id ||
+    (Array.isArray(task.participantes_ids) && task.participantes_ids.includes(actor.id));
+  if (!isExecutor) return { error: "Apenas o atribuído ou participantes podem enviar para análise" };
+
+  if (task.status_aprovacao !== "pendente_envio" && task.status_aprovacao !== "ajustes_solicitados") {
+    return { error: "Tarefa não está num estado válido para envio" };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const { error } = await sb
+    .from("tasks")
+    .update({ status_aprovacao: "em_analise" })
+    .eq("id", taskId);
+  if (error) return { error: error.message };
+
+  await insertRevisao(supabase, { taskId, autorId: actor.id, tipo: "envio" });
+
+  await dispatchNotification({
+    evento_tipo: "task_assigned",
+    titulo: "Tarefa enviada para análise",
+    mensagem: `${actor.nome} enviou para análise: "${task.titulo}"`,
+    link: `/tarefas/${taskId}`,
+    user_ids_extras: [task.criado_por],
+    source_user_id: actor.id,
+  });
+
+  revalidatePath(`/tarefas/${taskId}`);
+  revalidatePath("/tarefas");
+  revalidateTag("tasks", "default");
+  if (task.client_id) revalidatePath(`/clientes/${task.client_id}/tarefas`);
+  return { success: true };
+}
+
+/** Assessor (criador) ou adm/socio aprova. */
+export async function approveTaskAction(taskId: string): Promise<ApprovalResult> {
+  const actor = await requireAuth();
+  const loaded = await loadTaskForApproval(taskId);
+  if ("error" in loaded && loaded.error) return { error: loaded.error };
+  const { task, supabase } = loaded as { task: { criado_por: string; atribuido_a: string; participantes_ids: string[] | null; status_aprovacao: string; titulo: string; client_id: string | null }; supabase: Awaited<ReturnType<typeof createClient>> };
+
+  const canApprove = task.criado_por === actor.id || isPrivileged(actor);
+  if (!canApprove) return { error: "Apenas o criador (assessor) ou adm/sócio pode aprovar" };
+
+  if (task.status_aprovacao !== "em_analise") {
+    return { error: "Tarefa não está em análise" };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const { error } = await sb
+    .from("tasks")
+    .update({ status_aprovacao: "aprovado" })
+    .eq("id", taskId);
+  if (error) return { error: error.message };
+
+  await insertRevisao(supabase, { taskId, autorId: actor.id, tipo: "aprovacao" });
+
+  const recipients = [task.atribuido_a, ...(task.participantes_ids ?? [])].filter(
+    (id): id is string => !!id && id !== actor.id,
+  );
+  if (recipients.length > 0) {
+    await dispatchNotification({
+      evento_tipo: "task_assigned",
+      titulo: "Tarefa aprovada",
+      mensagem: `${actor.nome} aprovou: "${task.titulo}"`,
+      link: `/tarefas/${taskId}`,
+      user_ids_extras: recipients,
+      source_user_id: actor.id,
+    });
+  }
+
+  revalidatePath(`/tarefas/${taskId}`);
+  revalidatePath("/tarefas");
+  revalidateTag("tasks", "default");
+  if (task.client_id) revalidatePath(`/clientes/${task.client_id}/tarefas`);
+  return { success: true };
+}
+
+/** Assessor (criador) ou adm/socio pede ajustes (texto obrigatório). */
+export async function requestAdjustmentsAction(formData: FormData): Promise<ApprovalResult> {
+  const actor = await requireAuth();
+
+  const parsed = requestAdjustmentsSchema.safeParse({
+    id: fd(formData, "id"),
+    observacoes: fd(formData, "observacoes"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const loaded = await loadTaskForApproval(parsed.data.id);
+  if ("error" in loaded && loaded.error) return { error: loaded.error };
+  const { task, supabase } = loaded as { task: { criado_por: string; atribuido_a: string; participantes_ids: string[] | null; status_aprovacao: string; titulo: string; client_id: string | null }; supabase: Awaited<ReturnType<typeof createClient>> };
+
+  const canRequest = task.criado_por === actor.id || isPrivileged(actor);
+  if (!canRequest) return { error: "Apenas o criador (assessor) ou adm/sócio pode pedir ajustes" };
+
+  if (task.status_aprovacao !== "em_analise") {
+    return { error: "Tarefa não está em análise" };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const { error } = await sb
+    .from("tasks")
+    .update({ status_aprovacao: "ajustes_solicitados" })
+    .eq("id", parsed.data.id);
+  if (error) return { error: error.message };
+
+  await insertRevisao(supabase, {
+    taskId: parsed.data.id,
+    autorId: actor.id,
+    tipo: "ajustes",
+    observacoes: parsed.data.observacoes,
+  });
+
+  const recipients = [task.atribuido_a, ...(task.participantes_ids ?? [])].filter(
+    (id): id is string => !!id && id !== actor.id,
+  );
+  if (recipients.length > 0) {
+    await dispatchNotification({
+      evento_tipo: "task_assigned",
+      titulo: "Ajustes solicitados",
+      mensagem: `${actor.nome} pediu ajustes: "${task.titulo}"`,
+      link: `/tarefas/${parsed.data.id}`,
+      user_ids_extras: recipients,
+      source_user_id: actor.id,
+    });
+  }
+
+  revalidatePath(`/tarefas/${parsed.data.id}`);
+  revalidatePath("/tarefas");
+  revalidateTag("tasks", "default");
+  if (task.client_id) revalidatePath(`/clientes/${task.client_id}/tarefas`);
+  return { success: true };
 }
