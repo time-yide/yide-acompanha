@@ -74,14 +74,16 @@ export async function listMessages(channelId: string, limit = 100): Promise<Chat
   const supabase = await createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
+  // Usa nome da COLUNA como hint (mais robusto que nome da FK constraint —
+  // PostgREST schema cache às vezes não resolve self-joins via FK name).
   const { data, error } = await sb
     .from("chat_messages")
     .select(`
       id, channel_id, autor_id, conteudo, reply_to_id, attachment_urls, mentioned_user_ids, created_at, updated_at,
-      autor:profiles!chat_messages_autor_id_fkey(id, nome, avatar_url),
-      reply_to:chat_messages!chat_messages_reply_to_id_fkey(
+      autor:profiles!autor_id(id, nome, avatar_url),
+      reply_to:chat_messages!reply_to_id(
         id, conteudo,
-        autor:profiles!chat_messages_autor_id_fkey(nome)
+        autor:profiles!autor_id(nome)
       )
     `)
     .eq("channel_id", channelId)

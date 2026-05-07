@@ -56,10 +56,10 @@ export function useRealtimeMessages(
             .from("chat_messages")
             .select(`
               id, channel_id, autor_id, conteudo, reply_to_id, attachment_urls, mentioned_user_ids, created_at, updated_at,
-              autor:profiles!chat_messages_autor_id_fkey(id, nome, avatar_url),
-              reply_to:chat_messages!chat_messages_reply_to_id_fkey(
+              autor:profiles!autor_id(id, nome, avatar_url),
+              reply_to:chat_messages!reply_to_id(
                 id, conteudo,
-                autor:profiles!chat_messages_autor_id_fkey(nome)
+                autor:profiles!autor_id(nome)
               )
             `)
             .eq("id", newMsg.id)
