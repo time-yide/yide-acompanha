@@ -80,18 +80,19 @@ export function TaskForm({
     );
   }
 
-  // Ao trocar cliente: puxa equipe e auto-preenche atribuído principal + adicionais
+  // Ao trocar cliente: puxa equipe e auto-adiciona coordenador + assessor como
+  // atribuídos adicionais. NÃO preenche o "Responsável pela execução" (executor
+  // é definido manualmente pelo criador da tarefa).
   useEffect(() => {
     if (isEdit) return; // edit não auto-puxa pra não atropelar
     if (!clientId || clientId === PROFILE_NONE) return;
     let cancelled = false;
     fetchClienteEquipeAction(clientId).then((equipe) => {
       if (cancelled || !equipe) return;
-      const principal = equipe.assessor_id ?? equipe.coordenador_id ?? equipe.designer_id;
-      if (principal && !atribuidoA) setAtribuidoA(principal);
-      const extras = [equipe.assessor_id, equipe.coordenador_id, equipe.designer_id]
-        .filter((id): id is string => !!id && id !== principal);
-      setParticipantes((prev) => Array.from(new Set([...prev, ...extras])));
+      const equipeIds = [equipe.coordenador_id, equipe.assessor_id]
+        .filter((id): id is string => !!id);
+      if (equipeIds.length === 0) return;
+      setParticipantes((prev) => Array.from(new Set([...prev, ...equipeIds])));
     });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -227,7 +228,7 @@ export function TaskForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="atribuido_a">Responsável principal</Label>
+          <Label htmlFor="atribuido_a">Responsável pela execução</Label>
           <input type="hidden" name="atribuido_a" value={atribuidoA} />
           <SearchableSelect
             options={profiles.map((p) => ({ value: p.id, label: p.nome }))}
@@ -244,7 +245,7 @@ export function TaskForm({
             {participantesVisiveis.length === 0 && (
               <span className="text-xs text-muted-foreground py-1">
                 {clientId === PROFILE_NONE
-                  ? "Selecione um cliente pra puxar equipe automática, ou adicione manualmente abaixo."
+                  ? "Selecione um cliente pra adicionar coordenador e assessor automaticamente, ou inclua manualmente abaixo."
                   : "Nenhum adicional. Use o seletor abaixo pra incluir alguém."}
               </span>
             )}
