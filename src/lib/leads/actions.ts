@@ -249,24 +249,26 @@ export async function moveStageAction(formData: FormData) {
     }
   }
 
-  // leads_ativos → proposta_enviada: precisa ter valor proposto cadastrado.
-  if (fromStage === "leads_ativos" && toStage === "proposta_enviada") {
+  // leads_ativos → reuniao_comercial: precisa de data/hora da reunião.
+  // Cria evento no calendário interno depois do move (ver bloco mais abaixo).
+  if (fromStage === "leads_ativos" && toStage === "reuniao_comercial") {
+    if (!lead.data_prospeccao_agendada) {
+      return { error: "Agende a data e horário da reunião comercial antes de mover" };
+    }
+  }
+
+  // reuniao_comercial → proposta_enviada: precisa ter valor da proposta
+  // cadastrado (depois da reunião o comercial define o valor).
+  if (fromStage === "reuniao_comercial" && toStage === "proposta_enviada") {
     const valor = Number(lead.valor_proposto ?? 0);
     if (valor <= 0) {
       return { error: "Preencha o valor da proposta antes de mover" };
     }
   }
 
-  // proposta_enviada → reuniao_comercial: precisa ter data/hora da reunião.
-  // Vamos criar evento no calendário interno depois do move.
-  if (fromStage === "proposta_enviada" && toStage === "reuniao_comercial") {
-    if (!lead.data_prospeccao_agendada) {
-      return { error: "Agende a data e horário da reunião comercial antes de mover" };
-    }
-  }
-
-  // reuniao_comercial → contrato: confirma valor e serviço/especificações.
-  if (fromStage === "reuniao_comercial" && toStage === "contrato") {
+  // proposta_enviada → contrato: confirma valor e serviço/especificações
+  // do que foi fechado.
+  if (fromStage === "proposta_enviada" && toStage === "contrato") {
     const valor = Number(lead.valor_proposto ?? 0);
     if (valor <= 0) {
       return { error: "Confirme o valor fechado antes de mover pra Contrato" };
@@ -390,7 +392,7 @@ export async function moveStageAction(formData: FormData) {
 
   // kanban_moved (sempre)
   const nextResponsibleId =
-    (toStage === "leads_ativos" || toStage === "reuniao_comercial") ? lead.comercial_id :
+    (toStage === "leads_ativos" || toStage === "reuniao_comercial" || toStage === "proposta_enviada") ? lead.comercial_id :
     toStage === "marco_zero" ? lead.coord_alocado_id :
     toStage === "ativo" ? lead.assessor_alocado_id :
     null;

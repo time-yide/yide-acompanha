@@ -3,8 +3,8 @@ import { z } from "zod";
 export const STAGES = [
   "leads_potencial",
   "leads_ativos",
-  "proposta_enviada",
   "reuniao_comercial",
+  "proposta_enviada",
   "contrato",
   "marco_zero",
   "ativo",
