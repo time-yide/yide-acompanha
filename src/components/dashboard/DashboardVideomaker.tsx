@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { FixoCard } from "./personal/FixoCard";
+import { MinhasTarefasPendentes } from "./personal/MinhasTarefasPendentes";
 import { getProximasGravacoes } from "@/lib/dashboard/personal";
 import { Video, MapPin } from "lucide-react";
 
@@ -45,7 +46,7 @@ export async function DashboardVideomaker({ userId, nome }: Props) {
     <div className="space-y-6">
       <header>
         <h1 className="text-2xl font-bold tracking-tight">Olá, {primeiroNome}</h1>
-        <p className="text-sm text-muted-foreground">Suas próximas duas semanas de gravação.</p>
+        <p className="text-sm text-muted-foreground">Suas gravações e tarefas de edição.</p>
       </header>
 
       <FixoCard userId={userId} />
@@ -90,6 +91,8 @@ export async function DashboardVideomaker({ userId, nome }: Props) {
           </ul>
         )}
       </section>
+
+      <MinhasTarefasPendentes userId={userId} />
     </div>
   );
 }

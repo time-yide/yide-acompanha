@@ -30,11 +30,26 @@ export default async function EditClientePage({ params }: { params: Promise<{ id
   const [designersResp, videomakersResp, editorsResp] = await Promise.all([
     supabase.from("profiles").select("id, nome").eq("role", "designer").eq("ativo", true).order("nome"),
     supabase.from("profiles").select("id, nome").eq("role", "videomaker").eq("ativo", true).order("nome"),
-    supabase.from("profiles").select("id, nome").eq("role", "editor").eq("ativo", true).order("nome"),
+    // "Editor responsável" agora aceita editor, videomaker ou audiovisual_chefe —
+    // videomaker/chefe também fazem edição em alguns clientes.
+    supabase
+      .from("profiles")
+      .select("id, nome, role")
+      .in("role", ["editor", "videomaker", "audiovisual_chefe"])
+      .eq("ativo", true)
+      .order("nome"),
   ]);
   const designers = (designersResp.data ?? []) as Array<{ id: string; nome: string }>;
   const videomakers = (videomakersResp.data ?? []) as Array<{ id: string; nome: string }>;
-  const editors = (editorsResp.data ?? []) as Array<{ id: string; nome: string }>;
+  const editors = ((editorsResp.data ?? []) as Array<{ id: string; nome: string; role: string }>).map((p) => ({
+    id: p.id,
+    nome:
+      p.role === "videomaker"
+        ? `${p.nome} (videomaker)`
+        : p.role === "audiovisual_chefe"
+          ? `${p.nome} (audiovisual chefe)`
+          : p.nome,
+  }));
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">

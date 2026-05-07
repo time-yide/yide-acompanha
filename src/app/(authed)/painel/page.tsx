@@ -37,8 +37,11 @@ export default async function PainelPage({
   if (user.role === "assessor") filter.assessorId = user.id;
   else if (user.role === "coordenador") filter.coordenadorId = user.id;
   else if (user.role === "designer") filter.designerId = user.id;
-  else if (user.role === "videomaker") filter.videomakerId = user.id;
+  // Videomaker vê clientes onde é videomaker OU editor (também faz edição).
+  else if (user.role === "videomaker") filter.audiovisualUserId = user.id;
   else if (user.role === "editor") filter.editorId = user.id;
+  // audiovisual_chefe sem filtro: vê todos (pode também ser editor de algum,
+  // mas nesse caso já aparece naturalmente na visão completa).
 
   const allChecklists = await getMonthlyChecklists(mesAtual, filter);
   const checklists =

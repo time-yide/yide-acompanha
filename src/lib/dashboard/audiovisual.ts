@@ -13,6 +13,8 @@ export interface VideomakerStat {
 export interface EditorStat {
   id: string;
   nome: string;
+  /** "editor" | "videomaker" | "audiovisual_chefe" — pra UI mostrar a função real. */
+  role: string;
   pendentes: number;
   concluidasNoPeriodo: number;
 }
@@ -61,7 +63,7 @@ async function _getEquipeAudiovisualImpl(periodo: Periodo): Promise<EquipeAudiov
   const { data: profilesData } = await supabase
     .from("profiles")
     .select("id, nome, role")
-    .in("role", ["videomaker", "editor"])
+    .in("role", ["videomaker", "editor", "audiovisual_chefe"])
     .eq("ativo", true)
     .order("nome");
   const profiles = (profilesData ?? []) as Array<{ id: string; nome: string; role: string }>;
@@ -121,8 +123,9 @@ async function _getEquipeAudiovisualImpl(periodo: Periodo): Promise<EquipeAudiov
       return { id: p.id, nome: p.nome, proximasGravacoes, concluidasNoPeriodo };
     });
 
+  // Seção "Edição" — todos editores aparecem sempre; videomakers e
+  // audiovisual_chefe aparecem se tiverem tarefas (pendentes ou concluídas).
   const editores: EditorStat[] = profiles
-    .filter((p) => p.role === "editor")
     .map((p) => {
       const pendentes = tasks.filter(
         (t) =>
@@ -132,7 +135,12 @@ async function _getEquipeAudiovisualImpl(periodo: Periodo): Promise<EquipeAudiov
       const concluidasNoPeriodo = tasks.filter(
         (t) => t.atribuido_a === p.id && t.status === "concluida" && inPeriod(t.completed_at),
       ).length;
-      return { id: p.id, nome: p.nome, pendentes, concluidasNoPeriodo };
+      return { id: p.id, nome: p.nome, role: p.role, pendentes, concluidasNoPeriodo };
+    })
+    .filter((row) => {
+      if (row.role === "editor") return true;
+      // videomaker / audiovisual_chefe: só aparece se tiver tarefa
+      return row.pendentes > 0 || row.concluidasNoPeriodo > 0;
     });
 
   return {
