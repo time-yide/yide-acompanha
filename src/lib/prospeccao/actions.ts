@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath, revalidateTag } from "next/cache";
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/auth/session";
 import {
@@ -141,5 +142,50 @@ export async function addLeadAttemptAction(formData: FormData): Promise<ActionRe
 
   revalidatePath(`/prospeccao/prospects/${parsed.data.lead_id}`);
 
+  return { success: true };
+}
+
+const updateMetasSchema = z.object({
+  comercial_id: z.string().uuid(),
+  meta_prospects_mes: z.coerce.number().int().min(0).optional().nullable(),
+  meta_fechamentos_mes: z.coerce.number().int().min(0).optional().nullable(),
+  meta_receita_mes: z.coerce.number().min(0).optional().nullable(),
+});
+
+/**
+ * Sócio/ADM atualiza as metas mensais de um comercial direto da página
+ * de Metas — sem precisar abrir o cadastro do colaborador. Atualiza só
+ * os 3 campos de meta (não toca em fixo, percentual, etc).
+ *
+ * Valor null em qualquer campo = "limpa a meta" → cai no fallback
+ * automático que calcula a partir do fixo (regra atual em queries.ts).
+ */
+export async function updateMetasComercialAction(formData: FormData): Promise<ActionResult> {
+  const actor = await requireAuth();
+  if (!["socio", "adm"].includes(actor.role)) {
+    return { error: "Apenas sócio ou ADM podem editar metas" };
+  }
+
+  const parsed = updateMetasSchema.safeParse({
+    comercial_id: formData.get("comercial_id"),
+    meta_prospects_mes: formData.get("meta_prospects_mes") || null,
+    meta_fechamentos_mes: formData.get("meta_fechamentos_mes") || null,
+    meta_receita_mes: formData.get("meta_receita_mes") || null,
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      meta_prospects_mes: parsed.data.meta_prospects_mes ?? null,
+      meta_fechamentos_mes: parsed.data.meta_fechamentos_mes ?? null,
+      meta_receita_mes: parsed.data.meta_receita_mes ?? null,
+    })
+    .eq("id", parsed.data.comercial_id)
+    .eq("role", "comercial");
+  if (error) return { error: error.message };
+
+  revalidatePath("/prospeccao/metas");
   return { success: true };
 }
