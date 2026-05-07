@@ -11,14 +11,13 @@ export default async function ProspectDetailPage({ params }: { params: Promise<{
   const { id } = await params;
   const user = await requireAuth();
 
-  const prospect = await getProspectDetail(id);
+  // Detalhe + tentativas em paralelo (não dependem um do outro).
+  const [prospect, attempts] = await Promise.all([getProspectDetail(id), getLeadAttempts(id)]);
   if (!prospect) notFound();
 
   if (user.role === "comercial" && prospect.comercial_id !== user.id) {
     notFound();
   }
-
-  const attempts = await getLeadAttempts(id);
 
   const isPerdido = prospect.motivo_perdido !== null;
 
