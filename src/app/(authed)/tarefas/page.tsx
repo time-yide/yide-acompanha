@@ -32,7 +32,7 @@ export default async function TarefasPage({ searchParams }: { searchParams: Prom
   const user = await requireAuth();
 
   const aba: Aba =
-    params.aba === "criadas" ? "criadas" : params.aba === "todas" ? "todas" : "minhas";
+    params.aba === "minhas" ? "minhas" : params.aba === "criadas" ? "criadas" : "todas";
   const view: View = params.view === "list" ? "list" : "board";
   const groupBy: GroupBy = VALID_GROUP_BY.includes(params.groupBy as GroupBy)
     ? (params.groupBy as GroupBy)
@@ -61,9 +61,10 @@ export default async function TarefasPage({ searchParams }: { searchParams: Prom
 
   function tabHref(slug: Aba) {
     const sp = new URLSearchParams();
-    if (slug !== "minhas") sp.set("aba", slug);
+    if (slug !== "todas") sp.set("aba", slug);
     if (view !== "board") sp.set("view", view);
-    return `/tarefas?${sp.toString()}`;
+    const qs = sp.toString();
+    return qs ? `/tarefas?${qs}` : `/tarefas`;
   }
 
   function tabLink(slug: Aba, label: string) {
@@ -95,11 +96,11 @@ export default async function TarefasPage({ searchParams }: { searchParams: Prom
       </header>
 
       <div className="flex flex-wrap items-center gap-3 text-sm">
+        {tabLink("todas", "Todas")}
+        <span className="text-muted-foreground">·</span>
         {tabLink("minhas", "Atribuídas a mim")}
         <span className="text-muted-foreground">·</span>
         {tabLink("criadas", "Criadas por mim")}
-        <span className="text-muted-foreground">·</span>
-        {tabLink("todas", "Todas")}
       </div>
 
       <div className="flex flex-wrap items-end justify-between gap-3 rounded-lg border bg-card p-3">
