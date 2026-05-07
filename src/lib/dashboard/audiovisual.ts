@@ -3,11 +3,26 @@ import { unstable_cache } from "next/cache";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { resolvePeriodo, type Periodo } from "./personal";
 
+export interface GravacaoItem {
+  id: string;
+  titulo: string;
+  inicio: string;
+}
+
+export interface TaskItem {
+  id: string;
+  titulo: string;
+  status: string;
+  due_date: string | null;
+  prioridade: string | null;
+}
+
 export interface VideomakerStat {
   id: string;
   nome: string;
   proximasGravacoes: number;
   concluidasNoPeriodo: number;
+  proximasGravacoesList: GravacaoItem[];
 }
 
 export interface EditorStat {
@@ -17,6 +32,7 @@ export interface EditorStat {
   role: string;
   pendentes: number;
   concluidasNoPeriodo: number;
+  pendentesList: TaskItem[];
 }
 
 export interface EquipeAudiovisual {
@@ -49,10 +65,13 @@ function getProximas2SemanasBR(): { fromIso: string; toIso: string } {
 
 interface TaskMinimal {
   id: string;
+  titulo: string;
   atribuido_a: string | null;
   participantes_ids: string[] | null;
   status: string;
   completed_at: string | null;
+  due_date: string | null;
+  prioridade: string | null;
 }
 
 async function _getEquipeAudiovisualImpl(periodo: Periodo): Promise<EquipeAudiovisual> {
@@ -81,18 +100,19 @@ async function _getEquipeAudiovisualImpl(periodo: Periodo): Promise<EquipeAudiov
   const [tasksAtribuidoRes, tasksParticipantesRes, gravRes] = await Promise.all([
     supabase
       .from("tasks")
-      .select("id, atribuido_a, participantes_ids, status, completed_at")
+      .select("id, titulo, atribuido_a, participantes_ids, status, completed_at, due_date, prioridade")
       .in("atribuido_a", ids),
     supabase
       .from("tasks")
-      .select("id, atribuido_a, participantes_ids, status, completed_at")
+      .select("id, titulo, atribuido_a, participantes_ids, status, completed_at, due_date, prioridade")
       .overlaps("participantes_ids", ids),
     supabase
       .from("calendar_events")
-      .select("id, participantes_ids, inicio")
+      .select("id, titulo, participantes_ids, inicio")
       .eq("sub_calendar", "videomakers")
       .gte("inicio", gravFrom)
-      .lte("inicio", gravTo),
+      .lte("inicio", gravTo)
+      .order("inicio", { ascending: true }),
   ]);
 
   const tasksAtribuido = (tasksAtribuidoRes.data ?? []) as unknown as TaskMinimal[];
@@ -104,6 +124,7 @@ async function _getEquipeAudiovisualImpl(periodo: Periodo): Promise<EquipeAudiov
 
   const eventos = (gravRes.data ?? []) as Array<{
     id: string;
+    titulo: string;
     participantes_ids: string[] | null;
     inicio: string;
   }>;
@@ -114,28 +135,56 @@ async function _getEquipeAudiovisualImpl(periodo: Periodo): Promise<EquipeAudiov
   const videomakers: VideomakerStat[] = profiles
     .filter((p) => p.role === "videomaker")
     .map((p) => {
-      const proximasGravacoes = eventos.filter((e) =>
-        (e.participantes_ids ?? []).includes(p.id),
-      ).length;
+      const proximasGravacoesList = eventos
+        .filter((e) => (e.participantes_ids ?? []).includes(p.id))
+        .map((e) => ({ id: e.id, titulo: e.titulo, inicio: e.inicio }));
       const concluidasNoPeriodo = tasks.filter(
         (t) => t.atribuido_a === p.id && t.status === "concluida" && inPeriod(t.completed_at),
       ).length;
-      return { id: p.id, nome: p.nome, proximasGravacoes, concluidasNoPeriodo };
+      return {
+        id: p.id,
+        nome: p.nome,
+        proximasGravacoes: proximasGravacoesList.length,
+        concluidasNoPeriodo,
+        proximasGravacoesList,
+      };
     });
 
   // Seção "Edição" — todos editores aparecem sempre; videomakers e
   // audiovisual_chefe aparecem se tiverem tarefas (pendentes ou concluídas).
   const editores: EditorStat[] = profiles
     .map((p) => {
-      const pendentes = tasks.filter(
-        (t) =>
-          t.status !== "concluida" &&
-          (t.atribuido_a === p.id || (t.participantes_ids ?? []).includes(p.id)),
-      ).length;
+      const pendentesList: TaskItem[] = tasks
+        .filter(
+          (t) =>
+            t.status !== "concluida" &&
+            (t.atribuido_a === p.id || (t.participantes_ids ?? []).includes(p.id)),
+        )
+        .map((t) => ({
+          id: t.id,
+          titulo: t.titulo,
+          status: t.status,
+          due_date: t.due_date,
+          prioridade: t.prioridade,
+        }))
+        .sort((a, b) => {
+          // Prazo asc (sem prazo no fim)
+          if (a.due_date && b.due_date) return a.due_date.localeCompare(b.due_date);
+          if (a.due_date) return -1;
+          if (b.due_date) return 1;
+          return 0;
+        });
       const concluidasNoPeriodo = tasks.filter(
         (t) => t.atribuido_a === p.id && t.status === "concluida" && inPeriod(t.completed_at),
       ).length;
-      return { id: p.id, nome: p.nome, role: p.role, pendentes, concluidasNoPeriodo };
+      return {
+        id: p.id,
+        nome: p.nome,
+        role: p.role,
+        pendentes: pendentesList.length,
+        concluidasNoPeriodo,
+        pendentesList,
+      };
     })
     .filter((row) => {
       if (row.role === "editor") return true;
@@ -159,7 +208,8 @@ async function _getEquipeAudiovisualImpl(periodo: Periodo): Promise<EquipeAudiov
 export async function getEquipeAudiovisual(periodo: Periodo): Promise<EquipeAudiovisual> {
   const cached = unstable_cache(
     async (p: string) => _getEquipeAudiovisualImpl(p as Periodo),
-    ["dashboard-audiovisual-equipe"],
+    // v2: agora retorna listas detalhadas (gravações + tarefas pendentes por user)
+    ["dashboard-audiovisual-equipe-v2"],
     { revalidate: 60, tags: ["dashboard", "tasks", "calendar"] },
   );
   return cached(periodo);

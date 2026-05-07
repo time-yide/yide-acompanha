@@ -2,6 +2,7 @@ import { getEquipeAudiovisual } from "@/lib/dashboard/audiovisual";
 import { PeriodoSelector } from "@/components/dashboard/personal/PeriodoSelector";
 import type { Periodo } from "@/lib/dashboard/personal";
 import { Video, CheckCircle2, AlertCircle } from "lucide-react";
+import { MemberRow } from "./MemberRow";
 
 interface Props {
   periodo: Periodo;
@@ -65,11 +66,14 @@ export async function EquipeAudiovisualSection({ periodo }: Props) {
               </thead>
               <tbody className="divide-y">
                 {videomakers.map((v) => (
-                  <tr key={v.id} className="hover:bg-muted/30">
-                    <td className="px-3 py-2 font-medium">{v.nome}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{v.proximasGravacoes}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{v.concluidasNoPeriodo}</td>
-                  </tr>
+                  <MemberRow
+                    key={v.id}
+                    variant="videomaker"
+                    nome={v.nome}
+                    proximasGravacoes={v.proximasGravacoes}
+                    concluidasNoPeriodo={v.concluidasNoPeriodo}
+                    proximasGravacoesList={v.proximasGravacoesList}
+                  />
                 ))}
               </tbody>
             </table>
@@ -99,12 +103,15 @@ export async function EquipeAudiovisualSection({ periodo }: Props) {
               </thead>
               <tbody className="divide-y">
                 {editores.map((e) => (
-                  <tr key={e.id} className="hover:bg-muted/30">
-                    <td className="px-3 py-2 font-medium">{e.nome}</td>
-                    <td className="px-3 py-2 text-xs text-muted-foreground">{roleLabel(e.role)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{e.pendentes}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{e.concluidasNoPeriodo}</td>
-                  </tr>
+                  <MemberRow
+                    key={e.id}
+                    variant="edicao"
+                    nome={e.nome}
+                    funcao={roleLabel(e.role)}
+                    pendentes={e.pendentes}
+                    concluidasNoPeriodo={e.concluidasNoPeriodo}
+                    pendentesList={e.pendentesList}
+                  />
                 ))}
               </tbody>
             </table>
