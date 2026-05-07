@@ -210,6 +210,7 @@ export default async function TarefaPage({
               isExecutor={isExecutor}
               isApprover={isApprover}
               canMarkPosted={canMarkPosted}
+              userRole={user.role}
             />
           )}
 
