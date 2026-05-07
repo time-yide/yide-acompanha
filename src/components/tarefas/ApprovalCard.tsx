@@ -22,6 +22,7 @@ import {
   requestAdjustmentsAction,
   markAsPostedAction,
 } from "@/lib/tarefas/actions";
+import { ArtesPromptModal } from "./ArtesPromptModal";
 import type { TaskAprovacao, TaskFormato, TaskStatus } from "@/lib/tarefas/queries";
 
 const APPROVED_STALE_HOURS = 24;
@@ -36,6 +37,9 @@ interface Props {
   isExecutor: boolean;
   isApprover: boolean;
   canMarkPosted: boolean;
+  /** Role do usuário corrente — designer recebe prompt de quantidade
+   * de artes ao enviar pra aprovação (entrada da métrica). */
+  userRole: string;
 }
 
 const STATUS_META: Record<
@@ -74,10 +78,13 @@ export function ApprovalCard({
   isExecutor,
   isApprover,
   canMarkPosted,
+  userRole,
 }: Props) {
   const [pending, startTransition] = useTransition();
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [observacoes, setObservacoes] = useState("");
+  const [artesPromptOpen, setArtesPromptOpen] = useState(false);
+  const isDesigner = userRole === "designer";
   const [error, setError] = useState<string | null>(null);
 
   const meta = STATUS_META[statusAprovacao];
@@ -98,12 +105,26 @@ export function ApprovalCard({
   });
 
   function handleSubmit() {
+    // Designer entregando arte/video → abre prompt pra informar quantas
+    // artes. Outras roles enviam direto.
+    if (isDesigner) {
+      setArtesPromptOpen(true);
+      return;
+    }
+    submitWithArtes(undefined);
+  }
+
+  function submitWithArtes(artesEntregues: number | undefined) {
     setError(null);
     startTransition(async () => {
-      const r = await submitForApprovalAction(taskId);
+      const r = await submitForApprovalAction(taskId, artesEntregues);
       if (r?.error) {
         setError(r.error);
         toast.error(r.error);
+        return;
+      }
+      if (r?.requiresArtesPrompt) {
+        setArtesPromptOpen(true);
         return;
       }
       toast.success("Enviado para análise");
@@ -297,6 +318,16 @@ export function ApprovalCard({
           </form>
         </DialogContent>
       </Dialog>
+
+      <ArtesPromptModal
+        open={artesPromptOpen}
+        onOpenChange={setArtesPromptOpen}
+        onConfirm={(qtd) => {
+          setArtesPromptOpen(false);
+          submitWithArtes(qtd);
+        }}
+        pending={pending}
+      />
     </>
   );
 }

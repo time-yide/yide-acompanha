@@ -491,7 +491,7 @@ export async function deleteTaskAction(taskId: string) {
 // Fluxo de aprovação (vídeo/arte): submit → approve / request adjustments
 // ============================================================================
 
-type ApprovalResult = { error?: string; success?: boolean };
+type ApprovalResult = { error?: string; success?: boolean; requiresArtesPrompt?: boolean };
 
 async function loadTaskForApproval(taskId: string) {
   const supabase = await createClient();
@@ -518,12 +518,19 @@ async function insertRevisao(
   });
 }
 
-/** Atribuído ou participante marca a tarefa como entregue para análise. */
-export async function submitForApprovalAction(taskId: string): Promise<ApprovalResult> {
+/**
+ * Atribuído ou participante marca a tarefa como entregue para análise.
+ *
+ * Se o executor for designer e a task for arte/video, exige a quantidade
+ * de artes entregues no momento do envio (alimenta a métrica de
+ * "Artes entregues" do dashboard). Se artesEntregues não vier, retorna
+ * { requiresArtesPrompt: true } pro client abrir o modal e reenviar.
+ */
+export async function submitForApprovalAction(taskId: string, artesEntregues?: number): Promise<ApprovalResult> {
   const actor = await requireAuth();
   const loaded = await loadTaskForApproval(taskId);
   if ("error" in loaded && loaded.error) return { error: loaded.error };
-  const { task, supabase } = loaded as { task: { atribuido_a: string; participantes_ids: string[] | null; status_aprovacao: string; criado_por: string; titulo: string; client_id: string | null }; supabase: Awaited<ReturnType<typeof createClient>> };
+  const { task, supabase } = loaded as { task: { atribuido_a: string; participantes_ids: string[] | null; status_aprovacao: string; criado_por: string; titulo: string; client_id: string | null; tipo: string }; supabase: Awaited<ReturnType<typeof createClient>> };
 
   const isExecutor =
     task.atribuido_a === actor.id ||
@@ -534,13 +541,29 @@ export async function submitForApprovalAction(taskId: string): Promise<ApprovalR
     return { error: "Tarefa não está num estado válido para envio" };
   }
 
+  // Designer entregando arte/video: precisa informar quantas artes.
+  const isArtType = task.tipo === "arte" || task.tipo === "video";
+  if (isArtType && actor.role === "designer" && artesEntregues === undefined) {
+    return { requiresArtesPrompt: true };
+  }
+
+  // Valida quantidade quando vier
+  let artesValor: number | null | undefined = undefined;
+  if (isArtType && actor.role === "designer" && artesEntregues !== undefined) {
+    const parsed = artesEntreguesSchema.safeParse(artesEntregues);
+    if (!parsed.success) return { error: parsed.error.issues[0].message };
+    artesValor = parsed.data;
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
-  // Move pro Kanban "Aprovação" e marca status_aprovacao=em_analise
-  const { error } = await sb
-    .from("tasks")
-    .update({ status: "em_aprovacao", status_aprovacao: "em_analise" })
-    .eq("id", taskId);
+  // Move pro Kanban "Aprovação" e marca status_aprovacao=em_analise.
+  // Se designer informou artes_entregues, salva também — depois é consumido
+  // pelo dashboard quando a task entra em aprovada/postada.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const updatePayload: any = { status: "em_aprovacao", status_aprovacao: "em_analise" };
+  if (artesValor !== undefined) updatePayload.artes_entregues = artesValor;
+  const { error } = await sb.from("tasks").update(updatePayload).eq("id", taskId);
   if (error) return { error: error.message };
 
   await insertRevisao(supabase, { taskId, autorId: actor.id, tipo: "envio" });
