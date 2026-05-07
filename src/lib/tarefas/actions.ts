@@ -126,7 +126,7 @@ export async function createTaskAction(_prevState: ActionResult, formData: FormD
   if (created.client_id) revalidatePath(`/clientes/${created.client_id}/tarefas`);
   revalidateTag("dashboard", "default");
   revalidateTag("tasks", "default");
-  redirect(`/tarefas/${created.id}`);
+  redirect("/tarefas?toast=criada");
 }
 
 export async function updateTaskAction(_prevState: ActionResult, formData: FormData): Promise<ActionResult> {
@@ -234,7 +234,7 @@ export async function updateTaskAction(_prevState: ActionResult, formData: FormD
   }
   revalidateTag("dashboard", "default");
   revalidateTag("tasks", "default");
-  redirect(`/tarefas/${parsed.data.id}`);
+  redirect("/tarefas?toast=atualizada");
 }
 
 export async function toggleTaskCompletionAction(

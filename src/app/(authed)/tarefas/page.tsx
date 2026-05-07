@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { requireAuth } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { listTasks, type TaskFilters as TaskFiltersData } from "@/lib/tarefas/queries";
@@ -7,6 +8,7 @@ import { TasksGroupedList, type GroupBy } from "@/components/tarefas/TasksGroupe
 import { TaskFilters } from "@/components/tarefas/TaskFilters";
 import { ViewToggle } from "@/components/tarefas/ViewToggle";
 import { GroupBySelector } from "@/components/tarefas/GroupBySelector";
+import { TaskToastFlash } from "@/components/tarefas/TaskToastFlash";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 
@@ -22,6 +24,7 @@ interface SearchParams {
   prioridade?: string;
   client?: string;
   atribuido?: string;
+  toast?: string;
 }
 
 export default async function TarefasPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
@@ -78,6 +81,7 @@ export default async function TarefasPage({ searchParams }: { searchParams: Prom
 
   return (
     <div className="space-y-5">
+      <Suspense fallback={null}><TaskToastFlash /></Suspense>
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Tarefas</h1>
