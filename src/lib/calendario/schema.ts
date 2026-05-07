@@ -31,6 +31,7 @@ const baseEventFields = {
   fim: z.string().min(8, "Data/hora de fim inválida"),
   participantes_ids: z.array(z.string().uuid()).default([]),
   sub_calendar: z.enum(SELECTABLE_SUBS).default("agencia"),
+  client_id: z.string().uuid().optional().nullable(),
   localizacao_endereco: z.string().optional().nullable(),
   localizacao_maps_url: z.string().optional().nullable(),
   link_roteiro: z.string().optional().nullable(),

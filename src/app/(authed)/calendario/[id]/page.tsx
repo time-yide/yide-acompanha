@@ -23,11 +23,10 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
   const isVideomaker = event.sub_calendar === "videomakers";
 
   const supabase = await createClient();
-  const { data: profiles = [] } = await supabase
-    .from("profiles")
-    .select("id, nome")
-    .eq("ativo", true)
-    .order("nome");
+  const [{ data: profiles = [] }, { data: clientes = [] }] = await Promise.all([
+    supabase.from("profiles").select("id, nome").eq("ativo", true).order("nome"),
+    supabase.from("clients").select("id, nome").eq("status", "ativo").order("nome"),
+  ]);
 
   async function deleteEvent() {
     "use server";
@@ -101,12 +100,14 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
               fim: event.fim,
               participantes_ids: event.participantes_ids ?? [],
               sub_calendar: formSub,
+              client_id: event.client_id ?? null,
               localizacao_endereco: event.localizacao_endereco ?? null,
               localizacao_maps_url: event.localizacao_maps_url ?? null,
               link_roteiro: event.link_roteiro ?? null,
               observacoes_gravacao: event.observacoes_gravacao ?? null,
             }}
             profiles={profiles ?? []}
+            clientes={clientes ?? []}
             canCreateVideomaker={canCreateVideomaker}
             submitLabel="Salvar alterações"
           />

@@ -5,11 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Video, MapPin, Link as LinkIcon, FileText } from "lucide-react";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { Video, MapPin, Link as LinkIcon, FileText, Users as UsersIcon } from "lucide-react";
 import { SELECTABLE_SUBS, type SelectableSub } from "@/lib/calendario/schema";
 import { cn } from "@/lib/utils";
 
 interface ProfileOption { id: string; nome: string; }
+interface ClientOption { id: string; nome: string; }
 
 type ActionResult = { error?: string } | undefined;
 
@@ -23,12 +25,14 @@ interface Props {
     fim: string | null;
     participantes_ids: string[];
     sub_calendar: SelectableSub;
+    client_id: string | null;
     localizacao_endereco: string | null;
     localizacao_maps_url: string | null;
     link_roteiro: string | null;
     observacoes_gravacao: string | null;
   }>;
   profiles: ProfileOption[];
+  clientes: ClientOption[];
   canCreateVideomaker: boolean;
   submitLabel?: string;
 }
@@ -47,10 +51,11 @@ const SUB_DESC: Record<SelectableSub, string> = {
   coordenadores: "Reunião de coordenação.",
 };
 
-export function EventForm({ action, defaults = {}, profiles, canCreateVideomaker, submitLabel = "Salvar" }: Props) {
+export function EventForm({ action, defaults = {}, profiles, clientes, canCreateVideomaker, submitLabel = "Salvar" }: Props) {
   const [state, formAction, pending] = useActionState(action, undefined);
   const selected = new Set(defaults.participantes_ids ?? []);
   const [sub, setSub] = useState<SelectableSub>(defaults.sub_calendar ?? "agencia");
+  const [clientId, setClientId] = useState<string | null>(defaults.client_id ?? null);
   const isVideomaker = sub === "videomakers";
 
   const subOptions = SELECTABLE_SUBS.filter((s) => s !== "videomakers" || canCreateVideomaker);
@@ -120,6 +125,24 @@ export function EventForm({ action, defaults = {}, profiles, canCreateVideomaker
           <div className="flex items-center gap-2 text-sm font-semibold text-fuchsia-700 dark:text-fuchsia-300">
             <Video className="h-4 w-4" />
             Detalhes da gravação
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="client_id" className="flex items-center gap-1.5">
+              <UsersIcon className="h-3.5 w-3.5" /> Cliente <span className="text-xs text-muted-foreground">(recomendado)</span>
+            </Label>
+            <input type="hidden" name="client_id" value={clientId ?? ""} />
+            <SearchableSelect
+              options={clientes.map((c) => ({ value: c.id, label: c.nome }))}
+              value={clientId}
+              onChange={(v) => setClientId(v ?? null)}
+              placeholder="Sem cliente"
+              emptyText="Nenhum cliente encontrado"
+              clearLabel="Sem cliente"
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Vinculando o cliente, a captação é interligada ao histórico (Audiovisual, ranking de satisfação, painel mensal).
+            </p>
           </div>
 
           <div className="space-y-2">
