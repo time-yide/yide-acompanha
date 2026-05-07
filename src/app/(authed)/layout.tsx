@@ -1,4 +1,5 @@
 import { requireAuth } from "@/lib/auth/session";
+import { createClient } from "@/lib/supabase/server";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
 import { countRecadosNaoLidos } from "@/lib/recados/queries";
@@ -19,6 +20,19 @@ export default async function AuthedLayout({ children }: { children: React.React
   ]);
   const audiovisualOverdue = audiovisualPendentes.filter((p) => p.isOverdue);
 
+  // Lista de clientes — usada pelo gate de captação pendente pro videomaker
+  // poder entregar inline (sem precisar sair pra /audiovisual).
+  let clientesAtivos: Array<{ id: string; nome: string }> = [];
+  if (audiovisualOverdue.length > 0) {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("clients")
+      .select("id, nome")
+      .eq("status", "ativo")
+      .order("nome");
+    clientesAtivos = (data ?? []) as Array<{ id: string; nome: string }>;
+  }
+
   return (
     <div className="flex min-h-screen">
       <Sidebar role={user.role} nome={user.nome} badges={{ recados: recadosNaoLidos, escritorio: escritorioUnread }} />
@@ -34,7 +48,7 @@ export default async function AuthedLayout({ children }: { children: React.React
         <main className="flex-1 overflow-auto bg-muted/20 p-3 md:p-6">{children}</main>
       </div>
       <SatisfactionLockGate state={lockState} />
-      <CapturaPendenteLockGate overdue={audiovisualOverdue} />
+      <CapturaPendenteLockGate overdue={audiovisualOverdue} clientes={clientesAtivos} />
     </div>
   );
 }

@@ -1,27 +1,29 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Lock, AlertTriangle } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
+import { Lock, AlertTriangle, Upload, ArrowRight } from "lucide-react";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { CapturaForm } from "./CapturaForm";
 import type { PendenteEvento } from "@/lib/audiovisual/queries";
 
 interface Props {
   /** Lista de pendências expiradas (já passaram do prazo D+1 09h). */
   overdue: PendenteEvento[];
+  /** Clientes ativos pra preencher o select dentro do form de entrega. */
+  clientes: Array<{ id: string; nome: string }>;
 }
 
 function formatDateBR(iso: string): string {
   return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
 }
 
-export function CapturaPendenteLockGate({ overdue }: Props) {
-  // Decide hidden no client com usePathname() pra reagir a navegação
-  // client-side. Antes era via header x-pathname no server, mas o cache
-  // de layout do App Router às vezes não re-renderiza em soft nav,
-  // travando o user neste modal mesmo após clicar "Ir para Audiovisual".
+export function CapturaPendenteLockGate({ overdue, clientes }: Props) {
   const pathname = usePathname();
   const isOnAudiovisual = pathname?.startsWith("/audiovisual") ?? false;
+  const [openPendente, setOpenPendente] = useState<PendenteEvento | null>(null);
 
   if (overdue.length === 0 || isOnAudiovisual) return null;
 
@@ -35,7 +37,7 @@ export function CapturaPendenteLockGate({ overdue }: Props) {
           <div className="space-y-1">
             <h2 className="text-xl font-bold tracking-tight">Captação pendente</h2>
             <p className="text-sm text-muted-foreground">
-              Você tem {overdue.length} captação(ões) atrasada(s). Entregue o link do Drive e o feedback pra liberar o sistema.
+              Você tem {overdue.length} captação(ões) atrasada(s). Suba o link do Drive e o feedback pra liberar o sistema.
             </p>
           </div>
         </div>
@@ -50,34 +52,61 @@ export function CapturaPendenteLockGate({ overdue }: Props) {
 
         <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Gravações sem entrega
+            Gravações sem entrega — clique pra entregar agora
           </p>
-          <ul className="space-y-1.5 text-sm">
+          <ul className="space-y-1.5">
             {overdue.map((p) => (
-              <li key={p.event_id} className="flex flex-wrap items-center gap-2">
-                <span className="font-medium">{formatDateBR(p.inicio)}</span>
-                <span className="text-muted-foreground">·</span>
-                <span>{p.titulo}</span>
-                {p.client_nome && (
-                  <>
-                    <span className="text-muted-foreground">·</span>
-                    <span className="text-muted-foreground">{p.client_nome}</span>
-                  </>
-                )}
+              <li key={p.event_id}>
+                <button
+                  type="button"
+                  onClick={() => setOpenPendente(p)}
+                  className="flex w-full items-center justify-between gap-2 rounded-md border bg-card px-3 py-2 text-left text-sm hover:bg-muted/50"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-medium">{formatDateBR(p.inicio)}</span>
+                      <span className="text-muted-foreground">·</span>
+                      <span className="truncate">{p.titulo}</span>
+                    </div>
+                    {p.client_nome && (
+                      <p className="mt-0.5 text-xs text-muted-foreground">{p.client_nome}</p>
+                    )}
+                  </div>
+                  <Upload className="h-4 w-4 flex-shrink-0 text-primary" />
+                </button>
               </li>
             ))}
           </ul>
         </div>
 
-        <div className="flex justify-center">
-          {/* Aplica os estilos do Button no próprio <a> do Link — evita
-              ter <button> dentro de <a> (HTML inválido que em Next 16
-              engole o click em alguns browsers). */}
-          <Link href="/audiovisual" className={buttonVariants()}>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <Button type="button" onClick={() => setOpenPendente(overdue[0])}>
+            <Upload className="mr-1.5 h-4 w-4" />
+            Entregar a primeira agora
+          </Button>
+          <Link href="/audiovisual" className={buttonVariants({ variant: "outline" })}>
             Ir para Audiovisual
+            <ArrowRight className="ml-1.5 h-4 w-4" />
           </Link>
         </div>
       </div>
+
+      {openPendente && (
+        <Dialog open={openPendente !== null} onOpenChange={(o) => { if (!o) setOpenPendente(null); }}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Entregar captação</DialogTitle>
+              <DialogDescription>
+                {openPendente.titulo} · {formatDateBR(openPendente.inicio)}
+                {openPendente.client_nome && ` · ${openPendente.client_nome}`}
+              </DialogDescription>
+            </DialogHeader>
+            {/* Reutiliza o form da página /audiovisual passando só esse pendente
+                — ele aparece pré-selecionado no select interno. */}
+            <CapturaForm clientes={clientes} pendentes={[openPendente]} hidePendenteSelect />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
