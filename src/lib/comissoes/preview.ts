@@ -1,7 +1,6 @@
 // SERVER ONLY: do not import from client components
 import { unstable_cache } from "next/cache";
-import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { calculateCommission } from "./calculator";
+import { calculateCommission, calculateCommissionsBatch } from "./calculator";
 
 async function _previewMyCommissionImpl(userId: string) {
   const now = new Date();
@@ -31,42 +30,24 @@ export interface OverviewPreviewRow {
 }
 
 async function _previewAllForMonthImpl(monthRef: string): Promise<OverviewPreviewRow[]> {
-  const supabase = createServiceRoleClient();
-  const { data: profilesRows } = await supabase
-    .from("profiles")
-    .select("id, nome, role")
-    .eq("ativo", true)
-    .neq("role", "socio")
-    .order("nome");
-  const profiles = (profilesRows ?? []) as Array<{ id: string; nome: string; role: string }>;
-
-  // PARALELO: era serial (await dentro de for) — múltiplas queries por colab
-  // somavam segundos. Promise.all dispara todas em paralelo, latência fica
-  // ~= a do colab mais lento, não a soma de todos.
-  const calcs = await Promise.all(
-    profiles.map(async (p) => {
-      const calc = await calculateCommission(p.id, monthRef);
-      return { p, calc };
-    }),
-  );
-
-  const rows: OverviewPreviewRow[] = [];
-  for (const { p, calc } of calcs) {
-    if (!calc) continue;
-    const fixo = Number(calc.snapshot.fixo) || 0;
-    const valor_variavel = Number(calc.snapshot.valor_variavel) || 0;
-    rows.push({
-      id: `preview:${p.id}`,
+  // Antes: 1 query de profiles + N queries de calculateCommission (~60 queries
+  // pra 20 colabs). Agora: 4 queries em paralelo (profiles + clients +
+  // ajustes + leads) e cálculo em memória. Latência cai de ~3-5s pra ~300ms.
+  const entries = await calculateCommissionsBatch(monthRef);
+  return entries.map(({ profile, result }) => {
+    const fixo = Number(result.snapshot.fixo) || 0;
+    const valor_variavel = Number(result.snapshot.valor_variavel) || 0;
+    return {
+      id: `preview:${profile.id}`,
       fixo,
       valor_variavel,
       ajuste_manual: 0,
       valor_total: fixo + valor_variavel,
-      status: "preview",
-      papel_naquele_mes: p.role,
-      profile: { id: p.id, nome: p.nome, role: p.role },
-    });
-  }
-  return rows;
+      status: "preview" as const,
+      papel_naquele_mes: profile.role,
+      profile,
+    };
+  });
 }
 
 export async function previewAllForMonth(monthRef: string): Promise<OverviewPreviewRow[]> {
