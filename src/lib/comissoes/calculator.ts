@@ -12,50 +12,60 @@ interface ProfileRow {
   comissao_primeiro_mes_percent: number;
 }
 
+interface ProfileWithName extends ProfileRow {
+  nome: string;
+}
+
+interface ClientRow {
+  id: string;
+  nome?: string;
+  valor_mensal: number;
+  tipo_relacao: string;
+  assessor_id: string | null;
+}
+
+interface LeadRow {
+  id: string;
+  comercial_id: string | null;
+  valor_proposto: number;
+  client_id: string | null;
+  cliente: { nome: string } | null;
+}
+
 const MONEY = (n: number) => Math.round(n * 100) / 100;
 
-export async function calculateCommission(
-  userId: string,
-  monthRef: string,
-): Promise<CommissionResult | null> {
-  const supabase = createServiceRoleClient();
+interface ProfileData {
+  /** Para assessor: clientes onde é assessor (status=ativo, tipo_relacao=comum) */
+  clientsAssessor?: ClientRow[];
+  /** Para coordenador/audiovisual_chefe: todos clientes ativos com tipo_relacao=comum */
+  clientsAgencia?: ClientRow[];
+  /** Indexado por client_id */
+  ajustesByClient?: Map<string, MonthlyAdjustment>;
+  /** Para comercial: leads dele fechados no mês */
+  leadsComercial?: LeadRow[];
+}
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("id, role, fixo_mensal, comissao_percent, comissao_primeiro_mes_percent")
-    .eq("id", userId)
-    .single();
-  if (!profile) return null;
-  const p = profile as unknown as ProfileRow;
-  if (p.role === "socio") return null;
+/**
+ * Lógica pura de cálculo de comissão. Recebe profile + dados pré-carregados
+ * e retorna o resultado sem nenhuma query no banco.
+ */
+function computeCommissionForProfile(
+  profile: ProfileRow,
+  data: ProfileData,
+): CommissionResult | null {
+  if (profile.role === "socio") return null;
 
-  const fixo = Number(p.fixo_mensal) || 0;
+  const fixo = Number(profile.fixo_mensal) || 0;
   const items: SnapshotItem[] = [
     { tipo: "fixo", descricao: "Fixo mensal", base: 0, percentual: 0, valor: fixo },
   ];
 
-  if (p.role === "assessor") {
-    const percentual = Number(p.comissao_percent) || 0;
-    const { data: clientsRows } = await supabase
-      .from("clients")
-      .select("valor_mensal, nome, id, tipo_relacao")
-      .eq("assessor_id", userId)
-      .eq("status", "ativo")
-      .eq("tipo_relacao", "comum");
-    const rows = (clientsRows ?? []) as Array<{ valor_mensal: number; nome: string; id: string; tipo_relacao: string }>;
-
-    // Carregar ajustes do mês para aplicar valor efetivo
-    const ajustesRes = await supabase
-      .from("client_monthly_adjustments")
-      .select("*")
-      .in("client_id", rows.map((r) => r.id))
-      .eq("mes_referencia", monthRef);
-    const ajustesMap = new Map(
-      ((ajustesRes.data ?? []) as MonthlyAdjustment[]).map((a) => [a.client_id, a])
-    );
-
+  if (profile.role === "assessor") {
+    const percentual = Number(profile.comissao_percent) || 0;
+    const rows = data.clientsAssessor ?? [];
+    const ajustes = data.ajustesByClient ?? new Map();
     const base = rows.reduce((sum, c) => {
-      const ajuste = ajustesMap.get(c.id) ?? null;
+      const ajuste = ajustes.get(c.id) ?? null;
       return sum + valorEfetivoCliente(
         { tipo_relacao: c.tipo_relacao as TipoRelacao, valor_mensal: c.valor_mensal },
         ajuste,
@@ -75,27 +85,12 @@ export async function calculateCommission(
     };
   }
 
-  if (p.role === "coordenador" || p.role === "audiovisual_chefe") {
-    const percentual = Number(p.comissao_percent) || 0;
-    const { data: clientsRows } = await supabase
-      .from("clients")
-      .select("valor_mensal, id, tipo_relacao")
-      .eq("status", "ativo")
-      .eq("tipo_relacao", "comum");
-    const rows = (clientsRows ?? []) as Array<{ valor_mensal: number; id: string; tipo_relacao: string }>;
-
-    // Carregar ajustes do mês para aplicar valor efetivo
-    const ajustesRes = await supabase
-      .from("client_monthly_adjustments")
-      .select("*")
-      .in("client_id", rows.map((r) => r.id))
-      .eq("mes_referencia", monthRef);
-    const ajustesMap = new Map(
-      ((ajustesRes.data ?? []) as MonthlyAdjustment[]).map((a) => [a.client_id, a])
-    );
-
+  if (profile.role === "coordenador" || profile.role === "audiovisual_chefe") {
+    const percentual = Number(profile.comissao_percent) || 0;
+    const rows = data.clientsAgencia ?? [];
+    const ajustes = data.ajustesByClient ?? new Map();
     const base = rows.reduce((sum, c) => {
-      const ajuste = ajustesMap.get(c.id) ?? null;
+      const ajuste = ajustes.get(c.id) ?? null;
       return sum + valorEfetivoCliente(
         { tipo_relacao: c.tipo_relacao as TipoRelacao, valor_mensal: c.valor_mensal },
         ajuste,
@@ -115,19 +110,9 @@ export async function calculateCommission(
     };
   }
 
-  if (p.role === "comercial") {
-    const percentual = Number(p.comissao_primeiro_mes_percent) || 0;
-    const [year, month] = monthRef.split("-").map(Number);
-    const firstDay = `${year}-${String(month).padStart(2, "0")}-01`;
-    const lastDayDate = new Date(year, month, 0);
-    const lastDay = `${lastDayDate.getFullYear()}-${String(lastDayDate.getMonth() + 1).padStart(2, "0")}-${String(lastDayDate.getDate()).padStart(2, "0")}`;
-    const { data: dealsRows } = await supabase
-      .from("leads")
-      .select("id, valor_proposto, client_id, cliente:clients(nome)")
-      .eq("comercial_id", userId)
-      .gte("data_fechamento", firstDay)
-      .lte("data_fechamento", lastDay);
-    const rows = (dealsRows ?? []) as Array<{ id: string; valor_proposto: number; client_id: string | null; cliente: { nome: string } | null }>;
+  if (profile.role === "comercial") {
+    const percentual = Number(profile.comissao_primeiro_mes_percent) || 0;
+    const rows = data.leadsComercial ?? [];
     let base = 0;
     let valor_variavel = 0;
     for (const d of rows) {
@@ -156,4 +141,161 @@ export async function calculateCommission(
     snapshot: { fixo, percentual_aplicado: 0, base_calculo: 0, valor_variavel: 0 },
     items,
   };
+}
+
+function getMonthRange(monthRef: string): { firstDay: string; lastDay: string } {
+  const [year, month] = monthRef.split("-").map(Number);
+  const firstDay = `${year}-${String(month).padStart(2, "0")}-01`;
+  const lastDayDate = new Date(year, month, 0);
+  const lastDay = `${lastDayDate.getFullYear()}-${String(lastDayDate.getMonth() + 1).padStart(2, "0")}-${String(lastDayDate.getDate()).padStart(2, "0")}`;
+  return { firstDay, lastDay };
+}
+
+/**
+ * Cálculo individual: 1 user por vez. Faz 1-3 queries dependendo do role.
+ * Mantém compatibilidade com call-sites pré-batch (previewMyCommission, generator).
+ */
+export async function calculateCommission(
+  userId: string,
+  monthRef: string,
+): Promise<CommissionResult | null> {
+  const supabase = createServiceRoleClient();
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id, role, fixo_mensal, comissao_percent, comissao_primeiro_mes_percent")
+    .eq("id", userId)
+    .single();
+  if (!profile) return null;
+  const p = profile as unknown as ProfileRow;
+  if (p.role === "socio") return null;
+
+  const data: ProfileData = {};
+
+  if (p.role === "assessor") {
+    const { data: clientsRows } = await supabase
+      .from("clients")
+      .select("valor_mensal, nome, id, tipo_relacao, assessor_id")
+      .eq("assessor_id", userId)
+      .eq("status", "ativo")
+      .eq("tipo_relacao", "comum");
+    const rows = (clientsRows ?? []) as ClientRow[];
+    data.clientsAssessor = rows;
+
+    const ajustesRes = await supabase
+      .from("client_monthly_adjustments")
+      .select("*")
+      .in("client_id", rows.map((r) => r.id))
+      .eq("mes_referencia", monthRef);
+    data.ajustesByClient = new Map(
+      ((ajustesRes.data ?? []) as MonthlyAdjustment[]).map((a) => [a.client_id, a]),
+    );
+  } else if (p.role === "coordenador" || p.role === "audiovisual_chefe") {
+    const { data: clientsRows } = await supabase
+      .from("clients")
+      .select("valor_mensal, id, tipo_relacao, assessor_id")
+      .eq("status", "ativo")
+      .eq("tipo_relacao", "comum");
+    const rows = (clientsRows ?? []) as ClientRow[];
+    data.clientsAgencia = rows;
+
+    const ajustesRes = await supabase
+      .from("client_monthly_adjustments")
+      .select("*")
+      .in("client_id", rows.map((r) => r.id))
+      .eq("mes_referencia", monthRef);
+    data.ajustesByClient = new Map(
+      ((ajustesRes.data ?? []) as MonthlyAdjustment[]).map((a) => [a.client_id, a]),
+    );
+  } else if (p.role === "comercial") {
+    const { firstDay, lastDay } = getMonthRange(monthRef);
+    const { data: dealsRows } = await supabase
+      .from("leads")
+      .select("id, valor_proposto, client_id, comercial_id, cliente:clients(nome)")
+      .eq("comercial_id", userId)
+      .gte("data_fechamento", firstDay)
+      .lte("data_fechamento", lastDay);
+    data.leadsComercial = (dealsRows ?? []) as unknown as LeadRow[];
+  }
+
+  return computeCommissionForProfile(p, data);
+}
+
+export interface BatchEntry {
+  profile: { id: string; nome: string; role: string };
+  result: CommissionResult;
+}
+
+/**
+ * Cálculo em batch pra TODOS os colaboradores ativos de uma vez. Faz só 4
+ * queries paralelas no banco (em vez de N queries por user) e computa em
+ * memória. Drop-in pro previewAllForMonth — ganho de ~60→4 queries.
+ */
+export async function calculateCommissionsBatch(monthRef: string): Promise<BatchEntry[]> {
+  const supabase = createServiceRoleClient();
+  const { firstDay, lastDay } = getMonthRange(monthRef);
+
+  const [profilesRes, clientsRes, adjustmentsRes, leadsRes] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, nome, role, fixo_mensal, comissao_percent, comissao_primeiro_mes_percent")
+      .eq("ativo", true)
+      .neq("role", "socio")
+      .order("nome"),
+    supabase
+      .from("clients")
+      .select("id, nome, valor_mensal, tipo_relacao, assessor_id")
+      .eq("status", "ativo")
+      .eq("tipo_relacao", "comum"),
+    supabase
+      .from("client_monthly_adjustments")
+      .select("*")
+      .eq("mes_referencia", monthRef),
+    supabase
+      .from("leads")
+      .select("id, comercial_id, valor_proposto, client_id, cliente:clients(nome)")
+      .gte("data_fechamento", firstDay)
+      .lte("data_fechamento", lastDay),
+  ]);
+
+  const profiles = ((profilesRes.data ?? []) as unknown as ProfileWithName[]) ?? [];
+  const allClients = ((clientsRes.data ?? []) as unknown as ClientRow[]) ?? [];
+  const ajustes = ((adjustmentsRes.data ?? []) as MonthlyAdjustment[]) ?? [];
+  const leads = ((leadsRes.data ?? []) as unknown as LeadRow[]) ?? [];
+
+  // Indexa pra acesso O(1) por user
+  const ajustesByClient = new Map(ajustes.map((a) => [a.client_id, a]));
+
+  const clientsByAssessor = new Map<string, ClientRow[]>();
+  for (const c of allClients) {
+    if (!c.assessor_id) continue;
+    const arr = clientsByAssessor.get(c.assessor_id) ?? [];
+    arr.push(c);
+    clientsByAssessor.set(c.assessor_id, arr);
+  }
+
+  const leadsByComercial = new Map<string, LeadRow[]>();
+  for (const l of leads) {
+    if (!l.comercial_id) continue;
+    const arr = leadsByComercial.get(l.comercial_id) ?? [];
+    arr.push(l);
+    leadsByComercial.set(l.comercial_id, arr);
+  }
+
+  const results: BatchEntry[] = [];
+  for (const p of profiles) {
+    const result = computeCommissionForProfile(p, {
+      clientsAssessor: clientsByAssessor.get(p.id) ?? [],
+      clientsAgencia: allClients,
+      ajustesByClient,
+      leadsComercial: leadsByComercial.get(p.id) ?? [],
+    });
+    if (!result) continue;
+    results.push({
+      profile: { id: p.id, nome: p.nome, role: p.role },
+      result,
+    });
+  }
+
+  return results;
 }
