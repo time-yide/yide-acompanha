@@ -64,12 +64,14 @@ function makeChainableQuery(data: unknown[]): any {
   const chainable = {
     eq: vi.fn(),
     neq: vi.fn(),
+    is: vi.fn(),
     then: resolved.then.bind(resolved),
     catch: resolved.catch.bind(resolved),
     finally: resolved.finally.bind(resolved),
   };
   chainable.eq.mockReturnValue(chainable);
   chainable.neq.mockReturnValue(chainable);
+  chainable.is.mockReturnValue(chainable);
   return chainable;
 }
 

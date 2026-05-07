@@ -61,6 +61,7 @@ export async function _getKpisImpl(filter?: ClientFilter): Promise<KpiData> {
   let clientsQuery = supabase
     .from("clients")
     .select("id, valor_mensal, data_entrada, data_churn, status, tipo_relacao, assessor_id, coordenador_id")
+    .is("deleted_at", null)
     .neq("status", "em_onboarding");
   clientsQuery = buildClientFilterQuery(clientsQuery, filter);
 
@@ -145,6 +146,7 @@ export async function _getCarteiraTimelineImpl(
   let clientsQuery = supabase
     .from("clients")
     .select("id, valor_mensal, data_entrada, data_churn, tipo_relacao, assessor_id, coordenador_id")
+    .is("deleted_at", null)
     .eq("tipo_relacao", "comum");
   clientsQuery = buildClientFilterQuery(clientsQuery as never, filter) as never;
 
@@ -202,6 +204,7 @@ export async function _getEntradaChurnImpl(
   let clientsQuery = supabase
     .from("clients")
     .select("id, data_entrada, data_churn, tipo_relacao, assessor_id, coordenador_id")
+    .is("deleted_at", null)
     .eq("tipo_relacao", "comum");
   clientsQuery = buildClientFilterQuery(clientsQuery as never, filter) as never;
 
@@ -251,6 +254,7 @@ export async function _getCarteiraPorAssessorImpl(filter?: ClientFilter): Promis
     .from("clients")
     .select("id, valor_mensal, assessor_id, coordenador_id, tipo_relacao, assessor:profiles!clients_assessor_id_fkey(nome)")
     .eq("status", "ativo")
+    .is("deleted_at", null)
     .eq("tipo_relacao", "comum");
   clientsQuery = buildClientFilterQuery(clientsQuery as never, filter) as never;
 

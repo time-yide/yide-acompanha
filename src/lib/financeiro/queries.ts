@@ -63,6 +63,7 @@ async function _getDREImpl(mesRef: string): Promise<DREData> {
     supabase
       .from("clients")
       .select("id, valor_mensal, valor_trafego_google, valor_trafego_meta, data_entrada, data_churn, tipo_relacao, status")
+      .is("deleted_at", null)
       .neq("status", "em_onboarding"),
     supabase
       .from("commission_snapshots")
