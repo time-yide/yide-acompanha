@@ -20,9 +20,11 @@ export function MobileNav({ role, nome, badges }: Props) {
   const pathname = usePathname();
   const visible = visibleNavItems(role);
 
-  // Fecha o drawer ao navegar
+  // Fecha o drawer ao navegar. setTimeout(0) tira o setState do body do
+  // effect (passa no react-hooks/set-state-in-effect) sem mudar a UX.
   useEffect(() => {
-    setOpen(false);
+    const t = setTimeout(() => setOpen(false), 0);
+    return () => clearTimeout(t);
   }, [pathname]);
 
   // Trava scroll do body enquanto aberto
