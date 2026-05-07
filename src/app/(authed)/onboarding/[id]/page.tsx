@@ -30,7 +30,8 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
 
   const supabase = await createClient();
   const [{ data: profiles = [] }, history, attempts] = await Promise.all([
-    supabase.from("profiles").select("id, nome, role").eq("ativo", true).order("nome"),
+    // Só os papéis que aparecem nos selects do form, sem retornar a tabela inteira.
+    supabase.from("profiles").select("id, nome, role").eq("ativo", true).in("role", ["coordenador", "assessor"]).order("nome"),
     listLeadHistory(id),
     listLeadAttempts(id),
   ]);

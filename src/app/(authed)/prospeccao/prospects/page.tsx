@@ -19,24 +19,15 @@ export default async function ProspectsListPage({
   const valorMin = params.valor_min ? Number(params.valor_min) : undefined;
   const valorMax = params.valor_max ? Number(params.valor_max) : undefined;
 
-  const rows = await getProspectsList({
-    comercialId,
-    status: statuses,
-    valorMin,
-    valorMax,
-  });
-
-  let comerciais: Array<{ id: string; nome: string }> = [];
-  if (!isComercial) {
-    const supabase = await createClient();
-    const { data } = await supabase
-      .from("profiles")
-      .select("id, nome")
-      .eq("role", "comercial")
-      .eq("ativo", true)
-      .order("nome");
-    comerciais = (data ?? []) as Array<{ id: string; nome: string }>;
-  }
+  // Lista de prospects + comerciais (pro filtro) em paralelo.
+  const supabase = await createClient();
+  const [rows, comerciaisResult] = await Promise.all([
+    getProspectsList({ comercialId, status: statuses, valorMin, valorMax }),
+    isComercial
+      ? Promise.resolve({ data: [] as Array<{ id: string; nome: string }> })
+      : supabase.from("profiles").select("id, nome").eq("role", "comercial").eq("ativo", true).order("nome"),
+  ]);
+  const comerciais = (comerciaisResult.data ?? []) as Array<{ id: string; nome: string }>;
 
   return (
     <div className="space-y-4">
