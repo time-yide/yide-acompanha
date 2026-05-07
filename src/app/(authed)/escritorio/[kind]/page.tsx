@@ -44,7 +44,7 @@ export default async function CanalPage({ params }: { params: Promise<{ kind: st
         key={channel.id}
         channel={channel}
         initialMessages={messages}
-        currentUserId={user.id}
+        currentUser={{ id: user.id, nome: user.nome, avatar_url: user.avatarUrl }}
         mentionables={mentionables}
       />
     </div>

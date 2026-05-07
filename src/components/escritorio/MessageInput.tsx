@@ -14,16 +14,24 @@ interface Mentionable {
   role: string;
 }
 
+interface CurrentUser {
+  id: string;
+  nome: string;
+  avatar_url: string | null;
+}
+
 interface Props {
   channelId: string;
   mentionables: Mentionable[];
   replyTo: ChatMessage | null;
   onClearReply: () => void;
+  currentUser: CurrentUser;
+  setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
 }
 
 const MAX_ATTACHMENTS = 5;
 
-export function MessageInput({ channelId, mentionables, replyTo, onClearReply }: Props) {
+export function MessageInput({ channelId, mentionables, replyTo, onClearReply, currentUser, setMessages }: Props) {
   const [text, setText] = useState("");
   const [attachments, setAttachments] = useState<string[]>([]);
   const [pending, startTransition] = useTransition();
@@ -119,22 +127,60 @@ export function MessageInput({ channelId, mentionables, replyTo, onClearReply }:
     if (!trimmed && attachments.length === 0) return;
 
     const mentioned = resolveMentionedIds(trimmed);
+
+    // Snapshot dos valores antes de limpar (pra construir a msg otimista)
+    const sentAttachments = [...attachments];
+    const sentReplyTo = replyTo;
+
+    // ID temporário pra deduplicação quando o realtime/server confirmar
+    const tempId = `optimistic-${crypto.randomUUID()}`;
+    const optimisticMsg: ChatMessage = {
+      id: tempId,
+      channel_id: channelId,
+      autor_id: currentUser.id,
+      conteudo: trimmed,
+      reply_to_id: sentReplyTo?.id ?? null,
+      attachment_urls: sentAttachments,
+      mentioned_user_ids: mentioned,
+      created_at: new Date().toISOString(),
+      updated_at: null,
+      autor: { id: currentUser.id, nome: currentUser.nome, avatar_url: currentUser.avatar_url },
+      reply_to: sentReplyTo
+        ? { id: sentReplyTo.id, conteudo: sentReplyTo.conteudo, autor_nome: sentReplyTo.autor?.nome ?? null }
+        : null,
+    };
+
+    // 1. Insere otimisticamente — UI atualiza imediato.
+    setMessages((prev) => [...prev, optimisticMsg]);
+    setText("");
+    setAttachments([]);
+    onClearReply();
+
     const fd = new FormData();
     fd.set("channel_id", channelId);
     fd.set("conteudo", trimmed);
-    if (replyTo) fd.set("reply_to_id", replyTo.id);
-    fd.set("attachment_urls", JSON.stringify(attachments));
+    if (sentReplyTo) fd.set("reply_to_id", sentReplyTo.id);
+    fd.set("attachment_urls", JSON.stringify(sentAttachments));
     fd.set("mentioned_user_ids", JSON.stringify(mentioned));
 
     startTransition(async () => {
       const r = await sendChatMessageAction(undefined, fd);
       if (r?.error) {
+        // Remove a otimista e devolve o texto pro user tentar de novo.
+        setMessages((prev) => prev.filter((m) => m.id !== tempId));
+        setText(trimmed);
+        setAttachments(sentAttachments);
         toast.error(r.error);
         return;
       }
-      setText("");
-      setAttachments([]);
-      onClearReply();
+      // 2. Substitui o ID temporário pelo real, evitando duplicar quando o realtime chegar.
+      if (r?.id) {
+        const realId = r.id;
+        const realCreatedAt = r.created_at ?? optimisticMsg.created_at;
+        setMessages((prev) =>
+          prev.map((m) => (m.id === tempId ? { ...m, id: realId, created_at: realCreatedAt } : m)),
+        );
+      }
     });
   }
 

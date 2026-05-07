@@ -8,15 +8,21 @@ import { useRealtimeMessages } from "@/lib/escritorio/use-realtime-messages";
 import { markChannelReadAction } from "@/lib/escritorio/actions";
 import type { Channel, ChatMessage } from "@/lib/escritorio/types";
 
+export interface CurrentUser {
+  id: string;
+  nome: string;
+  avatar_url: string | null;
+}
+
 interface Props {
   channel: Channel;
   initialMessages: ChatMessage[];
-  currentUserId: string;
+  currentUser: CurrentUser;
   mentionables: Array<{ id: string; nome: string; role: string }>;
 }
 
-export function ChannelView({ channel, initialMessages, currentUserId, mentionables }: Props) {
-  const { messages } = useRealtimeMessages(channel.id, initialMessages, currentUserId);
+export function ChannelView({ channel, initialMessages, currentUser, mentionables }: Props) {
+  const { messages, setMessages } = useRealtimeMessages(channel.id, initialMessages, currentUser.id);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
 
@@ -55,7 +61,7 @@ export function ChannelView({ channel, initialMessages, currentUserId, mentionab
             <MessageBubble
               key={m.id}
               message={m}
-              isMine={m.autor_id === currentUserId}
+              isMine={m.autor_id === currentUser.id}
               onReply={() => setReplyTo(m)}
             />
           ))
@@ -68,6 +74,8 @@ export function ChannelView({ channel, initialMessages, currentUserId, mentionab
           mentionables={mentionables}
           replyTo={replyTo}
           onClearReply={() => setReplyTo(null)}
+          currentUser={currentUser}
+          setMessages={setMessages}
         />
       </div>
     </div>
