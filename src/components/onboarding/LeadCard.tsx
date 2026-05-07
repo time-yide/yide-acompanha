@@ -63,10 +63,13 @@ export function LeadCard({ lead, currentUserId, currentUserRole }: Props) {
             <span className="truncate">{lead.servico_proposto}</span>
           </div>
         )}
-        <div className="flex items-center gap-1.5">
-          <Wallet className="h-3.5 w-3.5 flex-shrink-0 text-emerald-600 dark:text-emerald-400" />
-          <span>R$ {Number(lead.valor_proposto).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês</span>
-        </div>
+        {/* Valor só aparece a partir de leads_ativos — em leads_potencial (frio) ainda não tem proposta. */}
+        {lead.stage !== "leads_potencial" && Number(lead.valor_proposto) > 0 && (
+          <div className="flex items-center gap-1.5">
+            <Wallet className="h-3.5 w-3.5 flex-shrink-0 text-emerald-600 dark:text-emerald-400" />
+            <span>R$ {Number(lead.valor_proposto).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês</span>
+          </div>
+        )}
         {(lead.stage === "leads_ativos" || lead.stage === "reuniao_comercial") &&
           lead.data_prospeccao_agendada && (
           <div className="flex items-center gap-1.5">

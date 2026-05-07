@@ -206,6 +206,20 @@ export async function moveStageAction(formData: FormData) {
   }
 
   // Regras de transição
+
+  // Lead frio (leads_potencial) só vira lead ativo quando tem telefone e valor proposto.
+  // Antes disso é só "lista fria" — não dá pra abrir reunião sem telefone, e sem
+  // valor o lead não pesa em nada (forecast, comissão, métricas).
+  if (fromStage === "leads_potencial" && toStage === "leads_ativos") {
+    const valor = Number(lead.valor_proposto ?? 0);
+    if (!lead.telefone || lead.telefone.trim() === "") {
+      return { error: "Preencha o telefone antes de mover pra Leads ativos" };
+    }
+    if (valor <= 0) {
+      return { error: "Preencha o valor proposto (mensal) antes de mover pra Leads ativos" };
+    }
+  }
+
   if (toStage === "marco_zero" && !lead.data_reuniao_marco_zero) {
     return { error: "Preencha 'Data da reunião de marco zero' antes de mover" };
   }
