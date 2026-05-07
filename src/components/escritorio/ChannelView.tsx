@@ -16,7 +16,7 @@ interface Props {
 }
 
 export function ChannelView({ channel, initialMessages, currentUserId, mentionables }: Props) {
-  const { messages } = useRealtimeMessages(channel.id, initialMessages);
+  const { messages } = useRealtimeMessages(channel.id, initialMessages, currentUserId);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
 

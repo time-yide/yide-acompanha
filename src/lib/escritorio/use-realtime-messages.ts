@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { ChatMessage } from "./types";
+import { playNotificationSound } from "./notification-sound";
 
 interface RealtimePayload {
   new: {
@@ -30,6 +31,7 @@ interface RealtimePayload {
 export function useRealtimeMessages(
   channelId: string | null,
   initialMessages: ChatMessage[],
+  currentUserId?: string,
 ) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
 
@@ -80,6 +82,10 @@ export function useRealtimeMessages(
           setMessages((prev) => {
             // Evita duplicar (caso a mensagem já tenha vindo por outro caminho)
             if (prev.some((m) => m.id === enriched.id)) return prev;
+            // Toca o som só pra mensagem de outro usuário (não pra eco do próprio envio).
+            if (currentUserId && enriched.autor_id !== currentUserId) {
+              playNotificationSound();
+            }
             return [...prev, enriched];
           });
         },
@@ -89,7 +95,7 @@ export function useRealtimeMessages(
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [channelId]);
+  }, [channelId, currentUserId]);
 
   return { messages, setMessages };
 }
