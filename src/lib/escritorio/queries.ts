@@ -1,9 +1,14 @@
 // SERVER ONLY
+import { unstable_cache } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { canAccessChannel, type Channel, type ChannelKind, type ChannelWithUnread, type ChatMessage } from "./types";
 
+export const ESCRITORIO_UNREAD_TAG = "chat-unread";
+export const ESCRITORIO_MENTIONABLES_TAG = "chat-mentionables";
+
 export async function listChannels(): Promise<Channel[]> {
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
   const { data, error } = await sb
@@ -19,16 +24,16 @@ export async function listAccessibleChannels(userRole: string): Promise<Channel[
   return all.filter((c) => canAccessChannel(userRole, c.kind));
 }
 
-export async function listChannelsWithUnread(userId: string, userRole: string): Promise<ChannelWithUnread[]> {
+async function _listChannelsWithUnreadImpl(userId: string, userRole: string): Promise<ChannelWithUnread[]> {
   const channels = await listAccessibleChannels(userRole);
   if (channels.length === 0) return [];
 
-  const supabase = await createClient();
+  // Service-role pra rodar dentro de unstable_cache (sem context de cookie).
+  const supabase = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
 
   const channelIds = channels.map((c) => c.id);
-  // Última leitura de cada canal por esse user
   const { data: readsData } = await sb
     .from("chat_reads")
     .select("channel_id, last_read_at")
@@ -40,7 +45,6 @@ export async function listChannelsWithUnread(userId: string, userRole: string): 
     ),
   );
 
-  // Conta mensagens depois da última leitura, por canal
   const counts = await Promise.all(
     channels.map(async (c) => {
       const since = lastReadByChannel.get(c.id);
@@ -56,6 +60,20 @@ export async function listChannelsWithUnread(userId: string, userRole: string): 
   );
 
   return channels.map((c, i) => ({ ...c, unread_count: counts[i] ?? 0 }));
+}
+
+/**
+ * Cached por (userId, userRole) por 15s + tag pra invalidação manual quando
+ * houver mensagem nova (sendChatMessageAction) ou marcação de lida
+ * (markChannelReadAction).
+ */
+export async function listChannelsWithUnread(userId: string, userRole: string): Promise<ChannelWithUnread[]> {
+  const cached = unstable_cache(
+    async (uid: string, role: string) => _listChannelsWithUnreadImpl(uid, role),
+    ["escritorio-channels-unread"],
+    { revalidate: 15, tags: [ESCRITORIO_UNREAD_TAG] },
+  );
+  return cached(userId, userRole);
 }
 
 export async function getChannelByKind(kind: ChannelKind): Promise<Channel | null> {
@@ -95,7 +113,6 @@ export async function listMessages(channelId: string, limit = 100): Promise<Chat
     reply_to?: { id: string; conteudo: string; autor: { nome: string } | null } | null;
   };
   const rows = (data ?? []) as RawRow[];
-  // Reverter pra ordem cronológica (mais antiga em cima)
   return rows.reverse().map((r) => ({
     ...r,
     reply_to: r.reply_to
@@ -104,9 +121,9 @@ export async function listMessages(channelId: string, limit = 100): Promise<Chat
   }));
 }
 
-/** Retorna profiles ativos pra autocomplete de @mention. */
-export async function listMentionables(): Promise<Array<{ id: string; nome: string; role: string }>> {
-  const supabase = await createClient();
+async function _listMentionablesImpl(): Promise<Array<{ id: string; nome: string; role: string }>> {
+  // Service-role pra rodar dentro de unstable_cache.
+  const supabase = createServiceRoleClient();
   const { data } = await supabase
     .from("profiles")
     .select("id, nome, role")
@@ -115,7 +132,17 @@ export async function listMentionables(): Promise<Array<{ id: string; nome: stri
   return (data ?? []) as Array<{ id: string; nome: string; role: string }>;
 }
 
-/** Total de canais com mensagens não lidas — pra badge no nav lateral. */
+/** Lista de usuários ativos pra autocomplete de @mention. Cached 60s. */
+export async function listMentionables(): Promise<Array<{ id: string; nome: string; role: string }>> {
+  const cached = unstable_cache(
+    async () => _listMentionablesImpl(),
+    ["escritorio-mentionables"],
+    { revalidate: 60, tags: [ESCRITORIO_MENTIONABLES_TAG] },
+  );
+  return cached();
+}
+
+/** Total de canais com mensagens não lidas — pra badge no nav lateral. Reusa o cache. */
 export async function countChannelsWithUnread(userId: string, userRole: string): Promise<number> {
   const channels = await listChannelsWithUnread(userId, userRole);
   return channels.filter((c) => c.unread_count > 0).length;

@@ -1,12 +1,13 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { requireAuth } from "@/lib/auth/session";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 import { canAccessChannel, type ChannelKind } from "./types";
+import { ESCRITORIO_UNREAD_TAG } from "./queries";
 
 type ActionResult = { error?: string; success?: boolean };
 
@@ -117,6 +118,7 @@ export async function sendChatMessageAction(
   }
 
   revalidatePath(`/escritorio/${channel.kind}`);
+  revalidateTag(ESCRITORIO_UNREAD_TAG, "default");
   return { success: true };
 }
 
@@ -144,6 +146,7 @@ export async function markChannelReadAction(formData: FormData): Promise<ActionR
   );
   if (error) return { error: error.message };
   revalidatePath("/escritorio");
+  revalidateTag(ESCRITORIO_UNREAD_TAG, "default");
   return { success: true };
 }
 
