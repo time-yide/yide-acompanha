@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireAuth } from "@/lib/auth/session";
 import { listLeadsByStage } from "@/lib/leads/queries";
 import { KanbanBoard } from "@/components/onboarding/KanbanBoard";
+import { OnboardingRealtimeWatcher } from "@/components/onboarding/OnboardingRealtimeWatcher";
 import { buttonVariants } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 
@@ -17,6 +18,8 @@ export default async function OnboardingPage() {
 
   return (
     <div className="space-y-5">
+      {/* Kanban atualiza ao vivo quando qualquer um move/cria/marca lead. */}
+      <OnboardingRealtimeWatcher />
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Onboarding</h1>

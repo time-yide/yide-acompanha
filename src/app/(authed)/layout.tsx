@@ -30,6 +30,7 @@ export default async function AuthedLayout({ children }: { children: React.React
       <Sidebar role={user.role} nome={user.nome} badges={{ recados: recadosNaoLidos, escritorio: escritorioUnread }} />
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar
+          userId={user.id}
           nome={user.nome}
           email={user.email}
           avatarUrl={user.avatarUrl}

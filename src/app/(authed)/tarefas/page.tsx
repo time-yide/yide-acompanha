@@ -9,6 +9,7 @@ import { TaskFilters } from "@/components/tarefas/TaskFilters";
 import { ViewToggle } from "@/components/tarefas/ViewToggle";
 import { GroupBySelector } from "@/components/tarefas/GroupBySelector";
 import { TaskToastFlash } from "@/components/tarefas/TaskToastFlash";
+import { TasksRealtimeWatcher } from "@/components/tarefas/TasksRealtimeWatcher";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 
@@ -83,6 +84,9 @@ export default async function TarefasPage({ searchParams }: { searchParams: Prom
   return (
     <div className="space-y-5">
       <Suspense fallback={null}><TaskToastFlash /></Suspense>
+      {/* Re-renderiza a lista quando qualquer task muda (status, atribuição,
+          criação, conclusão) — quem tá com /tarefas aberto vê ao vivo. */}
+      <TasksRealtimeWatcher />
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Tarefas</h1>

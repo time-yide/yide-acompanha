@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NotificationItem } from "./NotificationItem";
 import { getMyNotificationsAction, markAllNotificationsReadAction } from "@/lib/notificacoes/actions";
+import { createClient } from "@/lib/supabase/client";
+import { authenticateRealtime } from "@/lib/supabase/realtime-auth";
 
 interface Item {
   id: string;
@@ -16,37 +18,84 @@ interface Item {
   created_at: string;
 }
 
-export function NotificationBell() {
+interface Props {
+  /** ID do user atual — usado pra filtrar a subscription do Realtime. */
+  userId: string;
+}
+
+export function NotificationBell({ userId }: Props) {
   const [open, setOpen] = useState(false);
   const [unread, setUnread] = useState(0);
   const [items, setItems] = useState<Item[]>([]);
   const [markingAll, setMarkingAll] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function fetchData() {
-      try {
-        const data = await getMyNotificationsAction();
-        if (cancelled) return;
-        setItems(data.items);
-        setUnread(data.unread);
-      } catch {
-        // silencioso — falha de fetch não deve quebrar UI
-      }
+  const fetchData = useCallback(async () => {
+    try {
+      const data = await getMyNotificationsAction();
+      setItems(data.items);
+      setUnread(data.unread);
+    } catch {
+      // silencioso — falha de fetch não deve quebrar UI
     }
+  }, []);
 
-    fetchData();
-    const interval = setInterval(fetchData, 60_000);
-    const onFocus = () => fetchData();
+  // Fetch inicial + fallback de poll a cada 5min (caso o websocket caia
+  // por algum motivo) + refetch on focus pra não confiar 100% no realtime.
+  // O setTimeout(0) tira a primeira chamada de dentro do body do effect
+  // (sai do warning react-hooks/set-state-in-effect) sem mudar a UX —
+  // ainda dispara antes do primeiro paint.
+  useEffect(() => {
+    const initialKick = setTimeout(() => void fetchData(), 0);
+    const interval = setInterval(fetchData, 5 * 60_000);
+    const onFocus = () => void fetchData();
     window.addEventListener("focus", onFocus);
     return () => {
-      cancelled = true;
+      clearTimeout(initialKick);
       clearInterval(interval);
       window.removeEventListener("focus", onFocus);
     };
-  }, []);
+  }, [fetchData]);
+
+  // Realtime: nova notificação ou mudança em uma existente (lida/etc)
+  // pro user atual → re-fetcha a lista + contador.
+  useEffect(() => {
+    if (!userId) return;
+    const supabase = createClient();
+    let cancelled = false;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let channelRef: any = null;
+    let unsubAuth: (() => void) | null = null;
+
+    async function start() {
+      unsubAuth = await authenticateRealtime(supabase);
+      if (cancelled) return;
+      const ch = supabase
+        .channel(`notifications:${userId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "notifications",
+            filter: `user_id=eq.${userId}`,
+          },
+          () => {
+            void fetchData();
+          },
+        )
+        .subscribe();
+      channelRef = ch;
+    }
+
+    void start();
+
+    return () => {
+      cancelled = true;
+      unsubAuth?.();
+      if (channelRef) supabase.removeChannel(channelRef);
+    };
+  }, [userId, fetchData]);
 
   useEffect(() => {
     if (!open) return;

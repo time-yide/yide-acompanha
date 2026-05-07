@@ -6,12 +6,14 @@ import type { Role } from "@/lib/auth/permissions";
 import type { SidebarBadges } from "./Sidebar";
 
 export function TopBar({
+  userId,
   nome,
   email,
   avatarUrl,
   role,
   badges,
 }: {
+  userId: string;
   nome: string;
   email: string;
   avatarUrl: string | null;
@@ -22,7 +24,7 @@ export function TopBar({
     <header className="flex h-14 items-center justify-between gap-2 border-b bg-card px-4 md:px-6">
       <MobileNav role={role} nome={nome} badges={badges} />
       <div className="flex flex-1 items-center justify-end gap-2">
-        <NotificationBell />
+        <NotificationBell userId={userId} />
         <ThemeToggle />
         <UserMenu nome={nome} email={email} avatarUrl={avatarUrl} />
       </div>
