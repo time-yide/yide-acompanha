@@ -38,8 +38,8 @@ export const PACOTE_COLUMNS: Record<TipoPacote, ColumnFlags> = {
     camera: 1, mobile: 1, edicao: 1, reuniao: 1, pacote_postados: 1,
   },
   trafego: {
-    crono: 0, design: 1, tpg: 1, tpm: 1, gmn: 0,
-    camera: 0, mobile: 0, edicao: 0, reuniao: 1, pacote_postados: 0,
+    crono: 0, design: 0, tpg: 1, tpm: 1, gmn: 1,
+    camera: 1, mobile: 0, edicao: 1, reuniao: 1, pacote_postados: 0,
   },
   estrategia: {
     crono: 1, design: 1, tpg: 0, tpm: 0, gmn: 1,
