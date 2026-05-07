@@ -3,9 +3,16 @@
 import { useRouter } from "next/navigation";
 import { Paperclip, Link as LinkIcon, ExternalLink } from "lucide-react";
 import { prazoUrgency, formatPrazoLabel, type PrazoUrgency } from "@/lib/tarefas/grouping";
-import type { TaskRow } from "@/lib/tarefas/queries";
+import type { TaskRow, TaskAprovacao } from "@/lib/tarefas/queries";
 import { cn } from "@/lib/utils";
 import { CompleteTaskButton } from "./CompleteTaskButton";
+
+const APROVACAO_PILL: Record<TaskAprovacao, { label: string; cls: string }> = {
+  pendente_envio: { label: "Pendente envio", cls: "border-slate-400/40 text-slate-700 bg-slate-500/10 dark:text-slate-300" },
+  em_analise: { label: "Em análise", cls: "border-sky-500/40 text-sky-700 bg-sky-500/10 dark:text-sky-400" },
+  aprovado: { label: "Aprovado", cls: "border-emerald-500/40 text-emerald-700 bg-emerald-500/10 dark:text-emerald-400" },
+  ajustes_solicitados: { label: "Ajustes", cls: "border-amber-500/40 text-amber-700 bg-amber-500/10 dark:text-amber-400" },
+};
 
 interface Props {
   task: TaskRow;
@@ -139,6 +146,17 @@ export function TaskCard({ task, userRole, draggable = false }: Props) {
             <span className={cn("inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px]", PRAZO_PILL[urgency])}>
               {formatPrazoLabel(task.due_date)}
             </span>
+            {(task.tipo === "video" || task.tipo === "arte") && task.status_aprovacao && (
+              <span
+                className={cn(
+                  "inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px]",
+                  APROVACAO_PILL[task.status_aprovacao].cls,
+                )}
+                title={`${task.tipo === "video" ? "Vídeo" : "Arte"} · ${APROVACAO_PILL[task.status_aprovacao].label}`}
+              >
+                {task.tipo === "video" ? "🎬" : "🎨"} {APROVACAO_PILL[task.status_aprovacao].label}
+              </span>
+            )}
             {(task.attachment_urls?.length ?? 0) > 0 && (
               <span title={`${task.attachment_urls?.length} anexo(s)`} className="inline-flex items-center gap-0.5 text-muted-foreground">
                 <Paperclip className="h-3 w-3" />

@@ -31,6 +31,8 @@ interface Props {
     descricao: string | null;
     prioridade: string;
     status: string;
+    tipo: string;
+    formatos: string[];
     atribuido_a: string;
     client_id: string | null;
     due_date: string | null;
@@ -68,6 +70,15 @@ export function TaskForm({
   const [attachments, setAttachments] = useState<string[]>(defaults.attachment_urls ?? []);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploading, startUpload] = useTransition();
+  const [tipo, setTipo] = useState<string>(defaults.tipo ?? "geral");
+  const [formatos, setFormatos] = useState<string[]>(defaults.formatos ?? []);
+  const requiresFormato = tipo === "video" || tipo === "arte";
+
+  function toggleFormato(value: string) {
+    setFormatos((prev) =>
+      prev.includes(value) ? prev.filter((f) => f !== value) : [...prev, value],
+    );
+  }
 
   // Ao trocar cliente: puxa equipe e auto-preenche atribuído principal + adicionais
   useEffect(() => {
@@ -138,6 +149,8 @@ export function TaskForm({
       <input type="hidden" name="participantes_ids" value={JSON.stringify(participantesVisiveis)} />
       <input type="hidden" name="links" value={JSON.stringify(linksValidos)} />
       <input type="hidden" name="attachment_urls" value={JSON.stringify(attachments)} />
+      <input type="hidden" name="tipo" value={tipo} />
+      <input type="hidden" name="formatos" value={JSON.stringify(requiresFormato ? formatos : [])} />
 
       <div className="space-y-2">
         <Label htmlFor="titulo">Título</Label>
@@ -147,6 +160,56 @@ export function TaskForm({
       <div className="space-y-2">
         <Label htmlFor="descricao">Descrição (opcional)</Label>
         <Textarea id="descricao" name="descricao" defaultValue={defaults.descricao ?? ""} rows={4} maxLength={4000} />
+      </div>
+
+      <div className="space-y-3 rounded-lg border bg-muted/20 p-4">
+        <div className="space-y-2">
+          <Label htmlFor="tipo-select">Tipo</Label>
+          <Select value={tipo} onValueChange={(v) => setTipo(v ?? "geral")}>
+            <SelectTrigger id="tipo-select"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="geral">Geral</SelectItem>
+              <SelectItem value="video">Vídeo</SelectItem>
+              <SelectItem value="arte">Arte</SelectItem>
+            </SelectContent>
+          </Select>
+          {!requiresFormato && (
+            <p className="text-[11px] text-muted-foreground">
+              Marque como <strong>Vídeo</strong> ou <strong>Arte</strong> pra ativar formato e fluxo de aprovação.
+            </p>
+          )}
+        </div>
+
+        {requiresFormato && (
+          <div className="space-y-2 border-t pt-3">
+            <Label>Formato <span className="text-destructive">*</span></Label>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { value: "feed", label: "Feed" },
+                { value: "story", label: "Story" },
+              ].map((f) => {
+                const checked = formatos.includes(f.value);
+                return (
+                  <button
+                    type="button"
+                    key={f.value}
+                    onClick={() => toggleFormato(f.value)}
+                    className={
+                      checked
+                        ? "rounded-full border border-primary bg-primary/15 px-3 py-1 text-xs font-medium text-primary"
+                        : "rounded-full border bg-card px-3 py-1 text-xs text-muted-foreground hover:bg-muted"
+                    }
+                  >
+                    {checked ? "✓ " : ""}{f.label}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Pode marcar mais de um (ex: feed + story).
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

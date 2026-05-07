@@ -7,6 +7,11 @@ const PRIORITY_RANK: Record<string, number> = { alta: 0, media: 1, baixa: 2 };
 
 export interface TaskLink { label?: string; url: string; }
 
+export type TaskTipo = "geral" | "video" | "arte";
+export type TaskFormato = "feed" | "story";
+export type TaskAprovacao = "pendente_envio" | "em_analise" | "aprovado" | "ajustes_solicitados";
+export type TaskRevisaoTipo = "envio" | "aprovacao" | "ajustes";
+
 export interface TaskRow {
   id: string;
   titulo: string;
@@ -25,6 +30,19 @@ export interface TaskRow {
   participantes_ids?: string[];
   links?: TaskLink[];
   attachment_urls?: string[];
+  tipo?: TaskTipo;
+  formatos?: TaskFormato[];
+  status_aprovacao?: TaskAprovacao | null;
+}
+
+export interface TaskRevisao {
+  id: string;
+  task_id: string;
+  autor_id: string;
+  tipo: TaskRevisaoTipo;
+  observacoes: string | null;
+  criado_em: string;
+  autor?: { id?: string; nome: string } | null;
 }
 
 export function sortTasks<T extends Pick<TaskRow, "due_date" | "prioridade">>(tasks: T[]): T[] {
@@ -85,7 +103,7 @@ async function _listTasksImpl(filters?: TaskFilters): Promise<TaskRow[]> {
     .from("tasks")
     .select(`
       id, titulo, descricao, prioridade, status, due_date, created_at, completed_at, client_id, criado_por, atribuido_a,
-      participantes_ids, links, attachment_urls,
+      participantes_ids, links, attachment_urls, tipo, formatos, status_aprovacao,
       atribuido:profiles!tasks_atribuido_a_fkey(id, nome),
       criador:profiles!tasks_criado_por_fkey(id, nome),
       cliente:clients(id, nome)
@@ -114,7 +132,7 @@ export async function listTasks(filters?: TaskFilters): Promise<TaskRow[]> {
       const f = filtersJson !== "null" ? (JSON.parse(filtersJson) as TaskFilters) : undefined;
       return _listTasksImpl(f);
     },
-    ["tarefas-list"],
+    ["tarefas-list-v2"],
     { revalidate: 60, tags: ["tasks"] },
   );
   return cached(JSON.stringify(filters ?? null));
@@ -138,6 +156,23 @@ export async function getTaskById(id: string): Promise<TaskRow> {
     .single();
   if (error) throw error;
   return data as TaskRow;
+}
+
+export async function listTaskRevisoes(taskId: string): Promise<TaskRevisao[]> {
+  const supabase = await createClient();
+  // task_revisoes ainda não está nos types gerados — cast via any.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const { data, error } = await sb
+    .from("task_revisoes")
+    .select(`
+      id, task_id, autor_id, tipo, observacoes, criado_em,
+      autor:profiles!task_revisoes_autor_id_fkey(id, nome)
+    `)
+    .eq("task_id", taskId)
+    .order("criado_em", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as unknown as TaskRevisao[];
 }
 
 export async function countOpenTasksForUser(userId: string): Promise<number> {
