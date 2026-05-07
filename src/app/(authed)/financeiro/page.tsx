@@ -84,9 +84,14 @@ function PageShell({ mesRef, mode, children }: { mesRef: string; mode: Mode; chi
           <h1 className="text-2xl font-bold tracking-tight">Financeiro</h1>
           <p className="text-sm text-muted-foreground">DRE — visão de sócio</p>
         </div>
-        <Link href="/financeiro/despesas">
-          <Button variant="outline">Gerenciar despesas</Button>
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href="/financeiro/pagamentos">
+            <Button variant="outline">Pagamentos do mês</Button>
+          </Link>
+          <Link href="/financeiro/despesas">
+            <Button variant="outline">Gerenciar despesas</Button>
+          </Link>
+        </div>
       </header>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -106,6 +111,9 @@ export default async function FinanceiroPage({
 }) {
   const params = await searchParams;
   const user = await requireAuth();
+  // DRE/visão financeira é só pro sócio. ADM cai direto em /financeiro/pagamentos
+  // (que é o que ela usa). Outros roles não acessam.
+  if (user.role === "adm") redirect("/financeiro/pagamentos");
   if (user.role !== "socio") redirect("/");
 
   const mesRef = isValidMes(params.mes) ? params.mes : currentMesRef();
