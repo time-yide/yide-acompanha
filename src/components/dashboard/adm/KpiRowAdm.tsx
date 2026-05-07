@@ -1,4 +1,4 @@
-import { Users, TrendingDown, UserPlus } from "lucide-react";
+import { Users, TrendingDown, UserPlus, Sparkles } from "lucide-react";
 import { KpiCard } from "../KpiCard";
 
 interface Props {
@@ -6,6 +6,8 @@ interface Props {
   deltaClientesAtivos: number;
   churnMes: number;
   emAcompanhamento: number;
+  pontuaisAtivos: number;
+  pontuaisConcluidosMes: number;
 }
 
 function deltaCount(v: number): { valor: string; direction: "up" | "down" | "neutral" } {
@@ -17,20 +19,27 @@ function deltaCount(v: number): { valor: string; direction: "up" | "down" | "neu
  * KPIs específicos da ADM — só números, sem soma em R$.
  * Carteira/comissão em valor fica reservada pro sócio.
  */
-export function KpiRowAdm({ clientesAtivos, deltaClientesAtivos, churnMes, emAcompanhamento }: Props) {
+export function KpiRowAdm({
+  clientesAtivos,
+  deltaClientesAtivos,
+  churnMes,
+  emAcompanhamento,
+  pontuaisAtivos,
+  pontuaisConcluidosMes,
+}: Props) {
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
       <KpiCard
         label="Clientes ativos"
         valor={String(clientesAtivos)}
         delta={deltaCount(deltaClientesAtivos)}
-        helperText="vs mês anterior"
+        helperText="mensais"
         icon={Users}
       />
       <KpiCard
         label="Churn do mês"
         valor={String(churnMes)}
-        helperText="clientes que sairam"
+        helperText="clientes mensais que sairam"
         icon={TrendingDown}
       />
       <KpiCard
@@ -38,6 +47,12 @@ export function KpiRowAdm({ clientesAtivos, deltaClientesAtivos, churnMes, emAco
         valor={String(emAcompanhamento)}
         helperText="onboarding / marco zero"
         icon={UserPlus}
+      />
+      <KpiCard
+        label="Serviços pontuais"
+        valor={String(pontuaisAtivos)}
+        helperText={`${pontuaisConcluidosMes} concluídos no mês`}
+        icon={Sparkles}
       />
     </div>
   );

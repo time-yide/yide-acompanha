@@ -30,6 +30,15 @@ export function inferTipoPacote(servico: string | null | undefined): TipoPacote 
 export const TIPOS_RELACAO = ["comum", "parceria", "permuta"] as const;
 export type TipoRelacaoCliente = (typeof TIPOS_RELACAO)[number];
 
+/**
+ * Modalidade do cliente:
+ * - mensal: recorrente (contrato em curso, churn quando encerra)
+ * - pontual: serviço único (vídeo avulso, projeto fechado) — encerra
+ *   sem virar churn, conta separadamente nas métricas
+ */
+export const MODALIDADES = ["mensal", "pontual"] as const;
+export type ModalidadeCliente = (typeof MODALIDADES)[number];
+
 export const STATUSES = ["ativo", "churn", "em_onboarding"] as const;
 
 export const CADENCIAS_REUNIAO = ["semanal", "quinzenal", "mensal", "trimestral"] as const;
@@ -53,6 +62,7 @@ export const createClienteSchema = z.object({
   valor_trafego_meta: z.coerce.number().min(0).optional().nullable(),
   tipo_pacote_revisado: z.coerce.boolean().optional(),
   tipo_relacao: z.enum(TIPOS_RELACAO).default("comum"),
+  modalidade: z.enum(MODALIDADES).default("mensal"),
 });
 
 export const editClienteSchema = createClienteSchema.extend({

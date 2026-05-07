@@ -65,6 +65,8 @@ export async function DashboardAdm({ nome }: Props) {
         deltaClientesAtivos={kpis.clientesAtivos.deltaQuantidade}
         churnMes={kpis.churnMes.quantidade}
         emAcompanhamento={emAcompanhamento}
+        pontuaisAtivos={kpis.servicosPontuais.ativos}
+        pontuaisConcluidosMes={kpis.servicosPontuais.concluidosMes}
       />
 
       <Section

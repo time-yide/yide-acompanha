@@ -1,4 +1,4 @@
-import { Wallet, Users, TrendingDown, Percent } from "lucide-react";
+import { Wallet, Users, TrendingDown, Percent, Sparkles } from "lucide-react";
 import { KpiCard } from "./KpiCard";
 import { Money } from "./HiddenValuesContext";
 import type { KpiData } from "@/lib/dashboard/queries";
@@ -14,8 +14,9 @@ function formatDeltaCount(v: number): { valor: string; direction: "up" | "down" 
 }
 
 export function KpiRow({ kpis }: { kpis: KpiData }) {
+  const pontuais = kpis.servicosPontuais;
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
       <KpiCard
         label="Carteira ativa"
         valor={<Money value={kpis.carteiraAtiva.valor} noDecimals />}
@@ -35,6 +36,12 @@ export function KpiRow({ kpis }: { kpis: KpiData }) {
         valor={String(kpis.churnMes.quantidade)}
         helperText={<><Money value={kpis.churnMes.valorPerdido} noDecimals /> perdidos</>}
         icon={TrendingDown}
+      />
+      <KpiCard
+        label="Serviços pontuais"
+        valor={String(pontuais.ativos)}
+        helperText={`${pontuais.concluidosMes} concluídos no mês`}
+        icon={Sparkles}
       />
       <KpiCard
         label="Custo de comissão"

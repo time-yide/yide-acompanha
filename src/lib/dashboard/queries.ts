@@ -10,6 +10,7 @@ interface ClientRow {
   data_churn: string | null;
   status: string;
   tipo_relacao?: string | null;
+  modalidade?: string | null;
   assessor_id?: string | null;
   coordenador_id?: string | null;
 }
@@ -17,8 +18,11 @@ interface ClientRow {
 export interface KpiData {
   carteiraAtiva: { valor: number; deltaValor: number };
   clientesAtivos: { quantidade: number; deltaQuantidade: number };
+  /** Churn = só clientes mensais que sairam. Pontuais encerrados não contam. */
   churnMes: { quantidade: number; valorPerdido: number };
   custoComissaoPct: { pct: number };
+  /** Pontuais: ativos hoje (vigentes) + concluídos no mês corrente. */
+  servicosPontuais: { ativos: number; concluidosMes: number };
 }
 
 export interface ClientFilter {
@@ -68,7 +72,7 @@ export async function _getKpisImpl(filter?: ClientFilter): Promise<KpiData> {
     buildClientFilterQuery(
       supabase
         .from("clients")
-        .select("id, valor_mensal, data_entrada, data_churn, status, tipo_relacao, assessor_id, coordenador_id")
+        .select("id, valor_mensal, data_entrada, data_churn, status, tipo_relacao, modalidade, assessor_id, coordenador_id")
         .is("deleted_at", null)
         .neq("status", "em_onboarding"),
       filter,
@@ -82,7 +86,9 @@ export async function _getKpisImpl(filter?: ClientFilter): Promise<KpiData> {
       .select("client_id, tipo, valor_desconto")
       .eq("mes_referencia", prevMonthRef),
   ]);
-  const allClients = (clientsData ?? []) as ClientRow[];
+  // Cast via unknown porque os types gerados do Supabase ainda não conhecem
+  // a coluna 'modalidade' (gerada após `npm run db:types` pós-migration).
+  const allClients = (clientsData ?? []) as unknown as ClientRow[];
 
   const ajusteAtualByClient = new Map(
     ((ajustesAtuais ?? []) as Array<{ client_id: string; tipo: string; valor_desconto: number | null }>).map(
@@ -122,11 +128,22 @@ export async function _getKpisImpl(filter?: ClientFilter): Promise<KpiData> {
     0,
   );
 
-  const churnsDoMes = allClients.filter((c) => isInMonth(c.data_churn, monthRef));
+  // Churn = só clientes MENSAIS que sairam no mês. Pontuais encerrados são
+  // "concluídos" (faziam serviço único) e contam separadamente.
+  const ehMensal = (c: ClientRow) => !c.modalidade || c.modalidade === "mensal";
+  const ehPontual = (c: ClientRow) => c.modalidade === "pontual";
+
+  const churnsDoMes = allClients.filter((c) => isInMonth(c.data_churn, monthRef) && ehMensal(c));
   // valorChurnado: apenas comum
   const valorChurnado = churnsDoMes
     .filter((c) => !c.tipo_relacao || c.tipo_relacao === "comum")
     .reduce((acc, c) => acc + Number(c.valor_mensal), 0);
+
+  // Serviços pontuais — contagem própria, sem entrar no churn.
+  const pontuaisAtivos = allClients.filter((c) => ehPontual(c) && c.status === "ativo").length;
+  const pontuaisConcluidosMes = allClients.filter(
+    (c) => ehPontual(c) && isInMonth(c.data_churn, monthRef),
+  ).length;
 
   // Custo de comissão: prefere snapshot oficial (mês fechado) — se não tem,
   // calcula live usando o preview de comissões (mesma fonte que a página
@@ -157,6 +174,7 @@ export async function _getKpisImpl(filter?: ClientFilter): Promise<KpiData> {
     clientesAtivos: { quantidade: ativosHoje.length, deltaQuantidade: ativosHoje.length - ativosFimMesAnterior.length },
     churnMes: { quantidade: churnsDoMes.length, valorPerdido: valorChurnado },
     custoComissaoPct: { pct: pctComissao },
+    servicosPontuais: { ativos: pontuaisAtivos, concluidosMes: pontuaisConcluidosMes },
   };
 }
 
@@ -166,8 +184,8 @@ export async function getKpis(filter?: ClientFilter): Promise<KpiData> {
       const f = filterJson !== "null" ? (JSON.parse(filterJson) as ClientFilter) : undefined;
       return _getKpisImpl(f);
     },
-    // v2: carteira ativa agora considera ajustes mensais (bônus/desconto)
-    ["dashboard-kpis-v2"],
+    // v3: distingue mensal vs pontual no churn + KPI de serviços pontuais
+    ["dashboard-kpis-v3"],
     { revalidate: 300, tags: ["dashboard"] },
   );
   return cached(JSON.stringify(filter ?? null));
