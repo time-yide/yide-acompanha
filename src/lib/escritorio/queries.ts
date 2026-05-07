@@ -76,8 +76,11 @@ export async function listChannelsWithUnread(userId: string, userRole: string): 
   return cached(userId, userRole);
 }
 
-export async function getChannelByKind(kind: ChannelKind): Promise<Channel | null> {
-  const supabase = await createClient();
+async function _getChannelByKindImpl(kind: ChannelKind): Promise<Channel | null> {
+  // Service-role pra rodar dentro de unstable_cache. chat_channels é tabela
+  // seed (sem RLS sensitiva — quem pode ler quê é validado no page-level
+  // via canAccessChannel).
+  const supabase = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
   const { data } = await sb
@@ -88,7 +91,17 @@ export async function getChannelByKind(kind: ChannelKind): Promise<Channel | nul
   return (data as Channel | null) ?? null;
 }
 
-export async function listMessages(channelId: string, limit = 100): Promise<ChatMessage[]> {
+/** Cached 5min — canais são seed estático, nunca mudam em runtime. */
+export async function getChannelByKind(kind: ChannelKind): Promise<Channel | null> {
+  const cached = unstable_cache(
+    async (k: string) => _getChannelByKindImpl(k as ChannelKind),
+    ["escritorio-channel-by-kind"],
+    { revalidate: 300 },
+  );
+  return cached(kind);
+}
+
+export async function listMessages(channelId: string, limit = 50): Promise<ChatMessage[]> {
   const supabase = await createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;

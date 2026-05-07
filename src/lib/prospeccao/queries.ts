@@ -146,14 +146,27 @@ export async function getLeadsAgendaveis(comercialId?: string): Promise<LeadAgen
     .map(({ id, nome_prospect, stage }) => ({ id, nome_prospect, stage }));
 }
 
-export async function getProspectDetail(leadId: string): Promise<ProspectDetail | null> {
-  const supabase = await createClient();
+async function _getProspectDetailImpl(leadId: string): Promise<ProspectDetail | null> {
+  // Service-role pra rodar dentro de unstable_cache. Acesso por usuário
+  // (comercial só vê os próprios) é validado no page server-side antes de
+  // renderizar.
+  const supabase = createServiceRoleClient();
   const { data } = await supabase
     .from("leads")
     .select("id, nome_prospect, site, contato_principal, email, telefone, stage, valor_proposto, comercial_id, motivo_perdido, data_fechamento, data_prospeccao_agendada, data_reuniao_marco_zero, duracao_meses, servico_proposto, prioridade, info_briefing, client_id, created_at, updated_at, comercial:profiles!leads_comercial_id_fkey(nome, email)")
     .eq("id", leadId)
     .single();
   return (data as unknown as ProspectDetail | null) ?? null;
+}
+
+/** Cached 60s + tag PROSPECTS — invalidado por mutations em leads. */
+export async function getProspectDetail(leadId: string): Promise<ProspectDetail | null> {
+  const cached = unstable_cache(
+    async (id: string) => _getProspectDetailImpl(id),
+    ["prospeccao-detail"],
+    { revalidate: 60, tags: [PROSPECTS_CACHE_TAG] },
+  );
+  return cached(leadId);
 }
 
 export interface LeadAttemptRow {
