@@ -1,5 +1,6 @@
 import { FixoCard } from "./personal/FixoCard";
 import { ComissaoCard } from "./personal/ComissaoCard";
+import { MinhasTarefasPendentes } from "./personal/MinhasTarefasPendentes";
 import { EquipeAudiovisualSection } from "./audiovisual/EquipeAudiovisualSection";
 import { HiddenValuesProvider, HiddenValueToggle } from "./HiddenValuesContext";
 import type { Periodo } from "@/lib/dashboard/personal";
@@ -28,6 +29,8 @@ export async function DashboardAudiovisualChefe({ userId, nome, periodo = "mes_a
           <FixoCard userId={userId} />
           <ComissaoCard userId={userId} />
         </div>
+
+        <MinhasTarefasPendentes userId={userId} />
 
         <EquipeAudiovisualSection periodo={periodo} />
       </div>

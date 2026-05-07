@@ -11,6 +11,8 @@ export interface ChecklistFilter {
   designerId?: string;
   videomakerId?: string;
   editorId?: string;
+  /** Quando preenchido, retorna clientes onde o user é videomaker_id OU editor_id. */
+  audiovisualUserId?: string;
 }
 
 export interface ChecklistStepRow {
@@ -77,6 +79,11 @@ export async function getMonthlyChecklists(
   if (filter.designerId) clientsQuery = clientsQuery.eq("designer_id", filter.designerId);
   if (filter.videomakerId) clientsQuery = clientsQuery.eq("videomaker_id", filter.videomakerId);
   if (filter.editorId) clientsQuery = clientsQuery.eq("editor_id", filter.editorId);
+  if (filter.audiovisualUserId) {
+    clientsQuery = clientsQuery.or(
+      `videomaker_id.eq.${filter.audiovisualUserId},editor_id.eq.${filter.audiovisualUserId}`,
+    );
+  }
 
   const { data: clientsData } = await clientsQuery.order("nome");
   const clients = (clientsData ?? []) as Array<{
