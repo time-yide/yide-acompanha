@@ -1,8 +1,11 @@
 export type ChannelKind =
+  | "geral"
   | "assessores_coordenadores"
   | "coordenadores_estrategico"
   | "audiovisual_geral"
-  | "designers";
+  | "designers"
+  | "comercial"
+  | "administrativo";
 
 export interface Channel {
   id: string;
@@ -30,11 +33,26 @@ export interface ChannelWithUnread extends Channel {
   unread_count: number;
 }
 
+const ALL_ROLES = [
+  "adm",
+  "socio",
+  "coordenador",
+  "assessor",
+  "comercial",
+  "designer",
+  "videomaker",
+  "editor",
+  "audiovisual_chefe",
+] as const;
+
 export const CHANNEL_KIND_TO_ROLES: Record<ChannelKind, readonly string[]> = {
+  geral: ALL_ROLES,
   assessores_coordenadores: ["assessor", "coordenador", "adm", "socio"],
   coordenadores_estrategico: ["coordenador", "audiovisual_chefe", "adm", "socio"],
   audiovisual_geral: ["videomaker", "editor", "audiovisual_chefe", "adm", "socio"],
   designers: ["designer", "adm", "socio"],
+  comercial: ["comercial", "adm", "socio"],
+  administrativo: ["adm", "socio"],
 };
 
 export function canAccessChannel(role: string, kind: ChannelKind): boolean {

@@ -11,10 +11,13 @@ import { ChannelSidebar } from "@/components/escritorio/ChannelSidebar";
 import { ChannelView } from "@/components/escritorio/ChannelView";
 
 const VALID_KINDS: ChannelKind[] = [
+  "geral",
   "assessores_coordenadores",
   "coordenadores_estrategico",
   "audiovisual_geral",
   "designers",
+  "comercial",
+  "administrativo",
 ];
 
 export default async function CanalPage({ params }: { params: Promise<{ kind: string }> }) {
