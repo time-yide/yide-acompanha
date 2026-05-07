@@ -5,26 +5,45 @@ export interface ClientPaymentRow {
   client_id: string;
   client_nome: string;
   valor_mensal: number;
+  /** Tipo de relação: comum, parceria, permuta. Parceria/permuta sempre = 0. */
+  tipo_relacao: "comum" | "parceria" | "permuta";
   status: "pago" | "pendente";
   paid_at: string | null;
   observacao: string | null;
   payment_id: string | null;
+  /** Ajuste do mês — quando preenchido, redefine o valor efetivo cobrado e
+   * a base de comissão de assessor/coord. */
+  ajuste_tipo: "desconto_parcial" | "gratuidade_total" | null;
+  ajuste_valor_desconto: number | null;
+  ajuste_motivo: string | null;
+  /** Valor que o cliente realmente paga no mês depois do ajuste. */
+  valor_efetivo: number;
 }
 
 /**
- * Lista clientes ATIVOS com o status de pagamento do mês de referência.
- * Cliente sem registro em client_payments → "pendente" implícito.
+ * Lista clientes ATIVOS com:
+ * - Status de pagamento do mês (pendente implícito quando não há registro)
+ * - Ajuste mensal (gratuidade/desconto) — alimenta a redistribuição de comissão
+ * - valor_efetivo (valor que o cliente realmente paga depois do ajuste)
  */
 export async function listClientPaymentsForMonth(mesReferencia: string): Promise<ClientPaymentRow[]> {
   const supabase = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
 
-  const [{ data: clientes }, { data: payments }] = await Promise.all([
-    sb.from("clients").select("id, nome, valor_mensal").eq("status", "ativo").order("nome"),
+  const [{ data: clientes }, { data: payments }, { data: ajustes }] = await Promise.all([
+    sb
+      .from("clients")
+      .select("id, nome, valor_mensal, tipo_relacao")
+      .eq("status", "ativo")
+      .order("nome"),
     sb
       .from("client_payments")
       .select("id, client_id, status, paid_at, observacao")
+      .eq("mes_referencia", mesReferencia),
+    sb
+      .from("client_monthly_adjustments")
+      .select("client_id, tipo, valor_desconto, motivo")
       .eq("mes_referencia", mesReferencia),
   ]);
 
@@ -33,17 +52,43 @@ export async function listClientPaymentsForMonth(mesReferencia: string): Promise
       (p) => [p.client_id, p],
     ),
   );
+  const ajusteByClient = new Map(
+    ((ajustes ?? []) as Array<{ client_id: string; tipo: "desconto_parcial" | "gratuidade_total"; valor_desconto: number | null; motivo: string }>).map(
+      (a) => [a.client_id, a],
+    ),
+  );
 
-  return ((clientes ?? []) as Array<{ id: string; nome: string; valor_mensal: number }>).map((c) => {
+  return ((clientes ?? []) as Array<{ id: string; nome: string; valor_mensal: number; tipo_relacao: "comum" | "parceria" | "permuta" }>).map((c) => {
     const p = paymentByClient.get(c.id);
+    const a = ajusteByClient.get(c.id) ?? null;
+    const valor_mensal = Number(c.valor_mensal);
+
+    // Mesma lógica de valorEfetivoCliente — replicada aqui pra evitar
+    // dependência cruzada entre lib/pagamentos e lib/clientes.
+    let valor_efetivo: number;
+    if (c.tipo_relacao !== "comum") {
+      valor_efetivo = 0;
+    } else if (!a) {
+      valor_efetivo = valor_mensal;
+    } else if (a.tipo === "gratuidade_total") {
+      valor_efetivo = 0;
+    } else {
+      valor_efetivo = Math.max(0, valor_mensal - Number(a.valor_desconto ?? 0));
+    }
+
     return {
       client_id: c.id,
       client_nome: c.nome,
-      valor_mensal: Number(c.valor_mensal),
+      valor_mensal,
+      tipo_relacao: c.tipo_relacao,
       status: (p?.status as "pago" | "pendente") ?? "pendente",
       paid_at: p?.paid_at ?? null,
       observacao: p?.observacao ?? null,
       payment_id: p?.id ?? null,
+      ajuste_tipo: a?.tipo ?? null,
+      ajuste_valor_desconto: a?.valor_desconto ?? null,
+      ajuste_motivo: a?.motivo ?? null,
+      valor_efetivo,
     };
   });
 }
