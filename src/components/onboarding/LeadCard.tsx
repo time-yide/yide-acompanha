@@ -107,6 +107,7 @@ export function LeadCard({ lead, currentUserId, currentUserRole }: Props) {
             duracao_meses: lead.duracao_meses,
             servico_proposto: lead.servico_proposto,
             data_prospeccao_agendada: lead.data_prospeccao_agendada,
+            data_reuniao_marco_zero: lead.data_reuniao_marco_zero,
           }}
         />
       )}

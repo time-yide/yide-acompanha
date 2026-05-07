@@ -16,6 +16,7 @@ interface LeadDefaults {
   duracao_meses?: number | null;
   servico_proposto?: string | null;
   data_prospeccao_agendada?: string | null;
+  data_reuniao_marco_zero?: string | null;
 }
 
 interface Props {
@@ -32,6 +33,7 @@ const STAGE_TITLE: Record<string, string> = {
   proposta_enviada: "Mover pra Proposta enviada",
   reuniao_comercial: "Mover pra Reunião comercial",
   contrato: "Mover pra Contrato",
+  marco_zero: "Mover pra Marco zero",
 };
 
 const STAGE_DESC: Record<string, string> = {
@@ -39,6 +41,7 @@ const STAGE_DESC: Record<string, string> = {
   proposta_enviada: "Informe o valor mensal da proposta enviada ao cliente.",
   reuniao_comercial: "Agende data e horário da reunião. Vamos criar o evento no calendário interno automaticamente.",
   contrato: "Confirme o valor e o serviço/especificações do que foi fechado.",
+  marco_zero: "Agende a reunião de Marco zero — coordenador conduz a partir desse ponto.",
 };
 
 export function TransitionDialog({ leadId, toStage, open, onOpenChange, defaults = {}, onSuccess }: Props) {
@@ -51,6 +54,9 @@ export function TransitionDialog({ leadId, toStage, open, onOpenChange, defaults
   const [servico, setServico] = useState(defaults.servico_proposto ?? "");
   const [dataReuniao, setDataReuniao] = useState(
     defaults.data_prospeccao_agendada ? defaults.data_prospeccao_agendada.slice(0, 16) : "",
+  );
+  const [dataMarcoZero, setDataMarcoZero] = useState(
+    defaults.data_reuniao_marco_zero ? defaults.data_reuniao_marco_zero.slice(0, 16) : "",
   );
   const [obs, setObs] = useState("");
 
@@ -103,6 +109,14 @@ export function TransitionDialog({ leadId, toStage, open, onOpenChange, defaults
       fd.set("valor_proposto", String(v));
       fd.set("servico_proposto", servico.trim());
       if (duracao.trim()) fd.set("duracao_meses", duracao.trim());
+    }
+
+    if (toStage === "marco_zero") {
+      if (!dataMarcoZero) {
+        setError("Informe a data e horário da reunião de Marco zero");
+        return;
+      }
+      fd.set("data_reuniao_marco_zero", dataMarcoZero);
     }
 
     startTransition(async () => {
@@ -194,6 +208,20 @@ export function TransitionDialog({ leadId, toStage, open, onOpenChange, defaults
                 <Input id="duracao" type="number" min="0" value={duracao} onChange={(e) => setDuracao(e.target.value)} />
               </div>
             </>
+          )}
+
+          {toStage === "marco_zero" && (
+            <div className="space-y-2">
+              <Label htmlFor="data_marco_zero">Data e horário da reunião de Marco zero</Label>
+              <Input
+                id="data_marco_zero" type="datetime-local"
+                value={dataMarcoZero} onChange={(e) => setDataMarcoZero(e.target.value)}
+                autoFocus
+              />
+              <p className="text-xs text-muted-foreground">
+                A partir daqui o coordenador toma a frente. O assessor vai ser notificado quando o card for ativado.
+              </p>
+            </div>
           )}
 
           <div className="space-y-2">

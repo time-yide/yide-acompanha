@@ -347,6 +347,9 @@ export interface EventoRow {
 
 export interface EventoFilter {
   userId?: string;
+  /** Quando passado, restringe aos sub_calendars listados (ex.: ADM só vê
+   * agencia/onboarding/aniversarios — não as gravações de videomakers). */
+  subCalendars?: string[];
 }
 
 export async function _getProximosEventosImpl(
@@ -359,12 +362,16 @@ export async function _getProximosEventosImpl(
   const start = now.toISOString();
   const end = new Date(now.getTime() + days * 24 * 60 * 60 * 1000).toISOString();
 
-  let query = supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let query: any = supabase
     .from("calendar_events")
     .select("id, titulo, inicio, fim, sub_calendar");
 
   if (filter?.userId) {
     query = query.contains("participantes_ids", [filter.userId]);
+  }
+  if (filter?.subCalendars && filter.subCalendars.length > 0) {
+    query = query.in("sub_calendar", filter.subCalendars);
   }
 
   const { data } = await query
@@ -386,7 +393,8 @@ export async function getProximosEventos(
       const { days: d, limit: l, filter: f } = JSON.parse(paramsJson) as { days: number; limit: number; filter: EventoFilter | null };
       return _getProximosEventosImpl(d, l, f ?? undefined);
     },
-    ["dashboard-proximos-eventos"],
+    // v2: filter agora suporta subCalendars
+    ["dashboard-proximos-eventos-v2"],
     { revalidate: 300, tags: ["dashboard"] },
   );
   return cached(JSON.stringify({ days, limit, filter: filter ?? null }));

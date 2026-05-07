@@ -16,6 +16,7 @@ const STAGES_NEEDING_DIALOG = new Set<Stage>([
   "proposta_enviada",
   "reuniao_comercial",
   "contrato",
+  "marco_zero",
 ]);
 
 interface LeadDefaults {
@@ -24,6 +25,7 @@ interface LeadDefaults {
   duracao_meses?: number | null;
   servico_proposto?: string | null;
   data_prospeccao_agendada?: string | null;
+  data_reuniao_marco_zero?: string | null;
 }
 
 const STAGE_ORDER: Stage[] = [
