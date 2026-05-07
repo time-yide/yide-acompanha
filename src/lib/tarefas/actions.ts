@@ -12,6 +12,7 @@ import {
   moveStatusSchema,
   artesEntreguesSchema,
   requestAdjustmentsSchema,
+  taskCommentSchema,
   TASK_FORMATOS,
 } from "./schema";
 
@@ -389,18 +390,35 @@ export async function moveTaskStatusAction(formData: FormData) {
     return { success: true as const };
   }
 
-  // Lógica do completed_at idêntica ao updateTaskAction
+  // completed_at: stamp quando entra em "concluida" (= time terminou) ou "postada" (= publicada)
+  const isDoneState = (s: string) => s === "concluida" || s === "postada";
   const completed_at =
-    parsed.data.to_status === "concluida" && before.status !== "concluida"
+    isDoneState(parsed.data.to_status) && !isDoneState(before.status)
       ? new Date().toISOString()
-      : parsed.data.to_status !== "concluida"
+      : !isDoneState(parsed.data.to_status)
         ? null
         : before.completed_at;
 
-  type Patch = { status: "aberta" | "em_andamento" | "concluida"; completed_at: string | null };
-  const patch: Patch = { status: parsed.data.to_status, completed_at };
+  // aprovada_em: stamp quando entra em "aprovada" (pra alerta de >24h sem postar)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const beforeAprovadaEm = (before as any).aprovada_em as string | null | undefined;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const beforeStatus = (before as any).status as string;
+  const aprovada_em =
+    parsed.data.to_status === "aprovada"
+      ? (beforeStatus === "aprovada" ? beforeAprovadaEm ?? null : new Date().toISOString())
+      : null;
 
-  const { error } = await supabase.from("tasks").update(patch).eq("id", parsed.data.id);
+  type Patch = {
+    status: "aberta" | "em_andamento" | "concluida" | "em_aprovacao" | "aprovada" | "postada";
+    completed_at: string | null;
+    aprovada_em: string | null;
+  };
+  const patch: Patch = { status: parsed.data.to_status, completed_at, aprovada_em };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const { error } = await sb.from("tasks").update(patch).eq("id", parsed.data.id);
   if (error) return { error: error.message };
 
   await logAudit({
@@ -511,9 +529,10 @@ export async function submitForApprovalAction(taskId: string): Promise<ApprovalR
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
+  // Move pro Kanban "Aprovação" e marca status_aprovacao=em_analise
   const { error } = await sb
     .from("tasks")
-    .update({ status_aprovacao: "em_analise" })
+    .update({ status: "em_aprovacao", status_aprovacao: "em_analise" })
     .eq("id", taskId);
   if (error) return { error: error.message };
 
@@ -551,9 +570,10 @@ export async function approveTaskAction(taskId: string): Promise<ApprovalResult>
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
+  // Move pro Kanban "Aprovado" + carimba aprovada_em (pro alerta de >24h sem postar)
   const { error } = await sb
     .from("tasks")
-    .update({ status_aprovacao: "aprovado" })
+    .update({ status: "aprovada", status_aprovacao: "aprovado", aprovada_em: new Date().toISOString() })
     .eq("id", taskId);
   if (error) return { error: error.message };
 
@@ -603,9 +623,10 @@ export async function requestAdjustmentsAction(formData: FormData): Promise<Appr
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
+  // Volta pro Kanban "Em andamento" pra equipe trabalhar nos ajustes
   const { error } = await sb
     .from("tasks")
-    .update({ status_aprovacao: "ajustes_solicitados" })
+    .update({ status: "em_andamento", status_aprovacao: "ajustes_solicitados" })
     .eq("id", parsed.data.id);
   if (error) return { error: error.message };
 
@@ -634,5 +655,126 @@ export async function requestAdjustmentsAction(formData: FormData): Promise<Appr
   revalidatePath("/tarefas");
   revalidateTag("tasks", "default");
   if (task.client_id) revalidatePath(`/clientes/${task.client_id}/tarefas`);
+  return { success: true };
+}
+
+/**
+ * Marca a tarefa como Postada (status final do pipeline pra video/arte).
+ * Permissão: criador, atribuído ou participantes.
+ */
+export async function markAsPostedAction(taskId: string): Promise<ApprovalResult> {
+  const actor = await requireAuth();
+  const supabase = await createClient();
+  const { data: t } = await supabase.from("tasks").select("*").eq("id", taskId).single();
+  if (!t) return { error: "Tarefa não encontrada" };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tAny = t as any;
+  const participantes = tAny.participantes_ids as string[] | null | undefined;
+  const canMark =
+    t.criado_por === actor.id ||
+    t.atribuido_a === actor.id ||
+    (Array.isArray(participantes) && participantes.includes(actor.id)) ||
+    isPrivileged(actor);
+  if (!canMark) return { error: "Sem permissão" };
+
+  if (tAny.status !== "aprovada") {
+    return { error: "Tarefa precisa estar aprovada antes de marcar como postada" };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const { error } = await sb
+    .from("tasks")
+    .update({ status: "postada", completed_at: new Date().toISOString() })
+    .eq("id", taskId);
+  if (error) return { error: error.message };
+
+  await logAudit({
+    entidade: "tasks",
+    entidade_id: taskId,
+    acao: "complete",
+    dados_antes: { status: tAny.status },
+    dados_depois: { status: "postada" },
+    ator_id: actor.id,
+  });
+
+  await dispatchNotification({
+    evento_tipo: "task_completed",
+    titulo: "Tarefa postada",
+    mensagem: `${actor.nome} marcou como postada: "${tAny.titulo}"`,
+    link: `/tarefas/${taskId}`,
+    user_ids_extras: [tAny.criado_por].filter((id): id is string => !!id && id !== actor.id),
+    source_user_id: actor.id,
+  });
+
+  revalidatePath(`/tarefas/${taskId}`);
+  revalidatePath("/tarefas");
+  revalidateTag("tasks", "default");
+  if (tAny.client_id) revalidatePath(`/clientes/${tAny.client_id}/tarefas`);
+  return { success: true };
+}
+
+// ============================================================================
+// Chat (task_comments)
+// ============================================================================
+
+type CommentResult = { error?: string; success?: boolean };
+
+export async function addCommentAction(formData: FormData): Promise<CommentResult> {
+  const actor = await requireAuth();
+
+  const parsed = taskCommentSchema.safeParse({
+    task_id: fd(formData, "task_id"),
+    conteudo: fd(formData, "conteudo"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const supabase = await createClient();
+  const { data: taskData } = await supabase
+    .from("tasks")
+    .select("*")
+    .eq("id", parsed.data.task_id)
+    .single();
+  if (!taskData) return { error: "Tarefa não encontrada" };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tAny = taskData as any;
+  const participantes = tAny.participantes_ids as string[] | null | undefined;
+  const canComment =
+    tAny.criado_por === actor.id ||
+    tAny.atribuido_a === actor.id ||
+    (Array.isArray(participantes) && participantes.includes(actor.id)) ||
+    isPrivileged(actor);
+  if (!canComment) return { error: "Sem permissão pra comentar nessa tarefa" };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const { error } = await sb.from("task_comments").insert({
+    task_id: parsed.data.task_id,
+    autor_id: actor.id,
+    conteudo: parsed.data.conteudo,
+  });
+  if (error) return { error: error.message };
+
+  // Notifica todos os envolvidos exceto o autor
+  const recipients = [
+    tAny.criado_por,
+    tAny.atribuido_a,
+    ...(participantes ?? []),
+  ].filter((id, i, arr): id is string => !!id && id !== actor.id && arr.indexOf(id) === i);
+  if (recipients.length > 0) {
+    const preview = parsed.data.conteudo.slice(0, 80) + (parsed.data.conteudo.length > 80 ? "…" : "");
+    await dispatchNotification({
+      evento_tipo: "task_assigned",
+      titulo: "Novo comentário em tarefa",
+      mensagem: `${actor.nome} comentou em "${tAny.titulo}": ${preview}`,
+      link: `/tarefas/${parsed.data.task_id}`,
+      user_ids_extras: recipients,
+      source_user_id: actor.id,
+    });
+  }
+
+  revalidatePath(`/tarefas/${parsed.data.task_id}`);
   return { success: true };
 }

@@ -12,15 +12,24 @@ export type TaskFormato = "feed" | "story";
 export type TaskAprovacao = "pendente_envio" | "em_analise" | "aprovado" | "ajustes_solicitados";
 export type TaskRevisaoTipo = "envio" | "aprovacao" | "ajustes";
 
+export type TaskStatus =
+  | "aberta"
+  | "em_andamento"
+  | "concluida"
+  | "em_aprovacao"
+  | "aprovada"
+  | "postada";
+
 export interface TaskRow {
   id: string;
   titulo: string;
   descricao?: string | null;
   prioridade: "alta" | "media" | "baixa";
-  status: "aberta" | "em_andamento" | "concluida";
+  status: TaskStatus;
   due_date: string | null;
   created_at?: string;
   completed_at?: string | null;
+  aprovada_em?: string | null;
   client_id: string | null;
   atribuido?: { id?: string; nome: string } | null;
   criador?: { id?: string; nome: string } | null;
@@ -41,6 +50,15 @@ export interface TaskRevisao {
   autor_id: string;
   tipo: TaskRevisaoTipo;
   observacoes: string | null;
+  criado_em: string;
+  autor?: { id?: string; nome: string } | null;
+}
+
+export interface TaskComment {
+  id: string;
+  task_id: string;
+  autor_id: string;
+  conteudo: string;
   criado_em: string;
   autor?: { id?: string; nome: string } | null;
 }
@@ -88,7 +106,7 @@ export function filterTasksByPrazo<T extends { due_date: string | null }>(
 }
 
 export interface TaskFilters {
-  status?: ("aberta" | "em_andamento" | "concluida")[];
+  status?: TaskStatus[];
   atribuidoA?: string;
   criadoPor?: string;
   clientId?: string;
@@ -102,14 +120,18 @@ async function _listTasksImpl(filters?: TaskFilters): Promise<TaskRow[]> {
   let query = supabase
     .from("tasks")
     .select(`
-      id, titulo, descricao, prioridade, status, due_date, created_at, completed_at, client_id, criado_por, atribuido_a,
+      id, titulo, descricao, prioridade, status, due_date, created_at, completed_at, aprovada_em, client_id, criado_por, atribuido_a,
       participantes_ids, links, attachment_urls, tipo, formatos, status_aprovacao,
       atribuido:profiles!tasks_atribuido_a_fkey(id, nome),
       criador:profiles!tasks_criado_por_fkey(id, nome),
       cliente:clients(id, nome)
     `);
 
-  if (filters?.status && filters.status.length > 0) query = query.in("status", filters.status);
+  if (filters?.status && filters.status.length > 0) {
+    // Cast: types do Supabase não conhecem os novos status enum (em_aprovacao/aprovada/postada).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    query = query.in("status", filters.status as any);
+  }
   if (filters?.prioridade && filters.prioridade.length > 0) query = query.in("prioridade", filters.prioridade);
   // "Atribuídas a mim" agora inclui tarefas onde sou principal OU adicional
   if (filters?.atribuidoA) {
@@ -132,7 +154,7 @@ export async function listTasks(filters?: TaskFilters): Promise<TaskRow[]> {
       const f = filtersJson !== "null" ? (JSON.parse(filtersJson) as TaskFilters) : undefined;
       return _listTasksImpl(f);
     },
-    ["tarefas-list-v2"],
+    ["tarefas-list-v3"],
     { revalidate: 60, tags: ["tasks"] },
   );
   return cached(JSON.stringify(filters ?? null));
@@ -158,6 +180,22 @@ export async function getTaskById(id: string): Promise<TaskRow> {
   return data as TaskRow;
 }
 
+export async function listTaskComments(taskId: string): Promise<TaskComment[]> {
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const { data, error } = await sb
+    .from("task_comments")
+    .select(`
+      id, task_id, autor_id, conteudo, criado_em,
+      autor:profiles!task_comments_autor_id_fkey(id, nome)
+    `)
+    .eq("task_id", taskId)
+    .order("criado_em", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as unknown as TaskComment[];
+}
+
 export async function listTaskRevisoes(taskId: string): Promise<TaskRevisao[]> {
   const supabase = await createClient();
   // task_revisoes ainda não está nos types gerados — cast via any.
@@ -181,7 +219,7 @@ export async function countOpenTasksForUser(userId: string): Promise<number> {
     .from("tasks")
     .select("id", { count: "exact", head: true })
     .eq("atribuido_a", userId)
-    .neq("status", "concluida");
+    .not("status", "in", "(concluida,postada)");
   return count ?? 0;
 }
 
@@ -192,7 +230,7 @@ export async function countOverdueTasksForUser(userId: string): Promise<number> 
     .from("tasks")
     .select("id", { count: "exact", head: true })
     .eq("atribuido_a", userId)
-    .neq("status", "concluida")
+    .not("status", "in", "(concluida,postada)")
     .lt("due_date", today);
   return count ?? 0;
 }

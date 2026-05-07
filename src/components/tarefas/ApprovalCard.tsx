@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { CheckCircle2, Clock, Send, AlertTriangle, RefreshCw } from "lucide-react";
+import { CheckCircle2, Clock, Send, AlertTriangle, RefreshCw, Megaphone } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,16 +20,22 @@ import {
   submitForApprovalAction,
   approveTaskAction,
   requestAdjustmentsAction,
+  markAsPostedAction,
 } from "@/lib/tarefas/actions";
-import type { TaskAprovacao, TaskFormato } from "@/lib/tarefas/queries";
+import type { TaskAprovacao, TaskFormato, TaskStatus } from "@/lib/tarefas/queries";
+
+const APPROVED_STALE_HOURS = 24;
 
 interface Props {
   taskId: string;
   tipo: "video" | "arte";
   formatos: TaskFormato[];
   statusAprovacao: TaskAprovacao;
+  status: TaskStatus;
+  aprovadaEm: string | null;
   isExecutor: boolean;
   isApprover: boolean;
+  canMarkPosted: boolean;
 }
 
 const STATUS_META: Record<
@@ -63,8 +69,11 @@ export function ApprovalCard({
   tipo,
   formatos,
   statusAprovacao,
+  status,
+  aprovadaEm,
   isExecutor,
   isApprover,
+  canMarkPosted,
 }: Props) {
   const [pending, startTransition] = useTransition();
   const [adjustOpen, setAdjustOpen] = useState(false);
@@ -77,6 +86,16 @@ export function ApprovalCard({
   const canSend =
     isExecutor && (statusAprovacao === "pendente_envio" || statusAprovacao === "ajustes_solicitados");
   const canApproveOrAdjust = isApprover && statusAprovacao === "em_analise";
+  const canPost = canMarkPosted && status === "aprovada";
+
+  // Alerta visual: "Aprovado" há mais de 24h sem postar.
+  // Lazy initializer roda só no mount; Date.now() não acontece em re-renders.
+  const [aprovadaStaleHours] = useState<number | null>(() => {
+    if (status !== "aprovada" || !aprovadaEm) return null;
+    const ms = Date.now() - new Date(aprovadaEm).getTime();
+    const hours = ms / 36e5;
+    return hours >= APPROVED_STALE_HOURS ? Math.floor(hours) : null;
+  });
 
   function handleSubmit() {
     setError(null);
@@ -101,6 +120,19 @@ export function ApprovalCard({
         return;
       }
       toast.success("Tarefa aprovada");
+    });
+  }
+
+  function handleMarkPosted() {
+    setError(null);
+    startTransition(async () => {
+      const r = await markAsPostedAction(taskId);
+      if (r?.error) {
+        setError(r.error);
+        toast.error(r.error);
+        return;
+      }
+      toast.success("Tarefa marcada como postada");
     });
   }
 
@@ -150,7 +182,16 @@ export function ApprovalCard({
           </Badge>
         </div>
 
-        {(canSend || canApproveOrAdjust) && (
+        {aprovadaStaleHours !== null && (
+          <div className="flex items-start gap-2 rounded-md border border-orange-500/40 bg-orange-500/10 px-3 py-2 text-xs text-orange-700 dark:text-orange-400">
+            <Clock className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+            <span>
+              Aprovada há <strong>{aprovadaStaleHours}h</strong> sem ser postada — equipe responsável pelo perfil precisa publicar.
+            </span>
+          </div>
+        )}
+
+        {(canSend || canApproveOrAdjust || canPost) && (
           <div className="flex flex-wrap items-center gap-2 border-t pt-3">
             {canSend && (
               <Button
@@ -160,7 +201,7 @@ export function ApprovalCard({
                 size="sm"
               >
                 <Send className="h-3.5 w-3.5 mr-1.5" />
-                {statusAprovacao === "ajustes_solicitados" ? "Reenviar para análise" : "Enviar para análise"}
+                {statusAprovacao === "ajustes_solicitados" ? "Reenviar para aprovação" : "Enviar para aprovação"}
               </Button>
             )}
             {canApproveOrAdjust && (
@@ -188,16 +229,30 @@ export function ApprovalCard({
                 </Button>
               </>
             )}
+            {canPost && (
+              <Button
+                type="button"
+                onClick={handleMarkPosted}
+                disabled={pending}
+                size="sm"
+                className="bg-violet-600 text-white hover:bg-violet-700"
+              >
+                <Megaphone className="h-3.5 w-3.5 mr-1.5" />
+                Marcar como postado
+              </Button>
+            )}
           </div>
         )}
 
-        {!canSend && !canApproveOrAdjust && (
+        {!canSend && !canApproveOrAdjust && !canPost && (
           <p className="border-t pt-3 text-xs text-muted-foreground">
-            {statusAprovacao === "aprovado"
-              ? "Tarefa aprovada — nenhuma ação pendente."
-              : statusAprovacao === "em_analise"
-                ? "Aguardando o assessor aprovar ou pedir ajustes."
-                : "Aguardando o atribuído enviar para análise."}
+            {status === "postada"
+              ? "Tarefa postada — fluxo concluído."
+              : statusAprovacao === "aprovado"
+                ? "Aprovada e aguardando postagem pelo time responsável pelo perfil."
+                : statusAprovacao === "em_analise"
+                  ? "Aguardando o assessor aprovar ou pedir ajustes."
+                  : "Aguardando o atribuído enviar para aprovação."}
           </p>
         )}
 

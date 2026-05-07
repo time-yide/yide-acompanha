@@ -1,7 +1,14 @@
 import { z } from "zod";
 
 export const PRIORITIES = ["alta", "media", "baixa"] as const;
-export const TASK_STATUSES = ["aberta", "em_andamento", "concluida"] as const;
+export const TASK_STATUSES = [
+  "aberta",
+  "em_andamento",
+  "concluida",
+  "em_aprovacao",
+  "aprovada",
+  "postada",
+] as const;
 export const TASK_TIPOS = ["geral", "video", "arte"] as const;
 export const TASK_FORMATOS = ["feed", "story"] as const;
 export const TASK_APROVACOES = [
@@ -72,6 +79,15 @@ export const requestAdjustmentsSchema = z.object({
     .trim()
     .min(3, "Descreva os ajustes (mín. 3 caracteres)")
     .max(2000, "Texto muito longo (máx. 2000)"),
+});
+
+export const taskCommentSchema = z.object({
+  task_id: z.string().uuid(),
+  conteudo: z
+    .string()
+    .trim()
+    .min(1, "Comentário vazio")
+    .max(2000, "Comentário muito longo (máx. 2000)"),
 });
 
 export const moveStatusSchema = z.object({

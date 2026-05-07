@@ -4,7 +4,7 @@ import { CheckCircle2, Pencil, Trash2 } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import type { CurrentUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import { getTaskById, listTaskRevisoes, type TaskAprovacao, type TaskFormato } from "@/lib/tarefas/queries";
+import { getTaskById, listTaskRevisoes, listTaskComments, type TaskAprovacao, type TaskFormato, type TaskStatus } from "@/lib/tarefas/queries";
 import { updateTaskAction, deleteTaskAction } from "@/lib/tarefas/actions";
 import { TaskForm } from "@/components/tarefas/TaskForm";
 import { PriorityBadge } from "@/components/tarefas/PriorityBadge";
@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { CompleteTaskButton } from "@/components/tarefas/CompleteTaskButton";
 import { ApprovalCard } from "@/components/tarefas/ApprovalCard";
 import { RevisionsTimeline } from "@/components/tarefas/RevisionsTimeline";
+import { CommentsPanel } from "@/components/tarefas/CommentsPanel";
 
 function isPrivileged(user: CurrentUser): boolean {
   return user.role === "adm" || user.role === "socio";
@@ -23,6 +24,9 @@ const STATUS_LABEL: Record<string, string> = {
   aberta: "Aberta",
   em_andamento: "Em andamento",
   concluida: "Concluída",
+  em_aprovacao: "Em aprovação",
+  aprovada: "Aprovado",
+  postada: "Postado",
 };
 
 function formatDateBR(iso: string | null | undefined): string {
@@ -52,18 +56,26 @@ export default async function TarefaPage({
 
   const supabase = await createClient();
   const isApprovalTask = task.tipo === "video" || task.tipo === "arte";
-  const [{ data: profiles = [] }, { data: clientes = [] }, revisoes] = await Promise.all([
+  const isMember =
+    task.criado_por === user.id ||
+    task.atribuido_a === user.id ||
+    (Array.isArray(task.participantes_ids) && task.participantes_ids.includes(user.id)) ||
+    isPrivileged(user);
+
+  const [{ data: profiles = [] }, { data: clientes = [] }, revisoes, comments] = await Promise.all([
     supabase.from("profiles").select("id, nome").eq("ativo", true).order("nome"),
     isEditing
       ? supabase.from("clients").select("id, nome").eq("status", "ativo").order("nome")
       : Promise.resolve({ data: [] as { id: string; nome: string }[] }),
     isApprovalTask && !isEditing ? listTaskRevisoes(id) : Promise.resolve([]),
+    !isEditing && isMember ? listTaskComments(id) : Promise.resolve([]),
   ]);
 
   const isExecutor =
     task.atribuido_a === user.id ||
     (Array.isArray(task.participantes_ids) && task.participantes_ids.includes(user.id));
   const isApprover = task.criado_por === user.id || isPrivileged(user);
+  const canMarkPosted = isMember; // qualquer um da tarefa pode marcar como postado
 
   async function deleteTask() {
     "use server";
@@ -189,8 +201,11 @@ export default async function TarefaPage({
               tipo={task.tipo as "video" | "arte"}
               formatos={(task.formatos ?? []) as TaskFormato[]}
               statusAprovacao={task.status_aprovacao as TaskAprovacao}
+              status={task.status as TaskStatus}
+              aprovadaEm={task.aprovada_em ?? null}
               isExecutor={isExecutor}
               isApprover={isApprover}
+              canMarkPosted={canMarkPosted}
             />
           )}
 
@@ -226,7 +241,16 @@ export default async function TarefaPage({
 
           {isApprovalTask && <RevisionsTimeline revisoes={revisoes} />}
 
-          {canEdit && (
+          {isMember && (
+            <CommentsPanel
+              taskId={id}
+              initialComments={comments}
+              canComment={isMember}
+              currentUserId={user.id}
+            />
+          )}
+
+          {canEdit && (task.status === "aberta" || task.status === "em_andamento" || task.status === "concluida") && (
             <Card
               className={
                 task.status === "concluida"
