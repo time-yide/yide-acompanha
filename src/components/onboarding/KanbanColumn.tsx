@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 const STAGE_LABEL: Record<Stage, string> = {
   leads_potencial: "Leads em potencial",
   leads_ativos: "Leads ativos",
+  proposta_enviada: "Proposta enviada",
   reuniao_comercial: "Reunião comercial",
   contrato: "Contrato",
   marco_zero: "Marco zero",
@@ -18,6 +19,7 @@ const STAGE_LABEL: Record<Stage, string> = {
 const STAGE_DESC: Record<Stage, string> = {
   leads_potencial: "Lista a contatar",
   leads_ativos: "Em prospecção ativa",
+  proposta_enviada: "Proposta com valor enviada",
   reuniao_comercial: "Reunião agendada/realizada",
   contrato: "Emitir contrato",
   marco_zero: "Coord conduz reunião",

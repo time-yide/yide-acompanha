@@ -3,6 +3,7 @@ import { z } from "zod";
 export const STAGES = [
   "leads_potencial",
   "leads_ativos",
+  "proposta_enviada",
   "reuniao_comercial",
   "contrato",
   "marco_zero",
@@ -56,6 +57,7 @@ export const deleteLeadSchema = z.object({
 export const STAGE_INTERACTORS: Record<Stage, readonly string[]> = {
   leads_potencial: ["adm", "socio", "comercial"],
   leads_ativos: ["adm", "socio", "comercial"],
+  proposta_enviada: ["adm", "socio", "comercial"],
   reuniao_comercial: ["adm", "socio", "comercial"],
   contrato: ["adm", "socio", "coordenador"],
   marco_zero: ["adm", "socio", "coordenador", "assessor"],

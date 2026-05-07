@@ -6,10 +6,30 @@ import { moveStageAction, markLostAction, deleteLeadAction } from "@/lib/leads/a
 import { Button } from "@/components/ui/button";
 import { ChevronRight, ChevronLeft, X, Trash2 } from "lucide-react";
 import type { Stage } from "@/lib/leads/schema";
+import { TransitionDialog } from "./TransitionDialog";
+
+// Estágios cuja transição PRA ELES requer informação adicional do user.
+// Quando um lead vai mover pra um desses, abrimos o TransitionDialog em vez
+// de mover direto. Pra demais (marco_zero, ativo, voltar) move direto.
+const STAGES_NEEDING_DIALOG = new Set<Stage>([
+  "leads_ativos",
+  "proposta_enviada",
+  "reuniao_comercial",
+  "contrato",
+]);
+
+interface LeadDefaults {
+  telefone?: string | null;
+  valor_proposto?: number | string | null;
+  duracao_meses?: number | null;
+  servico_proposto?: string | null;
+  data_prospeccao_agendada?: string | null;
+}
 
 const STAGE_ORDER: Stage[] = [
   "leads_potencial",
   "leads_ativos",
+  "proposta_enviada",
   "reuniao_comercial",
   "contrato",
   "marco_zero",
@@ -19,6 +39,7 @@ const STAGE_ORDER: Stage[] = [
 const STAGE_LABEL: Record<Stage, string> = {
   leads_potencial: "Leads em potencial",
   leads_ativos: "Leads ativos",
+  proposta_enviada: "Proposta enviada",
   reuniao_comercial: "Reunião comercial",
   contrato: "Contrato",
   marco_zero: "Marco zero",
@@ -31,9 +52,11 @@ interface Props {
   compact?: boolean;
   /** Quando true, exibe o botão "Excluir card" (sócio ou criador do lead). */
   canDelete?: boolean;
+  /** Defaults pra preencher o TransitionDialog quando o user avança. */
+  leadDefaults?: LeadDefaults;
 }
 
-export function StageTransitionButtons({ leadId, currentStage, compact = false, canDelete = false }: Props) {
+export function StageTransitionButtons({ leadId, currentStage, compact = false, canDelete = false, leadDefaults = {} }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +64,7 @@ export function StageTransitionButtons({ leadId, currentStage, compact = false, 
   const [showDelete, setShowDelete] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [deleteJustificativa, setDeleteJustificativa] = useState("");
+  const [dialogStage, setDialogStage] = useState<Stage | null>(null);
 
   const idx = STAGE_ORDER.indexOf(currentStage);
   const next = idx < STAGE_ORDER.length - 1 ? STAGE_ORDER[idx + 1] : null;
@@ -48,6 +72,11 @@ export function StageTransitionButtons({ leadId, currentStage, compact = false, 
   const isActive = currentStage === "ativo";
 
   async function move(toStage: Stage) {
+    // Se o destino precisa de dados extras, abre o dialog em vez de mover direto.
+    if (STAGES_NEEDING_DIALOG.has(toStage)) {
+      setDialogStage(toStage);
+      return;
+    }
     setBusy(true); setError(null);
     const fd = new FormData();
     fd.set("id", leadId);
@@ -162,6 +191,17 @@ export function StageTransitionButtons({ leadId, currentStage, compact = false, 
       )}
 
       {error && <p className="text-xs text-destructive">{error}</p>}
+
+      {dialogStage && (
+        <TransitionDialog
+          leadId={leadId}
+          toStage={dialogStage}
+          open={dialogStage !== null}
+          onOpenChange={(o) => { if (!o) setDialogStage(null); }}
+          defaults={leadDefaults}
+          onSuccess={() => router.refresh()}
+        />
+      )}
     </div>
   );
 }
