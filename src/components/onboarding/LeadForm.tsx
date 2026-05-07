@@ -112,8 +112,8 @@ export function LeadForm({ action, defaults = {}, coordenadores = [], assessores
             <Input id="contato_principal" name="contato_principal" placeholder="Ex.: João Silva" defaultValue={defaults.contato_principal ?? ""} required />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="telefone">Telefone</Label>
-            <Input id="telefone" name="telefone" placeholder="(11) 99999-9999" defaultValue={defaults.telefone ?? ""} required />
+            <Label htmlFor="telefone">Telefone <span className="text-muted-foreground">(opcional)</span></Label>
+            <Input id="telefone" name="telefone" placeholder="(11) 99999-9999" defaultValue={defaults.telefone ?? ""} />
           </div>
         </div>
       ) : (
