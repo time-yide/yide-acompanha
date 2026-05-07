@@ -17,6 +17,7 @@ function prettyStage(stage: string): string {
   switch (stage) {
     case "leads_potencial": return "Leads em potencial";
     case "leads_ativos": return "Leads ativos";
+    case "proposta_enviada": return "Proposta enviada";
     case "reuniao_comercial": return "Reunião comercial";
     case "contrato": return "Contrato";
     case "marco_zero": return "Marco zero";
@@ -193,11 +194,20 @@ export async function moveStageAction(formData: FormData) {
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  const supabase = await createClient();
-  const { data: lead } = await supabase.from("leads").select("*").eq("id", parsed.data.id).single();
-  if (!lead) return { error: "Lead não encontrado" };
+  // Campos que o TransitionDialog pode mandar pra preencher antes de mover.
+  // Quando vêm, atualizamos o lead PRIMEIRO e revalidamos a regra contra
+  // os valores novos (ex.: valor_proposto recém-preenchido).
+  const inlineTelefone = fd(formData, "telefone");
+  const inlineValor = fd(formData, "valor_proposto");
+  const inlineDuracao = fd(formData, "duracao_meses");
+  const inlineServico = fd(formData, "servico_proposto");
+  const inlineDataReuniao = fd(formData, "data_prospeccao_agendada");
 
-  const fromStage = lead.stage as Stage;
+  const supabase = await createClient();
+  const { data: leadInitial } = await supabase.from("leads").select("*").eq("id", parsed.data.id).single();
+  if (!leadInitial) return { error: "Lead não encontrado" };
+
+  const fromStage = leadInitial.stage as Stage;
   const toStage = parsed.data.to_stage;
 
   // Permissão por estágio (ver STAGE_INTERACTORS em schema.ts)
@@ -205,18 +215,64 @@ export async function moveStageAction(formData: FormData) {
     return { error: `Seu papel não tem permissão pra mexer em cards na fase "${fromStage}"` };
   }
 
+  // 1. Aplica updates inline (do TransitionDialog) antes de validar transições.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const inlineUpdate: any = {};
+  if (inlineTelefone !== undefined) inlineUpdate.telefone = inlineTelefone || null;
+  if (inlineValor !== undefined) inlineUpdate.valor_proposto = Number(inlineValor) || 0;
+  if (inlineDuracao !== undefined) {
+    const n = Number(inlineDuracao);
+    inlineUpdate.duracao_meses = Number.isFinite(n) && n > 0 ? n : null;
+  }
+  if (inlineServico !== undefined) inlineUpdate.servico_proposto = inlineServico || null;
+  if (inlineDataReuniao !== undefined) inlineUpdate.data_prospeccao_agendada = inlineDataReuniao || null;
+
+  if (Object.keys(inlineUpdate).length > 0) {
+    const { error: inlineErr } = await supabase
+      .from("leads")
+      .update(inlineUpdate)
+      .eq("id", parsed.data.id);
+    if (inlineErr) return { error: inlineErr.message };
+  }
+
+  // Recarrega lead com os campos novos pra validar a transição.
+  const { data: lead } = await supabase.from("leads").select("*").eq("id", parsed.data.id).single();
+  if (!lead) return { error: "Lead não encontrado" };
+
   // Regras de transição
 
-  // Lead frio (leads_potencial) só vira lead ativo quando tem telefone e valor proposto.
-  // Antes disso é só "lista fria" — não dá pra abrir reunião sem telefone, e sem
-  // valor o lead não pesa em nada (forecast, comissão, métricas).
+  // leads_potencial → leads_ativos: lead frio precisa ter telefone pra virar
+  // ativo (sem telefone não dá pra avançar contato).
   if (fromStage === "leads_potencial" && toStage === "leads_ativos") {
-    const valor = Number(lead.valor_proposto ?? 0);
-    if (!lead.telefone || lead.telefone.trim() === "") {
-      return { error: "Preencha o telefone antes de mover pra Leads ativos" };
+    if (!lead.telefone || String(lead.telefone).trim() === "") {
+      return { error: "Preencha o telefone pra mover pra Leads ativos" };
     }
+  }
+
+  // leads_ativos → proposta_enviada: precisa ter valor proposto cadastrado.
+  if (fromStage === "leads_ativos" && toStage === "proposta_enviada") {
+    const valor = Number(lead.valor_proposto ?? 0);
     if (valor <= 0) {
-      return { error: "Preencha o valor proposto (mensal) antes de mover pra Leads ativos" };
+      return { error: "Preencha o valor da proposta antes de mover" };
+    }
+  }
+
+  // proposta_enviada → reuniao_comercial: precisa ter data/hora da reunião.
+  // Vamos criar evento no calendário interno depois do move.
+  if (fromStage === "proposta_enviada" && toStage === "reuniao_comercial") {
+    if (!lead.data_prospeccao_agendada) {
+      return { error: "Agende a data e horário da reunião comercial antes de mover" };
+    }
+  }
+
+  // reuniao_comercial → contrato: confirma valor e serviço/especificações.
+  if (fromStage === "reuniao_comercial" && toStage === "contrato") {
+    const valor = Number(lead.valor_proposto ?? 0);
+    if (valor <= 0) {
+      return { error: "Confirme o valor fechado antes de mover pra Contrato" };
+    }
+    if (!lead.servico_proposto || String(lead.servico_proposto).trim() === "") {
+      return { error: "Preencha o serviço/especificações fechadas antes de mover pra Contrato" };
     }
   }
 
@@ -281,6 +337,38 @@ export async function moveStageAction(formData: FormData) {
     ator_id: actor.id,
     observacao: parsed.data.observacao ?? null,
   });
+
+  // Quando o card entra em "reuniao_comercial", cria evento no calendário
+  // interno (sub_calendar=onboarding). Best-effort: falha aqui não desfaz
+  // o move — só loga e segue.
+  if (toStage === "reuniao_comercial" && lead.data_prospeccao_agendada) {
+    try {
+      const { data: org } = await supabase.from("organizations").select("id").limit(1).single();
+      if (org) {
+        const inicio = new Date(lead.data_prospeccao_agendada);
+        const fim = new Date(inicio.getTime() + 60 * 60 * 1000); // 1h default
+        const participantes = [actor.id, lead.comercial_id].filter(
+          (v, i, arr) => v && arr.indexOf(v) === i,
+        );
+        await sb.from("calendar_events").insert({
+          organization_id: org.id,
+          titulo: `Reunião comercial — ${lead.nome_prospect}`,
+          descricao: lead.servico_proposto
+            ? `Proposta: ${lead.servico_proposto}`
+            : null,
+          inicio: inicio.toISOString(),
+          fim: fim.toISOString(),
+          sub_calendar: "onboarding",
+          criado_por: actor.id,
+          participantes_ids: participantes,
+          lead_id: lead.id,
+        });
+        revalidatePath("/calendario");
+      }
+    } catch {
+      // Falha de calendário não desfaz a transição.
+    }
+  }
 
   await logAudit({
     entidade: "leads",

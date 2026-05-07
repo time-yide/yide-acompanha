@@ -10,19 +10,29 @@ function formatBRL(v: number): string {
 }
 
 const STAGE_LABEL: Record<string, string> = {
-  prospeccao: "Prospecção",
-  comercial: "Em comercial",
+  leads_potencial: "Leads em potencial",
+  leads_ativos: "Leads ativos",
+  proposta_enviada: "Proposta enviada",
+  reuniao_comercial: "Reunião comercial",
   contrato: "Contrato",
   marco_zero: "Marco zero",
   ativo: "Ativo",
+  // Legados
+  prospeccao: "Leads ativos",
+  comercial: "Reunião comercial",
 };
 
 const STAGE_BADGE: Record<string, string> = {
-  prospeccao: "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200",
-  comercial: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+  leads_potencial: "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200",
+  leads_ativos: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300",
+  proposta_enviada: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300",
+  reuniao_comercial: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
   contrato: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
   marco_zero: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
   ativo: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
+  // Legados
+  prospeccao: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300",
+  comercial: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
 };
 
 const PRIORIDADE_BADGE: Record<string, string> = {

@@ -13,8 +13,16 @@ import { Badge } from "@/components/ui/badge";
 import { canInteractWithStage, type Stage } from "@/lib/leads/schema";
 
 const STAGE_LABEL: Record<string, string> = {
-  prospeccao: "Prospecção", comercial: "Reunião Comercial",
-  contrato: "Contrato", marco_zero: "Marco Zero", ativo: "Cliente ativo",
+  leads_potencial: "Leads em potencial",
+  leads_ativos: "Leads ativos",
+  proposta_enviada: "Proposta enviada",
+  reuniao_comercial: "Reunião comercial",
+  contrato: "Contrato",
+  marco_zero: "Marco zero",
+  ativo: "Ativação do lead",
+  // Legados
+  prospeccao: "Leads ativos",
+  comercial: "Reunião comercial",
 };
 
 export default async function LeadDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -58,7 +66,18 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
       <Card className="p-5">
         <h2 className="mb-3 text-lg font-semibold">Mover de estágio</h2>
         {canInteract ? (
-          <StageTransitionButtons leadId={lead.id} currentStage={lead.stage as Stage} canDelete={canDelete} />
+          <StageTransitionButtons
+            leadId={lead.id}
+            currentStage={lead.stage as Stage}
+            canDelete={canDelete}
+            leadDefaults={{
+              telefone: lead.telefone,
+              valor_proposto: lead.valor_proposto,
+              duracao_meses: lead.duracao_meses,
+              servico_proposto: lead.servico_proposto,
+              data_prospeccao_agendada: lead.data_prospeccao_agendada,
+            }}
+          />
         ) : (
           <p className="text-sm text-muted-foreground">
             Seu papel não tem permissão pra mexer em cards nesta fase. Visualização apenas.
