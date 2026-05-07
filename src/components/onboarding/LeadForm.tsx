@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { Snowflake, FileText } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 interface ProfileOption { id: string; nome: string; }
 
@@ -34,9 +36,14 @@ interface Props {
   submitLabel?: string;
 }
 
+type Mode = "frio" | "detalhado";
+
 export function LeadForm({ action, defaults = {}, coordenadores = [], assessores = [], isEdit = false, submitLabel = "Salvar" }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Edit cai em detalhado por padrão (já tem mais info). Create começa em frio (lead novo da lista).
+  const [mode, setMode] = useState<Mode>(isEdit ? "detalhado" : "frio");
+  const isCold = mode === "frio";
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -57,98 +64,153 @@ export function LeadForm({ action, defaults = {}, coordenadores = [], assessores
     <form onSubmit={handleSubmit} className="space-y-5">
       {defaults.id && <input type="hidden" name="id" value={defaults.id} />}
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div className="space-y-2 md:col-span-2">
-          <Label htmlFor="nome_prospect">Nome do prospect</Label>
-          <Input id="nome_prospect" name="nome_prospect" defaultValue={defaults.nome_prospect ?? ""} required minLength={2} />
+      {!isEdit && (
+        <div className="space-y-2">
+          <Label className="text-xs uppercase tracking-wider text-muted-foreground">Tipo de cadastro</Label>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setMode("frio")}
+              className={cn(
+                "flex items-start gap-2 rounded-lg border p-3 text-left transition-colors",
+                isCold ? "border-sky-500/50 bg-sky-500/10" : "border-border hover:bg-muted/40",
+              )}
+            >
+              <Snowflake className={cn("mt-0.5 h-4 w-4 flex-shrink-0", isCold ? "text-sky-600 dark:text-sky-400" : "text-muted-foreground")} />
+              <div className="space-y-0.5">
+                <p className={cn("text-sm font-medium", isCold && "text-sky-700 dark:text-sky-300")}>Lead frio</p>
+                <p className="text-[11px] text-muted-foreground">Apenas Empresa, contato e telefone — pra lista fria do comercial.</p>
+              </div>
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("detalhado")}
+              className={cn(
+                "flex items-start gap-2 rounded-lg border p-3 text-left transition-colors",
+                !isCold ? "border-primary/50 bg-primary/10" : "border-border hover:bg-muted/40",
+              )}
+            >
+              <FileText className={cn("mt-0.5 h-4 w-4 flex-shrink-0", !isCold ? "text-primary" : "text-muted-foreground")} />
+              <div className="space-y-0.5">
+                <p className={cn("text-sm font-medium", !isCold && "text-primary")}>Lead detalhado</p>
+                <p className="text-[11px] text-muted-foreground">Todos os campos — quando já tem mais informação coletada.</p>
+              </div>
+            </button>
+          </div>
         </div>
+      )}
 
-        <div className="space-y-2">
-          <Label htmlFor="site">Site</Label>
-          <Input id="site" name="site" type="url" placeholder="https://..." defaultValue={defaults.site ?? ""} />
+      {isCold ? (
+        // Modo frio: 3 campos
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="nome_prospect">Empresa</Label>
+            <Input id="nome_prospect" name="nome_prospect" placeholder="Ex.: Padaria Doce Vida" defaultValue={defaults.nome_prospect ?? ""} required minLength={2} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="contato_principal">Nome do contato</Label>
+            <Input id="contato_principal" name="contato_principal" placeholder="Ex.: João Silva" defaultValue={defaults.contato_principal ?? ""} required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="telefone">Telefone</Label>
+            <Input id="telefone" name="telefone" placeholder="(11) 99999-9999" defaultValue={defaults.telefone ?? ""} required />
+          </div>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="contato_principal">Contato principal</Label>
-          <Input id="contato_principal" name="contato_principal" defaultValue={defaults.contato_principal ?? ""} />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <Input id="email" name="email" type="email" defaultValue={defaults.email ?? ""} />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="telefone">Telefone</Label>
-          <Input id="telefone" name="telefone" defaultValue={defaults.telefone ?? ""} />
-        </div>
+      ) : (
+        // Modo detalhado: todos os campos
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="nome_prospect">Empresa / Nome do prospect</Label>
+            <Input id="nome_prospect" name="nome_prospect" defaultValue={defaults.nome_prospect ?? ""} required minLength={2} />
+          </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="valor_proposto">Valor mensal proposto (R$)</Label>
-          <Input id="valor_proposto" name="valor_proposto" type="number" step="0.01" min="0" defaultValue={String(defaults.valor_proposto ?? 0)} />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="duracao_meses">Duração (meses)</Label>
-          <Input id="duracao_meses" name="duracao_meses" type="number" min="0" defaultValue={String(defaults.duracao_meses ?? "")} />
-        </div>
-        <div className="space-y-2 md:col-span-2">
-          <Label htmlFor="servico_proposto">Serviço proposto</Label>
-          <Input id="servico_proposto" name="servico_proposto" placeholder="Ex.: Social media + Tráfego pago" defaultValue={defaults.servico_proposto ?? ""} />
-        </div>
+          <div className="space-y-2">
+            <Label htmlFor="site">Site</Label>
+            <Input id="site" name="site" type="url" placeholder="https://..." defaultValue={defaults.site ?? ""} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="contato_principal">Nome do contato</Label>
+            <Input id="contato_principal" name="contato_principal" defaultValue={defaults.contato_principal ?? ""} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input id="email" name="email" type="email" defaultValue={defaults.email ?? ""} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="telefone">Telefone</Label>
+            <Input id="telefone" name="telefone" defaultValue={defaults.telefone ?? ""} />
+          </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="prioridade">Prioridade</Label>
-          <Select name="prioridade" defaultValue={defaults.prioridade ?? "media"}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="alta">Alta</SelectItem>
-              <SelectItem value="media">Média</SelectItem>
-              <SelectItem value="baixa">Baixa</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="data_prospeccao_agendada">Data da reunião de prospecção</Label>
-          <Input
-            id="data_prospeccao_agendada" name="data_prospeccao_agendada" type="datetime-local"
-            defaultValue={defaults.data_prospeccao_agendada ? defaults.data_prospeccao_agendada.slice(0, 16) : ""}
-          />
-        </div>
+          <div className="space-y-2">
+            <Label htmlFor="valor_proposto">Valor mensal proposto (R$)</Label>
+            <Input id="valor_proposto" name="valor_proposto" type="number" step="0.01" min="0" defaultValue={String(defaults.valor_proposto ?? 0)} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="duracao_meses">Duração (meses)</Label>
+            <Input id="duracao_meses" name="duracao_meses" type="number" min="0" defaultValue={String(defaults.duracao_meses ?? "")} />
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="servico_proposto">Serviço proposto</Label>
+            <Input id="servico_proposto" name="servico_proposto" placeholder="Ex.: Social media + Tráfego pago" defaultValue={defaults.servico_proposto ?? ""} />
+          </div>
 
-        {isEdit && (
-          <>
-            <div className="space-y-2">
-              <Label htmlFor="data_reuniao_marco_zero">Data da reunião de marco zero</Label>
-              <Input
-                id="data_reuniao_marco_zero" name="data_reuniao_marco_zero" type="datetime-local"
-                defaultValue={defaults.data_reuniao_marco_zero ? defaults.data_reuniao_marco_zero.slice(0, 16) : ""}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="coord_alocado_id">Coordenador alocado</Label>
-              <Select name="coord_alocado_id" defaultValue={defaults.coord_alocado_id ?? ""}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Sem coordenador</SelectItem>
-                  {coordenadores.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="assessor_alocado_id">Assessor alocado</Label>
-              <Select name="assessor_alocado_id" defaultValue={defaults.assessor_alocado_id ?? ""}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Sem assessor</SelectItem>
-                  {assessores.map((a) => <SelectItem key={a.id} value={a.id}>{a.nome}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          </>
-        )}
+          <div className="space-y-2">
+            <Label htmlFor="prioridade">Prioridade</Label>
+            <Select name="prioridade" defaultValue={defaults.prioridade ?? "media"}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="alta">Alta</SelectItem>
+                <SelectItem value="media">Média</SelectItem>
+                <SelectItem value="baixa">Baixa</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="data_prospeccao_agendada">Data da reunião de prospecção</Label>
+            <Input
+              id="data_prospeccao_agendada" name="data_prospeccao_agendada" type="datetime-local"
+              defaultValue={defaults.data_prospeccao_agendada ? defaults.data_prospeccao_agendada.slice(0, 16) : ""}
+            />
+          </div>
 
-        <div className="space-y-2 md:col-span-2">
-          <Label htmlFor="info_briefing">Info coletada na prospecção</Label>
-          <Textarea id="info_briefing" name="info_briefing" rows={4} defaultValue={defaults.info_briefing ?? ""} />
+          {isEdit && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="data_reuniao_marco_zero">Data da reunião de marco zero</Label>
+                <Input
+                  id="data_reuniao_marco_zero" name="data_reuniao_marco_zero" type="datetime-local"
+                  defaultValue={defaults.data_reuniao_marco_zero ? defaults.data_reuniao_marco_zero.slice(0, 16) : ""}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="coord_alocado_id">Coordenador alocado</Label>
+                <Select name="coord_alocado_id" defaultValue={defaults.coord_alocado_id ?? ""}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Sem coordenador</SelectItem>
+                    {coordenadores.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="assessor_alocado_id">Assessor alocado</Label>
+                <Select name="assessor_alocado_id" defaultValue={defaults.assessor_alocado_id ?? ""}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Sem assessor</SelectItem>
+                    {assessores.map((a) => <SelectItem key={a.id} value={a.id}>{a.nome}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          )}
+
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="info_briefing">Info coletada na prospecção</Label>
+            <Textarea id="info_briefing" name="info_briefing" rows={4} defaultValue={defaults.info_briefing ?? ""} />
+          </div>
         </div>
-      </div>
+      )}
 
       {error && <p className="text-xs text-destructive">{error}</p>}
       <Button type="submit" disabled={busy}>
