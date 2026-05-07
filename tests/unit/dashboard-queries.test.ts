@@ -61,17 +61,16 @@ const fromMock = vi.hoisted(() => vi.fn());
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function makeChainableQuery(data: unknown[]): any {
   const resolved = Promise.resolve({ data });
-  const chainable = {
-    eq: vi.fn(),
-    neq: vi.fn(),
-    is: vi.fn(),
+  const chainable: Record<string, unknown> = {
     then: resolved.then.bind(resolved),
     catch: resolved.catch.bind(resolved),
     finally: resolved.finally.bind(resolved),
   };
-  chainable.eq.mockReturnValue(chainable);
-  chainable.neq.mockReturnValue(chainable);
-  chainable.is.mockReturnValue(chainable);
+  // Métodos do builder que devem retornar o próprio chain (qualquer um
+  // que apareça no caminho de uma query Supabase nas funções testadas).
+  for (const m of ["eq", "neq", "is", "in", "gte", "lte", "lt", "gt", "or", "order", "limit"]) {
+    chainable[m] = vi.fn().mockReturnValue(chainable);
+  }
   return chainable;
 }
 
@@ -134,7 +133,9 @@ describe("getKpis", () => {
           }),
         };
       }
-      return {};
+      // Fallback genérico (ex.: client_monthly_adjustments quando o teste
+      // não se importa com ajustes — retorna lista vazia).
+      return { select: () => makeChainableQuery([]) };
     });
 
     const r = await _getKpisImpl();
@@ -172,7 +173,9 @@ describe("getKpis", () => {
           }),
         };
       }
-      return {};
+      // Fallback genérico (ex.: client_monthly_adjustments quando o teste
+      // não se importa com ajustes — retorna lista vazia).
+      return { select: () => makeChainableQuery([]) };
     });
 
     const r = await _getKpisImpl();
@@ -191,9 +194,19 @@ describe("getKpis", () => {
         return { select: () => makeChainableQuery([]) };
       }
       if (table === "commission_snapshots") {
-        return { select: () => ({ order: () => ({ limit: vi.fn().mockResolvedValue({ data: [] }) }) }) };
+        // Snapshot não-vazio evita o fallback pra previewAllForMonth (que
+        // requer mocks adicionais de profiles, leads, etc).
+        return {
+          select: () => ({
+            order: () => ({
+              limit: vi.fn().mockResolvedValue({ data: [{ mes_referencia: "2026-03", valor_total: 0 }] }),
+            }),
+          }),
+        };
       }
-      return {};
+      // Fallback genérico (ex.: client_monthly_adjustments quando o teste
+      // não se importa com ajustes — retorna lista vazia).
+      return { select: () => makeChainableQuery([]) };
     });
 
     const r = await _getKpisImpl();
@@ -222,7 +235,9 @@ describe("getCarteiraTimeline", () => {
           ]),
         };
       }
-      return {};
+      // Fallback genérico (ex.: client_monthly_adjustments quando o teste
+      // não se importa com ajustes — retorna lista vazia).
+      return { select: () => makeChainableQuery([]) };
     });
 
     const timeline = await _getCarteiraTimelineImpl(4);
@@ -311,7 +326,9 @@ describe("getCarteiraPorAssessor", () => {
           ]),
         };
       }
-      return {};
+      // Fallback genérico (ex.: client_monthly_adjustments quando o teste
+      // não se importa com ajustes — retorna lista vazia).
+      return { select: () => makeChainableQuery([]) };
     });
 
     const list = await getCarteiraPorAssessor();
@@ -505,7 +522,9 @@ describe("getProximosEventos", () => {
           }),
         };
       }
-      return {};
+      // Fallback genérico (ex.: client_monthly_adjustments quando o teste
+      // não se importa com ajustes — retorna lista vazia).
+      return { select: () => makeChainableQuery([]) };
     });
 
     const eventos = await getProximosEventos(30, 10);
@@ -531,7 +550,9 @@ describe("getMesAguardandoAprovacao", () => {
           }),
         };
       }
-      return {};
+      // Fallback genérico (ex.: client_monthly_adjustments quando o teste
+      // não se importa com ajustes — retorna lista vazia).
+      return { select: () => makeChainableQuery([]) };
     });
 
     const r = await getMesAguardandoAprovacao();
@@ -551,7 +572,9 @@ describe("getMesAguardandoAprovacao", () => {
           }),
         };
       }
-      return {};
+      // Fallback genérico (ex.: client_monthly_adjustments quando o teste
+      // não se importa com ajustes — retorna lista vazia).
+      return { select: () => makeChainableQuery([]) };
     });
 
     const r = await getMesAguardandoAprovacao();
@@ -575,7 +598,9 @@ describe("getKpis with filter", () => {
       if (table === "commission_snapshots") {
         return { select: () => ({ order: () => ({ limit: vi.fn().mockResolvedValue({ data: [] }) }) }) };
       }
-      return {};
+      // Fallback genérico (ex.: client_monthly_adjustments quando o teste
+      // não se importa com ajustes — retorna lista vazia).
+      return { select: () => makeChainableQuery([]) };
     });
 
     const r = await _getKpisImpl({ assessorId: "a1" });
@@ -601,7 +626,9 @@ describe("getKpis with filter", () => {
       if (table === "commission_snapshots") {
         return { select: () => ({ order: () => ({ limit: vi.fn().mockResolvedValue({ data: [] }) }) }) };
       }
-      return {};
+      // Fallback genérico (ex.: client_monthly_adjustments quando o teste
+      // não se importa com ajustes — retorna lista vazia).
+      return { select: () => makeChainableQuery([]) };
     });
 
     const r = await _getKpisImpl({ coordenadorId: "co1" });
@@ -699,7 +726,9 @@ describe("getProximosEventos with filter", () => {
       if (table === "calendar_events") {
         return { select: () => ({ contains: containsMock }) };
       }
-      return {};
+      // Fallback genérico (ex.: client_monthly_adjustments quando o teste
+      // não se importa com ajustes — retorna lista vazia).
+      return { select: () => makeChainableQuery([]) };
     });
 
     const eventos = await _getProximosEventosImpl(30, 10, { userId: "u1" });
