@@ -3,6 +3,8 @@ import { Bell, Lock } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { updateOwnProfileAction } from "@/lib/profile/actions";
+import { env } from "@/lib/env";
+import { EnablePushButton } from "@/components/pwa/EnablePushButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -83,17 +85,28 @@ export default async function ConfiguracoesPage() {
         </form>
       </Card>
 
-      <Card className="p-6">
-        <h2 className="mb-2 text-lg font-semibold">Notificações</h2>
-        <p className="mb-3 text-sm text-muted-foreground">
-          Configure quais notificações você recebe e por qual canal.
-        </p>
+      <Card className="p-6 space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold">Notificações</h2>
+          <p className="text-sm text-muted-foreground">
+            Configure quais notificações você recebe e por qual canal.
+          </p>
+        </div>
+        {env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && (
+          <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
+            <p className="text-sm font-medium">Notificações no dispositivo</p>
+            <p className="text-xs text-muted-foreground">
+              Recebe notificação do SO (Mac/Windows/iPhone) mesmo com a aba do sistema em segundo plano. Ative em cada dispositivo que você quiser receber.
+            </p>
+            <EnablePushButton vapidPublicKey={env.NEXT_PUBLIC_VAPID_PUBLIC_KEY} />
+          </div>
+        )}
         <Link
           href="/configuracoes/notificacoes"
           className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
         >
           <Bell className="h-4 w-4" />
-          Gerenciar notificações →
+          Gerenciar tipos de notificação →
         </Link>
       </Card>
 

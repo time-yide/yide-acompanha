@@ -1,26 +1,70 @@
 // Service Worker — Yide Digital PWA
-// Versão básica: instala, ativa, e fica pronto pra receber Web Push (PR 2).
-// Não faz cache offline aggressive — o app depende muito de dados ao vivo.
+// Recebe Web Push e mostra notificação nativa do SO. Click leva pra rota
+// da notificação (ou pra home se sem link).
 
-const SW_VERSION = "v1.0.0";
+const SW_VERSION = "v1.1.0";
 
-self.addEventListener("install", (event) => {
-  // Ativa nova versão imediatamente, sem esperar tabs antigas fecharem.
+self.addEventListener("install", () => {
   self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
-  // Assume controle de todas as abas abertas assim que ativa.
   event.waitUntil(self.clients.claim());
 });
 
-// Fetch: passa direto pra rede. Cache vai entrar quando tiver shell offline
-// (futuro). Por enquanto, comportamento idêntico a sem service worker —
-// só o registro é necessário pra Web Push e pra "Adicionar à tela inicial".
-self.addEventListener("fetch", (event) => {
-  // Não interfere — deixa o browser lidar.
+self.addEventListener("fetch", () => {
+  // Sem cache offline por enquanto.
 });
 
-// === Web Push handlers (PR 2 vai popular) ===
-// self.addEventListener("push", (event) => { ... });
-// self.addEventListener("notificationclick", (event) => { ... });
+// Recebe push e mostra notificação. Payload vem como JSON do server.
+self.addEventListener("push", (event) => {
+  if (!event.data) return;
+
+  let payload;
+  try {
+    payload = event.data.json();
+  } catch {
+    payload = { title: "Yide", body: event.data.text() };
+  }
+
+  const title = payload.title || "Yide";
+  const options = {
+    body: payload.body || "",
+    icon: "/brand/logo-yide.png",
+    badge: "/brand/logo-yide.png",
+    tag: payload.tag || undefined,
+    data: { url: payload.url || "/" },
+    requireInteraction: false,
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// Click na notificação: foca tab existente OU abre nova.
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const targetUrl = event.notification.data?.url || "/";
+
+  event.waitUntil(
+    (async () => {
+      const allClients = await self.clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      });
+      // Se já existe tab aberta no mesmo origin, foca e navega
+      for (const client of allClients) {
+        if ("focus" in client) {
+          await client.focus();
+          if ("navigate" in client && targetUrl) {
+            try { await client.navigate(targetUrl); } catch { /* ignora */ }
+          }
+          return;
+        }
+      }
+      // Senão abre nova
+      if (self.clients.openWindow) {
+        await self.clients.openWindow(targetUrl);
+      }
+    })(),
+  );
+});
