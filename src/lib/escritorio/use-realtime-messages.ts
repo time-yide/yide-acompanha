@@ -27,6 +27,11 @@ interface RealtimePayload {
  * forçar remount quando trocar de canal — assim o initialMessages vira o
  * novo state inicial sem precisar de useEffect+setState (que viola
  * react-hooks/set-state-in-effect).
+ *
+ * Auth do Realtime: o @supabase/ssr não propaga o JWT pro websocket
+ * automaticamente, então RLS roda como anônimo e dropa os eventos
+ * silenciosamente. A gente força realtime.setAuth() antes de subscribe e
+ * re-aplica em mudanças de auth (refresh de token).
  */
 export function useRealtimeMessages(
   channelId: string | null,
@@ -38,62 +43,84 @@ export function useRealtimeMessages(
   useEffect(() => {
     if (!channelId) return;
     const supabase = createClient();
+    let cancelled = false;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let channelRef: any = null;
 
-    const channel = supabase
-      .channel(`chat:${channelId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "chat_messages",
-          filter: `channel_id=eq.${channelId}`,
-        },
-        async (payload: RealtimePayload) => {
-          const newMsg = payload.new;
-          // Buscar autor + reply_to (eles vêm cruel do realtime)
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const sb = supabase as any;
-          const { data } = await sb
-            .from("chat_messages")
-            .select(`
-              id, channel_id, autor_id, conteudo, reply_to_id, attachment_urls, mentioned_user_ids, created_at, updated_at,
-              autor:profiles!autor_id(id, nome, avatar_url),
-              reply_to:chat_messages!reply_to_id(
-                id, conteudo,
-                autor:profiles!autor_id(nome)
-              )
-            `)
-            .eq("id", newMsg.id)
-            .maybeSingle();
+    async function start() {
+      // 1. Pega o JWT atual da sessão (vinda do cookie SSR) e injeta no realtime.
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token ?? null;
+      if (token) supabase.realtime.setAuth(token);
+      if (cancelled) return;
 
-          if (!data) return;
-          const enriched = {
-            ...data,
-            reply_to: data.reply_to
-              ? {
-                  id: data.reply_to.id,
-                  conteudo: data.reply_to.conteudo,
-                  autor_nome: data.reply_to.autor?.nome ?? null,
-                }
-              : null,
-          } as ChatMessage;
+      // 2. Subscribe no canal de postgres_changes.
+      const ch = supabase
+        .channel(`chat:${channelId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "chat_messages",
+            filter: `channel_id=eq.${channelId}`,
+          },
+          async (payload: RealtimePayload) => {
+            const newMsg = payload.new;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const sb = supabase as any;
+            const { data } = await sb
+              .from("chat_messages")
+              .select(`
+                id, channel_id, autor_id, conteudo, reply_to_id, attachment_urls, mentioned_user_ids, created_at, updated_at,
+                autor:profiles!autor_id(id, nome, avatar_url),
+                reply_to:chat_messages!reply_to_id(
+                  id, conteudo,
+                  autor:profiles!autor_id(nome)
+                )
+              `)
+              .eq("id", newMsg.id)
+              .maybeSingle();
 
-          setMessages((prev) => {
-            // Evita duplicar (caso a mensagem já tenha vindo por outro caminho)
-            if (prev.some((m) => m.id === enriched.id)) return prev;
-            // Toca o som só pra mensagem de outro usuário (não pra eco do próprio envio).
-            if (currentUserId && enriched.autor_id !== currentUserId) {
-              playNotificationSound();
-            }
-            return [...prev, enriched];
-          });
-        },
-      )
-      .subscribe();
+            if (!data) return;
+            const enriched = {
+              ...data,
+              reply_to: data.reply_to
+                ? {
+                    id: data.reply_to.id,
+                    conteudo: data.reply_to.conteudo,
+                    autor_nome: data.reply_to.autor?.nome ?? null,
+                  }
+                : null,
+            } as ChatMessage;
+
+            setMessages((prev) => {
+              if (prev.some((m) => m.id === enriched.id)) return prev;
+              if (currentUserId && enriched.autor_id !== currentUserId) {
+                playNotificationSound();
+              }
+              return [...prev, enriched];
+            });
+          },
+        )
+        .subscribe();
+
+      channelRef = ch;
+    }
+
+    void start();
+
+    // 3. Re-aplica o token quando ele renovar (sessão vence em ~1h por default).
+    const { data: authSub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.access_token) {
+        supabase.realtime.setAuth(session.access_token);
+      }
+    });
 
     return () => {
-      supabase.removeChannel(channel);
+      cancelled = true;
+      authSub.subscription.unsubscribe();
+      if (channelRef) supabase.removeChannel(channelRef);
     };
   }, [channelId, currentUserId]);
 
