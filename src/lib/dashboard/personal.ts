@@ -131,49 +131,37 @@ export async function _getProducaoNoPeriodoImpl(
   const supabase = createServiceRoleClient();
 
   if (kind === "artes") {
-    // Tarefas tipo arte/video passam pelo fluxo de aprovação e terminam em
-    // postada/aprovada (raramente concluida). Tipo geral termina em concluida.
-    // Filtramos todos os estados "entregues" e fazemos a soma em JS pra poder
-    // resolver a data certa por estado (completed_at p/ postada+concluida,
-    // aprovada_em p/ aprovada/em_aprovacao).
+    // "Artes entregues" = quantas vezes o designer mandou pra aprovação no
+    // período. A tabela task_revisoes registra um row tipo='envio' a cada
+    // submitForApprovalAction — esse é o stamp exato de "entreguei".
+    //
+    // Cada envio conta como `task.artes_entregues` (quando preenchido)
+    // ou 1 por padrão pra arte/video. Geral cai no caminho "tarefas".
+    //
+    // Reenvios após ajustes contam como entregas separadas (designer
+    // entregou de novo).
     interface Row {
-      tipo: string | null;
-      status: string;
-      artes_entregues: number | null;
-      completed_at: string | null;
-      aprovada_em: string | null;
+      criado_em: string;
+      task: { tipo: string | null; artes_entregues: number | null } | null;
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data } = await (supabase as any)
-      .from("tasks")
-      .select("tipo, status, artes_entregues, completed_at, aprovada_em")
-      .eq("atribuido_a", userId)
-      .in("status", ["concluida", "postada", "aprovada", "em_aprovacao"]);
+      .from("task_revisoes")
+      .select("criado_em, task:tasks!task_revisoes_task_id_fkey(tipo, artes_entregues)")
+      .eq("autor_id", userId)
+      .eq("tipo", "envio")
+      .gte("criado_em", fromIso)
+      .lt("criado_em", toIso);
     const rows = (data ?? []) as Row[];
 
     let total = 0;
     for (const r of rows) {
-      // Data efetiva da entrega por estado:
-      // - postada/concluida: completed_at é o stamp final
-      // - aprovada: aprovada_em (quando o aprovador aprovou)
-      // - em_aprovacao: aprovada_em ainda não existe; cai no fallback abaixo
-      let deliveredAt: string | null = null;
-      if (r.status === "postada" || r.status === "concluida") {
-        deliveredAt = r.completed_at;
-      } else if (r.status === "aprovada") {
-        deliveredAt = r.aprovada_em ?? r.completed_at;
-      } else if (r.status === "em_aprovacao") {
-        // Sem timestamp explícito de "entregue"; ignora por enquanto
-        // (designer ainda vai ver depois que aprovador aprovar/postar).
-        continue;
-      }
-      if (!deliveredAt || deliveredAt < fromIso || deliveredAt >= toIso) continue;
-
-      // Tipo arte/video conta como pelo menos 1 (cada task é uma entrega);
-      // tipo geral só conta o que o designer informou explicitamente.
-      const isArtType = r.tipo === "arte" || r.tipo === "video";
-      const value = isArtType ? (r.artes_entregues ?? 1) : (r.artes_entregues ?? 0);
-      total += value;
+      const tipo = r.task?.tipo ?? null;
+      const artes = r.task?.artes_entregues;
+      // Só conta se a task é tipo arte/video — fluxo de aprovação faz sentido
+      // pra esses dois tipos. Tasks geral não chegam aqui (não geram envio).
+      if (tipo !== "arte" && tipo !== "video") continue;
+      total += artes ?? 1;
     }
     return total;
   }
@@ -204,7 +192,8 @@ export async function getProducaoNoPeriodo(
       };
       return _getProducaoNoPeriodoImpl(uid, from, to, k);
     },
-    ["dashboard-personal-producao"],
+    // v2: nova lógica de contagem via task_revisoes (envio) pra "artes".
+    ["dashboard-personal-producao-v2"],
     { revalidate: 60, tags: ["dashboard", "tasks"] },
   );
   return cached(JSON.stringify({ uid: userId, from: fromIso, to: toIso, k: kind }));
