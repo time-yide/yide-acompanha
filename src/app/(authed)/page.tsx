@@ -1,5 +1,6 @@
 import { requireAuth } from "@/lib/auth/session";
 import { DashboardSocioAdm } from "@/components/dashboard/DashboardSocioAdm";
+import { DashboardAdm } from "@/components/dashboard/DashboardAdm";
 import { DashboardCoord } from "@/components/dashboard/DashboardCoord";
 import { DashboardAssessor } from "@/components/dashboard/DashboardAssessor";
 import { DashboardComercial } from "@/components/dashboard/DashboardComercial";
@@ -26,8 +27,11 @@ function parsePeriodo(raw: string | undefined): Periodo {
 }
 
 function renderDashboardForRole(target: TargetUser, periodo: Periodo) {
-  if (target.role === "socio" || target.role === "adm") {
+  if (target.role === "socio") {
     return <DashboardSocioAdm nome={target.nome} />;
+  }
+  if (target.role === "adm") {
+    return <DashboardAdm nome={target.nome} />;
   }
   if (target.role === "coordenador") {
     return <DashboardCoord userId={target.id} nome={target.nome} />;
