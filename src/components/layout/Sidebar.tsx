@@ -8,6 +8,7 @@ import type { Role } from "@/lib/auth/permissions";
 
 export interface SidebarBadges {
   recados?: number;
+  escritorio?: number;
 }
 
 export function Sidebar({ role, nome, badges }: { role: Role; nome: string; badges?: SidebarBadges }) {
