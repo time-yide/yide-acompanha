@@ -67,7 +67,8 @@ export function LeadCard({ lead, currentUserId, currentUserRole }: Props) {
           <Wallet className="h-3.5 w-3.5 flex-shrink-0 text-emerald-600 dark:text-emerald-400" />
           <span>R$ {Number(lead.valor_proposto).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês</span>
         </div>
-        {lead.stage === "prospeccao" && lead.data_prospeccao_agendada && (
+        {(lead.stage === "leads_ativos" || lead.stage === "reuniao_comercial") &&
+          lead.data_prospeccao_agendada && (
           <div className="flex items-center gap-1.5">
             <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
             <span>Reunião: {formatBR(lead.data_prospeccao_agendada)}</span>

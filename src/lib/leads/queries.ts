@@ -37,7 +37,12 @@ export async function listLeadsByStage(): Promise<Record<Stage, LeadRow[]>> {
   if (error) throw error;
 
   const groups: Record<Stage, LeadRow[]> = {
-    prospeccao: [], comercial: [], contrato: [], marco_zero: [], ativo: [],
+    leads_potencial: [],
+    leads_ativos: [],
+    reuniao_comercial: [],
+    contrato: [],
+    marco_zero: [],
+    ativo: [],
   };
 
   type JoinedRow = typeof data extends (infer U)[] | null ? U : never;
@@ -47,14 +52,24 @@ export async function listLeadsByStage(): Promise<Record<Stage, LeadRow[]>> {
     assessor?: { nome: string } | null;
   };
   for (const r of (data ?? []) as WithJoins[]) {
-    const row: LeadRow = {
+    // Cast: types do Supabase ainda não conhecem os novos valores do enum lead_stage.
+    const row = {
       ...r,
       valor_proposto: Number(r.valor_proposto),
       comercial_nome: r.comercial?.nome ?? null,
       coord_nome: r.coord?.nome ?? null,
       assessor_nome: r.assessor?.nome ?? null,
-    };
-    groups[r.stage as Stage].push(row);
+    } as unknown as LeadRow;
+    const stage = r.stage as Stage;
+    // Defensivo: leads com valores legados (prospeccao/comercial) caem em
+    // leads_ativos/reuniao_comercial caso a migration ainda não tenha rodado.
+    if (groups[stage]) {
+      groups[stage].push(row);
+    } else if (r.stage === "prospeccao") {
+      groups.leads_ativos.push(row);
+    } else if (r.stage === "comercial") {
+      groups.reuniao_comercial.push(row);
+    }
   }
 
   return groups;

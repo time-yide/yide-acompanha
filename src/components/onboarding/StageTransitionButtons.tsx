@@ -7,14 +7,22 @@ import { Button } from "@/components/ui/button";
 import { ChevronRight, ChevronLeft, X, Trash2 } from "lucide-react";
 import type { Stage } from "@/lib/leads/schema";
 
-const STAGE_ORDER: Stage[] = ["prospeccao", "comercial", "contrato", "marco_zero", "ativo"];
+const STAGE_ORDER: Stage[] = [
+  "leads_potencial",
+  "leads_ativos",
+  "reuniao_comercial",
+  "contrato",
+  "marco_zero",
+  "ativo",
+];
 
 const STAGE_LABEL: Record<Stage, string> = {
-  prospeccao: "Prospecção",
-  comercial: "Reunião Comercial",
+  leads_potencial: "Leads em potencial",
+  leads_ativos: "Leads ativos",
+  reuniao_comercial: "Reunião comercial",
   contrato: "Contrato",
-  marco_zero: "Marco Zero",
-  ativo: "Cliente ativo",
+  marco_zero: "Marco zero",
+  ativo: "Ativação do lead",
 };
 
 interface Props {

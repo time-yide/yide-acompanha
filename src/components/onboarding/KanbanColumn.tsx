@@ -7,16 +7,18 @@ import type { Stage } from "@/lib/leads/schema";
 import { cn } from "@/lib/utils";
 
 const STAGE_LABEL: Record<Stage, string> = {
-  prospeccao: "Prospecção",
-  comercial: "Reunião Comercial",
+  leads_potencial: "Leads em potencial",
+  leads_ativos: "Leads ativos",
+  reuniao_comercial: "Reunião comercial",
   contrato: "Contrato",
-  marco_zero: "Marco Zero",
-  ativo: "Cliente ativo",
+  marco_zero: "Marco zero",
+  ativo: "Ativação do lead",
 };
 
 const STAGE_DESC: Record<Stage, string> = {
-  prospeccao: "Reunião agendada",
-  comercial: "Em negociação",
+  leads_potencial: "Lista a contatar",
+  leads_ativos: "Em prospecção ativa",
+  reuniao_comercial: "Reunião agendada/realizada",
   contrato: "Emitir contrato",
   marco_zero: "Coord conduz reunião",
   ativo: "Entrou na carteira",
@@ -62,7 +64,7 @@ export function KanbanColumn({ stage, leads, onDropLead, currentUserId, currentU
       onDragLeave={onDragLeave}
       onDrop={onDrop}
       className={cn(
-        "flex w-[280px] flex-shrink-0 flex-col rounded-xl border bg-muted/20 transition-colors",
+        "flex w-[260px] flex-shrink-0 flex-col rounded-xl border bg-muted/20 transition-colors",
         isOver && "border-primary bg-primary/5 ring-2 ring-primary/30",
       )}
     >
