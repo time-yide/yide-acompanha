@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth/session";
 import { listLeadsByStage } from "@/lib/leads/queries";
 import { KanbanBoard } from "@/components/onboarding/KanbanBoard";
@@ -6,8 +7,12 @@ import { OnboardingRealtimeWatcher } from "@/components/onboarding/OnboardingRea
 import { buttonVariants } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 
+// LGPD: só roles que precisam operar com dados de prospect têm acesso.
+const ROLES_PERMITIDOS = ["adm", "socio", "comercial", "assessor", "coordenador", "audiovisual_chefe"];
+
 export default async function OnboardingPage() {
   const user = await requireAuth();
+  if (!ROLES_PERMITIDOS.includes(user.role)) redirect("/");
   const groups = await listLeadsByStage();
 
   const total =

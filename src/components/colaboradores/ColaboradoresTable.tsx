@@ -26,7 +26,7 @@ const roleLabels: Record<string, string> = {
   videomaker: "Videomaker",
   designer: "Designer",
   editor: "Editor",
-  audiovisual_chefe: "Audiovisual Chefe",
+  audiovisual_chefe: "Coordenador audiovisual",
 };
 
 const PRODUCERS = new Set(["videomaker", "designer", "editor"]);

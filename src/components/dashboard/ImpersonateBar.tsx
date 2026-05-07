@@ -23,7 +23,7 @@ const ROLE_LABEL: Record<string, string> = {
   videomaker: "Videomaker",
   designer: "Designer",
   editor: "Editor",
-  audiovisual_chefe: "Audiovisual Chefe",
+  audiovisual_chefe: "Coordenador audiovisual",
 };
 
 export function ImpersonateBar({ colaboradores, currentTargetId, isImpersonating }: Props) {

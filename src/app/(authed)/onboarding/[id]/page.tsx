@@ -1,7 +1,10 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { requireAuth } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+
+// LGPD: detalhe do lead expõe telefone/email/valor — restringe a quem opera.
+const ROLES_PERMITIDOS = ["adm", "socio", "comercial", "assessor", "coordenador", "audiovisual_chefe"];
 import { getLeadById, listLeadHistory, listLeadAttempts } from "@/lib/leads/queries";
 import { updateLeadAction } from "@/lib/leads/actions";
 import { LeadForm } from "@/components/onboarding/LeadForm";
@@ -28,6 +31,7 @@ const STAGE_LABEL: Record<string, string> = {
 export default async function LeadDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await requireAuth();
+  if (!ROLES_PERMITIDOS.includes(user.role)) redirect("/");
 
   let lead;
   try { lead = await getLeadById(id); } catch { notFound(); }

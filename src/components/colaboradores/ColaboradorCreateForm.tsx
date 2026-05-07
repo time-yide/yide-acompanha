@@ -64,7 +64,7 @@ export function ColaboradorCreateForm({ canSetCommission }: { canSetCommission: 
                 <SelectItem value="comercial">Comercial</SelectItem>
                 <SelectItem value="coordenador">Coordenador</SelectItem>
                 <SelectItem value="assessor">Assessor</SelectItem>
-                <SelectItem value="audiovisual_chefe">Audiovisual Chefe</SelectItem>
+                <SelectItem value="audiovisual_chefe">Coordenador audiovisual</SelectItem>
                 <SelectItem value="videomaker">Videomaker</SelectItem>
                 <SelectItem value="designer">Designer</SelectItem>
                 <SelectItem value="editor">Editor</SelectItem>

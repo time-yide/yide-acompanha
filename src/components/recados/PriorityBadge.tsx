@@ -7,7 +7,7 @@ const ROLE_LABEL: Record<string, string> = {
   coordenador: "Coordenador",
   assessor: "Assessor",
   comercial: "Comercial",
-  audiovisual_chefe: "Chefe Audiovisual",
+  audiovisual_chefe: "Coordenador audiovisual",
   videomaker: "Videomaker",
   designer: "Designer",
   editor: "Editor",

@@ -20,7 +20,7 @@ const ROLE_LABEL: Record<string, string> = {
   designer: "Designer",
   videomaker: "Videomaker",
   editor: "Editor",
-  audiovisual_chefe: "Chefe Audiovisual",
+  audiovisual_chefe: "Coordenador audiovisual",
 };
 
 export function PayrollPaymentsTable({ rows, mesReferencia }: Props) {
