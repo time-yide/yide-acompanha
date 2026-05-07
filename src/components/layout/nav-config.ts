@@ -27,7 +27,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: "/escritorio", icon: MessagesSquare, label: "Escritório Virtual", roles: ["adm", "socio", "coordenador", "assessor", "designer", "videomaker", "editor", "audiovisual_chefe"], badgeKey: "escritorio" },
   { href: "/painel", icon: ClipboardList, label: "Painel mensal", roles: ["adm", "socio", "coordenador", "assessor", "designer", "videomaker", "editor", "audiovisual_chefe"], badgeKey: null },
   { href: "/comissoes", icon: DollarSign, label: "Comissões", roles: "all", badgeKey: null },
-  { href: "/financeiro", icon: TrendingUp, label: "Financeiro", roles: ["socio"], badgeKey: null },
+  { href: "/financeiro", icon: TrendingUp, label: "Financeiro", roles: ["socio", "adm"], badgeKey: null },
   { href: "/satisfacao", icon: Smile, label: "Satisfação", roles: "all", badgeKey: null },
   { href: "/calendario", icon: Calendar, label: "Calendário Interno", roles: "all", badgeKey: null },
   { href: "/colaboradores", icon: UserCog, label: "Colaboradores", roles: "all", badgeKey: null },
