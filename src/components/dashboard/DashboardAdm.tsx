@@ -36,7 +36,10 @@ export async function DashboardAdm({ nome }: Props) {
     listLeadsByStage(),
     getEmAcompanhamentoCount(),
     getRankingSatisfacao(),
-    getProximosEventos(30, 8),
+    // ADM só vê eventos administrativos: agencia (reuniões internas),
+    // onboarding (reuniões comerciais que ela acompanha) e aniversarios.
+    // Gravações de videomaker e eventos de assessor/coord ficam de fora.
+    getProximosEventos(30, 8, { subCalendars: ["agencia", "onboarding", "aniversarios"] }),
     listClientPaymentsForMonth(mes),
     listPayrollForMonth(mes),
   ]);

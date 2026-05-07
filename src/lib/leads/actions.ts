@@ -202,6 +202,7 @@ export async function moveStageAction(formData: FormData) {
   const inlineDuracao = fd(formData, "duracao_meses");
   const inlineServico = fd(formData, "servico_proposto");
   const inlineDataReuniao = fd(formData, "data_prospeccao_agendada");
+  const inlineDataMarcoZero = fd(formData, "data_reuniao_marco_zero");
 
   const supabase = await createClient();
   const { data: leadInitial } = await supabase.from("leads").select("*").eq("id", parsed.data.id).single();
@@ -226,6 +227,7 @@ export async function moveStageAction(formData: FormData) {
   }
   if (inlineServico !== undefined) inlineUpdate.servico_proposto = inlineServico || null;
   if (inlineDataReuniao !== undefined) inlineUpdate.data_prospeccao_agendada = inlineDataReuniao || null;
+  if (inlineDataMarcoZero !== undefined) inlineUpdate.data_reuniao_marco_zero = inlineDataMarcoZero || null;
 
   if (Object.keys(inlineUpdate).length > 0) {
     const { error: inlineErr } = await supabase
