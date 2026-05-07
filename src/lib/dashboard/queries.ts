@@ -55,18 +55,58 @@ export async function _getKpisImpl(filter?: ClientFilter): Promise<KpiData> {
     .toISOString()
     .slice(0, 10);
 
+  const prevMonthRef = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1))
+    .toISOString()
+    .slice(0, 7);
+
   // Não filtra por status='ativo' no SQL — precisamos dos churnados pra contar
   // o churn do mês e o delta vs mês anterior. Onboarding é excluído porque
   // ainda não entrou no ciclo de vida da carteira.
-  let clientsQuery = supabase
-    .from("clients")
-    .select("id, valor_mensal, data_entrada, data_churn, status, tipo_relacao, assessor_id, coordenador_id")
-    .is("deleted_at", null)
-    .neq("status", "em_onboarding");
-  clientsQuery = buildClientFilterQuery(clientsQuery, filter);
-
-  const { data: clientsData } = await clientsQuery;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const [{ data: clientsData }, { data: ajustesAtuais }, { data: ajustesAnteriores }] = await Promise.all([
+    buildClientFilterQuery(
+      supabase
+        .from("clients")
+        .select("id, valor_mensal, data_entrada, data_churn, status, tipo_relacao, assessor_id, coordenador_id")
+        .is("deleted_at", null)
+        .neq("status", "em_onboarding"),
+      filter,
+    ),
+    sb
+      .from("client_monthly_adjustments")
+      .select("client_id, tipo, valor_desconto")
+      .eq("mes_referencia", monthRef),
+    sb
+      .from("client_monthly_adjustments")
+      .select("client_id, tipo, valor_desconto")
+      .eq("mes_referencia", prevMonthRef),
+  ]);
   const allClients = (clientsData ?? []) as ClientRow[];
+
+  const ajusteAtualByClient = new Map(
+    ((ajustesAtuais ?? []) as Array<{ client_id: string; tipo: string; valor_desconto: number | null }>).map(
+      (a) => [a.client_id, a],
+    ),
+  );
+  const ajusteAnteriorByClient = new Map(
+    ((ajustesAnteriores ?? []) as Array<{ client_id: string; tipo: string; valor_desconto: number | null }>).map(
+      (a) => [a.client_id, a],
+    ),
+  );
+
+  const valorEfetivo = (
+    c: ClientRow,
+    ajusteMap: Map<string, { tipo: string; valor_desconto: number | null }>,
+  ): number => {
+    if (c.tipo_relacao && c.tipo_relacao !== "comum") return 0;
+    const a = ajusteMap.get(c.id);
+    const valor = Number(c.valor_mensal);
+    if (!a) return valor;
+    if (a.tipo === "gratuidade_total") return 0;
+    if (a.tipo === "desconto_parcial") return Math.max(0, valor - Number(a.valor_desconto ?? 0));
+    return valor;
+  };
 
   const ativosHoje = allClients.filter((c) => isActiveOn(c, todayIso));
   const ativosFimMesAnterior = allClients.filter((c) => isActiveOn(c, prevMonthLastDay));
@@ -75,8 +115,12 @@ export async function _getKpisImpl(filter?: ClientFilter): Promise<KpiData> {
   const ativosHojeComum = ativosHoje.filter((c) => !c.tipo_relacao || c.tipo_relacao === "comum");
   const ativosFimMesAnteriorComum = ativosFimMesAnterior.filter((c) => !c.tipo_relacao || c.tipo_relacao === "comum");
 
-  const carteiraAtivaValor = ativosHojeComum.reduce((acc, c) => acc + Number(c.valor_mensal), 0);
-  const carteiraMesAnteriorValor = ativosFimMesAnteriorComum.reduce((acc, c) => acc + Number(c.valor_mensal), 0);
+  // Carteira ativa = soma dos valores EFETIVOS (considera bônus/desconto do mês).
+  const carteiraAtivaValor = ativosHojeComum.reduce((acc, c) => acc + valorEfetivo(c, ajusteAtualByClient), 0);
+  const carteiraMesAnteriorValor = ativosFimMesAnteriorComum.reduce(
+    (acc, c) => acc + valorEfetivo(c, ajusteAnteriorByClient),
+    0,
+  );
 
   const churnsDoMes = allClients.filter((c) => isInMonth(c.data_churn, monthRef));
   // valorChurnado: apenas comum
@@ -122,7 +166,8 @@ export async function getKpis(filter?: ClientFilter): Promise<KpiData> {
       const f = filterJson !== "null" ? (JSON.parse(filterJson) as ClientFilter) : undefined;
       return _getKpisImpl(f);
     },
-    ["dashboard-kpis"],
+    // v2: carteira ativa agora considera ajustes mensais (bônus/desconto)
+    ["dashboard-kpis-v2"],
     { revalidate: 300, tags: ["dashboard"] },
   );
   return cached(JSON.stringify(filter ?? null));
@@ -249,6 +294,8 @@ export interface AssessorCarteira {
 
 export async function _getCarteiraPorAssessorImpl(filter?: ClientFilter): Promise<AssessorCarteira[]> {
   const supabase = createServiceRoleClient();
+  const now = new Date();
+  const monthRef = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
 
   let clientsQuery = supabase
     .from("clients")
@@ -258,7 +305,15 @@ export async function _getCarteiraPorAssessorImpl(filter?: ClientFilter): Promis
     .eq("tipo_relacao", "comum");
   clientsQuery = buildClientFilterQuery(clientsQuery as never, filter) as never;
 
-  const { data: clientsData } = await clientsQuery;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const [{ data: clientsData }, { data: ajustesData }] = await Promise.all([
+    clientsQuery,
+    sb
+      .from("client_monthly_adjustments")
+      .select("client_id, tipo, valor_desconto")
+      .eq("mes_referencia", monthRef),
+  ]);
 
   const clients = (clientsData ?? []) as unknown as Array<{
     id: string;
@@ -267,13 +322,26 @@ export async function _getCarteiraPorAssessorImpl(filter?: ClientFilter): Promis
     coordenador_id: string | null;
     assessor: { nome: string } | null;
   }>;
+  const ajusteByClient = new Map(
+    ((ajustesData ?? []) as Array<{ client_id: string; tipo: string; valor_desconto: number | null }>).map(
+      (a) => [a.client_id, a],
+    ),
+  );
 
   const groups = new Map<string, { nome: string; qtd: number; valor: number }>();
   for (const c of clients) {
     if (!c.assessor_id || !c.assessor) continue;
     const cur = groups.get(c.assessor_id) ?? { nome: c.assessor.nome, qtd: 0, valor: 0 };
     cur.qtd += 1;
-    cur.valor += Number(c.valor_mensal);
+    // Valor efetivo do mês: considera bônus/desconto.
+    const a = ajusteByClient.get(c.id);
+    const valorBase = Number(c.valor_mensal);
+    const valorEfetivo =
+      !a ? valorBase :
+      a.tipo === "gratuidade_total" ? 0 :
+      a.tipo === "desconto_parcial" ? Math.max(0, valorBase - Number(a.valor_desconto ?? 0)) :
+      valorBase;
+    cur.valor += valorEfetivo;
     groups.set(c.assessor_id, cur);
   }
 
@@ -297,7 +365,8 @@ export async function getCarteiraPorAssessor(filter?: ClientFilter): Promise<Ass
       const f = filterJson !== "null" ? (JSON.parse(filterJson) as ClientFilter) : undefined;
       return _getCarteiraPorAssessorImpl(f);
     },
-    ["dashboard-carteira-por-assessor"],
+    // v2: valor por assessor agora considera ajustes mensais
+    ["dashboard-carteira-por-assessor-v2"],
     { revalidate: 300, tags: ["dashboard"] },
   );
   return cached(JSON.stringify(filter ?? null));
