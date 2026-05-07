@@ -131,24 +131,61 @@ export async function _getProducaoNoPeriodoImpl(
   const supabase = createServiceRoleClient();
 
   if (kind === "artes") {
+    // Tarefas tipo arte/video passam pelo fluxo de aprovação e terminam em
+    // postada/aprovada (raramente concluida). Tipo geral termina em concluida.
+    // Filtramos todos os estados "entregues" e fazemos a soma em JS pra poder
+    // resolver a data certa por estado (completed_at p/ postada+concluida,
+    // aprovada_em p/ aprovada/em_aprovacao).
+    interface Row {
+      tipo: string | null;
+      status: string;
+      artes_entregues: number | null;
+      completed_at: string | null;
+      aprovada_em: string | null;
+    }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data } = await (supabase as any)
       .from("tasks")
-      .select("artes_entregues")
+      .select("tipo, status, artes_entregues, completed_at, aprovada_em")
       .eq("atribuido_a", userId)
-      .eq("status", "concluida")
-      .gte("completed_at", fromIso)
-      .lt("completed_at", toIso);
-    return ((data ?? []) as Array<{ artes_entregues: number | null }>)
-      .reduce((acc, r) => acc + (r.artes_entregues ?? 0), 0);
+      .in("status", ["concluida", "postada", "aprovada", "em_aprovacao"]);
+    const rows = (data ?? []) as Row[];
+
+    let total = 0;
+    for (const r of rows) {
+      // Data efetiva da entrega por estado:
+      // - postada/concluida: completed_at é o stamp final
+      // - aprovada: aprovada_em (quando o aprovador aprovou)
+      // - em_aprovacao: aprovada_em ainda não existe; cai no fallback abaixo
+      let deliveredAt: string | null = null;
+      if (r.status === "postada" || r.status === "concluida") {
+        deliveredAt = r.completed_at;
+      } else if (r.status === "aprovada") {
+        deliveredAt = r.aprovada_em ?? r.completed_at;
+      } else if (r.status === "em_aprovacao") {
+        // Sem timestamp explícito de "entregue"; ignora por enquanto
+        // (designer ainda vai ver depois que aprovador aprovar/postar).
+        continue;
+      }
+      if (!deliveredAt || deliveredAt < fromIso || deliveredAt >= toIso) continue;
+
+      // Tipo arte/video conta como pelo menos 1 (cada task é uma entrega);
+      // tipo geral só conta o que o designer informou explicitamente.
+      const isArtType = r.tipo === "arte" || r.tipo === "video";
+      const value = isArtType ? (r.artes_entregues ?? 1) : (r.artes_entregues ?? 0);
+      total += value;
+    }
+    return total;
   }
 
-  // kind === "tarefas"
-  const { count } = await supabase
+  // kind === "tarefas" — conta por completed_at (stamp em concluida e postada).
+  // Cast porque os types do Supabase ainda não conhecem o status "postada".
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { count } = await (supabase as any)
     .from("tasks")
     .select("id", { count: "exact", head: true })
     .eq("atribuido_a", userId)
-    .eq("status", "concluida")
+    .in("status", ["concluida", "postada"])
     .gte("completed_at", fromIso)
     .lt("completed_at", toIso);
   return count ?? 0;
