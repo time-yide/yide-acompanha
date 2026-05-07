@@ -20,6 +20,10 @@ interface PendenteOption { event_id: string; titulo: string; inicio: string; cli
 interface Props {
   clientes: ClienteOption[];
   pendentes: PendenteOption[];
+  /** Quando true, oculta o select de pendentes e pré-seleciona o único da lista
+   * (ou nenhum se vazia). Usado em contextos onde o pendente já foi escolhido
+   * (ex.: gate de captação atrasada). */
+  hidePendenteSelect?: boolean;
 }
 
 function StarPicker({ name, value, onChange, disabled }: {
@@ -54,12 +58,17 @@ function todayBR(): string {
   return d.toISOString().slice(0, 10);
 }
 
-export function CapturaForm({ clientes, pendentes }: Props) {
+export function CapturaForm({ clientes, pendentes, hidePendenteSelect = false }: Props) {
   const [state, formAction, pending] = useActionState<ActionResult, FormData>(createCapturaAction, undefined);
 
-  const [eventId, setEventId] = useState<string>("");
-  const [clientId, setClientId] = useState<string>("");
-  const [dataCaptacao, setDataCaptacao] = useState<string>(todayBR());
+  // Pré-seleciona quando o caller já escolheu o pendente (uso no gate de
+  // captação atrasada, que abre dialog por evento específico).
+  const initial = hidePendenteSelect && pendentes.length === 1 ? pendentes[0] : null;
+  const [eventId, setEventId] = useState<string>(initial?.event_id ?? "");
+  const [clientId, setClientId] = useState<string>(initial?.client_id ?? "");
+  const [dataCaptacao, setDataCaptacao] = useState<string>(
+    initial?.inicio ? initial.inicio.slice(0, 10) : todayBR(),
+  );
   const [ratings, setRatings] = useState<Record<string, number>>({});
 
   function handlePendente(e: React.ChangeEvent<HTMLSelectElement>) {
@@ -86,7 +95,7 @@ export function CapturaForm({ clientes, pendentes }: Props) {
       <form action={formAction} className="space-y-5">
         <input type="hidden" name="event_id" value={eventId} />
 
-        {pendentes.length > 0 && (
+        {pendentes.length > 0 && !hidePendenteSelect && (
           <div className="space-y-2">
             <Label htmlFor="pendente-select">Vincular a uma gravação pendente (opcional)</Label>
             <select
