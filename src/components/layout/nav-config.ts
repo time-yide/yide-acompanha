@@ -1,12 +1,12 @@
 import {
   LayoutGrid, Users, Briefcase, KanbanSquare, ListChecks,
   DollarSign, Smile, Calendar, UserCog, ClipboardList, MessageSquare,
-  TrendingUp, Video, Trash2,
+  TrendingUp, Video, Trash2, MessagesSquare,
   type LucideIcon,
 } from "lucide-react";
 import type { Role } from "@/lib/auth/permissions";
 
-export type NavBadgeKey = "recados";
+export type NavBadgeKey = "recados" | "escritorio";
 
 export interface NavItem {
   href: string;
@@ -24,6 +24,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: "/tarefas", icon: ListChecks, label: "Tarefas", roles: "all", badgeKey: null },
   { href: "/audiovisual", icon: Video, label: "Audiovisual", roles: ["adm", "socio", "coordenador", "assessor", "videomaker", "audiovisual_chefe"], badgeKey: null },
   { href: "/recados", icon: MessageSquare, label: "Recados", roles: "all", badgeKey: "recados" },
+  { href: "/escritorio", icon: MessagesSquare, label: "Escritório Virtual", roles: ["adm", "socio", "coordenador", "assessor", "designer", "videomaker", "editor", "audiovisual_chefe"], badgeKey: "escritorio" },
   { href: "/painel", icon: ClipboardList, label: "Painel mensal", roles: ["adm", "socio", "coordenador", "assessor", "designer", "videomaker", "editor", "audiovisual_chefe"], badgeKey: null },
   { href: "/comissoes", icon: DollarSign, label: "Comissões", roles: "all", badgeKey: null },
   { href: "/financeiro", icon: TrendingUp, label: "Financeiro", roles: ["socio"], badgeKey: null },
