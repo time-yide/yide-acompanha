@@ -299,7 +299,11 @@ export async function moveStageAction(formData: FormData) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updatePayload: any = { stage: toStage };
 
-  if (toStage === "ativo") {
+  // Cria o cliente assim que entra em marco_zero (mesmo sem coord/assessor
+  // alocados ainda — esses ficam null e serão preenchidos antes da ativação).
+  // Cliente nasce com status='em_onboarding' — entra na lista de /clientes,
+  // mas NÃO conta na carteira ativa nem em comissão até virar status=ativo.
+  if (toStage === "marco_zero" && !lead.client_id) {
     const { data: org } = await supabase.from("organizations").select("id").limit(1).single();
     if (!org) return { error: "Organização não encontrada" };
 
@@ -314,10 +318,10 @@ export async function moveStageAction(formData: FormData) {
         telefone: lead.telefone,
         valor_mensal: lead.valor_proposto,
         servico_contratado: lead.servico_proposto,
-        status: "ativo",
+        status: "em_onboarding",
         data_entrada: today,
-        assessor_id: lead.assessor_alocado_id,
-        coordenador_id: lead.coord_alocado_id,
+        assessor_id: lead.assessor_alocado_id ?? null,
+        coordenador_id: lead.coord_alocado_id ?? null,
         tipo_pacote: inferTipoPacote(lead.servico_proposto),
       })
       .select("id")
@@ -326,6 +330,55 @@ export async function moveStageAction(formData: FormData) {
     if (clientErr || !newClient) return { error: clientErr?.message ?? "Falha ao criar cliente" };
 
     updatePayload.client_id = newClient.id;
+  }
+
+  if (toStage === "ativo") {
+    const today = new Date().toISOString().slice(0, 10);
+
+    if (lead.client_id) {
+      // Cliente já foi criado em marco_zero. Apenas promove pra status='ativo'
+      // e sincroniza coord/assessor (se mudaram entre marco_zero e ativo).
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sbAny = supabase as any;
+      const { error: clientUpdErr } = await sbAny
+        .from("clients")
+        .update({
+          status: "ativo",
+          assessor_id: lead.assessor_alocado_id,
+          coordenador_id: lead.coord_alocado_id,
+        })
+        .eq("id", lead.client_id);
+      if (clientUpdErr) return { error: clientUpdErr.message };
+    } else {
+      // Fallback pra leads legados que pularam direto pra ativo sem passar
+      // por marco_zero (não deveria acontecer no fluxo novo, mas garante
+      // compat com cards antigos).
+      const { data: org } = await supabase.from("organizations").select("id").limit(1).single();
+      if (!org) return { error: "Organização não encontrada" };
+
+      const { data: newClient, error: clientErr } = await supabase
+        .from("clients")
+        .insert({
+          organization_id: org.id,
+          nome: lead.nome_prospect,
+          contato_principal: lead.contato_principal,
+          email: lead.email,
+          telefone: lead.telefone,
+          valor_mensal: lead.valor_proposto,
+          servico_contratado: lead.servico_proposto,
+          status: "ativo",
+          data_entrada: today,
+          assessor_id: lead.assessor_alocado_id,
+          coordenador_id: lead.coord_alocado_id,
+          tipo_pacote: inferTipoPacote(lead.servico_proposto),
+        })
+        .select("id")
+        .single();
+
+      if (clientErr || !newClient) return { error: clientErr?.message ?? "Falha ao criar cliente" };
+      updatePayload.client_id = newClient.id;
+    }
+
     updatePayload.data_fechamento = today;
   }
 
@@ -387,9 +440,12 @@ export async function moveStageAction(formData: FormData) {
   revalidatePath("/onboarding");
   revalidateTag(PROSPECTS_CACHE_TAG, "default");
   revalidatePath(`/onboarding/${parsed.data.id}`);
-  if (toStage === "ativo") {
+  // Cliente é criado em marco_zero (status=em_onboarding) e promovido em
+  // ativo. Em ambos casos, /clientes muda e o dashboard precisa refletir.
+  if (toStage === "marco_zero" || toStage === "ativo") {
     revalidatePath("/clientes");
     revalidateTag("dashboard", "default");
+    revalidateTag("clients", "default");
   }
 
   // kanban_moved (sempre)
