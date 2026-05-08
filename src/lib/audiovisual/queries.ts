@@ -29,6 +29,7 @@ export interface CapturaRow {
   sugestoes: string | null;
   created_at: string;
   task_id: string | null;
+  concluida_em: string | null;
   cliente?: { id: string; nome: string } | null;
   videomaker?: { id: string; nome: string } | null;
   /** Quando task_id existe, embarca dados básicos da tarefa pra UI mostrar
@@ -146,7 +147,7 @@ export async function listCapturas(filters: {
       qtd_videos, qtd_fotos, observacoes,
       rating_organizacao, rating_facilidade, rating_execucao_roteiro,
       rating_atrasos, rating_comunicacao, rating_retrabalho, rating_colaboracao,
-      pontos_positivos, pontos_dificuldade, sugestoes, created_at, task_id,
+      pontos_positivos, pontos_dificuldade, sugestoes, created_at, task_id, concluida_em,
       cliente:clients(id, nome),
       videomaker:profiles!audiovisual_capturas_videomaker_id_fkey(id, nome),
       task:tasks!task_id(id, titulo, status, atribuido_a, editor:profiles!atribuido_a(nome))

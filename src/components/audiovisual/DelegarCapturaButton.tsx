@@ -3,13 +3,13 @@
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Clock, UserPlus } from "lucide-react";
+import { Check, CheckCircle2, Clock, RotateCcw, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { delegateCapturaAction } from "@/lib/audiovisual/actions";
+import { delegateCapturaAction, markCapturaConcluidaAction, unmarkCapturaConcluidaAction } from "@/lib/audiovisual/actions";
 
 interface Editor {
   id: string;
@@ -20,13 +20,15 @@ interface Props {
   capturaId: string;
   /** Se já delegada, dados básicos pra mostrar status. Se null, mostra botão "Delegar". */
   delegated: { taskId: string; editorNome: string | null } | null;
+  /** Se está marcada como concluída (timestamp). NULL se ainda em fluxo. */
+  concluidaEm: string | null;
   /** Lista de editores ativos (passada do server). Vazia = botão fica desabled. */
   editores: Editor[];
   /** Se o user logado pode delegar (role check feito no server). */
   canDelegate: boolean;
 }
 
-export function DelegarCapturaButton({ capturaId, delegated, editores, canDelegate }: Props) {
+export function DelegarCapturaButton({ capturaId, delegated, concluidaEm, editores, canDelegate }: Props) {
   const [open, setOpen] = useState(false);
   const [editorId, setEditorId] = useState<string>("");
   const [dueDate, setDueDate] = useState<string>("");
@@ -38,12 +40,66 @@ export function DelegarCapturaButton({ capturaId, delegated, editores, canDelega
     [editores],
   );
 
-  // Se já delegada, mostra status + link pra task
-  if (delegated) {
+  function handleConcluir() {
+    startTransition(async () => {
+      const r = await markCapturaConcluidaAction(capturaId);
+      if (r.error) {
+        toast.error(r.error);
+        return;
+      }
+      toast.success("Captação marcada como concluída");
+      router.refresh();
+    });
+  }
+
+  function handleDesmarcar() {
+    startTransition(async () => {
+      const r = await unmarkCapturaConcluidaAction(capturaId);
+      if (r.error) {
+        toast.error(r.error);
+        return;
+      }
+      toast.success("Concluída desmarcada — voltou pro fluxo");
+      router.refresh();
+    });
+  }
+
+  // Se concluída manualmente, esse status tem prioridade visual
+  if (concluidaEm) {
     return (
       <div className="flex flex-wrap items-center gap-1.5">
         <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
           <CheckCircle2 className="h-3 w-3" />
+          Concluído
+        </span>
+        {delegated && (
+          <Link href={`/tarefas/${delegated.taskId}`} className="text-xs text-muted-foreground hover:underline">
+            (delegado a {delegated.editorNome ?? "—"})
+          </Link>
+        )}
+        {canDelegate && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={handleDesmarcar}
+            disabled={pending}
+            className="h-6 px-2 text-xs text-muted-foreground"
+          >
+            <RotateCcw className="mr-1 h-3 w-3" />
+            Desmarcar
+          </Button>
+        )}
+      </div>
+    );
+  }
+
+  // Se já delegada, mostra status + link pra task + botão "Concluir"
+  if (delegated) {
+    return (
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="inline-flex items-center gap-1 rounded-md border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-xs font-medium text-sky-700 dark:text-sky-400">
+          <UserPlus className="h-3 w-3" />
           Delegado{delegated.editorNome ? ` a ${delegated.editorNome}` : ""}
         </span>
         <Link
@@ -52,11 +108,24 @@ export function DelegarCapturaButton({ capturaId, delegated, editores, canDelega
         >
           ver tarefa →
         </Link>
+        {canDelegate && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={handleConcluir}
+            disabled={pending}
+            className="h-6 px-2 text-xs text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400"
+          >
+            <Check className="mr-1 h-3 w-3" />
+            Concluir
+          </Button>
+        )}
       </div>
     );
   }
 
-  // Não delegada: mostra status pendente. Se canDelegate, mostra botão.
+  // Não delegada: mostra status pendente. Se canDelegate, mostra Delegar + Concluir.
   return (
     <>
       <div className="flex flex-wrap items-center gap-1.5">
@@ -65,17 +134,30 @@ export function DelegarCapturaButton({ capturaId, delegated, editores, canDelega
           Pendente de delegação
         </span>
         {canDelegate && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setOpen(true)}
-            disabled={pending}
-            className="h-6 px-2 text-xs"
-          >
-            <UserPlus className="mr-1 h-3 w-3" />
-            Delegar
-          </Button>
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setOpen(true)}
+              disabled={pending}
+              className="h-6 px-2 text-xs"
+            >
+              <UserPlus className="mr-1 h-3 w-3" />
+              Delegar
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleConcluir}
+              disabled={pending}
+              className="h-6 px-2 text-xs text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400"
+            >
+              <Check className="mr-1 h-3 w-3" />
+              Concluir
+            </Button>
+          </>
         )}
       </div>
 
