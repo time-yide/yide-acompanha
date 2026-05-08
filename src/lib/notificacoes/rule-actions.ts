@@ -85,16 +85,20 @@ export async function setPreferenceAction(formData: FormData) {
   return { success: true };
 }
 
-export async function getMyPreferencesAction() {
+/**
+ * Server Actions devem retornar valores serializáveis. Map quebra em
+ * Next 16 — retornamos plain object indexado por evento_tipo.
+ */
+export async function getMyPreferencesAction(): Promise<Record<string, { in_app: boolean; email: boolean }>> {
   const actor = await requireAuth();
   const supabase = await createClient();
   const { data } = await supabase
     .from("notification_preferences")
     .select("evento_tipo, in_app, email")
     .eq("user_id", actor.id);
-  const map = new Map<EventType, { in_app: boolean; email: boolean }>();
+  const out: Record<string, { in_app: boolean; email: boolean }> = {};
   ((data ?? []) as Array<{ evento_tipo: EventType; in_app: boolean; email: boolean }>).forEach((p) => {
-    map.set(p.evento_tipo, { in_app: p.in_app, email: p.email });
+    out[p.evento_tipo] = { in_app: p.in_app, email: p.email };
   });
-  return map;
+  return out;
 }

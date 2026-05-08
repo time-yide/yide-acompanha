@@ -72,7 +72,7 @@ export default async function NotificacoesConfigPage() {
           {(rules ?? [])
             .filter((r) => !r.mandatory)
             .map((r) => {
-              const pref = prefMap.get(r.evento_tipo);
+              const pref = prefMap[r.evento_tipo];
               return (
                 <PreferenceToggle
                   key={r.evento_tipo}
