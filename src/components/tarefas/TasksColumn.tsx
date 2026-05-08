@@ -5,14 +5,24 @@ import { TaskCard } from "./TaskCard";
 import type { TaskRow } from "@/lib/tarefas/queries";
 import { cn } from "@/lib/utils";
 
-type Status = "aberta" | "em_andamento" | "concluida" | "em_aprovacao" | "aprovada" | "postada";
+type Status =
+  | "aberta"
+  | "em_andamento"
+  | "concluida"
+  | "em_aprovacao"
+  | "alteracao"
+  | "aprovada"
+  | "agendado"
+  | "postada";
 
 const COLUMN_LABEL: Record<Status, string> = {
   aberta: "A fazer",
   em_andamento: "Em andamento",
-  concluida: "Concluídas",
+  concluida: "Concluído Operacional",
   em_aprovacao: "Aprovação",
+  alteracao: "Alteração",
   aprovada: "Aprovado",
+  agendado: "Agendado",
   postada: "Postado",
 };
 
