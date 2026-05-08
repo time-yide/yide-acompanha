@@ -14,6 +14,7 @@ import {
   requestAdjustmentsSchema,
   taskCommentSchema,
   TASK_FORMATOS,
+  TASK_STATUSES,
 } from "./schema";
 
 function fd(formData: FormData, key: string) {
@@ -410,7 +411,7 @@ export async function moveTaskStatusAction(formData: FormData) {
       : null;
 
   type Patch = {
-    status: "aberta" | "em_andamento" | "concluida" | "em_aprovacao" | "aprovada" | "postada";
+    status: (typeof TASK_STATUSES)[number];
     completed_at: string | null;
     aprovada_em: string | null;
   };

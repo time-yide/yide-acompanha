@@ -6,7 +6,9 @@ export const TASK_STATUSES = [
   "em_andamento",
   "concluida",
   "em_aprovacao",
+  "alteracao",
   "aprovada",
+  "agendado",
   "postada",
 ] as const;
 export const TASK_TIPOS = ["geral", "video", "arte"] as const;
@@ -103,3 +105,22 @@ export const artesEntreguesSchema = z
   .number()
   .int()
   .min(0, "Não pode ser negativo");
+
+/**
+ * Schema do modal "Concluir Operacionalmente" — exigido pra editor,
+ * videomaker, designer e audiovisual_chefe ao mover tarefa pra
+ * status `concluida`. Drive link e quantidade entregue obrigatórios;
+ * observações livres opcional.
+ */
+export const concludeOperationalSchema = z.object({
+  id: z.string().uuid(),
+  drive_link: z.string().url("Link do Drive inválido").max(500),
+  artes_entregues: z.coerce
+    .number()
+    .int("Use número inteiro")
+    .min(1, "Mínimo 1")
+    .max(999, "Máximo 999"),
+  entrega_observacoes: z.string().trim().max(2000).optional(),
+});
+
+export type ConcludeOperationalInput = z.infer<typeof concludeOperationalSchema>;

@@ -25,6 +25,7 @@ const eventLabels: Record<string, string> = {
   evento_calendario_amanha: "Resumo dos eventos de amanhã (18h)",
   evento_calendario_30min: "Lembrete 30 minutos antes do evento",
   chat_mensagem: "Mensagens no escritório virtual",
+  task_alteracao_solicitada: "Ajustes solicitados na sua tarefa",
 };
 
 export default async function NotificacoesConfigPage() {
