@@ -63,7 +63,9 @@ export function ChannelSidebar({ channels, currentKind, currentChannelId, pessoa
           channels.map((c) => {
             const isDm = c.kind === "direct";
             const displayName = isDm ? (c.dm_other?.nome ?? "Usuário removido") : c.nome;
-            const avatarSrc = isDm ? c.dm_other?.avatar_url : null;
+            // Pra DM, foto é a do outro membro. Pra grupo, é a icon_url
+            // setada pelo admin (ou null → fallback no Hash).
+            const avatarSrc = isDm ? c.dm_other?.avatar_url ?? null : c.icon_url;
             const active = isDm
               ? c.id === currentChannelId
               : c.kind === currentKind;

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bell, Lock } from "lucide-react";
+import { Bell, Hash, Lock } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { updateOwnProfileAction } from "@/lib/profile/actions";
@@ -109,6 +109,22 @@ export default async function ConfiguracoesPage() {
           Gerenciar tipos de notificação →
         </Link>
       </Card>
+
+      {(user.role === "socio" || user.role === "adm") && (
+        <Card className="p-6">
+          <h2 className="mb-2 text-lg font-semibold">Escritório virtual</h2>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Personaliza a foto dos canais de grupo (sidebar do chat).
+          </p>
+          <Link
+            href="/configuracoes/canais"
+            className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+          >
+            <Hash className="h-4 w-4" />
+            Foto dos canais →
+          </Link>
+        </Card>
+      )}
 
       <Card className="p-6">
         <h2 className="mb-2 text-lg font-semibold">Senha</h2>
