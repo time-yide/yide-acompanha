@@ -51,7 +51,13 @@ interface Profile { id: string; nome: string; }
 export function RuleCard({ rule, profiles }: { rule: Rule; profiles: Profile[] }) {
   return (
     <Card className="p-4 space-y-3">
-      <form action={async (fd: FormData) => { await updateRuleAction(fd); }} className="space-y-3">
+      <form
+        action={async (fd: FormData) => {
+          "use server";
+          await updateRuleAction(fd);
+        }}
+        className="space-y-3"
+      >
         <input type="hidden" name="evento_tipo" value={rule.evento_tipo} />
 
         <div className="flex items-center justify-between">
