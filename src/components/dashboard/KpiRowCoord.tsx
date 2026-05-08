@@ -19,7 +19,7 @@ interface Props {
 
 export function KpiRowCoord({ kpis }: Props) {
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
       <KpiCard
         label="Carteira sob coord."
         valor={<Money value={kpis.carteiraAtiva.valor} noDecimals />}

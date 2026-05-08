@@ -47,9 +47,9 @@ export async function DashboardAdm({ nome }: Props) {
   const leadsContrato = leadsByStage.contrato ?? [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <header>
-        <h1 className="text-2xl font-bold tracking-tight">Olá, {nome.split(" ")[0]}</h1>
+        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Olá, {nome.split(" ")[0]}</h1>
         <p className="text-sm text-muted-foreground">Visão administrativa</p>
       </header>
 

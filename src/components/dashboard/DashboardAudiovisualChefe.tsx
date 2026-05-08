@@ -16,10 +16,10 @@ export async function DashboardAudiovisualChefe({ userId, nome, periodo = "mes_a
 
   return (
     <HiddenValuesProvider>
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         <header className="flex items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Olá, {primeiroNome}</h1>
+            <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Olá, {primeiroNome}</h1>
             <p className="text-sm text-muted-foreground">Sua remuneração e a equipe audiovisual.</p>
           </div>
           <HiddenValueToggle />

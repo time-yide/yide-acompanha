@@ -34,10 +34,10 @@ export async function DashboardAssessor({ userId, nome }: Props) {
 
   return (
     <HiddenValuesProvider>
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         <header className="flex items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Olá, {nome.split(" ")[0]}</h1>
+            <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Olá, {nome.split(" ")[0]}</h1>
             <p className="text-sm text-muted-foreground">Sua carteira</p>
           </div>
           <HiddenValueToggle />

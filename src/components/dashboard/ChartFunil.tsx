@@ -31,7 +31,7 @@ export function ChartFunil({ data }: Props) {
   }));
 
   return (
-    <div className="h-64 w-full" aria-label="Gráfico de funil — 5 estágios">
+    <div className="h-48 w-full sm:h-64" aria-label="Gráfico de funil — 5 estágios">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={chartData} layout="vertical" margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />

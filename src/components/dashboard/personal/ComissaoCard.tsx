@@ -11,16 +11,16 @@ export async function ComissaoCard({ userId }: Props) {
   const variavel = result?.snapshot.valor_variavel ?? 0;
 
   return (
-    <div className="rounded-xl border bg-card p-5">
+    <div className="rounded-xl border bg-card p-3 sm:p-5">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-xs uppercase tracking-wider text-muted-foreground">
+        <p className="text-[10px] uppercase tracking-wider text-muted-foreground sm:text-xs">
           Comissão estimada ({monthRef})
         </p>
         <Link href="/comissoes" className="text-xs text-primary hover:underline">
           Ver detalhes →
         </Link>
       </div>
-      <p className="mt-2 text-3xl font-bold tabular-nums"><Money value={variavel} /></p>
+      <p className="mt-1.5 text-xl font-bold tabular-nums sm:mt-2 sm:text-3xl"><Money value={variavel} /></p>
     </div>
   );
 }
