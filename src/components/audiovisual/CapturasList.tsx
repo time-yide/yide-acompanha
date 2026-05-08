@@ -3,10 +3,20 @@ import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import type { CapturaRow } from "@/lib/audiovisual/queries";
 import { avgRating } from "@/lib/audiovisual/queries";
+import { DelegarCapturaButton } from "./DelegarCapturaButton";
+
+interface Editor {
+  id: string;
+  nome: string;
+}
 
 interface Props {
   capturas: CapturaRow[];
   showVideomaker?: boolean;
+  /** Lista de editores ativos pra modal de delegação. */
+  editores?: Editor[];
+  /** Se o user logado pode delegar (role audiovisual_chefe / adm / sócio). */
+  canDelegate?: boolean;
 }
 
 function formatDateBR(iso: string): string {
@@ -15,7 +25,7 @@ function formatDateBR(iso: string): string {
   return new Date(y, m - 1, d).toLocaleDateString("pt-BR");
 }
 
-export function CapturasList({ capturas, showVideomaker = false }: Props) {
+export function CapturasList({ capturas, showVideomaker = false, editores = [], canDelegate = false }: Props) {
   if (capturas.length === 0) {
     return (
       <Card className="p-6">
@@ -75,6 +85,20 @@ export function CapturasList({ capturas, showVideomaker = false }: Props) {
             {c.observacoes && (
               <p className="text-xs italic text-muted-foreground">{c.observacoes}</p>
             )}
+
+            {/* Status de delegação: pendente ou delegado */}
+            <div className="border-t pt-2">
+              <DelegarCapturaButton
+                capturaId={c.id}
+                delegated={
+                  c.task_id && c.task
+                    ? { taskId: c.task.id, editorNome: c.task.editor_nome }
+                    : null
+                }
+                editores={editores}
+                canDelegate={canDelegate}
+              />
+            </div>
           </Card>
         );
       })}

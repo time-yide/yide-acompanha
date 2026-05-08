@@ -28,8 +28,12 @@ export interface CapturaRow {
   pontos_dificuldade: string | null;
   sugestoes: string | null;
   created_at: string;
+  task_id: string | null;
   cliente?: { id: string; nome: string } | null;
   videomaker?: { id: string; nome: string } | null;
+  /** Quando task_id existe, embarca dados básicos da tarefa pra UI mostrar
+   *  "Delegado a [editor]" sem N+1 query. NULL se task_id também é NULL. */
+  task?: { id: string; titulo: string; status: string; atribuido_a: string; editor_nome: string | null } | null;
 }
 
 export interface PendenteEvento {
@@ -142,9 +146,10 @@ export async function listCapturas(filters: {
       qtd_videos, qtd_fotos, observacoes,
       rating_organizacao, rating_facilidade, rating_execucao_roteiro,
       rating_atrasos, rating_comunicacao, rating_retrabalho, rating_colaboracao,
-      pontos_positivos, pontos_dificuldade, sugestoes, created_at,
+      pontos_positivos, pontos_dificuldade, sugestoes, created_at, task_id,
       cliente:clients(id, nome),
-      videomaker:profiles!audiovisual_capturas_videomaker_id_fkey(id, nome)
+      videomaker:profiles!audiovisual_capturas_videomaker_id_fkey(id, nome),
+      task:tasks!task_id(id, titulo, status, atribuido_a, editor:profiles!atribuido_a(nome))
     `)
     .order("data_captacao", { ascending: false })
     .limit(filters.limit ?? 100);
@@ -153,7 +158,28 @@ export async function listCapturas(filters: {
 
   const { data, error } = await query;
   if (error) throw error;
-  return (data ?? []) as unknown as CapturaRow[];
+
+  // Flatten task.editor.nome → task.editor_nome pro consumo na UI
+  type RawTaskShape = {
+    id: string;
+    titulo: string;
+    status: string;
+    atribuido_a: string;
+    editor: { nome: string } | null;
+  };
+  type RawRow = Omit<CapturaRow, "task"> & { task: RawTaskShape | null };
+  return ((data ?? []) as unknown as RawRow[]).map((c) => ({
+    ...c,
+    task: c.task
+      ? {
+          id: c.task.id,
+          titulo: c.task.titulo,
+          status: c.task.status,
+          atribuido_a: c.task.atribuido_a,
+          editor_nome: c.task.editor?.nome ?? null,
+        }
+      : null,
+  }));
 }
 
 /** Calcula a média (1-5) dos 7 ratings de uma captura. Null se algum faltar. */
