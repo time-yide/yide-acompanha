@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { addCommentAction } from "@/lib/tarefas/actions";
 import { useRealtimeTaskComments } from "@/lib/tarefas/use-realtime-comments";
 import type { TaskComment } from "@/lib/tarefas/queries";
+import { Linkify } from "@/lib/utils/linkify";
 
 interface CurrentUser {
   id: string;
@@ -139,7 +140,7 @@ export function CommentsPanel({ taskId, initialComments, canComment, currentUser
                         : "rounded-lg rounded-tl-sm border bg-muted/40 px-3 py-2 text-sm whitespace-pre-wrap"
                     }
                   >
-                    {c.conteudo}
+                    <Linkify text={c.conteudo} />
                   </div>
                 </div>
               </div>
