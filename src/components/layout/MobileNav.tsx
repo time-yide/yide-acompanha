@@ -58,7 +58,13 @@ export function MobileNav({ role, nome, badges }: Props) {
           />
 
           {/* Drawer */}
-          <aside className="absolute inset-y-0 left-0 flex w-[260px] max-w-[80vw] flex-col border-r bg-card shadow-xl">
+          <aside
+            className="absolute inset-y-0 left-0 flex w-[260px] max-w-[80vw] flex-col border-r bg-card shadow-xl"
+            style={{
+              paddingTop: "env(safe-area-inset-top)",
+              paddingBottom: "env(safe-area-inset-bottom)",
+            }}
+          >
             <div className="flex items-center justify-between px-4 py-4">
               <Image
                 src="/brand/logo-yide.png"
