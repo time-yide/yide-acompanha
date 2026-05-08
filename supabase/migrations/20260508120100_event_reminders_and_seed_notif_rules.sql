@@ -3,9 +3,9 @@
 -- já lembrados.
 
 ALTER TABLE calendar_events
-  ADD COLUMN reminded_30min_at TIMESTAMPTZ;
+  ADD COLUMN IF NOT EXISTS reminded_30min_at TIMESTAMPTZ;
 
-CREATE INDEX idx_calendar_events_inicio_pending_reminder
+CREATE INDEX IF NOT EXISTS idx_calendar_events_inicio_pending_reminder
   ON calendar_events (inicio)
   WHERE reminded_30min_at IS NULL;
 
