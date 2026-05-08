@@ -166,3 +166,126 @@ export async function createCapturaAction(_prev: ActionResult, formData: FormDat
   revalidateTag(AUDIOVISUAL_PENDENTE_TAG, "default");
   redirect("/audiovisual?toast=entregue");
 }
+
+const ROLES_QUE_DELEGAM = new Set(["audiovisual_chefe", "adm", "socio"]);
+
+interface DelegateResult {
+  error?: string;
+  success?: boolean;
+  taskId?: string;
+}
+
+/**
+ * Delega uma captação pra um editor — cria uma tarefa atribuída ao editor
+ * com link do Drive + observações da captação, e linka via task_id.
+ *
+ * Permissão: audiovisual_chefe, adm, sócio.
+ *
+ * Idempotência: se a captação já tem task_id (já delegada), retorna erro
+ * pedindo pra "redelegar" (futuro: action de re-delegar).
+ */
+export async function delegateCapturaAction(formData: FormData): Promise<DelegateResult> {
+  const actor = await requireAuth();
+  if (!ROLES_QUE_DELEGAM.has(actor.role)) {
+    return { error: "Apenas coord. audiovisual, adm ou sócio podem delegar" };
+  }
+
+  const capturaId = String(formData.get("captura_id") ?? "");
+  const editorId = String(formData.get("editor_id") ?? "");
+  const dueDateRaw = String(formData.get("due_date") ?? "").trim();
+  if (!capturaId) return { error: "Captação não informada" };
+  if (!editorId) return { error: "Selecione um editor" };
+
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+
+  // Carrega captura
+  const { data: captura } = await sb
+    .from("audiovisual_capturas")
+    .select(`
+      id, client_id, drive_url, qtd_videos, qtd_fotos,
+      pontos_positivos, pontos_dificuldade, sugestoes, observacoes,
+      task_id, data_captacao,
+      cliente:clients(id, nome)
+    `)
+    .eq("id", capturaId)
+    .maybeSingle();
+  if (!captura) return { error: "Captação não encontrada" };
+  if (captura.task_id) return { error: "Captação já foi delegada" };
+
+  // Valida editor (precisa ter role=editor e estar ativo)
+  const { data: editor } = await sb
+    .from("profiles")
+    .select("id, role, ativo, nome")
+    .eq("id", editorId)
+    .maybeSingle();
+  if (!editor || !editor.ativo) return { error: "Editor não encontrado ou inativo" };
+  if (editor.role !== "editor") return { error: "Pessoa selecionada não é editor" };
+
+  // Monta título e descrição da task
+  const clienteNome = captura.cliente?.nome ?? "—";
+  const dataBr = captura.data_captacao
+    ? new Date(captura.data_captacao + "T12:00:00Z").toLocaleDateString("pt-BR")
+    : "";
+  const titulo = `Editar: ${clienteNome}${dataBr ? ` (${dataBr})` : ""}`;
+
+  const descricaoLines: string[] = [];
+  descricaoLines.push(`📹 ${captura.qtd_videos} vídeo(s) · 📷 ${captura.qtd_fotos} foto(s)`);
+  if (captura.drive_url) descricaoLines.push(`Drive: ${captura.drive_url}`);
+  if (captura.pontos_positivos) descricaoLines.push(`✅ Positivos: ${captura.pontos_positivos}`);
+  if (captura.pontos_dificuldade) descricaoLines.push(`⚠️ Dificuldades: ${captura.pontos_dificuldade}`);
+  if (captura.sugestoes) descricaoLines.push(`💡 Sugestões: ${captura.sugestoes}`);
+  if (captura.observacoes) descricaoLines.push(`Obs.: ${captura.observacoes}`);
+  const descricao = descricaoLines.join("\n\n");
+
+  // Cria a task. tipo="geral" pra evitar exigência de formatos.
+  const { data: createdTask, error: taskErr } = await sb
+    .from("tasks")
+    .insert({
+      titulo,
+      descricao,
+      prioridade: "media",
+      status: "aberta",
+      atribuido_a: editorId,
+      criado_por: actor.id,
+      client_id: captura.client_id,
+      due_date: dueDateRaw || null,
+    })
+    .select("id")
+    .single();
+  if (taskErr || !createdTask) return { error: taskErr?.message ?? "Falha ao criar tarefa" };
+
+  // Linka a captação à task
+  const { error: linkErr } = await sb
+    .from("audiovisual_capturas")
+    .update({ task_id: createdTask.id })
+    .eq("id", capturaId);
+  if (linkErr) return { error: linkErr.message };
+
+  // Notifica o editor (já existe regra task_assigned no sistema)
+  try {
+    await dispatchNotification({
+      evento_tipo: "task_assigned",
+      titulo: `Nova tarefa: ${titulo}`,
+      mensagem: `Captação delegada por ${actor.nome}.`,
+      link: `/tarefas/${createdTask.id}`,
+      user_ids_extras: [editorId],
+      source_user_id: actor.id,
+    });
+  } catch (e) {
+    console.error("[delegateCapturaAction] notif failed:", e);
+  }
+
+  await logAudit({
+    entidade: "audiovisual_capturas",
+    entidade_id: capturaId,
+    acao: "update",
+    dados_depois: { task_id: createdTask.id, editor_id: editorId } as unknown as Record<string, unknown>,
+    ator_id: actor.id,
+  });
+
+  revalidatePath("/audiovisual");
+  revalidatePath("/tarefas");
+  return { success: true, taskId: createdTask.id };
+}

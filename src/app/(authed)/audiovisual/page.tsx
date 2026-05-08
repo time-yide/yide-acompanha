@@ -26,6 +26,20 @@ export default async function AudiovisualPage() {
   const isVideomaker = user.role === "videomaker";
   const pendentes = isVideomaker ? await listPendenteParaVideomaker(user.id) : [];
 
+  // Pra modal de delegação: lista editores ativos + flag de permissão
+  const canDelegate = ["audiovisual_chefe", "adm", "socio"].includes(user.role);
+  const editores = canDelegate
+    ? await (async () => {
+        const { data } = await supabase
+          .from("profiles")
+          .select("id, nome")
+          .eq("role", "editor")
+          .eq("ativo", true)
+          .order("nome");
+        return ((data ?? []) as Array<{ id: string; nome: string }>);
+      })()
+    : [];
+
   // Filtros de visualização: videomaker vê só as suas; assessor vê das clientes
   // que assessora; demais (coord/chefe/adm/sócio) veem todas.
   const capturas = await (async () => {
@@ -108,7 +122,12 @@ export default async function AudiovisualPage() {
           {isVideomaker ? "Minhas captações" : "Captações da equipe"}
           <span className="ml-1 text-xs font-normal text-muted-foreground">({capturas.length})</span>
         </h2>
-        <CapturasList capturas={capturas} showVideomaker={!isVideomaker} />
+        <CapturasList
+          capturas={capturas}
+          showVideomaker={!isVideomaker}
+          editores={editores}
+          canDelegate={canDelegate}
+        />
       </section>
     </div>
   );
