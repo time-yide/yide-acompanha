@@ -1,7 +1,10 @@
 // SERVER ONLY
+import { unstable_cache } from "next/cache";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { currentIsoWeek } from "./iso-week";
 import type { SatisfactionColor } from "./schema";
+
+export const SATISFACTION_LOCK_TAG = "satisfaction-lock";
 
 export interface LockClientRow {
   id: string;
@@ -35,7 +38,28 @@ function isRoleQueTrava(role: string): role is RoleQueTrava {
  * - Coordenador: trava se tiver clientes onde é coordenador_id e algum sem cor.
  * - Sem clientes (ex: coord novo) = não trava.
  */
+/**
+ * Wrapper cacheado pra checkSatisfactionLock. Layout authed chama em CADA
+ * navegação — sem cache, são 2 queries Supabase por hop. TTL 30s é
+ * conservador (gate visual, ok ter pequeno lag). Ações que mudam estado
+ * (avaliar cliente) revalidam via tag.
+ */
 export async function checkSatisfactionLock(
+  userId: string,
+  role: string,
+): Promise<SatisfactionLockState> {
+  if (!isRoleQueTrava(role)) {
+    return { blocked: false, weekIso: currentIsoWeek(), clients: [], filled: 0, total: 0 };
+  }
+  const cached = unstable_cache(
+    async (uid: string, r: string) => _checkSatisfactionLockImpl(uid, r),
+    ["satisfaction-lock"],
+    { revalidate: 30, tags: [SATISFACTION_LOCK_TAG] },
+  );
+  return cached(userId, role);
+}
+
+async function _checkSatisfactionLockImpl(
   userId: string,
   role: string,
 ): Promise<SatisfactionLockState> {
