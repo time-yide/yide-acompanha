@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { requireAuth } from "@/lib/auth/session";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
+import { dispatchChatNotification } from "@/lib/notificacoes/dispatch-chat";
 import { canAccessChannel, type ChannelKind } from "./types";
 import { ESCRITORIO_UNREAD_TAG } from "./queries";
 
@@ -81,20 +82,22 @@ export async function sendChatMessageAction(
     .single();
   if (error || !created) return { error: error?.message ?? "Falha ao enviar mensagem" };
 
-  // Notifica @mencionados (best-effort)
-  if (parsed.data.mentioned_user_ids.length > 0) {
-    const mencionados = parsed.data.mentioned_user_ids.filter((id) => id !== actor.id);
-    if (mencionados.length > 0) {
-      const preview = parsed.data.conteudo.slice(0, 80) + (parsed.data.conteudo.length > 80 ? "…" : "");
-      await dispatchNotification({
-        evento_tipo: "task_assigned",
-        titulo: `Você foi mencionado em ${channel.nome}`,
-        mensagem: `${actor.nome}: ${preview}`,
-        link: `/escritorio/${channel.kind}`,
-        user_ids_extras: mencionados,
-        source_user_id: actor.id,
-      });
-    }
+  // Notifica todos os usuários com acesso ao canal (menos o autor).
+  // Mencionados ganham destaque visual via dispatch-chat.
+  // Best-effort: falha aqui não bloqueia o envio da mensagem.
+  try {
+    await dispatchChatNotification({
+      messageId: created.id,
+      channelId: parsed.data.channel_id,
+      authorId: actor.id,
+      authorName: actor.nome,
+      channelKind: channel.kind as ChannelKind,
+      channelName: channel.nome,
+      conteudo: parsed.data.conteudo,
+      mentionedUserIds: parsed.data.mentioned_user_ids.filter((id) => id !== actor.id),
+    });
+  } catch (e) {
+    console.error("[sendChatMessageAction] notification dispatch failed:", e);
   }
 
   // Reply: notifica autor da mensagem original (se for outro)
