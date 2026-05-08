@@ -6,8 +6,26 @@ import { TasksColumn } from "./TasksColumn";
 import { moveTaskStatusAction } from "@/lib/tarefas/actions";
 import type { TaskRow } from "@/lib/tarefas/queries";
 
-type Status = "aberta" | "em_andamento" | "concluida" | "em_aprovacao" | "aprovada" | "postada";
-const STATUSES: Status[] = ["aberta", "em_andamento", "concluida", "em_aprovacao", "aprovada", "postada"];
+type Status =
+  | "aberta"
+  | "em_andamento"
+  | "concluida"
+  | "em_aprovacao"
+  | "alteracao"
+  | "aprovada"
+  | "agendado"
+  | "postada";
+
+const STATUSES: Status[] = [
+  "aberta",
+  "em_andamento",
+  "concluida",
+  "em_aprovacao",
+  "alteracao",
+  "aprovada",
+  "agendado",
+  "postada",
+];
 
 export function TasksBoard({ tasks, userRole }: { tasks: TaskRow[]; userRole: string }) {
   const [error, setError] = useState<string | null>(null);
@@ -18,7 +36,9 @@ export function TasksBoard({ tasks, userRole }: { tasks: TaskRow[]; userRole: st
     em_andamento: [],
     concluida: [],
     em_aprovacao: [],
+    alteracao: [],
     aprovada: [],
+    agendado: [],
     postada: [],
   };
   for (const t of tasks) {
