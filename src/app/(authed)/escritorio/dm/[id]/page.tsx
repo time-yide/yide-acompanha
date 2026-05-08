@@ -21,7 +21,7 @@ export default async function DmPage({ params }: { params: Promise<{ id: string 
   // Carrega o channel
   const { data: channelRow } = await sb
     .from("chat_channels")
-    .select("id, kind, nome, descricao, ordem, member_ids")
+    .select("id, kind, nome, descricao, ordem, member_ids, icon_url")
     .eq("id", id)
     .maybeSingle();
   const channel = (channelRow ?? null) as Channel | null;

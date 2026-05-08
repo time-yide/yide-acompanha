@@ -16,6 +16,8 @@ export interface Channel {
   ordem: number;
   /** Populado só quando kind === 'direct'. Array com os 2 user_ids do DM. */
   member_ids: string[] | null;
+  /** Foto custom do canal de grupo (subida por admin). NULL pra DMs. */
+  icon_url: string | null;
 }
 
 export interface ChatMessage {

@@ -32,7 +32,7 @@ async function _listChannelsWithUnreadImpl(userId: string, userRole: string): Pr
   // 1. Lista todos os channels acessíveis: role-based + DMs do user
   const { data: roleChannels } = await sb
     .from("chat_channels")
-    .select("id, kind, nome, descricao, ordem, member_ids")
+    .select("id, kind, nome, descricao, ordem, member_ids, icon_url")
     .neq("kind", "direct")
     .order("ordem", { ascending: true });
 
@@ -41,7 +41,7 @@ async function _listChannelsWithUnreadImpl(userId: string, userRole: string): Pr
 
   const { data: dmChannels } = await sb
     .from("chat_channels")
-    .select("id, kind, nome, descricao, ordem, member_ids")
+    .select("id, kind, nome, descricao, ordem, member_ids, icon_url")
     .eq("kind", "direct")
     .contains("member_ids", [userId]);
 
