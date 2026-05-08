@@ -95,6 +95,7 @@ export function CapturasList({ capturas, showVideomaker = false, editores = [], 
                     ? { taskId: c.task.id, editorNome: c.task.editor_nome }
                     : null
                 }
+                concluidaEm={c.concluida_em}
                 editores={editores}
                 canDelegate={canDelegate}
               />

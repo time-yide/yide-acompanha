@@ -289,3 +289,61 @@ export async function delegateCapturaAction(formData: FormData): Promise<Delegat
   revalidatePath("/tarefas");
   return { success: true, taskId: createdTask.id };
 }
+
+/**
+ * Marca a captação como concluída (manual). Status independente da
+ * delegação — admin pode usar quando a captação não precisa de edit
+ * ou já foi 100% finalizada.
+ */
+export async function markCapturaConcluidaAction(capturaId: string): Promise<{ error?: string; success?: boolean }> {
+  const actor = await requireAuth();
+  if (!ROLES_QUE_DELEGAM.has(actor.role)) {
+    return { error: "Sem permissão" };
+  }
+
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const { error } = await sb
+    .from("audiovisual_capturas")
+    .update({ concluida_em: new Date().toISOString() })
+    .eq("id", capturaId);
+  if (error) return { error: error.message };
+
+  await logAudit({
+    entidade: "audiovisual_capturas",
+    entidade_id: capturaId,
+    acao: "complete",
+    ator_id: actor.id,
+  });
+
+  revalidatePath("/audiovisual");
+  return { success: true };
+}
+
+/** Desmarca uma captação que estava como concluída — volta pro fluxo normal. */
+export async function unmarkCapturaConcluidaAction(capturaId: string): Promise<{ error?: string; success?: boolean }> {
+  const actor = await requireAuth();
+  if (!ROLES_QUE_DELEGAM.has(actor.role)) {
+    return { error: "Sem permissão" };
+  }
+
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const { error } = await sb
+    .from("audiovisual_capturas")
+    .update({ concluida_em: null })
+    .eq("id", capturaId);
+  if (error) return { error: error.message };
+
+  await logAudit({
+    entidade: "audiovisual_capturas",
+    entidade_id: capturaId,
+    acao: "reopen",
+    ator_id: actor.id,
+  });
+
+  revalidatePath("/audiovisual");
+  return { success: true };
+}
