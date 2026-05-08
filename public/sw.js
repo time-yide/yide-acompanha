@@ -2,7 +2,7 @@
 // Recebe Web Push e mostra notificação nativa do SO. Click leva pra rota
 // da notificação (ou pra home se sem link).
 
-const SW_VERSION = "v1.1.0";
+const SW_VERSION = "v1.2.0";
 
 self.addEventListener("install", () => {
   self.skipWaiting();

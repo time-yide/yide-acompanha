@@ -45,7 +45,12 @@ export default async function AuthedLayout({ children }: { children: React.React
           role={user.role}
           badges={{ recados: recadosNaoLidos, escritorio: escritorioUnread }}
         />
-        <main className="flex-1 overflow-auto bg-muted/20 p-3 md:p-6">{children}</main>
+        <main
+          className="flex-1 overflow-auto bg-muted/20 p-3 md:p-6"
+          style={{ paddingBottom: "max(env(safe-area-inset-bottom), 0.75rem)" }}
+        >
+          {children}
+        </main>
       </div>
       <SatisfactionLockGate state={lockState} />
       <CapturaPendenteLockGate overdue={audiovisualOverdue} clientes={clientesAtivos} />
