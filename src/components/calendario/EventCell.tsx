@@ -20,9 +20,10 @@ function formatHour(iso: string) {
 export function EventCell({ event }: { event: CalendarEvent }) {
   const isVm = event.sub_calendar === "videomakers";
   const content = (
-    <div className={`rounded-md p-1.5 ${subClass[event.sub_calendar] ?? subClass.agencia} text-[11px] leading-tight`}>
+    // Mobile: padding e fonte maiores (full-width comporta). Desktop: compacto como antes.
+    <div className={`rounded-md p-2 ${subClass[event.sub_calendar] ?? subClass.agencia} text-xs leading-tight sm:p-1.5 sm:text-[11px]`}>
       <div className="flex items-center gap-1 font-semibold truncate">
-        {isVm && <Video className="h-3 w-3 flex-shrink-0" />}
+        {isVm && <Video className="h-3.5 w-3.5 flex-shrink-0 sm:h-3 sm:w-3" />}
         <span className="truncate">{event.titulo}</span>
       </div>
       <div className="opacity-70">{formatHour(event.inicio)}</div>
