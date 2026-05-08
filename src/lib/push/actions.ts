@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/auth/session";
 import { getServerEnv } from "@/lib/env";
 import { sendWebPushToUser } from "./server";
+import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 
 type ActionResult = { error?: string; success?: boolean };
 
@@ -76,6 +77,50 @@ export async function sendTestPushAction(): Promise<ActionResult> {
     body: "Push está funcionando neste dispositivo ✓",
     url: "/configuracoes",
     tag: "test",
+  });
+  return { success: true };
+}
+
+/**
+ * Simula o digest 18h pro próprio usuário com dados fake (sem criar
+ * eventos no banco). Usa o evento_tipo real `evento_calendario_amanha`
+ * pra validar o formato de texto que o cron real vai enviar.
+ */
+export async function sendTestEventTomorrowAction(): Promise<ActionResult> {
+  const actor = await requireAuth();
+  const env = getServerEnv();
+  if (!env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY || !env.VAPID_SUBJECT) {
+    return { error: "VAPID não configurado no servidor." };
+  }
+
+  await dispatchNotification({
+    evento_tipo: "evento_calendario_amanha",
+    titulo: "Você tem 2 eventos amanhã",
+    mensagem: "10h — Reunião de teste · 14h — Gravação de teste",
+    link: "/calendario",
+    user_ids_extras: [actor.id],
+  });
+  return { success: true };
+}
+
+/**
+ * Simula o lembrete "30 min antes" pro próprio usuário. Usa o
+ * evento_tipo real `evento_calendario_30min` mas não toca em
+ * calendar_events (sem evento real, sem reminded_30min_at).
+ */
+export async function sendTestEvent30MinAction(): Promise<ActionResult> {
+  const actor = await requireAuth();
+  const env = getServerEnv();
+  if (!env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY || !env.VAPID_SUBJECT) {
+    return { error: "VAPID não configurado no servidor." };
+  }
+
+  await dispatchNotification({
+    evento_tipo: "evento_calendario_30min",
+    titulo: "Em 30 min: Reunião de teste",
+    mensagem: "Começa às 14:30",
+    link: "/calendario",
+    user_ids_extras: [actor.id],
   });
   return { success: true };
 }

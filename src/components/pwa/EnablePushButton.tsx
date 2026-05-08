@@ -1,10 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bell, BellOff, Send } from "lucide-react";
+import { Bell, BellOff, Calendar, Clock, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { subscribePushAction, unsubscribePushAction, sendTestPushAction } from "@/lib/push/actions";
+import {
+  subscribePushAction,
+  unsubscribePushAction,
+  sendTestPushAction,
+  sendTestEventTomorrowAction,
+  sendTestEvent30MinAction,
+} from "@/lib/push/actions";
 
 interface Props {
   vapidPublicKey: string;
@@ -143,17 +149,66 @@ export function EnablePushButton({ vapidPublicKey }: Props) {
     }
   }
 
+  async function handleTestTomorrow() {
+    setPending(true);
+    try {
+      const r = await sendTestEventTomorrowAction();
+      if (r.error) {
+        toast.error(r.error);
+        return;
+      }
+      toast.success("Push de teste do digest 18h enviado");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao enviar teste");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function handleTest30Min() {
+    setPending(true);
+    try {
+      const r = await sendTestEvent30MinAction();
+      if (r.error) {
+        toast.error(r.error);
+        return;
+      }
+      toast.success("Push de teste do lembrete 30min enviado");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao enviar teste");
+    } finally {
+      setPending(false);
+    }
+  }
+
   if (subscribed) {
     return (
-      <div className="flex flex-wrap gap-2">
-        <Button type="button" onClick={handleTest} disabled={pending}>
-          <Send className="mr-1.5 h-4 w-4" />
-          {pending ? "Enviando..." : "Enviar notificação de teste"}
-        </Button>
-        <Button type="button" variant="outline" onClick={handleDisable} disabled={pending}>
-          <BellOff className="mr-1.5 h-4 w-4" />
-          Desativar neste dispositivo
-        </Button>
+      <div className="space-y-3">
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" onClick={handleTest} disabled={pending}>
+            <Send className="mr-1.5 h-4 w-4" />
+            {pending ? "Enviando..." : "Enviar notificação de teste"}
+          </Button>
+          <Button type="button" variant="outline" onClick={handleDisable} disabled={pending}>
+            <BellOff className="mr-1.5 h-4 w-4" />
+            Desativar neste dispositivo
+          </Button>
+        </div>
+        <div className="space-y-1.5">
+          <p className="text-xs text-muted-foreground">
+            Testar formatos específicos:
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={handleTestTomorrow} disabled={pending}>
+              <Calendar className="mr-1.5 h-3.5 w-3.5" />
+              Testar &quot;Eventos de amanhã&quot;
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={handleTest30Min} disabled={pending}>
+              <Clock className="mr-1.5 h-3.5 w-3.5" />
+              Testar &quot;30 min antes&quot;
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
