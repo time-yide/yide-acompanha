@@ -32,8 +32,25 @@ export interface ChatMessage {
   reply_to?: { id: string; conteudo: string; autor_nome: string | null } | null;
 }
 
+export interface ChannelLastMessagePreview {
+  autor_id: string;
+  autor_nome: string;
+  conteudo: string;
+  created_at: string;
+}
+
+export interface ChannelDmOther {
+  id: string;
+  nome: string;
+  avatar_url: string | null;
+}
+
 export interface ChannelWithUnread extends Channel {
   unread_count: number;
+  last_message_at: string | null;
+  last_message: ChannelLastMessagePreview | null;
+  /** Populado só pra DM (kind='direct'). Outro membro (não o viewer). */
+  dm_other: ChannelDmOther | null;
 }
 
 const ALL_ROLES = [

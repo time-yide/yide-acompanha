@@ -13,6 +13,8 @@ interface DispatchArgs {
   channelName: string;
   conteudo: string;
   mentionedUserIds: string[];
+  /** Pra DM: member_ids do channel. Ignorado pra outros kinds. */
+  memberIds?: string[];
 }
 
 /**
@@ -33,16 +35,22 @@ export async function dispatchChatNotification(args: DispatchArgs): Promise<void
   const sb = supabase as any;
 
   // Resolve destinatários: profiles ativos com acesso ao canal
-  const { data: profilesData } = await sb
-    .from("profiles")
-    .select("id, role, ativo")
-    .eq("ativo", true);
-  const profiles = (profilesData ?? []) as Array<{ id: string; role: string }>;
-
-  const recipientIds = profiles
-    .filter((p) => p.id !== args.authorId)
-    .filter((p) => canAccessChannel(p.role, args.channelKind))
-    .map((p) => p.id);
+  let recipientIds: string[];
+  if (args.channelKind === "direct") {
+    // DM: destinatários são os member_ids exceto o autor
+    recipientIds = (args.memberIds ?? []).filter((id) => id !== args.authorId);
+  } else {
+    // Role-based (lógica antiga)
+    const { data: profilesData } = await sb
+      .from("profiles")
+      .select("id, role, ativo")
+      .eq("ativo", true);
+    const profiles = (profilesData ?? []) as Array<{ id: string; role: string }>;
+    recipientIds = profiles
+      .filter((p) => p.id !== args.authorId)
+      .filter((p) => canAccessChannel(p.role, args.channelKind))
+      .map((p) => p.id);
+  }
 
   if (recipientIds.length === 0) return;
 

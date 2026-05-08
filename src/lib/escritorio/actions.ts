@@ -7,7 +7,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { requireAuth } from "@/lib/auth/session";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 import { dispatchChatNotification } from "@/lib/notificacoes/dispatch-chat";
-import { canAccessChannel, type ChannelKind } from "./types";
+import { canAccessChannel, canAccessDmChannel, type Channel, type ChannelKind } from "./types";
 import { ESCRITORIO_UNREAD_TAG } from "./queries";
 
 type ActionResult = { error?: string; success?: boolean; id?: string; created_at?: string };
@@ -59,12 +59,19 @@ export async function sendChatMessageAction(
   // Confirma membership antes de inserir (RLS já cobre, mas dá feedback melhor)
   const { data: channel } = await sb
     .from("chat_channels")
-    .select("id, kind, nome")
+    .select("id, kind, nome, member_ids")
     .eq("id", parsed.data.channel_id)
     .maybeSingle();
   if (!channel) return { error: "Canal não encontrado" };
 
-  if (!canAccessChannel(actor.role, channel.kind as ChannelKind)) {
+  // Permissão diverge por tipo de canal:
+  // - Grupos (kind != 'direct'): role-based via canAccessChannel
+  // - DMs (kind === 'direct'): user precisa estar em member_ids
+  const channelTyped = channel as Channel;
+  const allowed = channelTyped.kind === "direct"
+    ? canAccessDmChannel(channelTyped, actor.id)
+    : canAccessChannel(actor.role, channelTyped.kind as ChannelKind);
+  if (!allowed) {
     return { error: "Você não tem acesso a esse canal" };
   }
 
@@ -95,6 +102,7 @@ export async function sendChatMessageAction(
       channelName: channel.nome,
       conteudo: parsed.data.conteudo,
       mentionedUserIds: parsed.data.mentioned_user_ids.filter((id) => id !== actor.id),
+      memberIds: channel.member_ids ?? undefined,
     });
   } catch (e) {
     console.error("[sendChatMessageAction] notification dispatch failed:", e);

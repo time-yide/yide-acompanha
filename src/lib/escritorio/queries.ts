@@ -2,7 +2,7 @@
 import { unstable_cache } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { canAccessChannel, type Channel, type ChannelKind, type ChannelWithUnread, type ChatMessage } from "./types";
+import { canAccessChannel, type Channel, type ChannelDmOther, type ChannelKind, type ChannelWithUnread, type ChatMessage } from "./types";
 
 export const ESCRITORIO_UNREAD_TAG = "chat-unread";
 export const ESCRITORIO_MENTIONABLES_TAG = "chat-mentionables";
@@ -25,41 +25,135 @@ export async function listAccessibleChannels(userRole: string): Promise<Channel[
 }
 
 async function _listChannelsWithUnreadImpl(userId: string, userRole: string): Promise<ChannelWithUnread[]> {
-  const channels = await listAccessibleChannels(userRole);
-  if (channels.length === 0) return [];
-
-  // Service-role pra rodar dentro de unstable_cache (sem context de cookie).
   const supabase = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
 
-  const channelIds = channels.map((c) => c.id);
+  // 1. Lista todos os channels acessíveis: role-based + DMs do user
+  const { data: roleChannels } = await sb
+    .from("chat_channels")
+    .select("id, kind, nome, descricao, ordem, member_ids")
+    .neq("kind", "direct")
+    .order("ordem", { ascending: true });
+
+  const accessibleRoleChannels = ((roleChannels ?? []) as Channel[])
+    .filter((c) => canAccessChannel(userRole, c.kind));
+
+  const { data: dmChannels } = await sb
+    .from("chat_channels")
+    .select("id, kind, nome, descricao, ordem, member_ids")
+    .eq("kind", "direct")
+    .contains("member_ids", [userId]);
+
+  const allChannels = [...accessibleRoleChannels, ...((dmChannels ?? []) as Channel[])];
+  if (allChannels.length === 0) return [];
+
+  const channelIds = allChannels.map((c) => c.id);
+
+  // 2. Reads (pra calcular unread)
   const { data: readsData } = await sb
     .from("chat_reads")
     .select("channel_id, last_read_at")
     .eq("user_id", userId)
     .in("channel_id", channelIds);
-  const lastReadByChannel = new Map(
-    ((readsData ?? []) as Array<{ channel_id: string; last_read_at: string }>).map(
-      (r) => [r.channel_id, r.last_read_at],
-    ),
-  );
+  const readMap = new Map<string, string>();
+  ((readsData ?? []) as Array<{ channel_id: string; last_read_at: string }>)
+    .forEach((r) => readMap.set(r.channel_id, r.last_read_at));
 
-  const counts = await Promise.all(
-    channels.map(async (c) => {
-      const since = lastReadByChannel.get(c.id);
-      let q = sb
-        .from("chat_messages")
-        .select("id", { count: "exact", head: true })
-        .eq("channel_id", c.id)
-        .neq("autor_id", userId);
-      if (since) q = q.gt("created_at", since);
-      const { count } = await q;
-      return count ?? 0;
-    }),
-  );
+  // 3. Última mensagem por canal (busca top N e agrupa em memória)
+  const { data: lastMsgs } = await sb
+    .from("chat_messages")
+    .select("id, channel_id, autor_id, conteudo, created_at, autor:profiles!autor_id(nome)")
+    .in("channel_id", channelIds)
+    .order("created_at", { ascending: false })
+    .limit(channelIds.length * 5);
+  type LastMsgRow = {
+    id: string;
+    channel_id: string;
+    autor_id: string;
+    conteudo: string;
+    created_at: string;
+    autor: { nome: string } | null;
+  };
+  const firstByChannel = new Map<string, LastMsgRow>();
+  ((lastMsgs ?? []) as LastMsgRow[]).forEach((m) => {
+    if (!firstByChannel.has(m.channel_id)) firstByChannel.set(m.channel_id, m);
+  });
 
-  return channels.map((c, i) => ({ ...c, unread_count: counts[i] ?? 0 }));
+  // 4. Unread por canal (count msgs > last_read_at, exceto autor)
+  const unreadByChannel = new Map<string, number>();
+  for (const cid of channelIds) {
+    const lastRead = readMap.get(cid);
+    if (!lastRead) {
+      const last = firstByChannel.get(cid);
+      unreadByChannel.set(cid, last && last.autor_id !== userId ? 1 : 0);
+      continue;
+    }
+    const { count } = await sb
+      .from("chat_messages")
+      .select("id", { count: "exact", head: true })
+      .eq("channel_id", cid)
+      .gt("created_at", lastRead)
+      .neq("autor_id", userId);
+    unreadByChannel.set(cid, count ?? 0);
+  }
+
+  // 5. Pra DMs, busca nome+avatar do "outro" user
+  const dmOtherIds = allChannels
+    .filter((c) => c.kind === "direct")
+    .map((c) => (c.member_ids ?? []).find((id) => id !== userId) ?? null)
+    .filter((id): id is string => id !== null);
+
+  const otherProfiles = new Map<string, { id: string; nome: string; avatar_url: string | null }>();
+  if (dmOtherIds.length > 0) {
+    const { data: profs } = await sb
+      .from("profiles")
+      .select("id, nome, avatar_url")
+      .in("id", dmOtherIds);
+    ((profs ?? []) as Array<{ id: string; nome: string; avatar_url: string | null }>)
+      .forEach((p) => otherProfiles.set(p.id, p));
+  }
+
+  // 6. Monta o resultado
+  const out: ChannelWithUnread[] = allChannels.map((c) => {
+    const last = firstByChannel.get(c.id) ?? null;
+    let dmOther: ChannelDmOther | null = null;
+    if (c.kind === "direct") {
+      const otherId = (c.member_ids ?? []).find((id) => id !== userId);
+      if (otherId) {
+        const p = otherProfiles.get(otherId);
+        dmOther = p
+          ? { id: p.id, nome: p.nome, avatar_url: p.avatar_url }
+          : { id: otherId, nome: "Usuário removido", avatar_url: null };
+      }
+    }
+    return {
+      ...c,
+      unread_count: unreadByChannel.get(c.id) ?? 0,
+      last_message_at: last?.created_at ?? null,
+      last_message: last
+        ? {
+            autor_id: last.autor_id,
+            autor_nome: last.autor?.nome ?? "—",
+            conteudo: last.conteudo,
+            created_at: last.created_at,
+          }
+        : null,
+      dm_other: dmOther,
+    };
+  });
+
+  // 7. Ordena por last_message_at DESC, NULL no final pela ordem do canal
+  out.sort((a, b) => {
+    if (a.last_message_at && b.last_message_at) {
+      return a.last_message_at < b.last_message_at ? 1 : -1;
+    }
+    if (a.last_message_at) return -1;
+    if (b.last_message_at) return 1;
+    return a.ordem - b.ordem;
+  });
+
+  return out;
 }
 
 /**
