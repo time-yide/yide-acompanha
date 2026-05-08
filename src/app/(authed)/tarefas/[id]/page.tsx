@@ -16,6 +16,7 @@ import { ApprovalCard } from "@/components/tarefas/ApprovalCard";
 import { RevisionsTimeline } from "@/components/tarefas/RevisionsTimeline";
 import { CommentsPanel } from "@/components/tarefas/CommentsPanel";
 import { TaskRealtimeWatcher } from "@/components/tarefas/TaskRealtimeWatcher";
+import { Linkify } from "@/lib/utils/linkify";
 
 function isPrivileged(user: CurrentUser): boolean {
   return user.role === "adm" || user.role === "socio";
@@ -156,7 +157,7 @@ export default async function TarefaPage({
             <div className="space-y-2">
               <h2 className="text-xl font-semibold leading-tight">{task.titulo}</h2>
               {task.descricao ? (
-                <p className="whitespace-pre-wrap text-sm text-muted-foreground">{task.descricao}</p>
+                <p className="whitespace-pre-wrap text-sm text-muted-foreground"><Linkify text={task.descricao} /></p>
               ) : (
                 <p className="text-sm italic text-muted-foreground">Sem descrição.</p>
               )}
