@@ -1450,6 +1450,8 @@ export type Database = {
           created_at: string
           criado_por: string
           descricao: string | null
+          drive_link: string | null
+          entrega_observacoes: string | null
           due_date: string | null
           id: string
           prioridade: Database["public"]["Enums"]["task_priority"]
@@ -1464,6 +1466,8 @@ export type Database = {
           created_at?: string
           criado_por: string
           descricao?: string | null
+          drive_link?: string | null
+          entrega_observacoes?: string | null
           due_date?: string | null
           id?: string
           prioridade?: Database["public"]["Enums"]["task_priority"]
@@ -1478,6 +1482,8 @@ export type Database = {
           created_at?: string
           criado_por?: string
           descricao?: string | null
+          drive_link?: string | null
+          entrega_observacoes?: string | null
           due_date?: string | null
           id?: string
           prioridade?: Database["public"]["Enums"]["task_priority"]
@@ -1615,6 +1621,7 @@ export type Database = {
         | "evento_calendario_amanha"
         | "evento_calendario_30min"
         | "chat_mensagem"
+        | "task_alteracao_solicitada"
       satisfaction_color: "verde" | "amarelo" | "vermelho"
       snapshot_item_tipo:
         | "fixo"
@@ -1630,7 +1637,12 @@ export type Database = {
         | "assessores"
         | "coordenadores"
       task_priority: "alta" | "media" | "baixa"
-      task_status: "aberta" | "em_andamento" | "concluida"
+      task_status:
+        | "aberta"
+        | "em_andamento"
+        | "concluida"
+        | "alteracao"
+        | "agendado"
       theme_preference: "light" | "dark" | "system"
       tipo_ajuste_mensal: "desconto_parcial" | "gratuidade_total"
       tipo_pacote:
@@ -1851,6 +1863,7 @@ export const Constants = {
         "evento_calendario_amanha",
         "evento_calendario_30min",
         "chat_mensagem",
+        "task_alteracao_solicitada",
       ],
       satisfaction_color: ["verde", "amarelo", "vermelho"],
       snapshot_item_tipo: [
@@ -1869,7 +1882,7 @@ export const Constants = {
         "coordenadores",
       ],
       task_priority: ["alta", "media", "baixa"],
-      task_status: ["aberta", "em_andamento", "concluida"],
+      task_status: ["aberta", "em_andamento", "concluida", "alteracao", "agendado"],
       theme_preference: ["light", "dark", "system"],
       tipo_ajuste_mensal: ["desconto_parcial", "gratuidade_total"],
       tipo_pacote: [
