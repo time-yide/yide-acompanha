@@ -4,9 +4,13 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { PWARegister } from "@/components/pwa/PWARegister";
+import { IOSInstallBanner } from "@/components/pwa/IOSInstallBanner";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 
+// Ícones vêm dos arquivos em src/app/: icon.svg (favicon), apple-icon.tsx
+// (180x180), icon0.tsx (192x192), icon1.tsx (512x512). Não definir
+// `metadata.icons` aqui — sobrescreveria a convenção.
 export const metadata: Metadata = {
   title: "Yide Digital",
   description: "Sistema de acompanhamento da Yide Digital",
@@ -16,10 +20,6 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "Yide",
-  },
-  icons: {
-    icon: "/brand/logo-yide.png",
-    apple: "/brand/logo-yide.png",
   },
 };
 
@@ -41,6 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
           <Toaster richColors position="top-right" />
           <PWARegister />
+          <IOSInstallBanner />
         </ThemeProvider>
       </body>
     </html>

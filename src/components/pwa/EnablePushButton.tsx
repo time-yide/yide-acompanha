@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bell, BellOff } from "lucide-react";
+import { Bell, BellOff, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { subscribePushAction, unsubscribePushAction } from "@/lib/push/actions";
+import { subscribePushAction, unsubscribePushAction, sendTestPushAction } from "@/lib/push/actions";
 
 interface Props {
   vapidPublicKey: string;
@@ -127,12 +127,34 @@ export function EnablePushButton({ vapidPublicKey }: Props) {
     return <Button variant="outline" disabled>Carregando...</Button>;
   }
 
+  async function handleTest() {
+    setPending(true);
+    try {
+      const r = await sendTestPushAction();
+      if (r.error) {
+        toast.error(r.error);
+        return;
+      }
+      toast.success("Notificação enviada — confira o sininho do iPhone/Mac");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao enviar teste");
+    } finally {
+      setPending(false);
+    }
+  }
+
   if (subscribed) {
     return (
-      <Button type="button" variant="outline" onClick={handleDisable} disabled={pending}>
-        <BellOff className="mr-1.5 h-4 w-4" />
-        {pending ? "Desativando..." : "Desativar notificações neste dispositivo"}
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" onClick={handleTest} disabled={pending}>
+          <Send className="mr-1.5 h-4 w-4" />
+          {pending ? "Enviando..." : "Enviar notificação de teste"}
+        </Button>
+        <Button type="button" variant="outline" onClick={handleDisable} disabled={pending}>
+          <BellOff className="mr-1.5 h-4 w-4" />
+          Desativar neste dispositivo
+        </Button>
+      </div>
     );
   }
 

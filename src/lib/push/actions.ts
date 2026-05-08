@@ -3,6 +3,8 @@
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/auth/session";
+import { getServerEnv } from "@/lib/env";
+import { sendWebPushToUser } from "./server";
 
 type ActionResult = { error?: string; success?: boolean };
 
@@ -41,6 +43,40 @@ export async function subscribePushAction(formData: FormData): Promise<ActionRes
     { onConflict: "user_id,endpoint" },
   );
   if (error) return { error: error.message };
+  return { success: true };
+}
+
+/**
+ * Dispara um web push de teste pro próprio usuário. Usado pra validar
+ * end-to-end no iPhone instalado: ative push → toque "Enviar teste" →
+ * a notificação chega no SO. Falha silenciosa de cada subscription
+ * é tratada em sendWebPushToUser; aqui retornamos erro só quando a
+ * pré-condição falha (sem VAPID, sem subscription).
+ */
+export async function sendTestPushAction(): Promise<ActionResult> {
+  const actor = await requireAuth();
+  const env = getServerEnv();
+  if (!env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY || !env.VAPID_SUBJECT) {
+    return { error: "VAPID não configurado no servidor." };
+  }
+
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const { count } = await sb
+    .from("push_subscriptions")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", actor.id);
+  if (!count || count === 0) {
+    return { error: "Nenhum dispositivo inscrito. Ative as notificações primeiro." };
+  }
+
+  await sendWebPushToUser(actor.id, {
+    title: "Yide — Teste",
+    body: "Push está funcionando neste dispositivo ✓",
+    url: "/configuracoes",
+    tag: "test",
+  });
   return { success: true };
 }
 
