@@ -12,12 +12,20 @@ const serverSchema = z.object({
   CRON_SECRET: z.string().optional(),
   // Opcional: usado pelo synthesizer da satisfação. Sem isso, IA não roda mas avaliação manual continua.
   ANTHROPIC_API_KEY: z.string().optional(),
+  // Web Push (PWA): se ausentes, push é desabilitado silenciosamente.
+  // Gere com: npx web-push generate-vapid-keys
+  VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+  VAPID_SUBJECT: z.string().optional(),
 });
 
 const clientSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(20),
   NEXT_PUBLIC_APP_URL: z.string().url(),
+  // Pública VAPID — exposta ao browser pra criar Push Subscription.
+  // Sem isso, botão "Ativar notificações" fica oculto.
+  NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().optional(),
 });
 
 // Server-only environment variables (only accessible from server components/actions)
@@ -41,6 +49,7 @@ export const env = (() => {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+    NEXT_PUBLIC_VAPID_PUBLIC_KEY: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
   });
   if (!parsed.success) {
     console.error("❌ Invalid client environment variables:", parsed.error.flatten().fieldErrors);

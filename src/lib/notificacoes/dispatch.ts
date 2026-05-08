@@ -4,6 +4,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { sendEmail } from "@/lib/email/client";
 import { renderNotificationEmail } from "@/lib/email/templates/notification";
 import { getServerEnv } from "@/lib/env";
+import { sendWebPushToUser } from "@/lib/push/server";
 import type { Database } from "@/types/database";
 
 export type NotificationEvent = Database["public"]["Enums"]["notification_event"];
@@ -78,6 +79,20 @@ export async function dispatchNotification(args: DispatchArgs): Promise<void> {
         link: args.link ?? null,
       });
       if (error) console.error("[dispatch] in-app insert failed:", error.message);
+
+      // Web Push acompanha o sininho: mesma regra (in-app=true → push).
+      // Best-effort: falha não impede o resto. No-op silencioso quando
+      // VAPID não está configurado ou user não tem subscription ativa.
+      try {
+        await sendWebPushToUser(userId, {
+          title: args.titulo,
+          body: args.mensagem,
+          url: args.link ?? "/",
+          tag: args.evento_tipo,
+        });
+      } catch (e) {
+        console.error("[dispatch] web push failed:", e);
+      }
     }
 
     if (wantsEmail) {
