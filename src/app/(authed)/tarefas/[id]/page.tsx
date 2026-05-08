@@ -23,11 +23,13 @@ function isPrivileged(user: CurrentUser): boolean {
 }
 
 const STATUS_LABEL: Record<string, string> = {
-  aberta: "Aberta",
+  aberta: "A fazer",
   em_andamento: "Em andamento",
-  concluida: "Concluída",
-  em_aprovacao: "Em aprovação",
+  concluida: "Concluído Operacional",
+  em_aprovacao: "Aprovação",
+  alteracao: "Alteração",
   aprovada: "Aprovado",
+  agendado: "Agendado",
   postada: "Postado",
 };
 
