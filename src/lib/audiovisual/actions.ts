@@ -1,6 +1,7 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
+import { AUDIOVISUAL_PENDENTE_TAG } from "./queries";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/auth/session";
@@ -162,5 +163,6 @@ export async function createCapturaAction(_prev: ActionResult, formData: FormDat
 
   revalidatePath("/audiovisual");
   revalidatePath("/satisfacao");
+  revalidateTag(AUDIOVISUAL_PENDENTE_TAG, "default");
   redirect("/audiovisual?toast=entregue");
 }

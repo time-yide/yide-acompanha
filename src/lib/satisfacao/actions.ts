@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath, revalidateTag } from "next/cache";
+import { SATISFACTION_LOCK_TAG } from "./lock";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { requireAuth } from "@/lib/auth/session";
@@ -54,6 +55,7 @@ export async function setSatisfactionColorAction(formData: FormData): Promise<Ac
   // sumir assim que o último cliente da semana for preenchido.
   revalidatePath("/", "layout");
   revalidateTag("dashboard", "default");
+  revalidateTag(SATISFACTION_LOCK_TAG, "default");
   return { success: true, triggeredSynthesis };
 }
 

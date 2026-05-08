@@ -1,7 +1,11 @@
 // SERVER ONLY
+import { unstable_cache } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 const DEADLINE_HOUR_BRT = 9;
+
+export const AUDIOVISUAL_PENDENTE_TAG = "audiovisual-pendente";
 
 export interface CapturaRow {
   id: string;
@@ -54,8 +58,24 @@ function getDeadline(eventInicioIso: string): Date {
  *
  * Inclui eventos sem client_id também (mas no form o videomaker terá que escolher).
  */
+/**
+ * Cacheado pra evitar 2 queries por navegação no layout authed.
+ * Filtro explícito por userId (participantes_ids contains) preserva
+ * segurança mesmo usando service-role dentro do cache. TTL 30s é
+ * razoável (lock visual; pequena defasagem ok). Mutações em
+ * audiovisual_capturas devem revalidar AUDIOVISUAL_PENDENTE_TAG.
+ */
 export async function listPendenteParaVideomaker(userId: string): Promise<PendenteEvento[]> {
-  const supabase = await createClient();
+  const cached = unstable_cache(
+    async (uid: string) => _listPendenteParaVideomakerImpl(uid),
+    ["audiovisual-pendente-videomaker"],
+    { revalidate: 30, tags: [AUDIOVISUAL_PENDENTE_TAG] },
+  );
+  return cached(userId);
+}
+
+async function _listPendenteParaVideomakerImpl(userId: string): Promise<PendenteEvento[]> {
+  const supabase = createServiceRoleClient();
   const now = new Date();
 
   // Eventos passados onde é participante (sub_calendar='videomakers')
