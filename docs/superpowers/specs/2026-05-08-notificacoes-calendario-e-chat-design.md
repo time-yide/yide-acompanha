@@ -73,7 +73,7 @@ export async function dispatchChatNotification(message: ChatMessage): Promise<vo
 Fluxo:
 1. Busca o canal: `chat_channels` row pelo `channel_id` da mensagem (precisa: `kind`, `nome`)
 2. Resolve destinatários: query `profiles WHERE ativo=true AND id != message.user_id`, filtra com `canAccessChannel(profile.role, channel.kind)` (helper que já existe em `src/lib/escritorio/types.ts`)
-3. Detecta menções: regex `/@([a-zA-ZáéíóúâêôãõçÁÉÍÓÚÂÊÔÃÕÇ]+)/g` no `message.body`. Pra cada match, faz lookup case-insensitive contra `profiles.nome` (primeiro nome — split em espaço pega `nome.split(' ')[0]`). Match único → adiciona à lista de mencionados; ambíguo (>1 match) → ignora pra evitar falso positivo.
+3. Menções já vêm pré-resolvidas: a UI do chat já popula `chat_messages.mentioned_user_ids` (coluna existente). O dispatcher só lê esse array — sem regex no servidor.
 4. Pra cada destinatário:
    - **Mencionado:** `titulo="@você foi mencionado em #${canal.nome}"`, body=`"${autorNome}: ${trim(message.body, 100)}"`, tag=`chat-mention-${message.id}` (único, não substitui)
    - **Não mencionado:** `titulo=`#${canal.nome}`, body=mesma estrutura, tag=`chat-${channel.id}` (mesmo canal substitui)
@@ -82,7 +82,9 @@ Fluxo:
 6. Dispara `sendWebPushToUser(destinatario.id, { title, body, url, tag })` (best-effort, falha não bloqueia)
 7. Ao final, `revalidateTag('notifications', 'default')` pra refletir contador no sininho
 
-**Hook de invocação:** o server action de envio de mensagem do `/escritorio` (já existe — encontrar via grep) chama `await dispatchChatNotification(novaMessage)` antes de retornar.
+**Hook de invocação:** `sendChatMessageAction` em [`src/lib/escritorio/actions.ts`](../../../src/lib/escritorio/actions.ts) hoje dispara `dispatchNotification` com `evento_tipo: "task_assigned"` apenas pra mencionados (workaround antigo). Vamos:
+1. Remover o dispatch antigo de `task_assigned`
+2. Chamar `dispatchChatNotification(messageId)` que internamente cobre TANTO mencionados (com destaque) QUANTO usuários não-mencionados com acesso ao canal
 
 A regra `chat_mensagem` em `notification_rules` existe pro painel admin/listagem, mas o dispatcher não consulta ela em runtime — bypass intencional pra customização per-recipient.
 
@@ -129,8 +131,7 @@ VALUES
 | Cron de 5 min atrasa por instabilidade do Vercel | `reminded_30min_at` impede duplicar. Janela larga de 10 min (25-35) absorve atrasos curtos. |
 | Evento é editado e horário muda | `reminded_30min_at` permanece setado se já foi enviado. Não re-dispara. **Mitigação:** quando editar evento (server action de update), zerar `reminded_30min_at = NULL` se `inicio` mudou. |
 | Evento é deletado | Sem ação — notificação não dispara, dispatch já passou ou ainda não rodou. Notificações in-app já criadas continuam visíveis (esperado, é histórico). |
-| Mensagem mencionada por nome com espaço (`@João da Silva`) | Regex captura só `@João`. Match contra primeiro nome. Aceitável trade-off vs complexidade. |
-| Múltiplos profiles com mesmo primeiro nome | Match ambíguo → mention é ignorado (notificação vai como msg normal). Aceitável. Se virar problema, fazer mention via dropdown UI (futuro). |
+| Menção com nome composto / homônimos | Resolvido pela UI do chat (já existe — picker que retorna user_id). Servidor confia em `mentioned_user_ids`. |
 | Canal com 50+ usuários (ex: #geral) | Dispatch é serial mas push individual em Promise.all. Pra time de 30 pessoas: ~3 segundos no pior caso. Aceitável. |
 | Usuário sem device inscrito (sem ativar push) | `sendWebPushToUser` no-op silencioso, mas notificação in-app + sininho funcionam normal. |
 | Editar/deletar mensagem do chat | Sem propagação por enquanto. Notificação já enviada permanece. Aceitável (mensagens raramente são editadas). |
@@ -165,6 +166,5 @@ VALUES
 ## Não-objetivos
 
 - Não vamos suportar configuração per-organização (sistema multi-tenant fica pra depois).
-- Não vamos parsear menções com mais de uma palavra (`@João da Silva`) na primeira versão.
 - Não vamos adicionar opt-in de email pra usuários individuais — se a equipe quiser, abre PR separado.
 - Não vamos propagar edições/deleções de mensagem de chat pras notificações já enviadas (raras na prática).
