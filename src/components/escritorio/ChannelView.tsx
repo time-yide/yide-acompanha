@@ -8,6 +8,44 @@ import { useRealtimeMessages } from "@/lib/escritorio/use-realtime-messages";
 import { markChannelReadAction } from "@/lib/escritorio/actions";
 import type { Channel, ChatMessage } from "@/lib/escritorio/types";
 
+function sameDay(a: string, b: string): boolean {
+  const da = new Date(a);
+  const db = new Date(b);
+  return (
+    da.getFullYear() === db.getFullYear() &&
+    da.getMonth() === db.getMonth() &&
+    da.getDate() === db.getDate()
+  );
+}
+
+function formatDateDivider(iso: string): string {
+  const d = new Date(iso);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (
+    d.getFullYear() === today.getFullYear() &&
+    d.getMonth() === today.getMonth() &&
+    d.getDate() === today.getDate()
+  ) return "Hoje";
+  if (
+    d.getFullYear() === yesterday.getFullYear() &&
+    d.getMonth() === yesterday.getMonth() &&
+    d.getDate() === yesterday.getDate()
+  ) return "Ontem";
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: d.getFullYear() === today.getFullYear() ? undefined : "numeric" });
+}
+
+function DateDivider({ iso }: { iso: string }) {
+  return (
+    <div className="my-3 flex justify-center">
+      <span className="rounded-full bg-card border px-3 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground shadow-sm">
+        {formatDateDivider(iso)}
+      </span>
+    </div>
+  );
+}
+
 export interface CurrentUser {
   id: string;
   nome: string;
@@ -51,20 +89,27 @@ export function ChannelView({ channel, initialMessages, currentUser, mentionable
         )}
       </header>
 
-      <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-3">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto bg-muted/10 px-3 py-3 sm:px-4">
         {messages.length === 0 ? (
           <p className="py-12 text-center text-sm italic text-muted-foreground">
             Sem mensagens ainda. Comece a conversa.
           </p>
         ) : (
-          messages.map((m) => (
-            <MessageBubble
-              key={m.id}
-              message={m}
-              isMine={m.autor_id === currentUser.id}
-              onReply={() => setReplyTo(m)}
-            />
-          ))
+          messages.map((m, idx) => {
+            const prev = idx > 0 ? messages[idx - 1] : null;
+            const showDateDivider = !prev || !sameDay(prev.created_at, m.created_at);
+            return (
+              <div key={m.id}>
+                {showDateDivider && <DateDivider iso={m.created_at} />}
+                <MessageBubble
+                  message={m}
+                  isMine={m.autor_id === currentUser.id}
+                  prev={showDateDivider ? null : prev}
+                  onReply={() => setReplyTo(m)}
+                />
+              </div>
+            );
+          })
         )}
       </div>
 

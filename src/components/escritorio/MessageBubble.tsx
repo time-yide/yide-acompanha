@@ -12,35 +12,45 @@ function initials(nome: string | undefined | null): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-function avatarBg(userId: string | undefined | null): string {
-  const palette = [
-    "bg-emerald-500/30 text-emerald-700 dark:text-emerald-300",
-    "bg-sky-500/30 text-sky-700 dark:text-sky-300",
-    "bg-amber-500/30 text-amber-700 dark:text-amber-300",
-    "bg-rose-500/30 text-rose-700 dark:text-rose-300",
-    "bg-violet-500/30 text-violet-700 dark:text-violet-300",
-    "bg-teal-500/30 text-teal-700 dark:text-teal-300",
-    "bg-orange-500/30 text-orange-700 dark:text-orange-300",
-    "bg-pink-500/30 text-pink-700 dark:text-pink-300",
-  ];
-  if (!userId) return palette[0];
+const PALETTE = [
+  "bg-emerald-500/30 text-emerald-700 dark:text-emerald-300",
+  "bg-sky-500/30 text-sky-700 dark:text-sky-300",
+  "bg-amber-500/30 text-amber-700 dark:text-amber-300",
+  "bg-rose-500/30 text-rose-700 dark:text-rose-300",
+  "bg-violet-500/30 text-violet-700 dark:text-violet-300",
+  "bg-teal-500/30 text-teal-700 dark:text-teal-300",
+  "bg-orange-500/30 text-orange-700 dark:text-orange-300",
+  "bg-pink-500/30 text-pink-700 dark:text-pink-300",
+];
+
+const NAME_PALETTE = [
+  "text-emerald-600 dark:text-emerald-400",
+  "text-sky-600 dark:text-sky-400",
+  "text-amber-600 dark:text-amber-400",
+  "text-rose-600 dark:text-rose-400",
+  "text-violet-600 dark:text-violet-400",
+  "text-teal-600 dark:text-teal-400",
+  "text-orange-600 dark:text-orange-400",
+  "text-pink-600 dark:text-pink-400",
+];
+
+function paletteIndex(userId: string | undefined | null): number {
+  if (!userId) return 0;
   let hash = 0;
   for (let i = 0; i < userId.length; i++) hash = (hash * 31 + userId.charCodeAt(i)) | 0;
-  return palette[Math.abs(hash) % palette.length];
+  return Math.abs(hash) % PALETTE.length;
 }
 
-function formatTime(iso: string): string {
-  const d = new Date(iso);
-  const today = new Date();
-  const sameDay =
-    d.getFullYear() === today.getFullYear() &&
-    d.getMonth() === today.getMonth() &&
-    d.getDate() === today.getDate();
-  if (sameDay) {
-    return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-  }
-  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) +
-    " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+function avatarBg(userId: string | undefined | null): string {
+  return PALETTE[paletteIndex(userId)];
+}
+
+function nameColor(userId: string | undefined | null): string {
+  return NAME_PALETTE[paletteIndex(userId)];
+}
+
+function formatHourMinute(iso: string): string {
+  return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
 const MENTION_OR_URL = /(@[\w.\-áéíóúâêôãõçÁÉÍÓÚÂÊÔÃÕÇ]+)|(https?:\/\/[^\s]+)/g;
@@ -74,6 +84,7 @@ function renderConteudo(text: string): React.ReactNode {
 interface Props {
   message: ChatMessage;
   isMine: boolean;
+  prev?: ChatMessage | null;
   onReply: () => void;
 }
 
@@ -81,22 +92,36 @@ function isImage(url: string): boolean {
   return /\.(jpe?g|png|webp|gif)(\?|$)/i.test(url);
 }
 
-export function MessageBubble({ message, isMine, onReply }: Props) {
+function isContinuationOf(message: ChatMessage, prev: ChatMessage | null | undefined): boolean {
+  if (!prev) return false;
+  if (prev.autor_id !== message.autor_id) return false;
+  const dt = new Date(message.created_at).getTime() - new Date(prev.created_at).getTime();
+  return dt < 5 * 60 * 1000;
+}
+
+export function MessageBubble({ message, isMine, prev, onReply }: Props) {
+  const continuation = isContinuationOf(message, prev);
+
   return (
-    <div className={cn("group flex gap-2", isMine && "flex-row-reverse")}>
-      <Avatar className="h-8 w-8" title={message.autor?.nome ?? "—"}>
-        {message.autor?.avatar_url ? (
-          <AvatarImage src={message.autor.avatar_url} alt={message.autor.nome} />
-        ) : null}
-        <AvatarFallback className={cn("text-[10px] font-semibold", avatarBg(message.autor_id))}>
-          {initials(message.autor?.nome)}
-        </AvatarFallback>
-      </Avatar>
-      <div className={cn("min-w-0 max-w-[75%] space-y-0.5", isMine && "text-right")}>
-        <div className="flex flex-wrap items-baseline gap-x-2 text-[11px] text-muted-foreground">
-          <span className="font-medium text-foreground">{message.autor?.nome ?? "—"}</span>
-          <span>{formatTime(message.created_at)}</span>
-        </div>
+    <div className={cn("group flex gap-2", isMine && "flex-row-reverse", continuation ? "mt-0.5" : "mt-2")}>
+      {!isMine && !continuation && (
+        <Avatar className="h-8 w-8 mt-1" title={message.autor?.nome ?? "—"}>
+          {message.autor?.avatar_url ? (
+            <AvatarImage src={message.autor.avatar_url} alt={message.autor.nome} />
+          ) : null}
+          <AvatarFallback className={cn("text-[10px] font-semibold", avatarBg(message.autor_id))}>
+            {initials(message.autor?.nome)}
+          </AvatarFallback>
+        </Avatar>
+      )}
+      {!isMine && continuation && <div className="w-8 flex-shrink-0" />}
+
+      <div className={cn("min-w-0 max-w-[78%]", isMine && "text-right")}>
+        {!isMine && !continuation && (
+          <div className={cn("mb-0.5 px-1 text-xs font-semibold", nameColor(message.autor_id))}>
+            {message.autor?.nome ?? "—"}
+          </div>
+        )}
 
         {message.reply_to && (
           <div className="mb-1 rounded-md border-l-2 border-primary/50 bg-muted/30 px-2 py-1 text-left text-xs">
@@ -107,17 +132,21 @@ export function MessageBubble({ message, isMine, onReply }: Props) {
 
         <div
           className={cn(
-            "inline-block rounded-lg border px-3 py-2 text-sm whitespace-pre-wrap text-left",
+            "relative inline-block rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap text-left shadow-sm",
             isMine
-              ? "rounded-tr-sm border-primary/30 bg-primary/10"
-              : "rounded-tl-sm bg-muted/40",
+              ? "bg-primary/20 border border-primary/30"
+              : "bg-card border",
+            !continuation && (isMine ? "rounded-tr-sm" : "rounded-tl-sm"),
           )}
         >
-          {renderConteudo(message.conteudo)}
+          <span className="pr-12">{renderConteudo(message.conteudo)}</span>
+          <span className="ml-2 inline-flex items-baseline text-[10px] text-muted-foreground/80 align-bottom">
+            {formatHourMinute(message.created_at)}
+          </span>
         </div>
 
         {message.attachment_urls.length > 0 && (
-          <div className="flex flex-wrap gap-2 pt-1">
+          <div className={cn("flex flex-wrap gap-2 pt-1", isMine && "justify-end")}>
             {message.attachment_urls.map((url, i) => (
               <div key={i}>
                 {isImage(url) ? (
@@ -142,6 +171,7 @@ export function MessageBubble({ message, isMine, onReply }: Props) {
           </div>
         )}
       </div>
+
       <button
         type="button"
         onClick={onReply}
