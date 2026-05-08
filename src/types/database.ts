@@ -87,6 +87,7 @@ export type Database = {
           observacoes_gravacao: string | null
           organization_id: string
           participantes_ids: string[]
+          reminded_30min_at: string | null
           sub_calendar: Database["public"]["Enums"]["sub_calendar"]
           titulo: string
           updated_at: string
@@ -106,6 +107,7 @@ export type Database = {
           observacoes_gravacao?: string | null
           organization_id: string
           participantes_ids?: string[]
+          reminded_30min_at?: string | null
           sub_calendar?: Database["public"]["Enums"]["sub_calendar"]
           titulo: string
           updated_at?: string
@@ -125,6 +127,7 @@ export type Database = {
           observacoes_gravacao?: string | null
           organization_id?: string
           participantes_ids?: string[]
+          reminded_30min_at?: string | null
           sub_calendar?: Database["public"]["Enums"]["sub_calendar"]
           titulo?: string
           updated_at?: string
@@ -1609,6 +1612,9 @@ export type Database = {
         | "checklist_step_atrasada"
         | "checklist_step_concluida"
         | "recado_novo"
+        | "evento_calendario_amanha"
+        | "evento_calendario_30min"
+        | "chat_mensagem"
       satisfaction_color: "verde" | "amarelo" | "vermelho"
       snapshot_item_tipo:
         | "fixo"
@@ -1842,6 +1848,9 @@ export const Constants = {
         "checklist_step_atrasada",
         "checklist_step_concluida",
         "recado_novo",
+        "evento_calendario_amanha",
+        "evento_calendario_30min",
+        "chat_mensagem",
       ],
       satisfaction_color: ["verde", "amarelo", "vermelho"],
       snapshot_item_tipo: [
