@@ -59,7 +59,7 @@ export async function sendChatMessageAction(
   // Confirma membership antes de inserir (RLS já cobre, mas dá feedback melhor)
   const { data: channel } = await sb
     .from("chat_channels")
-    .select("id, kind, nome")
+    .select("id, kind, nome, member_ids")
     .eq("id", parsed.data.channel_id)
     .maybeSingle();
   if (!channel) return { error: "Canal não encontrado" };
@@ -95,6 +95,7 @@ export async function sendChatMessageAction(
       channelName: channel.nome,
       conteudo: parsed.data.conteudo,
       mentionedUserIds: parsed.data.mentioned_user_ids.filter((id) => id !== actor.id),
+      memberIds: channel.member_ids ?? undefined,
     });
   } catch (e) {
     console.error("[sendChatMessageAction] notification dispatch failed:", e);
