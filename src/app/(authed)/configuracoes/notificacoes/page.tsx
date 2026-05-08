@@ -22,6 +22,9 @@ const eventLabels: Record<string, string> = {
   aniversario_colaborador: "Aniversário colaborador",
   renovacao_contrato: "Renovação de contrato",
   satisfacao_pendente: "Satisfação pendente",
+  evento_calendario_amanha: "Resumo dos eventos de amanhã (18h)",
+  evento_calendario_30min: "Lembrete 30 minutos antes do evento",
+  chat_mensagem: "Mensagens no escritório virtual",
 };
 
 export default async function NotificacoesConfigPage() {
