@@ -7,7 +7,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { requireAuth } from "@/lib/auth/session";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 import { dispatchChatNotification } from "@/lib/notificacoes/dispatch-chat";
-import { canAccessChannel, type ChannelKind } from "./types";
+import { canAccessChannel, canAccessDmChannel, type Channel, type ChannelKind } from "./types";
 import { ESCRITORIO_UNREAD_TAG } from "./queries";
 
 type ActionResult = { error?: string; success?: boolean; id?: string; created_at?: string };
@@ -64,7 +64,14 @@ export async function sendChatMessageAction(
     .maybeSingle();
   if (!channel) return { error: "Canal não encontrado" };
 
-  if (!canAccessChannel(actor.role, channel.kind as ChannelKind)) {
+  // Permissão diverge por tipo de canal:
+  // - Grupos (kind != 'direct'): role-based via canAccessChannel
+  // - DMs (kind === 'direct'): user precisa estar em member_ids
+  const channelTyped = channel as Channel;
+  const allowed = channelTyped.kind === "direct"
+    ? canAccessDmChannel(channelTyped, actor.id)
+    : canAccessChannel(actor.role, channelTyped.kind as ChannelKind);
+  if (!allowed) {
     return { error: "Você não tem acesso a esse canal" };
   }
 
