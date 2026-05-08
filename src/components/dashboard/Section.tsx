@@ -9,7 +9,7 @@ interface Props {
 
 export function Section({ title, subtitle, cta, children }: Props) {
   return (
-    <section className="rounded-xl border bg-card p-4 space-y-3">
+    <section className="rounded-xl border bg-card p-3 space-y-3 sm:p-4">
       <header className="flex items-end justify-between gap-2">
         <div>
           <h2 className="text-base font-semibold tracking-tight">{title}</h2>

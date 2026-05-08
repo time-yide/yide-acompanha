@@ -18,7 +18,7 @@ export function ChartCarteiraTimeline({ data }: Props) {
   const chartData = data.map((p) => ({ mes: monthLabel(p.mes), valor: p.valorTotal }));
 
   return (
-    <div className="h-64 w-full" aria-label="Gráfico de evolução da carteira nos últimos 12 meses">
+    <div className="h-48 w-full sm:h-64" aria-label="Gráfico de evolução da carteira nos últimos 12 meses">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={chartData} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />

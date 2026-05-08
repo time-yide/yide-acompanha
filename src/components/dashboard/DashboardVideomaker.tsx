@@ -43,9 +43,9 @@ export async function DashboardVideomaker({ userId, nome }: Props) {
   const gravacoes = await getProximasGravacoes(userId, fromIso, toIso);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <header>
-        <h1 className="text-2xl font-bold tracking-tight">Olá, {primeiroNome}</h1>
+        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Olá, {primeiroNome}</h1>
         <p className="text-sm text-muted-foreground">Suas gravações e tarefas de edição.</p>
       </header>
 

@@ -16,7 +16,7 @@ function formatDeltaCount(v: number): { valor: string; direction: "up" | "down" 
 export function KpiRow({ kpis }: { kpis: KpiData }) {
   const pontuais = kpis.servicosPontuais;
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+    <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-5">
       <KpiCard
         label="Carteira ativa"
         valor={<Money value={kpis.carteiraAtiva.valor} noDecimals />}

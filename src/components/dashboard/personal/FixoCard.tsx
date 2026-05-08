@@ -18,9 +18,9 @@ async function getFixoMensal(userId: string): Promise<number> {
 export async function FixoCard({ userId }: Props) {
   const valor = await getFixoMensal(userId);
   return (
-    <div className="rounded-xl border bg-card p-5">
-      <p className="text-xs uppercase tracking-wider text-muted-foreground">Seu fixo mensal</p>
-      <p className="mt-2 text-3xl font-bold tabular-nums"><Money value={valor} /></p>
+    <div className="rounded-xl border bg-card p-3 sm:p-5">
+      <p className="text-[10px] uppercase tracking-wider text-muted-foreground sm:text-xs">Seu fixo mensal</p>
+      <p className="mt-1.5 text-xl font-bold tabular-nums sm:mt-2 sm:text-3xl"><Money value={valor} /></p>
     </div>
   );
 }
