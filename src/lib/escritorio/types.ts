@@ -5,7 +5,8 @@ export type ChannelKind =
   | "audiovisual_geral"
   | "designers"
   | "comercial"
-  | "administrativo";
+  | "administrativo"
+  | "direct";
 
 export interface Channel {
   id: string;
@@ -13,6 +14,8 @@ export interface Channel {
   nome: string;
   descricao: string | null;
   ordem: number;
+  /** Populado só quando kind === 'direct'. Array com os 2 user_ids do DM. */
+  member_ids: string[] | null;
 }
 
 export interface ChatMessage {
@@ -53,8 +56,31 @@ export const CHANNEL_KIND_TO_ROLES: Record<ChannelKind, readonly string[]> = {
   designers: ["designer", "adm", "socio"],
   comercial: ["comercial", "adm", "socio"],
   administrativo: ["adm", "socio"],
+  // 'direct' não usa role-based access — controle é via member_ids
+  // (vide canAccessDmChannel). Mantemos vazio aqui pra satisfazer o
+  // Record<ChannelKind, ...>.
+  direct: [],
 };
 
 export function canAccessChannel(role: string, kind: ChannelKind): boolean {
   return (CHANNEL_KIND_TO_ROLES[kind] as readonly string[]).includes(role);
+}
+
+/**
+ * Pra um DM (kind='direct'), retorna o ID do OUTRO membro a partir
+ * do viewer. Se viewer é o único em member_ids (autodm — bloqueado
+ * mas defensivo), retorna o próprio.
+ */
+export function dmOtherMemberId(channel: Channel, viewerId: string): string {
+  if (channel.kind !== "direct" || !channel.member_ids) return viewerId;
+  return channel.member_ids.find((id) => id !== viewerId) ?? viewerId;
+}
+
+/**
+ * Permissão pra acessar um DM channel. User precisa estar em member_ids.
+ * Não usa role — DM é per-user.
+ */
+export function canAccessDmChannel(channel: Channel, userId: string): boolean {
+  if (channel.kind !== "direct" || !channel.member_ids) return false;
+  return channel.member_ids.includes(userId);
 }
