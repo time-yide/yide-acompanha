@@ -4,7 +4,6 @@
 // diferença: visível em ~300ms vs 2s+ da versão antiga com Promise.all
 // bloqueando tudo.
 
-import dynamic from "next/dynamic";
 import {
   getKpis,
   getCarteiraTimeline,
@@ -15,23 +14,20 @@ import {
   getMesAguardandoAprovacao,
 } from "@/lib/dashboard/queries";
 import { KpiRow } from "./KpiRow";
+import { ChartCarteiraTimeline } from "./ChartCarteiraTimeline";
+import { ChartEntradaChurn } from "./ChartEntradaChurn";
 import { CarteiraPorAssessorList } from "./CarteiraPorAssessorList";
 import { RankingResumo } from "./RankingResumo";
 import { ProximosEventosList } from "./ProximosEventosList";
 import { AlertaAprovacao } from "./AlertaAprovacao";
 import { Section } from "./Section";
 
-// Charts via dynamic import: Recharts pesa ~150KB. Tirar do bundle
-// inicial faz primeiro paint mais rápido — chart loadea em paralelo
-// com o resto da página.
-const ChartCarteiraTimeline = dynamic(
-  () => import("./ChartCarteiraTimeline").then((m) => m.ChartCarteiraTimeline),
-  { ssr: false, loading: () => <ChartSkeleton /> },
-);
-const ChartEntradaChurn = dynamic(
-  () => import("./ChartEntradaChurn").then((m) => m.ChartEntradaChurn),
-  { ssr: false, loading: () => <ChartSkeleton /> },
-);
+// Charts são "use client" — Next code-splita automaticamente por rota.
+// Tentei usar next/dynamic com ssr:false pra tirar do bundle inicial,
+// mas Next 16 proíbe ssr:false em Server Components (e essa file é
+// Server). O auto-split do "use client" já dá uma melhora menor mas
+// não bloqueia o deploy. Pra reintroduzir lazy de verdade depois,
+// criar wrappers client-only que façam o dynamic ali dentro.
 
 // ----- Skeletons (base genérica, baixo custo de DOM) -----
 
