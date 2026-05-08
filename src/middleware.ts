@@ -60,5 +60,10 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon|public|.*\\.svg|.*\\.png).*)"],
+  // Exclui assets estáticos da PWA pra middleware não interceptar e
+  // corromper o Content-Type (manifest e service worker precisam ser
+  // servidos limpos, sem cookies de auth/redirect).
+  matcher: [
+    "/((?!_next/static|_next/image|favicon|public|manifest\\.webmanifest|sw\\.js|.*\\.svg|.*\\.png).*)",
+  ],
 };
