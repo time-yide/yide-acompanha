@@ -204,6 +204,13 @@ export async function updateEventAction(_prevState: ActionResult, formData: Form
     observacoes_gravacao: parsed.data.observacoes_gravacao?.trim() || null,
   };
 
+  // Se o início mudou, zera o reminder pra re-disparar o cron de 30-min antes
+  // pro novo horário. Sem isso, eventos remarcados pra mais tarde não recebem
+  // aviso pro novo timestamp.
+  if (before && (before as unknown as { inicio: string }).inicio !== parsed.data.inicio) {
+    (updatePayload as { reminded_30min_at?: string | null }).reminded_30min_at = null;
+  }
+
   const { error } = await supabase.from("calendar_events").update(updatePayload).eq("id", id);
   if (error) return { error: error.message };
 
