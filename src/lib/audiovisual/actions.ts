@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath, revalidateTag } from "next/cache";
-import { AUDIOVISUAL_PENDENTE_TAG } from "./queries";
+import { AUDIOVISUAL_PENDENTE_TAG, AUDIOVISUAL_CAPTURAS_TAG } from "./queries";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/auth/session";
@@ -162,6 +162,7 @@ export async function createCapturaAction(_prev: ActionResult, formData: FormDat
   }
 
   revalidatePath("/audiovisual");
+  revalidateTag(AUDIOVISUAL_CAPTURAS_TAG, "default");
   revalidatePath("/satisfacao");
   revalidateTag(AUDIOVISUAL_PENDENTE_TAG, "default");
   redirect("/audiovisual?toast=entregue");
@@ -286,6 +287,7 @@ export async function delegateCapturaAction(formData: FormData): Promise<Delegat
   });
 
   revalidatePath("/audiovisual");
+  revalidateTag(AUDIOVISUAL_CAPTURAS_TAG, "default");
   revalidatePath("/tarefas");
   return { success: true, taskId: createdTask.id };
 }
@@ -318,6 +320,7 @@ export async function markCapturaConcluidaAction(capturaId: string): Promise<{ e
   });
 
   revalidatePath("/audiovisual");
+  revalidateTag(AUDIOVISUAL_CAPTURAS_TAG, "default");
   return { success: true };
 }
 
@@ -345,5 +348,6 @@ export async function unmarkCapturaConcluidaAction(capturaId: string): Promise<{
   });
 
   revalidatePath("/audiovisual");
+  revalidateTag(AUDIOVISUAL_CAPTURAS_TAG, "default");
   return { success: true };
 }

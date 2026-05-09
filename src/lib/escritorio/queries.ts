@@ -80,22 +80,45 @@ async function _listChannelsWithUnreadImpl(userId: string, userRole: string): Pr
     if (!firstByChannel.has(m.channel_id)) firstByChannel.set(m.channel_id, m);
   });
 
-  // 4. Unread por canal (count msgs > last_read_at, exceto autor)
+  // 4. Unread por canal — UMA query só, agrupa em memória.
+  // Antes: loop com 1 query por canal (N queries pra N canais).
+  // Agora: busca todas as msgs novas de TODOS os canais, agrupa.
+  // Pra ter o lower bound do "newest read", usamos o min(last_read_at)
+  // como filtro grosso e refinamos por canal abaixo.
   const unreadByChannel = new Map<string, number>();
+  // Canais sem registro em chat_reads: contam 1 se tem msg de alguém ≠ user
+  // (proxy simples; precisão refinada vira após o user marcar como lido).
   for (const cid of channelIds) {
-    const lastRead = readMap.get(cid);
-    if (!lastRead) {
+    if (!readMap.has(cid)) {
       const last = firstByChannel.get(cid);
       unreadByChannel.set(cid, last && last.autor_id !== userId ? 1 : 0);
-      continue;
     }
-    const { count } = await sb
+  }
+
+  // Canais COM registro: 1 query agregada filtrando msgs > respective last_read.
+  // Como Supabase não suporta múltiplos filtros condicionais por linha, fazemos
+  // 1 query por TODOS os canais com lastRead, depois filtramos em memória.
+  const channelsWithRead = channelIds.filter((cid) => readMap.has(cid));
+  if (channelsWithRead.length > 0) {
+    const minLastRead = [...readMap.values()].sort()[0];
+    const { data: unreadMsgs } = await sb
       .from("chat_messages")
-      .select("id", { count: "exact", head: true })
-      .eq("channel_id", cid)
-      .gt("created_at", lastRead)
+      .select("channel_id, created_at, autor_id")
+      .in("channel_id", channelsWithRead)
+      .gt("created_at", minLastRead)
       .neq("autor_id", userId);
-    unreadByChannel.set(cid, count ?? 0);
+    type UnreadMsg = { channel_id: string; created_at: string; autor_id: string };
+    const counts = new Map<string, number>();
+    ((unreadMsgs ?? []) as UnreadMsg[]).forEach((m) => {
+      const lastRead = readMap.get(m.channel_id);
+      if (!lastRead) return;
+      // Refina: msg só conta se for > last_read_at do canal específico
+      if (m.created_at <= lastRead) return;
+      counts.set(m.channel_id, (counts.get(m.channel_id) ?? 0) + 1);
+    });
+    for (const cid of channelsWithRead) {
+      unreadByChannel.set(cid, counts.get(cid) ?? 0);
+    }
   }
 
   // 5. Pra DMs, busca nome+avatar do "outro" user

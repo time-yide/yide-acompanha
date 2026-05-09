@@ -1,11 +1,11 @@
 // SERVER ONLY
 import { unstable_cache } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 const DEADLINE_HOUR_BRT = 9;
 
 export const AUDIOVISUAL_PENDENTE_TAG = "audiovisual-pendente";
+export const AUDIOVISUAL_CAPTURAS_TAG = "audiovisual-capturas";
 
 // Re-export pra clientes que importavam daqui antes
 export type { CapturaRow } from "./captura-utils";
@@ -105,14 +105,32 @@ export async function countOverdueParaVideomaker(userId: string): Promise<number
 }
 
 /**
- * Lista capturas entregues. Filtros opcionais.
+ * Lista capturas entregues. Filtros opcionais. Cacheado 30s + tag
+ * pra invalidar quando alguma captação muda (criar, delegar, concluir).
  */
 export async function listCapturas(filters: {
   videomakerId?: string;
   clientId?: string;
   limit?: number;
 } = {}): Promise<CapturaRow[]> {
-  const supabase = await createClient();
+  const cached = unstable_cache(
+    async (filtersJson: string) => {
+      const f = JSON.parse(filtersJson) as { videomakerId?: string; clientId?: string; limit?: number };
+      return _listCapturasImpl(f);
+    },
+    ["audiovisual-capturas-v1"],
+    { revalidate: 30, tags: [AUDIOVISUAL_CAPTURAS_TAG] },
+  );
+  return cached(JSON.stringify(filters));
+}
+
+async function _listCapturasImpl(filters: {
+  videomakerId?: string;
+  clientId?: string;
+  limit?: number;
+}): Promise<CapturaRow[]> {
+  // Service-role pra rodar dentro de unstable_cache (sem context de cookie).
+  const supabase = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
   let query = sb
