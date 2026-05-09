@@ -14,8 +14,16 @@ interface Props {
 
 // Card minimalista: só título, cliente, quem criou, prazo. Status,
 // aprovação, anexos, participantes etc. ficam pra tela de detalhe.
-// Acento de cor exclusivamente em "atrasada" (destructive) — paleta
-// principal é preto + teal da marca.
+// Sinalização de prioridade via faixa lateral esquerda (border-l):
+// vermelho=alta, amarelo=média, cinza=baixa. Único outro acento de
+// cor é "atrasada" (destructive no texto do prazo).
+
+const PRIORITY_BORDER: Record<string, string> = {
+  alta: "border-l-4 border-l-rose-500",
+  media: "border-l-4 border-l-amber-500",
+  baixa: "border-l-4 border-l-slate-400",
+};
+
 export function TaskCard({ task, draggable = false }: Props) {
   const router = useRouter();
 
@@ -54,7 +62,8 @@ export function TaskCard({ task, draggable = false }: Props) {
       draggable={draggable}
       onDragStart={draggable ? onDragStart : undefined}
       className={cn(
-        "group rounded-lg border bg-card p-3 transition-colors hover:border-primary/40 hover:bg-card/80",
+        "group rounded-lg border bg-card p-3 transition-colors hover:bg-card/80",
+        PRIORITY_BORDER[task.prioridade] ?? "",
         "cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         draggable && "cursor-grab active:cursor-grabbing [&[draggable=true]:active]:opacity-50",
         isCompleted && "opacity-60",
