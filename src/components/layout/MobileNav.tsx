@@ -5,7 +5,8 @@ import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { Menu, Settings, X } from "lucide-react";
 import { SidebarItem } from "./SidebarItem";
-import { visibleNavItems } from "./nav-config";
+import { SidebarGroup } from "./SidebarGroup";
+import { visibleNavStructure } from "./nav-config";
 import type { Role } from "@/lib/auth/permissions";
 import type { SidebarBadges } from "./Sidebar";
 
@@ -18,7 +19,7 @@ interface Props {
 export function MobileNav({ role, nome, badges }: Props) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
-  const visible = visibleNavItems(role);
+  const visible = visibleNavStructure(role);
 
   // Fecha o drawer ao navegar. setTimeout tira o setState de dentro do
   // body do effect (passa no react-hooks/set-state-in-effect) sem mudar
@@ -86,15 +87,25 @@ export function MobileNav({ role, nome, badges }: Props) {
             </div>
 
             <nav className="flex-1 space-y-1 overflow-y-auto px-3 pb-3">
-              {visible.map((item) => (
-                <SidebarItem
-                  key={item.href}
-                  href={item.href}
-                  icon={item.icon}
-                  label={item.label}
-                  badge={item.badgeKey ? badges?.[item.badgeKey] : undefined}
-                />
-              ))}
+              {visible.map((entry) =>
+                entry.type === "link" ? (
+                  <SidebarItem
+                    key={entry.href}
+                    href={entry.href}
+                    icon={entry.icon}
+                    label={entry.label}
+                    badge={entry.badgeKey ? badges?.[entry.badgeKey] : undefined}
+                  />
+                ) : (
+                  <SidebarGroup
+                    key={entry.id}
+                    groupId={entry.id}
+                    label={entry.label}
+                    items={entry.items}
+                    badges={badges}
+                  />
+                ),
+              )}
             </nav>
 
             <div className="border-t px-3 py-3">
