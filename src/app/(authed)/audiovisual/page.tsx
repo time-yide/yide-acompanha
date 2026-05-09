@@ -16,47 +16,45 @@ export default async function AudiovisualPage() {
   if (!ROLES_QUE_VEEM.includes(user.role)) notFound();
 
   const supabase = await createClient();
-  const { data: clientesData = [] } = await supabase
-    .from("clients")
-    .select("id, nome")
-    .eq("status", "ativo")
-    .order("nome");
+  const isVideomaker = user.role === "videomaker";
+  const isAssessor = user.role === "assessor";
+  const canDelegate = ["audiovisual_chefe", "adm", "socio"].includes(user.role);
+
+  // Stage 1: queries independentes em paralelo. Pra assessor, busca também
+  // os IDs dos clientes que ele assessora — usado como filtro SQL no stage 2.
+  const meusClientesPromise = isAssessor
+    ? supabase.from("clients").select("id").eq("assessor_id", user.id).eq("status", "ativo")
+    : Promise.resolve({ data: [] as Array<{ id: string }> });
+
+  const editoresPromise = canDelegate
+    ? supabase
+        .from("profiles")
+        .select("id, nome")
+        .eq("role", "editor")
+        .eq("ativo", true)
+        .order("nome")
+        .then((r) => ((r.data ?? []) as Array<{ id: string; nome: string }>))
+    : Promise.resolve([] as Array<{ id: string; nome: string }>);
+
+  const [{ data: clientesData = [] }, pendentes, editores, meusClientesRes] = await Promise.all([
+    supabase.from("clients").select("id, nome").eq("status", "ativo").order("nome"),
+    isVideomaker ? listPendenteParaVideomaker(user.id) : Promise.resolve([]),
+    editoresPromise,
+    meusClientesPromise,
+  ]);
   const clientes = (clientesData ?? []) as Array<{ id: string; nome: string }>;
 
-  const isVideomaker = user.role === "videomaker";
-  const pendentes = isVideomaker ? await listPendenteParaVideomaker(user.id) : [];
-
-  // Pra modal de delegação: lista editores ativos + flag de permissão
-  const canDelegate = ["audiovisual_chefe", "adm", "socio"].includes(user.role);
-  const editores = canDelegate
-    ? await (async () => {
-        const { data } = await supabase
-          .from("profiles")
-          .select("id, nome")
-          .eq("role", "editor")
-          .eq("ativo", true)
-          .order("nome");
-        return ((data ?? []) as Array<{ id: string; nome: string }>);
-      })()
-    : [];
-
-  // Filtros de visualização: videomaker vê só as suas; assessor vê das clientes
-  // que assessora; demais (coord/chefe/adm/sócio) veem todas.
-  const capturas = await (async () => {
-    if (isVideomaker) return listCapturas({ videomakerId: user.id, limit: 50 });
-    if (user.role === "assessor") {
-      const { data: meusClientes } = await supabase
-        .from("clients")
-        .select("id")
-        .eq("assessor_id", user.id)
-        .eq("status", "ativo");
-      const ids = (meusClientes ?? []).map((c) => (c as { id: string }).id);
-      if (ids.length === 0) return [];
-      const all = await listCapturas({ limit: 100 });
-      return all.filter((c) => ids.includes(c.client_id));
-    }
-    return listCapturas({ limit: 100 });
-  })();
+  // Stage 2: busca capturas com filtro apropriado (depende do resultado do
+  // stage 1 só pro assessor, que precisa dos IDs dos clientes dele).
+  let capturas;
+  if (isVideomaker) {
+    capturas = await listCapturas({ videomakerId: user.id, limit: 50 });
+  } else if (isAssessor) {
+    const ids = (meusClientesRes.data ?? []).map((c) => (c as { id: string }).id);
+    capturas = ids.length === 0 ? [] : await listCapturas({ clientIds: ids, limit: 100 });
+  } else {
+    capturas = await listCapturas({ limit: 100 });
+  }
 
   const overdue = pendentes.filter((p) => p.isOverdue);
 

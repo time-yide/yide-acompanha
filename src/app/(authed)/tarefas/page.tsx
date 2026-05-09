@@ -54,10 +54,10 @@ export default async function TarefasPage({ searchParams }: { searchParams: Prom
     filters.atribuidoA = params.atribuido;
   }
 
-  const tasks = await listTasks(filters);
-
+  // Paraleliza tudo: tasks + profiles + clientes (são independentes).
   const supabase = await createClient();
-  const [{ data: profiles = [] }, { data: clientes = [] }] = await Promise.all([
+  const [tasks, { data: profiles = [] }, { data: clientes = [] }] = await Promise.all([
+    listTasks(filters),
     supabase.from("profiles").select("id, nome").eq("ativo", true).order("nome"),
     supabase.from("clients").select("id, nome").eq("status", "ativo").order("nome"),
   ]);

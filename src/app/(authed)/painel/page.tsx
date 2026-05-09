@@ -61,7 +61,23 @@ export default async function PainelPage({
   }
   // audiovisual_chefe sem filtro: vê todos.
 
-  const allChecklists = await getMonthlyChecklists(mesAtual, filter);
+  // Paraleliza checklists + assessoresOptions (não dependem entre si)
+  const supabase = await createClient();
+  const assessoresPromise = canFilterAssessor
+    ? supabase
+        .from("profiles")
+        .select("id, nome")
+        .eq("ativo", true)
+        .eq("role", "assessor")
+        .order("nome")
+        .then((r) => ((r.data ?? []) as Array<{ id: string; nome: string }>))
+    : Promise.resolve([] as Array<{ id: string; nome: string }>);
+
+  const [allChecklists, assessoresOptions] = await Promise.all([
+    getMonthlyChecklists(mesAtual, filter),
+    assessoresPromise,
+  ]);
+
   const checklists = allChecklists
     .filter((c) => tipoFiltro === "todos" || c.client_tipo_pacote === tipoFiltro)
     .filter((c) => matchesArea(c.client_tipo_pacote as TipoPacote, areaFiltro))
@@ -72,19 +88,6 @@ export default async function PainelPage({
   for (let i = 0; i < 12; i++) {
     mesesDisponiveis.push(cursor);
     cursor = previousMonthRef(cursor);
-  }
-
-  // Lista de assessores pra dropdown (só pra coord/sócio/adm)
-  let assessoresOptions: Array<{ id: string; nome: string }> = [];
-  if (canFilterAssessor) {
-    const supabase = await createClient();
-    const { data } = await supabase
-      .from("profiles")
-      .select("id, nome")
-      .eq("ativo", true)
-      .eq("role", "assessor")
-      .order("nome");
-    assessoresOptions = (data ?? []) as Array<{ id: string; nome: string }>;
   }
 
   return (
