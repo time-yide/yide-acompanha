@@ -1,11 +1,12 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/auth/session";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 import { resolveNextStep, isParallelStep, type ClienteRefs } from "./chain";
+import { PAINEL_CACHE_TAG } from "./queries";
 import type { StepKey } from "./deadlines";
 
 interface ActionOk { success: true }
@@ -130,6 +131,7 @@ export async function markStepProntoAction(formData: FormData): Promise<ActionRe
   }
 
   revalidatePath("/painel");
+  revalidateTag(PAINEL_CACHE_TAG, "default");
   return { success: true };
 }
 
@@ -163,6 +165,7 @@ export async function updateChecklistFieldAction(formData: FormData): Promise<Ac
   if (error) return { error: error.message };
 
   revalidatePath("/painel");
+  revalidateTag(PAINEL_CACHE_TAG, "default");
   return { success: true };
 }
 
@@ -202,6 +205,7 @@ export async function setGmnDataAction(formData: FormData): Promise<ActionResult
   if (error) return { error: error.message };
 
   revalidatePath("/painel");
+  revalidateTag(PAINEL_CACHE_TAG, "default");
   return { success: true };
 }
 
@@ -232,6 +236,7 @@ export async function setTpgTpmAction(formData: FormData): Promise<ActionResult>
   if (error) return { error: error.message };
 
   revalidatePath("/painel");
+  revalidateTag(PAINEL_CACHE_TAG, "default");
   return { success: true };
 }
 
@@ -261,6 +266,7 @@ export async function setMonthlyPostsAction(formData: FormData): Promise<ActionR
   if (error) return { error: error.message };
 
   revalidatePath("/painel");
+  revalidateTag(PAINEL_CACHE_TAG, "default");
   return { success: true };
 }
 
@@ -316,5 +322,6 @@ export async function delegarDesignAction(formData: FormData): Promise<ActionRes
   });
 
   revalidatePath("/painel");
+  revalidateTag(PAINEL_CACHE_TAG, "default");
   return { success: true };
 }
