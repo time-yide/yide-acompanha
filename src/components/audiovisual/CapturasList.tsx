@@ -1,8 +1,9 @@
+"use client";
+
 import { ExternalLink, Star } from "lucide-react";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
-import type { CapturaRow } from "@/lib/audiovisual/queries";
-import { avgRating } from "@/lib/audiovisual/queries";
+import { avgRating, type CapturaRow } from "@/lib/audiovisual/captura-utils";
 import { DelegarCapturaButton } from "./DelegarCapturaButton";
 
 interface Editor {
