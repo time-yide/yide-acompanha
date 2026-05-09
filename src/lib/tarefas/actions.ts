@@ -10,7 +10,6 @@ import {
   createTaskSchema,
   editTaskSchema,
   moveStatusSchema,
-  artesEntreguesSchema,
   concludeOperationalSchema,
   requestAdjustmentsSchema,
   taskCommentSchema,
@@ -32,6 +31,13 @@ type ActionResult = { error?: string } | undefined;
 
 function isPrivileged(user: CurrentUser): boolean {
   return user.role === "adm" || user.role === "socio";
+}
+
+const ROLES_QUE_ENTREGAM = ["editor", "videomaker", "designer", "audiovisual_chefe"] as const;
+type RoleQueEntrega = (typeof ROLES_QUE_ENTREGAM)[number];
+
+function isRoleQueEntrega(role: string): role is RoleQueEntrega {
+  return (ROLES_QUE_ENTREGAM as readonly string[]).includes(role);
 }
 
 async function getProfileNameAndActive(supabase: Awaited<ReturnType<typeof createClient>>, profileId: string) {
@@ -272,10 +278,7 @@ export async function updateTaskAction(_prevState: ActionResult, formData: FormD
   redirect("/tarefas?toast=atualizada");
 }
 
-export async function toggleTaskCompletionAction(
-  taskId: string,
-  artesEntregues?: number,
-) {
+export async function toggleTaskCompletionAction(taskId: string) {
   const actor = await requireAuth();
   const supabase = await createClient();
   const { data: t } = await supabase.from("tasks").select("*").eq("id", taskId).single();
@@ -290,33 +293,27 @@ export async function toggleTaskCompletionAction(
     isPrivileged(actor);
   if (!canToggle) return { error: "Sem permissão" };
 
+  // Bloqueia conclusão simples pra roles que devem usar o modal de entrega
+  // (editor/videomaker/designer/audiovisual_chefe). Defense in depth — UI
+  // dispara concludeOperationalAction via modal.
+  if (t.status !== "concluida") {
+    const { data: assignee } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", t.atribuido_a)
+      .single();
+    if (assignee && isRoleQueEntrega(assignee.role)) {
+      return { error: "Use o modal de entrega pra concluir essa tarefa" };
+    }
+  }
+
   const novoStatus = t.status === "concluida" ? "aberta" : "concluida";
   const isClosing = novoStatus === "concluida";
 
-  // Designer fechando sem ter informado quantas artes → pede prompt
-  if (isClosing && actor.role === "designer" && artesEntregues === undefined) {
-    return { requiresArtesPrompt: true };
-  }
-
-  // Valida artesEntregues quando enviado (apenas designer + fechando)
-  let artesValor: number | null = null;
-  if (isClosing && actor.role === "designer" && artesEntregues !== undefined) {
-    const parsed = artesEntreguesSchema.safeParse(artesEntregues);
-    if (!parsed.success) return { error: parsed.error.issues[0].message };
-    artesValor = parsed.data;
-  }
-
   const completed_at = isClosing ? new Date().toISOString() : null;
 
-  // Payload: só inclui artes_entregues quando designer está fechando.
-  // Reabrir ou outros roles → não toca no campo.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const tAny = t as any;
-  type TaskPatch = { status: "aberta" | "concluida"; completed_at: string | null; artes_entregues?: number | null };
+  type TaskPatch = { status: "aberta" | "concluida"; completed_at: string | null };
   const updatePayload: TaskPatch = { status: novoStatus as "aberta" | "concluida", completed_at };
-  if (isClosing && actor.role === "designer") {
-    updatePayload.artes_entregues = artesValor;
-  }
 
   const { error } = await supabase
     .from("tasks")
@@ -325,6 +322,8 @@ export async function toggleTaskCompletionAction(
     .eq("id", taskId);
   if (error) return { error: error.message };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tAny = t as any;
   await logAudit({
     entidade: "tasks",
     entidade_id: taskId,
@@ -508,7 +507,7 @@ export async function deleteTaskAction(taskId: string) {
 // Fluxo de aprovação (vídeo/arte): submit → approve / request adjustments
 // ============================================================================
 
-type ApprovalResult = { error?: string; success?: boolean; requiresArtesPrompt?: boolean };
+type ApprovalResult = { error?: string; success?: boolean };
 
 async function loadTaskForApproval(taskId: string) {
   const supabase = await createClient();
@@ -538,12 +537,11 @@ async function insertRevisao(
 /**
  * Atribuído ou participante marca a tarefa como entregue para análise.
  *
- * Se o executor for designer e a task for arte/video, exige a quantidade
- * de artes entregues no momento do envio (alimenta a métrica de
- * "Artes entregues" do dashboard). Se artesEntregues não vier, retorna
- * { requiresArtesPrompt: true } pro client abrir o modal e reenviar.
+ * A coleta de "quantas artes foram entregues" agora acontece no modal de
+ * conclusão operacional (concludeOperationalAction), não mais aqui no
+ * submit pra aprovação.
  */
-export async function submitForApprovalAction(taskId: string, artesEntregues?: number): Promise<ApprovalResult> {
+export async function submitForApprovalAction(taskId: string): Promise<ApprovalResult> {
   const actor = await requireAuth();
   const loaded = await loadTaskForApproval(taskId);
   if ("error" in loaded && loaded.error) return { error: loaded.error };
@@ -558,29 +556,13 @@ export async function submitForApprovalAction(taskId: string, artesEntregues?: n
     return { error: "Tarefa não está num estado válido para envio" };
   }
 
-  // Designer entregando arte/video: precisa informar quantas artes.
-  const isArtType = task.tipo === "arte" || task.tipo === "video";
-  if (isArtType && actor.role === "designer" && artesEntregues === undefined) {
-    return { requiresArtesPrompt: true };
-  }
-
-  // Valida quantidade quando vier
-  let artesValor: number | null | undefined = undefined;
-  if (isArtType && actor.role === "designer" && artesEntregues !== undefined) {
-    const parsed = artesEntreguesSchema.safeParse(artesEntregues);
-    if (!parsed.success) return { error: parsed.error.issues[0].message };
-    artesValor = parsed.data;
-  }
-
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
   // Move pro Kanban "Aprovação" e marca status_aprovacao=em_analise.
-  // Se designer informou artes_entregues, salva também — depois é consumido
-  // pelo dashboard quando a task entra em aprovada/postada.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const updatePayload: any = { status: "em_aprovacao", status_aprovacao: "em_analise" };
-  if (artesValor !== undefined) updatePayload.artes_entregues = artesValor;
-  const { error } = await sb.from("tasks").update(updatePayload).eq("id", taskId);
+  const { error } = await sb
+    .from("tasks")
+    .update({ status: "em_aprovacao", status_aprovacao: "em_analise" })
+    .eq("id", taskId);
   if (error) return { error: error.message };
 
   await insertRevisao(supabase, { taskId, autorId: actor.id, tipo: "envio" });
@@ -842,13 +824,6 @@ export async function addCommentAction(formData: FormData): Promise<CommentResul
 // ============================================================================
 // Conclusão operacional (entrega obrigatória)
 // ============================================================================
-
-const ROLES_QUE_ENTREGAM = ["editor", "videomaker", "designer", "audiovisual_chefe"] as const;
-type RoleQueEntrega = (typeof ROLES_QUE_ENTREGAM)[number];
-
-function isRoleQueEntrega(role: string): role is RoleQueEntrega {
-  return (ROLES_QUE_ENTREGAM as readonly string[]).includes(role);
-}
 
 /**
  * Conclui operacionalmente uma tarefa (status='concluida') E persiste os

@@ -213,7 +213,6 @@ export default async function TarefaPage({
               isExecutor={isExecutor}
               isApprover={isApprover}
               canMarkPosted={canMarkPosted}
-              userRole={user.role}
             />
           )}
 
@@ -289,7 +288,6 @@ export default async function TarefaPage({
                 <CompleteTaskButton
                   taskId={id}
                   isCompleted={task.status === "concluida"}
-                  userRole={user.role}
                   size="lg"
                 />
               </div>
