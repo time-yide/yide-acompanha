@@ -670,10 +670,10 @@ export async function requestAdjustmentsAction(formData: FormData): Promise<Appr
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
-  // Volta pro Kanban "Em andamento" pra equipe trabalhar nos ajustes
+  // Move pro Kanban "Alteração" pra equipe trabalhar nos ajustes
   const { error } = await sb
     .from("tasks")
-    .update({ status: "em_andamento", status_aprovacao: "ajustes_solicitados" })
+    .update({ status: "alteracao", status_aprovacao: "ajustes_solicitados" })
     .eq("id", parsed.data.id);
   if (error) return { error: error.message };
 
@@ -697,6 +697,17 @@ export async function requestAdjustmentsAction(formData: FormData): Promise<Appr
       source_user_id: actor.id,
     });
   }
+
+  // Notifica o responsável que a tarefa precisa de ajustes. Mandatory por
+  // design — usuário não pode perder isso.
+  await dispatchNotification({
+    evento_tipo: "task_alteracao_solicitada",
+    titulo: `Ajustes solicitados: ${task.titulo}`,
+    mensagem: parsed.data.observacoes.slice(0, 200),
+    link: `/tarefas/${parsed.data.id}`,
+    user_ids_extras: [task.atribuido_a],
+    source_user_id: actor.id,
+  });
 
   revalidatePath(`/tarefas/${parsed.data.id}`);
   revalidatePath("/tarefas");
