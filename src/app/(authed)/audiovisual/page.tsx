@@ -5,7 +5,7 @@ import { requireAuth } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { listCapturas, listPendenteParaVideomaker } from "@/lib/audiovisual/queries";
 import { CapturaForm } from "@/components/audiovisual/CapturaForm";
-import { CapturasList } from "@/components/audiovisual/CapturasList";
+import { CapturasOrganizadas } from "@/components/audiovisual/CapturasOrganizadas";
 import { AudiovisualToastFlash } from "@/components/audiovisual/AudiovisualToastFlash";
 import { Card } from "@/components/ui/card";
 
@@ -117,12 +117,12 @@ export default async function AudiovisualPage() {
         <CapturaForm clientes={clientes} pendentes={pendentes} />
       )}
 
-      <section className="space-y-3">
+      <section className="space-y-4">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/80">
           {isVideomaker ? "Minhas captações" : "Captações da equipe"}
           <span className="ml-1 text-xs font-normal text-muted-foreground">({capturas.length})</span>
         </h2>
-        <CapturasList
+        <CapturasOrganizadas
           capturas={capturas}
           showVideomaker={!isVideomaker}
           editores={editores}
