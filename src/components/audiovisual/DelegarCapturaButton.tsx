@@ -3,13 +3,14 @@
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, CheckCircle2, Clock, RotateCcw, UserPlus } from "lucide-react";
+import { Check, RotateCcw, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { delegateCapturaAction, markCapturaConcluidaAction, unmarkCapturaConcluidaAction } from "@/lib/audiovisual/actions";
+import { cn } from "@/lib/utils";
 
 interface Editor {
   id: string;
@@ -18,14 +19,28 @@ interface Editor {
 
 interface Props {
   capturaId: string;
-  /** Se já delegada, dados básicos pra mostrar status. Se null, mostra botão "Delegar". */
   delegated: { taskId: string; editorNome: string | null } | null;
-  /** Se está marcada como concluída (timestamp). NULL se ainda em fluxo. */
   concluidaEm: string | null;
-  /** Lista de editores ativos (passada do server). Vazia = botão fica desabled. */
   editores: Editor[];
-  /** Se o user logado pode delegar (role check feito no server). */
   canDelegate: boolean;
+}
+
+/**
+ * Badge minimalista: dot colorido + texto uppercase + cor de texto sutil.
+ * Estilo Linear/Notion — comunica status sem o peso visual de um pill colorido.
+ */
+function StatusBadge({ tone, children }: { tone: "amber" | "sky" | "emerald"; children: React.ReactNode }) {
+  const dotColor = {
+    amber: "bg-amber-500",
+    sky: "bg-sky-500",
+    emerald: "bg-emerald-500",
+  }[tone];
+  return (
+    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+      <span className={cn("h-1.5 w-1.5 rounded-full", dotColor)} />
+      {children}
+    </span>
+  );
 }
 
 export function DelegarCapturaButton({ capturaId, delegated, concluidaEm, editores, canDelegate }: Props) {
@@ -64,17 +79,23 @@ export function DelegarCapturaButton({ capturaId, delegated, concluidaEm, editor
     });
   }
 
-  // Se concluída manualmente, esse status tem prioridade visual
+  const renderActions = (children: React.ReactNode) => (
+    <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center gap-2">{children}</div>
+    </div>
+  );
+
+  // Concluído: status verde + opcional referência ao delegado + botão desmarcar
   if (concluidaEm) {
-    return (
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
-          <CheckCircle2 className="h-3 w-3" />
-          Concluído
-        </span>
+    return renderActions(
+      <>
+        <StatusBadge tone="emerald">Concluído</StatusBadge>
         {delegated && (
-          <Link href={`/tarefas/${delegated.taskId}`} className="text-xs text-muted-foreground hover:underline">
-            (delegado a {delegated.editorNome ?? "—"})
+          <Link
+            href={`/tarefas/${delegated.taskId}`}
+            className="text-[11px] text-muted-foreground hover:text-foreground hover:underline"
+          >
+            delegado a {delegated.editorNome ?? "—"}
           </Link>
         )}
         {canDelegate && (
@@ -84,29 +105,28 @@ export function DelegarCapturaButton({ capturaId, delegated, concluidaEm, editor
             size="sm"
             onClick={handleDesmarcar}
             disabled={pending}
-            className="h-6 px-2 text-xs text-muted-foreground"
+            className="h-7 px-2 text-xs text-muted-foreground"
           >
             <RotateCcw className="mr-1 h-3 w-3" />
             Desmarcar
           </Button>
         )}
-      </div>
+      </>,
     );
   }
 
-  // Se já delegada, mostra status + link pra task + botão "Concluir"
+  // Delegado: status azul + link pra task + botão concluir
   if (delegated) {
-    return (
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className="inline-flex items-center gap-1 rounded-md border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-xs font-medium text-sky-700 dark:text-sky-400">
-          <UserPlus className="h-3 w-3" />
-          Delegado{delegated.editorNome ? ` a ${delegated.editorNome}` : ""}
-        </span>
+    return renderActions(
+      <>
+        <StatusBadge tone="sky">
+          Delegado{delegated.editorNome ? ` · ${delegated.editorNome}` : ""}
+        </StatusBadge>
         <Link
           href={`/tarefas/${delegated.taskId}`}
-          className="text-xs text-primary hover:underline"
+          className="text-[11px] text-primary hover:underline"
         >
-          ver tarefa →
+          ver tarefa
         </Link>
         {canDelegate && (
           <Button
@@ -115,51 +135,50 @@ export function DelegarCapturaButton({ capturaId, delegated, concluidaEm, editor
             size="sm"
             onClick={handleConcluir}
             disabled={pending}
-            className="h-6 px-2 text-xs text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400"
+            className="h-7 px-2 text-xs text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400"
           >
             <Check className="mr-1 h-3 w-3" />
             Concluir
           </Button>
         )}
-      </div>
+      </>,
     );
   }
 
-  // Não delegada: mostra status pendente. Se canDelegate, mostra Delegar + Concluir.
+  // Pendente: status amarelo + botões delegar e concluir (se tem permissão)
   return (
     <>
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">
-          <Clock className="h-3 w-3" />
-          Pendente de delegação
-        </span>
-        {canDelegate && (
-          <>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setOpen(true)}
-              disabled={pending}
-              className="h-6 px-2 text-xs"
-            >
-              <UserPlus className="mr-1 h-3 w-3" />
-              Delegar
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={handleConcluir}
-              disabled={pending}
-              className="h-6 px-2 text-xs text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400"
-            >
-              <Check className="mr-1 h-3 w-3" />
-              Concluir
-            </Button>
-          </>
-        )}
-      </div>
+      {renderActions(
+        <>
+          <StatusBadge tone="amber">Pendente</StatusBadge>
+          {canDelegate && (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setOpen(true)}
+                disabled={pending}
+                className="h-7 px-2.5 text-xs"
+              >
+                <UserPlus className="mr-1 h-3 w-3" />
+                Delegar
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleConcluir}
+                disabled={pending}
+                className="h-7 px-2 text-xs text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400"
+              >
+                <Check className="mr-1 h-3 w-3" />
+                Concluir
+              </Button>
+            </>
+          )}
+        </>,
+      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">
