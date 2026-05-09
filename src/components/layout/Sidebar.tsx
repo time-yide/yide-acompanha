@@ -3,7 +3,8 @@
 import { Settings } from "lucide-react";
 import Image from "next/image";
 import { SidebarItem } from "./SidebarItem";
-import { visibleNavItems } from "./nav-config";
+import { SidebarGroup } from "./SidebarGroup";
+import { visibleNavStructure } from "./nav-config";
 import type { Role } from "@/lib/auth/permissions";
 
 export interface SidebarBadges {
@@ -12,7 +13,7 @@ export interface SidebarBadges {
 }
 
 export function Sidebar({ role, nome, badges }: { role: Role; nome: string; badges?: SidebarBadges }) {
-  const visible = visibleNavItems(role);
+  const visible = visibleNavStructure(role);
 
   return (
     <aside data-role="sidebar" className="hidden w-[210px] flex-col border-r bg-card md:flex">
@@ -28,16 +29,26 @@ export function Sidebar({ role, nome, badges }: { role: Role; nome: string; badg
         />
       </div>
 
-      <nav className="flex-1 space-y-1 px-3">
-        {visible.map((item) => (
-          <SidebarItem
-            key={item.href}
-            href={item.href}
-            icon={item.icon}
-            label={item.label}
-            badge={item.badgeKey ? badges?.[item.badgeKey] : undefined}
-          />
-        ))}
+      <nav className="flex-1 space-y-1 overflow-y-auto px-3 pb-2">
+        {visible.map((entry) =>
+          entry.type === "link" ? (
+            <SidebarItem
+              key={entry.href}
+              href={entry.href}
+              icon={entry.icon}
+              label={entry.label}
+              badge={entry.badgeKey ? badges?.[entry.badgeKey] : undefined}
+            />
+          ) : (
+            <SidebarGroup
+              key={entry.id}
+              groupId={entry.id}
+              label={entry.label}
+              items={entry.items}
+              badges={badges}
+            />
+          ),
+        )}
       </nav>
 
       <div className="border-t px-3 py-3">
