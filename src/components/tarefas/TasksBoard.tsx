@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
+import { toast } from "sonner";
 import { TasksColumn } from "./TasksColumn";
 import { ConcludeOperationalModal } from "./ConcludeOperationalModal";
 import { moveTaskStatusAction } from "@/lib/tarefas/actions";
@@ -53,6 +54,17 @@ export function TasksBoard({ tasks, userRole }: { tasks: TaskRow[]; userRole: st
 
   function handleDrop(taskId: string, _fromStatus: Status, toStatus: Status) {
     setError(null);
+
+    // Pra mover pra "alteracao" o usuário precisa preencher o pedido de
+    // ajustes (texto + imagens) — drag-drop não traz esse contexto.
+    // Direciona pra tela de detalhe onde tá o botão "Pedir ajustes".
+    if (toStatus === "alteracao") {
+      toast.error("Use 'Pedir ajustes' na tarefa pra mover pra alteração", {
+        description: "É obrigatório descrever o que precisa ser ajustado.",
+      });
+      router.push(`/tarefas/${taskId}`);
+      return;
+    }
 
     if (toStatus === "concluida") {
       const task = tasks.find((t) => t.id === taskId);

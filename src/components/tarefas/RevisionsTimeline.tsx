@@ -73,6 +73,22 @@ export function RevisionsTimeline({ revisoes }: Props) {
                     {r.observacoes}
                   </div>
                 )}
+                {(r.attachment_urls?.length ?? 0) > 0 && (
+                  <div className="grid grid-cols-3 gap-1.5 pt-1 sm:grid-cols-4">
+                    {r.attachment_urls.map((url) => (
+                      <a
+                        key={url}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block aspect-square overflow-hidden rounded-md border bg-muted"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={url} alt="anexo do pedido" className="h-full w-full object-cover hover:scale-105 transition-transform" />
+                      </a>
+                    ))}
+                  </div>
+                )}
               </div>
             </li>
           );

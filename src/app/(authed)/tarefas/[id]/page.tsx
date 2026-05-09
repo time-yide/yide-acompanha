@@ -13,6 +13,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CompleteTaskButton } from "@/components/tarefas/CompleteTaskButton";
 import { ApprovalCard } from "@/components/tarefas/ApprovalCard";
+import { AlteracaoBanner } from "@/components/tarefas/AlteracaoBanner";
 import { RevisionsTimeline } from "@/components/tarefas/RevisionsTimeline";
 import { CommentsPanel } from "@/components/tarefas/CommentsPanel";
 import { TaskRealtimeWatcher } from "@/components/tarefas/TaskRealtimeWatcher";
@@ -201,6 +202,15 @@ export default async function TarefaPage({
               )}
             </div>
           </Card>
+
+          {/* Banner DESTACADO quando status=alteracao — mostra o último pedido
+              de ajustes (texto + imagens) no topo, antes do card de aprovação.
+              `revisoes` vem ordenado desc por criado_em, então [0] é o mais recente. */}
+          {task.status === "alteracao" &&
+            (() => {
+              const lastAjustes = revisoes.find((r) => r.tipo === "ajustes");
+              return lastAjustes ? <AlteracaoBanner revisao={lastAjustes} /> : null;
+            })()}
 
           {isApprovalTask && task.status_aprovacao && (
             <ApprovalCard
