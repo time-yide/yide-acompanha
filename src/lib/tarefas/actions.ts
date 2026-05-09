@@ -391,6 +391,16 @@ export async function moveTaskStatusAction(formData: FormData) {
     return { success: true as const };
   }
 
+  // Guard: pra mover pra "alteracao" o usuário precisa preencher o pedido
+  // de ajustes (texto + imagens opcionais) via diálogo. Drag-drop no Kanban
+  // não traz esse contexto então é bloqueado aqui.
+  if (parsed.data.to_status === "alteracao") {
+    return {
+      error:
+        "Pra mover pra alteração, abra a tarefa e use 'Pedir ajustes' (texto obrigatório).",
+    };
+  }
+
   // Guard: tarefas atribuídas a editor/videomaker/designer/audiovisual_chefe
   // devem usar concludeOperationalAction (com modal) pra ir pra "concluida".
   // Esse path serve de defense in depth caso o client burle.
@@ -524,13 +534,20 @@ async function loadTaskForApproval(taskId: string) {
 async function insertRevisao(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
-  args: { taskId: string; autorId: string; tipo: "envio" | "aprovacao" | "ajustes"; observacoes?: string | null },
+  args: {
+    taskId: string;
+    autorId: string;
+    tipo: "envio" | "aprovacao" | "ajustes";
+    observacoes?: string | null;
+    attachmentUrls?: string[];
+  },
 ) {
   await supabase.from("task_revisoes").insert({
     task_id: args.taskId,
     autor_id: args.autorId,
     tipo: args.tipo,
     observacoes: args.observacoes ?? null,
+    attachment_urls: args.attachmentUrls ?? [],
   });
 }
 
@@ -633,9 +650,21 @@ export async function approveTaskAction(taskId: string): Promise<ApprovalResult>
 export async function requestAdjustmentsAction(formData: FormData): Promise<ApprovalResult> {
   const actor = await requireAuth();
 
+  const rawAttachments = fd(formData, "attachment_urls");
+  let parsedAttachments: string[] = [];
+  if (rawAttachments) {
+    try {
+      const j = JSON.parse(rawAttachments);
+      if (Array.isArray(j)) parsedAttachments = j.filter((u): u is string => typeof u === "string");
+    } catch {
+      return { error: "Anexos inválidos" };
+    }
+  }
+
   const parsed = requestAdjustmentsSchema.safeParse({
     id: fd(formData, "id"),
     observacoes: fd(formData, "observacoes"),
+    attachment_urls: parsedAttachments,
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
@@ -664,6 +693,7 @@ export async function requestAdjustmentsAction(formData: FormData): Promise<Appr
     autorId: actor.id,
     tipo: "ajustes",
     observacoes: parsed.data.observacoes,
+    attachmentUrls: parsed.data.attachment_urls,
   });
 
   const recipients = [task.atribuido_a, ...(task.participantes_ids ?? [])].filter(

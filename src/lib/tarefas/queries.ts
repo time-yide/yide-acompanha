@@ -57,6 +57,8 @@ export interface TaskRevisao {
   autor_id: string;
   tipo: TaskRevisaoTipo;
   observacoes: string | null;
+  /** Imagens anexadas ao pedido de ajustes (URLs públicas). */
+  attachment_urls: string[];
   criado_em: string;
   autor?: { id?: string; nome: string } | null;
 }
@@ -227,7 +229,7 @@ export async function listTaskRevisoes(taskId: string): Promise<TaskRevisao[]> {
   const { data, error } = await sb
     .from("task_revisoes")
     .select(`
-      id, task_id, autor_id, tipo, observacoes, criado_em,
+      id, task_id, autor_id, tipo, observacoes, attachment_urls, criado_em,
       autor:profiles!task_revisoes_autor_id_fkey(id, nome)
     `)
     .eq("task_id", taskId)

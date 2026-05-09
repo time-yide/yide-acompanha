@@ -1,7 +1,16 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { CheckCircle2, Clock, Send, AlertTriangle, RefreshCw, Megaphone } from "lucide-react";
+import { useRef, useState, useTransition } from "react";
+import {
+  CheckCircle2,
+  Clock,
+  Send,
+  AlertTriangle,
+  RefreshCw,
+  Megaphone,
+  ImagePlus,
+  X as XIcon,
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,6 +31,10 @@ import {
   requestAdjustmentsAction,
   markAsPostedAction,
 } from "@/lib/tarefas/actions";
+import {
+  uploadTaskAttachmentAction,
+  removeTaskAttachmentAction,
+} from "@/lib/tarefas/upload-actions";
 import type { TaskAprovacao, TaskFormato, TaskStatus } from "@/lib/tarefas/queries";
 
 const APPROVED_STALE_HOURS = 24;
@@ -79,6 +92,10 @@ export function ApprovalCard({
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [observacoes, setObservacoes] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [attachments, setAttachments] = useState<string[]>([]);
+  const [uploading, startUpload] = useTransition();
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const meta = STATUS_META[statusAprovacao];
   const StatusIcon = meta.icon;
@@ -147,6 +164,7 @@ export function ApprovalCard({
       const fd = new FormData();
       fd.set("id", taskId);
       fd.set("observacoes", observacoes);
+      fd.set("attachment_urls", JSON.stringify(attachments));
       const r = await requestAdjustmentsAction(fd);
       if (r?.error) {
         setError(r.error);
@@ -156,7 +174,38 @@ export function ApprovalCard({
       toast.success("Ajustes solicitados");
       setAdjustOpen(false);
       setObservacoes("");
+      setAttachments([]);
+      setUploadError(null);
     });
+  }
+
+  function onUploadFiles(e: React.ChangeEvent<HTMLInputElement>) {
+    setUploadError(null);
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
+    e.target.value = ""; // reset pra dá upload do mesmo arquivo de novo
+    if (attachments.length + files.length > 5) {
+      setUploadError("Máx. 5 imagens por pedido de ajustes");
+      return;
+    }
+    startUpload(async () => {
+      for (const file of files) {
+        const formData = new FormData();
+        formData.set("file", file);
+        const r = await uploadTaskAttachmentAction(taskId, formData);
+        if ("error" in r) {
+          setUploadError(r.error);
+          break;
+        }
+        setAttachments((prev) => [...prev, r.url]);
+      }
+    });
+  }
+
+  async function onRemoveAttachment(url: string) {
+    setAttachments((prev) => prev.filter((u) => u !== url));
+    // best-effort: ignora erro de delete (URL pode permanecer órfã no bucket)
+    await removeTaskAttachmentAction(url).catch(() => null);
   }
 
   const tipoLabel = tipo === "video" ? "Vídeo" : "Arte";
@@ -273,7 +322,9 @@ export function ApprovalCard({
           </DialogHeader>
           <form onSubmit={handleRequestAdjustments} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="observacoes">Observações</Label>
+              <Label htmlFor="observacoes">
+                O que precisa ser ajustado <span className="text-destructive">*</span>
+              </Label>
               <Textarea
                 id="observacoes"
                 value={observacoes}
@@ -286,11 +337,63 @@ export function ApprovalCard({
               />
               {error && <p className="text-xs text-destructive">{error}</p>}
             </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Imagens (opcional)</Label>
+                <span className="text-[11px] text-muted-foreground">
+                  {attachments.length}/5
+                </span>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Print da tela, screenshot com seta, referência visual. JPG/PNG/WebP/GIF até 5MB.
+              </p>
+
+              {attachments.length > 0 && (
+                <div className="grid grid-cols-3 gap-2">
+                  {attachments.map((url) => (
+                    <div key={url} className="group relative aspect-square overflow-hidden rounded-md border bg-muted">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={url} alt="anexo" className="h-full w-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => onRemoveAttachment(url)}
+                        aria-label="Remover imagem"
+                        className="absolute right-1 top-1 rounded-full bg-black/60 p-0.5 text-white opacity-0 transition-opacity hover:bg-black/80 group-hover:opacity-100"
+                      >
+                        <XIcon className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                multiple
+                onChange={onUploadFiles}
+                className="hidden"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={uploading || attachments.length >= 5}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <ImagePlus className="mr-1.5 h-3.5 w-3.5" />
+                {uploading ? "Enviando..." : "Anexar imagem"}
+              </Button>
+              {uploadError && <p className="text-xs text-destructive">{uploadError}</p>}
+            </div>
+
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setAdjustOpen(false)} disabled={pending}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={pending}>
+              <Button type="submit" disabled={pending || uploading}>
                 {pending ? "Enviando..." : "Enviar pedido de ajustes"}
               </Button>
             </DialogFooter>

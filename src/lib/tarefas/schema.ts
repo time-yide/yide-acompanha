@@ -81,6 +81,10 @@ export const requestAdjustmentsSchema = z.object({
     .trim()
     .min(3, "Descreva os ajustes (mín. 3 caracteres)")
     .max(2000, "Texto muito longo (máx. 2000)"),
+  attachment_urls: z
+    .array(z.string().url())
+    .max(5, "Máx. 5 imagens por pedido de ajustes")
+    .default([]),
 });
 
 export const taskCommentSchema = z.object({
