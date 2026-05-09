@@ -17,7 +17,9 @@ export type TaskStatus =
   | "em_andamento"
   | "concluida"
   | "em_aprovacao"
+  | "alteracao"
   | "aprovada"
+  | "agendado"
   | "postada";
 
 export interface TaskRow {
@@ -31,17 +33,22 @@ export interface TaskRow {
   completed_at?: string | null;
   aprovada_em?: string | null;
   client_id: string | null;
-  atribuido?: { id?: string; nome: string } | null;
+  atribuido?: { id?: string; nome: string; role?: string } | null;
   criador?: { id?: string; nome: string } | null;
   cliente?: { id: string; nome: string } | null;
   criado_por?: string;
   atribuido_a?: string;
+  /** Role do responsável — usado pelo TasksBoard pra decidir se abre modal
+   * de entrega ao mover pra "concluida". Vem do join em listTasks. */
+  atribuido_a_role?: string | null;
   participantes_ids?: string[];
   links?: TaskLink[];
   attachment_urls?: string[];
   tipo?: TaskTipo;
   formatos?: TaskFormato[];
   status_aprovacao?: TaskAprovacao | null;
+  drive_link?: string | null;
+  entrega_observacoes?: string | null;
 }
 
 export interface TaskRevisao {
@@ -121,8 +128,8 @@ async function _listTasksImpl(filters?: TaskFilters): Promise<TaskRow[]> {
     .from("tasks")
     .select(`
       id, titulo, descricao, prioridade, status, due_date, created_at, completed_at, aprovada_em, client_id, criado_por, atribuido_a,
-      participantes_ids, links, attachment_urls, tipo, formatos, status_aprovacao,
-      atribuido:profiles!tasks_atribuido_a_fkey(id, nome),
+      participantes_ids, links, attachment_urls, tipo, formatos, status_aprovacao, drive_link, entrega_observacoes,
+      atribuido:profiles!tasks_atribuido_a_fkey(id, nome, role),
       criador:profiles!tasks_criado_por_fkey(id, nome),
       cliente:clients(id, nome)
     `)
@@ -146,7 +153,13 @@ async function _listTasksImpl(filters?: TaskFilters): Promise<TaskRow[]> {
   const { data, error } = await query;
   if (error) throw error;
   // Cast via unknown — types ainda não regenerados c/ os campos novos.
-  return sortTasks((data ?? []) as unknown as TaskRow[]);
+  // Promove role do atribuido pra atribuido_a_role (campo top-level que o
+  // TasksBoard consome pra decidir se abre modal de entrega).
+  const rows = (data ?? []) as unknown as TaskRow[];
+  for (const r of rows) {
+    r.atribuido_a_role = r.atribuido?.role ?? null;
+  }
+  return sortTasks(rows);
 }
 
 export async function listTasks(filters?: TaskFilters): Promise<TaskRow[]> {
@@ -155,7 +168,8 @@ export async function listTasks(filters?: TaskFilters): Promise<TaskRow[]> {
       const f = filtersJson !== "null" ? (JSON.parse(filtersJson) as TaskFilters) : undefined;
       return _listTasksImpl(f);
     },
-    ["tarefas-list-v3"],
+    // v4: shape mudou (adicionado atribuido_a_role + drive_link + entrega_observacoes)
+    ["tarefas-list-v4"],
     { revalidate: 60, tags: ["tasks"] },
   );
   return cached(JSON.stringify(filters ?? null));
