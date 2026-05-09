@@ -392,6 +392,21 @@ export async function moveTaskStatusAction(formData: FormData) {
     return { success: true as const };
   }
 
+  // Guard: tarefas atribuídas a editor/videomaker/designer/audiovisual_chefe
+  // devem usar concludeOperationalAction (com modal) pra ir pra "concluida".
+  // Esse path serve de defense in depth caso o client burle.
+  if (parsed.data.to_status === "concluida") {
+    const { data: assignee } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", before.atribuido_a)
+      .single();
+    const ROLES = ["editor", "videomaker", "designer", "audiovisual_chefe"] as const;
+    if (assignee && (ROLES as readonly string[]).includes(assignee.role)) {
+      return { error: "Use o modal de entrega pra concluir essa tarefa" };
+    }
+  }
+
   // completed_at: stamp quando entra em "concluida" (= time terminou) ou "postada" (= publicada)
   const isDoneState = (s: string) => s === "concluida" || s === "postada";
   const completed_at =
