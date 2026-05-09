@@ -4,6 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export const PROSPECTS_CACHE_TAG = "prospects";
+/** Tag pra invalidar quando metas/comissão do profile mudam. Cache de
+ * `getMetasComercial` é taggeado com PROSPECTS (leads) + METAS (profile). */
+export const METAS_COMERCIAL_CACHE_TAG = "metas-comercial";
 
 export type ProspectStatus = "prospeccao" | "comercial" | "contrato" | "marco_zero" | "ativo" | "perdido";
 
@@ -295,14 +298,37 @@ function buildMetaItem(meta: number, realizado: number, configurada: boolean): M
   return { meta, realizado, pctMeta, status: calcStatus(pctMeta), configurada };
 }
 
+/**
+ * Cacheado 60s. Tags: prospects (invalida quando leads mudam) + metas-comercial
+ * (invalida quando profile.fixo_mensal/comissao_percent/meta_* mudam).
+ *
+ * Service-role: SELECT em profiles e leads é permissivo via "authenticated using (true)".
+ * Filtra por userId/comercial_id no SQL — segurança preservada.
+ *
+ * Cache key: monthRef vai junto pro key não confundir mês corrente com
+ * histórico (a função é chamada com `now` opcional pra cálculo histórico).
+ */
 export async function getMetasComercial(
   userId: string,
   now: Date = new Date(),
 ): Promise<MetasComercialData> {
-  const supabase = await createClient();
   const monthRef = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+  const cached = unstable_cache(
+    async (uid: string, mes: string) => _getMetasComercialImpl(uid, mes),
+    ["prospeccao-metas-comercial-v1"],
+    { revalidate: 60, tags: [PROSPECTS_CACHE_TAG, METAS_COMERCIAL_CACHE_TAG] },
+  );
+  return cached(userId, monthRef);
+}
+
+async function _getMetasComercialImpl(
+  userId: string,
+  monthRef: string,
+): Promise<MetasComercialData> {
+  const supabase = createServiceRoleClient();
   const inicioMes = `${monthRef}-01`;
-  const fimMes = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0))
+  const [yearStr, monthStr] = monthRef.split("-");
+  const fimMes = new Date(Date.UTC(Number(yearStr), Number(monthStr), 0))
     .toISOString()
     .slice(0, 10);
 

@@ -8,6 +8,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { logAudit } from "@/lib/audit/log";
 import { createColaboradorSchema, editColaboradorSchema } from "./schema";
 import { generateStrongPassword } from "@/lib/auth/password-generator";
+import { METAS_COMERCIAL_CACHE_TAG } from "@/lib/prospeccao/queries";
 
 type CreateColaboradorResult =
   | { success: true; password: string; userId: string }
@@ -99,6 +100,8 @@ export async function createColaboradorAction(
   revalidatePath("/colaboradores");
   revalidateTag("colaboradores", "default");
   revalidateTag("dashboard", "default");
+  // Pode ter setado fixo_mensal/comissao_percent → invalida cache de metas comerciais
+  revalidateTag(METAS_COMERCIAL_CACHE_TAG, "default");
   return { success: true, password, userId: created.user.id };
 }
 
@@ -187,6 +190,8 @@ export async function editColaboradorAction(formData: FormData) {
   revalidatePath("/colaboradores");
   revalidateTag("colaboradores", "default");
   revalidateTag("dashboard", "default");
+  // Pode ter mudado fixo_mensal/comissao_percent/meta_* → invalida metas comerciais
+  revalidateTag(METAS_COMERCIAL_CACHE_TAG, "default");
   redirect(`/colaboradores/${parsed.data.id}`);
 }
 

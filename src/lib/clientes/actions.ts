@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/auth/session";
 import { logAudit } from "@/lib/audit/log";
+import { PAINEL_CACHE_TAG } from "@/lib/painel/queries";
 import { createClienteSchema, editClienteSchema, churnClienteSchema, inferTipoPacote, TIPOS_RELACAO } from "./schema";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -96,6 +97,7 @@ export async function createClienteAction(formData: FormData) {
   revalidatePath("/clientes");
   revalidateTag("dashboard", "default");
   revalidateTag("clients", "default");
+  revalidateTag(PAINEL_CACHE_TAG, "default");
   redirect(`/clientes/${created.id}`);
 }
 
@@ -200,6 +202,7 @@ export async function updateClienteAction(formData: FormData) {
   revalidatePath("/clientes");
   revalidateTag("dashboard", "default");
   revalidateTag("clients", "default");
+  revalidateTag(PAINEL_CACHE_TAG, "default");
   redirect(`/clientes/${id}`);
 }
 
@@ -240,6 +243,7 @@ export async function churnClienteAction(formData: FormData) {
   revalidatePath(`/clientes/${parsed.data.id}`);
   revalidateTag("dashboard", "default");
   revalidateTag("clients", "default");
+  revalidateTag(PAINEL_CACHE_TAG, "default");
   return { success: true as const };
 }
 
@@ -268,6 +272,7 @@ export async function reactivateClienteAction(id: string) {
   revalidatePath(`/clientes/${id}`);
   revalidateTag("dashboard", "default");
   revalidateTag("clients", "default");
+  revalidateTag(PAINEL_CACHE_TAG, "default");
   return { success: "Cliente reativado" };
 }
 
@@ -338,6 +343,7 @@ export async function deleteClienteAction(formData: FormData) {
   revalidatePath("/clientes");
   revalidateTag("dashboard", "default");
   revalidateTag("clients", "default");
+  revalidateTag(PAINEL_CACHE_TAG, "default");
   redirect("/clientes");
 }
 
@@ -455,6 +461,7 @@ export async function updateClienteAssignmentAction(formData: FormData) {
   revalidatePath(`/clientes/${clienteId}`);
   revalidateTag("dashboard", "default");
   revalidateTag("clients", "default");
+  revalidateTag(PAINEL_CACHE_TAG, "default");
   return { success: true };
 }
 
@@ -568,6 +575,7 @@ export async function updateClienteFieldAction(formData: FormData) {
   revalidatePath(`/clientes/${parsed.data.cliente_id}`);
   revalidateTag("dashboard", "default");
   revalidateTag("clients", "default");
+  revalidateTag(PAINEL_CACHE_TAG, "default");
   return { success: true as const };
 }
 
@@ -649,6 +657,7 @@ export async function bulkAssignClientesAction(formData: FormData) {
   revalidatePath("/clientes");
   revalidateTag("dashboard", "default");
   revalidateTag("clients", "default");
+  revalidateTag(PAINEL_CACHE_TAG, "default");
   return { success: true, count: clienteIds.length };
 }
 
@@ -714,6 +723,7 @@ export async function setAjusteMensalAction(formData: FormData) {
   revalidatePath("/clientes");
   revalidateTag("dashboard", "default");
   revalidateTag("clients", "default");
+  revalidateTag(PAINEL_CACHE_TAG, "default");
   return { success: true };
 }
 
@@ -735,5 +745,6 @@ export async function removeAjusteMensalAction(clientId: string, mesReferencia: 
   revalidatePath("/clientes");
   revalidateTag("dashboard", "default");
   revalidateTag("clients", "default");
+  revalidateTag(PAINEL_CACHE_TAG, "default");
   return { success: true };
 }

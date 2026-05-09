@@ -9,7 +9,7 @@ import {
   marcarPerdidoSchema,
   addAttemptSchema,
 } from "./schema";
-import { PROSPECTS_CACHE_TAG } from "./queries";
+import { PROSPECTS_CACHE_TAG, METAS_COMERCIAL_CACHE_TAG } from "./queries";
 
 interface ActionOk { success: true }
 interface ActionErr { error: string }
@@ -187,5 +187,6 @@ export async function updateMetasComercialAction(formData: FormData): Promise<Ac
   if (error) return { error: error.message };
 
   revalidatePath("/prospeccao/metas");
+  revalidateTag(METAS_COMERCIAL_CACHE_TAG, "default");
   return { success: true };
 }

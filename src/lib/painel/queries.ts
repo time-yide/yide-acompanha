@@ -1,7 +1,10 @@
 // SERVER ONLY: do not import from client components
-import { createClient } from "@/lib/supabase/server";
+import { unstable_cache } from "next/cache";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import type { StepKey, StepStatus } from "./deadlines";
 import type { TipoPacote } from "./pacote-matrix";
+
+export const PAINEL_CACHE_TAG = "painel";
 
 type CadenciaReuniao = "semanal" | "quinzenal" | "mensal" | "trimestral";
 
@@ -54,11 +57,35 @@ export interface ChecklistRow {
   steps: ChecklistStepRow[];
 }
 
+/**
+ * Cacheado 60s + tag "painel". Server uses service-role pra rodar dentro
+ * do cache; SELECT policies em clients/client_monthly_checklist/checklist_step
+ * são todas permissivas (`using (true)`), então segurança é definida pelo
+ * filter passado pelo caller (que aplica role-based filtering antes).
+ *
+ * Mutações em checklist_step / client_monthly_checklist / clients (campos
+ * de atribuição) devem chamar revalidateTag(PAINEL_CACHE_TAG).
+ */
 export async function getMonthlyChecklists(
   mesReferencia: string,
   filter: ChecklistFilter = {},
 ): Promise<ChecklistRow[]> {
-  const supabase = await createClient();
+  const cached = unstable_cache(
+    async (mes: string, filterJson: string) => {
+      const f = JSON.parse(filterJson) as ChecklistFilter;
+      return _getMonthlyChecklistsImpl(mes, f);
+    },
+    ["painel-monthly-checklists-v1"],
+    { revalidate: 60, tags: [PAINEL_CACHE_TAG] },
+  );
+  return cached(mesReferencia, JSON.stringify(filter));
+}
+
+async function _getMonthlyChecklistsImpl(
+  mesReferencia: string,
+  filter: ChecklistFilter,
+): Promise<ChecklistRow[]> {
+  const supabase = createServiceRoleClient();
 
   // 1) Lista clientes filtrados (apenas pacotes do painel mensal)
   let clientsQuery = supabase
