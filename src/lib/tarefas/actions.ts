@@ -11,6 +11,7 @@ import {
   editTaskSchema,
   moveStatusSchema,
   artesEntreguesSchema,
+  concludeOperationalSchema,
   requestAdjustmentsSchema,
   taskCommentSchema,
   TASK_FORMATOS,
@@ -810,4 +811,91 @@ export async function addCommentAction(formData: FormData): Promise<CommentResul
   // o realtime cobre os outros usuários. Revalidar aqui causa refetch
   // desnecessário.
   return { success: true, id: created.id, criado_em: created.criado_em };
+}
+
+// ============================================================================
+// Conclusão operacional (entrega obrigatória)
+// ============================================================================
+
+const ROLES_QUE_ENTREGAM = ["editor", "videomaker", "designer", "audiovisual_chefe"] as const;
+type RoleQueEntrega = (typeof ROLES_QUE_ENTREGAM)[number];
+
+function isRoleQueEntrega(role: string): role is RoleQueEntrega {
+  return (ROLES_QUE_ENTREGAM as readonly string[]).includes(role);
+}
+
+/**
+ * Conclui operacionalmente uma tarefa (status='concluida') E persiste os
+ * campos de entrega obrigatórios (drive_link + artes_entregues + observações
+ * opcional). Aplica quando responsável é editor/videomaker/designer/audiovisual_chefe.
+ *
+ * Quem chama: ConcludeOperationalModal no client antes do drag virar efetivo.
+ * Server-side é defense in depth — revalida role do responsável.
+ */
+export async function concludeOperationalAction(formData: FormData): Promise<{ error?: string; success?: boolean }> {
+  const actor = await requireAuth();
+
+  const parsed = concludeOperationalSchema.safeParse({
+    id: formData.get("id"),
+    drive_link: formData.get("drive_link"),
+    artes_entregues: formData.get("artes_entregues"),
+    entrega_observacoes: formData.get("entrega_observacoes") || undefined,
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+
+  const { data: task } = await sb
+    .from("tasks")
+    .select("id, atribuido_a, status, criado_por")
+    .eq("id", parsed.data.id)
+    .single();
+  if (!task) return { error: "Tarefa não encontrada" };
+
+  const { data: assignee } = await sb
+    .from("profiles")
+    .select("role")
+    .eq("id", task.atribuido_a)
+    .single();
+  if (!assignee) return { error: "Responsável não encontrado" };
+
+  if (!isRoleQueEntrega(assignee.role)) {
+    return { error: "Esta tarefa não exige entrega via modal — use a movimentação normal" };
+  }
+
+  const isAssignee = actor.id === task.atribuido_a;
+  const isPriv = actor.role === "adm" || actor.role === "socio";
+  if (!isAssignee && !isPriv) {
+    return { error: "Sem permissão pra concluir esta tarefa" };
+  }
+
+  const { error } = await sb
+    .from("tasks")
+    .update({
+      status: "concluida",
+      drive_link: parsed.data.drive_link,
+      artes_entregues: parsed.data.artes_entregues,
+      entrega_observacoes: parsed.data.entrega_observacoes ?? null,
+      completed_at: new Date().toISOString(),
+    })
+    .eq("id", parsed.data.id);
+  if (error) return { error: error.message };
+
+  await logAudit({
+    entidade: "tasks",
+    entidade_id: parsed.data.id,
+    acao: "complete",
+    dados_depois: {
+      drive_link: parsed.data.drive_link,
+      artes_entregues: parsed.data.artes_entregues,
+      entrega_observacoes: parsed.data.entrega_observacoes ?? null,
+    } as unknown as Record<string, unknown>,
+    ator_id: actor.id,
+  });
+
+  revalidatePath("/tarefas");
+  revalidatePath(`/tarefas/${parsed.data.id}`);
+  return { success: true };
 }
