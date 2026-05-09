@@ -15,7 +15,7 @@ export function Sidebar({ role, nome, badges }: { role: Role; nome: string; badg
   const visible = visibleNavItems(role);
 
   return (
-    <aside className="hidden w-[210px] flex-col border-r bg-card md:flex">
+    <aside data-role="sidebar" className="hidden w-[210px] flex-col border-r bg-card md:flex">
       <div className="flex items-center justify-center px-4 py-5">
         <Image
           src="/brand/logo-yide.png"

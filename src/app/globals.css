@@ -144,3 +144,10 @@
   .animate-blob-slower { animation: blob-drift-2 28s ease-in-out infinite; }
   .animate-blob-medium { animation: blob-drift-3 18s ease-in-out infinite; }
 }
+
+/* Sidebar oculta via toggle (SidebarToggle aplica data-sidebar="hidden"
+   no <html>). Mobile já esconde a aside via md:flex/hidden — só afeta
+   desktop. Transição opcional via opacity pra suavizar. */
+html[data-sidebar="hidden"] [data-role="sidebar"] {
+  display: none;
+}
