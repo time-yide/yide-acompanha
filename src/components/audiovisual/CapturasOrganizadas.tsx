@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { CapturasList } from "./CapturasList";
-import type { CapturaRow } from "@/lib/audiovisual/queries";
+import type { CapturaRow } from "@/lib/audiovisual/captura-utils";
 
 interface Editor {
   id: string;
