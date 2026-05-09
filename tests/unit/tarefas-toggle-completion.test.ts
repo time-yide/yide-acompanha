@@ -49,7 +49,11 @@ function mockTaskRow(overrides: Partial<{ status: string; criado_por: string; at
   };
 }
 
-function setupMocks(taskData: ReturnType<typeof mockTaskRow>, updateError: { message: string } | null = null) {
+function setupMocks(
+  taskData: ReturnType<typeof mockTaskRow>,
+  options: { updateError?: { message: string } | null; assigneeRole?: string } = {},
+) {
+  const { updateError = null, assigneeRole = "assessor" } = options;
   const updateEq = vi.fn().mockResolvedValue({ error: updateError });
   const update = vi.fn().mockReturnValue({ eq: updateEq });
   fromCookieMock.mockImplementation((table: string) => {
@@ -63,59 +67,48 @@ function setupMocks(taskData: ReturnType<typeof mockTaskRow>, updateError: { mes
         update,
       };
     }
+    if (table === "profiles") {
+      return {
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({ data: { role: assigneeRole } }),
+          }),
+        }),
+      };
+    }
     return {};
   });
   return { update, updateEq };
 }
 
-describe("toggleTaskCompletionAction — designer flow", () => {
-  it("designer fechando sem artesEntregues retorna requiresArtesPrompt sem mutar", async () => {
+describe("toggleTaskCompletionAction — roles que entregam (designer/editor/videomaker/audiovisual_chefe)", () => {
+  it("designer fechando recebe erro pedindo uso do modal de entrega", async () => {
     requireAuthMock.mockResolvedValue({ id: "user-1", role: "designer", nome: "Designer Teste" });
-    const { update } = setupMocks(mockTaskRow({ status: "aberta" }));
+    const { update } = setupMocks(mockTaskRow({ status: "aberta" }), { assigneeRole: "designer" });
 
     const result = await toggleTaskCompletionAction("task-1");
 
-    expect(result).toEqual({ requiresArtesPrompt: true });
+    expect(result?.error).toBeTruthy();
     expect(update).not.toHaveBeenCalled();
     expect(logAuditMock).not.toHaveBeenCalled();
   });
 
-  it("designer fechando com artesEntregues=5 grava status=concluida e artes_entregues=5", async () => {
-    requireAuthMock.mockResolvedValue({ id: "user-1", role: "designer", nome: "Designer Teste" });
-    const { update } = setupMocks(mockTaskRow({ status: "aberta" }));
+  it("editor fechando recebe erro pedindo uso do modal de entrega", async () => {
+    requireAuthMock.mockResolvedValue({ id: "user-1", role: "editor", nome: "Editor Teste" });
+    const { update } = setupMocks(mockTaskRow({ status: "aberta" }), { assigneeRole: "editor" });
 
-    await toggleTaskCompletionAction("task-1", 5);
-
-    expect(update).toHaveBeenCalledWith(expect.objectContaining({
-      status: "concluida",
-      artes_entregues: 5,
-    }));
-  });
-
-  it("designer fechando com artesEntregues=0 grava (0 é válido)", async () => {
-    requireAuthMock.mockResolvedValue({ id: "user-1", role: "designer", nome: "Designer Teste" });
-    const { update } = setupMocks(mockTaskRow({ status: "aberta" }));
-
-    await toggleTaskCompletionAction("task-1", 0);
-
-    expect(update).toHaveBeenCalledWith(expect.objectContaining({
-      status: "concluida",
-      artes_entregues: 0,
-    }));
-  });
-
-  it("designer com artesEntregues negativo retorna erro", async () => {
-    requireAuthMock.mockResolvedValue({ id: "user-1", role: "designer", nome: "Designer Teste" });
-    setupMocks(mockTaskRow({ status: "aberta" }));
-
-    const result = await toggleTaskCompletionAction("task-1", -1);
+    const result = await toggleTaskCompletionAction("task-1");
 
     expect(result?.error).toBeTruthy();
+    expect(update).not.toHaveBeenCalled();
   });
 
-  it("designer reabrindo NÃO pede prompt e mantém artes_entregues (não envia campo)", async () => {
+  it("designer reabrindo (status concluida -> aberta) NÃO bate no guard", async () => {
     requireAuthMock.mockResolvedValue({ id: "user-1", role: "designer", nome: "Designer Teste" });
-    const { update } = setupMocks(mockTaskRow({ status: "concluida", artes_entregues: 3 }));
+    const { update } = setupMocks(
+      mockTaskRow({ status: "concluida", artes_entregues: 3 }),
+      { assigneeRole: "designer" },
+    );
 
     await toggleTaskCompletionAction("task-1");
 
@@ -126,10 +119,10 @@ describe("toggleTaskCompletionAction — designer flow", () => {
   });
 });
 
-describe("toggleTaskCompletionAction — outros roles", () => {
-  it("assessor fechando NÃO pede prompt e grava sem artes_entregues", async () => {
+describe("toggleTaskCompletionAction — roles que NÃO entregam", () => {
+  it("assessor fechando grava status=concluida sem artes_entregues", async () => {
     requireAuthMock.mockResolvedValue({ id: "user-1", role: "assessor", nome: "Assessor Teste" });
-    const { update } = setupMocks(mockTaskRow({ status: "aberta" }));
+    const { update } = setupMocks(mockTaskRow({ status: "aberta" }), { assigneeRole: "assessor" });
 
     await toggleTaskCompletionAction("task-1");
 

@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { TasksColumn } from "./TasksColumn";
+import { ConcludeOperationalModal } from "./ConcludeOperationalModal";
 import { moveTaskStatusAction } from "@/lib/tarefas/actions";
 import type { TaskRow } from "@/lib/tarefas/queries";
 
@@ -28,8 +30,11 @@ const STATUSES: Status[] = [
 ];
 
 export function TasksBoard({ tasks, userRole }: { tasks: TaskRow[]; userRole: string }) {
+  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [conclModalOpen, setConclModalOpen] = useState(false);
+  const [conclModalTask, setConclModalTask] = useState<{ id: string; tipo: "geral" | "video" | "arte" } | null>(null);
 
   const groups: Record<Status, TaskRow[]> = {
     aberta: [],
@@ -48,6 +53,24 @@ export function TasksBoard({ tasks, userRole }: { tasks: TaskRow[]; userRole: st
 
   function handleDrop(taskId: string, _fromStatus: Status, toStatus: Status) {
     setError(null);
+
+    if (toStatus === "concluida") {
+      const task = tasks.find((t) => t.id === taskId);
+      if (task) {
+        const role = task.atribuido_a_role;
+        const requiresModal =
+          role === "editor" ||
+          role === "videomaker" ||
+          role === "designer" ||
+          role === "audiovisual_chefe";
+        if (requiresModal) {
+          setConclModalTask({ id: taskId, tipo: (task.tipo as "geral" | "video" | "arte") ?? "geral" });
+          setConclModalOpen(true);
+          return;
+        }
+      }
+    }
+
     startTransition(async () => {
       const fd = new FormData();
       fd.set("id", taskId);
@@ -80,6 +103,15 @@ export function TasksBoard({ tasks, userRole }: { tasks: TaskRow[]; userRole: st
           ))}
         </div>
       </div>
+      {conclModalTask && (
+        <ConcludeOperationalModal
+          open={conclModalOpen}
+          onOpenChange={setConclModalOpen}
+          taskId={conclModalTask.id}
+          taskTipo={conclModalTask.tipo}
+          onSuccess={() => router.refresh()}
+        />
+      )}
     </div>
   );
 }

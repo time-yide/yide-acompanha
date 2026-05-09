@@ -213,8 +213,34 @@ export default async function TarefaPage({
               isExecutor={isExecutor}
               isApprover={isApprover}
               canMarkPosted={canMarkPosted}
-              userRole={user.role}
             />
+          )}
+
+          {task.drive_link && (
+            <div className="rounded-lg border bg-muted/30 p-3 space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Material entregue
+              </p>
+              <a
+                href={task.drive_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-primary underline underline-offset-2 break-all hover:text-primary/80"
+              >
+                {task.drive_link}
+              </a>
+            </div>
+          )}
+
+          {task.entrega_observacoes && (
+            <div className="rounded-lg border bg-muted/30 p-3 space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Observações da entrega
+              </p>
+              <p className="text-sm whitespace-pre-wrap">
+                <Linkify text={task.entrega_observacoes} />
+              </p>
+            </div>
           )}
 
           {(task.links?.length ?? 0) > 0 && (
@@ -289,7 +315,6 @@ export default async function TarefaPage({
                 <CompleteTaskButton
                   taskId={id}
                   isCompleted={task.status === "concluida"}
-                  userRole={user.role}
                   size="lg"
                 />
               </div>
