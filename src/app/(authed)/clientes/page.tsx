@@ -36,22 +36,18 @@ export default async function ClientesPage({ searchParams }: { searchParams: Pro
 
   // Sócio/adm em chooser mode (sem id selecionado) → não consulta, mostra prompt.
   const shouldQuery = !isMinhaCarteira || effectiveResponsavel !== undefined;
-  const rows = shouldQuery
-    ? await listClientes({ status, responsibleUserId: effectiveResponsavel })
-    : [];
 
-  const stats = await getClientesStats();
-
-  // Listas só são necessárias para a versão editável da tabela.
-  const [assessores, coordenadores] = canManage
-    ? await Promise.all([
-        listColaboradores({ ativo: true, role: "assessor" }),
-        listColaboradores({ ativo: true, role: "coordenador" }),
-      ]).then(([a, c]) => [
-        a.map((r) => ({ id: r.id, nome: r.nome })),
-        c.map((r) => ({ id: r.id, nome: r.nome })),
-      ])
-    : [[], []];
+  // Roda as 4 queries em paralelo: rows, stats, e (se canManage) as duas listas
+  // de colaboradores. Ganho: ~3x menos round-trips na página /clientes (uma
+  // das mais acessadas do app).
+  const [rows, stats, assessoresRaw, coordenadoresRaw] = await Promise.all([
+    shouldQuery ? listClientes({ status, responsibleUserId: effectiveResponsavel }) : Promise.resolve([]),
+    getClientesStats(),
+    canManage ? listColaboradores({ ativo: true, role: "assessor" }) : Promise.resolve([]),
+    canManage ? listColaboradores({ ativo: true, role: "coordenador" }) : Promise.resolve([]),
+  ]);
+  const assessores = assessoresRaw.map((r) => ({ id: r.id, nome: r.nome }));
+  const coordenadores = coordenadoresRaw.map((r) => ({ id: r.id, nome: r.nome }));
 
   // Lista do seletor de responsáveis (só sócio/adm precisa).
   const responsaveis = canPickAnyResponsavel

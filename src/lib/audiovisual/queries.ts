@@ -111,14 +111,22 @@ export async function countOverdueParaVideomaker(userId: string): Promise<number
 export async function listCapturas(filters: {
   videomakerId?: string;
   clientId?: string;
+  /** Restringe a um conjunto de clientes (caso do assessor — vê só os dele). */
+  clientIds?: string[];
   limit?: number;
 } = {}): Promise<CapturaRow[]> {
   const cached = unstable_cache(
     async (filtersJson: string) => {
-      const f = JSON.parse(filtersJson) as { videomakerId?: string; clientId?: string; limit?: number };
+      const f = JSON.parse(filtersJson) as {
+        videomakerId?: string;
+        clientId?: string;
+        clientIds?: string[];
+        limit?: number;
+      };
       return _listCapturasImpl(f);
     },
-    ["audiovisual-capturas-v1"],
+    // v2: shape mudou (adicionado clientIds)
+    ["audiovisual-capturas-v2"],
     { revalidate: 30, tags: [AUDIOVISUAL_CAPTURAS_TAG] },
   );
   return cached(JSON.stringify(filters));
@@ -127,6 +135,7 @@ export async function listCapturas(filters: {
 async function _listCapturasImpl(filters: {
   videomakerId?: string;
   clientId?: string;
+  clientIds?: string[];
   limit?: number;
 }): Promise<CapturaRow[]> {
   // Service-role pra rodar dentro de unstable_cache (sem context de cookie).
@@ -149,6 +158,7 @@ async function _listCapturasImpl(filters: {
     .limit(filters.limit ?? 100);
   if (filters.videomakerId) query = query.eq("videomaker_id", filters.videomakerId);
   if (filters.clientId) query = query.eq("client_id", filters.clientId);
+  if (filters.clientIds && filters.clientIds.length > 0) query = query.in("client_id", filters.clientIds);
 
   const { data, error } = await query;
   if (error) throw error;

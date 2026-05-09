@@ -203,8 +203,10 @@ export async function getMonthlyChecklists(
   }
 
   // 5) Mapeia clientes → ChecklistRow
+  // Index pra evitar O(n²) — antes era checklists.find() dentro do clients.map()
+  const checklistByClient = new Map(checklists.map((cl) => [cl.client_id, cl]));
   return clients.map((c) => {
-    const cl = checklists.find((x) => x.client_id === c.id);
+    const cl = checklistByClient.get(c.id);
     return {
       id: cl?.id ?? "",
       client_id: c.id,

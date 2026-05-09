@@ -306,11 +306,21 @@ export async function getMetasComercial(
     .toISOString()
     .slice(0, 10);
 
-  const { data: profileData } = await supabase
-    .from("profiles")
-    .select("fixo_mensal, comissao_percent, meta_prospects_mes, meta_fechamentos_mes, meta_receita_mes")
-    .eq("id", userId)
-    .single();
+  // Profile e leadsMes são independentes — paralelizar pra economizar 1 round-trip
+  // (essa função roda no dashboard de cada comercial em todo refresh).
+  const [{ data: profileData }, { data: leadsData }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("fixo_mensal, comissao_percent, meta_prospects_mes, meta_fechamentos_mes, meta_receita_mes")
+      .eq("id", userId)
+      .single(),
+    supabase
+      .from("leads")
+      .select("id, stage, valor_proposto, data_fechamento, created_at")
+      .eq("comercial_id", userId)
+      .gte("created_at", inicioMes)
+      .lte("created_at", fimMes + "T23:59:59"),
+  ]);
 
   const profile = (profileData as {
     fixo_mensal: number;
@@ -325,14 +335,6 @@ export async function getMetasComercial(
     meta_fechamentos_mes: null,
     meta_receita_mes: null,
   };
-
-  // Leads do mês corrente (criados no mês)
-  const { data: leadsData } = await supabase
-    .from("leads")
-    .select("id, stage, valor_proposto, data_fechamento, created_at")
-    .eq("comercial_id", userId)
-    .gte("created_at", inicioMes)
-    .lte("created_at", fimMes + "T23:59:59");
 
   const leadsMes = (leadsData ?? []) as Array<{ id: string; stage: string; valor_proposto: number; data_fechamento: string | null; created_at: string }>;
 

@@ -68,7 +68,14 @@ export async function _getKpisImpl(filter?: ClientFilter): Promise<KpiData> {
   // ainda não entrou no ciclo de vida da carteira.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
-  const [{ data: clientsData }, { data: ajustesAtuais }, { data: ajustesAnteriores }] = await Promise.all([
+  // Mete o snapshots no Promise.all original — não depende de nenhum dos outros.
+  // Antes era um await sequencial após esse bloco; agora poupa 1 round-trip.
+  const [
+    { data: clientsData },
+    { data: ajustesAtuais },
+    { data: ajustesAnteriores },
+    { data: snapshotsData },
+  ] = await Promise.all([
     buildClientFilterQuery(
       supabase
         .from("clients")
@@ -85,6 +92,11 @@ export async function _getKpisImpl(filter?: ClientFilter): Promise<KpiData> {
       .from("client_monthly_adjustments")
       .select("client_id, tipo, valor_desconto")
       .eq("mes_referencia", prevMonthRef),
+    supabase
+      .from("commission_snapshots")
+      .select("mes_referencia, valor_total")
+      .order("mes_referencia", { ascending: false })
+      .limit(50),
   ]);
   // Cast via unknown porque os types gerados do Supabase ainda não conhecem
   // a coluna 'modalidade' (gerada após `npm run db:types` pós-migration).
@@ -147,12 +159,7 @@ export async function _getKpisImpl(filter?: ClientFilter): Promise<KpiData> {
 
   // Custo de comissão: prefere snapshot oficial (mês fechado) — se não tem,
   // calcula live usando o preview de comissões (mesma fonte que a página
-  // /comissoes mostra como "Em curso").
-  const { data: snapshotsData } = await supabase
-    .from("commission_snapshots")
-    .select("mes_referencia, valor_total")
-    .order("mes_referencia", { ascending: false })
-    .limit(50);
+  // /comissoes mostra como "Em curso"). snapshotsData já veio do Promise.all acima.
   const snapshots = (snapshotsData ?? []) as Array<{ mes_referencia: string; valor_total: number }>;
   const ultimoMes = snapshots[0]?.mes_referencia;
   let totalComissao = ultimoMes
