@@ -25,6 +25,7 @@ interface SearchParams {
   prioridade?: string;
   client?: string;
   atribuido?: string;
+  q?: string;
   toast?: string;
 }
 
@@ -44,6 +45,7 @@ export default async function TarefasPage({ searchParams }: { searchParams: Prom
     filters.prioridade = [params.prioridade as "alta" | "media" | "baixa"];
   }
   if (params.client && params.client !== "qualquer") filters.clientId = params.client;
+  if (params.q && params.q.trim()) filters.q = params.q.trim();
 
   // Sem filtro de status — Quadro mostra todas as colunas; Lista agrupa concluídas em seção própria
   if (aba === "minhas") filters.atribuidoA = user.id;

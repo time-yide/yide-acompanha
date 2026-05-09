@@ -118,6 +118,8 @@ export interface TaskFilters {
   criadoPor?: string;
   clientId?: string;
   prioridade?: ("alta" | "media" | "baixa")[];
+  /** Busca textual (ILIKE no titulo). Trim aplicado no caller. */
+  q?: string;
 }
 
 async function _listTasksImpl(filters?: TaskFilters): Promise<TaskRow[]> {
@@ -149,6 +151,11 @@ async function _listTasksImpl(filters?: TaskFilters): Promise<TaskRow[]> {
   }
   if (filters?.criadoPor) query = query.eq("criado_por", filters.criadoPor);
   if (filters?.clientId) query = query.eq("client_id", filters.clientId);
+  if (filters?.q && filters.q.trim()) {
+    // Escapa % e _ pra evitar wildcards do usuário (digita um % e bate em tudo)
+    const safe = filters.q.trim().replace(/[%_]/g, (m) => `\\${m}`);
+    query = query.ilike("titulo", `%${safe}%`);
+  }
 
   const { data, error } = await query;
   if (error) throw error;

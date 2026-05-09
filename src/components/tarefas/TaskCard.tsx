@@ -69,15 +69,22 @@ export function TaskCard({ task, draggable = false }: Props) {
         isCompleted && "opacity-60",
       )}
     >
-      <div className="space-y-2">
-        <h3 className={cn("text-sm font-medium leading-snug", isCompleted && "line-through text-muted-foreground")}>
+      <div className="space-y-1.5">
+        {/* Título: tamanho fixo, padronizado pra todas as tarefas. */}
+        <h3 className={cn("text-sm font-medium leading-snug line-clamp-2", isCompleted && "line-through text-muted-foreground")}>
           {task.titulo}
         </h3>
 
+        {/* Cliente: destacado (texto cheio + semibold + cor primary).
+            É o que mais bate o olho depois do título. */}
+        {clienteNome && (
+          <p className="truncate text-xs font-semibold text-primary">
+            {clienteNome}
+          </p>
+        )}
+
+        {/* Prazo + criador em segundo plano (texto pequeno, muted). */}
         <div className="space-y-0.5 text-[11px] text-muted-foreground">
-          {clienteNome && (
-            <p className="truncate">{clienteNome}</p>
-          )}
           {prazoLabel && (
             <p className={cn("truncate", urgency === "overdue" && "text-destructive font-medium")}>
               {prazoLabel}
