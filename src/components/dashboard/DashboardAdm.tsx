@@ -12,6 +12,7 @@ import { ClientPaymentsTable } from "./adm/ClientPaymentsTable";
 import { PayrollPaymentsTable } from "./adm/PayrollPaymentsTable";
 import { RankingResumo } from "./RankingResumo";
 import { ProximosEventosList } from "./ProximosEventosList";
+import { PainelAudiovisualSection } from "./audiovisual/PainelAudiovisualSection";
 import { Section } from "./Section";
 
 interface Props {
@@ -81,6 +82,8 @@ export async function DashboardAdm({ nome }: Props) {
         <ClientPaymentsTable rows={clientPayments} mesReferencia={mes} />
         <PayrollPaymentsTable rows={payroll} mesReferencia={mes} />
       </div>
+
+      <PainelAudiovisualSection />
     </div>
   );
 }

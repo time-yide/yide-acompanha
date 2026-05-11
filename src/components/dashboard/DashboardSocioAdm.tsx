@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { HiddenValuesProvider, HiddenValueToggle } from "./HiddenValuesContext";
+import { PainelAudiovisualSection } from "./audiovisual/PainelAudiovisualSection";
 import {
   AlertaAprovacaoSection,
   KpiRowSection,
@@ -63,6 +64,10 @@ export function DashboardSocioAdm({ nome }: Props) {
 
         <Suspense fallback={<ListSkeleton rows={5} />}>
           <ProximosEventosSection />
+        </Suspense>
+
+        <Suspense fallback={<ListSkeleton rows={4} />}>
+          <PainelAudiovisualSection />
         </Suspense>
       </div>
     </HiddenValuesProvider>
