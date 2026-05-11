@@ -104,6 +104,176 @@ export async function countOverdueParaVideomaker(userId: string): Promise<number
   return pendentes.filter((p) => p.isOverdue).length;
 }
 
+export interface EventoSemCapturaRow {
+  event_id: string;
+  titulo: string;
+  inicio: string;
+  client_id: string | null;
+  client_nome: string | null;
+  videomaker_id: string;
+  videomaker_nome: string | null;
+  isOverdue: boolean;
+}
+
+/**
+ * Lista eventos de gravação passados onde nenhuma captura foi entregue.
+ * Quando `videomakerId` é passado, restringe pras gravações dele;
+ * sem filtro, retorna de todos os videomakers ativos.
+ *
+ * Usado nas abas /audiovisual?tab=pendente_entrega.
+ */
+export async function listEventosSemCaptura(options: { videomakerId?: string } = {}): Promise<EventoSemCapturaRow[]> {
+  const cached = unstable_cache(
+    async (videomakerId: string | undefined) => _listEventosSemCapturaImpl({ videomakerId }),
+    ["audiovisual-eventos-sem-captura-v1"],
+    { revalidate: 30, tags: [AUDIOVISUAL_PENDENTE_TAG, AUDIOVISUAL_CAPTURAS_TAG] },
+  );
+  return cached(options.videomakerId);
+}
+
+async function _listEventosSemCapturaImpl(options: { videomakerId?: string }): Promise<EventoSemCapturaRow[]> {
+  const supabase = createServiceRoleClient();
+  const now = new Date();
+
+  // Eventos passados na agenda dos videomakers
+  let q = supabase
+    .from("calendar_events")
+    .select("id, titulo, inicio, client_id, participantes_ids, cliente:clients(id, nome)")
+    .eq("sub_calendar", "videomakers")
+    .lt("inicio", now.toISOString())
+    .order("inicio", { ascending: false })
+    .limit(200);
+
+  if (options.videomakerId) {
+    q = q.contains("participantes_ids", [options.videomakerId]);
+  }
+  const { data: events, error } = await q;
+  if (error || !events) return [];
+  if (events.length === 0) return [];
+
+  const eventIds = (events as Array<{ id: string }>).map((e) => e.id);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const { data: capturas } = await sb
+    .from("audiovisual_capturas")
+    .select("event_id")
+    .in("event_id", eventIds);
+  const captured = new Set(((capturas ?? []) as Array<{ event_id: string | null }>).map((c) => c.event_id));
+
+  // Pra montar nome dos videomakers em modo "todos", lookup batch nos participantes
+  const profileIds = new Set<string>();
+  for (const e of events as Array<{ participantes_ids: string[] | null }>) {
+    for (const pid of e.participantes_ids ?? []) profileIds.add(pid);
+  }
+  let profilesMap = new Map<string, string>();
+  if (profileIds.size > 0) {
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, nome")
+      .in("id", Array.from(profileIds));
+    profilesMap = new Map(((profiles ?? []) as Array<{ id: string; nome: string }>).map((p) => [p.id, p.nome]));
+  }
+
+  const rows: EventoSemCapturaRow[] = [];
+  for (const e of events as Array<{
+    id: string;
+    titulo: string;
+    inicio: string;
+    client_id: string | null;
+    participantes_ids: string[] | null;
+    cliente: { id: string; nome: string } | null;
+  }>) {
+    if (captured.has(e.id)) continue;
+    const partIds = e.participantes_ids ?? [];
+    // Quando há múltiplos participantes, emite uma linha por videomaker
+    // (cada um precisa entregar sua captura). Se options.videomakerId, filtra.
+    for (const pid of partIds) {
+      if (options.videomakerId && pid !== options.videomakerId) continue;
+      rows.push({
+        event_id: e.id,
+        titulo: e.titulo,
+        inicio: e.inicio,
+        client_id: e.client_id,
+        client_nome: e.cliente?.nome ?? null,
+        videomaker_id: pid,
+        videomaker_nome: profilesMap.get(pid) ?? null,
+        isOverdue: now > getDeadline(e.inicio),
+      });
+    }
+  }
+  return rows;
+}
+
+export interface CapturaSemDelegacaoRow {
+  id: string;
+  data_captacao: string;
+  drive_url: string;
+  qtd_videos: number;
+  qtd_fotos: number;
+  client_id: string;
+  cliente_nome: string | null;
+  videomaker_id: string;
+  videomaker_nome: string | null;
+}
+
+/**
+ * Lista capturas entregues que ainda não foram delegadas pra editor
+ * (task_id IS NULL) e não foram marcadas como concluídas manualmente.
+ *
+ * Usado em /audiovisual?tab=pendente_delegacao (visível só pra coord+).
+ */
+export async function listCapturasSemDelegacao(): Promise<CapturaSemDelegacaoRow[]> {
+  const cached = unstable_cache(
+    async () => _listCapturasSemDelegacaoImpl(),
+    ["audiovisual-sem-delegacao-v1"],
+    { revalidate: 30, tags: [AUDIOVISUAL_CAPTURAS_TAG] },
+  );
+  return cached();
+}
+
+async function _listCapturasSemDelegacaoImpl(): Promise<CapturaSemDelegacaoRow[]> {
+  const supabase = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const { data, error } = await sb
+    .from("audiovisual_capturas")
+    .select(`
+      id, data_captacao, drive_url, qtd_videos, qtd_fotos, client_id, videomaker_id,
+      cliente:clients(nome),
+      videomaker:profiles!audiovisual_capturas_videomaker_id_fkey(nome)
+    `)
+    .is("task_id", null)
+    .is("concluida_em", null)
+    .order("data_captacao", { ascending: false })
+    .limit(200);
+
+  if (error || !data) return [];
+
+  return (data as Array<{
+    id: string;
+    data_captacao: string;
+    drive_url: string;
+    qtd_videos: number | null;
+    qtd_fotos: number | null;
+    client_id: string;
+    videomaker_id: string;
+    cliente: { nome: string } | null;
+    videomaker: { nome: string } | null;
+  }>).map((c) => ({
+    id: c.id,
+    data_captacao: c.data_captacao,
+    drive_url: c.drive_url,
+    qtd_videos: c.qtd_videos ?? 0,
+    qtd_fotos: c.qtd_fotos ?? 0,
+    client_id: c.client_id,
+    cliente_nome: c.cliente?.nome ?? null,
+    videomaker_id: c.videomaker_id,
+    videomaker_nome: c.videomaker?.nome ?? null,
+  }));
+}
+
+
+
 /**
  * Lista capturas entregues. Filtros opcionais. Cacheado 30s + tag
  * pra invalidar quando alguma captação muda (criar, delegar, concluir).
