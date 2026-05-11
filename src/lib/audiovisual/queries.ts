@@ -161,6 +161,9 @@ async function _listEventosSemCapturaImpl(options: { videomakerId?: string }): P
   const captured = new Set(((capturas ?? []) as Array<{ event_id: string | null }>).map((c) => c.event_id));
 
   // Pra montar nome dos videomakers em modo "todos", lookup batch nos participantes
+  // Filtra só videomakers — calendar_events.participantes_ids pode incluir
+  // não-videomakers (ex.: coord que acompanhou a gravação), e a aba deve
+  // listar apenas quem efetivamente devia entregar captura.
   const profileIds = new Set<string>();
   for (const e of events as Array<{ participantes_ids: string[] | null }>) {
     for (const pid of e.participantes_ids ?? []) profileIds.add(pid);
@@ -170,7 +173,9 @@ async function _listEventosSemCapturaImpl(options: { videomakerId?: string }): P
     const { data: profiles } = await supabase
       .from("profiles")
       .select("id, nome")
-      .in("id", Array.from(profileIds));
+      .in("id", Array.from(profileIds))
+      .eq("role", "videomaker")
+      .eq("ativo", true);
     profilesMap = new Map(((profiles ?? []) as Array<{ id: string; nome: string }>).map((p) => [p.id, p.nome]));
   }
 
@@ -189,6 +194,9 @@ async function _listEventosSemCapturaImpl(options: { videomakerId?: string }): P
     // (cada um precisa entregar sua captura). Se options.videomakerId, filtra.
     for (const pid of partIds) {
       if (options.videomakerId && pid !== options.videomakerId) continue;
+      // Skip pids que não são de videomakers ativos (poderiam vir de coord/assessor
+      // tagueados no evento). profilesMap só contém videomakers ativos.
+      if (!profilesMap.has(pid)) continue;
       rows.push({
         event_id: e.id,
         titulo: e.titulo,

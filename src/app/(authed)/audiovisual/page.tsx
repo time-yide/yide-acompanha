@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { AlertTriangle } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -11,10 +12,12 @@ import {
 import { CapturasAba } from "@/components/audiovisual/CapturasAba";
 import { PendenteEntregaAba } from "@/components/audiovisual/PendenteEntregaAba";
 import { PendenteDelegacaoAba } from "@/components/audiovisual/PendenteDelegacaoAba";
+import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 const ROLES_QUE_VEEM = ["videomaker", "audiovisual_chefe", "coordenador", "assessor", "adm", "socio"];
 const ROLES_QUE_DELEGAM = ["audiovisual_chefe", "adm", "socio"];
+const ROLES_GESTAO = ["audiovisual_chefe", "coordenador", "assessor", "adm", "socio"];
 
 type TabKey = "capturas" | "pendente_entrega" | "pendente_delegacao";
 
@@ -37,8 +40,13 @@ export default async function AudiovisualPage({
   const isVideomaker = user.role === "videomaker";
   const isAssessor = user.role === "assessor";
   const canDelegate = ROLES_QUE_DELEGAM.includes(user.role);
-  // Pendente delegação só pra quem pode delegar (chefes audiovisual). Coord/assessor não.
-  const canSeeDelegacao = canDelegate;
+  // Pendente delegação visível pra coord/assessor (read-only) + quem pode delegar.
+  const canSeeDelegacao = ROLES_GESTAO.includes(user.role);
+
+  // Banner de captação atrasada — sempre visível pro videomaker, em qualquer aba.
+  const overdueForBanner = isVideomaker
+    ? (await listPendenteParaVideomaker(user.id)).filter((p) => p.isOverdue)
+    : [];
 
   const availableTabs: TabKey[] = ["capturas", "pendente_entrega"];
   if (canSeeDelegacao) availableTabs.push("pendente_delegacao");
@@ -86,14 +94,11 @@ export default async function AudiovisualPage({
       capturas = await listCapturas({ limit: 100 });
     }
 
-    const overdue = pendentes.filter((p) => p.isOverdue);
-
     content = (
       <CapturasAba
         isVideomaker={isVideomaker}
         canDelegate={canDelegate}
         pendentes={pendentes}
-        overdue={overdue}
         clientes={clientes}
         capturas={capturas}
         editores={editores}
@@ -139,6 +144,22 @@ export default async function AudiovisualPage({
           Entregas de captação, gravações pendentes e fila de delegação.
         </p>
       </header>
+
+      {overdueForBanner.length > 0 && (
+        <Card className="space-y-2 border-destructive/40 bg-destructive/10 p-4">
+          <div className="flex items-start gap-2 text-destructive">
+            <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-semibold">
+                Você tem {overdueForBanner.length} captação(ões) atrasada(s)
+              </p>
+              <p className="text-xs">
+                O prazo é até 09h do dia seguinte à gravação. Enquanto não regularizar, seu acesso pode ser limitado em outras áreas do sistema.
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Tabs nav */}
       <div className="border-b">
