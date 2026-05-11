@@ -2,6 +2,8 @@
 import { unstable_cache } from "next/cache";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { resolvePeriodo, type Periodo } from "./personal";
+import { getHojeAndFuturoBRT, getTerminadoEm } from "./audiovisual-helpers";
+import { AUDIOVISUAL_CAPTURAS_TAG } from "@/lib/audiovisual/queries";
 
 export interface GravacaoItem {
   id: string;
@@ -17,12 +19,23 @@ export interface TaskItem {
   prioridade: string | null;
 }
 
+export interface CapturaItem {
+  id: string;
+  data_captacao: string;
+  cliente_nome: string | null;
+  task_id: string | null;
+  task_titulo: string | null;
+}
+
 export interface VideomakerStat {
   id: string;
   nome: string;
-  proximasGravacoes: number;
-  concluidasNoPeriodo: number;
-  proximasGravacoesList: GravacaoItem[];
+  proximas: number;
+  hoje: number;
+  concluidas: number;
+  proximasList: GravacaoItem[];
+  hojeList: GravacaoItem[];
+  concluidasList: CapturaItem[];
 }
 
 export interface EditorStat {
@@ -30,9 +43,12 @@ export interface EditorStat {
   nome: string;
   /** "editor" | "videomaker" | "audiovisual_chefe" — pra UI mostrar a função real. */
   role: string;
-  pendentes: number;
-  concluidasNoPeriodo: number;
-  pendentesList: TaskItem[];
+  proximas: number;
+  emAndamento: number;
+  concluidas: number;
+  proximasList: TaskItem[];
+  emAndamentoList: TaskItem[];
+  concluidasList: TaskItem[];
 }
 
 export interface EquipeAudiovisual {
@@ -40,26 +56,8 @@ export interface EquipeAudiovisual {
   editores: EditorStat[];
   agregados: {
     totalGravacoesProximas: number;
+    totalEmAndamentoEdicao: number;
     totalConcluidasNoPeriodo: number;
-    totalPendentes: number;
-  };
-}
-
-function getProximas2SemanasBR(): { fromIso: string; toIso: string } {
-  const now = new Date();
-  const brtOffsetMs = 3 * 60 * 60 * 1000;
-  const brtNow = new Date(now.getTime() - brtOffsetMs);
-  const day = brtNow.getUTCDay();
-  const daysSinceMonday = (day + 6) % 7;
-  const monday = new Date(brtNow);
-  monday.setUTCDate(brtNow.getUTCDate() - daysSinceMonday);
-  monday.setUTCHours(0, 0, 0, 0);
-  const sundayNextWeek = new Date(monday);
-  sundayNextWeek.setUTCDate(monday.getUTCDate() + 13);
-  sundayNextWeek.setUTCHours(23, 59, 59, 999);
-  return {
-    fromIso: new Date(monday.getTime() + brtOffsetMs).toISOString(),
-    toIso: new Date(sundayNextWeek.getTime() + brtOffsetMs).toISOString(),
   };
 }
 
@@ -70,14 +68,30 @@ interface TaskMinimal {
   participantes_ids: string[] | null;
   status: string;
   completed_at: string | null;
+  aprovada_em: string | null;
+  updated_at: string | null;
   due_date: string | null;
   prioridade: string | null;
 }
 
+interface CapturaDelegadaMinimal {
+  id: string;
+  videomaker_id: string;
+  data_captacao: string;
+  created_at: string;
+  task_id: string | null;
+  client_id: string | null;
+  cliente: { nome: string } | null;
+  task: { titulo: string } | null;
+}
+
+const STATUS_EM_ANDAMENTO = ["em_andamento", "alteracao"] as const;
+const STATUS_CONCLUIDA = ["concluida", "em_aprovacao", "aprovada", "agendado", "postada"] as const;
+
 async function _getEquipeAudiovisualImpl(periodo: Periodo): Promise<EquipeAudiovisual> {
   const supabase = createServiceRoleClient();
   const { fromIso: periodoFrom, toIso: periodoTo } = resolvePeriodo(periodo);
-  const { fromIso: gravFrom, toIso: gravTo } = getProximas2SemanasBR();
+  const { hojeFromIso, hojeToIso, futuroFromIso, futuroToIso } = getHojeAndFuturoBRT(2);
 
   const { data: profilesData } = await supabase
     .from("profiles")
@@ -90,34 +104,44 @@ async function _getEquipeAudiovisualImpl(periodo: Periodo): Promise<EquipeAudiov
     return {
       videomakers: [],
       editores: [],
-      agregados: { totalGravacoesProximas: 0, totalConcluidasNoPeriodo: 0, totalPendentes: 0 },
+      agregados: { totalGravacoesProximas: 0, totalEmAndamentoEdicao: 0, totalConcluidasNoPeriodo: 0 },
     };
   }
   const ids = profiles.map((p) => p.id);
+  const videomakerIds = profiles.filter((p) => p.role === "videomaker").map((p) => p.id);
 
-  // Duas queries de tasks (atribuido vs participantes) + uma de eventos.
-  // .or() com .in.() é tricky em PostgREST — duas queries simples é mais robusto.
-  const [tasksAtribuidoRes, tasksParticipantesRes, gravRes] = await Promise.all([
-    supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+
+  const [tasksAtribuidoRes, tasksParticipantesRes, gravRes, capturasRes] = await Promise.all([
+    sb
       .from("tasks")
-      .select("id, titulo, atribuido_a, participantes_ids, status, completed_at, due_date, prioridade")
+      .select("id, titulo, atribuido_a, participantes_ids, status, completed_at, aprovada_em, updated_at, due_date, prioridade")
       .in("atribuido_a", ids),
-    supabase
+    sb
       .from("tasks")
-      .select("id, titulo, atribuido_a, participantes_ids, status, completed_at, due_date, prioridade")
+      .select("id, titulo, atribuido_a, participantes_ids, status, completed_at, aprovada_em, updated_at, due_date, prioridade")
       .overlaps("participantes_ids", ids),
-    supabase
+    sb
       .from("calendar_events")
       .select("id, titulo, participantes_ids, inicio")
       .eq("sub_calendar", "videomakers")
-      .gte("inicio", gravFrom)
-      .lte("inicio", gravTo)
+      .gte("inicio", hojeFromIso)
+      .lt("inicio", futuroToIso)
       .order("inicio", { ascending: true }),
+    videomakerIds.length > 0
+      ? sb
+          .from("audiovisual_capturas")
+          .select("id, videomaker_id, data_captacao, created_at, task_id, client_id, cliente:clients(nome), task:tasks!task_id(titulo)")
+          .in("videomaker_id", videomakerIds)
+          .not("task_id", "is", null)
+          .gte("created_at", periodoFrom)
+          .lt("created_at", periodoTo)
+      : Promise.resolve({ data: [] }),
   ]);
 
   const tasksAtribuido = (tasksAtribuidoRes.data ?? []) as unknown as TaskMinimal[];
   const tasksParticipantes = (tasksParticipantesRes.data ?? []) as unknown as TaskMinimal[];
-  // Dedupe por id
   const tasksMap = new Map<string, TaskMinimal>();
   for (const t of [...tasksAtribuido, ...tasksParticipantes]) tasksMap.set(t.id, t);
   const tasks = [...tasksMap.values()];
@@ -129,88 +153,127 @@ async function _getEquipeAudiovisualImpl(periodo: Periodo): Promise<EquipeAudiov
     inicio: string;
   }>;
 
-  const inPeriod = (iso: string | null) =>
-    !!iso && iso >= periodoFrom && iso < periodoTo;
+  const capturas = (capturasRes.data ?? []) as unknown as CapturaDelegadaMinimal[];
+
+  const inPeriod = (iso: string | null) => !!iso && iso >= periodoFrom && iso < periodoTo;
 
   const videomakers: VideomakerStat[] = profiles
     .filter((p) => p.role === "videomaker")
     .map((p) => {
-      const proximasGravacoesList = eventos
-        .filter((e) => (e.participantes_ids ?? []).includes(p.id))
+      const proximasList = eventos
+        .filter((e) => (e.participantes_ids ?? []).includes(p.id) && e.inicio >= futuroFromIso && e.inicio < futuroToIso)
         .map((e) => ({ id: e.id, titulo: e.titulo, inicio: e.inicio }));
-      const concluidasNoPeriodo = tasks.filter(
-        (t) => t.atribuido_a === p.id && t.status === "concluida" && inPeriod(t.completed_at),
-      ).length;
+      const hojeList = eventos
+        .filter((e) => (e.participantes_ids ?? []).includes(p.id) && e.inicio >= hojeFromIso && e.inicio < hojeToIso)
+        .map((e) => ({ id: e.id, titulo: e.titulo, inicio: e.inicio }));
+      const concluidasList: CapturaItem[] = capturas
+        .filter((c) => c.videomaker_id === p.id)
+        .map((c) => ({
+          id: c.id,
+          data_captacao: c.data_captacao,
+          cliente_nome: c.cliente?.nome ?? null,
+          task_id: c.task_id,
+          task_titulo: c.task?.titulo ?? null,
+        }));
+
+      // Sort chronologically
+      proximasList.sort((a, b) => a.inicio.localeCompare(b.inicio));
+      hojeList.sort((a, b) => a.inicio.localeCompare(b.inicio));
+      // Sort by data_captacao desc (most recent first)
+      concluidasList.sort((a, b) => b.data_captacao.localeCompare(a.data_captacao));
+
       return {
         id: p.id,
         nome: p.nome,
-        proximasGravacoes: proximasGravacoesList.length,
-        concluidasNoPeriodo,
-        proximasGravacoesList,
+        proximas: proximasList.length,
+        hoje: hojeList.length,
+        concluidas: concluidasList.length,
+        proximasList,
+        hojeList,
+        concluidasList,
       };
     });
 
-  // Seção "Edição" — todos editores aparecem sempre; videomakers e
-  // audiovisual_chefe aparecem se tiverem tarefas (pendentes ou concluídas).
+  const pertence = (t: TaskMinimal, pid: string) =>
+    t.atribuido_a === pid || (t.participantes_ids ?? []).includes(pid);
+
   const editores: EditorStat[] = profiles
     .map((p) => {
-      const pendentesList: TaskItem[] = tasks
+      const proximasList: TaskItem[] = tasks
+        .filter((t) => t.status === "aberta" && pertence(t, p.id))
+        .map((t) => ({ id: t.id, titulo: t.titulo, status: t.status, due_date: t.due_date, prioridade: t.prioridade }));
+
+      const emAndamentoList: TaskItem[] = tasks
+        .filter((t) => (STATUS_EM_ANDAMENTO as readonly string[]).includes(t.status) && pertence(t, p.id))
+        .map((t) => ({ id: t.id, titulo: t.titulo, status: t.status, due_date: t.due_date, prioridade: t.prioridade }));
+
+      const concluidasWithTime = tasks
         .filter(
           (t) =>
-            ["aberta", "em_andamento", "alteracao"].includes(t.status) &&
-            (t.atribuido_a === p.id || (t.participantes_ids ?? []).includes(p.id)),
+            (STATUS_CONCLUIDA as readonly string[]).includes(t.status) &&
+            pertence(t, p.id) &&
+            inPeriod(getTerminadoEm(t)),
         )
         .map((t) => ({
-          id: t.id,
-          titulo: t.titulo,
-          status: t.status,
-          due_date: t.due_date,
-          prioridade: t.prioridade,
-        }))
-        .sort((a, b) => {
-          // Prazo asc (sem prazo no fim)
-          if (a.due_date && b.due_date) return a.due_date.localeCompare(b.due_date);
-          if (a.due_date) return -1;
-          if (b.due_date) return 1;
-          return 0;
-        });
-      const concluidasNoPeriodo = tasks.filter(
-        (t) => t.atribuido_a === p.id && t.status === "concluida" && inPeriod(t.completed_at),
-      ).length;
+          item: { id: t.id, titulo: t.titulo, status: t.status, due_date: t.due_date, prioridade: t.prioridade },
+          terminadoEm: getTerminadoEm(t),
+        }));
+
+      // Sort by terminadoEm desc (most recent first)
+      concluidasWithTime.sort((a, b) => {
+        if (a.terminadoEm && b.terminadoEm) return b.terminadoEm.localeCompare(a.terminadoEm);
+        if (a.terminadoEm) return -1;
+        if (b.terminadoEm) return 1;
+        return 0;
+      });
+
+      const concluidasList: TaskItem[] = concluidasWithTime.map((x) => x.item);
+
+      const sortByDue = (a: TaskItem, b: TaskItem) => {
+        if (a.due_date && b.due_date) return a.due_date.localeCompare(b.due_date);
+        if (a.due_date) return -1;
+        if (b.due_date) return 1;
+        return 0;
+      };
+      proximasList.sort(sortByDue);
+      emAndamentoList.sort(sortByDue);
+
       return {
         id: p.id,
         nome: p.nome,
         role: p.role,
-        pendentes: pendentesList.length,
-        concluidasNoPeriodo,
-        pendentesList,
+        proximas: proximasList.length,
+        emAndamento: emAndamentoList.length,
+        concluidas: concluidasList.length,
+        proximasList,
+        emAndamentoList,
+        concluidasList,
       };
     })
     .filter((row) => {
       if (row.role === "editor") return true;
-      // videomaker / audiovisual_chefe: só aparece se tiver tarefa
-      return row.pendentes > 0 || row.concluidasNoPeriodo > 0;
+      return row.proximas + row.emAndamento + row.concluidas > 0;
     });
+
+  const totalGravacoesProximas = videomakers.reduce((s, v) => s + v.proximas + v.hoje, 0);
+  const totalEmAndamentoEdicao = editores.reduce((s, e) => s + e.emAndamento, 0);
+  const totalConcluidasNoPeriodo =
+    videomakers.reduce((s, v) => s + v.concluidas, 0) +
+    editores.reduce((s, e) => s + e.concluidas, 0);
 
   return {
     videomakers,
     editores,
-    agregados: {
-      totalGravacoesProximas: videomakers.reduce((s, v) => s + v.proximasGravacoes, 0),
-      totalConcluidasNoPeriodo:
-        videomakers.reduce((s, v) => s + v.concluidasNoPeriodo, 0) +
-        editores.reduce((s, e) => s + e.concluidasNoPeriodo, 0),
-      totalPendentes: editores.reduce((s, e) => s + e.pendentes, 0),
-    },
+    agregados: { totalGravacoesProximas, totalEmAndamentoEdicao, totalConcluidasNoPeriodo },
   };
 }
 
 export async function getEquipeAudiovisual(periodo: Periodo): Promise<EquipeAudiovisual> {
   const cached = unstable_cache(
     async (p: string) => _getEquipeAudiovisualImpl(p as Periodo),
-    // v2: agora retorna listas detalhadas (gravações + tarefas pendentes por user)
-    ["dashboard-audiovisual-equipe-v2"],
-    { revalidate: 60, tags: ["dashboard", "tasks", "calendar"] },
+    // v3: shape mudou (videomaker proximas/hoje/concluidas, editor proximas/emAndamento/concluidas)
+    ["dashboard-audiovisual-equipe-v3"],
+    { revalidate: 60, tags: ["dashboard", "tasks", "calendar", AUDIOVISUAL_CAPTURAS_TAG] },
   );
   return cached(periodo);
 }
