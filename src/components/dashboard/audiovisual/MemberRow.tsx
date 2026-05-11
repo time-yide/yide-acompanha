@@ -36,7 +36,19 @@ export function MemberRow(props: Props) {
   if (props.variant === "videomaker") {
     return (
       <>
-        <tr onClick={handleClick} className="cursor-pointer hover:bg-muted/30">
+        <tr
+          onClick={handleClick}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handleClick();
+            }
+          }}
+          tabIndex={0}
+          role="button"
+          aria-label={`Ver detalhes de ${props.nome}`}
+          className="cursor-pointer hover:bg-muted/30 focus-visible:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+        >
           <td className="px-3 py-2 font-medium underline-offset-4 hover:underline">{props.nome}</td>
           <td className="px-3 py-2 text-right tabular-nums">{props.proximas}</td>
           <td className="px-3 py-2 text-right tabular-nums">{props.hoje}</td>
@@ -59,7 +71,19 @@ export function MemberRow(props: Props) {
 
   return (
     <>
-      <tr onClick={handleClick} className="cursor-pointer hover:bg-muted/30">
+      <tr
+        onClick={handleClick}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleClick();
+          }
+        }}
+        tabIndex={0}
+        role="button"
+        aria-label={`Ver detalhes de ${props.nome}`}
+        className="cursor-pointer hover:bg-muted/30 focus-visible:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+      >
         <td className="px-3 py-2 font-medium underline-offset-4 hover:underline">{props.nome}</td>
         <td className="px-3 py-2 text-xs text-muted-foreground">{props.funcao}</td>
         <td className="px-3 py-2 text-right tabular-nums">{props.proximas}</td>
