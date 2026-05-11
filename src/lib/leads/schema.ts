@@ -21,6 +21,7 @@ export const createLeadSchema = z.object({
   valor_proposto: z.coerce.number().min(0).default(0),
   duracao_meses: z.coerce.number().int().min(0).optional().nullable(),
   servico_proposto: z.string().optional().nullable(),
+  link_proposta: z.string().url("Link inválido").optional().or(z.literal("")).nullable(),
   info_briefing: z.string().optional().nullable(),
   prioridade: z.enum(PRIORITIES).default("media"),
   data_prospeccao_agendada: z.string().optional().nullable(),

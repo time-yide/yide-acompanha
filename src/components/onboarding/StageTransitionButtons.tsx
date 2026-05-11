@@ -24,6 +24,7 @@ interface LeadDefaults {
   valor_proposto?: number | string | null;
   duracao_meses?: number | null;
   servico_proposto?: string | null;
+  link_proposta?: string | null;
   data_prospeccao_agendada?: string | null;
   data_reuniao_marco_zero?: string | null;
 }

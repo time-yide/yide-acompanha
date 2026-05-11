@@ -15,6 +15,7 @@ interface LeadDefaults {
   valor_proposto?: number | string | null;
   duracao_meses?: number | null;
   servico_proposto?: string | null;
+  link_proposta?: string | null;
   data_prospeccao_agendada?: string | null;
   data_reuniao_marco_zero?: string | null;
 }
@@ -38,7 +39,7 @@ const STAGE_TITLE: Record<string, string> = {
 
 const STAGE_DESC: Record<string, string> = {
   leads_ativos: "Confirme o telefone do contato — sem isso o time comercial não consegue avançar.",
-  proposta_enviada: "Informe o valor mensal da proposta enviada ao cliente.",
+  proposta_enviada: "Informe o valor mensal e o link da proposta enviada ao cliente.",
   reuniao_comercial: "Agende data e horário da reunião. Vamos criar o evento no calendário interno automaticamente.",
   contrato: "Confirme o valor e o serviço/especificações do que foi fechado.",
   marco_zero: "Agende a reunião de Marco zero — coordenador conduz a partir desse ponto.",
@@ -52,6 +53,7 @@ export function TransitionDialog({ leadId, toStage, open, onOpenChange, defaults
   const [valor, setValor] = useState(String(defaults.valor_proposto ?? ""));
   const [duracao, setDuracao] = useState(String(defaults.duracao_meses ?? ""));
   const [servico, setServico] = useState(defaults.servico_proposto ?? "");
+  const [linkProposta, setLinkProposta] = useState(defaults.link_proposta ?? "");
   const [dataReuniao, setDataReuniao] = useState(
     defaults.data_prospeccao_agendada ? defaults.data_prospeccao_agendada.slice(0, 16) : "",
   );
@@ -83,7 +85,19 @@ export function TransitionDialog({ leadId, toStage, open, onOpenChange, defaults
         setError("Informe um valor maior que zero");
         return;
       }
+      const link = linkProposta.trim();
+      if (!link) {
+        setError("Informe o link da proposta");
+        return;
+      }
+      try {
+        new URL(link);
+      } catch {
+        setError("Link da proposta inválido — precisa começar com http:// ou https://");
+        return;
+      }
       fd.set("valor_proposto", String(v));
+      fd.set("link_proposta", link);
       if (duracao.trim()) fd.set("duracao_meses", duracao.trim());
       if (servico.trim()) fd.set("servico_proposto", servico.trim());
     }
@@ -157,6 +171,17 @@ export function TransitionDialog({ leadId, toStage, open, onOpenChange, defaults
                   value={valor} onChange={(e) => setValor(e.target.value)}
                   autoFocus
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="link_proposta">Link da proposta</Label>
+                <Input
+                  id="link_proposta" type="url"
+                  placeholder="https://drive.google.com/... ou Notion/Docs"
+                  value={linkProposta} onChange={(e) => setLinkProposta(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Link do documento enviado ao cliente (Drive, Notion, Docs etc.).
+                </p>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">

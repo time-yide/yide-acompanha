@@ -915,6 +915,7 @@ export type Database = {
           email: string | null
           id: string
           info_briefing: string | null
+          link_proposta: string | null
           motivo_perdido: string | null
           nome_prospect: string
           organization_id: string
@@ -940,6 +941,7 @@ export type Database = {
           email?: string | null
           id?: string
           info_briefing?: string | null
+          link_proposta?: string | null
           motivo_perdido?: string | null
           nome_prospect: string
           organization_id: string
@@ -965,6 +967,7 @@ export type Database = {
           email?: string | null
           id?: string
           info_briefing?: string | null
+          link_proposta?: string | null
           motivo_perdido?: string | null
           nome_prospect?: string
           organization_id?: string
