@@ -92,7 +92,12 @@ export default async function PainelPage({
 
   return (
     <div className="space-y-5">
-      <PainelHeader mesAtual={mesAtual} mesesDisponiveis={mesesDisponiveis} tipoFiltro={tipoFiltro} />
+      <PainelHeader
+        mesAtual={mesAtual}
+        mesesDisponiveis={mesesDisponiveis}
+        tipoFiltro={tipoFiltro}
+        canAtualizar={PRIVILEGED_ROLES.includes(user.role)}
+      />
 
       <PainelKpis checklists={checklists} />
 
