@@ -10,7 +10,7 @@ export default async function NovaTarefaPage({ searchParams }: { searchParams: P
 
   const supabase = await createClient();
   const [{ data: profiles = [] }, { data: clientes = [] }] = await Promise.all([
-    supabase.from("profiles").select("id, nome").eq("ativo", true).order("nome"),
+    supabase.from("profiles").select("id, nome, role").eq("ativo", true).order("nome"),
     supabase.from("clients").select("id, nome").eq("status", "ativo").order("nome"),
   ]);
 

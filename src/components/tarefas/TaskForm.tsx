@@ -16,8 +16,23 @@ import {
 } from "@/lib/tarefas/upload-actions";
 import type { TaskLink } from "@/lib/tarefas/queries";
 
-interface ProfileOption { id: string; nome: string; }
+interface ProfileOption { id: string; nome: string; role?: string | null; }
 interface ClientOption { id: string; nome: string; }
+
+/**
+ * Mapeia role do responsável → tipo de tarefa pro painel mensal conseguir
+ * derivar a step "edicao" automaticamente.
+ * - designer            → "arte"
+ * - videomaker / videomaker_mobile / editor / audiovisual_chefe → "video"
+ * - demais              → null (mantém o que tava)
+ */
+function tipoFromRole(role: string | null | undefined): "arte" | "video" | null {
+  if (role === "designer") return "arte";
+  if (role === "videomaker" || role === "videomaker_mobile" || role === "editor" || role === "audiovisual_chefe") {
+    return "video";
+  }
+  return null;
+}
 
 type ActionResult = { error?: string } | undefined;
 
@@ -72,7 +87,38 @@ export function TaskForm({
   const [uploading, startUpload] = useTransition();
   const [tipo, setTipo] = useState<string>(defaults.tipo ?? "geral");
   const [formatos, setFormatos] = useState<string[]>(defaults.formatos ?? []);
+  // Marca se o usuário trocou o tipo manualmente — quando true, não auto-deriva
+  // mais ao trocar de responsável (evita sobrescrever escolha consciente).
+  const [tipoManuallySet, setTipoManuallySet] = useState<boolean>(
+    isEdit && !!defaults.tipo && defaults.tipo !== "geral",
+  );
   const requiresFormato = tipo === "video" || tipo === "arte";
+  const atribuidoRole = profiles.find((p) => p.id === atribuidoA)?.role ?? null;
+  const autoTipo = tipoFromRole(atribuidoRole);
+  const tipoAutoDetected = !tipoManuallySet && autoTipo !== null && tipo === autoTipo;
+
+  /**
+   * Auto-deriva o tipo a partir do role do responsável escolhido.
+   * Só atua se o usuário ainda não trocou o tipo manualmente — pra não atropelar
+   * uma escolha consciente. Quando responsável volta pra alguém não-produtor, NÃO
+   * reseta pra "geral" (pode ser intencional).
+   */
+  function onAtribuidoChange(newId: string) {
+    setAtribuidoA(newId);
+    if (tipoManuallySet) return;
+    const role = profiles.find((p) => p.id === newId)?.role ?? null;
+    const auto = tipoFromRole(role);
+    if (auto && tipo !== auto) {
+      setTipo(auto);
+      // Default razoável: feed (usuário pode adicionar story depois).
+      if (formatos.length === 0) setFormatos(["feed"]);
+    }
+  }
+
+  function onTipoChange(v: string) {
+    setTipo(v);
+    setTipoManuallySet(true);
+  }
 
   function toggleFormato(value: string) {
     setFormatos((prev) =>
@@ -165,8 +211,17 @@ export function TaskForm({
 
       <div className="space-y-3 rounded-lg border bg-muted/20 p-4">
         <div className="space-y-2">
-          <Label htmlFor="tipo-select">Tipo</Label>
-          <Select value={tipo} onValueChange={(v) => setTipo(v ?? "geral")}>
+          <div className="flex items-center justify-between gap-2">
+            <Label htmlFor="tipo-select">
+              Tipo {requiresFormato && <span className="text-destructive">*</span>}
+            </Label>
+            {tipoAutoDetected && (
+              <span className="inline-flex items-center rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-300">
+                ✨ definido pelo responsável
+              </span>
+            )}
+          </div>
+          <Select value={tipo} onValueChange={(v) => onTipoChange(v ?? "geral")}>
             <SelectTrigger id="tipo-select"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="geral">Geral</SelectItem>
@@ -176,7 +231,12 @@ export function TaskForm({
           </Select>
           {!requiresFormato && (
             <p className="text-[11px] text-muted-foreground">
-              Marque como <strong>Vídeo</strong> ou <strong>Arte</strong> pra ativar formato e fluxo de aprovação.
+              Marque como <strong>Vídeo</strong> ou <strong>Arte</strong> pra ativar formato, fluxo de aprovação e contagem no painel mensal.
+            </p>
+          )}
+          {requiresFormato && (
+            <p className="text-[11px] text-muted-foreground">
+              {tipo === "arte" ? "Tarefa de arte (design)." : "Tarefa de vídeo (edição/captação)."} O painel mensal vai marcar a step de edição como pronta quando essa tarefa for concluída/aprovada/postada.
             </p>
           )}
         </div>
@@ -233,7 +293,7 @@ export function TaskForm({
           <SearchableSelect
             options={profiles.map((p) => ({ value: p.id, label: p.nome }))}
             value={atribuidoA || null}
-            onChange={(v) => setAtribuidoA(v ?? "")}
+            onChange={(v) => onAtribuidoChange(v ?? "")}
             placeholder="Selecione"
             emptyText="Nenhum colaborador encontrado"
           />

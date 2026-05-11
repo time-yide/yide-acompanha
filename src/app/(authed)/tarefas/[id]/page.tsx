@@ -94,7 +94,7 @@ export default async function TarefaPage({
     isPrivileged(user);
 
   const [{ data: profiles = [] }, { data: clientes = [] }, revisoes, comments] = await Promise.all([
-    supabase.from("profiles").select("id, nome").eq("ativo", true).order("nome"),
+    supabase.from("profiles").select("id, nome, role").eq("ativo", true).order("nome"),
     isEditing
       ? supabase.from("clients").select("id, nome").eq("status", "ativo").order("nome")
       : Promise.resolve({ data: [] as { id: string; nome: string }[] }),
