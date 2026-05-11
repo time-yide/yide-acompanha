@@ -34,7 +34,11 @@ export function TasksBoard({ tasks, userRole }: { tasks: TaskRow[]; userRole: st
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [conclModalOpen, setConclModalOpen] = useState(false);
-  const [conclModalTask, setConclModalTask] = useState<{ id: string; tipo: "geral" | "video" | "arte" } | null>(null);
+  const [conclModalTask, setConclModalTask] = useState<{
+    id: string;
+    tipo: "geral" | "video" | "arte";
+    toStatus: "concluida" | "em_aprovacao";
+  } | null>(null);
 
   const groups: Record<Status, TaskRow[]> = {
     aberta: [],
@@ -54,7 +58,10 @@ export function TasksBoard({ tasks, userRole }: { tasks: TaskRow[]; userRole: st
   function handleDrop(taskId: string, _fromStatus: Status, toStatus: Status) {
     setError(null);
 
-    if (toStatus === "concluida") {
+    // Mover pra "concluida" ou "em_aprovacao": responsáveis de execução
+    // (editor/videomaker/designer/audiovisual_chefe/coordenador/assessor)
+    // precisam preencher modal com link de entrega antes da movimentação.
+    if (toStatus === "concluida" || toStatus === "em_aprovacao") {
       const task = tasks.find((t) => t.id === taskId);
       if (task) {
         const role = task.atribuido_a_role;
@@ -66,7 +73,11 @@ export function TasksBoard({ tasks, userRole }: { tasks: TaskRow[]; userRole: st
           role === "coordenador" ||
           role === "assessor";
         if (requiresModal) {
-          setConclModalTask({ id: taskId, tipo: (task.tipo as "geral" | "video" | "arte") ?? "geral" });
+          setConclModalTask({
+            id: taskId,
+            tipo: (task.tipo as "geral" | "video" | "arte") ?? "geral",
+            toStatus,
+          });
           setConclModalOpen(true);
           return;
         }
@@ -111,6 +122,7 @@ export function TasksBoard({ tasks, userRole }: { tasks: TaskRow[]; userRole: st
           onOpenChange={setConclModalOpen}
           taskId={conclModalTask.id}
           taskTipo={conclModalTask.tipo}
+          toStatus={conclModalTask.toStatus}
           onSuccess={() => router.refresh()}
         />
       )}
