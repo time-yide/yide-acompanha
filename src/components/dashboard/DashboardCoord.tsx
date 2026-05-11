@@ -14,6 +14,7 @@ import { ChartEntradaChurn } from "./ChartEntradaChurn";
 import { CarteiraPorAssessorList } from "./CarteiraPorAssessorList";
 import { RankingResumo } from "./RankingResumo";
 import { ProximosEventosList } from "./ProximosEventosList";
+import { PainelAudiovisualSection } from "./audiovisual/PainelAudiovisualSection";
 import { Section } from "./Section";
 import { HiddenValuesProvider, HiddenValueToggle } from "./HiddenValuesContext";
 
@@ -70,6 +71,8 @@ export async function DashboardCoord({ userId, nome }: Props) {
         <Section title="Próximos eventos meus" cta={{ href: "/calendario", label: "Ver agenda →" }}>
           <ProximosEventosList eventos={eventos} />
         </Section>
+
+        <PainelAudiovisualSection />
       </div>
     </HiddenValuesProvider>
   );
