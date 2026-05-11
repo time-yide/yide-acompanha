@@ -33,6 +33,23 @@ function isPrivileged(user: CurrentUser): boolean {
   return user.role === "adm" || user.role === "socio";
 }
 
+/**
+ * Roles que podem gerenciar QUALQUER tarefa (alterar info, status, responsável,
+ * concluir/aprovar/etc.) — mesmo sem ser criador ou atribuído. Adm/sócio (sempre)
+ * + coordenador + assessor (gestão operacional).
+ *
+ * NOTA: delete continua restrito a criador + adm/socio (isPrivileged) —
+ * ação destrutiva, decisão de manter ou não fica com quem criou.
+ */
+function canManageAnyTask(user: CurrentUser): boolean {
+  return (
+    user.role === "adm" ||
+    user.role === "socio" ||
+    user.role === "coordenador" ||
+    user.role === "assessor"
+  );
+}
+
 const ROLES_QUE_ENTREGAM = ["editor", "videomaker", "designer", "audiovisual_chefe", "coordenador", "assessor"] as const;
 type RoleQueEntrega = (typeof ROLES_QUE_ENTREGAM)[number];
 
@@ -183,7 +200,7 @@ export async function updateTaskAction(_prevState: ActionResult, formData: FormD
   const canEdit =
     before.criado_por === actor.id ||
     before.atribuido_a === actor.id ||
-    isPrivileged(actor);
+    canManageAnyTask(actor);
   if (!canEdit) return { error: "Sem permissão" };
 
   const assignee = await getProfileNameAndActive(supabase, parsed.data.atribuido_a);
@@ -290,7 +307,7 @@ export async function toggleTaskCompletionAction(taskId: string) {
     t.criado_por === actor.id ||
     t.atribuido_a === actor.id ||
     (Array.isArray(tParticipantes) && tParticipantes.includes(actor.id)) ||
-    isPrivileged(actor);
+    canManageAnyTask(actor);
   if (!canToggle) return { error: "Sem permissão" };
 
   // Bloqueia conclusão simples pra roles que devem usar o modal de entrega
@@ -384,7 +401,7 @@ export async function moveTaskStatusAction(formData: FormData) {
     before.criado_por === actor.id ||
     before.atribuido_a === actor.id ||
     (Array.isArray(beforeParticipantes) && beforeParticipantes.includes(actor.id)) ||
-    isPrivileged(actor);
+    canManageAnyTask(actor);
   if (!canMove) return { error: "Sem permissão" };
 
   if (before.status === parsed.data.to_status) {
@@ -592,7 +609,7 @@ export async function approveTaskAction(taskId: string): Promise<ApprovalResult>
   if ("error" in loaded && loaded.error) return { error: loaded.error };
   const { task, supabase } = loaded as { task: { criado_por: string; atribuido_a: string; participantes_ids: string[] | null; status_aprovacao: string; titulo: string; client_id: string | null }; supabase: Awaited<ReturnType<typeof createClient>> };
 
-  const canApprove = task.criado_por === actor.id || isPrivileged(actor);
+  const canApprove = task.criado_por === actor.id || canManageAnyTask(actor);
   if (!canApprove) return { error: "Apenas o criador (assessor) ou adm/sócio pode aprovar" };
 
   if (task.status_aprovacao !== "em_analise") {
@@ -645,7 +662,7 @@ export async function requestAdjustmentsAction(formData: FormData): Promise<Appr
   if ("error" in loaded && loaded.error) return { error: loaded.error };
   const { task, supabase } = loaded as { task: { criado_por: string; atribuido_a: string; participantes_ids: string[] | null; status_aprovacao: string; titulo: string; client_id: string | null }; supabase: Awaited<ReturnType<typeof createClient>> };
 
-  const canRequest = task.criado_por === actor.id || isPrivileged(actor);
+  const canRequest = task.criado_por === actor.id || canManageAnyTask(actor);
   if (!canRequest) return { error: "Apenas o criador (assessor) ou adm/sócio pode pedir ajustes" };
 
   if (task.status_aprovacao !== "em_analise") {
@@ -717,7 +734,7 @@ export async function markAsPostedAction(taskId: string): Promise<ApprovalResult
     t.criado_por === actor.id ||
     t.atribuido_a === actor.id ||
     (Array.isArray(participantes) && participantes.includes(actor.id)) ||
-    isPrivileged(actor);
+    canManageAnyTask(actor);
   if (!canMark) return { error: "Sem permissão" };
 
   if (tAny.status !== "aprovada") {
@@ -787,7 +804,7 @@ export async function addCommentAction(formData: FormData): Promise<CommentResul
     tAny.criado_por === actor.id ||
     tAny.atribuido_a === actor.id ||
     (Array.isArray(participantes) && participantes.includes(actor.id)) ||
-    isPrivileged(actor);
+    canManageAnyTask(actor);
   if (!canComment) return { error: "Sem permissão pra comentar nessa tarefa" };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

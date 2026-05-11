@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle2, Pencil, Trash2 } from "lucide-react";
+import { CheckCircle2, History, Pencil, Trash2 } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import type { CurrentUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
@@ -104,6 +104,14 @@ export default async function TarefaPage({
               <Button type="button" variant="outline">
                 <Pencil className="h-4 w-4 mr-1" />
                 Fazer ajustes
+              </Button>
+            </Link>
+          )}
+          {["adm", "socio", "coordenador", "assessor", "audiovisual_chefe"].includes(user.role) && (
+            <Link href={`/tarefas/${id}/historico`}>
+              <Button type="button" variant="ghost" size="sm">
+                <History className="h-4 w-4 mr-1" />
+                Histórico
               </Button>
             </Link>
           )}
