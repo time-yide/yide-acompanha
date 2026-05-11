@@ -69,7 +69,7 @@ export async function PainelAudiovisualSection() {
           {/* Mobile: lista de cards */}
           <div className="space-y-2 md:hidden">
             {rows.map((r) => (
-              <Link key={r.id} href={rowHref(r)} className="block">
+              <Link key={r.id} href={rowHref(r)} className="block" prefetch={false}>
                 <div className="space-y-1 rounded-lg border bg-card p-3 hover:bg-muted/30">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs font-semibold tabular-nums text-muted-foreground">{formatDateBR(r.data_captacao)}</span>
@@ -102,19 +102,19 @@ export async function PainelAudiovisualSection() {
                   return (
                     <tr key={r.id} className="hover:bg-muted/30">
                       <td className="p-0">
-                        <Link href={href} className="block px-3 py-2 tabular-nums">{formatDateBR(r.data_captacao)}</Link>
+                        <Link href={href} className="block px-3 py-2 tabular-nums" prefetch={false}>{formatDateBR(r.data_captacao)}</Link>
                       </td>
                       <td className="p-0">
-                        <Link href={href} className="block px-3 py-2">{r.cliente_nome}</Link>
+                        <Link href={href} className="block px-3 py-2" prefetch={false}>{r.cliente_nome}</Link>
                       </td>
                       <td className="p-0">
-                        <Link href={href} className="block px-3 py-2 text-muted-foreground">{r.videomaker_nome}</Link>
+                        <Link href={href} className="block px-3 py-2 text-muted-foreground" prefetch={false}>{r.videomaker_nome}</Link>
                       </td>
                       <td className="p-0">
-                        <Link href={href} className="block px-3 py-2 text-xs text-muted-foreground">{r.qtd_videos}v · {r.qtd_fotos}f</Link>
+                        <Link href={href} className="block px-3 py-2 text-xs text-muted-foreground" prefetch={false}>{r.qtd_videos}v · {r.qtd_fotos}f</Link>
                       </td>
                       <td className="p-0">
-                        <Link href={href} className="block px-3 py-2"><StatusBadge status={r.statusAtual} detalhe={r.statusDetalhe} /></Link>
+                        <Link href={href} className="block px-3 py-2" prefetch={false}><StatusBadge status={r.statusAtual} detalhe={r.statusDetalhe} /></Link>
                       </td>
                     </tr>
                   );
