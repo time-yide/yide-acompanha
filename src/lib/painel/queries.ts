@@ -212,14 +212,28 @@ async function _getMonthlyChecklistsImpl(
     completed_by: string | null;
   }>;
 
-  // 4) Agrupa steps por checklist
+  // 3.5) Auto-derivar status "pronto" a partir de outras tabelas.
+  // Quando dados reais mostram que algo foi feito (gravação entregue,
+  // reunião agendada, tarefa de edição concluída/postada), marca o step
+  // correspondente como pronto sem precisar de clique manual.
+  // Marca manual via markStepProntoAction continua funcionando — quem chegar
+  // primeiro grava `pronto` no banco.
+  const derivedDone = await getDerivedDoneSet(supabase, mesReferencia, clientIds);
+  const checklistIdByClient = new Map(checklists.map((cl) => [cl.client_id, cl.id]));
+
+  // 4) Agrupa steps por checklist, aplicando override de derivação
   const stepsByChecklist = new Map<string, ChecklistStepRow[]>();
   for (const s of steps) {
+    const client = clients.find((c) => checklistIdByClient.get(c.id) === s.checklist_id);
+    const derivedKey = client ? `${client.id}:${s.step_key}` : null;
+    const isDerivedDone = derivedKey ? derivedDone.has(derivedKey) : false;
+    const finalStatus: StepStatus = s.status === "pronto" || isDerivedDone ? "pronto" : s.status;
+
     const arr = stepsByChecklist.get(s.checklist_id) ?? [];
     arr.push({
       id: s.id,
       step_key: s.step_key,
-      status: s.status,
+      status: finalStatus,
       responsavel_id: s.responsavel_id,
       responsavel_nome: s.responsavel?.nome ?? null,
       iniciado_em: s.iniciado_em,
@@ -262,4 +276,107 @@ async function _getMonthlyChecklistsImpl(
       steps: cl ? (stepsByChecklist.get(cl.id) ?? []) : [],
     };
   });
+}
+
+/**
+ * Calcula intervalo UTC do mês BRT (Brasília UTC-3) pra um mes_referencia
+ * "YYYY-MM". Retorna { startIso, endIso } em UTC pra usar em queries.
+ *
+ * Ex: "2026-05" → { startIso: "2026-05-01T03:00:00.000Z", endIso: "2026-06-01T03:00:00.000Z" }
+ *
+ * Garante que "Sunday 23:30 BRT" (= "Monday 02:30 UTC") do mês X seja
+ * incluído no mês X em vez do mês X+1.
+ */
+function getMonthRangeBRT(mesReferencia: string): { startIso: string; endIso: string } {
+  const BRT_OFFSET_MS = 3 * 60 * 60 * 1000;
+  const [y, m] = mesReferencia.split("-").map(Number);
+  // BRT midnight do primeiro dia do mês = UTC dia 1 às 03:00
+  const startUtcMs = Date.UTC(y, m - 1, 1, 0, 0, 0, 0) + BRT_OFFSET_MS;
+  const endUtcMs = Date.UTC(y, m, 1, 0, 0, 0, 0) + BRT_OFFSET_MS;
+  return {
+    startIso: new Date(startUtcMs).toISOString(),
+    endIso: new Date(endUtcMs).toISOString(),
+  };
+}
+
+/**
+ * Retorna um set de chaves "<client_id>:<step_key>" indicando quais steps
+ * podem ser considerados PRONTOS automaticamente baseado em dados reais
+ * de outras tabelas:
+ *
+ *   - camera:    qualquer captura entregue em audiovisual_capturas no mês
+ *   - reuniao:   qualquer evento de calendário com client_id no mês
+ *   - edicao:    qualquer task com tipo IN (video, arte) que avançou pra
+ *                concluida/em_aprovacao/aprovada/agendado/postada no mês
+ *   - postagem:  qualquer task com status=postada no mês (completed_at)
+ *
+ * MOB (mobile) fica de fora — o sistema não diferencia captura mobile vs
+ * câmera profissional ainda. Marca manual pelo cell.
+ */
+async function getDerivedDoneSet(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  mesReferencia: string,
+  clientIds: string[],
+): Promise<Set<string>> {
+  if (clientIds.length === 0) return new Set();
+
+  const { startIso, endIso } = getMonthRangeBRT(mesReferencia);
+  // data_captacao é DATE — usa formato YYYY-MM-DD
+  const startDate = startIso.slice(0, 10);
+  const endDate = endIso.slice(0, 10);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+
+  // Roda em paralelo as 4 queries de detecção
+  const [capturasRes, eventosRes, tasksEdicaoRes, tasksPostagemRes] = await Promise.all([
+    // CAM (camera) — qualquer captura entregue no mês
+    sb
+      .from("audiovisual_capturas")
+      .select("client_id")
+      .in("client_id", clientIds)
+      .gte("data_captacao", startDate)
+      .lt("data_captacao", endDate),
+    // Reunião — qualquer evento com client_id no mês
+    sb
+      .from("calendar_events")
+      .select("client_id")
+      .in("client_id", clientIds)
+      .gte("inicio", startIso)
+      .lt("inicio", endIso),
+    // Edição — tasks de video/arte que avançaram no mês
+    sb
+      .from("tasks")
+      .select("client_id, status, updated_at")
+      .in("client_id", clientIds)
+      .in("tipo", ["video", "arte"])
+      .in("status", ["concluida", "em_aprovacao", "aprovada", "agendado", "postada"])
+      .gte("updated_at", startIso)
+      .lt("updated_at", endIso),
+    // Postagem — tasks que foram postadas no mês
+    sb
+      .from("tasks")
+      .select("client_id, completed_at")
+      .in("client_id", clientIds)
+      .eq("status", "postada")
+      .gte("completed_at", startIso)
+      .lt("completed_at", endIso),
+  ]);
+
+  const done = new Set<string>();
+
+  for (const row of (capturasRes.data ?? []) as Array<{ client_id: string | null }>) {
+    if (row.client_id) done.add(`${row.client_id}:camera`);
+  }
+  for (const row of (eventosRes.data ?? []) as Array<{ client_id: string | null }>) {
+    if (row.client_id) done.add(`${row.client_id}:reuniao`);
+  }
+  for (const row of (tasksEdicaoRes.data ?? []) as Array<{ client_id: string | null }>) {
+    if (row.client_id) done.add(`${row.client_id}:edicao`);
+  }
+  for (const row of (tasksPostagemRes.data ?? []) as Array<{ client_id: string | null }>) {
+    if (row.client_id) done.add(`${row.client_id}:postagem`);
+  }
+
+  return done;
 }
