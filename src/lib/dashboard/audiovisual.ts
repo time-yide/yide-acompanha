@@ -157,7 +157,7 @@ async function _getEquipeAudiovisualImpl(periodo: Periodo): Promise<EquipeAudiov
       const pendentesList: TaskItem[] = tasks
         .filter(
           (t) =>
-            t.status !== "concluida" &&
+            ["aberta", "em_andamento", "alteracao"].includes(t.status) &&
             (t.atribuido_a === p.id || (t.participantes_ids ?? []).includes(p.id)),
         )
         .map((t) => ({
