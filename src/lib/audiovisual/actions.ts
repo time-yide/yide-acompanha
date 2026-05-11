@@ -8,8 +8,25 @@ import { requireAuth } from "@/lib/auth/session";
 import { logAudit } from "@/lib/audit/log";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 import { isoWeek } from "@/lib/satisfacao/iso-week";
-import { createCapturaSchema } from "./schema";
+import { createCapturaSchema, RATING_FIELDS } from "./schema";
 import { avgRating } from "./queries";
+
+const RATING_LABEL_BY_NAME = new Map<string, string>(
+  RATING_FIELDS.map((f) => [f.name, f.label]),
+);
+
+/**
+ * Mapeia erro do zod pra mensagem amigável. Notas faltando viram "Falta
+ * avaliar: <label>" em vez do críptico "expected number, received NaN".
+ */
+function friendlyZodError(issue: { path: PropertyKey[]; message: string }): string {
+  const field = issue.path[0];
+  if (typeof field === "string") {
+    const label = RATING_LABEL_BY_NAME.get(field);
+    if (label) return `Falta avaliar: ${label}`;
+  }
+  return issue.message;
+}
 
 function fd(formData: FormData, key: string) {
   const v = formData.get(key);
@@ -69,7 +86,7 @@ export async function createCapturaAction(_prev: ActionResult, formData: FormDat
     sugestoes: fd(formData, "sugestoes"),
   });
 
-  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  if (!parsed.success) return { error: friendlyZodError(parsed.error.issues[0]) };
 
   const supabase = await createClient();
   const insertPayload = {
