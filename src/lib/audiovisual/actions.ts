@@ -188,6 +188,12 @@ export async function createCapturaAction(_prev: ActionResult, formData: FormDat
 
 const ROLES_QUE_DELEGAM = new Set(["audiovisual_chefe", "adm", "socio"]);
 
+/**
+ * Roles que podem excluir captação. Inclui coord. audiovisual + adm/sócio
+ * (já delegam) + coordenador geral (visão de gestão da operação audiovisual).
+ */
+const ROLES_QUE_EXCLUEM_CAPTURA = new Set(["audiovisual_chefe", "adm", "socio", "coordenador"]);
+
 interface DelegateResult {
   error?: string;
   success?: boolean;
@@ -341,6 +347,46 @@ export async function markCapturaConcluidaAction(capturaId: string): Promise<{ e
 
   revalidatePath("/audiovisual");
   revalidateTag(AUDIOVISUAL_CAPTURAS_TAG, "default");
+  return { success: true };
+}
+
+/**
+ * Exclui uma captação permanentemente. Permite pra audiovisual_chefe,
+ * adm, sócio e coordenador. FK task_id é ON DELETE SET NULL — task
+ * vinculada (se houver) sobrevive como tarefa normal.
+ */
+export async function deleteCapturaAction(capturaId: string): Promise<{ error?: string; success?: boolean }> {
+  const actor = await requireAuth();
+  if (!ROLES_QUE_EXCLUEM_CAPTURA.has(actor.role)) {
+    return { error: "Sem permissão pra excluir captação" };
+  }
+
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+
+  // Carrega snapshot pro audit antes do delete
+  const { data: before } = await sb
+    .from("audiovisual_capturas")
+    .select("*")
+    .eq("id", capturaId)
+    .maybeSingle();
+  if (!before) return { error: "Captação não encontrada" };
+
+  const { error } = await sb.from("audiovisual_capturas").delete().eq("id", capturaId);
+  if (error) return { error: error.message };
+
+  await logAudit({
+    entidade: "audiovisual_capturas",
+    entidade_id: capturaId,
+    acao: "delete",
+    dados_antes: before as unknown as Record<string, unknown>,
+    ator_id: actor.id,
+  });
+
+  revalidatePath("/audiovisual");
+  revalidateTag(AUDIOVISUAL_CAPTURAS_TAG, "default");
+  revalidateTag(AUDIOVISUAL_PENDENTE_TAG, "default");
   return { success: true };
 }
 

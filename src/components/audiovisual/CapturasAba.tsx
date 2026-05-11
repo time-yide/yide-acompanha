@@ -10,6 +10,7 @@ import type { PendenteEvento } from "@/lib/audiovisual/queries";
 interface Props {
   isVideomaker: boolean;
   canDelegate: boolean;
+  canDelete?: boolean;
   pendentes: PendenteEvento[];
   clientes: Array<{ id: string; nome: string }>;
   capturas: CapturaRow[];
@@ -19,6 +20,7 @@ interface Props {
 export function CapturasAba({
   isVideomaker,
   canDelegate,
+  canDelete = false,
   pendentes,
   clientes,
   capturas,
@@ -66,6 +68,7 @@ export function CapturasAba({
           showVideomaker={!isVideomaker}
           editores={editores}
           canDelegate={canDelegate}
+          canDelete={canDelete}
         />
       </section>
     </div>

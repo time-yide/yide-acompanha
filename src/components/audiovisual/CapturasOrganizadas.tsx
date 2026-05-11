@@ -16,6 +16,7 @@ interface Props {
   showVideomaker?: boolean;
   editores?: Editor[];
   canDelegate?: boolean;
+  canDelete?: boolean;
 }
 
 /**
@@ -64,6 +65,7 @@ export function CapturasOrganizadas({
   showVideomaker = false,
   editores = [],
   canDelegate = false,
+  canDelete = false,
 }: Props) {
   const [showConcluidas, setShowConcluidas] = useState(false);
 
@@ -94,6 +96,7 @@ export function CapturasOrganizadas({
             showVideomaker={showVideomaker}
             editores={editores}
             canDelegate={canDelegate}
+            canDelete={canDelete}
           />
         </section>
       ))}
@@ -127,6 +130,7 @@ export function CapturasOrganizadas({
               showVideomaker={showVideomaker}
               editores={editores}
               canDelegate={canDelegate}
+              canDelete={canDelete}
             />
           )}
         </section>

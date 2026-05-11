@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 const ROLES_QUE_VEEM = ["videomaker", "audiovisual_chefe", "coordenador", "assessor", "adm", "socio"];
 const ROLES_QUE_DELEGAM = ["audiovisual_chefe", "adm", "socio"];
 const ROLES_GESTAO = ["audiovisual_chefe", "coordenador", "assessor", "adm", "socio"];
+const ROLES_QUE_EXCLUEM = ["audiovisual_chefe", "coordenador", "adm", "socio"];
 
 type TabKey = "capturas" | "pendente_entrega" | "pendente_delegacao";
 
@@ -41,6 +42,7 @@ export default async function AudiovisualPage({
   const isVideomaker = user.role === "videomaker";
   const isAssessor = user.role === "assessor";
   const canDelegate = ROLES_QUE_DELEGAM.includes(user.role);
+  const canDelete = ROLES_QUE_EXCLUEM.includes(user.role);
   // Pendente delegação visível pra coord/assessor (read-only) + quem pode delegar.
   const canSeeDelegacao = ROLES_GESTAO.includes(user.role);
 
@@ -99,6 +101,7 @@ export default async function AudiovisualPage({
       <CapturasAba
         isVideomaker={isVideomaker}
         canDelegate={canDelegate}
+        canDelete={canDelete}
         pendentes={pendentes}
         clientes={clientes}
         capturas={capturas}
@@ -133,7 +136,7 @@ export default async function AudiovisualPage({
         .then((r) => ((r.data ?? []) as Array<{ id: string; nome: string; role: string }>)),
     ]);
     content = (
-      <PendenteDelegacaoAba rows={rows} editores={editoresData} canDelegate={canDelegate} />
+      <PendenteDelegacaoAba rows={rows} editores={editoresData} canDelegate={canDelegate} canDelete={canDelete} />
     );
   }
 
