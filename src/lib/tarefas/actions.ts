@@ -50,7 +50,7 @@ function canManageAnyTask(user: CurrentUser): boolean {
   );
 }
 
-const ROLES_QUE_ENTREGAM = ["editor", "videomaker", "designer", "audiovisual_chefe", "coordenador", "assessor"] as const;
+const ROLES_QUE_ENTREGAM = ["editor", "videomaker", "videomaker_mobile", "designer", "audiovisual_chefe", "coordenador", "assessor"] as const;
 type RoleQueEntrega = (typeof ROLES_QUE_ENTREGAM)[number];
 
 function isRoleQueEntrega(role: string): role is RoleQueEntrega {

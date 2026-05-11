@@ -11,7 +11,7 @@ import { countChannelsWithUnread } from "@/lib/escritorio/queries";
 
 export default async function AuthedLayout({ children }: { children: React.ReactNode }) {
   const user = await requireAuth();
-  const isVideomaker = user.role === "videomaker";
+  const isVideomaker = user.role === "videomaker" || user.role === "videomaker_mobile";
   const [recadosNaoLidos, lockState, audiovisualPendentes, escritorioUnread] = await Promise.all([
     countRecadosNaoLidos(user.id),
     checkSatisfactionLock(user.id, user.role),

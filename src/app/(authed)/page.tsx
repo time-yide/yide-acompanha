@@ -42,7 +42,7 @@ function renderDashboardForRole(target: TargetUser, periodo: Periodo) {
   if (target.role === "comercial") {
     return <DashboardComercial userId={target.id} nome={target.nome} />;
   }
-  if (target.role === "videomaker") {
+  if (target.role === "videomaker" || target.role === "videomaker_mobile") {
     return <DashboardVideomaker userId={target.id} nome={target.nome} />;
   }
   if (target.role === "designer") {

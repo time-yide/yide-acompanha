@@ -7,13 +7,14 @@ export const ROLES = [
   "coordenador",
   "assessor",
   "videomaker",
+  "videomaker_mobile",
   "designer",
   "editor",
   "audiovisual_chefe",
 ] as const;
 export type RoleEnum = typeof ROLES[number];
 
-const PRODUCERS = ["videomaker", "designer", "editor"] as const;
+const PRODUCERS = ["videomaker", "videomaker_mobile", "designer", "editor"] as const;
 
 function zeroPercentForProducers<T extends { role: string; comissao_percent: number; comissao_primeiro_mes_percent: number }>(
   data: T,

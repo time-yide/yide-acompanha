@@ -65,14 +65,15 @@ export function ColaboradorCreateForm({ canSetCommission }: { canSetCommission: 
                 <SelectItem value="coordenador">Coordenador</SelectItem>
                 <SelectItem value="assessor">Assessor</SelectItem>
                 <SelectItem value="audiovisual_chefe">Coordenador audiovisual</SelectItem>
-                <SelectItem value="videomaker">Videomaker</SelectItem>
+                <SelectItem value="videomaker">Videomaker (câmera)</SelectItem>
+                <SelectItem value="videomaker_mobile">Videomaker Mobile</SelectItem>
                 <SelectItem value="designer">Designer</SelectItem>
                 <SelectItem value="editor">Editor</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-[11px] text-muted-foreground">
-              Produtores audiovisuais (videomaker / designer / editor) recebem apenas fixo —
-              os campos de % serão zerados automaticamente.
+              Produtores audiovisuais (videomaker / videomaker mobile / designer / editor)
+              recebem apenas fixo — os campos de % serão zerados automaticamente.
             </p>
           </div>
           <div className="space-y-2">

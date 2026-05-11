@@ -23,13 +23,14 @@ const roleLabels: Record<string, string> = {
   comercial: "Comercial",
   coordenador: "Coordenador",
   assessor: "Assessor",
-  videomaker: "Videomaker",
+  videomaker: "Videomaker (câmera)",
+  videomaker_mobile: "Videomaker Mobile",
   designer: "Designer",
   editor: "Editor",
   audiovisual_chefe: "Coordenador audiovisual",
 };
 
-const PRODUCERS = new Set(["videomaker", "designer", "editor"]);
+const PRODUCERS = new Set(["videomaker", "videomaker_mobile", "designer", "editor"]);
 
 function initials(nome: string): string {
   return nome

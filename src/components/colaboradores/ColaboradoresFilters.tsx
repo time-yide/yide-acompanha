@@ -12,7 +12,8 @@ const ROLE_OPTIONS = [
   { value: "coordenador", label: "Coordenador" },
   { value: "assessor", label: "Assessor" },
   { value: "audiovisual_chefe", label: "Coordenador audiovisual" },
-  { value: "videomaker", label: "Videomaker" },
+  { value: "videomaker", label: "Videomaker (câmera)" },
+  { value: "videomaker_mobile", label: "Videomaker Mobile" },
   { value: "designer", label: "Designer" },
   { value: "editor", label: "Editor" },
 ];

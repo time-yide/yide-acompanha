@@ -1,6 +1,6 @@
 export type Role =
   | "adm" | "socio" | "comercial" | "coordenador" | "assessor"
-  | "videomaker" | "designer" | "editor" | "audiovisual_chefe";
+  | "videomaker" | "videomaker_mobile" | "designer" | "editor" | "audiovisual_chefe";
 
 export type Action =
   // Gestão de usuários
@@ -73,6 +73,12 @@ const matrix: Record<Role, Action[]> = {
     "feed:satisfaction",
   ],
   videomaker: [
+    "view:all_clients",
+    "view:own_commission",
+    "create:tasks", "create:calendar_event", "customize:notification_recipients",
+    "feed:satisfaction",
+  ],
+  videomaker_mobile: [
     "view:all_clients",
     "view:own_commission",
     "create:tasks", "create:calendar_event", "customize:notification_recipients",

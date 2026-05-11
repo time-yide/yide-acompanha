@@ -29,26 +29,37 @@ export default async function EditClientePage({ params }: { params: Promise<{ id
 
   const [designersResp, videomakersResp, editorsResp] = await Promise.all([
     supabase.from("profiles").select("id, nome").eq("role", "designer").eq("ativo", true).order("nome"),
-    supabase.from("profiles").select("id, nome").eq("role", "videomaker").eq("ativo", true).order("nome"),
-    // "Editor responsável" agora aceita editor, videomaker ou audiovisual_chefe —
-    // videomaker/chefe também fazem edição em alguns clientes.
+    // Aceita ambos os tipos de videomaker — sufixa (mobile) pra distinguir na UI
     supabase
       .from("profiles")
       .select("id, nome, role")
-      .in("role", ["editor", "videomaker", "audiovisual_chefe"])
+      .in("role", ["videomaker", "videomaker_mobile"])
+      .eq("ativo", true)
+      .order("nome"),
+    // "Editor responsável" agora aceita editor, videomaker(s) ou audiovisual_chefe —
+    // todos esses produzem edição em alguns clientes.
+    supabase
+      .from("profiles")
+      .select("id, nome, role")
+      .in("role", ["editor", "videomaker", "videomaker_mobile", "audiovisual_chefe"])
       .eq("ativo", true)
       .order("nome"),
   ]);
   const designers = (designersResp.data ?? []) as Array<{ id: string; nome: string }>;
-  const videomakers = (videomakersResp.data ?? []) as Array<{ id: string; nome: string }>;
+  const videomakers = ((videomakersResp.data ?? []) as Array<{ id: string; nome: string; role: string }>).map((p) => ({
+    id: p.id,
+    nome: p.role === "videomaker_mobile" ? `${p.nome} (mobile)` : p.nome,
+  }));
   const editors = ((editorsResp.data ?? []) as Array<{ id: string; nome: string; role: string }>).map((p) => ({
     id: p.id,
     nome:
       p.role === "videomaker"
         ? `${p.nome} (videomaker)`
-        : p.role === "audiovisual_chefe"
-          ? `${p.nome} (audiovisual chefe)`
-          : p.nome,
+        : p.role === "videomaker_mobile"
+          ? `${p.nome} (videomaker mobile)`
+          : p.role === "audiovisual_chefe"
+            ? `${p.nome} (audiovisual chefe)`
+            : p.nome,
   }));
 
   return (

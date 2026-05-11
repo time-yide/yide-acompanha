@@ -304,14 +304,12 @@ function getMonthRangeBRT(mesReferencia: string): { startIso: string; endIso: st
  * podem ser considerados PRONTOS automaticamente baseado em dados reais
  * de outras tabelas:
  *
- *   - camera:    qualquer captura entregue em audiovisual_capturas no mês
+ *   - camera:    captura entregue por user role=videomaker no mês
+ *   - mobile:    captura entregue por user role=videomaker_mobile no mês
  *   - reuniao:   qualquer evento de calendário com client_id no mês
  *   - edicao:    qualquer task com tipo IN (video, arte) que avançou pra
  *                concluida/em_aprovacao/aprovada/agendado/postada no mês
  *   - postagem:  qualquer task com status=postada no mês (completed_at)
- *
- * MOB (mobile) fica de fora — o sistema não diferencia captura mobile vs
- * câmera profissional ainda. Marca manual pelo cell.
  */
 async function getDerivedDoneSet(
   supabase: ReturnType<typeof createServiceRoleClient>,
@@ -330,10 +328,12 @@ async function getDerivedDoneSet(
 
   // Roda em paralelo as 4 queries de detecção
   const [capturasRes, eventosRes, tasksEdicaoRes, tasksPostagemRes] = await Promise.all([
-    // CAM (camera) — qualquer captura entregue no mês
+    // Capturas entregues — diferencia CAM vs MOB pelo role do videomaker:
+    //   role=videomaker        → step `camera`
+    //   role=videomaker_mobile → step `mobile`
     sb
       .from("audiovisual_capturas")
-      .select("client_id")
+      .select("client_id, videomaker:profiles!audiovisual_capturas_videomaker_id_fkey(role)")
       .in("client_id", clientIds)
       .gte("data_captacao", startDate)
       .lt("data_captacao", endDate),
@@ -365,8 +365,17 @@ async function getDerivedDoneSet(
 
   const done = new Set<string>();
 
-  for (const row of (capturasRes.data ?? []) as Array<{ client_id: string | null }>) {
-    if (row.client_id) done.add(`${row.client_id}:camera`);
+  for (const row of (capturasRes.data ?? []) as Array<{
+    client_id: string | null;
+    videomaker: { role: string } | null;
+  }>) {
+    if (!row.client_id) continue;
+    // Mobile → step `mobile`. Outros (videomaker padrão, ausente ou outro) → `camera`.
+    if (row.videomaker?.role === "videomaker_mobile") {
+      done.add(`${row.client_id}:mobile`);
+    } else {
+      done.add(`${row.client_id}:camera`);
+    }
   }
   for (const row of (eventosRes.data ?? []) as Array<{ client_id: string | null }>) {
     if (row.client_id) done.add(`${row.client_id}:reuniao`);

@@ -39,7 +39,7 @@ export default async function AudiovisualPage({
   const user = await requireAuth();
   if (!ROLES_QUE_VEEM.includes(user.role)) notFound();
 
-  const isVideomaker = user.role === "videomaker";
+  const isVideomaker = user.role === "videomaker" || user.role === "videomaker_mobile";
   const isAssessor = user.role === "assessor";
   const canDelegate = ROLES_QUE_DELEGAM.includes(user.role);
   const canDelete = ROLES_QUE_EXCLUEM.includes(user.role);

@@ -68,6 +68,7 @@ export function TasksBoard({ tasks, userRole }: { tasks: TaskRow[]; userRole: st
         const requiresModal =
           role === "editor" ||
           role === "videomaker" ||
+          role === "videomaker_mobile" ||
           role === "designer" ||
           role === "audiovisual_chefe" ||
           role === "coordenador" ||

@@ -74,7 +74,8 @@ export function ColaboradorForm({ data, canEditFinance, canEditRole, canEditMeta
               <SelectItem value="coordenador">Coordenador</SelectItem>
               <SelectItem value="assessor">Assessor</SelectItem>
               <SelectItem value="audiovisual_chefe">Coordenador audiovisual</SelectItem>
-              <SelectItem value="videomaker">Videomaker</SelectItem>
+              <SelectItem value="videomaker">Videomaker (câmera)</SelectItem>
+              <SelectItem value="videomaker_mobile">Videomaker Mobile</SelectItem>
               <SelectItem value="designer">Designer</SelectItem>
               <SelectItem value="editor">Editor</SelectItem>
             </SelectContent>
@@ -122,7 +123,7 @@ export function ColaboradorForm({ data, canEditFinance, canEditRole, canEditMeta
           />
         </div>
 
-        {(data.role === "videomaker" || data.role === "designer" || data.role === "editor") && (
+        {(data.role === "videomaker" || data.role === "videomaker_mobile" || data.role === "designer" || data.role === "editor") && (
           <p className="md:col-span-2 text-xs text-muted-foreground">
             Produtores audiovisuais (videomaker / designer / editor) recebem apenas fixo —
             os campos de % de comissão são zerados automaticamente ao salvar.

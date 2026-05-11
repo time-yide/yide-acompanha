@@ -1666,6 +1666,7 @@ export type Database = {
         | "coordenador"
         | "assessor"
         | "videomaker"
+        | "videomaker_mobile"
         | "designer"
         | "editor"
         | "audiovisual_chefe"
@@ -1907,6 +1908,7 @@ export const Constants = {
         "coordenador",
         "assessor",
         "videomaker",
+        "videomaker_mobile",
         "designer",
         "editor",
         "audiovisual_chefe",

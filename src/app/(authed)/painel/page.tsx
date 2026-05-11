@@ -54,7 +54,7 @@ export default async function PainelPage({
     filter.coordenadorId = user.id;
     if (assessorFiltro) filter.assessorId = assessorFiltro;
   } else if (user.role === "designer") filter.designerId = user.id;
-  else if (user.role === "videomaker") filter.audiovisualUserId = user.id;
+  else if (user.role === "videomaker" || user.role === "videomaker_mobile") filter.audiovisualUserId = user.id;
   else if (user.role === "editor") filter.editorId = user.id;
   else if (PRIVILEGED_ROLES.includes(user.role) && assessorFiltro) {
     filter.assessorId = assessorFiltro;
