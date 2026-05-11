@@ -112,11 +112,11 @@ export function EventForm({ action, defaults = {}, profiles, clientes, canCreate
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="inicio">Início</Label>
-          <Input id="inicio" name="inicio" type="datetime-local" required defaultValue={defaults.inicio ? defaults.inicio.slice(0, 16) : ""} />
+          <Input id="inicio" name="inicio" type="datetime-local" required defaultValue={defaults.inicio ?? ""} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="fim">Fim</Label>
-          <Input id="fim" name="fim" type="datetime-local" required defaultValue={defaults.fim ? defaults.fim.slice(0, 16) : ""} />
+          <Input id="fim" name="fim" type="datetime-local" required defaultValue={defaults.fim ?? ""} />
         </div>
       </div>
 

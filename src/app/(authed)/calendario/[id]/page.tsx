@@ -6,6 +6,7 @@ import { getEventById } from "@/lib/calendario/queries";
 import { updateEventAction, deleteEventAction } from "@/lib/calendario/actions";
 import { EventForm } from "@/components/calendario/EventForm";
 import { ROLES_PODEM_CRIAR_VIDEOMAKER, type SelectableSub, SELECTABLE_SUBS } from "@/lib/calendario/schema";
+import { formatBrtDateTime, utcIsoToBrtInputValue } from "@/lib/calendario/timezone";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Trash2 } from "lucide-react";
@@ -96,8 +97,8 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
               id: event.id,
               titulo: event.titulo,
               descricao: event.descricao,
-              inicio: event.inicio,
-              fim: event.fim,
+              inicio: utcIsoToBrtInputValue(event.inicio),
+              fim: utcIsoToBrtInputValue(event.fim),
               participantes_ids: event.participantes_ids ?? [],
               sub_calendar: formSub,
               client_id: event.client_id ?? null,
@@ -116,7 +117,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
             <h2 className="text-lg font-semibold">{event.titulo}</h2>
             {event.descricao && <p className="text-sm text-muted-foreground">{event.descricao}</p>}
             <div className="text-xs text-muted-foreground">
-              {new Date(event.inicio).toLocaleString("pt-BR")} → {new Date(event.fim).toLocaleString("pt-BR")}
+              {formatBrtDateTime(event.inicio)} → {formatBrtDateTime(event.fim)}
             </div>
             <div className="text-xs">Criado por {event.criador?.nome ?? "—"}</div>
           </div>

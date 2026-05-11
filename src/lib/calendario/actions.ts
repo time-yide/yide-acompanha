@@ -2,10 +2,12 @@
 
 import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/auth/session";
 import { logAudit } from "@/lib/audit/log";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
+import { brtInputToUtcIso } from "./timezone";
 import {
   createEventSchema,
   editEventSchema,
@@ -36,6 +38,7 @@ async function notifyCalendarParticipants(params: {
   if (recipients.length === 0) return;
 
   const dataFmt = new Date(params.inicio).toLocaleString("pt-BR", {
+    timeZone: "America/Sao_Paulo",
     weekday: "short",
     day: "2-digit",
     month: "short",
@@ -99,7 +102,10 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  if (new Date(parsed.data.fim) <= new Date(parsed.data.inicio)) {
+  const inicioUtc = brtInputToUtcIso(parsed.data.inicio);
+  const fimUtc = brtInputToUtcIso(parsed.data.fim);
+
+  if (new Date(fimUtc) <= new Date(inicioUtc)) {
     return { error: "Horário de fim deve ser posterior ao início" };
   }
 
@@ -111,8 +117,8 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
     organization_id: org.id,
     titulo: parsed.data.titulo,
     descricao: parsed.data.descricao || null,
-    inicio: parsed.data.inicio,
-    fim: parsed.data.fim,
+    inicio: inicioUtc,
+    fim: fimUtc,
     sub_calendar: parsed.data.sub_calendar,
     criado_por: actor.id,
     participantes_ids: parsed.data.participantes_ids,
@@ -139,14 +145,14 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
   });
 
   // Notifica os participantes do evento novo (exceto o próprio criador)
-  await notifyCalendarParticipants({
+  after(notifyCalendarParticipants({
     eventId: created.id,
     titulo: parsed.data.titulo,
-    inicio: parsed.data.inicio,
+    inicio: inicioUtc,
     participantesNovos: parsed.data.participantes_ids,
     actorId: actor.id,
     actorNome: actor.nome,
-  });
+  }));
 
   revalidatePath("/calendario");
   revalidateTag("calendar", "default");
@@ -186,15 +192,18 @@ export async function updateEventAction(_prevState: ActionResult, formData: Form
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  if (new Date(parsed.data.fim) <= new Date(parsed.data.inicio)) {
+  const inicioUtc = brtInputToUtcIso(parsed.data.inicio);
+  const fimUtc = brtInputToUtcIso(parsed.data.fim);
+
+  if (new Date(fimUtc) <= new Date(inicioUtc)) {
     return { error: "Horário de fim deve ser posterior ao início" };
   }
 
   const updatePayload = {
     titulo: parsed.data.titulo,
     descricao: parsed.data.descricao || null,
-    inicio: parsed.data.inicio,
-    fim: parsed.data.fim,
+    inicio: inicioUtc,
+    fim: fimUtc,
     sub_calendar: parsed.data.sub_calendar,
     participantes_ids: parsed.data.participantes_ids,
     client_id: parsed.data.client_id || null,
@@ -207,7 +216,7 @@ export async function updateEventAction(_prevState: ActionResult, formData: Form
   // Se o início mudou, zera o reminder pra re-disparar o cron de 30-min antes
   // pro novo horário. Sem isso, eventos remarcados pra mais tarde não recebem
   // aviso pro novo timestamp.
-  if (before && (before as unknown as { inicio: string }).inicio !== parsed.data.inicio) {
+  if (before && new Date((before as unknown as { inicio: string }).inicio).getTime() !== new Date(inicioUtc).getTime()) {
     (updatePayload as { reminded_30min_at?: string | null }).reminded_30min_at = null;
   }
 
@@ -231,14 +240,14 @@ export async function updateEventAction(_prevState: ActionResult, formData: Form
     (pid) => !participantesAntes.includes(pid),
   );
   if (adicionados.length > 0) {
-    await notifyCalendarParticipants({
+    after(notifyCalendarParticipants({
       eventId: id,
       titulo: parsed.data.titulo,
-      inicio: parsed.data.inicio,
+      inicio: inicioUtc,
       participantesNovos: adicionados,
       actorId: actor.id,
       actorNome: actor.nome,
-    });
+    }));
   }
 
   revalidatePath("/calendario");

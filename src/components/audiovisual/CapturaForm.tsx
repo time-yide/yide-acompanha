@@ -11,6 +11,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { createCapturaAction } from "@/lib/audiovisual/actions";
 import { RATING_FIELDS } from "@/lib/audiovisual/schema";
 import { cn } from "@/lib/utils";
+import { formatBrtDateOnly } from "@/lib/calendario/timezone";
 
 type ActionResult = { error?: string } | undefined;
 
@@ -83,7 +84,7 @@ export function CapturaForm({ clientes, pendentes, hidePendenteSelect = false }:
   const [eventId, setEventId] = useState<string>(initial?.event_id ?? "");
   const [clientId, setClientId] = useState<string>(initial?.client_id ?? "");
   const [dataCaptacao, setDataCaptacao] = useState<string>(
-    initial?.inicio ? initial.inicio.slice(0, 10) : todayBR(),
+    initial?.inicio ? formatBrtDateOnly(initial.inicio) : todayBR(),
   );
   const [ratings, setRatings] = useState<Record<string, number>>({});
   const [clientError, setClientError] = useState<string | null>(null);
@@ -114,7 +115,7 @@ export function CapturaForm({ clientes, pendentes, hidePendenteSelect = false }:
     if (p) {
       if (p.client_id) setClientId(p.client_id);
       // pega só a parte de data (YYYY-MM-DD) do início do evento
-      setDataCaptacao(p.inicio.slice(0, 10));
+      setDataCaptacao(formatBrtDateOnly(p.inicio));
     }
   }
 

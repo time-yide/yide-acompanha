@@ -1,5 +1,7 @@
+import { useMemo } from "react";
 import { EventCell } from "./EventCell";
 import type { CalendarEvent } from "@/lib/calendario/schema";
+import { getBrtDayOfWeek } from "@/lib/calendario/timezone";
 
 const DAYS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 
@@ -11,8 +13,8 @@ interface Props {
 export function WeekView({ weekStart, events }: Props) {
   const groups: CalendarEvent[][] = [[], [], [], [], [], [], []];
   for (const e of events) {
-    const d = new Date(e.inicio);
-    const dayIdx = (d.getUTCDay() + 6) % 7;
+    // dayIdx 0 = Segunda em nossa convenção (DAYS array começa em Seg)
+    const dayIdx = (getBrtDayOfWeek(e.inicio) + 6) % 7;
     if (dayIdx >= 0 && dayIdx < 7) groups[dayIdx].push(e);
   }
 
@@ -23,15 +25,23 @@ export function WeekView({ weekStart, events }: Props) {
     dates.push(d);
   }
 
-  const today = new Date();
-  today.setUTCHours(0, 0, 0, 0);
+  const todayUtc = useMemo(() => {
+    const BRT_OFFSET_MS = 3 * 60 * 60 * 1000;
+    // eslint-disable-next-line react-hooks/purity
+    const todayBrtMs = Date.now() - BRT_OFFSET_MS;
+    const today = new Date(todayBrtMs);
+    today.setUTCHours(0, 0, 0, 0);
+    // Volta pra UTC pra comparar com dates[] que estão em UTC
+    const todayUtcMs = today.getTime() + BRT_OFFSET_MS;
+    return new Date(todayUtcMs);
+  }, []);
 
   return (
     // Mobile (< sm): lista vertical de 7 dias full-width — eventos legíveis.
     // sm+: grid 7 colunas como antes pra visão semanal compacta.
     <div className="grid grid-cols-1 gap-2 sm:grid-cols-7">
       {dates.map((d, i) => {
-        const isToday = d.getTime() === today.getTime();
+        const isToday = d.getTime() === todayUtc.getTime();
         const isEmpty = groups[i].length === 0;
         return (
           <div key={i} className="space-y-2">
@@ -43,7 +53,7 @@ export function WeekView({ weekStart, events }: Props) {
             >
               <div className="text-[11px] font-semibold uppercase tracking-wider">{DAYS[i]}</div>
               <div className="text-lg font-bold tabular-nums">
-                {d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
+                {d.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit" })}
               </div>
               {/* Contador inline no mobile pra dia vazio ficar evidente sem ocupar coluna inteira */}
               {isEmpty && (
