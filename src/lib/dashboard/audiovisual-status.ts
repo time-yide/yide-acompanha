@@ -15,17 +15,19 @@ const TASK_STATUS_LABEL: Record<string, string> = {
 
 /**
  * Pure function: deriva o status visível na UI a partir da captura + task vinculada.
- *   concluida_em != null   -> "Concluída"
- *   task.status == postada -> "Concluída"
- *   task != null           -> "Em edição" + label do status da task
- *   sem task               -> "Aguardando delegação"
+ *   concluida_em != null                           -> "Concluída"
+ *   task.status in [postada, aprovada, concluida] -> "Concluída" (terminal statuses)
+ *   task != null                                   -> "Em edição" + label do status da task
+ *   sem task                                       -> "Aguardando delegação"
  */
 export function derivarStatusAtual(input: {
   concluida_em: string | null;
   task: { status: string } | null;
 }): { statusAtual: StatusAtual; statusDetalhe: string | null } {
   if (input.concluida_em) return { statusAtual: "Concluída", statusDetalhe: null };
-  if (input.task?.status === "postada") return { statusAtual: "Concluída", statusDetalhe: null };
+  if (input.task && ["concluida", "aprovada", "postada"].includes(input.task.status)) {
+    return { statusAtual: "Concluída", statusDetalhe: null };
+  }
   if (input.task) {
     const label = TASK_STATUS_LABEL[input.task.status] ?? input.task.status;
     return { statusAtual: "Em edição", statusDetalhe: label };

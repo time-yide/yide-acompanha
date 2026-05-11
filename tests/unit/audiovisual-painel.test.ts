@@ -14,6 +14,18 @@ describe("derivarStatusAtual", () => {
     expect(r.statusDetalhe).toBe(null);
   });
 
+  it("task em aprovada -> Concluída (terminal)", () => {
+    const r = derivarStatusAtual({ concluida_em: null, task: { status: "aprovada" } });
+    expect(r.statusAtual).toBe("Concluída");
+    expect(r.statusDetalhe).toBe(null);
+  });
+
+  it("task em concluida -> Concluída (terminal)", () => {
+    const r = derivarStatusAtual({ concluida_em: null, task: { status: "concluida" } });
+    expect(r.statusAtual).toBe("Concluída");
+    expect(r.statusDetalhe).toBe(null);
+  });
+
   it("task em em_andamento -> Em edição: Em andamento", () => {
     const r = derivarStatusAtual({ concluida_em: null, task: { status: "em_andamento" } });
     expect(r.statusAtual).toBe("Em edição");
