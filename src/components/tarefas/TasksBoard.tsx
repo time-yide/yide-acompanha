@@ -62,7 +62,9 @@ export function TasksBoard({ tasks, userRole }: { tasks: TaskRow[]; userRole: st
           role === "editor" ||
           role === "videomaker" ||
           role === "designer" ||
-          role === "audiovisual_chefe";
+          role === "audiovisual_chefe" ||
+          role === "coordenador" ||
+          role === "assessor";
         if (requiresModal) {
           setConclModalTask({ id: taskId, tipo: (task.tipo as "geral" | "video" | "arte") ?? "geral" });
           setConclModalOpen(true);

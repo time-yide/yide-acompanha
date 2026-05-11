@@ -33,7 +33,7 @@ function isPrivileged(user: CurrentUser): boolean {
   return user.role === "adm" || user.role === "socio";
 }
 
-const ROLES_QUE_ENTREGAM = ["editor", "videomaker", "designer", "audiovisual_chefe"] as const;
+const ROLES_QUE_ENTREGAM = ["editor", "videomaker", "designer", "audiovisual_chefe", "coordenador", "assessor"] as const;
 type RoleQueEntrega = (typeof ROLES_QUE_ENTREGAM)[number];
 
 function isRoleQueEntrega(role: string): role is RoleQueEntrega {
@@ -400,7 +400,8 @@ export async function moveTaskStatusAction(formData: FormData) {
       .select("role")
       .eq("id", before.atribuido_a)
       .single();
-    const ROLES = ["editor", "videomaker", "designer", "audiovisual_chefe"] as const;
+    // Mesma lista de ROLES_QUE_ENTREGAM — defense in depth.
+    const ROLES = ROLES_QUE_ENTREGAM;
     if (assignee && (ROLES as readonly string[]).includes(assignee.role)) {
       return { error: "Use o modal de entrega pra concluir essa tarefa" };
     }
