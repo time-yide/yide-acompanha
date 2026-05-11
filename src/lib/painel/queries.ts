@@ -77,8 +77,8 @@ export async function getMonthlyChecklists(
       const f = JSON.parse(filterJson) as ChecklistFilter;
       return _getMonthlyChecklistsImpl(mes, f);
     },
-    // v3: shape mudou (client_link_estrategia)
-    ["painel-monthly-checklists-v3"],
+    // v4: hotfix com fallback resiliente (link_estrategia/gmn_otimizado opcionais)
+    ["painel-monthly-checklists-v4"],
     { revalidate: 60, tags: [PAINEL_CACHE_TAG] },
   );
   return cached(mesReferencia, JSON.stringify(filter));
@@ -91,32 +91,56 @@ async function _getMonthlyChecklistsImpl(
   const supabase = createServiceRoleClient();
 
   // 1) Lista clientes filtrados (apenas pacotes do painel mensal)
-  let clientsQuery = supabase
-    .from("clients")
-    .select(`
-      id, nome, assessor_id, coordenador_id, designer_id, videomaker_id, editor_id,
-      drive_url, instagram_url, link_estrategia,
-      tipo_pacote, tipo_pacote_revisado, cadencia_reuniao, numero_unidades,
-      valor_trafego_google, valor_trafego_meta
-    `)
-    .eq("status", "ativo")
-    .in("tipo_pacote", [
-      "trafego_estrategia", "trafego", "estrategia", "audiovisual", "yide_360",
-    ]);
+  // Helper que monta a query dado um SELECT (pra poder fazer fallback quando
+  // a coluna `link_estrategia` ainda não existe — migração não rodada).
+  const buildClientsQuery = (selectStr: string) => {
+    let q = supabase
+      .from("clients")
+      .select(selectStr)
+      .eq("status", "ativo")
+      .in("tipo_pacote", [
+        "trafego_estrategia", "trafego", "estrategia", "audiovisual", "yide_360",
+      ]);
+    if (filter.assessorId) q = q.eq("assessor_id", filter.assessorId);
+    if (filter.coordenadorId) q = q.eq("coordenador_id", filter.coordenadorId);
+    if (filter.designerId) q = q.eq("designer_id", filter.designerId);
+    if (filter.videomakerId) q = q.eq("videomaker_id", filter.videomakerId);
+    if (filter.editorId) q = q.eq("editor_id", filter.editorId);
+    if (filter.audiovisualUserId) {
+      q = q.or(
+        `videomaker_id.eq.${filter.audiovisualUserId},editor_id.eq.${filter.audiovisualUserId}`,
+      );
+    }
+    return q.order("nome");
+  };
 
-  if (filter.assessorId) clientsQuery = clientsQuery.eq("assessor_id", filter.assessorId);
-  if (filter.coordenadorId) clientsQuery = clientsQuery.eq("coordenador_id", filter.coordenadorId);
-  if (filter.designerId) clientsQuery = clientsQuery.eq("designer_id", filter.designerId);
-  if (filter.videomakerId) clientsQuery = clientsQuery.eq("videomaker_id", filter.videomakerId);
-  if (filter.editorId) clientsQuery = clientsQuery.eq("editor_id", filter.editorId);
-  if (filter.audiovisualUserId) {
-    clientsQuery = clientsQuery.or(
-      `videomaker_id.eq.${filter.audiovisualUserId},editor_id.eq.${filter.audiovisualUserId}`,
-    );
+  const SELECT_COMPLETO = `
+    id, nome, assessor_id, coordenador_id, designer_id, videomaker_id, editor_id,
+    drive_url, instagram_url, link_estrategia,
+    tipo_pacote, tipo_pacote_revisado, cadencia_reuniao, numero_unidades,
+    valor_trafego_google, valor_trafego_meta
+  `;
+  const SELECT_SEM_LINK_ESTRATEGIA = `
+    id, nome, assessor_id, coordenador_id, designer_id, videomaker_id, editor_id,
+    drive_url, instagram_url,
+    tipo_pacote, tipo_pacote_revisado, cadencia_reuniao, numero_unidades,
+    valor_trafego_google, valor_trafego_meta
+  `;
+
+  let clientsResp = await buildClientsQuery(SELECT_COMPLETO);
+  // Fallback: se PostgREST reclamar de coluna que não existe (migração ainda
+  // não rodada em prod), tenta de novo sem link_estrategia. Sem isso, todo o
+  // painel ficaria vazio.
+  if (clientsResp.error) {
+    const msg = clientsResp.error.message ?? "";
+    if (msg.includes("link_estrategia") || msg.includes("schema cache")) {
+      console.warn("[painel] link_estrategia indisponível no banco — usando fallback");
+      clientsResp = await buildClientsQuery(SELECT_SEM_LINK_ESTRATEGIA);
+    } else {
+      console.error("[painel] erro ao listar clientes:", msg);
+    }
   }
-
-  const { data: clientsData } = await clientsQuery.order("nome");
-  const clients = (clientsData ?? []) as Array<{
+  const clients = ((clientsResp.data ?? []) as unknown as Array<{
     id: string;
     nome: string;
     assessor_id: string | null;
@@ -126,32 +150,56 @@ async function _getMonthlyChecklistsImpl(
     editor_id: string | null;
     drive_url: string | null;
     instagram_url: string | null;
-    link_estrategia: string | null;
+    link_estrategia?: string | null;
     tipo_pacote: TipoPacote;
     tipo_pacote_revisado: boolean;
     cadencia_reuniao: CadenciaReuniao | null;
     numero_unidades: number;
     valor_trafego_google: number | null;
     valor_trafego_meta: number | null;
-  }>;
+  }>).map((c) => ({
+    ...c,
+    link_estrategia: c.link_estrategia ?? null,
+  }));
 
   if (clients.length === 0) return [];
 
   const clientIds = clients.map((c) => c.id);
 
   // 2) Carrega checklists do mês
-  const { data: checklistsData } = await supabase
-    .from("client_monthly_checklist")
-    .select(`
-      id, client_id, mes_referencia,
-      pacote_post, quantidade_postada, valor_trafego_mes,
-      tpg_ativo, tpm_ativo,
-      gmn_comentarios, gmn_avaliacoes, gmn_nota_media, gmn_observacoes, gmn_otimizado
-    `)
-    .eq("mes_referencia", mesReferencia)
-    .in("client_id", clientIds);
+  // Mesmo padrão de fallback: se gmn_otimizado ainda não foi migrada, tenta
+  // de novo sem ela.
+  const buildChecklistsQuery = (selectStr: string) =>
+    supabase
+      .from("client_monthly_checklist")
+      .select(selectStr)
+      .eq("mes_referencia", mesReferencia)
+      .in("client_id", clientIds);
 
-  const checklists = (checklistsData ?? []) as Array<{
+  const SELECT_CHECKLIST_COMPLETO = `
+    id, client_id, mes_referencia,
+    pacote_post, quantidade_postada, valor_trafego_mes,
+    tpg_ativo, tpm_ativo,
+    gmn_comentarios, gmn_avaliacoes, gmn_nota_media, gmn_observacoes, gmn_otimizado
+  `;
+  const SELECT_CHECKLIST_SEM_OTIMIZADO = `
+    id, client_id, mes_referencia,
+    pacote_post, quantidade_postada, valor_trafego_mes,
+    tpg_ativo, tpm_ativo,
+    gmn_comentarios, gmn_avaliacoes, gmn_nota_media, gmn_observacoes
+  `;
+
+  let checklistsResp = await buildChecklistsQuery(SELECT_CHECKLIST_COMPLETO);
+  if (checklistsResp.error) {
+    const msg = checklistsResp.error.message ?? "";
+    if (msg.includes("gmn_otimizado") || msg.includes("schema cache")) {
+      console.warn("[painel] gmn_otimizado indisponível no banco — usando fallback");
+      checklistsResp = await buildChecklistsQuery(SELECT_CHECKLIST_SEM_OTIMIZADO);
+    } else {
+      console.error("[painel] erro ao listar checklists:", msg);
+    }
+  }
+  const checklists = ((checklistsResp.data ?? []) as unknown as Array<{
     id: string;
     client_id: string;
     mes_referencia: string;
@@ -164,8 +212,11 @@ async function _getMonthlyChecklistsImpl(
     gmn_avaliacoes: number;
     gmn_nota_media: number | null;
     gmn_observacoes: string | null;
-    gmn_otimizado: boolean;
-  }>;
+    gmn_otimizado?: boolean;
+  }>).map((cl) => ({
+    ...cl,
+    gmn_otimizado: cl.gmn_otimizado ?? false,
+  }));
 
   if (checklists.length === 0) {
     return clients.map((c) => ({
