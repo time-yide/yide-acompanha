@@ -9,7 +9,7 @@ import {
   listEventosSemCaptura,
   listCapturasSemDelegacao,
 } from "@/lib/audiovisual/queries";
-import { ROLES_QUE_EDITAM } from "@/lib/audiovisual/actions";
+import { ROLES_QUE_EDITAM } from "@/lib/audiovisual/roles";
 import { CapturasAba } from "@/components/audiovisual/CapturasAba";
 import { PendenteEntregaAba } from "@/components/audiovisual/PendenteEntregaAba";
 import { PendenteDelegacaoAba } from "@/components/audiovisual/PendenteDelegacaoAba";
