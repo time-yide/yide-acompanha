@@ -13,7 +13,7 @@ interface Props {
   pendentes: PendenteEvento[];
   clientes: Array<{ id: string; nome: string }>;
   capturas: CapturaRow[];
-  editores: Array<{ id: string; nome: string }>;
+  editores: Array<{ id: string; nome: string; role?: string }>;
 }
 
 export function CapturasAba({

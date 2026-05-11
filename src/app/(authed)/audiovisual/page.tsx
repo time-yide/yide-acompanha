@@ -9,6 +9,7 @@ import {
   listEventosSemCaptura,
   listCapturasSemDelegacao,
 } from "@/lib/audiovisual/queries";
+import { ROLES_QUE_EDITAM } from "@/lib/audiovisual/actions";
 import { CapturasAba } from "@/components/audiovisual/CapturasAba";
 import { PendenteEntregaAba } from "@/components/audiovisual/PendenteEntregaAba";
 import { PendenteDelegacaoAba } from "@/components/audiovisual/PendenteDelegacaoAba";
@@ -69,12 +70,12 @@ export default async function AudiovisualPage({
     const editoresPromise = canDelegate
       ? supabase
           .from("profiles")
-          .select("id, nome")
-          .eq("role", "editor")
+          .select("id, nome, role")
+          .in("role", ROLES_QUE_EDITAM)
           .eq("ativo", true)
           .order("nome")
-          .then((r) => ((r.data ?? []) as Array<{ id: string; nome: string }>))
-      : Promise.resolve([] as Array<{ id: string; nome: string }>);
+          .then((r) => ((r.data ?? []) as Array<{ id: string; nome: string; role: string }>))
+      : Promise.resolve([] as Array<{ id: string; nome: string; role: string }>);
 
     const [{ data: clientesData = [] }, pendentes, editores, meusClientesRes] = await Promise.all([
       supabase.from("clients").select("id, nome").eq("status", "ativo").order("nome"),
@@ -125,11 +126,11 @@ export default async function AudiovisualPage({
       listCapturasSemDelegacao(),
       supabase
         .from("profiles")
-        .select("id, nome")
-        .eq("role", "editor")
+        .select("id, nome, role")
+        .in("role", ROLES_QUE_EDITAM)
         .eq("ativo", true)
         .order("nome")
-        .then((r) => ((r.data ?? []) as Array<{ id: string; nome: string }>)),
+        .then((r) => ((r.data ?? []) as Array<{ id: string; nome: string; role: string }>)),
     ]);
     content = (
       <PendenteDelegacaoAba rows={rows} editores={editoresData} canDelegate={canDelegate} />

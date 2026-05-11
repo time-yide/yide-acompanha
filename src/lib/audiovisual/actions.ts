@@ -187,6 +187,18 @@ export async function createCapturaAction(_prev: ActionResult, formData: FormDat
 
 const ROLES_QUE_DELEGAM = new Set(["audiovisual_chefe", "adm", "socio"]);
 
+/**
+ * Roles que podem ser delegados pra editar uma captação. Inclui editores
+ * (papel principal), videomakers (que também editam o próprio material em
+ * alguns fluxos) e coordenador audiovisual (que pode pegar edição quando
+ * a equipe tá apertada).
+ */
+export const ROLES_QUE_EDITAM: Array<"editor" | "videomaker" | "audiovisual_chefe"> = [
+  "editor",
+  "videomaker",
+  "audiovisual_chefe",
+];
+
 interface DelegateResult {
   error?: string;
   success?: boolean;
@@ -232,14 +244,16 @@ export async function delegateCapturaAction(formData: FormData): Promise<Delegat
   if (!captura) return { error: "Captação não encontrada" };
   if (captura.task_id) return { error: "Captação já foi delegada" };
 
-  // Valida editor (precisa ter role=editor e estar ativo)
+  // Valida editor (precisa ter role compatível com edição e estar ativo)
   const { data: editor } = await sb
     .from("profiles")
     .select("id, role, ativo, nome")
     .eq("id", editorId)
     .maybeSingle();
-  if (!editor || !editor.ativo) return { error: "Editor não encontrado ou inativo" };
-  if (editor.role !== "editor") return { error: "Pessoa selecionada não é editor" };
+  if (!editor || !editor.ativo) return { error: "Pessoa não encontrada ou inativa" };
+  if (!(ROLES_QUE_EDITAM as readonly string[]).includes(editor.role)) {
+    return { error: "Pessoa selecionada não pode receber edição (precisa ser editor, videomaker ou coord. audiovisual)" };
+  }
 
   // Monta título e descrição da task
   const clienteNome = captura.cliente?.nome ?? "—";
