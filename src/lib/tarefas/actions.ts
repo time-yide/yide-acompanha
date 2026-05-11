@@ -391,10 +391,11 @@ export async function moveTaskStatusAction(formData: FormData) {
     return { success: true as const };
   }
 
-  // Guard: tarefas atribuídas a editor/videomaker/designer/audiovisual_chefe
-  // devem usar concludeOperationalAction (com modal) pra ir pra "concluida".
-  // Esse path serve de defense in depth caso o client burle.
-  if (parsed.data.to_status === "concluida") {
+  // Guard: tarefas atribuídas a responsáveis de execução devem usar
+  // concludeOperationalAction (com modal de entrega) pra ir pra
+  // "concluida" ou "em_aprovacao" — os 2 destinos exigem drive_link.
+  // Defense in depth caso o client burle o trigger do modal.
+  if (parsed.data.to_status === "concluida" || parsed.data.to_status === "em_aprovacao") {
     const { data: assignee } = await supabase
       .from("profiles")
       .select("role")
@@ -403,7 +404,7 @@ export async function moveTaskStatusAction(formData: FormData) {
     // Mesma lista de ROLES_QUE_ENTREGAM — defense in depth.
     const ROLES = ROLES_QUE_ENTREGAM;
     if (assignee && (ROLES as readonly string[]).includes(assignee.role)) {
-      return { error: "Use o modal de entrega pra concluir essa tarefa" };
+      return { error: "Use o modal de entrega pra mover essa tarefa" };
     }
   }
 
@@ -839,6 +840,7 @@ export async function concludeOperationalAction(formData: FormData): Promise<{ e
 
   const parsed = concludeOperationalSchema.safeParse({
     id: formData.get("id"),
+    to_status: formData.get("to_status") || "concluida",
     drive_link: formData.get("drive_link"),
     artes_entregues: formData.get("artes_entregues"),
     entrega_observacoes: formData.get("entrega_observacoes") || undefined,
@@ -873,23 +875,33 @@ export async function concludeOperationalAction(formData: FormData): Promise<{ e
     return { error: "Sem permissão pra concluir esta tarefa" };
   }
 
+  // Stamp completed_at apenas quando vai pra concluida; pra em_aprovacao
+  // a tarefa ainda não terminou (aguarda aprovação do cliente).
+  const isConcluding = parsed.data.to_status === "concluida";
+  const updatePayload: Record<string, unknown> = {
+    status: parsed.data.to_status,
+    drive_link: parsed.data.drive_link,
+    artes_entregues: parsed.data.artes_entregues,
+    entrega_observacoes: parsed.data.entrega_observacoes ?? null,
+  };
+  if (isConcluding) {
+    updatePayload.completed_at = new Date().toISOString();
+  }
+
   const { error } = await sb
     .from("tasks")
-    .update({
-      status: "concluida",
-      drive_link: parsed.data.drive_link,
-      artes_entregues: parsed.data.artes_entregues,
-      entrega_observacoes: parsed.data.entrega_observacoes ?? null,
-      completed_at: new Date().toISOString(),
-    })
+    .update(updatePayload)
     .eq("id", parsed.data.id);
   if (error) return { error: error.message };
 
   await logAudit({
     entidade: "tasks",
     entidade_id: parsed.data.id,
-    acao: "complete",
+    // "complete" pra conclusão operacional; "update" pra envio à aprovação
+    // (tarefa ainda não terminou, só mudou de fase).
+    acao: isConcluding ? "complete" : "update",
     dados_depois: {
+      status: parsed.data.to_status,
       drive_link: parsed.data.drive_link,
       artes_entregues: parsed.data.artes_entregues,
       entrega_observacoes: parsed.data.entrega_observacoes ?? null,

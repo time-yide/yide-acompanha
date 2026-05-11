@@ -107,13 +107,14 @@ export const artesEntreguesSchema = z
   .min(0, "Não pode ser negativo");
 
 /**
- * Schema do modal "Concluir Operacionalmente" — exigido pra editor,
- * videomaker, designer e audiovisual_chefe ao mover tarefa pra
- * status `concluida`. Drive link e quantidade entregue obrigatórios;
- * observações livres opcional.
+ * Schema do modal "Registrar Entrega" — exigido pra editor, videomaker,
+ * designer, audiovisual_chefe, coordenador e assessor ao mover tarefa pra
+ * `concluida` (Concluído operacional) ou `em_aprovacao` (Aprovação).
+ * Drive link e quantidade entregue obrigatórios; observações livres opcional.
  */
 export const concludeOperationalSchema = z.object({
   id: z.string().uuid(),
+  to_status: z.enum(["concluida", "em_aprovacao"]).default("concluida"),
   drive_link: z.string().url("Link do Drive inválido").max(500),
   artes_entregues: z.coerce
     .number()

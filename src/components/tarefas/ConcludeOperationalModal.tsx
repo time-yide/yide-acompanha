@@ -21,19 +21,37 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   taskId: string;
   taskTipo: "geral" | "video" | "arte";
+  /** Pra qual status estamos movendo. Default: "concluida" (concluído operacional). */
+  toStatus?: "concluida" | "em_aprovacao";
   onSuccess: () => void;
 }
 
+const TITLE: Record<"concluida" | "em_aprovacao", string> = {
+  concluida: "Concluir entrega operacional",
+  em_aprovacao: "Enviar pra aprovação",
+};
+
+const DESCRIPTION: Record<"concluida" | "em_aprovacao", string> = {
+  concluida: 'Antes de mover pra "Concluído Operacional", informe onde estão os materiais finais.',
+  em_aprovacao: 'Antes de enviar pra aprovação, informe onde estão os materiais pro cliente revisar.',
+};
+
+const SUCCESS_MSG: Record<"concluida" | "em_aprovacao", string> = {
+  concluida: "Tarefa concluída e materiais registrados",
+  em_aprovacao: "Tarefa enviada pra aprovação com materiais registrados",
+};
+
 /**
  * Modal de entrega obrigatório quando responsável (editor/videomaker/
- * designer/audiovisual_chefe) move tarefa pra "Concluído Operacional".
+ * designer/audiovisual_chefe/coordenador/assessor) move tarefa pra
+ * "Concluído Operacional" ou "Aprovação".
  *
  * Campos:
  * - drive_link: URL do material final (obrigatório)
  * - artes_entregues: quantidade entregue (obrigatório, label dinâmico)
  * - entrega_observacoes: notas livres (opcional)
  */
-export function ConcludeOperationalModal({ open, onOpenChange, taskId, taskTipo, onSuccess }: Props) {
+export function ConcludeOperationalModal({ open, onOpenChange, taskId, taskTipo, toStatus = "concluida", onSuccess }: Props) {
   const [driveLink, setDriveLink] = useState("");
   const [qtd, setQtd] = useState("");
   const [observacoes, setObservacoes] = useState("");
@@ -47,6 +65,7 @@ export function ConcludeOperationalModal({ open, onOpenChange, taskId, taskTipo,
     startTransition(async () => {
       const fd = new FormData();
       fd.set("id", taskId);
+      fd.set("to_status", toStatus);
       fd.set("drive_link", driveLink);
       fd.set("artes_entregues", qtd);
       if (observacoes.trim()) fd.set("entrega_observacoes", observacoes.trim());
@@ -55,7 +74,7 @@ export function ConcludeOperationalModal({ open, onOpenChange, taskId, taskTipo,
         toast.error(r.error);
         return;
       }
-      toast.success("Tarefa concluída e materiais registrados");
+      toast.success(SUCCESS_MSG[toStatus]);
       setDriveLink("");
       setQtd("");
       setObservacoes("");
@@ -68,10 +87,8 @@ export function ConcludeOperationalModal({ open, onOpenChange, taskId, taskTipo,
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Concluir entrega operacional</DialogTitle>
-          <DialogDescription>
-            Antes de mover pra &quot;Concluído Operacional&quot;, informe onde estão os materiais finais.
-          </DialogDescription>
+          <DialogTitle>{TITLE[toStatus]}</DialogTitle>
+          <DialogDescription>{DESCRIPTION[toStatus]}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3">
@@ -119,7 +136,7 @@ export function ConcludeOperationalModal({ open, onOpenChange, taskId, taskTipo,
             Cancelar
           </Button>
           <Button onClick={handleConfirm} disabled={!isValid || pending}>
-            {pending ? "Confirmando…" : "Confirmar entrega"}
+            {pending ? "Confirmando…" : toStatus === "em_aprovacao" ? "Enviar pra aprovação" : "Confirmar entrega"}
           </Button>
         </DialogFooter>
       </DialogContent>
