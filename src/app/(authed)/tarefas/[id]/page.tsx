@@ -1,6 +1,5 @@
-import { notFound } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle2, History, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, History, Pencil, SearchX, Trash2 } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import type { CurrentUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
@@ -52,7 +51,35 @@ export default async function TarefaPage({
   const user = await requireAuth();
 
   let task;
-  try { task = await getTaskById(id); } catch { notFound(); }
+  try {
+    task = await getTaskById(id);
+  } catch {
+    // Tarefa não existe (foi excluída, soft-deleted ou ID inválido).
+    // Renderiza página amigável em vez do 404 padrão do Next, com link
+    // de volta + explicação do que provavelmente aconteceu.
+    return (
+      <div className="mx-auto max-w-2xl space-y-4 py-12 text-center">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+          <SearchX className="h-7 w-7 text-muted-foreground" />
+        </div>
+        <div className="space-y-1">
+          <h1 className="text-2xl font-bold tracking-tight">Tarefa não encontrada</h1>
+          <p className="text-sm text-muted-foreground">
+            Essa tarefa foi excluída ou o link tá apontando pra um ID que não existe.
+            Se você lembra do contexto, talvez ela esteja na <Link href="/lixeira" className="text-primary hover:underline">Lixeira</Link>.
+          </p>
+        </div>
+        <div className="pt-2">
+          <Link href="/tarefas">
+            <Button variant="outline">
+              <ArrowLeft className="mr-1 h-4 w-4" />
+              Voltar pra Tarefas
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   const canEdit = task.criado_por === user.id || task.atribuido_a === user.id || isPrivileged(user);
   const canDelete = task.criado_por === user.id || isPrivileged(user);
