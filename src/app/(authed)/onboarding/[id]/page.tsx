@@ -79,6 +79,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
               valor_proposto: lead.valor_proposto,
               duracao_meses: lead.duracao_meses,
               servico_proposto: lead.servico_proposto,
+              link_proposta: lead.link_proposta,
               data_prospeccao_agendada: lead.data_prospeccao_agendada,
             }}
           />

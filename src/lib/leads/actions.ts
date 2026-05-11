@@ -50,6 +50,7 @@ export async function createLeadAction(formData: FormData) {
     valor_proposto: fd(formData, "valor_proposto") ?? 0,
     duracao_meses: fd(formData, "duracao_meses"),
     servico_proposto: fd(formData, "servico_proposto"),
+    link_proposta: fd(formData, "link_proposta") ?? "",
     info_briefing: fd(formData, "info_briefing"),
     prioridade: fd(formData, "prioridade") || "media",
     data_prospeccao_agendada: fd(formData, "data_prospeccao_agendada"),
@@ -71,6 +72,7 @@ export async function createLeadAction(formData: FormData) {
     valor_proposto: parsed.data.valor_proposto,
     duracao_meses: parsed.data.duracao_meses ?? null,
     servico_proposto: parsed.data.servico_proposto || null,
+    link_proposta: parsed.data.link_proposta || null,
     info_briefing: parsed.data.info_briefing || null,
     prioridade: parsed.data.prioridade,
     data_prospeccao_agendada: parsed.data.data_prospeccao_agendada || null,
@@ -138,6 +140,7 @@ export async function updateLeadAction(formData: FormData) {
     valor_proposto: fd(formData, "valor_proposto") ?? 0,
     duracao_meses: fd(formData, "duracao_meses"),
     servico_proposto: fd(formData, "servico_proposto"),
+    link_proposta: fd(formData, "link_proposta") ?? "",
     info_briefing: fd(formData, "info_briefing"),
     prioridade: fd(formData, "prioridade") || "media",
     data_prospeccao_agendada: fd(formData, "data_prospeccao_agendada"),
@@ -157,6 +160,7 @@ export async function updateLeadAction(formData: FormData) {
     valor_proposto: parsed.data.valor_proposto,
     duracao_meses: parsed.data.duracao_meses ?? null,
     servico_proposto: parsed.data.servico_proposto || null,
+    link_proposta: parsed.data.link_proposta || null,
     info_briefing: parsed.data.info_briefing || null,
     prioridade: parsed.data.prioridade,
     data_prospeccao_agendada: parsed.data.data_prospeccao_agendada || null,
@@ -201,6 +205,7 @@ export async function moveStageAction(formData: FormData) {
   const inlineValor = fd(formData, "valor_proposto");
   const inlineDuracao = fd(formData, "duracao_meses");
   const inlineServico = fd(formData, "servico_proposto");
+  const inlineLinkProposta = fd(formData, "link_proposta");
   const inlineDataReuniao = fd(formData, "data_prospeccao_agendada");
   const inlineDataMarcoZero = fd(formData, "data_reuniao_marco_zero");
 
@@ -226,6 +231,7 @@ export async function moveStageAction(formData: FormData) {
     inlineUpdate.duracao_meses = Number.isFinite(n) && n > 0 ? n : null;
   }
   if (inlineServico !== undefined) inlineUpdate.servico_proposto = inlineServico || null;
+  if (inlineLinkProposta !== undefined) inlineUpdate.link_proposta = inlineLinkProposta || null;
   if (inlineDataReuniao !== undefined) inlineUpdate.data_prospeccao_agendada = inlineDataReuniao || null;
   if (inlineDataMarcoZero !== undefined) inlineUpdate.data_reuniao_marco_zero = inlineDataMarcoZero || null;
 
@@ -260,11 +266,15 @@ export async function moveStageAction(formData: FormData) {
   }
 
   // reuniao_comercial → proposta_enviada: precisa ter valor da proposta
-  // cadastrado (depois da reunião o comercial define o valor).
+  // cadastrado E link da proposta (Drive/Notion/Docs etc.) pra time
+  // poder rastrear o documento enviado ao cliente.
   if (fromStage === "reuniao_comercial" && toStage === "proposta_enviada") {
     const valor = Number(lead.valor_proposto ?? 0);
     if (valor <= 0) {
       return { error: "Preencha o valor da proposta antes de mover" };
+    }
+    if (!lead.link_proposta || String(lead.link_proposta).trim() === "") {
+      return { error: "Informe o link da proposta antes de mover" };
     }
   }
 

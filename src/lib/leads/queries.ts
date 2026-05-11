@@ -9,6 +9,7 @@ export interface LeadRow {
   valor_proposto: number;
   duracao_meses: number | null;
   servico_proposto: string | null;
+  link_proposta: string | null;
   prioridade: "alta" | "media" | "baixa";
   stage: Stage;
   data_prospeccao_agendada: string | null;
@@ -27,7 +28,7 @@ export async function listLeadsByStage(): Promise<Record<Stage, LeadRow[]>> {
   const { data, error } = await supabase
     .from("leads")
     .select(`
-      id, nome_prospect, site, telefone, valor_proposto, duracao_meses, servico_proposto, prioridade, stage,
+      id, nome_prospect, site, telefone, valor_proposto, duracao_meses, servico_proposto, link_proposta, prioridade, stage,
       data_prospeccao_agendada, data_reuniao_marco_zero, data_fechamento,
       comercial_id, coord_alocado_id, assessor_alocado_id,
       comercial:profiles!leads_comercial_id_fkey(nome),
