@@ -5,6 +5,7 @@ import {
   formatBrtDateTime,
   formatBrtTime,
   getBrtDayOfWeek,
+  formatBrtDateOnly,
 } from "@/lib/calendario/timezone";
 
 describe("brtInputToUtcIso", () => {
@@ -96,5 +97,15 @@ describe("getBrtDayOfWeek", () => {
   it("Segunda 00:30 BRT → 1", () => {
     // Segunda 11/05 00:30 BRT = Segunda 11/05 03:30 UTC
     expect(getBrtDayOfWeek("2026-05-11T03:30:00.000Z")).toBe(1);
+  });
+});
+
+describe("formatBrtDateOnly", () => {
+  it("Sunday 23:30 BRT (= Monday 02:30 UTC) retorna data BRT de Sunday", () => {
+    expect(formatBrtDateOnly("2026-05-11T02:30:00.000Z")).toBe("2026-05-10");
+  });
+
+  it("Monday 14:00 BRT (= Monday 17:00 UTC) retorna data BRT de Monday", () => {
+    expect(formatBrtDateOnly("2026-05-11T17:00:00.000Z")).toBe("2026-05-11");
   });
 });

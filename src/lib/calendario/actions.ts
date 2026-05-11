@@ -216,7 +216,7 @@ export async function updateEventAction(_prevState: ActionResult, formData: Form
   // Se o início mudou, zera o reminder pra re-disparar o cron de 30-min antes
   // pro novo horário. Sem isso, eventos remarcados pra mais tarde não recebem
   // aviso pro novo timestamp.
-  if (before && (before as unknown as { inicio: string }).inicio !== inicioUtc) {
+  if (before && new Date((before as unknown as { inicio: string }).inicio).getTime() !== new Date(inicioUtc).getTime()) {
     (updatePayload as { reminded_30min_at?: string | null }).reminded_30min_at = null;
   }
 

@@ -30,13 +30,26 @@ export interface WeekRange {
 }
 
 export function getWeekRange(reference: Date = new Date()): WeekRange {
-  const d = new Date(reference);
-  d.setUTCHours(0, 0, 0, 0);
-  const dayOfWeek = (d.getUTCDay() + 6) % 7;
-  d.setUTCDate(d.getUTCDate() - dayOfWeek);
-  const start = new Date(d);
-  const end = new Date(d);
+  // Trabalha em BRT: a semana do usuário é Segunda BRT 00:00 → próxima Segunda BRT 00:00.
+  // O retorno é em UTC pra usar como bound do query.
+  const BRT_OFFSET_MS = 3 * 60 * 60 * 1000;
+
+  // Reference convertida pra "tempo BRT" (subtraindo o offset UTC-3)
+  const refBrtMs = reference.getTime() - BRT_OFFSET_MS;
+  const refBrt = new Date(refBrtMs);
+
+  // BRT day-of-week: 0=Dom, 1=Seg, ..., 6=Sáb
+  const dayOfWeekBrt = (refBrt.getUTCDay() + 6) % 7; // 0=Seg, 1=Ter, ..., 6=Dom
+
+  // Volta pra Segunda BRT 00:00 (representada como UTC)
+  refBrt.setUTCHours(0, 0, 0, 0);
+  refBrt.setUTCDate(refBrt.getUTCDate() - dayOfWeekBrt);
+
+  // Converte BRT Monday midnight de volta pra UTC (adiciona offset)
+  const start = new Date(refBrt.getTime() + BRT_OFFSET_MS);
+  const end = new Date(start);
   end.setUTCDate(end.getUTCDate() + 7);
+
   return { start, end };
 }
 

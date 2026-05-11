@@ -72,3 +72,16 @@ export function getBrtDayOfWeek(utcIso: string): number {
   const brtMs = d.getTime() - BRT_OFFSET_MS;
   return new Date(brtMs).getUTCDay();
 }
+
+/**
+ * Extrai a data BRT (YYYY-MM-DD) de um ISO UTC. Importante pra
+ * derivar a data de captação a partir de calendar_events.inicio:
+ * um evento gravado em "Domingo 10/05 23:30 BRT" tem inicio UTC
+ * "2026-05-11T02:30Z" — o .slice(0,10) ingênuo retornaria "2026-05-11"
+ * (segunda em UTC) em vez de "2026-05-10" (domingo em BRT).
+ */
+export function formatBrtDateOnly(utcIso: string): string {
+  const d = new Date(utcIso);
+  const brtMs = d.getTime() - BRT_OFFSET_MS;
+  return new Date(brtMs).toISOString().slice(0, 10);
+}
