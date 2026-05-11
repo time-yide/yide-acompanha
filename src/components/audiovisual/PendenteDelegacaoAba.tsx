@@ -5,7 +5,7 @@ import type { CapturaSemDelegacaoRow } from "@/lib/audiovisual/queries";
 
 interface Props {
   rows: CapturaSemDelegacaoRow[];
-  editores: Array<{ id: string; nome: string }>;
+  editores: Array<{ id: string; nome: string; role?: string }>;
   canDelegate: boolean;
 }
 

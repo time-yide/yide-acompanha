@@ -15,7 +15,15 @@ import { cn } from "@/lib/utils";
 interface Editor {
   id: string;
   nome: string;
+  /** Função do colaborador. Opcional pra retro-compat com chamadas antigas. */
+  role?: string;
 }
+
+const ROLE_LABEL: Record<string, string> = {
+  editor: "Editor",
+  videomaker: "Videomaker",
+  audiovisual_chefe: "Coord. audiovisual",
+};
 
 interface Props {
   capturaId: string;
@@ -183,12 +191,12 @@ export function DelegarCapturaButton({ capturaId, delegated, concluidaEm, editor
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Delegar pra editor</DialogTitle>
+            <DialogTitle>Delegar edição</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="editor">Editor</Label>
+              <Label htmlFor="editor">Responsável pela edição</Label>
               <select
                 id="editor"
                 value={editorId}
@@ -198,12 +206,14 @@ export function DelegarCapturaButton({ capturaId, delegated, concluidaEm, editor
               >
                 <option value="">— Selecione —</option>
                 {sortedEditores.map((e) => (
-                  <option key={e.id} value={e.id}>{e.nome}</option>
+                  <option key={e.id} value={e.id}>
+                    {e.nome}{e.role && ROLE_LABEL[e.role] ? ` — ${ROLE_LABEL[e.role]}` : ""}
+                  </option>
                 ))}
               </select>
               {sortedEditores.length === 0 && (
                 <p className="text-xs text-muted-foreground">
-                  Nenhum editor ativo no sistema.
+                  Ninguém ativo pra receber edição (editor, videomaker ou coord. audiovisual).
                 </p>
               )}
             </div>

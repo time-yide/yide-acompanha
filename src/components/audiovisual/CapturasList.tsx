@@ -17,6 +17,7 @@ import { DelegarCapturaButton } from "./DelegarCapturaButton";
 interface Editor {
   id: string;
   nome: string;
+  role?: string;
 }
 
 interface Props {

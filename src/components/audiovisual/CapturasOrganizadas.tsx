@@ -8,6 +8,7 @@ import type { CapturaRow } from "@/lib/audiovisual/captura-utils";
 interface Editor {
   id: string;
   nome: string;
+  role?: string;
 }
 
 interface Props {
