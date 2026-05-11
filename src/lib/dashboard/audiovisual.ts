@@ -175,6 +175,13 @@ async function _getEquipeAudiovisualImpl(periodo: Periodo): Promise<EquipeAudiov
           task_id: c.task_id,
           task_titulo: c.task?.titulo ?? null,
         }));
+
+      // Sort chronologically
+      proximasList.sort((a, b) => a.inicio.localeCompare(b.inicio));
+      hojeList.sort((a, b) => a.inicio.localeCompare(b.inicio));
+      // Sort by data_captacao desc (most recent first)
+      concluidasList.sort((a, b) => b.data_captacao.localeCompare(a.data_captacao));
+
       return {
         id: p.id,
         nome: p.nome,
@@ -200,14 +207,27 @@ async function _getEquipeAudiovisualImpl(periodo: Periodo): Promise<EquipeAudiov
         .filter((t) => (STATUS_EM_ANDAMENTO as readonly string[]).includes(t.status) && pertence(t, p.id))
         .map((t) => ({ id: t.id, titulo: t.titulo, status: t.status, due_date: t.due_date, prioridade: t.prioridade }));
 
-      const concluidasList: TaskItem[] = tasks
+      const concluidasWithTime = tasks
         .filter(
           (t) =>
             (STATUS_CONCLUIDA as readonly string[]).includes(t.status) &&
             pertence(t, p.id) &&
             inPeriod(getTerminadoEm(t)),
         )
-        .map((t) => ({ id: t.id, titulo: t.titulo, status: t.status, due_date: t.due_date, prioridade: t.prioridade }));
+        .map((t) => ({
+          item: { id: t.id, titulo: t.titulo, status: t.status, due_date: t.due_date, prioridade: t.prioridade },
+          terminadoEm: getTerminadoEm(t),
+        }));
+
+      // Sort by terminadoEm desc (most recent first)
+      concluidasWithTime.sort((a, b) => {
+        if (a.terminadoEm && b.terminadoEm) return b.terminadoEm.localeCompare(a.terminadoEm);
+        if (a.terminadoEm) return -1;
+        if (b.terminadoEm) return 1;
+        return 0;
+      });
+
+      const concluidasList: TaskItem[] = concluidasWithTime.map((x) => x.item);
 
       const sortByDue = (a: TaskItem, b: TaskItem) => {
         if (a.due_date && b.due_date) return a.due_date.localeCompare(b.due_date);
