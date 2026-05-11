@@ -112,8 +112,6 @@ export function PendenteEntregaAba({ rows, showVideomaker, canDeliver, clientes 
                 inicio: openEvent.inicio,
                 client_id: openEvent.client_id,
                 client_nome: openEvent.client_nome,
-                videomaker_id: openEvent.videomaker_id,
-                isOverdue: openEvent.isOverdue,
               }]}
               hidePendenteSelect
             />
