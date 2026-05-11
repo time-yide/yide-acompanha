@@ -46,7 +46,7 @@ export async function _getMinhasTarefasPendentesImpl(userId: string): Promise<Ta
       id, titulo, prioridade, due_date, status,
       cliente:clients(nome)
     `)
-    .neq("status", "concluida")
+    .in("status", ["aberta", "em_andamento", "alteracao"])
     .or(`atribuido_a.eq.${userId},participantes_ids.cs.{${userId}}`)
     .order("due_date", { ascending: true, nullsFirst: false });
 

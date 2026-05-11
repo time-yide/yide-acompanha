@@ -18,6 +18,7 @@ interface Props {
 const STATUS_LABEL: Record<string, string> = {
   aberta: "Aberta",
   em_andamento: "Em andamento",
+  alteracao: "Alteração",
   em_aprovacao: "Em aprovação",
   aprovada: "Aprovada",
   postada: "Postada",
