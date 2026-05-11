@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Video } from "lucide-react";
 import type { CalendarEvent } from "@/lib/calendario/schema";
+import { formatBrtTime } from "@/lib/calendario/timezone";
 
 const subClass: Record<string, string> = {
   agencia: "bg-violet-500/15 text-violet-700 dark:text-violet-300 border-l-2 border-violet-500",
@@ -13,10 +14,6 @@ const subClass: Record<string, string> = {
   coordenadores: "bg-orange-500/15 text-orange-800 dark:text-orange-200 border-l-2 border-orange-500",
 };
 
-function formatHour(iso: string) {
-  return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-}
-
 export function EventCell({ event }: { event: CalendarEvent }) {
   const isVm = event.sub_calendar === "videomakers";
   const content = (
@@ -26,7 +23,7 @@ export function EventCell({ event }: { event: CalendarEvent }) {
         {isVm && <Video className="h-3.5 w-3.5 flex-shrink-0 sm:h-3 sm:w-3" />}
         <span className="truncate">{event.titulo}</span>
       </div>
-      <div className="opacity-70">{formatHour(event.inicio)}</div>
+      <div className="opacity-70">{formatBrtTime(event.inicio)}</div>
     </div>
   );
   return event.link ? <Link href={event.link}>{content}</Link> : content;

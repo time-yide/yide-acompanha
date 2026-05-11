@@ -1,5 +1,6 @@
 import { EventCell } from "./EventCell";
 import type { CalendarEvent } from "@/lib/calendario/schema";
+import { getBrtDayOfWeek } from "@/lib/calendario/timezone";
 
 const DAYS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 
@@ -11,8 +12,8 @@ interface Props {
 export function WeekView({ weekStart, events }: Props) {
   const groups: CalendarEvent[][] = [[], [], [], [], [], [], []];
   for (const e of events) {
-    const d = new Date(e.inicio);
-    const dayIdx = (d.getUTCDay() + 6) % 7;
+    // dayIdx 0 = Segunda em nossa convenção (DAYS array começa em Seg)
+    const dayIdx = (getBrtDayOfWeek(e.inicio) + 6) % 7;
     if (dayIdx >= 0 && dayIdx < 7) groups[dayIdx].push(e);
   }
 
