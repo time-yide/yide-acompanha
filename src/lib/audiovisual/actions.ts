@@ -10,6 +10,7 @@ import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 import { isoWeek } from "@/lib/satisfacao/iso-week";
 import { createCapturaSchema, RATING_FIELDS } from "./schema";
 import { avgRating } from "./queries";
+import { ROLES_QUE_EDITAM } from "./roles";
 
 const RATING_LABEL_BY_NAME = new Map<string, string>(
   RATING_FIELDS.map((f) => [f.name, f.label]),
@@ -186,18 +187,6 @@ export async function createCapturaAction(_prev: ActionResult, formData: FormDat
 }
 
 const ROLES_QUE_DELEGAM = new Set(["audiovisual_chefe", "adm", "socio"]);
-
-/**
- * Roles que podem ser delegados pra editar uma captação. Inclui editores
- * (papel principal), videomakers (que também editam o próprio material em
- * alguns fluxos) e coordenador audiovisual (que pode pegar edição quando
- * a equipe tá apertada).
- */
-export const ROLES_QUE_EDITAM: Array<"editor" | "videomaker" | "audiovisual_chefe"> = [
-  "editor",
-  "videomaker",
-  "audiovisual_chefe",
-];
 
 interface DelegateResult {
   error?: string;
