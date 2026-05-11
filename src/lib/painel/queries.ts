@@ -38,6 +38,7 @@ export interface ChecklistRow {
   client_editor_id: string | null;
   client_drive_url: string | null;
   client_instagram_url: string | null;
+  client_link_estrategia: string | null;
   client_tipo_pacote: TipoPacote;
   client_tipo_pacote_revisado: boolean;
   client_cadencia_reuniao: CadenciaReuniao | null;
@@ -76,8 +77,8 @@ export async function getMonthlyChecklists(
       const f = JSON.parse(filterJson) as ChecklistFilter;
       return _getMonthlyChecklistsImpl(mes, f);
     },
-    // v2: shape mudou (gmn_otimizado boolean)
-    ["painel-monthly-checklists-v2"],
+    // v3: shape mudou (client_link_estrategia)
+    ["painel-monthly-checklists-v3"],
     { revalidate: 60, tags: [PAINEL_CACHE_TAG] },
   );
   return cached(mesReferencia, JSON.stringify(filter));
@@ -94,7 +95,7 @@ async function _getMonthlyChecklistsImpl(
     .from("clients")
     .select(`
       id, nome, assessor_id, coordenador_id, designer_id, videomaker_id, editor_id,
-      drive_url, instagram_url,
+      drive_url, instagram_url, link_estrategia,
       tipo_pacote, tipo_pacote_revisado, cadencia_reuniao, numero_unidades,
       valor_trafego_google, valor_trafego_meta
     `)
@@ -125,6 +126,7 @@ async function _getMonthlyChecklistsImpl(
     editor_id: string | null;
     drive_url: string | null;
     instagram_url: string | null;
+    link_estrategia: string | null;
     tipo_pacote: TipoPacote;
     tipo_pacote_revisado: boolean;
     cadencia_reuniao: CadenciaReuniao | null;
@@ -175,6 +177,7 @@ async function _getMonthlyChecklistsImpl(
       client_editor_id: c.editor_id,
       client_drive_url: c.drive_url,
       client_instagram_url: c.instagram_url,
+      client_link_estrategia: c.link_estrategia,
       client_tipo_pacote: c.tipo_pacote,
       client_tipo_pacote_revisado: c.tipo_pacote_revisado,
       client_cadencia_reuniao: c.cadencia_reuniao,
@@ -223,6 +226,13 @@ async function _getMonthlyChecklistsImpl(
   // Marca manual via markStepProntoAction continua funcionando — quem chegar
   // primeiro grava `pronto` no banco.
   const derivedDone = await getDerivedDoneSet(supabase, mesReferencia, clientIds);
+  // Cronograma fica pronto quando o cliente tem link_estrategia preenchido
+  // (Drive, Gamma, etc.). O link é gerenciado na página /clientes/[id]/editar.
+  for (const c of clients) {
+    if (c.link_estrategia && c.link_estrategia.trim().length > 0) {
+      derivedDone.add(`${c.id}:cronograma`);
+    }
+  }
   const checklistIdByClient = new Map(checklists.map((cl) => [cl.client_id, cl.id]));
 
   // 4) Agrupa steps por checklist, aplicando override de derivação
@@ -261,6 +271,7 @@ async function _getMonthlyChecklistsImpl(
       client_editor_id: c.editor_id,
       client_drive_url: c.drive_url,
       client_instagram_url: c.instagram_url,
+      client_link_estrategia: c.link_estrategia,
       client_tipo_pacote: c.tipo_pacote,
       client_tipo_pacote_revisado: c.tipo_pacote_revisado,
       client_cadencia_reuniao: c.cadencia_reuniao,

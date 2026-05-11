@@ -524,6 +524,7 @@ export type Database = {
           gmn_url: string | null
           id: string
           instagram_url: string | null
+          link_estrategia: string | null
           motivo_churn: string | null
           nome: string
           numero_unidades: number
@@ -559,6 +560,7 @@ export type Database = {
           gmn_url?: string | null
           id?: string
           instagram_url?: string | null
+          link_estrategia?: string | null
           motivo_churn?: string | null
           nome: string
           numero_unidades?: number
@@ -594,6 +596,7 @@ export type Database = {
           gmn_url?: string | null
           id?: string
           instagram_url?: string | null
+          link_estrategia?: string | null
           motivo_churn?: string | null
           nome?: string
           numero_unidades?: number
