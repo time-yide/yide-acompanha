@@ -25,6 +25,7 @@ interface Props {
   showVideomaker?: boolean;
   editores?: Editor[];
   canDelegate?: boolean;
+  canDelete?: boolean;
 }
 
 function formatDateBR(iso: string): string {
@@ -38,9 +39,10 @@ interface CapturaCardProps {
   showVideomaker: boolean;
   editores: Editor[];
   canDelegate: boolean;
+  canDelete: boolean;
 }
 
-function CapturaCard({ captura: c, showVideomaker, editores, canDelegate }: CapturaCardProps) {
+function CapturaCard({ captura: c, showVideomaker, editores, canDelegate, canDelete }: CapturaCardProps) {
   const media = avgRating(c);
   const hasNotes = Boolean(
     c.pontos_positivos || c.pontos_dificuldade || c.sugestoes || c.observacoes,
@@ -159,6 +161,7 @@ function CapturaCard({ captura: c, showVideomaker, editores, canDelegate }: Capt
           concluidaEm={c.concluida_em}
           editores={editores}
           canDelegate={canDelegate}
+          canDelete={canDelete}
         />
       </div>
     </Card>
@@ -170,6 +173,7 @@ export function CapturasList({
   showVideomaker = false,
   editores = [],
   canDelegate = false,
+  canDelete = false,
 }: Props) {
   if (capturas.length === 0) {
     return (
@@ -190,6 +194,7 @@ export function CapturasList({
           showVideomaker={showVideomaker}
           editores={editores}
           canDelegate={canDelegate}
+          canDelete={canDelete}
         />
       ))}
     </div>

@@ -7,6 +7,7 @@ interface Props {
   rows: CapturaSemDelegacaoRow[];
   editores: Array<{ id: string; nome: string; role?: string }>;
   canDelegate: boolean;
+  canDelete?: boolean;
 }
 
 function formatDateBR(iso: string): string {
@@ -16,7 +17,7 @@ function formatDateBR(iso: string): string {
   return new Date(y, m - 1, d).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
 }
 
-export function PendenteDelegacaoAba({ rows, editores, canDelegate }: Props) {
+export function PendenteDelegacaoAba({ rows, editores, canDelegate, canDelete = false }: Props) {
   if (rows.length === 0) {
     return (
       <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
@@ -63,6 +64,7 @@ export function PendenteDelegacaoAba({ rows, editores, canDelegate }: Props) {
               concluidaEm={null}
               editores={editores}
               canDelegate={canDelegate}
+              canDelete={canDelete}
             />
           </li>
         ))}

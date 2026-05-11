@@ -3,13 +3,13 @@
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, RotateCcw, UserPlus } from "lucide-react";
+import { Check, RotateCcw, Trash2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { delegateCapturaAction, markCapturaConcluidaAction, unmarkCapturaConcluidaAction } from "@/lib/audiovisual/actions";
+import { delegateCapturaAction, deleteCapturaAction, markCapturaConcluidaAction, unmarkCapturaConcluidaAction } from "@/lib/audiovisual/actions";
 import { cn } from "@/lib/utils";
 
 interface Editor {
@@ -31,6 +31,8 @@ interface Props {
   concluidaEm: string | null;
   editores: Editor[];
   canDelegate: boolean;
+  /** Permite excluir a captação. coord/audiovisual_chefe/adm/sócio. */
+  canDelete?: boolean;
 }
 
 /**
@@ -51,8 +53,9 @@ function StatusBadge({ tone, children }: { tone: "amber" | "sky" | "emerald"; ch
   );
 }
 
-export function DelegarCapturaButton({ capturaId, delegated, concluidaEm, editores, canDelegate }: Props) {
+export function DelegarCapturaButton({ capturaId, delegated, concluidaEm, editores, canDelegate, canDelete = false }: Props) {
   const [open, setOpen] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [editorId, setEditorId] = useState<string>("");
   const [dueDate, setDueDate] = useState<string>("");
   const [pending, startTransition] = useTransition();
@@ -87,69 +90,133 @@ export function DelegarCapturaButton({ capturaId, delegated, concluidaEm, editor
     });
   }
 
+  function handleExcluir() {
+    startTransition(async () => {
+      const r = await deleteCapturaAction(capturaId);
+      if (r.error) {
+        toast.error(r.error);
+        return;
+      }
+      toast.success("Captação excluída");
+      setConfirmDeleteOpen(false);
+      router.refresh();
+    });
+  }
+
+  const deleteButton = canDelete && (
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      onClick={() => setConfirmDeleteOpen(true)}
+      disabled={pending}
+      className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10"
+    >
+      <Trash2 className="mr-1 h-3 w-3" />
+      Excluir
+    </Button>
+  );
+
   const renderActions = (children: React.ReactNode) => (
     <div className="flex items-center justify-between gap-2">
       <div className="flex flex-wrap items-center gap-2">{children}</div>
     </div>
   );
 
+  // Dialog de confirmação de exclusão. Renderizado fora dos returns
+  // pra estar disponível em qualquer estado.
+  const confirmDeleteDialog = (
+    <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Excluir captação?</DialogTitle>
+          <DialogDescription>
+            Essa ação é permanente. A captação some da lista e do histórico.
+            Se ela tiver uma tarefa vinculada de edição, a tarefa segue ativa
+            (perde só o link com a captação).
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setConfirmDeleteOpen(false)} disabled={pending}>
+            Cancelar
+          </Button>
+          <Button variant="destructive" onClick={handleExcluir} disabled={pending}>
+            {pending ? "Excluindo..." : "Excluir"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
   // Concluído: status verde + opcional referência ao delegado + botão desmarcar
   if (concluidaEm) {
-    return renderActions(
+    return (
       <>
-        <StatusBadge tone="emerald">Concluído</StatusBadge>
-        {delegated && (
-          <Link
-            href={`/tarefas/${delegated.taskId}`}
-            className="text-[11px] text-muted-foreground hover:text-foreground hover:underline"
-          >
-            delegado a {delegated.editorNome ?? "—"}
-          </Link>
+        {renderActions(
+          <>
+            <StatusBadge tone="emerald">Concluído</StatusBadge>
+            {delegated && (
+              <Link
+                href={`/tarefas/${delegated.taskId}`}
+                className="text-[11px] text-muted-foreground hover:text-foreground hover:underline"
+              >
+                delegado a {delegated.editorNome ?? "—"}
+              </Link>
+            )}
+            {canDelegate && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleDesmarcar}
+                disabled={pending}
+                className="h-7 px-2 text-xs text-muted-foreground"
+              >
+                <RotateCcw className="mr-1 h-3 w-3" />
+                Desmarcar
+              </Button>
+            )}
+            {deleteButton}
+          </>,
         )}
-        {canDelegate && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={handleDesmarcar}
-            disabled={pending}
-            className="h-7 px-2 text-xs text-muted-foreground"
-          >
-            <RotateCcw className="mr-1 h-3 w-3" />
-            Desmarcar
-          </Button>
-        )}
-      </>,
+        {confirmDeleteDialog}
+      </>
     );
   }
 
   // Delegado: status azul + link pra task + botão concluir
   if (delegated) {
-    return renderActions(
+    return (
       <>
-        <StatusBadge tone="sky">
-          Delegado{delegated.editorNome ? ` · ${delegated.editorNome}` : ""}
-        </StatusBadge>
-        <Link
-          href={`/tarefas/${delegated.taskId}`}
-          className="text-[11px] text-primary hover:underline"
-        >
-          ver tarefa
-        </Link>
-        {canDelegate && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={handleConcluir}
-            disabled={pending}
-            className="h-7 px-2 text-xs text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400"
-          >
-            <Check className="mr-1 h-3 w-3" />
-            Concluir
-          </Button>
+        {renderActions(
+          <>
+            <StatusBadge tone="sky">
+              Delegado{delegated.editorNome ? ` · ${delegated.editorNome}` : ""}
+            </StatusBadge>
+            <Link
+              href={`/tarefas/${delegated.taskId}`}
+              className="text-[11px] text-primary hover:underline"
+            >
+              ver tarefa
+            </Link>
+            {canDelegate && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleConcluir}
+                disabled={pending}
+                className="h-7 px-2 text-xs text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400"
+              >
+                <Check className="mr-1 h-3 w-3" />
+                Concluir
+              </Button>
+            )}
+            {deleteButton}
+          </>,
         )}
-      </>,
+        {confirmDeleteDialog}
+      </>
     );
   }
 
@@ -185,8 +252,11 @@ export function DelegarCapturaButton({ capturaId, delegated, concluidaEm, editor
               </Button>
             </>
           )}
+          {deleteButton}
         </>,
       )}
+
+      {confirmDeleteDialog}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">
