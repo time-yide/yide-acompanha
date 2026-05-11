@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import { Star } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -26,14 +26,15 @@ interface Props {
   hidePendenteSelect?: boolean;
 }
 
-function StarPicker({ name, value, onChange, disabled }: {
+function StarPicker({ name, value, onChange, disabled, error }: {
   name: string;
   value: number;
   onChange: (v: number) => void;
   disabled?: boolean;
+  error?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center -my-1.5">
       <input type="hidden" name={name} value={value || ""} />
       {[1, 2, 3, 4, 5].map((n) => (
         <button
@@ -41,13 +42,28 @@ function StarPicker({ name, value, onChange, disabled }: {
           type="button"
           disabled={disabled}
           onClick={() => onChange(n)}
-          className="text-amber-500 hover:scale-110 transition-transform disabled:opacity-50"
-          aria-label={`${n} estrelas`}
+          className={cn(
+            "p-1.5 touch-manipulation transition-transform active:scale-90 disabled:opacity-50",
+            error ? "text-destructive" : "text-amber-500",
+          )}
+          aria-label={`${n} estrela${n > 1 ? "s" : ""}`}
         >
-          <Star className={cn("h-5 w-5", n <= value ? "fill-amber-500" : "fill-none")} />
+          <Star
+            className={cn(
+              "h-6 w-6",
+              n <= value ? "fill-current" : "fill-none",
+            )}
+          />
         </button>
       ))}
-      <span className="ml-2 text-xs text-muted-foreground">{value || "—"}/5</span>
+      <span
+        className={cn(
+          "ml-2 text-xs",
+          error ? "font-medium text-destructive" : "text-muted-foreground",
+        )}
+      >
+        {value ? `${value}/5` : error ? "Obrigatório" : "—/5"}
+      </span>
     </div>
   );
 }
@@ -70,6 +86,25 @@ export function CapturaForm({ clientes, pendentes, hidePendenteSelect = false }:
     initial?.inicio ? initial.inicio.slice(0, 10) : todayBR(),
   );
   const [ratings, setRatings] = useState<Record<string, number>>({});
+  const [clientError, setClientError] = useState<string | null>(null);
+  const ratingRowsRef = useRef<Record<string, HTMLDivElement | null>>({});
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    const missing = RATING_FIELDS.filter((f) => !ratings[f.name] || ratings[f.name] < 1);
+    if (missing.length > 0) {
+      e.preventDefault();
+      const labels = missing.map((f) => f.label).join(", ");
+      setClientError(`Falta avaliar ${missing.length === 1 ? "" : `${missing.length} itens: `}${labels}`);
+      const first = ratingRowsRef.current[missing[0].name];
+      if (first) {
+        requestAnimationFrame(() => {
+          first.scrollIntoView({ behavior: "smooth", block: "center" });
+        });
+      }
+      return;
+    }
+    setClientError(null);
+  }
 
   function handlePendente(e: React.ChangeEvent<HTMLSelectElement>) {
     const id = e.target.value;
@@ -92,7 +127,7 @@ export function CapturaForm({ clientes, pendentes, hidePendenteSelect = false }:
         </p>
       </div>
 
-      <form action={formAction} className="space-y-5">
+      <form action={formAction} onSubmit={handleSubmit} className="space-y-5">
         <input type="hidden" name="event_id" value={eventId} />
 
         {pendentes.length > 0 && !hidePendenteSelect && (
@@ -175,17 +210,31 @@ export function CapturaForm({ clientes, pendentes, hidePendenteSelect = false }:
             </p>
           </div>
           <div className="grid gap-3 md:grid-cols-2">
-            {RATING_FIELDS.map((f) => (
-              <div key={f.name} className="flex items-center justify-between gap-3 rounded-md border bg-card px-3 py-2">
-                <span className="text-xs font-medium">{f.label}</span>
-                <StarPicker
-                  name={f.name}
-                  value={ratings[f.name] ?? 0}
-                  onChange={(v) => setRatings((prev) => ({ ...prev, [f.name]: v }))}
-                  disabled={pending}
-                />
-              </div>
-            ))}
+            {RATING_FIELDS.map((f) => {
+              const missing = clientError !== null && !ratings[f.name];
+              return (
+                <div
+                  key={f.name}
+                  ref={(el) => { ratingRowsRef.current[f.name] = el; }}
+                  className={cn(
+                    "flex flex-col gap-1.5 rounded-md border bg-card px-3 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3",
+                    missing && "border-destructive/60 bg-destructive/5",
+                  )}
+                >
+                  <span className="text-xs font-medium">{f.label}</span>
+                  <StarPicker
+                    name={f.name}
+                    value={ratings[f.name] ?? 0}
+                    onChange={(v) => {
+                      setRatings((prev) => ({ ...prev, [f.name]: v }));
+                      if (clientError) setClientError(null);
+                    }}
+                    disabled={pending}
+                    error={missing}
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -205,9 +254,9 @@ export function CapturaForm({ clientes, pendentes, hidePendenteSelect = false }:
           <Textarea id="sugestoes" name="sugestoes" rows={2} maxLength={2000} />
         </div>
 
-        {state?.error && (
+        {(clientError ?? state?.error) && (
           <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {state.error}
+            {clientError ?? state?.error}
           </p>
         )}
 
