@@ -3,11 +3,13 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { PACOTES_NO_PAINEL_MENSAL, tipoPacoteBadge, type TipoPacote } from "@/lib/painel/pacote-matrix";
 import { cn } from "@/lib/utils";
+import { AtualizarPainelButton } from "./AtualizarPainelButton";
 
 interface Props {
   mesAtual: string;
   mesesDisponiveis: string[];
   tipoFiltro: TipoPacote | "todos";
+  canAtualizar?: boolean;
 }
 
 function formatMonthLabel(monthRef: string): string {
@@ -16,7 +18,7 @@ function formatMonthLabel(monthRef: string): string {
   return `${names[Number(m) - 1]}/${y.slice(2)}`;
 }
 
-export function PainelHeader({ mesAtual, mesesDisponiveis, tipoFiltro }: Props) {
+export function PainelHeader({ mesAtual, mesesDisponiveis, tipoFiltro, canAtualizar = false }: Props) {
   const router = useRouter();
   const params = useSearchParams();
 
@@ -39,15 +41,18 @@ export function PainelHeader({ mesAtual, mesesDisponiveis, tipoFiltro }: Props) 
           <h1 className="text-2xl font-bold tracking-tight">Painel mensal</h1>
           <p className="text-sm text-muted-foreground">Acompanhamento de etapas por cliente</p>
         </div>
-        <select
-          value={mesAtual}
-          onChange={(e) => setMes(e.target.value)}
-          className="rounded-md border bg-card px-2 py-1.5 text-sm"
-        >
-          {mesesDisponiveis.map((m) => (
-            <option key={m} value={m}>{formatMonthLabel(m)}</option>
-          ))}
-        </select>
+        <div className="flex items-center gap-2">
+          {canAtualizar && <AtualizarPainelButton mesReferencia={mesAtual} />}
+          <select
+            value={mesAtual}
+            onChange={(e) => setMes(e.target.value)}
+            className="rounded-md border bg-card px-2 py-1.5 text-sm"
+          >
+            {mesesDisponiveis.map((m) => (
+              <option key={m} value={m}>{formatMonthLabel(m)}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-1.5">
