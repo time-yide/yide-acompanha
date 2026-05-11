@@ -77,6 +77,7 @@ export default async function EditClientePage({ params }: { params: Promise<{ id
             instagram_url: cliente.instagram_url ?? null,
             gmn_url: cliente.gmn_url ?? null,
             drive_url: cliente.drive_url ?? null,
+            link_estrategia: (cliente as { link_estrategia?: string | null }).link_estrategia ?? null,
             pacote_post_padrao: cliente.pacote_post_padrao ?? null,
             tipo_pacote: cliente.tipo_pacote ?? null,
             cadencia_reuniao: cliente.cadencia_reuniao ?? null,

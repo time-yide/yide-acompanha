@@ -117,8 +117,8 @@ export function PainelTable({ checklists, userRole, userId }: Props) {
                     <CronoCell
                       stepId={cronoStep?.id ?? null}
                       status={cronoStep?.status ?? "pendente"}
-                      driveUrl={row.client_drive_url}
-                      canEdit={canEditCommon}
+                      linkEstrategia={row.client_link_estrategia}
+                      clientId={row.client_id}
                     />
                   ) : (
                     <NaoSeAplicaCell />

@@ -36,6 +36,7 @@ interface Props {
     instagram_url: string | null;
     gmn_url: string | null;
     drive_url: string | null;
+    link_estrategia: string | null;
     pacote_post_padrao: number | null;
     tipo_pacote: string | null;
     cadencia_reuniao: string | null;
@@ -257,6 +258,19 @@ export function ClienteForm({ action, defaults = {}, assessores, coordenadores, 
               placeholder="https://drive.google.com/..."
               className="mt-1 block w-full h-9 rounded-md border bg-card px-2 text-sm"
             />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Link da estratégia (Drive, Gamma, etc.)</label>
+            <input
+              type="url"
+              name="link_estrategia"
+              defaultValue={defaults.link_estrategia ?? ""}
+              placeholder="https://gamma.app/... ou https://drive.google.com/..."
+              className="mt-1 block w-full h-9 rounded-md border bg-card px-2 text-sm"
+            />
+            <p className="mt-1 text-[10px] text-muted-foreground">
+              Quando preenchido, a step <strong>Cronograma</strong> do painel mensal fica verde.
+            </p>
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground">Pacote padrão de posts/mês</label>

@@ -73,6 +73,7 @@ export const editClienteSchema = createClienteSchema.extend({
   instagram_url: z.string().url().or(z.literal("")).optional().nullable(),
   gmn_url: z.string().url().or(z.literal("")).optional().nullable(),
   drive_url: z.string().url().or(z.literal("")).optional().nullable(),
+  link_estrategia: z.string().url().or(z.literal("")).optional().nullable(),
   pacote_post_padrao: z.coerce.number().int().min(0).optional().nullable(),
   // new fields already in base schema — inherited; explicit here for clarity
 });
