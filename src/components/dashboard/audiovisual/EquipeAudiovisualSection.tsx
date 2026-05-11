@@ -1,7 +1,7 @@
 import { getEquipeAudiovisual } from "@/lib/dashboard/audiovisual";
 import { PeriodoSelector } from "@/components/dashboard/personal/PeriodoSelector";
 import type { Periodo } from "@/lib/dashboard/personal";
-import { Video, CheckCircle2, AlertCircle } from "lucide-react";
+import { Video, CheckCircle2, Wrench } from "lucide-react";
 import { MemberRow } from "./MemberRow";
 
 interface Props {
@@ -33,18 +33,21 @@ export async function EquipeAudiovisualSection({ periodo }: Props) {
             <Video className="h-3.5 w-3.5" /> Próximas gravações
           </div>
           <p className="mt-1 text-2xl font-bold tabular-nums">{agregados.totalGravacoesProximas}</p>
+          <p className="text-xs text-muted-foreground">Hoje + futuro (2 semanas)</p>
+        </div>
+        <div className="rounded-xl border bg-card p-4">
+          <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
+            <Wrench className="h-3.5 w-3.5" /> Em andamento (edição)
+          </div>
+          <p className="mt-1 text-2xl font-bold tabular-nums">{agregados.totalEmAndamentoEdicao}</p>
+          <p className="text-xs text-muted-foreground">Editores trabalhando agora</p>
         </div>
         <div className="rounded-xl border bg-card p-4">
           <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
             <CheckCircle2 className="h-3.5 w-3.5" /> Concluídas no período
           </div>
           <p className="mt-1 text-2xl font-bold tabular-nums">{agregados.totalConcluidasNoPeriodo}</p>
-        </div>
-        <div className="rounded-xl border bg-card p-4">
-          <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
-            <AlertCircle className="h-3.5 w-3.5" /> Pendentes (edição)
-          </div>
-          <p className="mt-1 text-2xl font-bold tabular-nums">{agregados.totalPendentes}</p>
+          <p className="text-xs text-muted-foreground">Capturas delegadas + edições finalizadas</p>
         </div>
       </div>
 
@@ -60,8 +63,9 @@ export async function EquipeAudiovisualSection({ periodo }: Props) {
               <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
                 <tr>
                   <th className="px-3 py-2 text-left font-medium">Nome</th>
-                  <th className="px-3 py-2 text-right font-medium">Próximas gravações</th>
-                  <th className="px-3 py-2 text-right font-medium">Concluídas no período</th>
+                  <th className="px-3 py-2 text-right font-medium">Próximas</th>
+                  <th className="px-3 py-2 text-right font-medium">Hoje</th>
+                  <th className="px-3 py-2 text-right font-medium">Concluídas</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -70,9 +74,12 @@ export async function EquipeAudiovisualSection({ periodo }: Props) {
                     key={v.id}
                     variant="videomaker"
                     nome={v.nome}
-                    proximasGravacoes={v.proximasGravacoes}
-                    concluidasNoPeriodo={v.concluidasNoPeriodo}
-                    proximasGravacoesList={v.proximasGravacoesList}
+                    proximas={v.proximas}
+                    hoje={v.hoje}
+                    concluidas={v.concluidas}
+                    proximasList={v.proximasList}
+                    hojeList={v.hojeList}
+                    concluidasList={v.concluidasList}
                   />
                 ))}
               </tbody>
@@ -97,8 +104,9 @@ export async function EquipeAudiovisualSection({ periodo }: Props) {
                 <tr>
                   <th className="px-3 py-2 text-left font-medium">Nome</th>
                   <th className="px-3 py-2 text-left font-medium">Função</th>
-                  <th className="px-3 py-2 text-right font-medium">Pendentes</th>
-                  <th className="px-3 py-2 text-right font-medium">Concluídas no período</th>
+                  <th className="px-3 py-2 text-right font-medium">Próximas</th>
+                  <th className="px-3 py-2 text-right font-medium">Em andamento</th>
+                  <th className="px-3 py-2 text-right font-medium">Concluídas</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -108,9 +116,12 @@ export async function EquipeAudiovisualSection({ periodo }: Props) {
                     variant="edicao"
                     nome={e.nome}
                     funcao={roleLabel(e.role)}
-                    pendentes={e.pendentes}
-                    concluidasNoPeriodo={e.concluidasNoPeriodo}
-                    pendentesList={e.pendentesList}
+                    proximas={e.proximas}
+                    emAndamento={e.emAndamento}
+                    concluidas={e.concluidas}
+                    proximasList={e.proximasList}
+                    emAndamentoList={e.emAndamentoList}
+                    concluidasList={e.concluidasList}
                   />
                 ))}
               </tbody>
