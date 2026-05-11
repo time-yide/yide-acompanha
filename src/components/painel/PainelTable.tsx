@@ -178,6 +178,7 @@ export function PainelTable({ checklists, userRole, userId }: Props) {
                       avaliacoes={row.gmn_avaliacoes}
                       notaMedia={row.gmn_nota_media}
                       observacoes={row.gmn_observacoes}
+                      otimizado={row.gmn_otimizado}
                       canEdit={canEditCommon}
                     />
                   ) : (

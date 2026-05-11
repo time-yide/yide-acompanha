@@ -181,6 +181,7 @@ const setGmnSchema = z.object({
   gmn_avaliacoes: z.coerce.number().int().min(0),
   gmn_nota_media: z.coerce.number().min(0).max(5).nullable().optional(),
   gmn_observacoes: z.string().max(2000).nullable().optional(),
+  gmn_otimizado: z.coerce.boolean(),
 });
 
 export async function setGmnDataAction(formData: FormData): Promise<ActionResult> {
@@ -191,6 +192,7 @@ export async function setGmnDataAction(formData: FormData): Promise<ActionResult
     gmn_avaliacoes: formData.get("gmn_avaliacoes"),
     gmn_nota_media: formData.get("gmn_nota_media") || null,
     gmn_observacoes: formData.get("gmn_observacoes") || null,
+    gmn_otimizado: formData.get("gmn_otimizado") === "true" || formData.get("gmn_otimizado") === "1",
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
@@ -202,6 +204,7 @@ export async function setGmnDataAction(formData: FormData): Promise<ActionResult
       gmn_avaliacoes: parsed.data.gmn_avaliacoes,
       gmn_nota_media: parsed.data.gmn_nota_media ?? null,
       gmn_observacoes: parsed.data.gmn_observacoes ?? null,
+      gmn_otimizado: parsed.data.gmn_otimizado,
     })
     .eq("id", parsed.data.checklist_id);
   if (error) return { error: error.message };

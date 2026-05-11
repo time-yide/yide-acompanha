@@ -399,6 +399,7 @@ export type Database = {
           gmn_comentarios: number
           gmn_nota_media: number | null
           gmn_observacoes: string | null
+          gmn_otimizado: boolean
           id: string
           mes_referencia: string
           organization_id: string
@@ -416,6 +417,7 @@ export type Database = {
           gmn_comentarios?: number
           gmn_nota_media?: number | null
           gmn_observacoes?: string | null
+          gmn_otimizado?: boolean
           id?: string
           mes_referencia: string
           organization_id: string
@@ -433,6 +435,7 @@ export type Database = {
           gmn_comentarios?: number
           gmn_nota_media?: number | null
           gmn_observacoes?: string | null
+          gmn_otimizado?: boolean
           id?: string
           mes_referencia?: string
           organization_id?: string

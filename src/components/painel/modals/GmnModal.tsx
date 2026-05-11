@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { setGmnDataAction } from "@/lib/painel/actions";
 
 interface Props {
@@ -20,6 +21,7 @@ interface Props {
     avaliacoes: number;
     notaMedia: number | null;
     observacoes: string | null;
+    otimizado: boolean;
   };
 }
 
@@ -30,6 +32,7 @@ export function GmnModal({
   const [avaliacoes, setAvaliacoes] = useState(String(initial.avaliacoes));
   const [nota, setNota] = useState(initial.notaMedia ?? 0);
   const [observacoes, setObservacoes] = useState(initial.observacoes ?? "");
+  const [otimizado, setOtimizado] = useState(initial.otimizado);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -42,6 +45,7 @@ export function GmnModal({
     fd.set("gmn_avaliacoes", avaliacoes);
     if (nota > 0) fd.set("gmn_nota_media", String(nota));
     if (observacoes.trim()) fd.set("gmn_observacoes", observacoes.trim());
+    fd.set("gmn_otimizado", otimizado ? "true" : "false");
     startTransition(async () => {
       const r = await setGmnDataAction(fd);
       if ("error" in r) {
@@ -89,6 +93,17 @@ export function GmnModal({
                 <span className="tabular-nums font-semibold">{nota.toFixed(1)}</span>
               </span>
             </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="gmn_otimizado"
+              checked={otimizado}
+              onCheckedChange={(v) => setOtimizado(v === true)}
+            />
+            <Label htmlFor="gmn_otimizado" className="cursor-pointer">
+              GMN otimizado neste mês
+            </Label>
           </div>
 
           <div className="space-y-2">

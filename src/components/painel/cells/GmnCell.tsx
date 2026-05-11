@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Star } from "lucide-react";
+import { Star, Sparkles } from "lucide-react";
 import { GmnModal } from "../modals/GmnModal";
 import { cn } from "@/lib/utils";
 
@@ -13,6 +13,7 @@ interface Props {
   avaliacoes: number;
   notaMedia: number | null;
   observacoes: string | null;
+  otimizado: boolean;
   canEdit: boolean;
 }
 
@@ -25,7 +26,7 @@ function colorByNota(nota: number | null): string {
 
 export function GmnCell({
   checklistId, clientNome, mesReferencia,
-  comentarios, avaliacoes, notaMedia, observacoes, canEdit,
+  comentarios, avaliacoes, notaMedia, observacoes, otimizado, canEdit,
 }: Props) {
   const [open, setOpen] = useState(false);
   if (!checklistId) {
@@ -33,9 +34,13 @@ export function GmnCell({
   }
 
   const semDados = notaMedia === null && comentarios === 0 && avaliacoes === 0;
+  const tooltip = [
+    observacoes,
+    otimizado ? "Otimizado neste mês" : null,
+  ].filter(Boolean).join(" · ") || undefined;
 
   return (
-    <>
+    <div className="inline-flex items-center gap-1">
       <button
         type="button"
         onClick={() => canEdit && setOpen(true)}
@@ -46,7 +51,7 @@ export function GmnCell({
           canEdit && "hover:opacity-80 cursor-pointer",
           !canEdit && "cursor-default",
         )}
-        title={observacoes ?? undefined}
+        title={tooltip}
       >
         {semDados ? (
           "—"
@@ -57,6 +62,15 @@ export function GmnCell({
           </>
         )}
       </button>
+      {otimizado && (
+        <span
+          className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+          title="GMN otimizado neste mês"
+          aria-label="GMN otimizado neste mês"
+        >
+          <Sparkles className="h-3 w-3" />
+        </span>
+      )}
       {canEdit && (
         <GmnModal
           open={open}
@@ -64,9 +78,9 @@ export function GmnCell({
           checklistId={checklistId}
           clientNome={clientNome}
           mesReferencia={mesReferencia}
-          initial={{ comentarios, avaliacoes, notaMedia, observacoes }}
+          initial={{ comentarios, avaliacoes, notaMedia, observacoes, otimizado }}
         />
       )}
-    </>
+    </div>
   );
 }

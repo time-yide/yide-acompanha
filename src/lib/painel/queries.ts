@@ -54,6 +54,7 @@ export interface ChecklistRow {
   gmn_avaliacoes: number;
   gmn_nota_media: number | null;
   gmn_observacoes: string | null;
+  gmn_otimizado: boolean;
   steps: ChecklistStepRow[];
 }
 
@@ -75,7 +76,8 @@ export async function getMonthlyChecklists(
       const f = JSON.parse(filterJson) as ChecklistFilter;
       return _getMonthlyChecklistsImpl(mes, f);
     },
-    ["painel-monthly-checklists-v1"],
+    // v2: shape mudou (gmn_otimizado boolean)
+    ["painel-monthly-checklists-v2"],
     { revalidate: 60, tags: [PAINEL_CACHE_TAG] },
   );
   return cached(mesReferencia, JSON.stringify(filter));
@@ -142,7 +144,7 @@ async function _getMonthlyChecklistsImpl(
       id, client_id, mes_referencia,
       pacote_post, quantidade_postada, valor_trafego_mes,
       tpg_ativo, tpm_ativo,
-      gmn_comentarios, gmn_avaliacoes, gmn_nota_media, gmn_observacoes
+      gmn_comentarios, gmn_avaliacoes, gmn_nota_media, gmn_observacoes, gmn_otimizado
     `)
     .eq("mes_referencia", mesReferencia)
     .in("client_id", clientIds);
@@ -160,6 +162,7 @@ async function _getMonthlyChecklistsImpl(
     gmn_avaliacoes: number;
     gmn_nota_media: number | null;
     gmn_observacoes: string | null;
+    gmn_otimizado: boolean;
   }>;
 
   if (checklists.length === 0) {
@@ -188,6 +191,7 @@ async function _getMonthlyChecklistsImpl(
       gmn_avaliacoes: 0,
       gmn_nota_media: null,
       gmn_observacoes: null,
+      gmn_otimizado: false,
       steps: [],
     }));
   }
@@ -273,6 +277,7 @@ async function _getMonthlyChecklistsImpl(
       gmn_avaliacoes: cl?.gmn_avaliacoes ?? 0,
       gmn_nota_media: cl?.gmn_nota_media ?? null,
       gmn_observacoes: cl?.gmn_observacoes ?? null,
+      gmn_otimizado: cl?.gmn_otimizado ?? false,
       steps: cl ? (stepsByChecklist.get(cl.id) ?? []) : [],
     };
   });
