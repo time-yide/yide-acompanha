@@ -35,6 +35,13 @@ const toggleSchema = z.object({
     .string()
     .transform((v) => v === "true")
     .pipe(z.boolean()),
+  /** Opcional: data customizada (YYYY-MM-DD) — pra backdate de items feitos
+   * antes do cliente ser cadastrado. Default = agora. */
+  data_acao: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional()
+    .nullable(),
 });
 
 /**
@@ -51,6 +58,7 @@ export async function toggleChecklistItemAction(
     tipo: formData.get("tipo"),
     index: formData.get("index"),
     done: formData.get("done"),
+    data_acao: formData.get("data_acao") || null,
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
@@ -76,13 +84,21 @@ export async function toggleChecklistItemAction(
     return { error: "Item inválido" };
   }
 
+  // Backdate: se data_acao foi passada (formato YYYY-MM-DD), usa ela com
+  // 12:00 do fuso APP. Default = agora.
+  const acaoAt = parsed.data.done
+    ? parsed.data.data_acao
+      ? new Date(`${parsed.data.data_acao}T12:00:00-04:00`).toISOString()
+      : new Date().toISOString()
+    : null;
+
   const updated = checklist.map((item, i) => {
     if (i !== parsed.data.index) return item;
     return {
       ...item,
       done: parsed.data.done,
       done_by: parsed.data.done ? actor.id : null,
-      done_at: parsed.data.done ? new Date().toISOString() : null,
+      done_at: acaoAt,
     };
   });
 
@@ -116,19 +132,33 @@ export async function toggleChecklistItemAction(
 
 const markEtapaSchema = z.object({
   etapa_id: z.string().regex(UUID_RE),
+  /** Opcional: data customizada (YYYY-MM-DD) pra backdate de etapas
+   * concluídas no passado. Default = hoje. */
+  data_conclusao: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida")
+    .optional()
+    .nullable(),
 });
 
 /**
  * Marca etapa inteira como concluída. Só funciona se TODOS os itens de
  * `saidas_checklist` estiverem concluídos (lógica de gate). Itens de fluxo
  * podem ficar parciais.
+ *
+ * Aceita data_conclusao opcional pra backdate — útil quando você cadastra
+ * cliente com D0 retroativo e quer marcar etapas que já foram feitas
+ * efetivamente no passado.
  */
 export async function markEtapaConcluidaAction(
   formData: FormData,
 ): Promise<{ success: true } | { error: string }> {
   const actor = await requireAuth();
 
-  const parsed = markEtapaSchema.safeParse({ etapa_id: formData.get("etapa_id") });
+  const parsed = markEtapaSchema.safeParse({
+    etapa_id: formData.get("etapa_id"),
+    data_conclusao: formData.get("data_conclusao") || null,
+  });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
   const admin = createServiceRoleClient();
@@ -157,11 +187,17 @@ export async function markEtapaConcluidaAction(
 
   if (etapa.status === "concluido") return { success: true };
 
+  // Backdate: se data_conclusao foi passada, usa ela (com hora=12:00 do fuso
+  // pra evitar problemas de borda de dia). Default = agora.
+  const concluidoEm = parsed.data.data_conclusao
+    ? new Date(`${parsed.data.data_conclusao}T12:00:00-04:00`).toISOString()
+    : new Date().toISOString();
+
   const { error } = await sb
     .from("client_onboarding_etapas")
     .update({
       status: "concluido",
-      concluido_em: new Date().toISOString(),
+      concluido_em: concluidoEm,
       concluido_por: actor.id,
     })
     .eq("id", parsed.data.etapa_id);
