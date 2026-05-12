@@ -1,16 +1,27 @@
 import Link from "next/link";
-import { Calendar, ArrowRight, Sparkles } from "lucide-react";
+import { Calendar, ArrowRight, Sparkles, RefreshCw } from "lucide-react";
 
 interface Props {
   connected: boolean;
   googleEmail?: string | null;
+  lastSyncedAt?: string | null;
 }
 
 /**
  * Banner do topo da lista de reuniões. Quando não conectado, convida pra
  * conectar. Quando conectado, mostra estado discreto.
  */
-export function ConnectGoogleBanner({ connected, googleEmail }: Props) {
+function formatSyncDate(iso: string | null | undefined): string {
+  if (!iso) return "ainda não sincronizou";
+  const d = new Date(iso);
+  const diffMin = (Date.now() - d.getTime()) / 60000;
+  if (diffMin < 1) return "agora mesmo";
+  if (diffMin < 60) return `há ${Math.floor(diffMin)} min`;
+  if (diffMin < 1440) return `há ${Math.floor(diffMin / 60)}h`;
+  return d.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+}
+
+export function ConnectGoogleBanner({ connected, googleEmail, lastSyncedAt }: Props) {
   if (connected && googleEmail) {
     return (
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-4 py-3">
@@ -21,6 +32,10 @@ export function ConnectGoogleBanner({ connected, googleEmail }: Props) {
           <div>
             <p className="text-sm font-medium">Google Calendar conectado</p>
             <p className="text-xs text-muted-foreground">{googleEmail}</p>
+            <p className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+              <RefreshCw className="h-3 w-3" />
+              Última sincronização: {formatSyncDate(lastSyncedAt)}
+            </p>
           </div>
         </div>
         <Link
