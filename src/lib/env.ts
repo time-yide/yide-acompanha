@@ -17,6 +17,10 @@ const serverSchema = z.object({
   VAPID_PUBLIC_KEY: z.string().optional(),
   VAPID_PRIVATE_KEY: z.string().optional(),
   VAPID_SUBJECT: z.string().optional(),
+  // Gerador de Leads (COMERCIAL → Gerador de Leads).
+  // Sem isso, criar pesquisa retorna erro pedindo pra configurar.
+  // Conta grátis em https://app.outscraper.com (2k créditos sem cartão).
+  OUTSCRAPER_API_KEY: z.string().optional(),
 });
 
 const clientSchema = z.object({

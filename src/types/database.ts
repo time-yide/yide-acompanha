@@ -1162,6 +1162,263 @@ export type Database = {
           },
         ]
       }
+      leads_gerados: {
+        Row: {
+          arquivado_em: string | null
+          categoria: string | null
+          cidade: string | null
+          created_at: string
+          decisor_cargo: string | null
+          decisor_email: string | null
+          decisor_linkedin: string | null
+          decisor_nome: string | null
+          decisor_telefone: string | null
+          diagnostico: Json
+          dominio: string | null
+          email: string | null
+          empresa: string
+          endereco: string | null
+          estado: string | null
+          fonte: string
+          google_maps_url: string | null
+          google_place_id: string | null
+          google_rating: number | null
+          google_reviews_count: number | null
+          horario_funcionamento: string | null
+          id: string
+          instagram: string | null
+          instagram_ativo: boolean | null
+          instagram_bio: string | null
+          instagram_metadata: Json
+          instagram_posts: number | null
+          instagram_seguidores: number | null
+          instagram_seguindo: number | null
+          latitude: number | null
+          lead_onboarding_id: string | null
+          longitude: number | null
+          observacoes: string | null
+          observacoes_ia: string | null
+          organization_id: string
+          outros_decisores: Json
+          pais: string | null
+          pesquisa_id: string | null
+          potencial_comercial: string | null
+          qualificado: boolean | null
+          raw_data: Json | null
+          responsavel_id: string | null
+          score: number | null
+          status: string
+          tags: string[]
+          telefone: string | null
+          updated_at: string
+          website: string | null
+          whatsapp: string | null
+        }
+        Insert: {
+          arquivado_em?: string | null
+          categoria?: string | null
+          cidade?: string | null
+          created_at?: string
+          decisor_cargo?: string | null
+          decisor_email?: string | null
+          decisor_linkedin?: string | null
+          decisor_nome?: string | null
+          decisor_telefone?: string | null
+          diagnostico?: Json
+          dominio?: string | null
+          email?: string | null
+          empresa: string
+          endereco?: string | null
+          estado?: string | null
+          fonte?: string
+          google_maps_url?: string | null
+          google_place_id?: string | null
+          google_rating?: number | null
+          google_reviews_count?: number | null
+          horario_funcionamento?: string | null
+          id?: string
+          instagram?: string | null
+          instagram_ativo?: boolean | null
+          instagram_bio?: string | null
+          instagram_metadata?: Json
+          instagram_posts?: number | null
+          instagram_seguidores?: number | null
+          instagram_seguindo?: number | null
+          latitude?: number | null
+          lead_onboarding_id?: string | null
+          longitude?: number | null
+          observacoes?: string | null
+          observacoes_ia?: string | null
+          organization_id: string
+          outros_decisores?: Json
+          pais?: string | null
+          pesquisa_id?: string | null
+          potencial_comercial?: string | null
+          qualificado?: boolean | null
+          raw_data?: Json | null
+          responsavel_id?: string | null
+          score?: number | null
+          status?: string
+          tags?: string[]
+          telefone?: string | null
+          updated_at?: string
+          website?: string | null
+          whatsapp?: string | null
+        }
+        Update: {
+          arquivado_em?: string | null
+          categoria?: string | null
+          cidade?: string | null
+          created_at?: string
+          decisor_cargo?: string | null
+          decisor_email?: string | null
+          decisor_linkedin?: string | null
+          decisor_nome?: string | null
+          decisor_telefone?: string | null
+          diagnostico?: Json
+          dominio?: string | null
+          email?: string | null
+          empresa?: string
+          endereco?: string | null
+          estado?: string | null
+          fonte?: string
+          google_maps_url?: string | null
+          google_place_id?: string | null
+          google_rating?: number | null
+          google_reviews_count?: number | null
+          horario_funcionamento?: string | null
+          id?: string
+          instagram?: string | null
+          instagram_ativo?: boolean | null
+          instagram_bio?: string | null
+          instagram_metadata?: Json
+          instagram_posts?: number | null
+          instagram_seguidores?: number | null
+          instagram_seguindo?: number | null
+          latitude?: number | null
+          lead_onboarding_id?: string | null
+          longitude?: number | null
+          observacoes?: string | null
+          observacoes_ia?: string | null
+          organization_id?: string
+          outros_decisores?: Json
+          pais?: string | null
+          pesquisa_id?: string | null
+          potencial_comercial?: string | null
+          qualificado?: boolean | null
+          raw_data?: Json | null
+          responsavel_id?: string | null
+          score?: number | null
+          status?: string
+          tags?: string[]
+          telefone?: string | null
+          updated_at?: string
+          website?: string | null
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_gerados_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_gerados_pesquisa_id_fkey"
+            columns: ["pesquisa_id"]
+            isOneToOne: false
+            referencedRelation: "leads_gerados_pesquisas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_gerados_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_gerados_lead_onboarding_id_fkey"
+            columns: ["lead_onboarding_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leads_gerados_pesquisas: {
+        Row: {
+          cidade: string
+          concluido_em: string | null
+          created_at: string
+          criado_por: string | null
+          erro_mensagem: string | null
+          external_request_id: string | null
+          fonte: string
+          id: string
+          iniciado_em: string | null
+          limite: number
+          nicho: string
+          organization_id: string
+          query: string | null
+          status: string
+          total_novos: number
+          total_resultados: number
+        }
+        Insert: {
+          cidade: string
+          concluido_em?: string | null
+          created_at?: string
+          criado_por?: string | null
+          erro_mensagem?: string | null
+          external_request_id?: string | null
+          fonte?: string
+          id?: string
+          iniciado_em?: string | null
+          limite?: number
+          nicho: string
+          organization_id: string
+          query?: string | null
+          status?: string
+          total_novos?: number
+          total_resultados?: number
+        }
+        Update: {
+          cidade?: string
+          concluido_em?: string | null
+          created_at?: string
+          criado_por?: string | null
+          erro_mensagem?: string | null
+          external_request_id?: string | null
+          fonte?: string
+          id?: string
+          iniciado_em?: string | null
+          limite?: number
+          nicho?: string
+          organization_id?: string
+          query?: string | null
+          status?: string
+          total_novos?: number
+          total_resultados?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_gerados_pesquisas_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_gerados_pesquisas_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_preferences: {
         Row: {
           email: boolean
