@@ -19,6 +19,8 @@ import { TopicsTimeline } from "@/components/reunioes/TopicsTimeline";
 import { InsightsPanel } from "@/components/reunioes/InsightsPanel";
 import { ExtractedTasksPanel } from "@/components/reunioes/ExtractedTasksPanel";
 import { MeetingDetailTabs } from "@/components/reunioes/MeetingDetailTabs";
+import { MeetingRealtimeWatcher } from "@/components/reunioes/MeetingRealtimeWatcher";
+import { ProcessingBanner } from "@/components/reunioes/ProcessingBanner";
 
 const ALLOWED_ROLES = [
   "adm", "socio", "comercial", "coordenador", "assessor", "audiovisual_chefe",
@@ -96,6 +98,9 @@ export default async function ReuniaoDetailPage({
 
   return (
     <div className="space-y-6">
+      {/* Atualiza ao vivo conforme cada etapa do processamento termina */}
+      <MeetingRealtimeWatcher meetingId={meeting.id} />
+
       {/* Breadcrumb */}
       <Link
         href="/reunioes"
@@ -104,6 +109,16 @@ export default async function ReuniaoDetailPage({
         <ArrowLeft className="h-3 w-3" />
         Voltar para Reuniões
       </Link>
+
+      {/* Banner do pipeline IA — só aparece se algo tá pendente */}
+      {meeting.recording_ready && (
+        <ProcessingBanner
+          recordingReady={meeting.recording_ready}
+          transcriptReady={meeting.transcript_ready}
+          summaryReady={meeting.summary_ready}
+          insightsReady={meeting.insights_ready}
+        />
+      )}
 
       {/* Header da reunião */}
       <header className="rounded-2xl border bg-gradient-to-br from-card via-card to-primary/5 p-5 sm:p-6 space-y-4">
