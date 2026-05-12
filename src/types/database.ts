@@ -526,11 +526,15 @@ export type Database = {
           drive_url: string | null
           editor_id: string | null
           email: string | null
+          facebook_page_id: string | null
+          gmn_location_id: string | null
           gmn_url: string | null
           google_ads_customer_id: string | null
           id: string
+          instagram_business_id: string | null
           instagram_url: string | null
           link_estrategia: string | null
+          linkedin_company_id: string | null
           meta_ad_account_id: string | null
           motivo_churn: string | null
           nome: string
@@ -569,11 +573,15 @@ export type Database = {
           drive_url?: string | null
           editor_id?: string | null
           email?: string | null
+          facebook_page_id?: string | null
+          gmn_location_id?: string | null
           gmn_url?: string | null
           google_ads_customer_id?: string | null
           id?: string
+          instagram_business_id?: string | null
           instagram_url?: string | null
           link_estrategia?: string | null
+          linkedin_company_id?: string | null
           meta_ad_account_id?: string | null
           motivo_churn?: string | null
           nome: string
@@ -612,11 +620,15 @@ export type Database = {
           drive_url?: string | null
           editor_id?: string | null
           email?: string | null
+          facebook_page_id?: string | null
+          gmn_location_id?: string | null
           gmn_url?: string | null
           google_ads_customer_id?: string | null
           id?: string
+          instagram_business_id?: string | null
           instagram_url?: string | null
           link_estrategia?: string | null
+          linkedin_company_id?: string | null
           meta_ad_account_id?: string | null
           motivo_churn?: string | null
           nome?: string
@@ -1577,6 +1589,151 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_media_posts: {
+        Row: {
+          agendar_para: string | null
+          ajuste_observacoes: string | null
+          aprovacao_token: string | null
+          aprovado_em: string | null
+          aprovado_por_email: string | null
+          archived_at: string | null
+          client_id: string
+          created_at: string
+          criado_por: string | null
+          design_arte_id: string | null
+          formato: string
+          hashtags: string | null
+          id: string
+          legenda: string | null
+          midias: Json
+          observacoes: string | null
+          organization_id: string
+          primeiro_comentario: string | null
+          redes: string[]
+          status: string
+          titulo: string | null
+          updated_at: string
+        }
+        Insert: {
+          agendar_para?: string | null
+          ajuste_observacoes?: string | null
+          aprovacao_token?: string | null
+          aprovado_em?: string | null
+          aprovado_por_email?: string | null
+          archived_at?: string | null
+          client_id: string
+          created_at?: string
+          criado_por?: string | null
+          design_arte_id?: string | null
+          formato?: string
+          hashtags?: string | null
+          id?: string
+          legenda?: string | null
+          midias?: Json
+          observacoes?: string | null
+          organization_id: string
+          primeiro_comentario?: string | null
+          redes?: string[]
+          status?: string
+          titulo?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agendar_para?: string | null
+          ajuste_observacoes?: string | null
+          aprovacao_token?: string | null
+          aprovado_em?: string | null
+          aprovado_por_email?: string | null
+          archived_at?: string | null
+          client_id?: string
+          created_at?: string
+          criado_por?: string | null
+          design_arte_id?: string | null
+          formato?: string
+          hashtags?: string | null
+          id?: string
+          legenda?: string | null
+          midias?: Json
+          observacoes?: string | null
+          organization_id?: string
+          primeiro_comentario?: string | null
+          redes?: string[]
+          status?: string
+          titulo?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_media_posts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_media_posts_design_arte_id_fkey"
+            columns: ["design_arte_id"]
+            isOneToOne: false
+            referencedRelation: "design_artes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_media_posts_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_media_posts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_media_publicacoes: {
+        Row: {
+          created_at: string
+          erro: string | null
+          external_id: string | null
+          external_url: string | null
+          id: string
+          post_id: string
+          publicado_em: string | null
+          rede: string
+        }
+        Insert: {
+          created_at?: string
+          erro?: string | null
+          external_id?: string | null
+          external_url?: string | null
+          id?: string
+          post_id: string
+          publicado_em?: string | null
+          rede: string
+        }
+        Update: {
+          created_at?: string
+          erro?: string | null
+          external_id?: string | null
+          external_url?: string | null
+          id?: string
+          post_id?: string
+          publicado_em?: string | null
+          rede?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_media_publicacoes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "social_media_posts"
             referencedColumns: ["id"]
           },
         ]
