@@ -1,6 +1,7 @@
-import { ListChecks, Check, X, ExternalLink, User, Calendar } from "lucide-react";
+import { ListChecks, Check, ExternalLink, User, Calendar } from "lucide-react";
 import Link from "next/link";
 import { formatTimestamp, type MeetingExtractedTask } from "@/lib/reunioes/tipos";
+import { ExtractedTaskActions } from "./ExtractedTaskActions";
 
 interface Props {
   tasks: MeetingExtractedTask[];
@@ -122,24 +123,7 @@ function TaskRow({ task, compact }: { task: MeetingExtractedTask; compact?: bool
           )}
         </div>
         {task.estado === "sugerida" && !compact && (
-          <div className="flex shrink-0 gap-1">
-            <button
-              type="button"
-              className="rounded-md p-1.5 text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400"
-              title="Aceitar (em breve)"
-              disabled
-            >
-              <Check className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              className="rounded-md p-1.5 text-muted-foreground hover:bg-muted"
-              title="Descartar (em breve)"
-              disabled
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
+          <ExtractedTaskActions extractedTaskId={task.id} />
         )}
       </div>
     </article>
