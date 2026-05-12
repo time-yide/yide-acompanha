@@ -7,7 +7,7 @@ import { Menu, Settings, X } from "lucide-react";
 import { SidebarItem } from "./SidebarItem";
 import { SidebarGroup } from "./SidebarGroup";
 import { visibleNavStructure } from "./nav-config";
-import type { Role } from "@/lib/auth/permissions";
+import { roleLabel, type Role } from "@/lib/auth/permissions";
 import type { SidebarBadges } from "./Sidebar";
 
 interface Props {
@@ -112,7 +112,7 @@ export function MobileNav({ role, nome, badges }: Props) {
               <SidebarItem href="/configuracoes" icon={Settings} label="Configurações" />
               <div className="mt-3 px-3 text-xs text-muted-foreground">
                 <div className="font-medium text-foreground">{nome}</div>
-                <div className="mt-0.5 capitalize">{role}</div>
+                <div className="mt-0.5">{roleLabel(role)}</div>
               </div>
             </div>
           </aside>

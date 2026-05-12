@@ -103,24 +103,24 @@ describe("calculateCommission — Assessor", () => {
   });
 });
 
-describe("calculateCommission — Coordenador", () => {
-  it("calcula fixo + 3% sobre carteira agência R$ 50.000 = R$ 1.500", async () => {
+describe("calculateCommission — Coordenador legado (só fixo)", () => {
+  // Decisão Yasmin (PR #258): o role `coordenador` foi descontinuado.
+  // Perfis remanescentes caem no fallback de só-fixo (sem variável).
+  it("coordenador legado: só fixo, sem parte variável sobre carteira", async () => {
     fromMock.mockImplementation((table) => {
       if (table === "profiles") {
         return mockProfile({ id: "u1", role: "coordenador", fixo_mensal: 5000, comissao_percent: 3, comissao_primeiro_mes_percent: 0 });
       }
-      if (table === "clients") {
-        return mockClientsAllAtivos([{ valor_mensal: 30000, id: "c1", tipo_relacao: "comum" }, { valor_mensal: 20000, id: "c2", tipo_relacao: "comum" }]);
-      }
-      if (table === "client_monthly_adjustments") {
-        return mockAdjustmentsEmpty();
-      }
       return {};
     });
     const r = await calculateCommission("u1", "2026-04");
-    expect(r!.snapshot.base_calculo).toBe(50000);
-    expect(r!.snapshot.valor_variavel).toBe(1500);
-    expect(r!.items[1].tipo).toBe("carteira_coord_agencia");
+    expect(r).not.toBeNull();
+    expect(r!.snapshot.fixo).toBe(5000);
+    expect(r!.snapshot.base_calculo).toBe(0);
+    expect(r!.snapshot.valor_variavel).toBe(0);
+    expect(r!.snapshot.percentual_aplicado).toBe(0);
+    expect(r!.items.length).toBe(1);
+    expect(r!.items[0].tipo).toBe("fixo");
   });
 });
 
@@ -211,15 +211,26 @@ describe("calculateCommission — ADM e Produtores", () => {
   });
 });
 
-describe("calculateCommission — Sócio retorna null", () => {
-  it("não gera snapshot pra sócio", async () => {
+describe("calculateCommission — Sócio (prolábore fixo, sem variável)", () => {
+  // Decisão Yasmin (PR #258): sócio agora ganha prolábore fixo (sugestão
+  // R$ 15.000 setado em `profiles.fixo_mensal`). Antes retornava null — era
+  // invisível no calculator. UI mostra como "Coordenador".
+  it("sócio: gera snapshot com prolábore fixo, sem parte variável", async () => {
     fromMock.mockImplementation((table) => {
       if (table === "profiles") {
-        return mockProfile({ id: "u1", role: "socio", fixo_mensal: 0, comissao_percent: 0, comissao_primeiro_mes_percent: 0 });
+        return mockProfile({ id: "u1", role: "socio", fixo_mensal: 15000, comissao_percent: 0, comissao_primeiro_mes_percent: 0 });
       }
       return {};
     });
     const r = await calculateCommission("u1", "2026-04");
-    expect(r).toBeNull();
+    expect(r).not.toBeNull();
+    expect(r!.snapshot.fixo).toBe(15000);
+    expect(r!.snapshot.base_calculo).toBe(0);
+    expect(r!.snapshot.valor_variavel).toBe(0);
+    expect(r!.snapshot.percentual_aplicado).toBe(0);
+    expect(r!.items.length).toBe(1);
+    expect(r!.items[0].tipo).toBe("fixo");
+    expect(r!.items[0].descricao).toBe("Prolábore");
+    expect(r!.items[0].valor).toBe(15000);
   });
 });

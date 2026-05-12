@@ -2,6 +2,28 @@ export type Role =
   | "adm" | "socio" | "comercial" | "coordenador" | "assessor"
   | "videomaker" | "designer" | "editor" | "audiovisual_chefe";
 
+/**
+ * Label visível no UI pra cada role. O enum `app_role` no banco mantém
+ * `socio` (decisão Yasmin — renomear quebraria RLS/FKs), mas no UI
+ * sócio aparece como "Coordenador". `coordenador` antigo virou "legado".
+ */
+export const ROLE_LABELS: Record<string, string> = {
+  adm: "ADM",
+  socio: "Coordenador",
+  comercial: "Comercial",
+  coordenador: "Coordenador (legado)",
+  assessor: "Assessor",
+  videomaker: "Videomaker",
+  designer: "Designer",
+  editor: "Editor",
+  audiovisual_chefe: "Coordenador audiovisual",
+};
+
+/** Devolve o label visível de um role. Faz fallback pro próprio valor. */
+export function roleLabel(role: string): string {
+  return ROLE_LABELS[role] ?? role;
+}
+
 export type Action =
   // Gestão de usuários
   | "manage:users"
