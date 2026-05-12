@@ -9,7 +9,7 @@ import { listColaboradores } from "@/lib/colaboradores/queries";
 import { Plus } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 
-export default async function ClientesPage({ searchParams }: { searchParams: Promise<{ status?: string; imported?: string; responsavel?: string }> }) {
+export default async function ClientesPage({ searchParams }: { searchParams: Promise<{ status?: string; imported?: string; responsavel?: string; modalidade?: string; churn_mes?: string }> }) {
   const params = await searchParams;
   const user = await requireAuth();
   const canManage = ["adm", "socio"].includes(user.role);
@@ -34,6 +34,15 @@ export default async function ClientesPage({ searchParams }: { searchParams: Pro
     ? "ativo"
     : ((params.status as "ativo" | "churn" | undefined) ?? undefined);
 
+  // Drill-down filters (vindos dos KPIs do dashboard).
+  const modalidade: "mensal" | "pontual" | undefined =
+    params.modalidade === "mensal" || params.modalidade === "pontual"
+      ? params.modalidade
+      : undefined;
+  // churn_mes vem como YYYY-MM. Valida formato pra não passar lixo pro Supabase.
+  const churnMonth: string | undefined =
+    params.churn_mes && /^\d{4}-\d{2}$/.test(params.churn_mes) ? params.churn_mes : undefined;
+
   // Sócio/adm em chooser mode (sem id selecionado) → não consulta, mostra prompt.
   const shouldQuery = !isMinhaCarteira || effectiveResponsavel !== undefined;
 
@@ -41,7 +50,14 @@ export default async function ClientesPage({ searchParams }: { searchParams: Pro
   // de colaboradores. Ganho: ~3x menos round-trips na página /clientes (uma
   // das mais acessadas do app).
   const [rows, stats, assessoresRaw, coordenadoresRaw] = await Promise.all([
-    shouldQuery ? listClientes({ status, responsibleUserId: effectiveResponsavel }) : Promise.resolve([]),
+    shouldQuery
+      ? listClientes({
+          status,
+          responsibleUserId: effectiveResponsavel,
+          modalidade,
+          churnMonth,
+        })
+      : Promise.resolve([]),
     getClientesStats(),
     canManage ? listColaboradores({ ativo: true, role: "assessor" }) : Promise.resolve([]),
     canManage ? listColaboradores({ ativo: true, role: "coordenador" }) : Promise.resolve([]),
@@ -98,6 +114,34 @@ export default async function ClientesPage({ searchParams }: { searchParams: Pro
       {params.imported && (
         <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
           ✓ {params.imported} cliente(s) importado(s) com sucesso.
+        </div>
+      )}
+
+      {(modalidade || churnMonth) && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-2 text-xs">
+          <span className="text-muted-foreground">Filtrado por:</span>
+          {modalidade && (
+            <span className="rounded-full bg-primary/15 px-2 py-0.5 font-medium text-primary">
+              Modalidade: {modalidade === "pontual" ? "pontual" : "mensal"}
+            </span>
+          )}
+          {churnMonth && (
+            <span className="rounded-full bg-primary/15 px-2 py-0.5 font-medium text-primary">
+              Churn em {(() => {
+                const [yyyy, mm] = churnMonth.split("-");
+                return new Date(`${yyyy}-${mm}-15T12:00:00`).toLocaleDateString("pt-BR", {
+                  month: "long",
+                  year: "numeric",
+                });
+              })()}
+            </span>
+          )}
+          <Link
+            href="/clientes"
+            className="ml-auto text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+          >
+            Limpar filtros
+          </Link>
         </div>
       )}
 
