@@ -195,6 +195,7 @@ export function EtapaCard({ etapa, diaAtual, canEdit }: Props) {
                 <MarcarConcluidaButton
                   etapaId={etapa.id}
                   disabled={!todasSaidasFeitas}
+                  d0Date={etapa.d0_date}
                 />
               )}
             </div>
