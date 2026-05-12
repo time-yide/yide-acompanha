@@ -1,7 +1,7 @@
 import {
   LayoutGrid, Users, Briefcase, KanbanSquare, ListChecks,
   DollarSign, Smile, Calendar, UserCog, ClipboardList, MessageSquare,
-  TrendingUp, Video, Trash2, MessagesSquare, GraduationCap, Megaphone, Share2, Database, Palette, Radar, MessageCircle,
+  TrendingUp, Video, Trash2, MessagesSquare, GraduationCap, Megaphone, Share2, Database, Palette, Radar, MessageCircle, Phone,
   type LucideIcon,
 } from "lucide-react";
 import type { Role } from "@/lib/auth/permissions";
@@ -43,6 +43,7 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
       { type: "link", href: "/clientes", icon: Users, label: "Clientes", roles: "all", badgeKey: null },
       { type: "link", href: "/gerador-leads", icon: Radar, label: "Gerador de Leads", roles: ["adm", "socio", "comercial", "coordenador", "assessor"], badgeKey: null },
       { type: "link", href: "/conversas", icon: MessageCircle, label: "Conversas", roles: ["adm", "socio", "comercial", "coordenador", "assessor"], badgeKey: null },
+      { type: "link", href: "/ligacoes", icon: Phone, label: "Ligações", roles: ["adm", "socio", "comercial", "coordenador", "assessor"], badgeKey: null },
       // LGPD: dados de prospects/leads (telefone, email, valor) só pra quem
       // precisa operar — comercial cria/contata, assessor/coord acompanham,
       // audiovisual_chefe é coord audiovisual. Designer/videomaker/editor não veem.
