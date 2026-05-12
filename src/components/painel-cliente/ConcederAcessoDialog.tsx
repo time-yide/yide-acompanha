@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { RevealedPasswordBlock } from "@/components/colaboradores/RevealedPasswordBlock";
+import { CopyLinkButton } from "./CopyLinkButton";
 import { createClientPortalAccessAction } from "@/lib/painel-cliente/actions";
 
 type ActionState =
@@ -28,10 +29,11 @@ async function actionWrapper(_prev: ActionState, formData: FormData): Promise<Ac
 interface Props {
   clientId: string;
   clientNome: string;
+  loginUrl: string;
   onClose: () => void;
 }
 
-export function ConcederAcessoDialog({ clientId, clientNome, onClose }: Props) {
+export function ConcederAcessoDialog({ clientId, clientNome, loginUrl, onClose }: Props) {
   const router = useRouter();
   const [state, formAction, isPending] = useActionState(actionWrapper, null);
   const success = state && "success" in state ? state : null;
@@ -55,14 +57,31 @@ export function ConcederAcessoDialog({ clientId, clientNome, onClose }: Props) {
         </DialogHeader>
 
         {success ? (
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-700 dark:text-emerald-300">
-              ✓ Acesso criado. Senha gerada abaixo — copie e envie pelo WhatsApp.
+              ✓ Acesso criado. Mande os dois pelo WhatsApp:
             </div>
-            <RevealedPasswordBlock
-              password={success.password}
-              hint="⚠️ Esta senha só aparecerá uma vez. Se fechar antes de copiar, gere outra em 'Resetar senha'."
-            />
+
+            <div className="space-y-1.5">
+              <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                1. Link de acesso
+              </div>
+              <div className="flex items-center gap-2 rounded-md border bg-muted/50 p-2.5 text-xs font-mono break-all">
+                <span className="flex-1">{loginUrl}</span>
+                <CopyLinkButton loginUrl={loginUrl} label="Copiar" />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                2. Senha
+              </div>
+              <RevealedPasswordBlock
+                password={success.password}
+                hint="⚠️ Esta senha só aparecerá uma vez. Se fechar antes de copiar, gere outra em 'Resetar senha'."
+              />
+            </div>
+
             <DialogFooter>
               <Button onClick={handleClose}>Fechar</Button>
             </DialogFooter>

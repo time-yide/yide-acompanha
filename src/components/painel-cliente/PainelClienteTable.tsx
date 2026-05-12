@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button";
 import { ConcederAcessoDialog } from "./ConcederAcessoDialog";
 import { ResetPasswordDialog } from "./ResetPasswordDialog";
 import { RevogarAcessoButton } from "./RevogarAcessoButton";
+import { CopyLinkButton } from "./CopyLinkButton";
 import type { ClienteComAcesso } from "@/lib/painel-cliente/queries";
 
 interface Props {
   rows: ClienteComAcesso[];
+  loginUrl: string;
 }
 
 function formatDate(iso: string | null): string {
@@ -23,7 +25,7 @@ function formatDate(iso: string | null): string {
   });
 }
 
-export function PainelClienteTable({ rows }: Props) {
+export function PainelClienteTable({ rows, loginUrl }: Props) {
   const [filter, setFilter] = useState<"todos" | "com_acesso" | "sem_acesso" | "revogados">("todos");
   const [conceder, setConceder] = useState<{ clientId: string; clientNome: string } | null>(null);
   const [reset, setReset] = useState<{ userId: string; clientNome: string } | null>(null);
@@ -129,6 +131,7 @@ export function PainelClienteTable({ rows }: Props) {
                     </Button>
                   ) : r.portal.ativo ? (
                     <div className="flex flex-wrap justify-end gap-1.5">
+                      <CopyLinkButton loginUrl={loginUrl} />
                       <Button
                         size="sm"
                         variant="outline"
@@ -162,6 +165,7 @@ export function PainelClienteTable({ rows }: Props) {
         <ConcederAcessoDialog
           clientId={conceder.clientId}
           clientNome={conceder.clientNome}
+          loginUrl={loginUrl}
           onClose={() => setConceder(null)}
         />
       )}
@@ -169,6 +173,7 @@ export function PainelClienteTable({ rows }: Props) {
         <ResetPasswordDialog
           userId={reset.userId}
           clientNome={reset.clientNome}
+          loginUrl={loginUrl}
           onClose={() => setReset(null)}
         />
       )}
