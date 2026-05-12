@@ -89,6 +89,7 @@ export default async function ReunioesPage({
       <ConnectGoogleBanner
         connected={gConnection.connected}
         googleEmail={gConnection.google_email}
+        lastSyncedAt={gConnection.calendar_last_synced_at}
       />
 
       {/* KPI cards */}

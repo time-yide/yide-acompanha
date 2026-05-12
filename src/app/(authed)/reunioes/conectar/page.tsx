@@ -1,24 +1,57 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
-  ArrowLeft, Calendar, Check, Lock, Sparkles, Shield, AlertCircle, FileText, Mic, ListChecks,
+  ArrowLeft, Calendar, Check, Lock, Sparkles, Shield, AlertCircle,
+  FileText, Mic, ListChecks, CheckCircle2, RefreshCw,
 } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import { getGoogleConnection } from "@/lib/reunioes/queries";
 import { GOOGLE_OAUTH_SCOPES } from "@/lib/reunioes/google/oauth";
+import { GoogleConnectButton, GoogleDisconnectButton } from "@/components/reunioes/GoogleConnectButton";
 
 const ALLOWED_ROLES = [
   "adm", "socio", "comercial", "coordenador", "assessor", "audiovisual_chefe",
 ];
 
-export default async function ConectarReunioesPage() {
+const ERROR_LABELS: Record<string, string> = {
+  invalid_state: "Falha de segurança no fluxo OAuth (state CSRF inválido). Tente conectar novamente.",
+  missing_params: "Resposta inválida do Google. Tente conectar novamente.",
+  not_authenticated: "Sua sessão expirou. Faça login e tente conectar de novo.",
+  token_exchange_failed: "Google rejeitou a troca de tokens. Confira as credenciais OAuth no servidor.",
+  no_refresh_token: "Google não devolveu refresh_token. Geralmente significa que você já tinha autorizado antes — revogue o acesso em myaccount.google.com/permissions e tente novamente.",
+  userinfo_failed: "Não conseguimos pegar seu email no Google. Tente de novo.",
+  no_organization: "Seu perfil interno não tem organização configurada. Avise o admin.",
+  db_upsert_failed: "Erro ao salvar a conexão no banco. Tente novamente.",
+  migration_pending: "O schema do módulo Reuniões ainda não foi aplicado no banco. Avise o admin.",
+  access_denied: "Você negou o acesso. Sem permissão de leitura do Calendar não conseguimos listar suas reuniões.",
+};
+
+function formatSyncDate(iso: string | null): string {
+  if (!iso) return "ainda não sincronizou";
+  const d = new Date(iso);
+  const diffMin = (Date.now() - d.getTime()) / 60000;
+  if (diffMin < 1) return "agora mesmo";
+  if (diffMin < 60) return `há ${Math.floor(diffMin)} min`;
+  if (diffMin < 1440) return `há ${Math.floor(diffMin / 60)}h`;
+  return d.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+}
+
+export default async function ConectarReunioesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string; error?: string }>;
+}) {
   const user = await requireAuth();
   if (!ALLOWED_ROLES.includes(user.role)) notFound();
+  const params = await searchParams;
   const gConnection = await getGoogleConnection(user.id);
+
+  const credsConfigured = !!(
+    process.env.GOOGLE_OAUTH_CLIENT_ID && process.env.GOOGLE_OAUTH_CLIENT_SECRET
+  );
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      {/* Breadcrumb */}
       <Link
         href="/reunioes"
         className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
@@ -42,62 +75,90 @@ export default async function ConectarReunioesPage() {
           </h1>
           <p className="max-w-2xl text-sm text-muted-foreground">
             Sincronize sua agenda do Google Calendar com o sistema. Toda reunião do Google Meet
-            aparece aqui automaticamente — antes, durante e depois da call.
+            aparece aqui em tempo real — antes, durante e depois da call.
           </p>
         </div>
       </header>
 
-      {/* Em construção banner */}
-      <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3">
-        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
-        <div className="text-xs">
-          <p className="font-medium text-amber-700 dark:text-amber-300">
-            Fluxo OAuth em construção (Fase 1)
-          </p>
-          <p className="mt-0.5 text-muted-foreground">
-            O botão abaixo ainda não conecta de verdade. Quando as credenciais Google OAuth
-            forem configuradas no ambiente, o flow completo vai funcionar. Veja
-            <code className="ml-1 rounded bg-muted px-1 py-0.5 text-[10px]">docs/reunioes-roadmap.md</code>.
+      {/* Status messages */}
+      {params.status === "connected" && (
+        <div className="flex items-start gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-4 py-3">
+          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+          <p className="text-xs text-emerald-700 dark:text-emerald-300">
+            Conexão criada com sucesso! A primeira sincronização do calendário acontece automaticamente em até 5 minutos.
           </p>
         </div>
-      </div>
+      )}
+      {params.status === "disconnected" && (
+        <div className="flex items-start gap-3 rounded-xl border bg-muted/30 px-4 py-3">
+          <Check className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+          <p className="text-xs text-muted-foreground">
+            Conexão Google removida. As reuniões já sincronizadas continuam disponíveis no histórico.
+          </p>
+        </div>
+      )}
+      {params.error && (
+        <div className="flex items-start gap-3 rounded-xl border border-rose-500/30 bg-rose-500/5 px-4 py-3">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-600 dark:text-rose-400" />
+          <p className="text-xs text-rose-700 dark:text-rose-300">
+            {ERROR_LABELS[params.error] ?? `Erro: ${params.error}`}
+          </p>
+        </div>
+      )}
+
+      {/* Aviso credenciais não configuradas (só pra adm) */}
+      {!credsConfigured && (user.role === "adm" || user.role === "socio") && (
+        <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+          <div className="text-xs">
+            <p className="font-medium text-amber-700 dark:text-amber-300">
+              Credenciais Google OAuth não configuradas
+            </p>
+            <p className="mt-0.5 text-muted-foreground">
+              Defina <code className="rounded bg-muted px-1 py-0.5">GOOGLE_OAUTH_CLIENT_ID</code> e
+              <code className="ml-1 rounded bg-muted px-1 py-0.5">GOOGLE_OAUTH_CLIENT_SECRET</code> nas
+              variáveis do ambiente (Vercel). Veja
+              <code className="ml-1 rounded bg-muted px-1 py-0.5">docs/reunioes-roadmap.md</code>.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Status atual */}
       {gConnection.connected ? (
         <section className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-5">
-          <div className="flex items-center gap-3">
-            <div className="rounded-full bg-emerald-500/15 p-2.5">
-              <Check className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="rounded-full bg-emerald-500/15 p-2.5 shrink-0">
+                <Check className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <div className="min-w-0">
+                <p className="font-medium">Conta conectada</p>
+                <p className="truncate text-sm text-muted-foreground">{gConnection.google_email}</p>
+                <p className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                  <RefreshCw className="h-3 w-3" />
+                  Última sincronização: {formatSyncDate(gConnection.calendar_last_synced_at)}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="font-medium">Conta conectada</p>
-              <p className="text-sm text-muted-foreground">{gConnection.google_email}</p>
-            </div>
+            <GoogleDisconnectButton />
           </div>
         </section>
       ) : (
         <section className="rounded-xl border bg-card p-5 space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="rounded-full bg-muted p-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="rounded-full bg-muted p-2.5 shrink-0">
                 <Calendar className="h-5 w-5 text-muted-foreground" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="font-medium">Nenhuma conta conectada</p>
                 <p className="text-xs text-muted-foreground">
                   Vamos pedir acesso apenas pra sua agenda — leitura, nada de escrita.
                 </p>
               </div>
             </div>
-            <button
-              type="button"
-              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
-              disabled
-              title="Em breve — Fase 1"
-            >
-              <GoogleIcon className="h-4 w-4" />
-              Conectar com Google
-            </button>
+            <GoogleConnectButton disabled={!credsConfigured} />
           </div>
         </section>
       )}
@@ -164,7 +225,7 @@ export default async function ConectarReunioesPage() {
         </div>
       </section>
 
-      {/* Scopes técnicos (devs) */}
+      {/* Detalhes técnicos */}
       <details className="rounded-xl border bg-card/50 p-4">
         <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           <FileText className="mr-1 inline h-3 w-3" />
@@ -206,16 +267,5 @@ function FeatureCard({
       <p className="mt-2 text-sm font-medium">{titulo}</p>
       <p className="mt-1 text-xs text-muted-foreground">{desc}</p>
     </div>
-  );
-}
-
-function GoogleIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-      <path
-        fill="currentColor"
-        d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.25 5 12c0-4.1 3.2-7.27 7.2-7.27 3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12c0 5.05 4.13 10 10.22 10 5.35 0 9.25-3.67 9.25-9.09 0-1.15-.15-1.81-.15-1.81Z"
-      />
-    </svg>
   );
 }
