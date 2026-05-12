@@ -121,6 +121,7 @@ export default async function AudiovisualPage({
         rows={rows}
         showVideomaker={!isVideomaker}
         canDeliver={isVideomaker}
+        canQuickMark={isVideomaker || ROLES_GESTAO.includes(user.role)}
         clientes={clientes}
       />
     );
