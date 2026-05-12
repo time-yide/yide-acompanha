@@ -23,11 +23,6 @@ export default async function LigacoesPlaceholderPage() {
         <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
           <Phone className="h-6 w-6 text-primary" /> Ligações
         </h1>
-        <p className="text-sm text-muted-foreground max-w-2xl">
-          Dashboard de chamadas dos comerciais — total atendido, perdido, hora pico,
-          ramal mais ativo. Integração com seu PABX (iFix, 3CX, Twilio, etc.) pra
-          puxar histórico real, gravações e métricas.
-        </p>
       </header>
 
       {/* Mock dashboard preview */}
