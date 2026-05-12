@@ -13,6 +13,7 @@ import {
 import { MeetingStatusBadge } from "@/components/reunioes/MeetingStatusBadge";
 import { ParticipantAvatar } from "@/components/reunioes/ParticipantAvatar";
 import { RecordingPlayer } from "@/components/reunioes/RecordingPlayer";
+import { UploadAudioButton } from "@/components/reunioes/UploadAudioButton";
 import { TranscriptViewer } from "@/components/reunioes/TranscriptViewer";
 import { SummaryPanel } from "@/components/reunioes/SummaryPanel";
 import { TopicsTimeline } from "@/components/reunioes/TopicsTimeline";
@@ -195,9 +196,13 @@ export default async function ReuniaoDetailPage({
           </div>
         </div>
 
-        {/* Player */}
+        {/* Player ou Upload */}
         <div className="pt-1">
-          <RecordingPlayer recording={meeting.recording} />
+          {meeting.recording ? (
+            <RecordingPlayer recording={meeting.recording} />
+          ) : (
+            <UploadAudioButton meetingId={meeting.id} />
+          )}
         </div>
       </header>
 

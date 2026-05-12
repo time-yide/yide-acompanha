@@ -8,6 +8,7 @@ import { listMeetings, getGoogleConnection } from "@/lib/reunioes/queries";
 import { MEETING_STATUS_LABEL, type MeetingStatus } from "@/lib/reunioes/tipos";
 import { MeetingCard } from "@/components/reunioes/MeetingCard";
 import { ConnectGoogleBanner } from "@/components/reunioes/ConnectGoogleBanner";
+import { NovaReuniaoModal } from "@/components/reunioes/NovaReuniaoModal";
 import { buttonVariants } from "@/components/ui/button";
 
 const ALLOWED_ROLES = [
@@ -82,6 +83,7 @@ export default async function ReunioesPage({
             <Settings className="mr-2 h-4 w-4" />
             Configurações
           </Link>
+          <NovaReuniaoModal />
         </div>
       </header>
 
