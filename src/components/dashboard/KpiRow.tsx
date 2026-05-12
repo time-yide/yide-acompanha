@@ -2,6 +2,7 @@ import { Wallet, Users, TrendingDown, Percent, Sparkles, DollarSign } from "luci
 import { KpiCard } from "./KpiCard";
 import { Money } from "./HiddenValuesContext";
 import type { KpiData } from "@/lib/dashboard/queries";
+import { getCurrentMonthYM } from "@/lib/datetime/timezone";
 
 function formatDeltaMoney(v: number): { valor: React.ReactNode; direction: "up" | "down" | "neutral" } {
   if (v === 0) return { valor: <Money value={0} noDecimals />, direction: "neutral" };
@@ -13,16 +14,10 @@ function formatDeltaCount(v: number): { valor: string; direction: "up" | "down" 
   return { valor: String(Math.abs(v)), direction: v > 0 ? "up" : "down" };
 }
 
-/** Mês atual no formato YYYY-MM (BRT). */
-function mesAtualBRT(): string {
-  const d = new Date();
-  const brt = new Date(d.getTime() - 3 * 60 * 60 * 1000);
-  return `${brt.getUTCFullYear()}-${String(brt.getUTCMonth() + 1).padStart(2, "0")}`;
-}
-
 export function KpiRow({ kpis }: { kpis: KpiData }) {
   const pontuais = kpis.servicosPontuais;
-  const mesAtual = mesAtualBRT();
+  // Mês atual no fuso da app (Cuiabá UTC-4) — usado no link de drill-down "Churn do mês"
+  const mesAtual = getCurrentMonthYM();
 
   return (
     <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-6">

@@ -8,6 +8,7 @@ import { requireAuth } from "@/lib/auth/session";
 import { logAudit } from "@/lib/audit/log";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 import { brtInputToUtcIso } from "./timezone";
+import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 import {
   createEventSchema,
   editEventSchema,
@@ -38,7 +39,7 @@ async function notifyCalendarParticipants(params: {
   if (recipients.length === 0) return;
 
   const dataFmt = new Date(params.inicio).toLocaleString("pt-BR", {
-    timeZone: "America/Sao_Paulo",
+    timeZone: APP_TIMEZONE,
     weekday: "short",
     day: "2-digit",
     month: "short",

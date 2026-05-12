@@ -8,6 +8,7 @@ import { CarteiraResponsavelSelector } from "@/components/clientes/CarteiraRespo
 import { listColaboradores } from "@/lib/colaboradores/queries";
 import { Plus } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
+import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 export default async function ClientesPage({ searchParams }: { searchParams: Promise<{ status?: string; imported?: string; responsavel?: string; modalidade?: string; churn_mes?: string }> }) {
   const params = await searchParams;
@@ -130,6 +131,7 @@ export default async function ClientesPage({ searchParams }: { searchParams: Pro
               Churn em {(() => {
                 const [yyyy, mm] = churnMonth.split("-");
                 return new Date(`${yyyy}-${mm}-15T12:00:00`).toLocaleDateString("pt-BR", {
+                  timeZone: APP_TIMEZONE,
                   month: "long",
                   year: "numeric",
                 });

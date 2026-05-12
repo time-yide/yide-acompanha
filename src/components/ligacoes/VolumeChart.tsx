@@ -3,6 +3,7 @@
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts";
 import { Card } from "@/components/ui/card";
 import type { VolumePorDia } from "@/lib/ligacoes/queries";
+import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 interface Props {
   data: VolumePorDia[];
@@ -12,6 +13,7 @@ export function VolumeChart({ data }: Props) {
   const formatted = data.map((d) => ({
     ...d,
     dataLabel: new Date(`${d.data}T12:00:00`).toLocaleDateString("pt-BR", {
+      timeZone: APP_TIMEZONE,
       day: "2-digit",
       month: "short",
     }),

@@ -3,6 +3,7 @@ import { requireAuth } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 const acaoLabel: Record<string, string> = {
   create: "Criado",
@@ -45,7 +46,7 @@ export default async function HistoricoPage({ params }: { params: Promise<{ id: 
                   {/* @ts-expect-error nested */}
                   <span>{e.ator?.nome ?? "—"}</span>
                   <span>·</span>
-                  <span>{new Date(e.created_at).toLocaleString("pt-BR")}</span>
+                  <span>{new Date(e.created_at).toLocaleString("pt-BR", { timeZone: APP_TIMEZONE })}</span>
                 </div>
                 {e.justificativa && (
                   <p className="mt-1 text-sm">{e.justificativa}</p>

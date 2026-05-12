@@ -7,6 +7,7 @@ import { listDates } from "@/lib/client-folder/dates-actions";
 import { listTasks } from "@/lib/tarefas/queries";
 import { Card } from "@/components/ui/card";
 import { differenceInDays, parseISO } from "date-fns";
+import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 export default async function ClienteOverviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -35,7 +36,7 @@ export default async function ClienteOverviewPage({ params }: { params: Promise<
             <div className="mt-2">
               <div className="line-clamp-3 text-sm">{lastNote.texto_rico}</div>
               <div className="mt-1 text-xs text-muted-foreground">
-                {lastNote.autor?.nome ?? "?"} · {new Date(lastNote.created_at).toLocaleDateString("pt-BR")}
+                {lastNote.autor?.nome ?? "?"} · {new Date(lastNote.created_at).toLocaleDateString("pt-BR", { timeZone: APP_TIMEZONE })}
               </div>
             </div>
           ) : (
@@ -76,7 +77,7 @@ export default async function ClienteOverviewPage({ params }: { params: Promise<
                 <li key={t.id}>
                   <Link href={`/tarefas/${t.id}`} className="hover:underline">{t.titulo}</Link>
                   {t.due_date && (
-                    <span className="ml-2 text-xs text-muted-foreground">prazo: {new Date(t.due_date).toLocaleDateString("pt-BR")}</span>
+                    <span className="ml-2 text-xs text-muted-foreground">prazo: {new Date(t.due_date).toLocaleDateString("pt-BR", { timeZone: "UTC" })}</span>
                   )}
                 </li>
               ))}

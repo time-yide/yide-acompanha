@@ -14,6 +14,7 @@ import { LeadAttemptsTimeline } from "@/components/onboarding/LeadAttemptsTimeli
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { canInteractWithStage, type Stage } from "@/lib/leads/schema";
+import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 const STAGE_LABEL: Record<string, string> = {
   leads_potencial: "Leads em potencial",
@@ -135,7 +136,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                 <Badge variant="secondary">
                   {h.from_stage ? `${STAGE_LABEL[h.from_stage]} → ` : ""}{STAGE_LABEL[h.to_stage]}
                 </Badge>
-                <span className="text-xs text-muted-foreground">por {(h as { ator?: { nome: string } }).ator?.nome ?? "—"} · {new Date(h.created_at).toLocaleString("pt-BR")}</span>
+                <span className="text-xs text-muted-foreground">por {(h as { ator?: { nome: string } }).ator?.nome ?? "—"} · {new Date(h.created_at).toLocaleString("pt-BR", { timeZone: APP_TIMEZONE })}</span>
                 {h.observacao && <span className="text-xs italic">— {h.observacao}</span>}
               </li>
             ))}

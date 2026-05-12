@@ -93,11 +93,11 @@ export default async function ColaboradorPage({ params }: { params: Promise<{ id
           <Field label="Endereço" value={colab.endereco} className="md:col-span-2" />
           <Field
             label="Data de nascimento"
-            value={colab.data_nascimento ? new Date(colab.data_nascimento).toLocaleDateString("pt-BR") : null}
+            value={colab.data_nascimento ? new Date(colab.data_nascimento).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : null}
           />
           <Field
             label="Data de admissão"
-            value={colab.data_admissao ? new Date(colab.data_admissao).toLocaleDateString("pt-BR") : null}
+            value={colab.data_admissao ? new Date(colab.data_admissao).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : null}
           />
         </dl>
       </Card>

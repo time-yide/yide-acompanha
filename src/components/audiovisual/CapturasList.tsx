@@ -13,6 +13,7 @@ import {
 import { Card } from "@/components/ui/card";
 import { avgRating, type CapturaRow } from "@/lib/audiovisual/captura-utils";
 import { DelegarCapturaButton } from "./DelegarCapturaButton";
+import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 interface Editor {
   id: string;
@@ -31,7 +32,7 @@ interface Props {
 function formatDateBR(iso: string): string {
   const [y, m, d] = iso.split("-").map(Number);
   if (!y || !m || !d) return iso;
-  return new Date(y, m - 1, d).toLocaleDateString("pt-BR");
+  return new Date(Date.UTC(y, m - 1, d, 12, 0, 0)).toLocaleDateString("pt-BR", { timeZone: APP_TIMEZONE });
 }
 
 interface CapturaCardProps {

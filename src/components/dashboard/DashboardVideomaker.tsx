@@ -3,6 +3,7 @@ import { FixoCard } from "./personal/FixoCard";
 import { MinhasTarefasPendentes } from "./personal/MinhasTarefasPendentes";
 import { getProximasGravacoes } from "@/lib/dashboard/personal";
 import { Video, MapPin } from "lucide-react";
+import { getAppTimezoneOffsetMs, getDatePartsInAppTz } from "@/lib/datetime/timezone";
 
 interface Props {
   userId: string;
@@ -10,24 +11,26 @@ interface Props {
 }
 
 function getWeekRangeBR(): { fromIso: string; toIso: string } {
-  // Início desta semana (segunda) até fim da próxima (domingo) em America/Sao_Paulo (-03)
-  // Implementação simples: pega "agora" em UTC, ajusta -3h pra obter "agora" em BRT,
-  // calcula segunda da semana, depois soma 14 dias pra fim.
-  const now = new Date();
-  const brtOffsetMs = 3 * 60 * 60 * 1000;
-  const brtNow = new Date(now.getTime() - brtOffsetMs);
-  const day = brtNow.getUTCDay(); // 0=domingo, 1=segunda
-  const daysSinceMonday = (day + 6) % 7; // segunda=0, domingo=6
-  const monday = new Date(brtNow);
-  monday.setUTCDate(brtNow.getUTCDate() - daysSinceMonday);
-  monday.setUTCHours(0, 0, 0, 0);
-  const sundayNextWeek = new Date(monday);
-  sundayNextWeek.setUTCDate(monday.getUTCDate() + 13);
-  sundayNextWeek.setUTCHours(23, 59, 59, 999);
-  // Reverter offset pra obter ISO em UTC real
+  // Início desta semana (segunda 00:00) até fim da próxima (domingo 23:59) no
+  // fuso da app (Cuiabá UTC-4). Retorna ISOs em UTC pra usar em queries.
+  const parts = getDatePartsInAppTz(new Date());
+  const y = parseInt(parts.year, 10);
+  const m = parseInt(parts.month, 10);
+  const d = parseInt(parts.day, 10);
+  const dayOfWeek = parts.weekday; // 0=dom, 1=seg, ..., 6=sab
+  const daysSinceMonday = (dayOfWeek + 6) % 7; // segunda=0, domingo=6
+  const offsetMs = getAppTimezoneOffsetMs();
+
+  // Monday 00:00 no fuso da app
+  const mondayWallClockMs = Date.UTC(y, m - 1, d - daysSinceMonday, 0, 0, 0, 0);
+  const mondayUtcMs = mondayWallClockMs + offsetMs;
+  // Sunday next week 23:59:59 no fuso da app (13 dias depois da segunda)
+  const sundayWallClockMs = Date.UTC(y, m - 1, d - daysSinceMonday + 13, 23, 59, 59, 999);
+  const sundayUtcMs = sundayWallClockMs + offsetMs;
+
   return {
-    fromIso: new Date(monday.getTime() + brtOffsetMs).toISOString(),
-    toIso: new Date(sundayNextWeek.getTime() + brtOffsetMs).toISOString(),
+    fromIso: new Date(mondayUtcMs).toISOString(),
+    toIso: new Date(sundayUtcMs).toISOString(),
   };
 }
 

@@ -2,6 +2,7 @@ import { Wallet, Users, TrendingDown, Percent } from "lucide-react";
 import { KpiCard } from "./KpiCard";
 import { Money } from "./HiddenValuesContext";
 import type { KpiData } from "@/lib/dashboard/queries";
+import { getCurrentMonthYM } from "@/lib/datetime/timezone";
 
 function formatDeltaMoney(v: number): { valor: React.ReactNode; direction: "up" | "down" | "neutral" } {
   if (v === 0) return { valor: <Money value={0} noDecimals />, direction: "neutral" };
@@ -17,15 +18,9 @@ interface Props {
   kpis: KpiData;
 }
 
-/** Mês atual no formato YYYY-MM (BRT). */
-function mesAtualBRT(): string {
-  const d = new Date();
-  const brt = new Date(d.getTime() - 3 * 60 * 60 * 1000);
-  return `${brt.getUTCFullYear()}-${String(brt.getUTCMonth() + 1).padStart(2, "0")}`;
-}
-
 export function KpiRowCoord({ kpis }: Props) {
-  const mesAtual = mesAtualBRT();
+  // Mês atual no fuso da app (Cuiabá UTC-4) — usado no link drill-down "Churn do mês"
+  const mesAtual = getCurrentMonthYM();
   return (
     <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
       <KpiCard

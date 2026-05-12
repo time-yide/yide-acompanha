@@ -6,6 +6,7 @@ import { listLeadsPerdidos } from "@/lib/leads/queries";
 import { canInteractWithStage, type Stage } from "@/lib/leads/schema";
 import { RestoreLeadButton } from "@/components/onboarding/RestoreLeadButton";
 import { OnboardingRealtimeWatcher } from "@/components/onboarding/OnboardingRealtimeWatcher";
+import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 const ROLES_PERMITIDOS = ["adm", "socio", "comercial", "assessor", "coordenador", "audiovisual_chefe"];
 
@@ -23,7 +24,7 @@ const STAGE_LABEL: Record<string, string> = {
 
 function formatBR(date: string | null | undefined) {
   if (!date) return "—";
-  return new Date(date).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+  return new Date(date).toLocaleString("pt-BR", { timeZone: APP_TIMEZONE, dateStyle: "short", timeStyle: "short" });
 }
 
 function formatBRL(v: number) {

@@ -21,6 +21,7 @@ import { NOTA_MINIMA, QUESTOES_POR_CURSO } from "@/lib/academy/schema";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Linkify } from "@/lib/utils/linkify";
+import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 function isPrivileged(role: string): boolean {
   return role === "adm" || role === "socio";
@@ -28,7 +29,7 @@ function isPrivileged(role: string): boolean {
 
 function formatDateTimeBR(iso: string): string {
   const d = new Date(iso);
-  return `${d.toLocaleDateString("pt-BR")} às ${d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
+  return `${d.toLocaleDateString("pt-BR", { timeZone: APP_TIMEZONE })} às ${d.toLocaleTimeString("pt-BR", { timeZone: APP_TIMEZONE, hour: "2-digit", minute: "2-digit" })}`;
 }
 
 export default async function CursoPage({

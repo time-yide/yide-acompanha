@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Calendar, Clock, ListTodo, ExternalLink, CheckCircle2, Wrench, AlertTriangle } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import type { GravacaoItem, TaskItem, CapturaItem } from "@/lib/dashboard/audiovisual";
+import { getDatePartsInAppTz } from "@/lib/datetime/timezone";
 
 interface VideomakerProps {
   open: boolean;
@@ -105,9 +106,14 @@ function diasAtraso(due: string | null): number | null {
   if (!due) return null;
   const [y, m, d] = due.split("-").map(Number);
   if (!y || !m || !d) return null;
-  // "Hoje BRT" como UTC midnight do dia BRT — comparação puramente de calendário.
-  const brtNow = new Date(Date.now() - 3 * 60 * 60 * 1000);
-  const hojeUTC = Date.UTC(brtNow.getUTCFullYear(), brtNow.getUTCMonth(), brtNow.getUTCDate());
+  // "Hoje" como UTC midnight do dia no fuso da app (Cuiabá UTC-4) — comparação
+  // puramente de calendário.
+  const parts = getDatePartsInAppTz(new Date());
+  const hojeUTC = Date.UTC(
+    parseInt(parts.year, 10),
+    parseInt(parts.month, 10) - 1,
+    parseInt(parts.day, 10),
+  );
   const dueUTC = Date.UTC(y, m - 1, d);
   const diff = Math.round((hojeUTC - dueUTC) / 86400000);
   return diff > 0 ? diff : null;

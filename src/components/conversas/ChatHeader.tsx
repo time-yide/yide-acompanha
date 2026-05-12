@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Phone, Video, MoreVertical, Search, ArrowLeft, AtSign } from "lucide-react";
 import { Avatar } from "./Avatar";
 import { formatHoraMsg, type ConversaMock } from "@/lib/conversas/mock-data";
+import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 interface Props {
   conversa: ConversaMock;
@@ -17,7 +18,7 @@ function statusLabel(c: ConversaMock): string {
     if (agora.toDateString() === d.toDateString()) {
       return `visto hoje às ${formatHoraMsg(c.ultima_vez_visto)}`;
     }
-    return `visto em ${d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}`;
+    return `visto em ${d.toLocaleDateString("pt-BR", { timeZone: APP_TIMEZONE, day: "2-digit", month: "2-digit" })}`;
   }
   return "offline";
 }

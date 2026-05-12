@@ -6,6 +6,7 @@ import { WeekView } from "@/components/calendario/WeekView";
 import { SubCalendarChips } from "@/components/calendario/SubCalendarChips";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 const VALID_SUBS: ReadonlySet<string> = new Set([...SUB_CALENDARS, "meus"]);
 
@@ -46,7 +47,7 @@ export default async function CalendarioPage({ searchParams }: { searchParams: P
   const nextHref = `/calendario?week=${nextWeek.toISOString().slice(0, 10)}${subQuery ? `&${subQuery}` : ""}`;
   const todayHref = subQuery ? `/calendario?${subQuery}` : "/calendario";
 
-  const formatRange = `${start.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })} – ${new Date(end.getTime() - 1).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}`;
+  const formatRange = `${start.toLocaleDateString("pt-BR", { timeZone: APP_TIMEZONE, day: "2-digit", month: "short" })} – ${new Date(end.getTime() - 1).toLocaleDateString("pt-BR", { timeZone: APP_TIMEZONE, day: "2-digit", month: "short", year: "numeric" })}`;
 
   return (
     <div className="space-y-5">

@@ -3,6 +3,7 @@ import { unstable_cache } from "next/cache";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { AUDIOVISUAL_CAPTURAS_TAG } from "@/lib/audiovisual/queries";
 import { derivarStatusAtual, type StatusAtual } from "./audiovisual-status";
+import { getDatePartsInAppTz } from "@/lib/datetime/timezone";
 
 export { derivarStatusAtual, type StatusAtual } from "./audiovisual-status";
 
@@ -33,12 +34,14 @@ interface CapturaMinimal {
 async function _getPainelAudiovisualImpl(): Promise<CapturaPainelRow[]> {
   const supabase = createServiceRoleClient();
 
-  // 3 dias atrás em BRT. data_captacao é DATE (YYYY-MM-DD).
-  const ref = new Date();
-  const brtNow = new Date(ref.getTime() - 3 * 60 * 60 * 1000);
-  const cutoffDate = new Date(brtNow);
-  cutoffDate.setUTCDate(cutoffDate.getUTCDate() - 3);
-  const cutoffStr = cutoffDate.toISOString().slice(0, 10);
+  // 3 dias atrás no fuso da app (Cuiabá). data_captacao é DATE (YYYY-MM-DD).
+  const parts = getDatePartsInAppTz(new Date());
+  const cutoff = new Date(Date.UTC(
+    parseInt(parts.year, 10),
+    parseInt(parts.month, 10) - 1,
+    parseInt(parts.day, 10) - 3,
+  ));
+  const cutoffStr = cutoff.toISOString().slice(0, 10);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
