@@ -17,7 +17,15 @@ interface Props {
   kpis: KpiData;
 }
 
+/** Mês atual no formato YYYY-MM (BRT). */
+function mesAtualBRT(): string {
+  const d = new Date();
+  const brt = new Date(d.getTime() - 3 * 60 * 60 * 1000);
+  return `${brt.getUTCFullYear()}-${String(brt.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
 export function KpiRowCoord({ kpis }: Props) {
+  const mesAtual = mesAtualBRT();
   return (
     <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
       <KpiCard
@@ -26,6 +34,7 @@ export function KpiRowCoord({ kpis }: Props) {
         delta={formatDeltaMoney(kpis.carteiraAtiva.deltaValor)}
         helperText="vs mês anterior"
         icon={Wallet}
+        href="/clientes?status=ativo"
       />
       <KpiCard
         label="Clientes ativos"
@@ -33,12 +42,14 @@ export function KpiRowCoord({ kpis }: Props) {
         delta={formatDeltaCount(kpis.clientesAtivos.deltaQuantidade)}
         helperText="vs mês anterior"
         icon={Users}
+        href="/clientes?status=ativo"
       />
       <KpiCard
         label="Churn do mês"
         valor={String(kpis.churnMes.quantidade)}
         helperText={<><Money value={kpis.churnMes.valorPerdido} noDecimals /> perdidos</>}
         icon={TrendingDown}
+        href={`/clientes?status=churn&churn_mes=${mesAtual}`}
       />
       <KpiCard
         label="Custo de comissão"

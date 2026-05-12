@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ArrowDown, ArrowUp, type LucideIcon } from "lucide-react";
 import { type ReactNode } from "react";
 
@@ -8,9 +9,11 @@ interface Props {
   delta?: { valor: ReactNode; direction: "up" | "down" | "neutral" };
   icon?: LucideIcon;
   helperText?: ReactNode;
+  /** Quando passado, o card vira link clicável. */
+  href?: string;
 }
 
-export function KpiCard({ label, valor, delta, icon: Icon, helperText }: Props) {
+export function KpiCard({ label, valor, delta, icon: Icon, helperText, href }: Props) {
   const deltaColor =
     delta?.direction === "up"
       ? "text-green-600 dark:text-green-400"
@@ -18,8 +21,12 @@ export function KpiCard({ label, valor, delta, icon: Icon, helperText }: Props) 
         ? "text-red-600 dark:text-red-400"
         : "text-muted-foreground";
 
-  return (
-    <div className="rounded-xl border bg-card p-3 space-y-1 sm:p-4">
+  const containerClasses = `rounded-xl border bg-card p-3 space-y-1 sm:p-4 ${
+    href ? "transition-colors hover:bg-muted/40 hover:border-primary/40 cursor-pointer" : ""
+  }`;
+
+  const content = (
+    <>
       <div className="flex items-center justify-between gap-1">
         <span className="text-[10px] uppercase tracking-wider text-muted-foreground sm:text-xs">{label}</span>
         {Icon && <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground sm:h-4 sm:w-4" />}
@@ -36,6 +43,16 @@ export function KpiCard({ label, valor, delta, icon: Icon, helperText }: Props) 
       {!delta && helperText && (
         <div className="text-xs text-muted-foreground">{helperText}</div>
       )}
-    </div>
+    </>
   );
+
+  if (href) {
+    return (
+      <Link href={href} className={`block ${containerClasses}`}>
+        {content}
+      </Link>
+    );
+  }
+
+  return <div className={containerClasses}>{content}</div>;
 }

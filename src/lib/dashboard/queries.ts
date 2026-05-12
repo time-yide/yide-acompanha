@@ -21,8 +21,8 @@ export interface KpiData {
   /** Churn = só clientes mensais que sairam. Pontuais encerrados não contam. */
   churnMes: { quantidade: number; valorPerdido: number };
   custoComissaoPct: { pct: number };
-  /** Pontuais: ativos hoje (vigentes) + concluídos no mês corrente. */
-  servicosPontuais: { ativos: number; concluidosMes: number };
+  /** Pontuais: ativos hoje (vigentes) + concluídos no mês corrente + soma do valor dos ativos. */
+  servicosPontuais: { ativos: number; concluidosMes: number; valorTotal: number };
 }
 
 export interface ClientFilter {
@@ -152,7 +152,9 @@ export async function _getKpisImpl(filter?: ClientFilter): Promise<KpiData> {
     .reduce((acc, c) => acc + Number(c.valor_mensal), 0);
 
   // Serviços pontuais — contagem própria, sem entrar no churn.
-  const pontuaisAtivos = allClients.filter((c) => ehPontual(c) && c.status === "ativo").length;
+  const pontuaisAtivosArr = allClients.filter((c) => ehPontual(c) && c.status === "ativo");
+  const pontuaisAtivos = pontuaisAtivosArr.length;
+  const pontuaisValorTotal = pontuaisAtivosArr.reduce((acc, c) => acc + Number(c.valor_mensal ?? 0), 0);
   const pontuaisConcluidosMes = allClients.filter(
     (c) => ehPontual(c) && isInMonth(c.data_churn, monthRef),
   ).length;
@@ -181,7 +183,7 @@ export async function _getKpisImpl(filter?: ClientFilter): Promise<KpiData> {
     clientesAtivos: { quantidade: ativosHoje.length, deltaQuantidade: ativosHoje.length - ativosFimMesAnterior.length },
     churnMes: { quantidade: churnsDoMes.length, valorPerdido: valorChurnado },
     custoComissaoPct: { pct: pctComissao },
-    servicosPontuais: { ativos: pontuaisAtivos, concluidosMes: pontuaisConcluidosMes },
+    servicosPontuais: { ativos: pontuaisAtivos, concluidosMes: pontuaisConcluidosMes, valorTotal: pontuaisValorTotal },
   };
 }
 
@@ -192,7 +194,8 @@ export async function getKpis(filter?: ClientFilter): Promise<KpiData> {
       return _getKpisImpl(f);
     },
     // v3: distingue mensal vs pontual no churn + KPI de serviços pontuais
-    ["dashboard-kpis-v3"],
+    // v4: shape mudou (servicosPontuais ganhou valorTotal)
+    ["dashboard-kpis-v4"],
     { revalidate: 300, tags: ["dashboard"] },
   );
   return cached(JSON.stringify(filter ?? null));
