@@ -1419,6 +1419,126 @@ export type Database = {
           },
         ]
       }
+      ligacoes: {
+        Row: {
+          arquivado_em: string | null
+          client_id: string | null
+          colaborador_id: string | null
+          contato_nome: string | null
+          created_at: string
+          direcao: string
+          duracao_segundos: number
+          external_id: string | null
+          finalizada_em: string | null
+          gravacao_url: string | null
+          id: string
+          iniciada_em: string
+          lead_gerado_id: string | null
+          lead_id: string | null
+          numero: string
+          observacoes: string | null
+          organization_id: string
+          origem: string
+          raw_data: Json | null
+          resumo_ia: string | null
+          status: string
+          tags: string[]
+          tipo: string
+          transcricao: string | null
+          updated_at: string
+        }
+        Insert: {
+          arquivado_em?: string | null
+          client_id?: string | null
+          colaborador_id?: string | null
+          contato_nome?: string | null
+          created_at?: string
+          direcao?: string
+          duracao_segundos?: number
+          external_id?: string | null
+          finalizada_em?: string | null
+          gravacao_url?: string | null
+          id?: string
+          iniciada_em: string
+          lead_gerado_id?: string | null
+          lead_id?: string | null
+          numero: string
+          observacoes?: string | null
+          organization_id: string
+          origem?: string
+          raw_data?: Json | null
+          resumo_ia?: string | null
+          status: string
+          tags?: string[]
+          tipo: string
+          transcricao?: string | null
+          updated_at?: string
+        }
+        Update: {
+          arquivado_em?: string | null
+          client_id?: string | null
+          colaborador_id?: string | null
+          contato_nome?: string | null
+          created_at?: string
+          direcao?: string
+          duracao_segundos?: number
+          external_id?: string | null
+          finalizada_em?: string | null
+          gravacao_url?: string | null
+          id?: string
+          iniciada_em?: string
+          lead_gerado_id?: string | null
+          lead_id?: string | null
+          numero?: string
+          observacoes?: string | null
+          organization_id?: string
+          origem?: string
+          raw_data?: Json | null
+          resumo_ia?: string | null
+          status?: string
+          tags?: string[]
+          tipo?: string
+          transcricao?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ligacoes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ligacoes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ligacoes_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ligacoes_lead_gerado_id_fkey"
+            columns: ["lead_gerado_id"]
+            isOneToOne: false
+            referencedRelation: "leads_gerados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ligacoes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_preferences: {
         Row: {
           email: boolean
