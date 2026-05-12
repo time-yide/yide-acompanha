@@ -343,6 +343,78 @@ export type Database = {
           },
         ]
       }
+      client_onboarding_etapas: {
+        Row: {
+          id: string
+          client_id: string
+          etapa_numero: number
+          etapa_codigo: string
+          status: string
+          dia_inicio_previsto: number | null
+          dia_fim_previsto: number | null
+          iniciado_em: string | null
+          concluido_em: string | null
+          concluido_por: string | null
+          observacoes: string | null
+          fluxo_checklist: Json
+          saidas_checklist: Json
+          d0_date: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          etapa_numero: number
+          etapa_codigo: string
+          status?: string
+          dia_inicio_previsto?: number | null
+          dia_fim_previsto?: number | null
+          iniciado_em?: string | null
+          concluido_em?: string | null
+          concluido_por?: string | null
+          observacoes?: string | null
+          fluxo_checklist?: Json
+          saidas_checklist?: Json
+          d0_date: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          etapa_numero?: number
+          etapa_codigo?: string
+          status?: string
+          dia_inicio_previsto?: number | null
+          dia_fim_previsto?: number | null
+          iniciado_em?: string | null
+          concluido_em?: string | null
+          concluido_por?: string | null
+          observacoes?: string | null
+          fluxo_checklist?: Json
+          saidas_checklist?: Json
+          d0_date?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_onboarding_etapas_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_onboarding_etapas_concluido_por_fkey"
+            columns: ["concluido_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_self_satisfaction: {
         Row: {
           id: string
