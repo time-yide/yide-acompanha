@@ -18,6 +18,10 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: "2mb",
     },
+    // Tree-shake agressivo em libs grandes/barrel-import. Cada import de
+    // `lucide-react`/`date-fns`/`recharts` pega só o que usa em vez do bundle
+    // inteiro — diminui o chunk client de todas as páginas.
+    optimizePackageImports: ["lucide-react", "date-fns", "recharts", "@base-ui/react"],
   },
 };
 

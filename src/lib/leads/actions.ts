@@ -12,6 +12,7 @@ import {
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 import { inferTipoPacote } from "@/lib/clientes/schema";
 import { PROSPECTS_CACHE_TAG } from "@/lib/prospeccao/queries";
+import { LEADS_CACHE_TAG } from "./queries";
 
 function prettyStage(stage: string): string {
   switch (stage) {
@@ -119,6 +120,7 @@ export async function createLeadAction(formData: FormData) {
 
   revalidatePath("/onboarding");
   revalidateTag(PROSPECTS_CACHE_TAG, "default");
+  revalidateTag(LEADS_CACHE_TAG, "default");
   redirect(`/onboarding/${created.id}`);
 }
 
@@ -184,6 +186,7 @@ export async function updateLeadAction(formData: FormData) {
   revalidatePath(`/onboarding/${id}`);
   revalidatePath("/onboarding");
   revalidateTag(PROSPECTS_CACHE_TAG, "default");
+  revalidateTag(LEADS_CACHE_TAG, "default");
   redirect(`/onboarding/${id}`);
 }
 
@@ -449,6 +452,7 @@ export async function moveStageAction(formData: FormData) {
 
   revalidatePath("/onboarding");
   revalidateTag(PROSPECTS_CACHE_TAG, "default");
+  revalidateTag(LEADS_CACHE_TAG, "default");
   revalidatePath(`/onboarding/${parsed.data.id}`);
   // Cliente é criado em marco_zero (status=em_onboarding) e promovido em
   // ativo. Em ambos casos, /clientes muda e o dashboard precisa refletir.
@@ -531,6 +535,7 @@ export async function markLostAction(formData: FormData) {
   revalidatePath("/onboarding");
   revalidatePath("/onboarding/perdidos");
   revalidateTag(PROSPECTS_CACHE_TAG, "default");
+  revalidateTag(LEADS_CACHE_TAG, "default");
   return { success: "Lead marcado como perdido" };
 }
 
@@ -583,6 +588,7 @@ export async function restoreLeadAction(formData: FormData) {
   revalidatePath("/onboarding");
   revalidatePath("/onboarding/perdidos");
   revalidateTag(PROSPECTS_CACHE_TAG, "default");
+  revalidateTag(LEADS_CACHE_TAG, "default");
   return { success: "Lead restaurado" };
 }
 
@@ -647,5 +653,6 @@ export async function deleteLeadAction(formData: FormData) {
 
   revalidatePath("/onboarding");
   revalidateTag(PROSPECTS_CACHE_TAG, "default");
+  revalidateTag(LEADS_CACHE_TAG, "default");
   return { success: true as const };
 }

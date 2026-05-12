@@ -1,5 +1,10 @@
+import { unstable_cache } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import type { Stage } from "./schema";
+
+/** Tag pra invalidar manualmente em mutações (criar/mover/marcar/restaurar). */
+export const LEADS_CACHE_TAG = "leads" as const;
 
 export interface LeadRow {
   id: string;
@@ -23,8 +28,11 @@ export interface LeadRow {
   assessor_nome?: string | null;
 }
 
-export async function listLeadsByStage(): Promise<Record<Stage, LeadRow[]>> {
-  const supabase = await createClient();
+async function _listLeadsByStageImpl(): Promise<Record<Stage, LeadRow[]>> {
+  // Service-role: RLS de SELECT em leads é permissiva (`using (true)` pra
+  // authenticated), resultado é idêntico ao cookie client. Necessário pra
+  // funcionar dentro de unstable_cache (sem request context).
+  const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from("leads")
     .select(`
@@ -82,6 +90,17 @@ export async function listLeadsByStage(): Promise<Record<Stage, LeadRow[]>> {
   return groups;
 }
 
+export async function listLeadsByStage(): Promise<Record<Stage, LeadRow[]>> {
+  const cached = unstable_cache(
+    async () => _listLeadsByStageImpl(),
+    ["leads-by-stage"],
+    // TTL longo: o realtime watcher + revalidateTag das actions garantem
+    // frescor. 5min é fallback pra cache não viver pra sempre.
+    { revalidate: 300, tags: [LEADS_CACHE_TAG] },
+  );
+  return cached();
+}
+
 export interface LeadPerdidoRow extends LeadRow {
   motivo_perdido: string;
   /** updated_at do lead = momento em que foi marcado perdido (markLostAction
@@ -94,8 +113,8 @@ export interface LeadPerdidoRow extends LeadRow {
  * Lista os leads que foram marcados como perdidos (motivo_perdido não-nulo)
  * e ainda não foram deletados. Mais recentes primeiro.
  */
-export async function listLeadsPerdidos(): Promise<LeadPerdidoRow[]> {
-  const supabase = await createClient();
+async function _listLeadsPerdidosImpl(): Promise<LeadPerdidoRow[]> {
+  const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from("leads")
     .select(`
@@ -131,6 +150,15 @@ export async function listLeadsPerdidos(): Promise<LeadPerdidoRow[]> {
     motivo_perdido: r.motivo_perdido ?? "",
     marcado_perdido_em: r.updated_at ?? "",
   })) as unknown as LeadPerdidoRow[];
+}
+
+export async function listLeadsPerdidos(): Promise<LeadPerdidoRow[]> {
+  const cached = unstable_cache(
+    async () => _listLeadsPerdidosImpl(),
+    ["leads-perdidos"],
+    { revalidate: 300, tags: [LEADS_CACHE_TAG] },
+  );
+  return cached();
 }
 
 export async function getLeadById(id: string) {

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Role, Action } from "@/lib/auth/permissions";
@@ -12,7 +13,12 @@ export type CurrentUser = {
   avatarUrl: string | null;
 };
 
-export async function getCurrentUser(): Promise<CurrentUser | null> {
+/**
+ * Memoizado com `React.cache` — dentro do MESMO render (layout + page + childs),
+ * uma só chamada pro Supabase (`auth.getUser` + `select profiles`), mesmo que
+ * `requireAuth()` seja chamado 3-4 vezes. Não persiste entre requests.
+ */
+export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
@@ -33,7 +39,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     ativo: profile.ativo,
     avatarUrl: profile.avatar_url,
   };
-}
+});
 
 export async function requireAuth(): Promise<CurrentUser> {
   const user = await getCurrentUser();

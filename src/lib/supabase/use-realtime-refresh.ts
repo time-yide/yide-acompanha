@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { authenticateRealtime } from "./realtime-auth";
 
+/** Janela de debounce em ms — coalesce eventos rápidos num só refresh. */
+const REFRESH_DEBOUNCE_MS = 300;
+
 /**
  * Hook genérico: subscribe a qualquer mudança em uma tabela e dispara
  * router.refresh() quando algo acontece. Útil pra páginas server-rendered
@@ -12,6 +15,9 @@ import { authenticateRealtime } from "./realtime-auth";
  * leads, listas que mostram dados compartilhados).
  *
  * Cobre INSERT, UPDATE e DELETE — Next.js só re-renderiza o que muda.
+ *
+ * Refresh é debounced em 300ms: batch updates (ex.: import em lote, mover
+ * 5 cards rápido, bulk assign) viram UM refresh em vez de N.
  *
  * @param channelName  Nome único do canal Supabase (qualquer string, só
  *                     pra evitar colisão entre vários hooks na mesma page)
@@ -29,6 +35,15 @@ export function useRealtimeRefresh(channelName: string, table: string, filter?: 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let channelRef: any = null;
     let unsubAuth: (() => void) | null = null;
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+
+    function scheduleRefresh() {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => {
+        refreshTimer = null;
+        if (!cancelled) router.refresh();
+      }, REFRESH_DEBOUNCE_MS);
+    }
 
     async function start() {
       unsubAuth = await authenticateRealtime(supabase);
@@ -41,7 +56,7 @@ export function useRealtimeRefresh(channelName: string, table: string, filter?: 
       const ch = supabase
         .channel(channelName)
         .on("postgres_changes", config, () => {
-          router.refresh();
+          scheduleRefresh();
         })
         .subscribe();
 
@@ -52,6 +67,7 @@ export function useRealtimeRefresh(channelName: string, table: string, filter?: 
 
     return () => {
       cancelled = true;
+      if (refreshTimer) clearTimeout(refreshTimer);
       unsubAuth?.();
       if (channelRef) supabase.removeChannel(channelRef);
     };
