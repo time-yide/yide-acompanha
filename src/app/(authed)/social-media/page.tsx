@@ -1,7 +1,8 @@
-import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Calendar, CheckCircle2, FileImage, Send, Sparkles } from "lucide-react";
+import { notFound } from "next/navigation";
+import { ArrowRight, Share2, Sparkles } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
+import { listClientesSocial } from "@/lib/social-media/queries";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -10,139 +11,167 @@ const ALLOWED_ROLES = [
   "designer", "videomaker", "editor", "audiovisual_chefe",
 ];
 
-export default async function SocialMediaPlaceholderPage() {
+const PACOTE_LABELS: Record<string, string> = {
+  trafego_estrategia: "Tráfego + Estratégia",
+  trafego: "Tráfego",
+  estrategia: "Estratégia",
+  audiovisual: "Audiovisual",
+  yide_360: "Yide 360°",
+  site: "Site",
+  crm: "CRM",
+  crm_ia: "CRM + IA",
+  ia: "IA",
+};
+
+export default async function SocialMediaListPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
   const user = await requireAuth();
   if (!ALLOWED_ROLES.includes(user.role)) notFound();
+  const params = await searchParams;
+  const q = (params.q ?? "").trim();
+
+  const filter: Parameters<typeof listClientesSocial>[0] = { searchQuery: q };
+  if (user.role === "assessor") filter.assessorId = user.id;
+  else if (user.role === "coordenador") filter.coordenadorId = user.id;
+  else if (user.role === "designer") filter.designerId = user.id;
+
+  const clientes = await listClientesSocial(filter);
+
+  const totalPosts = clientes.reduce((s, c) => s + c.total_posts, 0);
+  const totalAgendados = clientes.reduce((s, c) => s + c.posts_agendados, 0);
+  const totalPublicados = clientes.reduce((s, c) => s + c.posts_publicados, 0);
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <header className="space-y-2">
-        <div className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-[11px] font-medium text-primary">
-          <Sparkles className="h-3 w-3" /> Em construção
+    <div className="space-y-5">
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <Share2 className="h-6 w-6 text-primary" /> Social Media
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Gestão de postagens estilo mLabs. Calendário visual + agendamento
+            por cliente. Publicação automática Meta chega na Fase 2.
+          </p>
         </div>
-        <h1 className="text-2xl font-bold tracking-tight">Social Media</h1>
-        <p className="text-sm text-muted-foreground">
-          Módulo de gestão de postagens nas redes sociais (estilo mLabs). Aqui vai centralizar
-          calendário editorial, criação, agendamento, aprovação do cliente e publicação automática
-          em Instagram, Facebook, LinkedIn e GMN.
-        </p>
+        <div className="flex flex-wrap gap-2">
+          <KpiTile label="Clientes" value={clientes.length} />
+          <KpiTile label="Total posts" value={totalPosts} />
+          <KpiTile label="Agendados" value={totalAgendados} accent="violet" />
+          <KpiTile label="Publicados" value={totalPublicados} accent="emerald" />
+        </div>
       </header>
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-        <FaseCard
-          numero={1}
-          titulo="Calendário + criação"
-          status="planejado"
-          tempo="~3 dias"
-          icon={Calendar}
-          itens={[
-            "Calendário visual mensal/semanal por cliente",
-            "Botão 'Novo post': upload de imagem/vídeo, legenda, hashtags, primeiro comentário",
-            "Escolha de data/hora + redes (IG/FB)",
-            "Status: rascunho → agendado → aprovado → publicado",
-            "Filtros por cliente, status e rede",
-          ]}
-        />
-        <FaseCard
-          numero={2}
-          titulo="Publicação automática (Meta)"
-          status="planejado"
-          tempo="~5 dias"
-          icon={Send}
-          itens={[
-            "Cadastro Instagram + Facebook Page por cliente",
-            "Cron a cada 5min publica posts agendados",
-            "Suporte a Feed, Carrossel, Reels",
-            "Stories (com permissão extra)",
-            "Sync diário de stats (curtidas, comentários, alcance)",
-          ]}
-        />
-        <FaseCard
-          numero={3}
-          titulo="Aprovação do cliente"
-          status="planejado"
-          tempo="~3 dias"
-          icon={CheckCircle2}
-          itens={[
-            "Link público /aprovacao/[token] (sem login)",
-            "Cliente vê preview e aprova ou pede ajuste",
-            "Só publica depois de aprovado (configurável por cliente)",
-            "Notificação por email/WhatsApp ao aprovar",
-          ]}
-        />
-        <FaseCard
-          numero={4}
-          titulo="Multi-rede + extras"
-          status="planejado"
-          tempo="~1 semana"
-          icon={FileImage}
-          itens={[
-            "LinkedIn Company Page",
-            "Google Meu Negócio (posts)",
-            "Biblioteca de templates",
-            "Repostar / duplicar adaptando legenda por rede",
-            "Inbox unificada (responder DMs/comentários)",
-          ]}
-        />
-      </div>
-
-      <Card className="p-4 space-y-2 border-amber-500/30 bg-amber-500/5">
-        <h2 className="font-semibold text-sm">Pré-requisitos pra Fase 2 funcionar</h2>
-        <ul className="text-xs text-muted-foreground space-y-1.5 list-disc pl-5">
-          <li>Cada Instagram do cliente precisa estar como <strong>Business/Creator</strong> e vinculado a uma <strong>Facebook Page</strong> dentro da sua BM.</li>
-          <li>App criado no <Link href="https://developers.facebook.com" className="underline hover:text-foreground" target="_blank">developers.facebook.com</Link> com produto Marketing API + permissões <code>pages_manage_posts</code>, <code>instagram_content_publish</code>, <code>pages_read_engagement</code>.</li>
-          <li>System User Token gerado na BM (mesmo que vai ser usado pro Tráfego Fase 2).</li>
-        </ul>
+      <Card className="border-primary/30 bg-primary/5 p-3 flex items-start gap-2 text-xs">
+        <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+        <div>
+          <strong className="text-foreground">Fase 1 (essa):</strong> calendário, criação e
+          agendamento manual. Status workflow completo.
+          {" "}
+          <strong className="text-foreground">Próxima fase:</strong> publicação automática
+          via Meta Graph API (Instagram Feed/Carrossel/Reels + Facebook Page).
+        </div>
       </Card>
 
-      <div className="text-center">
-        <Link
-          href="/"
-          className="text-xs text-muted-foreground hover:text-foreground hover:underline"
+      <form method="get" className="flex gap-2">
+        <input
+          type="text"
+          name="q"
+          defaultValue={q}
+          placeholder="Pesquisar cliente..."
+          className="h-9 flex-1 rounded-md border bg-card px-3 text-sm md:max-w-md"
+        />
+        <button
+          type="submit"
+          className="h-9 rounded-md border bg-card px-3 text-sm hover:bg-muted"
         >
-          Voltar pro dashboard
-        </Link>
-      </div>
+          Buscar
+        </button>
+      </form>
+
+      {clientes.length === 0 ? (
+        <Card className="p-8 text-center text-sm text-muted-foreground">
+          {q
+            ? `Nenhum cliente encontrado pra "${q}".`
+            : "Nenhum cliente ativo."}
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+          {clientes.map((c) => {
+            const temContas = !!(c.instagram_business_id || c.facebook_page_id);
+            return (
+              <Link
+                key={c.id}
+                href={`/social-media/${c.id}`}
+                className="group block rounded-lg border bg-card p-4 transition-colors hover:border-primary hover:bg-muted/40"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-1 min-w-0 flex-1">
+                    <h3 className="font-semibold leading-tight truncate">{c.nome}</h3>
+                    <Badge variant="secondary" className="text-[10px]">
+                      {PACOTE_LABELS[c.tipo_pacote] ?? c.tipo_pacote}
+                    </Badge>
+                  </div>
+                  <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+                </div>
+                <div className="mt-3 grid grid-cols-3 gap-1 text-center">
+                  <div>
+                    <p className="text-base font-bold tabular-nums">{c.total_posts}</p>
+                    <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Total</p>
+                  </div>
+                  <div>
+                    <p className="text-base font-bold tabular-nums text-violet-600 dark:text-violet-400">
+                      {c.posts_agendados}
+                    </p>
+                    <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Agendados</p>
+                  </div>
+                  <div>
+                    <p className="text-base font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+                      {c.posts_publicados}
+                    </p>
+                    <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Publicados</p>
+                  </div>
+                </div>
+                {temContas && (
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {c.instagram_business_id && (
+                      <span className="inline-flex items-center rounded-full border border-pink-500/40 bg-pink-500/10 px-2 py-0.5 text-[10px] font-medium text-pink-700 dark:text-pink-300">
+                        IG conectado
+                      </span>
+                    )}
+                    {c.facebook_page_id && (
+                      <span className="inline-flex items-center rounded-full border border-blue-500/40 bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:text-blue-300">
+                        FB conectado
+                      </span>
+                    )}
+                  </div>
+                )}
+              </Link>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
 
-function FaseCard({
-  numero, titulo, status, tempo, icon: Icon, itens,
+function KpiTile({
+  label, value, accent,
 }: {
-  numero: number;
-  titulo: string;
-  status: "planejado" | "em_andamento" | "pronto";
-  tempo: string;
-  icon: React.ComponentType<{ className?: string }>;
-  itens: string[];
+  label: string;
+  value: number;
+  accent?: "violet" | "emerald";
 }) {
-  const statusBadge = {
-    planejado: { label: "Planejado", className: "border-muted-foreground/30 text-muted-foreground" },
-    em_andamento: { label: "Em construção", className: "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300" },
-    pronto: { label: "Pronto", className: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" },
-  }[status];
-
+  const accentClass =
+    accent === "violet" ? "text-violet-600 dark:text-violet-400" :
+    accent === "emerald" ? "text-emerald-600 dark:text-emerald-400" :
+    "text-foreground";
   return (
-    <Card className="p-4 space-y-3">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border bg-muted text-xs font-bold">
-            {numero}
-          </span>
-          <h3 className="font-semibold">{titulo}</h3>
-        </div>
-        <Icon className="h-4 w-4 text-muted-foreground" />
-      </div>
-      <div className="flex items-center gap-2 text-[10px]">
-        <Badge variant="outline" className={statusBadge.className}>{statusBadge.label}</Badge>
-        <span className="text-muted-foreground">{tempo}</span>
-      </div>
-      <ul className="space-y-1 text-xs text-muted-foreground list-disc pl-4">
-        {itens.map((item, i) => (
-          <li key={i}>{item}</li>
-        ))}
-      </ul>
-    </Card>
+    <div className="rounded-lg border bg-card px-4 py-2">
+      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className={`text-xl font-bold tabular-nums ${accentClass}`}>{value}</p>
+    </div>
   );
 }
