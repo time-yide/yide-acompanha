@@ -36,6 +36,8 @@ export async function listLeadsByStage(): Promise<Record<Stage, LeadRow[]>> {
       assessor:profiles!leads_assessor_alocado_id_fkey(nome)
     `)
     .is("deleted_at", null)
+    // Perdidos saem do kanban e vão pra /onboarding/perdidos.
+    .is("motivo_perdido", null)
     .order("created_at", { ascending: false });
 
   if (error) throw error;
@@ -78,6 +80,57 @@ export async function listLeadsByStage(): Promise<Record<Stage, LeadRow[]>> {
   }
 
   return groups;
+}
+
+export interface LeadPerdidoRow extends LeadRow {
+  motivo_perdido: string;
+  /** updated_at do lead = momento em que foi marcado perdido (markLostAction
+   * só toca em motivo_perdido, então o updated_at é fidedigno).
+   * Pra um histórico mais granular consultar lead_history separadamente. */
+  marcado_perdido_em: string;
+}
+
+/**
+ * Lista os leads que foram marcados como perdidos (motivo_perdido não-nulo)
+ * e ainda não foram deletados. Mais recentes primeiro.
+ */
+export async function listLeadsPerdidos(): Promise<LeadPerdidoRow[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("leads")
+    .select(`
+      id, nome_prospect, site, telefone, valor_proposto, duracao_meses, servico_proposto, link_proposta, prioridade, stage,
+      data_prospeccao_agendada, data_reuniao_marco_zero, data_fechamento,
+      comercial_id, coord_alocado_id, assessor_alocado_id,
+      motivo_perdido, updated_at,
+      comercial:profiles!leads_comercial_id_fkey(nome),
+      coord:profiles!leads_coord_alocado_id_fkey(nome),
+      assessor:profiles!leads_assessor_alocado_id_fkey(nome)
+    `)
+    .is("deleted_at", null)
+    .not("motivo_perdido", "is", null)
+    .order("updated_at", { ascending: false });
+
+  if (error) throw error;
+
+  type JoinedRow = typeof data extends (infer U)[] | null ? U : never;
+  type WithJoins = JoinedRow & {
+    comercial?: { nome: string } | null;
+    coord?: { nome: string } | null;
+    assessor?: { nome: string } | null;
+    motivo_perdido?: string | null;
+    updated_at?: string;
+  };
+
+  return ((data ?? []) as WithJoins[]).map((r) => ({
+    ...r,
+    valor_proposto: Number(r.valor_proposto),
+    comercial_nome: r.comercial?.nome ?? null,
+    coord_nome: r.coord?.nome ?? null,
+    assessor_nome: r.assessor?.nome ?? null,
+    motivo_perdido: r.motivo_perdido ?? "",
+    marcado_perdido_em: r.updated_at ?? "",
+  })) as unknown as LeadPerdidoRow[];
 }
 
 export async function getLeadById(id: string) {

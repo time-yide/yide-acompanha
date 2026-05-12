@@ -529,8 +529,61 @@ export async function markLostAction(formData: FormData) {
   });
 
   revalidatePath("/onboarding");
+  revalidatePath("/onboarding/perdidos");
   revalidateTag(PROSPECTS_CACHE_TAG, "default");
   return { success: "Lead marcado como perdido" };
+}
+
+/**
+ * Restaura um lead que foi marcado como perdido — volta pro kanban no mesmo
+ * estágio que ele estava. Limpa motivo_perdido e registra no histórico.
+ *
+ * Permissão: mesma do markLost (precisa poder interagir com o estágio atual).
+ */
+export async function restoreLeadAction(formData: FormData) {
+  const actor = await requireAuth();
+  const id = fd(formData, "id");
+  if (!id) return { error: "ID do lead obrigatório" };
+
+  const supabase = await createClient();
+  const { data: lead } = await supabase.from("leads").select("*").eq("id", id).single();
+  if (!lead) return { error: "Lead não encontrado" };
+  if (!lead.motivo_perdido) return { error: "Lead já está ativo no kanban" };
+
+  if (!canInteractWithStage(actor.role, lead.stage as Stage)) {
+    return { error: `Seu papel não tem permissão pra restaurar leads neste estágio` };
+  }
+
+  const motivoAnterior = lead.motivo_perdido;
+
+  const { error } = await supabase
+    .from("leads")
+    .update({ motivo_perdido: null })
+    .eq("id", id);
+  if (error) return { error: error.message };
+
+  await supabase.from("lead_history").insert({
+    lead_id: id,
+    from_stage: lead.stage,
+    to_stage: lead.stage,
+    ator_id: actor.id,
+    observacao: `Restaurado do "perdido" (motivo anterior: ${motivoAnterior})`,
+  });
+
+  await logAudit({
+    entidade: "leads",
+    entidade_id: id,
+    acao: "update",
+    dados_antes: { motivo_perdido: motivoAnterior },
+    dados_depois: { motivo_perdido: null },
+    ator_id: actor.id,
+    justificativa: "Restaurado de perdidos",
+  });
+
+  revalidatePath("/onboarding");
+  revalidatePath("/onboarding/perdidos");
+  revalidateTag(PROSPECTS_CACHE_TAG, "default");
+  return { success: "Lead restaurado" };
 }
 
 /**
