@@ -85,7 +85,19 @@ function computeCommissionForProfile(
     };
   }
 
-  if (profile.role === "coordenador" || profile.role === "audiovisual_chefe") {
+  // Coordenador: só fixo. Decisão de produto (Yasmin): coordenador deixou de
+  // ter parte variável sobre carteira da agência — passa a receber apenas
+  // o valor do `profiles.fixo_mensal` (sugerido: R$ 15.000).
+  // Pra reverter pro modelo antigo (fixo + %), basta unificar com
+  // audiovisual_chefe abaixo.
+  if (profile.role === "coordenador") {
+    return {
+      snapshot: { fixo, percentual_aplicado: 0, base_calculo: 0, valor_variavel: 0 },
+      items,
+    };
+  }
+
+  if (profile.role === "audiovisual_chefe") {
     const percentual = Number(profile.comissao_percent) || 0;
     const rows = data.clientsAgencia ?? [];
     const ajustes = data.ajustesByClient ?? new Map();
@@ -193,7 +205,9 @@ export async function calculateCommission(
     data.ajustesByClient = new Map(
       ((ajustesRes.data ?? []) as MonthlyAdjustment[]).map((a) => [a.client_id, a]),
     );
-  } else if (p.role === "coordenador" || p.role === "audiovisual_chefe") {
+  } else if (p.role === "audiovisual_chefe") {
+    // Coordenador SEM parte variável (só fixo) — não precisa buscar clientes/ajustes.
+    // Audiovisual_chefe continua com fixo + % sobre carteira da agência.
     const { data: clientsRows } = await supabase
       .from("clients")
       .select("valor_mensal, id, tipo_relacao, assessor_id")

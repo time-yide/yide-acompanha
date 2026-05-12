@@ -42,14 +42,17 @@ export async function getComissaoPrevista(
   let valorComissao = 0;
   let baseCalculo = 0;
 
-  if (role === "assessor" || role === "coordenador") {
-    const filterColumn = role === "assessor" ? "assessor_id" : "coordenador_id";
+  // Coordenador: só fixo (decisão de produto Yasmin). Mantém base=0,
+  // comissao=0, percentual=0 — devolve só o fixo abaixo.
+  if (role === "coordenador") {
+    // intencional: pula cálculo variável
+  } else if (role === "assessor") {
     const { data: clientsData } = await supabase
       .from("clients")
       .select("id, valor_mensal, data_entrada")
       .eq("status", "ativo")
       .is("deleted_at", null)
-      .eq(filterColumn, userId);
+      .eq("assessor_id", userId);
 
     const clients = (clientsData ?? []) as Array<{ id: string; valor_mensal: number; data_entrada: string }>;
 
@@ -83,11 +86,15 @@ export async function getComissaoPrevista(
   }
 
   const fixo = Number(profile.fixo_mensal);
+  // Pra coordenador, ignora o `comissao_percent` salvo no perfil (que pode
+  // estar legado): sempre retorna percentual=0. Só assessor/comercial expõem
+  // o percentual configurado.
+  const percentual = role === "coordenador" ? 0 : Number(profile.comissao_percent);
   return {
     valor: valorComissao + fixo,
     valorVariavel: valorComissao,
     baseCalculo,
     fixo,
-    percentual: Number(profile.comissao_percent),
+    percentual,
   };
 }
