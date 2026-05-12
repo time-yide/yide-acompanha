@@ -10,8 +10,9 @@ function brl(n: number): string {
 
 const roleLabels: Record<string, string> = {
   adm: "ADM",
+  socio: "Coordenador",
   comercial: "Comercial",
-  coordenador: "Coordenador",
+  coordenador: "Coordenador (legado)",
   assessor: "Assessor",
   videomaker: "Videomaker",
   designer: "Designer",

@@ -12,9 +12,9 @@ function formatBRL(v: number): string {
 }
 
 const ROLE_LABEL: Record<string, string> = {
-  socio: "Sócio",
+  socio: "Coordenador",
   adm: "ADM",
-  coordenador: "Coordenador",
+  coordenador: "Coordenador (legado)",
   assessor: "Assessor",
   comercial: "Comercial",
   designer: "Designer",

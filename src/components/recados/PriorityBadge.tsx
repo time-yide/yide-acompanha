@@ -2,9 +2,9 @@ import { cn } from "@/lib/utils";
 import { roleToTier, type Tier } from "@/lib/recados/tiers";
 
 const ROLE_LABEL: Record<string, string> = {
-  socio: "Sócio",
+  socio: "Coordenador",
   adm: "ADM",
-  coordenador: "Coordenador",
+  coordenador: "Coordenador (legado)",
   assessor: "Assessor",
   comercial: "Comercial",
   audiovisual_chefe: "Coordenador audiovisual",

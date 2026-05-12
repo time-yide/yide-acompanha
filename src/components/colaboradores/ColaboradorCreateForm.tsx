@@ -59,10 +59,14 @@ export function ColaboradorCreateForm({ canSetCommission }: { canSetCommission: 
                 <SelectValue placeholder="Selecione" />
               </SelectTrigger>
               <SelectContent>
+                {/*
+                  Role `coordenador` antigo foi descontinuado — não aparece
+                  como opção pra perfis novos. O que era "Sócio" virou
+                  "Coordenador" no UI (role no banco continua `socio`).
+                */}
                 <SelectItem value="adm">ADM</SelectItem>
-                <SelectItem value="socio">Sócio</SelectItem>
+                <SelectItem value="socio">Coordenador</SelectItem>
                 <SelectItem value="comercial">Comercial</SelectItem>
-                <SelectItem value="coordenador">Coordenador</SelectItem>
                 <SelectItem value="assessor">Assessor</SelectItem>
                 <SelectItem value="audiovisual_chefe">Coordenador audiovisual</SelectItem>
                 <SelectItem value="videomaker">Videomaker</SelectItem>

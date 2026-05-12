@@ -53,11 +53,20 @@ function computeCommissionForProfile(
   profile: ProfileRow,
   data: ProfileData,
 ): CommissionResult | null {
-  if (profile.role === "socio") return null;
+  // Sócio agora tem prolábore fixo (R$ 15.000 setado em `profiles.fixo_mensal`).
+  // Antes retornava null — sócio era invisível no calculator. Modelo novo
+  // (decisão Yasmin): sócio aparece como "Coordenador" no UI e ganha
+  // prolábore fixo, sem parte variável.
 
   const fixo = Number(profile.fixo_mensal) || 0;
   const items: SnapshotItem[] = [
-    { tipo: "fixo", descricao: "Fixo mensal", base: 0, percentual: 0, valor: fixo },
+    {
+      tipo: "fixo",
+      descricao: profile.role === "socio" ? "Prolábore" : "Fixo mensal",
+      base: 0,
+      percentual: 0,
+      valor: fixo,
+    },
   ];
 
   if (profile.role === "assessor") {
@@ -85,17 +94,11 @@ function computeCommissionForProfile(
     };
   }
 
-  // Coordenador: só fixo. Decisão de produto (Yasmin): coordenador deixou de
-  // ter parte variável sobre carteira da agência — passa a receber apenas
-  // o valor do `profiles.fixo_mensal` (sugerido: R$ 15.000).
-  // Pra reverter pro modelo antigo (fixo + %), basta unificar com
-  // audiovisual_chefe abaixo.
-  if (profile.role === "coordenador") {
-    return {
-      snapshot: { fixo, percentual_aplicado: 0, base_calculo: 0, valor_variavel: 0 },
-      items,
-    };
-  }
+  // Role `coordenador` foi descontinuado (decisão de produto Yasmin —
+  // o que antes era "Sócio" virou "Coordenador" no UI, e a função
+  // antiga de coordenador deixou de existir). Mantemos o role no enum
+  // pra não quebrar referências históricas, mas qualquer perfil
+  // remanescente com esse role cai no fallback de "só fixo" abaixo.
 
   if (profile.role === "audiovisual_chefe") {
     const percentual = Number(profile.comissao_percent) || 0;
@@ -148,7 +151,9 @@ function computeCommissionForProfile(
     };
   }
 
-  // ADM, videomaker, designer, editor: só fixo
+  // Demais roles (socio, coordenador legado, adm, videomaker, designer,
+  // editor, etc.): só fixo. Para sócio, esse fixo é o prolábore configurado
+  // em `profiles.fixo_mensal` (sugestão R$ 15.000).
   return {
     snapshot: { fixo, percentual_aplicado: 0, base_calculo: 0, valor_variavel: 0 },
     items,
@@ -182,8 +187,7 @@ export async function calculateCommission(
     .single();
   if (!profile) return null;
   const p = profile as unknown as ProfileRow;
-  if (p.role === "socio") return null;
-
+  // Sócio agora entra no cálculo (prolábore fixo). Antes retornávamos null.
   const data: ProfileData = {};
 
   if (p.role === "assessor") {
@@ -259,7 +263,7 @@ export async function calculateCommissionsBatch(monthRef: string): Promise<Batch
       .from("profiles")
       .select("id, nome, role, fixo_mensal, comissao_percent, comissao_primeiro_mes_percent")
       .eq("ativo", true)
-      .neq("role", "socio")
+      // Sócio inclui no batch (recebe prolábore fixo). Antes era excluído.
       .order("nome"),
     supabase
       .from("clients")

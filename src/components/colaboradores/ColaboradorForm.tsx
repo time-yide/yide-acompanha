@@ -68,10 +68,18 @@ export function ColaboradorForm({ data, canEditFinance, canEditRole, canEditMeta
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              {/*
+                Role `coordenador` antigo virou legado — só aparece como
+                opção se o usuário sendo editado já tem esse role (pra não
+                quebrar a renderização do select). Pra perfis novos, prefira
+                "Coordenador" (role `socio` no banco).
+              */}
               <SelectItem value="adm">ADM</SelectItem>
-              <SelectItem value="socio">Sócio</SelectItem>
+              <SelectItem value="socio">Coordenador</SelectItem>
               <SelectItem value="comercial">Comercial</SelectItem>
-              <SelectItem value="coordenador">Coordenador</SelectItem>
+              {data.role === "coordenador" && (
+                <SelectItem value="coordenador">Coordenador (legado)</SelectItem>
+              )}
               <SelectItem value="assessor">Assessor</SelectItem>
               <SelectItem value="audiovisual_chefe">Coordenador audiovisual</SelectItem>
               <SelectItem value="videomaker">Videomaker</SelectItem>
