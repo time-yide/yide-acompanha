@@ -1,19 +1,31 @@
 import { requireClientPortalAuth } from "@/lib/auth/client-portal-session";
 import { getClientPortalData } from "@/lib/painel-cliente/queries";
+import {
+  getLastSelfSatisfaction,
+  getLastAgencyPerception,
+  getLastMeetingsForClient,
+} from "@/lib/cliente-portal/queries";
 import { ClientPortalHeader } from "@/components/cliente-portal/ClientPortalHeader";
 import { HeroSection } from "@/components/cliente-portal/HeroSection";
 import { ContratoSection } from "@/components/cliente-portal/ContratoSection";
 import { TrafegoSection } from "@/components/cliente-portal/TrafegoSection";
 import { PastaSection } from "@/components/cliente-portal/PastaSection";
+import { SatisfacaoSection } from "@/components/cliente-portal/SatisfacaoSection";
+import { ReunioesSection } from "@/components/cliente-portal/ReunioesSection";
 import { CRMPlaceholderSection } from "@/components/cliente-portal/CRMPlaceholderSection";
 
 export default async function ClientePainelPage() {
   const user = await requireClientPortalAuth();
-  const data = await getClientPortalData(user.clientId);
+
+  // 4 queries em paralelo — todos os dados que o portal precisa.
+  const [data, selfSat, agencyPerception, reunioes] = await Promise.all([
+    getClientPortalData(user.clientId),
+    getLastSelfSatisfaction(user.clientId),
+    getLastAgencyPerception(user.clientId),
+    getLastMeetingsForClient(user.clientId, 5),
+  ]);
 
   if (!data) {
-    // Edge case: cliente foi excluído mas o portal user não foi revogado.
-    // Tela amigável ao invés de crash.
     return (
       <div className="mx-auto max-w-2xl px-4 py-16 text-center">
         <h1 className="text-xl font-bold">Conta indisponível</h1>
@@ -40,6 +52,8 @@ export default async function ClientePainelPage() {
           google={data.cliente.valor_trafego_google}
           meta={data.cliente.valor_trafego_meta}
         />
+        <SatisfacaoSection selfLast={selfSat} agencyLast={agencyPerception} />
+        <ReunioesSection reunioes={reunioes} />
         <PastaSection driveUrl={data.cliente.drive_url} />
         <CRMPlaceholderSection />
       </main>
