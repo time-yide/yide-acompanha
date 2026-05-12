@@ -7,10 +7,9 @@ import {
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { InstanciaFormModal } from "./InstanciaFormModal";
 import { archiveInstanciaAction, type InstanciaRow } from "@/lib/ligacoes/instancia-actions";
-import { PROVEDOR_BY_VALUE, STATUS_INSTANCIA_DEFS } from "@/lib/ligacoes/instancias";
+import { STATUS_INSTANCIA_DEFS } from "@/lib/ligacoes/instancias";
 
 interface Props {
   instancias: InstanciaRow[];
@@ -83,7 +82,6 @@ function InstanciaCard({
 }) {
   const router = useRouter();
   const [pendingArchive, startArchive] = useTransition();
-  const provedorDef = PROVEDOR_BY_VALUE[instancia.provedor];
   const statusDef = STATUS_INSTANCIA_DEFS[instancia.status];
   const isWA = instancia.tipo === "whatsapp";
 
@@ -148,14 +146,6 @@ function InstanciaCard({
           )}
           {statusDef?.label ?? instancia.status}
         </span>
-        <Badge variant="outline" className="text-[10px]">
-          {provedorDef?.label ?? instancia.provedor}
-          {provedorDef?.status === "em_construcao" && (
-            <span className="ml-1 rounded-full bg-amber-500/20 px-1 text-[9px] text-amber-700 dark:text-amber-300">
-              em construção
-            </span>
-          )}
-        </Badge>
       </div>
 
       {instancia.colaborador_nome && (

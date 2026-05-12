@@ -1,12 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Settings, Phone, MessageCircle, Info } from "lucide-react";
+import { ArrowLeft, Settings, Phone, MessageCircle } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import { listColaboradoresAtivos, getOrganizationId } from "@/lib/ligacoes/queries";
 import { listInstancias } from "@/lib/ligacoes/instancia-actions";
 import { InstanciasList } from "@/components/ligacoes/InstanciasList";
 import { Card } from "@/components/ui/card";
-import { PROVEDOR_DEFS } from "@/lib/ligacoes/instancias";
 
 const ALLOWED_ROLES = ["adm", "socio", "comercial", "coordenador"];
 const ROLES_QUE_GERENCIAM = ["adm", "socio", "comercial", "coordenador"];
@@ -50,33 +49,6 @@ export default async function LigacoesConfigPage() {
         <KpiMini label="WhatsApp" value={totalWA} icon={MessageCircle} tone="text-emerald-500" />
         <KpiMini label="Conectados" value={conectados} tone="text-emerald-500" />
       </div>
-
-      {/* Aviso */}
-      <Card className="p-4 space-y-2 border-amber-500/30 bg-amber-500/5 flex items-start gap-3">
-        <Info className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-        <div className="space-y-2 text-xs">
-          <p>
-            <strong className="text-foreground">Status das integrações automáticas:</strong>
-          </p>
-          <p className="text-muted-foreground">
-            Atualmente só o modo <strong className="text-foreground">Manual</strong> está
-            funcionando (você cadastra ligações sem integração automática).
-            Os outros provedores listados aparecem como <em>&quot;em construção&quot;</em> — você pode
-            já cadastrar as credenciais, mas a captura automática só vai funcionar depois
-            que a gente implementar o handler de webhook do provedor escolhido.
-          </p>
-          <p className="text-muted-foreground">
-            <strong className="text-foreground">Provedores prontos pra integrar (me avisa qual escolher):</strong>
-          </p>
-          <ul className="list-disc pl-5 text-muted-foreground space-y-0.5">
-            {PROVEDOR_DEFS.filter((p) => p.value !== "manual" && p.value !== "outro").map((p) => (
-              <li key={p.value}>
-                <strong className="text-foreground">{p.label}</strong> ({p.tipo === "ambos" ? "telefone + WhatsApp" : p.tipo})
-              </li>
-            ))}
-          </ul>
-        </div>
-      </Card>
 
       {/* Lista de instâncias */}
       <InstanciasList instancias={instancias} colaboradores={colaboradores} canManage={canManage} />
