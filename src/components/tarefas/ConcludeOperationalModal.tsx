@@ -21,6 +21,12 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   taskId: string;
   taskTipo: "geral" | "video" | "arte";
+  /**
+   * Role do atribuído. Usado como tiebreaker quando `taskTipo === "geral"`
+   * (típico de tarefas antigas criadas antes da migration que adicionou tipo).
+   * Editor/videomaker/audiovisual_chefe → vídeos. Designer → artes.
+   */
+  atribuidoRole?: string | null;
   /** Pra qual status estamos movendo. Default: "concluida" (concluído operacional). */
   toStatus?: "concluida" | "em_aprovacao";
   onSuccess: () => void;
@@ -51,13 +57,37 @@ const SUCCESS_MSG: Record<"concluida" | "em_aprovacao", string> = {
  * - artes_entregues: quantidade entregue (obrigatório, label dinâmico)
  * - entrega_observacoes: notas livres (opcional)
  */
-export function ConcludeOperationalModal({ open, onOpenChange, taskId, taskTipo, toStatus = "concluida", onSuccess }: Props) {
+/**
+ * Resolve qual label de quantidade usar baseado em (taskTipo, atribuidoRole).
+ * Prioridade:
+ *  1. taskTipo='video' OU role de vídeo (editor/videomaker/audiovisual_chefe) → "vídeos"
+ *  2. taskTipo='arte' OU role='designer' → "artes"
+ *  3. fallback (geral, sem role conhecido) → "itens"
+ */
+function resolveQtdLabel(taskTipo: "geral" | "video" | "arte", atribuidoRole: string | null | undefined): string {
+  const isVideoRole =
+    atribuidoRole === "editor" ||
+    atribuidoRole === "videomaker" ||
+    atribuidoRole === "videomaker_mobile" ||
+    atribuidoRole === "audiovisual_chefe";
+  const isArteRole = atribuidoRole === "designer";
+
+  if (taskTipo === "video" || (taskTipo === "geral" && isVideoRole)) {
+    return "Quantos vídeos foram entregues?";
+  }
+  if (taskTipo === "arte" || (taskTipo === "geral" && isArteRole)) {
+    return "Quantas artes foram entregues?";
+  }
+  return "Quantos itens foram entregues?";
+}
+
+export function ConcludeOperationalModal({ open, onOpenChange, taskId, taskTipo, atribuidoRole, toStatus = "concluida", onSuccess }: Props) {
   const [driveLink, setDriveLink] = useState("");
   const [qtd, setQtd] = useState("");
   const [observacoes, setObservacoes] = useState("");
   const [pending, startTransition] = useTransition();
 
-  const qtdLabel = taskTipo === "video" ? "Quantos vídeos foram entregues?" : "Quantas artes foram entregues?";
+  const qtdLabel = resolveQtdLabel(taskTipo, atribuidoRole);
   const isValid = driveLink.trim().length > 0 && qtd.trim().length > 0 && /^\d+$/.test(qtd) && Number(qtd) >= 1;
 
   function handleConfirm() {

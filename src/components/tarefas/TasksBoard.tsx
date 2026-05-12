@@ -37,6 +37,7 @@ export function TasksBoard({ tasks, userRole }: { tasks: TaskRow[]; userRole: st
   const [conclModalTask, setConclModalTask] = useState<{
     id: string;
     tipo: "geral" | "video" | "arte";
+    atribuidoRole: string | null;
     toStatus: "concluida" | "em_aprovacao";
   } | null>(null);
 
@@ -76,6 +77,7 @@ export function TasksBoard({ tasks, userRole }: { tasks: TaskRow[]; userRole: st
           setConclModalTask({
             id: taskId,
             tipo: (task.tipo as "geral" | "video" | "arte") ?? "geral",
+            atribuidoRole: role ?? null,
             toStatus,
           });
           setConclModalOpen(true);
@@ -122,6 +124,7 @@ export function TasksBoard({ tasks, userRole }: { tasks: TaskRow[]; userRole: st
           onOpenChange={setConclModalOpen}
           taskId={conclModalTask.id}
           taskTipo={conclModalTask.tipo}
+          atribuidoRole={conclModalTask.atribuidoRole}
           toStatus={conclModalTask.toStatus}
           onSuccess={() => router.refresh()}
         />
