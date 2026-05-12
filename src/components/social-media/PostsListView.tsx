@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useMemo } from "react";
 import { Pencil, Archive, ImageIcon } from "lucide-react";
+import { PostApprovalButtons } from "./PostApprovalButtons";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -183,6 +184,15 @@ function PostListItem({
 
       {/* Ações */}
       <div className="flex flex-wrap gap-1 shrink-0">
+        {canManage && (
+          <PostApprovalButtons
+            postId={post.id}
+            aprovacaoToken={post.aprovacao_token}
+            status={post.status}
+            hasMidias={post.midias.length > 0}
+            hasRedes={post.redes.length > 0}
+          />
+        )}
         {canManage && (
           <select
             value={post.status}

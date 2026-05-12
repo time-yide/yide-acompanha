@@ -121,6 +121,7 @@ export interface SocialPostRow {
   observacoes: string | null;
   ajuste_observacoes: string | null;
   aprovado_em: string | null;
+  aprovacao_token: string | null;
   design_arte_id: string | null;
   created_at: string;
   updated_at: string;
@@ -157,6 +158,7 @@ export async function listPostsByCliente(clientId: string): Promise<SocialPostRo
     observacoes: (row.observacoes as string | null) ?? null,
     ajuste_observacoes: (row.ajuste_observacoes as string | null) ?? null,
     aprovado_em: (row.aprovado_em as string | null) ?? null,
+    aprovacao_token: (row.aprovacao_token as string | null) ?? null,
     design_arte_id: (row.design_arte_id as string | null) ?? null,
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
