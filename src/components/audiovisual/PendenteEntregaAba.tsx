@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, Upload } from "lucide-react";
+import { AlertTriangle, Upload, CheckCircle2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { CapturaForm } from "./CapturaForm";
+import { MarcarEntregueRapidoDialog } from "./MarcarEntregueRapidoDialog";
 import type { EventoSemCapturaRow } from "@/lib/audiovisual/queries";
 import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
@@ -27,6 +28,7 @@ function formatTimeBR(iso: string): string {
 
 export function PendenteEntregaAba({ rows, showVideomaker, canDeliver, clientes }: Props) {
   const [openEvent, setOpenEvent] = useState<EventoSemCapturaRow | null>(null);
+  const [openRapidoEvent, setOpenRapidoEvent] = useState<EventoSemCapturaRow | null>(null);
 
   if (rows.length === 0) {
     return (
@@ -56,40 +58,83 @@ export function PendenteEntregaAba({ rows, showVideomaker, canDeliver, clientes 
       <ul className="space-y-2">
         {rows.map((r, idx) => {
           const key = `${r.event_id}-${r.videomaker_id}-${idx}`;
-          const content = (
-            <div className="flex items-start justify-between gap-2 rounded-lg border bg-card p-3 hover:bg-muted/40">
-              <div className="min-w-0 flex-1 space-y-0.5">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-semibold tabular-nums text-muted-foreground">
-                    {formatDateBR(r.inicio)} · {formatTimeBR(r.inicio)}
+
+          const cardBody = (
+            <div className="min-w-0 flex-1 space-y-0.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-semibold tabular-nums text-muted-foreground">
+                  {formatDateBR(r.inicio)} · {formatTimeBR(r.inicio)}
+                </span>
+                {r.isOverdue && (
+                  <span className="rounded-md border border-destructive/40 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-medium uppercase text-destructive">
+                    Atrasada
                   </span>
-                  {r.isOverdue && (
-                    <span className="rounded-md border border-destructive/40 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-medium uppercase text-destructive">
-                      Atrasada
-                    </span>
-                  )}
-                </div>
-                <p className="truncate text-sm font-medium">{r.titulo}</p>
-                <p className="text-xs text-muted-foreground">
-                  {r.client_nome ?? "Cliente —"}
-                  {showVideomaker && r.videomaker_nome && <> · {r.videomaker_nome}</>}
-                </p>
+                )}
               </div>
-              {canDeliver && <Upload className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />}
+              <p className="truncate text-sm font-medium">{r.titulo}</p>
+              <p className="text-xs text-muted-foreground">
+                {r.client_nome ?? "Cliente —"}
+                {showVideomaker && r.videomaker_nome && <> · {r.videomaker_nome}</>}
+              </p>
             </div>
           );
 
+          if (!canDeliver) {
+            return (
+              <li key={key}>
+                <Link
+                  href="/calendario"
+                  className="flex items-start justify-between gap-2 rounded-lg border bg-card p-3 hover:bg-muted/40"
+                >
+                  {cardBody}
+                </Link>
+              </li>
+            );
+          }
+
           return (
             <li key={key}>
-              {canDeliver ? (
-                <button type="button" onClick={() => setOpenEvent(r)} className="block w-full text-left">
-                  {content}
+              <div className="flex items-start gap-2 rounded-lg border bg-card p-3 hover:bg-muted/40">
+                {/* Área principal — click abre form completo */}
+                <button
+                  type="button"
+                  onClick={() => setOpenEvent(r)}
+                  className="flex min-w-0 flex-1 text-left"
+                  title="Entregar com feedback completo (ratings + observações)"
+                >
+                  {cardBody}
                 </button>
-              ) : (
-                <Link href="/calendario" className="block">
-                  {content}
-                </Link>
-              )}
+
+                {/* Botões de ação à direita */}
+                <div className="flex shrink-0 items-start gap-1">
+                  {/* Marcar entregue (rápido) — sem ratings */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpenRapidoEvent(r);
+                    }}
+                    className="inline-flex items-center gap-1 rounded-md border border-emerald-500/40 bg-emerald-500/5 px-2 py-1 text-[10px] font-medium uppercase tracking-wider text-emerald-700 hover:bg-emerald-500/15 dark:text-emerald-300"
+                    title="Marcar como entregue sem preencher feedback completo"
+                  >
+                    <CheckCircle2 className="h-3 w-3" />
+                    Entregue
+                  </button>
+
+                  {/* Form completo — ícone Upload (atalho do botão principal) */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpenEvent(r);
+                    }}
+                    className="rounded-md p-1.5 text-primary hover:bg-primary/10"
+                    title="Entregar com feedback completo"
+                  >
+                    <Upload className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
             </li>
           );
         })}
@@ -118,6 +163,20 @@ export function PendenteEntregaAba({ rows, showVideomaker, canDeliver, clientes 
             />
           </DialogContent>
         </Dialog>
+      )}
+
+      {openRapidoEvent && (
+        <MarcarEntregueRapidoDialog
+          open={openRapidoEvent !== null}
+          onOpenChange={(o) => { if (!o) setOpenRapidoEvent(null); }}
+          eventId={openRapidoEvent.event_id}
+          titulo={`${openRapidoEvent.titulo}${openRapidoEvent.client_nome ? ` · ${openRapidoEvent.client_nome}` : ""}`}
+          onPedirFormCompleto={() => {
+            const ev = openRapidoEvent;
+            setOpenRapidoEvent(null);
+            setOpenEvent(ev);
+          }}
+        />
       )}
     </div>
   );

@@ -30,6 +30,28 @@ export const createCapturaSchema = z.object({
 
 export type CreateCapturaInput = z.infer<typeof createCapturaSchema>;
 
+/**
+ * Schema "modo rápido": pra quando a entrega já aconteceu fora do sistema
+ * (videomaker mandou drive direto, deu erro no form completo, etc.) e o
+ * usuário só quer marcar como entregue pra sair da lista de pendentes.
+ *
+ * Diferenças do schema completo:
+ *  - `drive_url` é OPCIONAL (placeholder "—" se vazio)
+ *  - Todos os 7 ratings são OPCIONAIS (não força avaliação de feedback)
+ *  - `event_id` obrigatório (vem do clique no card)
+ *  - `client_id` opcional (busca do event_id se não vier)
+ */
+export const markEntregueRapidoSchema = z.object({
+  event_id: z.string().uuid(),
+  drive_url: z.union([
+    z.string().url("Link do Drive inválido").max(500),
+    z.literal(""),
+  ]).optional(),
+  observacoes: z.string().max(2000).optional().nullable(),
+});
+
+export type MarkEntregueRapidoInput = z.infer<typeof markEntregueRapidoSchema>;
+
 export const RATING_FIELDS = [
   { name: "rating_organizacao", label: "Organização do cliente" },
   { name: "rating_facilidade", label: "Facilidade na gravação" },
