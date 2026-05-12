@@ -63,7 +63,13 @@ export const config = {
   // Exclui assets estáticos da PWA pra middleware não interceptar e
   // corromper o Content-Type (manifest e service worker precisam ser
   // servidos limpos, sem cookies de auth/redirect).
+  //
+  // Também exclui `api/cron/*` e `api/webhooks/*` — esses endpoints são
+  // chamados sem cookies de usuário (Vercel Cron, integrações externas),
+  // então não faz sentido rodar `auth.getUser()` (~1 round-trip HTTP) neles.
+  // Eles validam autenticação pelo próprio header (CRON_SECRET, signature
+  // do webhook, etc).
   matcher: [
-    "/((?!_next/static|_next/image|favicon|public|manifest\\.webmanifest|sw\\.js|.*\\.svg|.*\\.png).*)",
+    "/((?!_next/static|_next/image|favicon|public|manifest\\.webmanifest|sw\\.js|api/cron|api/webhooks|.*\\.svg|.*\\.png).*)",
   ],
 };

@@ -1,6 +1,13 @@
 // SERVER ONLY
+import { unstable_cache } from "next/cache";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import type { StatusLigacao, TipoLigacao } from "./tipos";
+
+// Quando alguém criar webhook de PABX/Evolution, chamar `revalidateTag("ligacoes")`
+// no handler pra invalidar manualmente. Por enquanto, TTL 120s é aceitável
+// (página vista poucas vezes por dia).
+const LIGACOES_TAG = "ligacoes" as const;
+const LIGACOES_REVALIDATE_SECONDS = 120;
 
 export interface LigacaoRow {
   id: string;
@@ -49,7 +56,7 @@ export interface ListLigacoesResult {
   totalPages: number;
 }
 
-export async function listLigacoes(
+async function _listLigacoesImpl(
   organizationId: string,
   filter: ListLigacoesFilter = {},
 ): Promise<ListLigacoesResult> {
@@ -142,6 +149,21 @@ export async function listLigacoes(
   return { ligacoes, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
 }
 
+export async function listLigacoes(
+  organizationId: string,
+  filter: ListLigacoesFilter = {},
+): Promise<ListLigacoesResult> {
+  const cached = unstable_cache(
+    async (orgId: string, filterJson: string) => {
+      const f = JSON.parse(filterJson) as ListLigacoesFilter;
+      return _listLigacoesImpl(orgId, f);
+    },
+    ["ligacoes-list"],
+    { revalidate: LIGACOES_REVALIDATE_SECONDS, tags: [LIGACOES_TAG] },
+  );
+  return cached(organizationId, JSON.stringify(filter));
+}
+
 export interface MetricasGerais {
   total: number;
   atendidas: number;
@@ -161,7 +183,7 @@ interface PeriodoFilter {
   ate: string;
 }
 
-export async function getMetricasGerais(
+async function _getMetricasGeraisImpl(
   organizationId: string,
   periodo: PeriodoFilter,
 ): Promise<MetricasGerais> {
@@ -172,16 +194,35 @@ export async function getMetricasGerais(
   const desdeIso = `${periodo.desde}T00:00:00Z`;
   const ateIso = `${periodo.ate}T23:59:59Z`;
 
-  const { data, error } = await sb
-    .from("ligacoes")
-    .select("status, tipo, duracao_segundos, numero")
-    .eq("organization_id", organizationId)
-    .is("arquivado_em", null)
-    .gte("iniciada_em", desdeIso)
-    .lte("iniciada_em", ateIso);
+  // Período anterior pra calcular variação — mesma duração que o atual,
+  // imediatamente antes de `desde`.
+  const desdeMs = new Date(desdeIso).getTime();
+  const ateMs = new Date(ateIso).getTime();
+  const durMs = ateMs - desdeMs;
+  const anteriorAteIso = new Date(desdeMs - 1000).toISOString();
+  const anteriorDesdeIso = new Date(desdeMs - 1000 - durMs).toISOString();
 
-  if (error) {
-    console.warn("[ligacoes] getMetricasGerais error:", error.message);
+  // Roda as duas queries em paralelo — antes era sequencial (atual → depois
+  // anterior). Período anterior só conta rows pra cálculo de variação.
+  const [atualRes, anteriorRes] = await Promise.all([
+    sb
+      .from("ligacoes")
+      .select("status, tipo, duracao_segundos, numero")
+      .eq("organization_id", organizationId)
+      .is("arquivado_em", null)
+      .gte("iniciada_em", desdeIso)
+      .lte("iniciada_em", ateIso),
+    sb
+      .from("ligacoes")
+      .select("id")
+      .eq("organization_id", organizationId)
+      .is("arquivado_em", null)
+      .gte("iniciada_em", anteriorDesdeIso)
+      .lte("iniciada_em", anteriorAteIso),
+  ]);
+
+  if (atualRes.error) {
+    console.warn("[ligacoes] getMetricasGerais error:", atualRes.error.message);
     return {
       total: 0, atendidas: 0, perdidas: 0, rejeitadas: 0, outras: 0,
       duracao_total_seg: 0, duracao_media_seg: 0, clientes_unicos: 0,
@@ -190,7 +231,7 @@ export async function getMetricasGerais(
     };
   }
 
-  const rows = (data ?? []) as Array<{ status: string; tipo: string; duracao_segundos: number; numero: string }>;
+  const rows = (atualRes.data ?? []) as Array<{ status: string; tipo: string; duracao_segundos: number; numero: string }>;
   const total = rows.length;
   let atendidas = 0;
   let perdidas = 0;
@@ -214,22 +255,8 @@ export async function getMetricasGerais(
     else if (r.tipo === "whatsapp") porTipo.whatsapp++;
   }
 
-  // Calcula variação vs período anterior (mesma duração)
-  const desdeMs = new Date(desdeIso).getTime();
-  const ateMs = new Date(ateIso).getTime();
-  const durMs = ateMs - desdeMs;
-  const anteriorAteIso = new Date(desdeMs - 1000).toISOString();
-  const anteriorDesdeIso = new Date(desdeMs - 1000 - durMs).toISOString();
-
   let variacao: number | null = null;
-  const { data: anteriorData } = await sb
-    .from("ligacoes")
-    .select("id")
-    .eq("organization_id", organizationId)
-    .is("arquivado_em", null)
-    .gte("iniciada_em", anteriorDesdeIso)
-    .lte("iniciada_em", anteriorAteIso);
-  const anterior = (anteriorData ?? []) as Array<unknown>;
+  const anterior = (anteriorRes.data ?? []) as Array<unknown>;
   if (anterior.length > 0) {
     variacao = ((total - anterior.length) / anterior.length) * 100;
   } else if (total > 0) {
@@ -250,6 +277,20 @@ export async function getMetricasGerais(
   };
 }
 
+export async function getMetricasGerais(
+  organizationId: string,
+  periodo: PeriodoFilter,
+): Promise<MetricasGerais> {
+  const cached = unstable_cache(
+    async (orgId: string, desde: string, ate: string) => {
+      return _getMetricasGeraisImpl(orgId, { desde, ate });
+    },
+    ["ligacoes-metricas"],
+    { revalidate: LIGACOES_REVALIDATE_SECONDS, tags: [LIGACOES_TAG] },
+  );
+  return cached(organizationId, periodo.desde, periodo.ate);
+}
+
 export interface VolumePorDia {
   data: string;             // YYYY-MM-DD
   total: number;
@@ -257,7 +298,7 @@ export interface VolumePorDia {
   perdidas: number;
 }
 
-export async function getVolumePorDia(
+async function _getVolumePorDiaImpl(
   organizationId: string,
   periodo: PeriodoFilter,
 ): Promise<VolumePorDia[]> {
@@ -300,6 +341,20 @@ export async function getVolumePorDia(
   return [...map.values()].sort((a, b) => a.data.localeCompare(b.data));
 }
 
+export async function getVolumePorDia(
+  organizationId: string,
+  periodo: PeriodoFilter,
+): Promise<VolumePorDia[]> {
+  const cached = unstable_cache(
+    async (orgId: string, desde: string, ate: string) => {
+      return _getVolumePorDiaImpl(orgId, { desde, ate });
+    },
+    ["ligacoes-volume-dia"],
+    { revalidate: LIGACOES_REVALIDATE_SECONDS, tags: [LIGACOES_TAG] },
+  );
+  return cached(organizationId, periodo.desde, periodo.ate);
+}
+
 export interface HeatmapCell {
   /** 0=Domingo, 6=Sábado */
   diaSemana: number;
@@ -308,7 +363,7 @@ export interface HeatmapCell {
   count: number;
 }
 
-export async function getHeatmapHorarios(
+async function _getHeatmapHorariosImpl(
   organizationId: string,
   periodo: PeriodoFilter,
 ): Promise<HeatmapCell[]> {
@@ -353,6 +408,20 @@ export async function getHeatmapHorarios(
   return [...map.values()];
 }
 
+export async function getHeatmapHorarios(
+  organizationId: string,
+  periodo: PeriodoFilter,
+): Promise<HeatmapCell[]> {
+  const cached = unstable_cache(
+    async (orgId: string, desde: string, ate: string) => {
+      return _getHeatmapHorariosImpl(orgId, { desde, ate });
+    },
+    ["ligacoes-heatmap"],
+    { revalidate: LIGACOES_REVALIDATE_SECONDS, tags: [LIGACOES_TAG] },
+  );
+  return cached(organizationId, periodo.desde, periodo.ate);
+}
+
 export interface RankingColaborador {
   colaborador_id: string;
   colaborador_nome: string;
@@ -367,7 +436,7 @@ export interface RankingColaborador {
   taxa_atendimento_pct: number;
 }
 
-export async function getRankingColaboradores(
+async function _getRankingColaboradoresImpl(
   organizationId: string,
   periodo: PeriodoFilter,
 ): Promise<RankingColaborador[]> {
@@ -425,10 +494,25 @@ export async function getRankingColaboradores(
   })).sort((a, b) => b.total - a.total);
 }
 
+export async function getRankingColaboradores(
+  organizationId: string,
+  periodo: PeriodoFilter,
+): Promise<RankingColaborador[]> {
+  const cached = unstable_cache(
+    async (orgId: string, desde: string, ate: string) => {
+      return _getRankingColaboradoresImpl(orgId, { desde, ate });
+    },
+    ["ligacoes-ranking"],
+    { revalidate: LIGACOES_REVALIDATE_SECONDS, tags: [LIGACOES_TAG] },
+  );
+  return cached(organizationId, periodo.desde, periodo.ate);
+}
+
 /**
  * Lista colaboradores ativos pra filtros.
+ * Cacheada com tag genérica "profiles" — muda raramente.
  */
-export async function listColaboradoresAtivos(
+async function _listColaboradoresAtivosImpl(
   organizationId: string,
 ): Promise<Array<{ id: string; nome: string }>> {
   const supabase = createServiceRoleClient();
@@ -444,10 +528,21 @@ export async function listColaboradoresAtivos(
   return (data ?? []) as Array<{ id: string; nome: string }>;
 }
 
+export async function listColaboradoresAtivos(
+  organizationId: string,
+): Promise<Array<{ id: string; nome: string }>> {
+  const cached = unstable_cache(
+    async (orgId: string) => _listColaboradoresAtivosImpl(orgId),
+    ["ligacoes-colaboradores-ativos"],
+    { revalidate: 600, tags: ["profiles"] },
+  );
+  return cached(organizationId);
+}
+
 /**
- * Pega organization_id do perfil.
+ * Pega organization_id do perfil. Cacheado por user — não muda quase nunca.
  */
-export async function getOrganizationId(userId: string): Promise<string | null> {
+async function _getOrganizationIdImpl(userId: string): Promise<string | null> {
   const supabase = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
@@ -457,4 +552,13 @@ export async function getOrganizationId(userId: string): Promise<string | null> 
     .eq("id", userId)
     .maybeSingle();
   return ((data as { organization_id?: string } | null) ?? null)?.organization_id ?? null;
+}
+
+export async function getOrganizationId(userId: string): Promise<string | null> {
+  const cached = unstable_cache(
+    async (uid: string) => _getOrganizationIdImpl(uid),
+    ["ligacoes-organization-id"],
+    { revalidate: 3600, tags: ["profiles"] },
+  );
+  return cached(userId);
 }
