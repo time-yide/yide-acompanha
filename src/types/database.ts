@@ -522,9 +522,11 @@ export type Database = {
           editor_id: string | null
           email: string | null
           gmn_url: string | null
+          google_ads_customer_id: string | null
           id: string
           instagram_url: string | null
           link_estrategia: string | null
+          meta_ad_account_id: string | null
           motivo_churn: string | null
           nome: string
           numero_unidades: number
@@ -558,9 +560,11 @@ export type Database = {
           editor_id?: string | null
           email?: string | null
           gmn_url?: string | null
+          google_ads_customer_id?: string | null
           id?: string
           instagram_url?: string | null
           link_estrategia?: string | null
+          meta_ad_account_id?: string | null
           motivo_churn?: string | null
           nome: string
           numero_unidades?: number
@@ -594,9 +598,11 @@ export type Database = {
           editor_id?: string | null
           email?: string | null
           gmn_url?: string | null
+          google_ads_customer_id?: string | null
           id?: string
           instagram_url?: string | null
           link_estrategia?: string | null
+          meta_ad_account_id?: string | null
           motivo_churn?: string | null
           nome?: string
           numero_unidades?: number
@@ -1186,6 +1192,7 @@ export type Database = {
           role: Database["public"]["Enums"]["user_role"]
           telefone: string | null
           tema_preferido: Database["public"]["Enums"]["theme_preference"]
+          trafego_metricas_visiveis: string[] | null
           updated_at: string
         }
         Insert: {
@@ -1209,6 +1216,7 @@ export type Database = {
           role: Database["public"]["Enums"]["user_role"]
           telefone?: string | null
           tema_preferido?: Database["public"]["Enums"]["theme_preference"]
+          trafego_metricas_visiveis?: string[] | null
           updated_at?: string
         }
         Update: {
@@ -1232,6 +1240,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"]
           telefone?: string | null
           tema_preferido?: Database["public"]["Enums"]["theme_preference"]
+          trafego_metricas_visiveis?: string[] | null
           updated_at?: string
         }
         Relationships: [
@@ -1520,6 +1529,150 @@ export type Database = {
             columns: ["criado_por"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trafego_campanhas: {
+        Row: {
+          archived_at: string | null
+          budget_diario: number | null
+          budget_total: number | null
+          client_id: string
+          copy: string | null
+          created_at: string
+          created_by: string | null
+          criativo_url: string | null
+          data_fim: string | null
+          data_inicio: string | null
+          external_account_id: string | null
+          external_ad_id: string | null
+          external_adset_id: string | null
+          external_campaign_id: string | null
+          id: string
+          link_destino: string | null
+          nome: string
+          objetivo: string | null
+          observacoes: string | null
+          organization_id: string
+          plataforma: string
+          publico_alvo: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          budget_diario?: number | null
+          budget_total?: number | null
+          client_id: string
+          copy?: string | null
+          created_at?: string
+          created_by?: string | null
+          criativo_url?: string | null
+          data_fim?: string | null
+          data_inicio?: string | null
+          external_account_id?: string | null
+          external_ad_id?: string | null
+          external_adset_id?: string | null
+          external_campaign_id?: string | null
+          id?: string
+          link_destino?: string | null
+          nome: string
+          objetivo?: string | null
+          observacoes?: string | null
+          organization_id: string
+          plataforma: string
+          publico_alvo?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          budget_diario?: number | null
+          budget_total?: number | null
+          client_id?: string
+          copy?: string | null
+          created_at?: string
+          created_by?: string | null
+          criativo_url?: string | null
+          data_fim?: string | null
+          data_inicio?: string | null
+          external_account_id?: string | null
+          external_ad_id?: string | null
+          external_adset_id?: string | null
+          external_campaign_id?: string | null
+          id?: string
+          link_destino?: string | null
+          nome?: string
+          objetivo?: string | null
+          observacoes?: string | null
+          organization_id?: string
+          plataforma?: string
+          publico_alvo?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trafego_campanhas_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trafego_campanhas_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trafego_campanhas_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trafego_metricas_diarias: {
+        Row: {
+          campanha_id: string
+          created_at: string
+          data: string
+          fonte: string
+          id: string
+          metrica_key: string
+          valor_numerico: number | null
+          valor_texto: string | null
+        }
+        Insert: {
+          campanha_id: string
+          created_at?: string
+          data: string
+          fonte?: string
+          id?: string
+          metrica_key: string
+          valor_numerico?: number | null
+          valor_texto?: string | null
+        }
+        Update: {
+          campanha_id?: string
+          created_at?: string
+          data?: string
+          fonte?: string
+          id?: string
+          metrica_key?: string
+          valor_numerico?: number | null
+          valor_texto?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trafego_metricas_diarias_campanha_id_fkey"
+            columns: ["campanha_id"]
+            isOneToOne: false
+            referencedRelation: "trafego_campanhas"
             referencedColumns: ["id"]
           },
         ]
