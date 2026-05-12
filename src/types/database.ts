@@ -514,6 +514,10 @@ export type Database = {
           contato_principal: string | null
           coordenador_id: string | null
           created_at: string
+          crm_identifier: string | null
+          crm_observacoes: string | null
+          crm_tipo: string | null
+          crm_url: string | null
           data_aniversario_socio_cliente: string | null
           data_churn: string | null
           data_entrada: string
@@ -552,6 +556,10 @@ export type Database = {
           contato_principal?: string | null
           coordenador_id?: string | null
           created_at?: string
+          crm_identifier?: string | null
+          crm_observacoes?: string | null
+          crm_tipo?: string | null
+          crm_url?: string | null
           data_aniversario_socio_cliente?: string | null
           data_churn?: string | null
           data_entrada?: string
@@ -590,6 +598,10 @@ export type Database = {
           contato_principal?: string | null
           coordenador_id?: string | null
           created_at?: string
+          crm_identifier?: string | null
+          crm_observacoes?: string | null
+          crm_tipo?: string | null
+          crm_url?: string | null
           data_aniversario_socio_cliente?: string | null
           data_churn?: string | null
           data_entrada?: string
