@@ -10,6 +10,16 @@ import {
   addAttemptSchema,
 } from "./schema";
 import { PROSPECTS_CACHE_TAG, METAS_COMERCIAL_CACHE_TAG } from "./queries";
+import { brtInputToUtcIso } from "@/lib/calendario/timezone";
+
+/**
+ * Converte input datetime-local pra ISO UTC interpretando como fuso da app
+ * (Cuiabá). Dois colaboradores em fusos diferentes que digitam "14:00"
+ * gravam o MESMO timestamp.
+ */
+function datetimeLocalToUtcIso(value: string): string {
+  return brtInputToUtcIso(value);
+}
 
 interface ActionOk { success: true }
 interface ActionErr { error: string }
@@ -40,13 +50,22 @@ export async function agendarReuniaoAction(formData: FormData): Promise<ActionRe
     ? `Marco zero — ${lead.nome_prospect}`
     : `Reunião com ${lead.nome_prospect}`;
 
-  const fimDataHora = new Date(new Date(parsed.data.data_hora).getTime() + 60 * 60 * 1000).toISOString();
+  // Converte wall-clock do datetime-local pra ISO UTC, interpretando no fuso
+  // da app (Cuiabá). Antes salvava o valor cru do input → cada colaborador
+  // (em fuso diferente) gravava um timestamp diferente pro mesmo "14:00".
+  let inicioUtc: string;
+  try {
+    inicioUtc = datetimeLocalToUtcIso(parsed.data.data_hora);
+  } catch (e) {
+    return { error: `Data inválida: ${(e as Error).message}` };
+  }
+  const fimUtc = new Date(new Date(inicioUtc).getTime() + 60 * 60 * 1000).toISOString();
 
   const { error: eventoError } = await supabase.from("calendar_events").insert({
     titulo: tituloEvento,
     descricao: parsed.data.descricao ?? null,
-    inicio: parsed.data.data_hora,
-    fim: fimDataHora,
+    inicio: inicioUtc,
+    fim: fimUtc,
     sub_calendar: "agencia",
     criado_por: actor.id,
     participantes_ids: [actor.id],
@@ -60,7 +79,7 @@ export async function agendarReuniaoAction(formData: FormData): Promise<ActionRe
     : "data_reuniao_marco_zero";
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const updatePayload: any = { [updateField]: parsed.data.data_hora };
+  const updatePayload: any = { [updateField]: inicioUtc };
 
   const { error: updateError } = await supabase
     .from("leads")
@@ -73,7 +92,7 @@ export async function agendarReuniaoAction(formData: FormData): Promise<ActionRe
     acao: "update",
     entidade: "leads",
     entidade_id: lead.id,
-    dados_depois: { reuniao_agendada: parsed.data.tipo, data: parsed.data.data_hora },
+    dados_depois: { reuniao_agendada: parsed.data.tipo, data: inicioUtc },
   });
 
   revalidatePath(`/prospeccao/prospects/${lead.id}`);

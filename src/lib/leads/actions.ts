@@ -14,6 +14,22 @@ import { inferTipoPacote } from "@/lib/clientes/schema";
 import { PROSPECTS_CACHE_TAG } from "@/lib/prospeccao/queries";
 import { LEADS_CACHE_TAG } from "./queries";
 import { getTodayDate } from "@/lib/datetime/timezone";
+import { brtInputToUtcIso, formatBrtDate } from "@/lib/calendario/timezone";
+
+/**
+ * Converte `datetime-local` string ("YYYY-MM-DDTHH:mm") pra ISO UTC,
+ * interpretando o wall-clock no fuso da app (Cuiabá UTC-4). Retorna null
+ * pra string vazia/inválida. Use em TODOS os campos timestamptz vindos de
+ * input datetime-local pra garantir consistência entre colaboradores.
+ */
+function datetimeLocalToUtcOrNull(value: string | null | undefined): string | null {
+  if (!value || typeof value !== "string") return null;
+  try {
+    return brtInputToUtcIso(value);
+  } catch {
+    return null;
+  }
+}
 
 function prettyStage(stage: string): string {
   switch (stage) {
@@ -77,7 +93,7 @@ export async function createLeadAction(formData: FormData) {
     link_proposta: parsed.data.link_proposta || null,
     info_briefing: parsed.data.info_briefing || null,
     prioridade: parsed.data.prioridade,
-    data_prospeccao_agendada: parsed.data.data_prospeccao_agendada || null,
+    data_prospeccao_agendada: datetimeLocalToUtcOrNull(parsed.data.data_prospeccao_agendada),
     stage: "leads_potencial" as const,
     comercial_id: actor.id,
   };
@@ -113,7 +129,7 @@ export async function createLeadAction(formData: FormData) {
     await dispatchNotification({
       evento_tipo: "prospeccao_agendada",
       titulo: "Prospecção agendada",
-      mensagem: `${parsed.data.nome_prospect} — ${new Date(parsed.data.data_prospeccao_agendada).toLocaleDateString("pt-BR")}`,
+      mensagem: `${parsed.data.nome_prospect} — ${formatBrtDate(datetimeLocalToUtcOrNull(parsed.data.data_prospeccao_agendada) ?? parsed.data.data_prospeccao_agendada)}`,
       link: `/onboarding/${created.id}`,
       source_user_id: actor.id,
     });
@@ -166,8 +182,8 @@ export async function updateLeadAction(formData: FormData) {
     link_proposta: parsed.data.link_proposta || null,
     info_briefing: parsed.data.info_briefing || null,
     prioridade: parsed.data.prioridade,
-    data_prospeccao_agendada: parsed.data.data_prospeccao_agendada || null,
-    data_reuniao_marco_zero: parsed.data.data_reuniao_marco_zero || null,
+    data_prospeccao_agendada: datetimeLocalToUtcOrNull(parsed.data.data_prospeccao_agendada),
+    data_reuniao_marco_zero: datetimeLocalToUtcOrNull(parsed.data.data_reuniao_marco_zero),
     coord_alocado_id: parsed.data.coord_alocado_id || null,
     assessor_alocado_id: parsed.data.assessor_alocado_id || null,
   };
@@ -236,8 +252,8 @@ export async function moveStageAction(formData: FormData) {
   }
   if (inlineServico !== undefined) inlineUpdate.servico_proposto = inlineServico || null;
   if (inlineLinkProposta !== undefined) inlineUpdate.link_proposta = inlineLinkProposta || null;
-  if (inlineDataReuniao !== undefined) inlineUpdate.data_prospeccao_agendada = inlineDataReuniao || null;
-  if (inlineDataMarcoZero !== undefined) inlineUpdate.data_reuniao_marco_zero = inlineDataMarcoZero || null;
+  if (inlineDataReuniao !== undefined) inlineUpdate.data_prospeccao_agendada = datetimeLocalToUtcOrNull(inlineDataReuniao);
+  if (inlineDataMarcoZero !== undefined) inlineUpdate.data_reuniao_marco_zero = datetimeLocalToUtcOrNull(inlineDataMarcoZero);
 
   if (Object.keys(inlineUpdate).length > 0) {
     const { error: inlineErr } = await supabase
