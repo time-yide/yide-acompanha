@@ -25,6 +25,7 @@ export interface LeadGeradoRow {
   qualificado: boolean | null;
   potencial_comercial: string | null;
   observacoes_ia: string | null;
+  diagnostico: Record<string, unknown> | null;
   status: string;
   tags: string[];
   observacoes: string | null;
@@ -82,7 +83,7 @@ export async function listLeadsGerados(
   let q = sb
     .from("leads_gerados")
     .select(
-      "id, empresa, telefone, whatsapp, email, website, dominio, instagram, endereco, cidade, estado, categoria, google_rating, google_reviews_count, google_maps_url, decisor_nome, decisor_cargo, decisor_email, score, qualificado, potencial_comercial, observacoes_ia, status, tags, observacoes, responsavel_id, fonte, created_at, updated_at, responsavel:profiles!leads_gerados_responsavel_id_fkey(nome)",
+      "id, empresa, telefone, whatsapp, email, website, dominio, instagram, endereco, cidade, estado, categoria, google_rating, google_reviews_count, google_maps_url, decisor_nome, decisor_cargo, decisor_email, score, qualificado, potencial_comercial, observacoes_ia, diagnostico, status, tags, observacoes, responsavel_id, fonte, created_at, updated_at, responsavel:profiles!leads_gerados_responsavel_id_fkey(nome)",
       { count: "exact" },
     )
     .eq("organization_id", organizationId)
@@ -157,6 +158,7 @@ export async function listLeadsGerados(
     qualificado: (row.qualificado as boolean | null) ?? null,
     potencial_comercial: (row.potencial_comercial as string | null) ?? null,
     observacoes_ia: (row.observacoes_ia as string | null) ?? null,
+    diagnostico: (row.diagnostico as Record<string, unknown> | null) ?? null,
     status: row.status as string,
     tags: Array.isArray(row.tags) ? (row.tags as string[]) : [],
     observacoes: (row.observacoes as string | null) ?? null,
@@ -180,7 +182,7 @@ export async function getLeadGerado(id: string): Promise<LeadGeradoRow | null> {
   const { data, error } = await sb
     .from("leads_gerados")
     .select(
-      "id, empresa, telefone, whatsapp, email, website, dominio, instagram, endereco, cidade, estado, categoria, google_rating, google_reviews_count, google_maps_url, decisor_nome, decisor_cargo, decisor_email, score, qualificado, potencial_comercial, observacoes_ia, status, tags, observacoes, responsavel_id, fonte, created_at, updated_at, responsavel:profiles!leads_gerados_responsavel_id_fkey(nome)",
+      "id, empresa, telefone, whatsapp, email, website, dominio, instagram, endereco, cidade, estado, categoria, google_rating, google_reviews_count, google_maps_url, decisor_nome, decisor_cargo, decisor_email, score, qualificado, potencial_comercial, observacoes_ia, diagnostico, status, tags, observacoes, responsavel_id, fonte, created_at, updated_at, responsavel:profiles!leads_gerados_responsavel_id_fkey(nome)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -210,6 +212,7 @@ export async function getLeadGerado(id: string): Promise<LeadGeradoRow | null> {
     qualificado: (row.qualificado as boolean | null) ?? null,
     potencial_comercial: (row.potencial_comercial as string | null) ?? null,
     observacoes_ia: (row.observacoes_ia as string | null) ?? null,
+    diagnostico: (row.diagnostico as Record<string, unknown> | null) ?? null,
     status: row.status as string,
     tags: Array.isArray(row.tags) ? (row.tags as string[]) : [],
     observacoes: (row.observacoes as string | null) ?? null,
