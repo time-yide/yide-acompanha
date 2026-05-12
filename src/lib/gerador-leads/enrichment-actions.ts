@@ -10,9 +10,15 @@ import { hunterDomainSearch } from "./services/hunter";
 import { scrapeInstagramProfile } from "./services/apify-instagram";
 import { analisarLeadComIA } from "./services/ia-enrichment";
 
+// Tempo máximo de execução do background (after callback). Funções server actions
+// herdam esse limite. Em Vercel Pro = 5min; em Hobby fica capped em 60s.
+// Como o IG scraping pode demorar e a IA também, deixamos 5min de margem.
+export const maxDuration = 300;
+
 interface ActionOk { success: true }
 interface ActionErr { error: string }
 type ActionResult = ActionOk | ActionErr;
+type CreateResult = (ActionOk & { id: string }) | ActionErr;
 
 const ROLES_QUE_GERENCIAM = [
   "adm", "socio", "comercial", "coordenador", "assessor",
@@ -28,6 +34,8 @@ const uuidLike = z.string().regex(
 );
 
 const enrichSchema = z.object({ id: uuidLike });
+
+const LOG_PREFIX = "[enrichment]";
 
 /**
  * Dispara enriquecimento async pra um lead. Retorna imediatamente.
@@ -49,27 +57,23 @@ export async function enriquecerLeadAction(formData: FormData): Promise<ActionRe
   const parsed = enrichSchema.safeParse({ id: formData.get("id") });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
+  const leadId = parsed.data.id;
+  console.log(`${LOG_PREFIX} acionado por ${actor.id} pro lead ${leadId}`);
+
   const supabase = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
 
-  // Pega o lead atual
-  const { data: leadData } = await sb
+  const { data: leadData, error: leadErr } = await sb
     .from("leads_gerados")
     .select("id, empresa, categoria, cidade, telefone, whatsapp, website, dominio, instagram, google_rating, google_reviews_count, endereco")
-    .eq("id", parsed.data.id)
+    .eq("id", leadId)
     .single();
 
-  if (!leadData) return { error: "Lead não encontrado" };
-
-  // Marca como "enriquecendo" — UI pode mostrar spinner
-  // Usamos um campo simples no JSONB diagnostico pra sinalizar
-  await sb
-    .from("leads_gerados")
-    .update({
-      diagnostico: { _enriquecendo: true, _started_at: new Date().toISOString() },
-    })
-    .eq("id", parsed.data.id);
+  if (leadErr || !leadData) {
+    console.error(`${LOG_PREFIX} lead não encontrado:`, leadErr?.message);
+    return { error: "Lead não encontrado" };
+  }
 
   const lead = leadData as {
     id: string;
@@ -86,12 +90,26 @@ export async function enriquecerLeadAction(formData: FormData): Promise<ActionRe
     endereco: string | null;
   };
 
+  // Marca como "enriquecendo" — UI mostra spinner via polling
+  const { error: markErr } = await sb
+    .from("leads_gerados")
+    .update({
+      diagnostico: { _enriquecendo: true, _started_at: new Date().toISOString() },
+    })
+    .eq("id", leadId);
+
+  if (markErr) {
+    console.error(`${LOG_PREFIX} erro ao marcar enriquecendo:`, markErr.message);
+    return { error: `Erro ao iniciar: ${markErr.message}` };
+  }
+
+  // Dispara em background. Vercel mantém o request vivo até maxDuration (5min em Pro).
   after(async () => {
     await processarEnrichment(lead);
   });
 
   revalidatePath("/gerador-leads");
-  revalidatePath(`/gerador-leads/${parsed.data.id}`);
+  revalidatePath(`/gerador-leads/${leadId}`);
   return { success: true };
 }
 
@@ -112,16 +130,45 @@ async function processarEnrichment(lead: {
   const supabase = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
+  const startedAt = Date.now();
+
+  const log = (msg: string, extra?: unknown) =>
+    console.log(`${LOG_PREFIX} [${lead.empresa.slice(0, 30)}] ${msg}`, extra ?? "");
+
+  log("iniciando", { website: lead.website, instagram: lead.instagram, dominio: lead.dominio });
 
   try {
     // Roda em paralelo
+    log("disparando site/hunter/instagram em paralelo");
     const [siteResult, hunterResult, instagramResult] = await Promise.all([
-      lead.website ? scrapeSiteEmpresa(lead.website) : Promise.resolve(null),
-      lead.dominio ? hunterDomainSearch(lead.dominio) : Promise.resolve(null),
-      lead.instagram ? scrapeInstagramProfile(lead.instagram) : Promise.resolve(null),
+      lead.website
+        ? scrapeSiteEmpresa(lead.website).catch((e) => {
+            log("site scraper threw:", e);
+            return null;
+          })
+        : Promise.resolve(null),
+      lead.dominio
+        ? hunterDomainSearch(lead.dominio).catch((e) => {
+            log("hunter threw:", e);
+            return null;
+          })
+        : Promise.resolve(null),
+      lead.instagram
+        ? scrapeInstagramProfile(lead.instagram).catch((e) => {
+            log("apify threw:", e);
+            return null;
+          })
+        : Promise.resolve(null),
     ]);
 
+    log("scrapers concluídos", {
+      site: siteResult ? `success=${siteResult.success}, pessoas=${siteResult.pessoas.length}, emails=${siteResult.emails.length}` : "skip",
+      hunter: hunterResult ? `ok=${hunterResult.ok}, skipped=${hunterResult.skipped}, emails=${hunterResult.emails.length}` : "skip",
+      instagram: instagramResult ? `ok=${instagramResult.ok}, skipped=${instagramResult.skipped}, followers=${instagramResult.followersCount}` : "skip",
+    });
+
     // IA cruza tudo
+    log("chamando IA Claude");
     const iaResult = await analisarLeadComIA({
       empresa: lead.empresa,
       categoria: lead.categoria,
@@ -138,6 +185,8 @@ async function processarEnrichment(lead: {
       instagram_data: instagramResult,
     });
 
+    log("IA concluída", { ok: iaResult.ok, skipped: !iaResult.ok && iaResult.skipped, score: iaResult.ok ? iaResult.score : null });
+
     // Constrói update
     const update: Record<string, unknown> = {};
 
@@ -153,6 +202,7 @@ async function processarEnrichment(lead: {
       update.diagnostico = {
         ...iaResult.diagnostico,
         _enriquecido_em: new Date().toISOString(),
+        _duracao_ms: Date.now() - startedAt,
         _ia: "ok",
       };
     } else {
@@ -161,12 +211,16 @@ async function processarEnrichment(lead: {
       Object.assign(update, fallbackDecisor);
       update.diagnostico = {
         _enriquecido_em: new Date().toISOString(),
+        _duracao_ms: Date.now() - startedAt,
         _ia: iaResult.skipped ? "skipped" : "erro",
         _ia_error: iaResult.error,
+        _site_ok: siteResult?.success ?? null,
+        _hunter_ok: hunterResult?.ok ?? null,
+        _instagram_ok: instagramResult?.ok ?? null,
       };
       update.observacoes_ia = iaResult.skipped
-        ? "Configure ANTHROPIC_API_KEY pra ativar análise IA. Dados das outras fontes foram salvos."
-        : `Análise IA falhou: ${iaResult.error}. Dados das outras fontes foram salvos.`;
+        ? "ANTHROPIC_API_KEY não configurada — IA pulada. Outras fontes salvas."
+        : `IA falhou: ${iaResult.error}. Outras fontes salvas.`;
     }
 
     // Atualiza Instagram fields se conseguiu
@@ -183,7 +237,6 @@ async function processarEnrichment(lead: {
         businessCategoryName: instagramResult.businessCategoryName,
         externalUrl: instagramResult.externalUrl,
       };
-      // Email/WhatsApp encontrados na bio (preenche se ainda vazios)
       if (instagramResult.emailNaBio && !iaResult.ok) {
         update.email = instagramResult.emailNaBio;
       }
@@ -192,20 +245,43 @@ async function processarEnrichment(lead: {
       }
     }
 
-    await sb
+    log("aplicando update", { keys: Object.keys(update) });
+
+    const { error: updErr } = await sb
       .from("leads_gerados")
       .update(update)
       .eq("id", lead.id);
+
+    if (updErr) {
+      log("update FAILED:", updErr.message);
+      // Tenta salvar pelo menos o erro pra UI mostrar
+      await sb
+        .from("leads_gerados")
+        .update({
+          diagnostico: {
+            _enriquecimento_erro: `Update falhou: ${updErr.message}`,
+            _enriquecido_em: new Date().toISOString(),
+            _duracao_ms: Date.now() - startedAt,
+          },
+          observacoes_ia: `Erro ao salvar: ${updErr.message}`,
+        })
+        .eq("id", lead.id);
+      return;
+    }
+
+    log(`concluído em ${Date.now() - startedAt}ms`);
   } catch (err) {
-    // Em caso de erro fatal, só loga e desmarca enriquecendo
-    console.error("[enrichment] erro fatal:", err);
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`${LOG_PREFIX} erro fatal:`, msg, err);
     await sb
       .from("leads_gerados")
       .update({
         diagnostico: {
-          _enriquecimento_erro: err instanceof Error ? err.message : String(err),
+          _enriquecimento_erro: msg,
           _enriquecido_em: new Date().toISOString(),
+          _duracao_ms: Date.now() - startedAt,
         },
+        observacoes_ia: `Erro durante enriquecimento: ${msg}`,
       })
       .eq("id", lead.id);
   }
@@ -223,7 +299,6 @@ function inferDecisorFromSources(
 
   // Prioridade: Hunter (mais confiável) → Site → Instagram
   if (hunter?.ok && hunter.emails.length > 0) {
-    // Pega o primeiro email "personal" ou o primeiro de qualquer tipo
     const personal = hunter.emails.find((e) => e.type === "personal" && e.first_name);
     const chosen = personal ?? hunter.emails[0];
     if (chosen.first_name || chosen.last_name) {
@@ -255,3 +330,6 @@ function inferDecisorFromSources(
 
   return update;
 }
+
+// Re-export of type aliases for compatibility (CreateResult was defined but unused above)
+export type { ActionResult, CreateResult };

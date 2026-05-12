@@ -14,7 +14,7 @@ import { getServerEnv } from "@/lib/env";
 
 const APIFY_BASE = "https://api.apify.com/v2";
 const ACTOR_ID = "apify~instagram-profile-scraper";
-const FETCH_TIMEOUT_MS = 90_000;
+const FETCH_TIMEOUT_MS = 60_000;
 
 export interface InstagramProfileResult {
   ok: boolean;
