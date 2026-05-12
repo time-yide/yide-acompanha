@@ -150,7 +150,8 @@ export function LeadEditCard({ lead, canEdit }: Props) {
       <div className="space-y-1.5 border-t pt-4">
         <h3 className="text-sm font-semibold">👤 Decisor</h3>
         <p className="text-[11px] text-muted-foreground">
-          Será preenchido automaticamente na Fase 2 via Apollo/Hunter.io.
+          Preenche manualmente ou usa o botão <strong>&quot;Buscar dono&quot;</strong> na lista
+          (roda site scraping + Hunter + Instagram + IA pra identificar automaticamente).
         </p>
       </div>
 

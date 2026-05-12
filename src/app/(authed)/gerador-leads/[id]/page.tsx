@@ -71,7 +71,8 @@ export default async function LeadDetalhePage({
           </Card>
 
           {/* Form editável */}
-          <LeadEditCard lead={lead} canEdit={canEdit} />
+          {/* key força remount quando lead atualiza — useState do form reinicializa com novos valores */}
+          <LeadEditCard key={lead.updated_at} lead={lead} canEdit={canEdit} />
         </div>
 
         {/* Sidebar com info do Google Maps */}
@@ -125,28 +126,78 @@ export default async function LeadDetalhePage({
             )}
           </Card>
 
-          {/* IA observações (Fase 3) */}
-          {lead.observacoes_ia ? (
-            <Card className="p-4 space-y-2 border-primary/30 bg-primary/5">
-              <h2 className="font-semibold text-sm flex items-center gap-1">
-                <Sparkles className="h-4 w-4 text-primary" /> Análise IA
-              </h2>
-              <p className="text-xs whitespace-pre-wrap text-foreground/90">
-                {lead.observacoes_ia}
-              </p>
-            </Card>
-          ) : (
-            <Card className="p-4 space-y-2 border-amber-500/30 bg-amber-500/5">
-              <h2 className="font-semibold text-sm flex items-center gap-1">
-                <Sparkles className="h-4 w-4 text-amber-600" /> IA na Fase 3
-              </h2>
-              <p className="text-[11px] text-muted-foreground">
-                Quando ativarmos a Fase 3, a IA vai analisar esse lead e gerar:
-                score 0-100, qualificado/não, potencial comercial, diagnóstico
-                (sem site, marketing fraco, etc.) e abordagem sugerida.
-              </p>
-            </Card>
-          )}
+          {/* Análise IA — quando rodou ou falhou */}
+          {(() => {
+            const diag = (lead.diagnostico ?? {}) as Record<string, unknown>;
+            const enriquecendo = !!diag._enriquecendo;
+            const erro = (diag._enriquecimento_erro as string | undefined) ?? (diag._ia_error as string | undefined);
+            const enriquecidoEm = diag._enriquecido_em as string | undefined;
+
+            if (enriquecendo) {
+              return (
+                <Card className="p-4 space-y-2 border-amber-500/30 bg-amber-500/5">
+                  <h2 className="font-semibold text-sm flex items-center gap-1">
+                    <Sparkles className="h-4 w-4 text-amber-600 animate-pulse" /> Buscando dono...
+                  </h2>
+                  <p className="text-[11px] text-muted-foreground">
+                    Site scraping + Hunter + Instagram + IA Claude rodando em paralelo.
+                    Pode demorar até 2 minutos. A página atualiza sozinha.
+                  </p>
+                </Card>
+              );
+            }
+
+            if (erro) {
+              return (
+                <Card className="p-4 space-y-2 border-destructive/30 bg-destructive/5">
+                  <h2 className="font-semibold text-sm flex items-center gap-1">
+                    <Sparkles className="h-4 w-4 text-destructive" /> Erro ao buscar dono
+                  </h2>
+                  <p className="text-[11px] text-destructive">{erro}</p>
+                  {enriquecidoEm && (
+                    <p className="text-[10px] text-muted-foreground">
+                      Tentado em {new Date(enriquecidoEm).toLocaleString("pt-BR")}
+                    </p>
+                  )}
+                  <p className="text-[11px] text-muted-foreground pt-2 border-t">
+                    Tenta de novo clicando &quot;Buscar dono&quot; na lista. Se persistir, verifica
+                    se as envs estão configuradas no Vercel: <code>ANTHROPIC_API_KEY</code>,
+                    {" "}<code>HUNTER_API_KEY</code>, <code>APIFY_API_TOKEN</code>.
+                  </p>
+                </Card>
+              );
+            }
+
+            if (lead.observacoes_ia) {
+              return (
+                <Card className="p-4 space-y-2 border-primary/30 bg-primary/5">
+                  <h2 className="font-semibold text-sm flex items-center gap-1">
+                    <Sparkles className="h-4 w-4 text-primary" /> Análise IA
+                  </h2>
+                  <p className="text-xs whitespace-pre-wrap text-foreground/90">
+                    {lead.observacoes_ia}
+                  </p>
+                  {enriquecidoEm && (
+                    <p className="text-[10px] text-muted-foreground pt-1 border-t">
+                      Enriquecido em {new Date(enriquecidoEm).toLocaleString("pt-BR")}
+                    </p>
+                  )}
+                </Card>
+              );
+            }
+
+            return (
+              <Card className="p-4 space-y-2 border-amber-500/30 bg-amber-500/5">
+                <h2 className="font-semibold text-sm flex items-center gap-1">
+                  <Sparkles className="h-4 w-4 text-amber-600" /> Análise IA pendente
+                </h2>
+                <p className="text-[11px] text-muted-foreground">
+                  Clica em <strong>&quot;🔍 Buscar dono&quot;</strong> na lista pra
+                  identificar o decisor + score + diagnóstico de marketing.
+                </p>
+              </Card>
+            );
+          })()}
         </div>
       </div>
     </div>
