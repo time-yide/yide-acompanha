@@ -1,4 +1,4 @@
-import { Database, Construction } from "lucide-react";
+import { Database, Construction, Sparkles } from "lucide-react";
 
 /**
  * Placeholder visual da seção CRM. Fase 1 só mostra o card sem dados;
@@ -6,40 +6,40 @@ import { Database, Construction } from "lucide-react";
  */
 export function CRMPlaceholderSection() {
   return (
-    <section className="rounded-xl border border-dashed bg-card/50 p-5 space-y-3">
-      <header className="flex items-center gap-2">
-        <Database className="h-4 w-4 text-muted-foreground" />
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-          Seu CRM
-        </h2>
-        <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
-          <Construction className="h-3 w-3" />
-          Em breve
-        </span>
-      </header>
+    <section className="overflow-hidden rounded-2xl border bg-card">
+      <div className="bg-gradient-to-br from-amber-500/10 via-card to-card p-6 sm:p-8">
+        <header className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400">
+              <Database className="h-4 w-4" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold uppercase tracking-wider">Seu CRM</h2>
+              <p className="text-xs text-muted-foreground">Tracking de leads e atividades</p>
+            </div>
+          </div>
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-300">
+            <Construction className="h-3 w-3" />
+            Em breve
+          </span>
+        </header>
 
-      <p className="text-sm text-muted-foreground">
-        Em breve você vai acompanhar aqui:
-      </p>
-
-      <ul className="space-y-1.5 text-sm text-muted-foreground">
-        <li className="flex items-start gap-2">
-          <span className="mt-1 h-1 w-1 flex-shrink-0 rounded-full bg-muted-foreground/50" />
-          Leads gerados pra você e onde cada um está no funil
-        </li>
-        <li className="flex items-start gap-2">
-          <span className="mt-1 h-1 w-1 flex-shrink-0 rounded-full bg-muted-foreground/50" />
-          Resumos das últimas reuniões com a equipe
-        </li>
-        <li className="flex items-start gap-2">
-          <span className="mt-1 h-1 w-1 flex-shrink-0 rounded-full bg-muted-foreground/50" />
-          Sua avaliação da Yide e como a equipe percebe vocês
-        </li>
-        <li className="flex items-start gap-2">
-          <span className="mt-1 h-1 w-1 flex-shrink-0 rounded-full bg-muted-foreground/50" />
-          Próximas entregas e prazos
-        </li>
-      </ul>
+        <div className="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+          <ComingSoonItem text="Leads gerados pra você + funil onde cada um está" />
+          <ComingSoonItem text="Próximas entregas e prazos" />
+          <ComingSoonItem text="Histórico de atividades da equipe" />
+          <ComingSoonItem text="Performance de campanhas em detalhe" />
+        </div>
+      </div>
     </section>
+  );
+}
+
+function ComingSoonItem({ text }: { text: string }) {
+  return (
+    <div className="flex items-start gap-2 rounded-lg border border-dashed border-amber-500/20 bg-amber-500/5 p-3">
+      <Sparkles className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-amber-500" />
+      <p className="text-xs text-muted-foreground">{text}</p>
+    </div>
   );
 }

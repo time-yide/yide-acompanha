@@ -1,4 +1,4 @@
-import { Mic } from "lucide-react";
+import { Mic, MessageSquareText, Video } from "lucide-react";
 import type { ReuniaoListItem } from "@/lib/cliente-portal/queries";
 
 interface Props {
@@ -28,51 +28,78 @@ function formatDuracao(segundos: number | null): string {
 export function ReunioesSection({ reunioes }: Props) {
   if (reunioes.length === 0) {
     return (
-      <section className="rounded-xl border bg-card p-5 space-y-3">
-        <header className="flex items-center gap-2">
-          <Mic className="h-4 w-4 text-muted-foreground" />
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-            Últimas reuniões
-          </h2>
-        </header>
-        <p className="text-sm text-muted-foreground">
-          Nenhuma reunião registrada ainda. Quando vocês tiverem encontros gravados
-          com a equipe, os resumos vão aparecer aqui.
-        </p>
+      <section className="overflow-hidden rounded-2xl border bg-card">
+        <div className="bg-gradient-to-br from-violet-500/10 via-card to-card p-6 sm:p-8">
+          <header className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-500/15 text-violet-600 dark:text-violet-400">
+              <Mic className="h-4 w-4" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold uppercase tracking-wider">Últimas reuniões</h2>
+              <p className="text-xs text-muted-foreground">Resumos automáticos das conversas</p>
+            </div>
+          </header>
+
+          <div className="mt-6 flex flex-col items-center gap-3 rounded-xl border border-dashed bg-muted/20 px-6 py-10 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-violet-500/15 text-violet-600 dark:text-violet-400">
+              <Video className="h-5 w-5" />
+            </div>
+            <p className="max-w-sm text-sm text-muted-foreground">
+              Quando vocês tiverem encontros gravados com a equipe,
+              os resumos vão aparecer aqui automaticamente.
+            </p>
+          </div>
+        </div>
       </section>
     );
   }
 
   return (
-    <section className="rounded-xl border bg-card p-5 space-y-4">
-      <header className="flex items-center gap-2">
-        <Mic className="h-4 w-4 text-muted-foreground" />
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-          Últimas reuniões
-        </h2>
-      </header>
+    <section className="overflow-hidden rounded-2xl border bg-card">
+      <div className="bg-gradient-to-br from-violet-500/10 via-card to-card p-6 sm:p-8">
+        <header className="flex items-center gap-2.5">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-500/15 text-violet-600 dark:text-violet-400">
+            <Mic className="h-4 w-4" />
+          </div>
+          <div>
+            <h2 className="text-sm font-bold uppercase tracking-wider">Últimas reuniões</h2>
+            <p className="text-xs text-muted-foreground">
+              {reunioes.length} {reunioes.length === 1 ? "reunião" : "reuniões"} recente{reunioes.length === 1 ? "" : "s"}
+            </p>
+          </div>
+        </header>
 
-      <ul className="space-y-3">
-        {reunioes.map((r) => (
-          <li key={r.id} className="rounded-lg border bg-background/50 p-3">
-            <div className="flex items-baseline justify-between gap-2">
-              <h3 className="text-sm font-medium">{r.titulo}</h3>
-              <span className="flex-shrink-0 text-[11px] text-muted-foreground">
-                {formatDateTime(r.starts_at)} · {formatDuracao(r.duracao_segundos)}
-              </span>
-            </div>
-            {r.summary_ready && r.resumo_preview ? (
-              <p className="mt-1.5 text-sm text-muted-foreground">
-                {r.resumo_preview}
-              </p>
-            ) : (
-              <p className="mt-1.5 text-xs italic text-muted-foreground/70">
-                Resumo em processamento…
-              </p>
-            )}
-          </li>
-        ))}
-      </ul>
+        <ol className="mt-5 space-y-3">
+          {reunioes.map((r) => (
+            <li
+              key={r.id}
+              className="group rounded-xl border bg-background/40 p-4 transition-all hover:border-violet-500/40 hover:bg-background/70"
+            >
+              <div className="flex items-start gap-3">
+                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-violet-500/10 text-violet-600 dark:text-violet-400">
+                  <MessageSquareText className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <h3 className="text-sm font-semibold">{r.titulo}</h3>
+                    <span className="flex-shrink-0 text-[11px] text-muted-foreground">
+                      {formatDateTime(r.starts_at)} · {formatDuracao(r.duracao_segundos)}
+                    </span>
+                  </div>
+                  {r.summary_ready && r.resumo_preview ? (
+                    <p className="mt-1.5 text-sm text-muted-foreground">{r.resumo_preview}</p>
+                  ) : (
+                    <p className="mt-1.5 inline-flex items-center gap-1.5 text-xs italic text-violet-600/70 dark:text-violet-400/70">
+                      <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-violet-500" />
+                      Resumo em processamento…
+                    </p>
+                  )}
+                </div>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
     </section>
   );
 }
