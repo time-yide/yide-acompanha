@@ -352,15 +352,21 @@ export async function deleteClienteAction(formData: FormData) {
 
 type AssignmentField = "assessor_id" | "coordenador_id";
 
-const FIELD_TO_ROLE: Record<AssignmentField, "assessor" | "coordenador"> = {
-  assessor_id: "assessor",
-  coordenador_id: "coordenador",
+/**
+ * Quais roles do banco são aceitas em cada campo de atribuição. "Coordenador"
+ * no UI cobre tanto `socio` (modelo novo após PR #258) quanto `coordenador`
+ * (legado, em phase-out). Mantemos os dois aceitos pra não quebrar atribuição
+ * com perfis legados que ainda existem.
+ */
+const FIELD_TO_ALLOWED_ROLES: Record<AssignmentField, readonly string[]> = {
+  assessor_id: ["assessor"],
+  coordenador_id: ["socio", "coordenador"],
 };
 
 async function validateProfileRole(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
-  expectedRole: "assessor" | "coordenador",
+  field: AssignmentField,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const { data, error } = await supabase
     .from("profiles")
@@ -368,7 +374,8 @@ async function validateProfileRole(
     .eq("id", userId)
     .single();
   if (error || !data) return { ok: false, error: "Papel inválido para essa atribuição" };
-  if (data.role !== expectedRole) {
+  const allowed = FIELD_TO_ALLOWED_ROLES[field];
+  if (!allowed.includes(data.role)) {
     return { ok: false, error: "Papel inválido para essa atribuição" };
   }
   return { ok: true };
@@ -414,7 +421,7 @@ export async function updateClienteAssignmentAction(formData: FormData) {
     [AssignmentField, string | null]
   >) {
     if (value === null) continue;
-    const check = await validateProfileRole(supabase, value, FIELD_TO_ROLE[field]);
+    const check = await validateProfileRole(supabase, value, field);
     if (!check.ok) return { error: check.error };
   }
 
@@ -634,7 +641,7 @@ export async function bulkAssignClientesAction(formData: FormData) {
     [AssignmentField, string | null]
   >) {
     if (value === null) continue;
-    const check = await validateProfileRole(supabase, value, FIELD_TO_ROLE[field]);
+    const check = await validateProfileRole(supabase, value, field);
     if (!check.ok) return { error: check.error };
   }
 

@@ -18,6 +18,12 @@ export interface ColaboradorRow {
 export interface ColaboradorFilters {
   ativo?: boolean;
   role?: string;
+  /**
+   * Filtro de role múltiplo (OR). Útil pra casos onde "Coordenador" no UI
+   * agora cobre tanto `socio` (modelo novo) quanto `coordenador` (legado).
+   * Se `role` E `roles` forem passados, `roles` ganha.
+   */
+  roles?: string[];
   admissionAfter?: string | null;
 }
 
@@ -42,20 +48,20 @@ async function _listColaboradoresImpl(filters?: ColaboradorFilters): Promise<Col
     );
 
   if (typeof filters?.ativo === "boolean") query = query.eq("ativo", filters.ativo);
-  if (filters?.role) {
-    query = query.eq(
-      "role",
-      filters.role as
-        | "adm"
-        | "socio"
-        | "comercial"
-        | "coordenador"
-        | "assessor"
-        | "videomaker"
-        | "designer"
-        | "editor"
-        | "audiovisual_chefe",
-    );
+  type RoleEnum =
+    | "adm"
+    | "socio"
+    | "comercial"
+    | "coordenador"
+    | "assessor"
+    | "videomaker"
+    | "designer"
+    | "editor"
+    | "audiovisual_chefe";
+  if (filters?.roles && filters.roles.length > 0) {
+    query = query.in("role", filters.roles as RoleEnum[]);
+  } else if (filters?.role) {
+    query = query.eq("role", filters.role as RoleEnum);
   }
 
   const { data, error } = await query;
