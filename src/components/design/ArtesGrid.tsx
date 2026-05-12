@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArteFormModal } from "./ArteFormModal";
 import { IaPlaceholderModal } from "./IaPlaceholderModal";
 import { ApprovalLinkButtons } from "./ApprovalLinkButtons";
+import { AgendarPostagemModal } from "./AgendarPostagemModal";
 import { archiveArteAction, changeArteStatusAction } from "@/lib/design/actions";
 import { STATUS_DEFS, FORMATOS, STATUS_VALORES } from "@/lib/design/tipos";
 import type { ArteRow } from "@/lib/design/queries";
@@ -109,6 +110,7 @@ function ArteCard({
 }) {
   const [pendingArchive, startArchive] = useTransition();
   const [pendingStatus, startStatus] = useTransition();
+  const [openAgendar, setOpenAgendar] = useState(false);
   const statusDef = STATUS_DEFS[arte.status];
 
   const cover = arte.midias[0];
@@ -226,6 +228,17 @@ function ArteCard({
               hasMidias={arte.midias.length > 0}
             />
           )}
+          {canManage && arte.status === "aprovado" && (
+            <button
+              type="button"
+              onClick={() => setOpenAgendar(true)}
+              className="inline-flex h-7 items-center gap-1 rounded-md border border-violet-500/40 bg-violet-500/10 px-2 text-[10px] font-medium text-violet-700 dark:text-violet-300 hover:bg-violet-500/20"
+              title="Agendar postagem no Social Media"
+            >
+              <CalendarIcon className="h-3 w-3" />
+              Agendar
+            </button>
+          )}
           {canManage && (
             <select
               value={arte.status}
@@ -261,6 +274,15 @@ function ArteCard({
           )}
         </div>
       </div>
+
+      {openAgendar && (
+        <AgendarPostagemModal
+          open={openAgendar}
+          onOpenChange={setOpenAgendar}
+          arte={arte}
+          clientId={arte.client_id}
+        />
+      )}
     </Card>
   );
 }
