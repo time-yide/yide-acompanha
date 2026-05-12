@@ -343,6 +343,48 @@ export type Database = {
           },
         ]
       }
+      client_self_satisfaction: {
+        Row: {
+          id: string
+          client_id: string
+          submitted_by: string
+          score: number
+          comentario: string | null
+          submitted_at: string
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          submitted_by: string
+          score: number
+          comentario?: string | null
+          submitted_at?: string
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          submitted_by?: string
+          score?: number
+          comentario?: string | null
+          submitted_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_self_satisfaction_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_self_satisfaction_submitted_by_fkey"
+            columns: ["submitted_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_portal_users: {
         Row: {
           user_id: string
