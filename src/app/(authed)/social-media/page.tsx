@@ -53,7 +53,9 @@ export default async function SocialMediaListPage({
           </h1>
           <p className="text-sm text-muted-foreground">
             Gestão de postagens estilo mLabs. Calendário visual + agendamento
-            por cliente. Publicação automática Meta chega na Fase 2.
+            por cliente. Mostra só clientes com social media no pacote
+            (Tráfego+Estratégia, Estratégia, Yide 360°). Publicação automática
+            Meta chega na Fase 2.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
