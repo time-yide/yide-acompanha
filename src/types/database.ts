@@ -521,6 +521,7 @@ export type Database = {
           data_aniversario_socio_cliente: string | null
           data_churn: string | null
           data_entrada: string
+          design_style_guide: Json | null
           designer_id: string | null
           drive_url: string | null
           editor_id: string | null
@@ -563,6 +564,7 @@ export type Database = {
           data_aniversario_socio_cliente?: string | null
           data_churn?: string | null
           data_entrada?: string
+          design_style_guide?: Json | null
           designer_id?: string | null
           drive_url?: string | null
           editor_id?: string | null
@@ -605,6 +607,7 @@ export type Database = {
           data_aniversario_socio_cliente?: string | null
           data_churn?: string | null
           data_entrada?: string
+          design_style_guide?: Json | null
           designer_id?: string | null
           drive_url?: string | null
           editor_id?: string | null
@@ -673,6 +676,112 @@ export type Database = {
             columns: ["videomaker_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      design_artes: {
+        Row: {
+          ai_metadata: Json | null
+          ai_modelo: string | null
+          ai_prompt: string | null
+          agendado_para: string | null
+          ajuste_observacoes: string | null
+          aprovacao_token: string | null
+          aprovado_em: string | null
+          aprovado_por_email: string | null
+          archived_at: string | null
+          client_id: string
+          copy: string | null
+          created_at: string
+          criado_por: string | null
+          descricao: string | null
+          fonte_origem: string
+          formato: string
+          hashtags: string | null
+          id: string
+          midias: Json
+          observacoes: string | null
+          organization_id: string
+          publicado_em: string | null
+          status: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          ai_metadata?: Json | null
+          ai_modelo?: string | null
+          ai_prompt?: string | null
+          agendado_para?: string | null
+          ajuste_observacoes?: string | null
+          aprovacao_token?: string | null
+          aprovado_em?: string | null
+          aprovado_por_email?: string | null
+          archived_at?: string | null
+          client_id: string
+          copy?: string | null
+          created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
+          fonte_origem?: string
+          formato?: string
+          hashtags?: string | null
+          id?: string
+          midias?: Json
+          observacoes?: string | null
+          organization_id: string
+          publicado_em?: string | null
+          status?: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          ai_metadata?: Json | null
+          ai_modelo?: string | null
+          ai_prompt?: string | null
+          agendado_para?: string | null
+          ajuste_observacoes?: string | null
+          aprovacao_token?: string | null
+          aprovado_em?: string | null
+          aprovado_por_email?: string | null
+          archived_at?: string | null
+          client_id?: string
+          copy?: string | null
+          created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
+          fonte_origem?: string
+          formato?: string
+          hashtags?: string | null
+          id?: string
+          midias?: Json
+          observacoes?: string | null
+          organization_id?: string
+          publicado_em?: string | null
+          status?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "design_artes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "design_artes_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "design_artes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
