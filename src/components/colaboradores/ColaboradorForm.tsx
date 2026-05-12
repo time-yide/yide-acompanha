@@ -72,13 +72,16 @@ export function ColaboradorForm({ data, canEditFinance, canEditRole, canEditMeta
                 Role `coordenador` antigo virou legado — só aparece como
                 opção se o usuário sendo editado já tem esse role (pra não
                 quebrar a renderização do select). Pra perfis novos, prefira
-                "Coordenador" (role `socio` no banco).
+                "Coordenador" (role `socio` no banco), que tem todas as
+                permissões de gestão.
               */}
               <SelectItem value="adm">ADM</SelectItem>
               <SelectItem value="socio">Coordenador</SelectItem>
               <SelectItem value="comercial">Comercial</SelectItem>
               {data.role === "coordenador" && (
-                <SelectItem value="coordenador">Coordenador (legado)</SelectItem>
+                <SelectItem value="coordenador">
+                  ⚠️ Coordenador (legado — descontinuado)
+                </SelectItem>
               )}
               <SelectItem value="assessor">Assessor</SelectItem>
               <SelectItem value="audiovisual_chefe">Coordenador audiovisual</SelectItem>
@@ -87,6 +90,17 @@ export function ColaboradorForm({ data, canEditFinance, canEditRole, canEditMeta
               <SelectItem value="editor">Editor</SelectItem>
             </SelectContent>
           </Select>
+          {data.role === "coordenador" && (
+            <div className="rounded-md border border-amber-400/50 bg-amber-50 p-2.5 text-xs text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+              <p className="font-medium">⚠️ Este perfil está em role descontinuada (legado).</p>
+              <p className="mt-1">
+                Pra dar todas as permissões de gestão (gerenciar usuários, aprovar fechamento, financeiro, etc.),
+                escolha <strong>&quot;Coordenador&quot;</strong>. Pra rebaixar pra rotina de atendimento,
+                escolha <strong>Assessor</strong>. Não deixe ninguém ativo em &quot;legado&quot; — esse role
+                tem permissões muito limitadas.
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="space-y-2">
