@@ -4,7 +4,7 @@ import { listEventsForWeek, getWeekRange } from "@/lib/calendario/queries";
 import { SUB_CALENDARS } from "@/lib/calendario/schema";
 import { WeekView } from "@/components/calendario/WeekView";
 import { SubCalendarChips } from "@/components/calendario/SubCalendarChips";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
@@ -57,24 +57,35 @@ export default async function CalendarioPage({ searchParams }: { searchParams: P
           <p className="text-sm text-muted-foreground">{formatRange} · {events.length} eventos</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button render={<Link href={prevHref} />} variant="outline" size="sm">
+          <Link
+            href={prevHref}
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+            aria-label="Semana anterior"
+          >
             <ChevronLeft className="h-4 w-4" />
-          </Button>
+          </Link>
           {isOnTodayWeek ? (
             <Button variant="outline" size="sm" disabled>
               Hoje
             </Button>
           ) : (
-            <Button render={<Link href={todayHref} />} variant="default" size="sm">
+            <Link
+              href={todayHref}
+              className={buttonVariants({ variant: "default", size: "sm" })}
+            >
               ← Hoje
-            </Button>
+            </Link>
           )}
-          <Button render={<Link href={nextHref} />} variant="outline" size="sm">
+          <Link
+            href={nextHref}
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+            aria-label="Próxima semana"
+          >
             <ChevronRight className="h-4 w-4" />
-          </Button>
-          <Button render={<Link href="/calendario/novo" />}>
+          </Link>
+          <Link href="/calendario/novo" className={buttonVariants()}>
             <Plus className="mr-2 h-4 w-4" />Novo evento
-          </Button>
+          </Link>
         </div>
       </header>
 
