@@ -5,6 +5,8 @@ export const NOTIFICATION_TYPES = [
   "task_completed",
   "design_aprovado",
   "design_ajustes_solicitados",
+  "social_post_aprovado",
+  "social_post_ajustes_solicitados",
 ] as const;
 
 export type NotificationType = typeof NOTIFICATION_TYPES[number];
