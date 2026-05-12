@@ -3,6 +3,8 @@ import { z } from "zod";
 export const NOTIFICATION_TYPES = [
   "task_assigned",
   "task_completed",
+  "design_aprovado",
+  "design_ajustes_solicitados",
 ] as const;
 
 export type NotificationType = typeof NOTIFICATION_TYPES[number];

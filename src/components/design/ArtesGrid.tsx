@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArteFormModal } from "./ArteFormModal";
 import { IaPlaceholderModal } from "./IaPlaceholderModal";
+import { ApprovalLinkButtons } from "./ApprovalLinkButtons";
 import { archiveArteAction, changeArteStatusAction } from "@/lib/design/actions";
 import { STATUS_DEFS, FORMATOS, STATUS_VALORES } from "@/lib/design/tipos";
 import type { ArteRow } from "@/lib/design/queries";
@@ -216,6 +217,14 @@ function ArteCard({
             >
               <Download className="h-3 w-3" /> Baixar
             </a>
+          )}
+          {canManage && (
+            <ApprovalLinkButtons
+              arteId={arte.id}
+              aprovacaoToken={arte.aprovacao_token}
+              status={arte.status}
+              hasMidias={arte.midias.length > 0}
+            />
           )}
           {canManage && (
             <select

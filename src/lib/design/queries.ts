@@ -120,6 +120,7 @@ export interface ArteRow {
   publicado_em: string | null;
   aprovado_em: string | null;
   ajuste_observacoes: string | null;
+  aprovacao_token: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -130,7 +131,7 @@ export async function listArtesByCliente(clientId: string): Promise<ArteRow[]> {
   const sb = supabase as any;
   const { data } = await sb
     .from("design_artes")
-    .select("id, client_id, titulo, descricao, formato, status, midias, copy, hashtags, observacoes, fonte_origem, ai_modelo, ai_prompt, agendado_para, publicado_em, aprovado_em, ajuste_observacoes, created_at, updated_at")
+    .select("id, client_id, titulo, descricao, formato, status, midias, copy, hashtags, observacoes, fonte_origem, ai_modelo, ai_prompt, agendado_para, publicado_em, aprovado_em, ajuste_observacoes, aprovacao_token, created_at, updated_at")
     .eq("client_id", clientId)
     .is("archived_at", null)
     .order("created_at", { ascending: false });
@@ -153,6 +154,7 @@ export async function listArtesByCliente(clientId: string): Promise<ArteRow[]> {
     publicado_em: (row.publicado_em as string | null) ?? null,
     aprovado_em: (row.aprovado_em as string | null) ?? null,
     ajuste_observacoes: (row.ajuste_observacoes as string | null) ?? null,
+    aprovacao_token: (row.aprovacao_token as string | null) ?? null,
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
   }));
