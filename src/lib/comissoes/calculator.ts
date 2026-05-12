@@ -146,8 +146,10 @@ function computeCommissionForProfile(
 function getMonthRange(monthRef: string): { firstDay: string; lastDay: string } {
   const [year, month] = monthRef.split("-").map(Number);
   const firstDay = `${year}-${String(month).padStart(2, "0")}-01`;
-  const lastDayDate = new Date(year, month, 0);
-  const lastDay = `${lastDayDate.getFullYear()}-${String(lastDayDate.getMonth() + 1).padStart(2, "0")}-${String(lastDayDate.getDate()).padStart(2, "0")}`;
+  // Dia 0 do próximo mês = último dia do mês corrente. Usa Date.UTC pra evitar
+  // qualquer ambiguidade de fuso ao reconverter pra YYYY-MM-DD.
+  const lastDayUtc = new Date(Date.UTC(year, month, 0));
+  const lastDay = `${lastDayUtc.getUTCFullYear()}-${String(lastDayUtc.getUTCMonth() + 1).padStart(2, "0")}-${String(lastDayUtc.getUTCDate()).padStart(2, "0")}`;
   return { firstDay, lastDay };
 }
 

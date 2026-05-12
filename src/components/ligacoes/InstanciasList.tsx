@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { InstanciaFormModal } from "./InstanciaFormModal";
 import { archiveInstanciaAction, type InstanciaRow } from "@/lib/ligacoes/instancia-actions";
 import { STATUS_INSTANCIA_DEFS } from "@/lib/ligacoes/instancias";
+import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 interface Props {
   instancias: InstanciaRow[];
@@ -157,7 +158,7 @@ function InstanciaCard({
       <div className="flex items-center justify-between pt-2 border-t text-[10px] text-muted-foreground">
         <span>{instancia.total_ligacoes} ligaç{instancia.total_ligacoes === 1 ? "ão" : "ões"}</span>
         {instancia.ultimo_evento_em && (
-          <span>Último evento: {new Date(instancia.ultimo_evento_em).toLocaleDateString("pt-BR")}</span>
+          <span>Último evento: {new Date(instancia.ultimo_evento_em).toLocaleDateString("pt-BR", { timeZone: APP_TIMEZONE })}</span>
         )}
       </div>
     </Card>

@@ -5,6 +5,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/auth/session";
 import { logAudit } from "@/lib/audit/log";
+import { getDatePartsInAppTz } from "@/lib/datetime/timezone";
 import {
   createExpenseSchema,
   updateExpenseSchema,
@@ -151,9 +152,14 @@ export async function deactivateExpenseAction(id: string) {
     return { error: "Desativação só faz sentido pra despesa fixa" };
   }
 
-  const now = new Date();
-  const proxMes = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  const fim_mes = `${proxMes.getFullYear()}-${String(proxMes.getMonth() + 1).padStart(2, "0")}`;
+  // fim_mes = próximo mês (YYYY-MM) no fuso da app (Cuiabá).
+  // Marker: despesa fixa fica inativa a partir desse mês inclusive.
+  const partsHoje = getDatePartsInAppTz();
+  const y = parseInt(partsHoje.year, 10);
+  const m = parseInt(partsHoje.month, 10); // 1-12
+  const proxY = m === 12 ? y + 1 : y;
+  const proxM = m === 12 ? 1 : m + 1;
+  const fim_mes = `${proxY}-${String(proxM).padStart(2, "0")}`;
 
   const { error } = await sb.from("expenses").update({ fim_mes }).eq("id", id);
   if (error) return { error: error.message };

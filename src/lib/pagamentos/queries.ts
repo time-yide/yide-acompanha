@@ -1,5 +1,6 @@
 // SERVER ONLY
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { getCurrentMonthYM } from "@/lib/datetime/timezone";
 
 export interface ClientPaymentRow {
   client_id: string;
@@ -168,7 +169,7 @@ export async function listPayrollForMonth(mesReferencia: string): Promise<Payrol
   });
 }
 
-/** Helper: YYYY-MM do mês corrente em UTC. */
+/** Helper: YYYY-MM do mês corrente no fuso da app (Cuiabá). */
 export function getCurrentMonthRef(now: Date = new Date()): string {
-  return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+  return getCurrentMonthYM(now);
 }

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { RowActionsMenu } from "@/components/colaboradores/RowActionsMenu";
+import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 interface Row {
   id: string;
@@ -111,7 +112,7 @@ export function ColaboradoresTable({
             </TableCell>
             <TableCell className="text-sm text-muted-foreground">{r.email}</TableCell>
             <TableCell className="text-sm text-muted-foreground">
-              {r.data_admissao ? new Date(r.data_admissao).toLocaleDateString("pt-BR") : "—"}
+              {r.data_admissao ? new Date(r.data_admissao).toLocaleDateString("pt-BR", { timeZone: APP_TIMEZONE }) : "—"}
             </TableCell>
             <TableCell>
               {r.ativo ? (

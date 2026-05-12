@@ -8,6 +8,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { CapturaForm } from "./CapturaForm";
 import type { PendenteEvento } from "@/lib/audiovisual/queries";
+import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 interface Props {
   /** Lista de pendências expiradas (já passaram do prazo D+1 09h). */
@@ -17,7 +18,7 @@ interface Props {
 }
 
 function formatDateBR(iso: string): string {
-  return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+  return new Date(iso).toLocaleDateString("pt-BR", { timeZone: APP_TIMEZONE, day: "2-digit", month: "short" });
 }
 
 export function CapturaPendenteLockGate({ overdue, clientes }: Props) {

@@ -1,7 +1,8 @@
 // SERVER ONLY: do not import from client components
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { isInMonth } from "./date-utils";
+import { getCurrentMonthYM, getTodayDate } from "@/lib/datetime/timezone";
+import { isInMonth, lastDayOfMonth } from "./date-utils";
 
 export interface LeadsKpis {
   leadsAtivos: number;
@@ -21,8 +22,9 @@ interface LeadRow {
 
 export async function getLeadsKpis(comercialId: string, now: Date = new Date()): Promise<LeadsKpis> {
   const supabase = await createClient();
-  const monthRef = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
-  const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const monthRef = getCurrentMonthYM(now);
+  // ninetyDaysAgo é uma "date string" no fuso da app (comparado contra colunas date).
+  const ninetyDaysAgo = getTodayDate(new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000));
 
   const { data } = await supabase
     .from("leads")
@@ -187,11 +189,9 @@ export async function getMetaComercial(userId: string, now: Date = new Date()): 
   // service-role para ler colunas sensíveis (fixo_mensal, comissao_percent)
   // que foram REVOKEadas do role authenticated.
   const adminSupabase = createServiceRoleClient();
-  const monthRef = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+  const monthRef = getCurrentMonthYM(now);
   const inicioMes = `${monthRef}-01`;
-  const fimMes = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0))
-    .toISOString()
-    .slice(0, 10);
+  const fimMes = lastDayOfMonth(monthRef);
 
   const { data: profileData } = await adminSupabase
     .from("profiles")

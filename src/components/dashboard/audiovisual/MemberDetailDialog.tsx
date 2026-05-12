@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Calendar, Clock, ListTodo, ExternalLink, CheckCircle2, Wrench, AlertTriangle } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import type { GravacaoItem, TaskItem, CapturaItem } from "@/lib/dashboard/audiovisual";
-import { getDatePartsInAppTz } from "@/lib/datetime/timezone";
+import { formatDateTimeBR, getDatePartsInAppTz } from "@/lib/datetime/timezone";
 
 interface VideomakerProps {
   open: boolean;
@@ -46,13 +46,6 @@ const PRIO_BADGE: Record<string, string> = {
   media: "border-amber-500/40 text-amber-600 dark:text-amber-400",
   baixa: "border-muted-foreground/30 text-muted-foreground",
 };
-
-function formatDateTimeBR(iso: string): string {
-  const d = new Date(iso);
-  const date = d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
-  const time = d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-  return `${date} · ${time}`;
-}
 
 function formatDateOnlyBR(iso: string): string {
   const datePart = iso.length === 10 ? iso : iso.slice(0, 10);

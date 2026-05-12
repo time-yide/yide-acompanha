@@ -12,19 +12,20 @@ import { ClientSearchInput } from "@/components/painel/ClientSearchInput";
 import { ViewToggle } from "@/components/painel/ViewToggle";
 import { PACOTES_NO_PAINEL_MENSAL, type TipoPacote } from "@/lib/painel/pacote-matrix";
 import { parseArea, matchesArea } from "@/lib/painel/area-filter";
+import { getCurrentMonthYM } from "@/lib/datetime/timezone";
 
 const ALLOWED_ROLES = ["adm", "socio", "coordenador", "assessor", "designer", "videomaker", "editor", "audiovisual_chefe"];
 const PRIVILEGED_ROLES = ["adm", "socio", "coordenador"];
 
 function currentMonthRef(): string {
-  const d = new Date();
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+  return getCurrentMonthYM();
 }
 
 function previousMonthRef(monthRef: string): string {
   const [y, m] = monthRef.split("-").map(Number);
-  const d = new Date(Date.UTC(y, m - 2, 1));
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+  // m é 1-12; mês anterior pode virar o ano.
+  if (m === 1) return `${y - 1}-12`;
+  return `${y}-${String(m - 1).padStart(2, "0")}`;
 }
 
 export default async function PainelPage({

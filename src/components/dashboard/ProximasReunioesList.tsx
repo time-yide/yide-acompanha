@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Briefcase, Handshake } from "lucide-react";
 import type { ProximaReuniao } from "@/lib/dashboard/comercial-queries";
+import { APP_TIMEZONE, formatTimeBR, getDatePartsInAppTz } from "@/lib/datetime/timezone";
 
 interface Props {
   reunioes: ProximaReuniao[];
@@ -23,19 +24,42 @@ const TIPO_COLOR = {
 
 function formatRelative(iso: string): string {
   const eventDate = new Date(iso);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
-  const eventDay = new Date(eventDate);
-  eventDay.setHours(0, 0, 0, 0);
+  const now = new Date();
+  const todayParts = getDatePartsInAppTz(now);
+  const eventParts = getDatePartsInAppTz(eventDate);
 
-  if (eventDay.getTime() === today.getTime()) {
-    return `Hoje, ${eventDate.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
+  const tomorrowUtcMs = Date.UTC(
+    parseInt(todayParts.year, 10),
+    parseInt(todayParts.month, 10) - 1,
+    parseInt(todayParts.day, 10) + 1,
+    12,
+    0,
+    0,
+  );
+  const tomorrowParts = getDatePartsInAppTz(new Date(tomorrowUtcMs));
+
+  const isToday =
+    eventParts.year === todayParts.year &&
+    eventParts.month === todayParts.month &&
+    eventParts.day === todayParts.day;
+  const isTomorrow =
+    eventParts.year === tomorrowParts.year &&
+    eventParts.month === tomorrowParts.month &&
+    eventParts.day === tomorrowParts.day;
+
+  if (isToday) {
+    return `Hoje, ${formatTimeBR(eventDate)}`;
   }
-  if (eventDay.getTime() === tomorrow.getTime()) {
-    return `Amanhã, ${eventDate.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
+  if (isTomorrow) {
+    return `Amanhã, ${formatTimeBR(eventDate)}`;
   }
-  return eventDate.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+  return eventDate.toLocaleDateString("pt-BR", {
+    timeZone: APP_TIMEZONE,
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 export function ProximasReunioesList({ reunioes }: Props) {

@@ -5,6 +5,7 @@ import { Eye, EyeOff, Copy, Check, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { revealCredentialAction, deleteCredentialAction } from "@/lib/credenciais/actions";
 import type { CredentialRow } from "@/lib/credenciais/queries";
+import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 interface Props {
   credential: CredentialRow;
@@ -132,6 +133,7 @@ export function CredentialItem({ credential, onEdit }: Props) {
               : "Atualizado"}
             {" · "}
             {new Date(credential.updated_at).toLocaleDateString("pt-BR", {
+              timeZone: APP_TIMEZONE,
               day: "2-digit",
               month: "short",
               year: "numeric",

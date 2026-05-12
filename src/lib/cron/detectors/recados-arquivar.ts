@@ -1,9 +1,10 @@
 // SERVER ONLY
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { getTodayDate } from "@/lib/datetime/timezone";
 
 export async function runRecadosArquivar(): Promise<{ arquivados: number; ran_at: string } | { skipped: true; reason: string }> {
   const supabase = createServiceRoleClient();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getTodayDate();
 
   const { data: existing } = await supabase
     .from("cron_runs")

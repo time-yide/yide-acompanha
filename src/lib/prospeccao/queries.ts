@@ -2,6 +2,7 @@
 import { unstable_cache } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { getCurrentMonthYM } from "@/lib/datetime/timezone";
 
 export const PROSPECTS_CACHE_TAG = "prospects";
 /** Tag pra invalidar quando metas/comissão do profile mudam. Cache de
@@ -312,7 +313,7 @@ export async function getMetasComercial(
   userId: string,
   now: Date = new Date(),
 ): Promise<MetasComercialData> {
-  const monthRef = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+  const monthRef = getCurrentMonthYM(now);
   const cached = unstable_cache(
     async (uid: string, mes: string) => _getMetasComercialImpl(uid, mes),
     ["prospeccao-metas-comercial-v1"],

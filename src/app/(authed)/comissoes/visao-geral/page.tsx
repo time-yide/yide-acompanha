@@ -6,10 +6,10 @@ import { CommissionTabs } from "@/components/comissoes/CommissionTabs";
 import { OverviewTable } from "@/components/comissoes/OverviewTable";
 import { listSnapshotsForMonth, getMonthsAwaitingApproval } from "@/lib/comissoes/queries";
 import { previewAllForMonth } from "@/lib/comissoes/preview";
+import { getCurrentMonthYM } from "@/lib/datetime/timezone";
 
 function defaultMonth(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  return getCurrentMonthYM();
 }
 
 function formatMonthLong(monthRef: string): string {

@@ -7,6 +7,7 @@ import { requireAuth } from "@/lib/auth/session";
 import { logAudit } from "@/lib/audit/log";
 import { parseBulkImport } from "./import";
 import { inferTipoPacote } from "./schema";
+import { getTodayDate } from "@/lib/datetime/timezone";
 
 export async function bulkImportClientesAction(formData: FormData) {
   const actor = await requireAuth();
@@ -27,7 +28,7 @@ export async function bulkImportClientesAction(formData: FormData) {
   const { data: org } = await supabase.from("organizations").select("id").limit(1).single();
   if (!org) throw new Error("Organização não encontrada");
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getTodayDate();
   const payload = parsed.rows.map((r) => ({
     organization_id: org.id,
     nome: r.nome,

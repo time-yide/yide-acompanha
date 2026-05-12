@@ -3,7 +3,7 @@ import { FixoCard } from "./personal/FixoCard";
 import { MinhasTarefasPendentes } from "./personal/MinhasTarefasPendentes";
 import { getProximasGravacoes } from "@/lib/dashboard/personal";
 import { Video, MapPin } from "lucide-react";
-import { getAppTimezoneOffsetMs, getDatePartsInAppTz } from "@/lib/datetime/timezone";
+import { APP_TIMEZONE, getAppTimezoneOffsetMs, getDatePartsInAppTz } from "@/lib/datetime/timezone";
 
 interface Props {
   userId: string;
@@ -36,6 +36,7 @@ function getWeekRangeBR(): { fromIso: string; toIso: string } {
 
 function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString("pt-BR", {
+    timeZone: APP_TIMEZONE,
     weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
   });
 }

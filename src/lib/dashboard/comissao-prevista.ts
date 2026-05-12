@@ -1,6 +1,7 @@
 // SERVER ONLY: do not import from client components
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { isInMonth } from "./date-utils";
+import { getCurrentMonthYM } from "@/lib/datetime/timezone";
+import { isInMonth, lastDayOfMonth } from "./date-utils";
 
 export interface ComissaoPrevista {
   valor: number;
@@ -25,7 +26,7 @@ export async function getComissaoPrevista(
 ): Promise<ComissaoPrevista> {
   // service-role bypassa REVOKE nas colunas sensíveis; userId é sempre auth.uid() do caller.
   const supabase = createServiceRoleClient();
-  const monthRef = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+  const monthRef = getCurrentMonthYM(now);
 
   const { data: profileData } = await supabase
     .from("profiles")
@@ -61,9 +62,7 @@ export async function getComissaoPrevista(
     }
   } else if (role === "comercial") {
     const inicioMes = `${monthRef}-01`;
-    const fimMes = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0))
-      .toISOString()
-      .slice(0, 10);
+    const fimMes = lastDayOfMonth(monthRef);
 
     const { data: leadsData } = await supabase
       .from("leads")

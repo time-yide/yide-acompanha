@@ -7,33 +7,49 @@ import { MessageInput } from "./MessageInput";
 import { useRealtimeMessages } from "@/lib/escritorio/use-realtime-messages";
 import { markChannelReadAction } from "@/lib/escritorio/actions";
 import type { Channel, ChatMessage } from "@/lib/escritorio/types";
+import { APP_TIMEZONE, getDatePartsInAppTz } from "@/lib/datetime/timezone";
 
 function sameDay(a: string, b: string): boolean {
-  const da = new Date(a);
-  const db = new Date(b);
-  return (
-    da.getFullYear() === db.getFullYear() &&
-    da.getMonth() === db.getMonth() &&
-    da.getDate() === db.getDate()
-  );
+  const pa = getDatePartsInAppTz(new Date(a));
+  const pb = getDatePartsInAppTz(new Date(b));
+  return pa.year === pb.year && pa.month === pb.month && pa.day === pb.day;
 }
 
 function formatDateDivider(iso: string): string {
   const d = new Date(iso);
-  const today = new Date();
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  if (
-    d.getFullYear() === today.getFullYear() &&
-    d.getMonth() === today.getMonth() &&
-    d.getDate() === today.getDate()
-  ) return "Hoje";
-  if (
-    d.getFullYear() === yesterday.getFullYear() &&
-    d.getMonth() === yesterday.getMonth() &&
-    d.getDate() === yesterday.getDate()
-  ) return "Ontem";
-  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: d.getFullYear() === today.getFullYear() ? undefined : "numeric" });
+  const now = new Date();
+  const dParts = getDatePartsInAppTz(d);
+  const todayParts = getDatePartsInAppTz(now);
+
+  // "Ontem" = today - 1 dia no fuso da app.
+  const yesterdayUtcMs = Date.UTC(
+    parseInt(todayParts.year, 10),
+    parseInt(todayParts.month, 10) - 1,
+    parseInt(todayParts.day, 10) - 1,
+    12,
+    0,
+    0,
+  );
+  const yesterdayParts = getDatePartsInAppTz(new Date(yesterdayUtcMs));
+
+  const isToday =
+    dParts.year === todayParts.year &&
+    dParts.month === todayParts.month &&
+    dParts.day === todayParts.day;
+  if (isToday) return "Hoje";
+
+  const isYesterday =
+    dParts.year === yesterdayParts.year &&
+    dParts.month === yesterdayParts.month &&
+    dParts.day === yesterdayParts.day;
+  if (isYesterday) return "Ontem";
+
+  return d.toLocaleDateString("pt-BR", {
+    timeZone: APP_TIMEZONE,
+    day: "2-digit",
+    month: "long",
+    year: dParts.year === todayParts.year ? undefined : "numeric",
+  });
 }
 
 function DateDivider({ iso }: { iso: string }) {

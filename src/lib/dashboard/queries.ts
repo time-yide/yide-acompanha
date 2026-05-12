@@ -1,6 +1,7 @@
 // SERVER ONLY: do not import from client components
 import { unstable_cache } from "next/cache";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { getCurrentMonthYM, getPreviousMonthYM, getTodayDate } from "@/lib/datetime/timezone";
 import { isInMonth, monthRange, lastDayOfMonth } from "./date-utils";
 
 interface ClientRow {
@@ -51,17 +52,11 @@ function isActiveOn(c: ClientRow, dateIso: string): boolean {
 
 export async function _getKpisImpl(filter?: ClientFilter): Promise<KpiData> {
   const supabase = createServiceRoleClient();
-  const now = new Date();
-  const monthRef = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
-  const todayIso = now.toISOString().slice(0, 10);
+  const monthRef = getCurrentMonthYM();
+  const todayIso = getTodayDate();
 
-  const prevMonthLastDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 0))
-    .toISOString()
-    .slice(0, 10);
-
-  const prevMonthRef = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1))
-    .toISOString()
-    .slice(0, 7);
+  const prevMonthRef = getPreviousMonthYM();
+  const prevMonthLastDay = lastDayOfMonth(prevMonthRef);
 
   // Não filtra por status='ativo' no SQL — precisamos dos churnados pra contar
   // o churn do mês e o delta vs mês anterior. Onboarding é excluído porque
@@ -322,8 +317,7 @@ export interface AssessorCarteira {
 
 export async function _getCarteiraPorAssessorImpl(filter?: ClientFilter): Promise<AssessorCarteira[]> {
   const supabase = createServiceRoleClient();
-  const now = new Date();
-  const monthRef = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+  const monthRef = getCurrentMonthYM();
 
   let clientsQuery = supabase
     .from("clients")

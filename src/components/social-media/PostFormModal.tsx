@@ -13,6 +13,7 @@ import {
   createSocialPostAction, updateSocialPostAction, uploadSocialMidiaAction,
 } from "@/lib/social-media/actions";
 import { REDES, FORMATOS, STATUS_DEFS } from "@/lib/social-media/tipos";
+import { brtInputToUtcIso, utcIsoToBrtInputValue } from "@/lib/calendario/timezone";
 import type { SocialPostRow } from "@/lib/social-media/queries";
 
 interface Props {
@@ -24,21 +25,28 @@ interface Props {
   defaultDate?: string;
 }
 
-/** Converte ISO UTC → string pra <input type=datetime-local>. */
+/**
+ * Converte ISO UTC → string pra <input type=datetime-local>, sempre no fuso
+ * da app (Cuiabá). Antes usava getTimezoneOffset() do browser, o que fazia
+ * usuários em fusos diferentes verem horários diferentes pro mesmo timestamp.
+ */
 function isoToDatetimeLocal(iso: string | null | undefined): string {
   if (!iso) return "";
-  const d = new Date(iso);
-  // Subtrai timezone offset pra ficar no horário local que o input espera
-  const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
-  return local.toISOString().slice(0, 16);
+  return utcIsoToBrtInputValue(iso);
 }
 
-/** Converte string do <input type=datetime-local> → ISO UTC. */
+/**
+ * Converte string do <input type=datetime-local> → ISO UTC. Sempre interpreta
+ * a entrada como sendo no fuso da app, independente de onde o colaborador
+ * está. Dois colaboradores que digitam "14:00" salvam o MESMO timestamp.
+ */
 function datetimeLocalToIso(value: string): string | null {
   if (!value) return null;
-  const local = new Date(value);
-  if (isNaN(local.getTime())) return null;
-  return local.toISOString();
+  try {
+    return brtInputToUtcIso(value);
+  } catch {
+    return null;
+  }
 }
 
 export function PostFormModal({ open, onOpenChange, clientId, post, defaultDate }: Props) {

@@ -1,18 +1,34 @@
 // SERVER ONLY: do not import from client components
 import { unstable_cache } from "next/cache";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { getAppTimezoneOffsetMs, getDatePartsInAppTz } from "@/lib/datetime/timezone";
 
 export type Periodo = "mes_atual" | "mes_anterior" | "dias_7" | "total";
+
+/**
+ * Constrói o ISO UTC pra "início do dia 1 do mês YYYY-MM no fuso da app".
+ * Ex.: mês "2026-05" → "2026-05-01 00:00 America/Cuiaba" → ISO UTC.
+ */
+function monthStartIso(year: number, monthIndex0: number): string {
+  // pivô às 12h UTC pra evitar bordas de DST hipotéticas
+  const pivot = new Date(Date.UTC(year, monthIndex0, 1, 12, 0, 0));
+  const offsetMs = getAppTimezoneOffsetMs(pivot);
+  const utcMs = Date.UTC(year, monthIndex0, 1, 0, 0, 0, 0) + offsetMs;
+  return new Date(utcMs).toISOString();
+}
 
 export function resolvePeriodo(periodo: Periodo, reference: Date = new Date()): {
   fromIso: string;
   toIso: string;
 } {
   const ref = new Date(reference);
+  const parts = getDatePartsInAppTz(ref);
+  const year = parseInt(parts.year, 10);
+  const monthIndex0 = parseInt(parts.month, 10) - 1; // 0-11 no fuso da app
   if (periodo === "mes_anterior") {
-    const from = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth() - 1, 1));
-    const to = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), 1));
-    return { fromIso: from.toISOString(), toIso: to.toISOString() };
+    const fromIso = monthStartIso(year, monthIndex0 - 1);
+    const toIso = monthStartIso(year, monthIndex0);
+    return { fromIso, toIso };
   }
   if (periodo === "dias_7") {
     const from = new Date(ref.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -22,9 +38,9 @@ export function resolvePeriodo(periodo: Periodo, reference: Date = new Date()): 
     return { fromIso: "1970-01-01T00:00:00.000Z", toIso: "2999-12-31T23:59:59.999Z" };
   }
   // default: mes_atual
-  const from = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), 1));
-  const to = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth() + 1, 1));
-  return { fromIso: from.toISOString(), toIso: to.toISOString() };
+  const fromIso = monthStartIso(year, monthIndex0);
+  const toIso = monthStartIso(year, monthIndex0 + 1);
+  return { fromIso, toIso };
 }
 
 // ─── getMinhasTarefasPendentes ───────────────────────────────────────────────

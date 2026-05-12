@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { STATUS_DEFS, REDE_BY_VALUE } from "@/lib/social-media/tipos";
 import type { SocialPostRow } from "@/lib/social-media/queries";
-import { APP_TIMEZONE } from "@/lib/datetime/timezone";
+import { APP_TIMEZONE, getDatePartsInAppTz } from "@/lib/datetime/timezone";
 
 interface Props {
   posts: SocialPostRow[];
@@ -21,12 +21,24 @@ function firstDayOfMonth(year: number, month: number): Date {
   return new Date(year, month, 1);
 }
 
-/** YYYY-MM-DD da Date local. */
-function ymd(d: Date): string {
+/**
+ * YYYY-MM-DD da Date.
+ *
+ * Para Dates construídas com args numéricos (`new Date(y, m, d)`) — usadas pra
+ * montar a grade — pegamos getters locais, pois a Date representa o dia na TZ
+ * local do JS. Pra timestamps reais (ISO/epoch — ex.: `agendar_para`), pegamos
+ * via `getDatePartsInAppTz` pra fixar no fuso de Cuiabá.
+ */
+function ymdFromLocalDate(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
+}
+
+function ymdFromTimestamp(iso: string): string {
+  const parts = getDatePartsInAppTz(new Date(iso));
+  return `${parts.year}-${parts.month}-${parts.day}`;
 }
 
 const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -36,19 +48,23 @@ const MESES = [
 ];
 
 export function CalendarMonthView({ posts, onCreateForDate, onEditPost, canManage }: Props) {
-  const today = new Date();
-  const [year, setYear] = useState(today.getFullYear());
-  const [month, setMonth] = useState(today.getMonth()); // 0-indexed
+  // "Hoje" no fuso da app (Cuiabá), não no browser do colaborador.
+  const todayParts = getDatePartsInAppTz(new Date());
+  const todayYear = parseInt(todayParts.year, 10);
+  const todayMonth = parseInt(todayParts.month, 10) - 1;
+  const [year, setYear] = useState(todayYear);
+  const [month, setMonth] = useState(todayMonth); // 0-indexed
 
-  const todayYmd = ymd(today);
+  const todayYmd = `${todayParts.year}-${todayParts.month}-${todayParts.day}`;
 
   // Agrupa posts por YYYY-MM-DD da agendar_para (ou created_at se não tem)
+  // no fuso da app — pra evitar D-1/D+1 quando o post for à noite UTC.
   const postsByDay = useMemo(() => {
     const map = new Map<string, SocialPostRow[]>();
     for (const p of posts) {
       const dateStr = p.agendar_para
-        ? ymd(new Date(p.agendar_para))
-        : ymd(new Date(p.created_at));
+        ? ymdFromTimestamp(p.agendar_para)
+        : ymdFromTimestamp(p.created_at);
       const arr = map.get(dateStr) ?? [];
       arr.push(p);
       map.set(dateStr, arr);
@@ -108,8 +124,8 @@ export function CalendarMonthView({ posts, onCreateForDate, onEditPost, canManag
     }
   }
   function goToday() {
-    setYear(today.getFullYear());
-    setMonth(today.getMonth());
+    setYear(todayYear);
+    setMonth(todayMonth);
   }
 
   return (
@@ -158,7 +174,7 @@ export function CalendarMonthView({ posts, onCreateForDate, onEditPost, canManag
       {/* Grid de células */}
       <div className="grid grid-cols-7 gap-1">
         {grid.map((cell, idx) => {
-          const cellYmd = ymd(cell.date);
+          const cellYmd = ymdFromLocalDate(cell.date);
           const dayPosts = postsByDay.get(cellYmd) ?? [];
           const isToday = cellYmd === todayYmd;
 

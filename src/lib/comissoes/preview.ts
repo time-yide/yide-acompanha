@@ -1,10 +1,10 @@
 // SERVER ONLY: do not import from client components
 import { unstable_cache } from "next/cache";
 import { calculateCommission, calculateCommissionsBatch } from "./calculator";
+import { getCurrentMonthYM } from "@/lib/datetime/timezone";
 
 async function _previewMyCommissionImpl(userId: string) {
-  const now = new Date();
-  const monthRef = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const monthRef = getCurrentMonthYM();
   const result = await calculateCommission(userId, monthRef);
   return { monthRef, result };
 }

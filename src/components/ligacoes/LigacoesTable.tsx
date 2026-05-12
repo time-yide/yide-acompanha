@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { LigacaoDetalheModal } from "./LigacaoDetalheModal";
 import { STATUS_DEFS, formatDuracao, formatNumeroBR } from "@/lib/ligacoes/tipos";
 import type { LigacaoRow } from "@/lib/ligacoes/queries";
+import { formatDateBR, formatTimeBR } from "@/lib/datetime/timezone";
 
 interface Props {
   ligacoes: LigacaoRow[];
@@ -58,7 +59,6 @@ export function LigacoesTable({ ligacoes, canManage }: Props) {
             {ligacoes.map((lig) => {
               const statusDef = STATUS_DEFS[lig.status as keyof typeof STATUS_DEFS];
               const isWA = lig.tipo === "whatsapp";
-              const dataHora = new Date(lig.iniciada_em);
 
               return (
                 <TableRow key={lig.id} className="hover:bg-muted/40">
@@ -116,10 +116,10 @@ export function LigacoesTable({ ligacoes, canManage }: Props) {
                   <TableCell>
                     <div className="space-y-0.5">
                       <p className="text-xs">
-                        {dataHora.toLocaleDateString("pt-BR")}
+                        {formatDateBR(lig.iniciada_em)}
                       </p>
                       <p className="text-[10px] text-muted-foreground tabular-nums">
-                        {dataHora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                        {formatTimeBR(lig.iniciada_em)}
                       </p>
                     </div>
                   </TableCell>

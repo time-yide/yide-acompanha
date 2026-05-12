@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { churnClienteAction, reactivateClienteAction } from "@/lib/clientes/actions";
+import { getTodayDate } from "@/lib/datetime/timezone";
 
 interface Props {
   clienteId: string;
@@ -22,7 +23,9 @@ const BADGE: Record<Props["current"], { label: string; cls: string }> = {
   em_onboarding: { label: "Onboarding", cls: "border-blue-500/40 text-blue-600 dark:text-blue-400" },
 };
 
-const TODAY = () => new Date().toISOString().slice(0, 10);
+// "Hoje" no fuso da app (Cuiabá). Antes usava toISOString() que dá UTC —
+// após 20:00 em Cuiabá pré-preenchia o dia seguinte.
+const TODAY = () => getTodayDate();
 
 export function StatusPopover({ clienteId, current }: Props) {
   const [open, setOpen] = useState(false);

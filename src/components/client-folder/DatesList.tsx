@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { differenceInDays, parseISO } from "date-fns";
+import { getDatePartsInAppTz } from "@/lib/datetime/timezone";
 
 interface DateRow {
   id: string;
@@ -25,11 +25,31 @@ export function DatesList({ dates }: { dates: DateRow[] }) {
     );
   }
 
+  // "Hoje" calculado no fuso da app pra comparar diferença em dias-calendário
+  // contra `d.data` (coluna DATE pura).
+  const todayParts = getDatePartsInAppTz(new Date());
+  const todayUtc = Date.UTC(
+    parseInt(todayParts.year, 10),
+    parseInt(todayParts.month, 10) - 1,
+    parseInt(todayParts.day, 10),
+  );
+
   return (
     <ul className="space-y-2">
       {dates.map((d) => {
-        const days = differenceInDays(parseISO(d.data), new Date());
+        // `d.data` é coluna DATE pura (YYYY-MM-DD). Parse manual evita
+        // `new Date(...)` UTC midnight → D-1 em Cuiabá.
+        const datePart = d.data.length === 10 ? d.data : d.data.slice(0, 10);
+        const [y, m, d_] = datePart.split("-").map(Number);
+        const validParts = Number.isFinite(y) && Number.isFinite(m) && Number.isFinite(d_);
+        const dataUtc = validParts ? Date.UTC(y, m - 1, d_) : null;
+        const days = dataUtc !== null
+          ? Math.round((dataUtc - todayUtc) / 86400000)
+          : 0;
         const past = days < 0;
+        const dataLabel = validParts
+          ? new Date(y, m - 1, d_).toLocaleDateString("pt-BR")
+          : d.data;
         return (
           <li key={d.id}>
             <Card className="flex items-center gap-3 p-3">
@@ -39,7 +59,7 @@ export function DatesList({ dates }: { dates: DateRow[] }) {
                   <Badge variant="secondary">{tipoLabel[d.tipo] ?? d.tipo}</Badge>
                 </div>
                 <div className="mt-0.5 text-xs text-muted-foreground">
-                  {new Date(d.data).toLocaleDateString("pt-BR")}
+                  {dataLabel}
                   {past ? ` · há ${Math.abs(days)} dias` : ` · em ${days} dias`}
                 </div>
               </div>

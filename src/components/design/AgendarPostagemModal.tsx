@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { agendarPostagemFromArteAction } from "@/lib/design/integracao-actions";
 import type { ArteRow } from "@/lib/design/queries";
+import { brtInputToUtcIso, utcIsoToBrtInputValue } from "@/lib/calendario/timezone";
 
 interface Props {
   open: boolean;
@@ -50,17 +51,27 @@ const REDES: readonly RedeOpt[] = [
   },
 ];
 
-/** Valor inicial padrão: 1h no futuro, formato datetime-local. */
+/**
+ * Valor inicial padrão: 1h no futuro, formato datetime-local SEMPRE no fuso
+ * da app (Cuiabá UTC-4). Antes usava getTimezoneOffset() do browser, gerando
+ * inconsistência entre colaboradores em fusos diferentes.
+ */
 function defaultDate(): string {
-  const d = new Date(Date.now() + 60 * 60 * 1000);
-  // Subtrai timezone offset pra ficar no horário local que o input espera
-  const local = new Date(d.getTime() - d.getTimezoneOffset() * 60_000);
-  return local.toISOString().slice(0, 16);
+  const iso = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+  return utcIsoToBrtInputValue(iso);
 }
 
+/**
+ * Converte input datetime-local em ISO UTC, sempre interpretando como fuso
+ * da app. Dois usuários que digitam "14:00" gravam o MESMO timestamp.
+ */
 function datetimeLocalToIso(value: string): string {
   if (!value) return "";
-  return new Date(value).toISOString();
+  try {
+    return brtInputToUtcIso(value);
+  } catch {
+    return "";
+  }
 }
 
 export function AgendarPostagemModal({ open, onOpenChange, arte, clientId }: Props) {
