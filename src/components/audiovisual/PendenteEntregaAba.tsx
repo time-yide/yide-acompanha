@@ -13,8 +13,17 @@ interface Props {
   rows: EventoSemCapturaRow[];
   /** Quando true, mostra coluna do videomaker. Pro próprio videomaker, oculta (é redundante). */
   showVideomaker: boolean;
-  /** Quando true, clique abre dialog com CapturaForm pra entregar inline. */
+  /**
+   * Form completo com 7 ratings + URL obrigatórios. Normalmente só pro
+   * videomaker que fez a gravação (vai dar feedback do cliente).
+   */
   canDeliver: boolean;
+  /**
+   * Marcação rápida (sem ratings) — pra casos onde a entrega já aconteceu
+   * fora do sistema, deu erro, ou gestor precisa destravar manualmente.
+   * Tipicamente videomaker + coord/audiovisual_chefe/adm/socio.
+   */
+  canQuickMark?: boolean;
   clientes: Array<{ id: string; nome: string }>;
 }
 
@@ -26,9 +35,12 @@ function formatTimeBR(iso: string): string {
   return new Date(iso).toLocaleTimeString("pt-BR", { timeZone: APP_TIMEZONE, hour: "2-digit", minute: "2-digit" });
 }
 
-export function PendenteEntregaAba({ rows, showVideomaker, canDeliver, clientes }: Props) {
+export function PendenteEntregaAba({ rows, showVideomaker, canDeliver, canQuickMark = false, clientes }: Props) {
   const [openEvent, setOpenEvent] = useState<EventoSemCapturaRow | null>(null);
   const [openRapidoEvent, setOpenRapidoEvent] = useState<EventoSemCapturaRow | null>(null);
+
+  // Tem alguma ação disponível? (form completo OU rápido)
+  const hasAnyAction = canDeliver || canQuickMark;
 
   if (rows.length === 0) {
     return (
@@ -79,7 +91,8 @@ export function PendenteEntregaAba({ rows, showVideomaker, canDeliver, clientes 
             </div>
           );
 
-          if (!canDeliver) {
+          // Sem nenhuma ação disponível — só link pro calendário (visualizar)
+          if (!hasAnyAction) {
             return (
               <li key={key}>
                 <Link
@@ -92,15 +105,22 @@ export function PendenteEntregaAba({ rows, showVideomaker, canDeliver, clientes 
             );
           }
 
+          // Função do clique no corpo do card — prefere form completo se disponível
+          const handleBodyClick = () => {
+            if (canDeliver) setOpenEvent(r);
+            else if (canQuickMark) setOpenRapidoEvent(r);
+          };
+
           return (
             <li key={key}>
               <div className="flex items-start gap-2 rounded-lg border bg-card p-3 hover:bg-muted/40">
-                {/* Área principal — click abre form completo */}
                 <button
                   type="button"
-                  onClick={() => setOpenEvent(r)}
+                  onClick={handleBodyClick}
                   className="flex min-w-0 flex-1 text-left"
-                  title="Entregar com feedback completo (ratings + observações)"
+                  title={canDeliver
+                    ? "Entregar com feedback completo (ratings + observações)"
+                    : "Marcar como entregue (sem feedback completo)"}
                 >
                   {cardBody}
                 </button>
@@ -108,31 +128,35 @@ export function PendenteEntregaAba({ rows, showVideomaker, canDeliver, clientes 
                 {/* Botões de ação à direita */}
                 <div className="flex shrink-0 items-start gap-1">
                   {/* Marcar entregue (rápido) — sem ratings */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setOpenRapidoEvent(r);
-                    }}
-                    className="inline-flex items-center gap-1 rounded-md border border-emerald-500/40 bg-emerald-500/5 px-2 py-1 text-[10px] font-medium uppercase tracking-wider text-emerald-700 hover:bg-emerald-500/15 dark:text-emerald-300"
-                    title="Marcar como entregue sem preencher feedback completo"
-                  >
-                    <CheckCircle2 className="h-3 w-3" />
-                    Entregue
-                  </button>
+                  {canQuickMark && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenRapidoEvent(r);
+                      }}
+                      className="inline-flex items-center gap-1 rounded-md border border-emerald-500/40 bg-emerald-500/5 px-2 py-1 text-[10px] font-medium uppercase tracking-wider text-emerald-700 hover:bg-emerald-500/15 dark:text-emerald-300"
+                      title="Marcar como entregue sem preencher feedback completo (útil quando a entrega aconteceu fora do sistema)"
+                    >
+                      <CheckCircle2 className="h-3 w-3" />
+                      Entregue
+                    </button>
+                  )}
 
-                  {/* Form completo — ícone Upload (atalho do botão principal) */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setOpenEvent(r);
-                    }}
-                    className="rounded-md p-1.5 text-primary hover:bg-primary/10"
-                    title="Entregar com feedback completo"
-                  >
-                    <Upload className="h-4 w-4" />
-                  </button>
+                  {/* Form completo — ícone Upload */}
+                  {canDeliver && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenEvent(r);
+                      }}
+                      className="rounded-md p-1.5 text-primary hover:bg-primary/10"
+                      title="Entregar com feedback completo (ratings + observações)"
+                    >
+                      <Upload className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
               </div>
             </li>
