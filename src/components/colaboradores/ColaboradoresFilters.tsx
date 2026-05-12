@@ -4,12 +4,15 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 
+// Role `socio` no banco = "Coordenador" no UI (modelo novo).
+// Role `coordenador` antigo virou legado — mantido pra filtrar perfis
+// remanescentes mas com sufixo claro.
 const ROLE_OPTIONS = [
   { value: "qualquer", label: "Todos" },
-  { value: "socio", label: "Sócio" },
+  { value: "socio", label: "Coordenador" },
   { value: "adm", label: "ADM" },
   { value: "comercial", label: "Comercial" },
-  { value: "coordenador", label: "Coordenador" },
+  { value: "coordenador", label: "Coordenador (legado)" },
   { value: "assessor", label: "Assessor" },
   { value: "audiovisual_chefe", label: "Coordenador audiovisual" },
   { value: "videomaker", label: "Videomaker" },

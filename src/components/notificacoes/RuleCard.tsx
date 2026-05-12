@@ -29,10 +29,10 @@ const eventLabels: Record<string, string> = {
 };
 
 const ROLE_OPTIONS = [
-  { value: "socio", label: "Sócio" },
+  { value: "socio", label: "Coordenador" },
   { value: "adm", label: "ADM" },
   { value: "comercial", label: "Comercial" },
-  { value: "coordenador", label: "Coordenador" },
+  { value: "coordenador", label: "Coordenador (legado)" },
   { value: "assessor", label: "Assessor" },
   { value: "audiovisual_chefe", label: "Coordenador audiovisual" },
   { value: "videomaker", label: "Videomaker" },

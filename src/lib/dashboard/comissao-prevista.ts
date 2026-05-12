@@ -11,7 +11,7 @@ export interface ComissaoPrevista {
   percentual: number;
 }
 
-type Role = "assessor" | "coordenador" | "comercial";
+type Role = "assessor" | "coordenador" | "comercial" | "socio";
 
 interface ProfileRow {
   fixo_mensal: number;
@@ -42,9 +42,10 @@ export async function getComissaoPrevista(
   let valorComissao = 0;
   let baseCalculo = 0;
 
-  // Coordenador: só fixo (decisão de produto Yasmin). Mantém base=0,
-  // comissao=0, percentual=0 — devolve só o fixo abaixo.
-  if (role === "coordenador") {
+  // Sócio (novo "Coordenador" no UI) e coordenador legado: só fixo
+  // (prolábore de R$ 15.000 configurado em profiles.fixo_mensal pra sócio).
+  // Mantém base=0, comissao=0, percentual=0 — devolve só o fixo abaixo.
+  if (role === "socio" || role === "coordenador") {
     // intencional: pula cálculo variável
   } else if (role === "assessor") {
     const { data: clientsData } = await supabase
@@ -86,10 +87,11 @@ export async function getComissaoPrevista(
   }
 
   const fixo = Number(profile.fixo_mensal);
-  // Pra coordenador, ignora o `comissao_percent` salvo no perfil (que pode
-  // estar legado): sempre retorna percentual=0. Só assessor/comercial expõem
-  // o percentual configurado.
-  const percentual = role === "coordenador" ? 0 : Number(profile.comissao_percent);
+  // Sócio/coordenador legado: ignora qualquer `comissao_percent` salvo no
+  // perfil (legado) — sempre retorna percentual=0. Só assessor/comercial
+  // expõem o percentual configurado.
+  const percentual =
+    role === "socio" || role === "coordenador" ? 0 : Number(profile.comissao_percent);
   return {
     valor: valorComissao + fixo,
     valorVariavel: valorComissao,

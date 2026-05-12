@@ -15,10 +15,10 @@ interface Props {
 }
 
 const ROLE_LABEL: Record<string, string> = {
-  socio: "Sócio",
+  socio: "Coordenador",
   adm: "Adm",
   comercial: "Comercial",
-  coordenador: "Coordenador",
+  coordenador: "Coordenador (legado)",
   assessor: "Assessor",
   videomaker: "Videomaker",
   designer: "Designer",
