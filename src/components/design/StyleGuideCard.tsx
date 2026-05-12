@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { updateStyleGuideAction } from "@/lib/design/actions";
 import type { StyleGuide } from "@/lib/design/tipos";
+import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 interface Props {
   clientId: string;
@@ -333,7 +334,7 @@ export function StyleGuideCard({ clientId, initial, canEdit }: Props) {
           </Button>
           {savedAt && !pending && (
             <span className="text-[11px] text-emerald-600 dark:text-emerald-400">
-              ✓ Salvo {savedAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+              ✓ Salvo {savedAt.toLocaleTimeString("pt-BR", { timeZone: APP_TIMEZONE, hour: "2-digit", minute: "2-digit" })}
             </span>
           )}
         </div>

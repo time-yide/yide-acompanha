@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { STATUS_DEFS, REDE_BY_VALUE } from "@/lib/social-media/tipos";
 import type { SocialPostRow } from "@/lib/social-media/queries";
+import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 interface Props {
   posts: SocialPostRow[];
@@ -216,7 +217,7 @@ function CalendarPostChip({ post, onClick }: { post: SocialPostRow; onClick: () 
   const statusDef = STATUS_DEFS[post.status];
   const cover = post.midias[0];
   const time = post.agendar_para
-    ? new Date(post.agendar_para).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+    ? new Date(post.agendar_para).toLocaleTimeString("pt-BR", { timeZone: APP_TIMEZONE, hour: "2-digit", minute: "2-digit" })
     : null;
 
   return (

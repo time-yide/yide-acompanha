@@ -6,6 +6,7 @@ import { AlertTriangle, Upload } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { CapturaForm } from "./CapturaForm";
 import type { EventoSemCapturaRow } from "@/lib/audiovisual/queries";
+import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 interface Props {
   rows: EventoSemCapturaRow[];
@@ -17,11 +18,11 @@ interface Props {
 }
 
 function formatDateBR(iso: string): string {
-  return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
+  return new Date(iso).toLocaleDateString("pt-BR", { timeZone: APP_TIMEZONE, day: "2-digit", month: "2-digit", year: "2-digit" });
 }
 
 function formatTimeBR(iso: string): string {
-  return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  return new Date(iso).toLocaleTimeString("pt-BR", { timeZone: APP_TIMEZONE, hour: "2-digit", minute: "2-digit" });
 }
 
 export function PendenteEntregaAba({ rows, showVideomaker, canDeliver, clientes }: Props) {

@@ -21,6 +21,7 @@ import { HeatmapHorarios } from "@/components/ligacoes/HeatmapHorarios";
 import { RankingColaboradores } from "@/components/ligacoes/RankingColaboradores";
 import { LigacoesTable } from "@/components/ligacoes/LigacoesTable";
 import { LigacoesToolbar } from "@/components/ligacoes/LigacoesToolbar";
+import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 const ALLOWED_ROLES = ["adm", "socio", "comercial", "coordenador", "assessor"];
 const ROLES_QUE_GERENCIAM = ["adm", "socio", "comercial", "coordenador", "assessor"];
@@ -105,8 +106,8 @@ export default async function LigacoesPage({
             <Phone className="h-6 w-6 text-primary" /> Ligações
           </h1>
           <p className="text-[11px] text-muted-foreground">
-            Período: {new Date(`${desde}T12:00:00`).toLocaleDateString("pt-BR")} →{" "}
-            {new Date(`${ate}T12:00:00`).toLocaleDateString("pt-BR")}
+            Período: {new Date(`${desde}T12:00:00`).toLocaleDateString("pt-BR", { timeZone: APP_TIMEZONE })} →{" "}
+            {new Date(`${ate}T12:00:00`).toLocaleDateString("pt-BR", { timeZone: APP_TIMEZONE })}
           </p>
         </div>
         <Link

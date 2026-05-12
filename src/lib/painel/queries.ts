@@ -1,6 +1,7 @@
 // SERVER ONLY: do not import from client components
 import { unstable_cache } from "next/cache";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { getAppTimezoneOffsetMs } from "@/lib/datetime/timezone";
 import type { StepKey, StepStatus } from "./deadlines";
 import type { TipoPacote } from "./pacote-matrix";
 
@@ -355,11 +356,11 @@ async function _getMonthlyChecklistsImpl(
  * incluído no mês X em vez do mês X+1.
  */
 function getMonthRangeBRT(mesReferencia: string): { startIso: string; endIso: string } {
-  const BRT_OFFSET_MS = 3 * 60 * 60 * 1000;
   const [y, m] = mesReferencia.split("-").map(Number);
-  // BRT midnight do primeiro dia do mês = UTC dia 1 às 03:00
-  const startUtcMs = Date.UTC(y, m - 1, 1, 0, 0, 0, 0) + BRT_OFFSET_MS;
-  const endUtcMs = Date.UTC(y, m, 1, 0, 0, 0, 0) + BRT_OFFSET_MS;
+  // Midnight do primeiro dia do mês no fuso da app (Cuiabá UTC-4 = UTC dia 1 às 04:00)
+  const offsetMs = getAppTimezoneOffsetMs(new Date(Date.UTC(y, m - 1, 1)));
+  const startUtcMs = Date.UTC(y, m - 1, 1, 0, 0, 0, 0) + offsetMs;
+  const endUtcMs = Date.UTC(y, m, 1, 0, 0, 0, 0) + offsetMs;
   return {
     startIso: new Date(startUtcMs).toISOString(),
     endIso: new Date(endUtcMs).toISOString(),

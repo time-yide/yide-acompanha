@@ -13,6 +13,7 @@ import {
   archiveSocialPostAction, changeSocialPostStatusAction,
 } from "@/lib/social-media/actions";
 import type { SocialPostRow } from "@/lib/social-media/queries";
+import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 const formatoLabels: Record<string, string> = Object.fromEntries(
   FORMATOS.map((f) => [f.value, f.label]),
@@ -168,6 +169,7 @@ function PostListItem({
           {post.agendar_para && (
             <span className="text-[10px] text-muted-foreground">
               📅 {new Date(post.agendar_para).toLocaleString("pt-BR", {
+                timeZone: APP_TIMEZONE,
                 day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
               })}
             </span>

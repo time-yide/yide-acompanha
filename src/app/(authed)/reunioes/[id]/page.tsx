@@ -21,6 +21,7 @@ import { ExtractedTasksPanel } from "@/components/reunioes/ExtractedTasksPanel";
 import { MeetingDetailTabs } from "@/components/reunioes/MeetingDetailTabs";
 import { MeetingRealtimeWatcher } from "@/components/reunioes/MeetingRealtimeWatcher";
 import { ProcessingBanner } from "@/components/reunioes/ProcessingBanner";
+import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 const ALLOWED_ROLES = [
   "adm", "socio", "comercial", "coordenador", "assessor", "audiovisual_chefe",
@@ -28,6 +29,7 @@ const ALLOWED_ROLES = [
 
 function formatDataHora(iso: string): string {
   return new Date(iso).toLocaleString("pt-BR", {
+    timeZone: APP_TIMEZONE,
     day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit",
   });
 }

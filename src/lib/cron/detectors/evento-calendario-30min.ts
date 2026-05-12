@@ -1,6 +1,7 @@
 // SERVER ONLY
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
+import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 interface CounterShape { evento_calendario_30min: number }
 interface EventRow {
@@ -48,7 +49,7 @@ export async function detectEventsIn30Min(counters: CounterShape): Promise<void>
       mensagem: `Começa às ${new Date(e.inicio).toLocaleTimeString("pt-BR", {
         hour: "2-digit",
         minute: "2-digit",
-        timeZone: "America/Sao_Paulo",
+        timeZone: APP_TIMEZONE,
       })}`,
       link: `/calendario/${e.id}`,
       user_ids_extras: e.participantes_ids,

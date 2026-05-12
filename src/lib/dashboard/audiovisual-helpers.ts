@@ -1,10 +1,12 @@
-// SERVER ONLY: helpers puros pra cálculo de janelas BRT e timestamp de "concluído"
+// SERVER ONLY: helpers puros pra cálculo de janelas no fuso da app
+// (America/Cuiaba) e timestamp de "concluído".
 
-const BRT_OFFSET_MS = 3 * 60 * 60 * 1000; // BRT = UTC-3
+import { getAppTimezoneOffsetMs, getDatePartsInAppTz } from "@/lib/datetime/timezone";
 
 /**
- * Calcula intervalos pra "hoje BRT" e "futuro de amanhã até N semanas".
- * Retorna ISOs UTC. Os intervalos são contínuos: futuroFromIso == hojeToIso.
+ * Calcula intervalos pra "hoje" e "futuro de amanhã até N semanas" no fuso
+ * da app (Cuiabá UTC-4, sem DST). Retorna ISOs UTC pra usar em queries
+ * Supabase. Os intervalos são contínuos: futuroFromIso == hojeToIso.
  */
 export function getHojeAndFuturoBRT(
   weeksAhead = 2,
@@ -15,19 +17,20 @@ export function getHojeAndFuturoBRT(
   futuroFromIso: string;
   futuroToIso: string;
 } {
-  // Converte ref UTC pra "data BRT" subtraindo offset
-  const brtNow = new Date(reference.getTime() - BRT_OFFSET_MS);
-  // Início do dia BRT (00:00) — em data UTC, isso é dia BRT às 03:00 UTC
-  const hojeFromUTC = new Date(Date.UTC(
-    brtNow.getUTCFullYear(),
-    brtNow.getUTCMonth(),
-    brtNow.getUTCDate(),
-    0, 0, 0, 0,
-  ));
-  // Adiciona offset pra converter pra UTC real
-  const hojeFromMs = hojeFromUTC.getTime() + BRT_OFFSET_MS;
+  // Pega o dia (Y/M/D) ATUAL no fuso da app via Intl, então constrói a
+  // janela em UTC. Usa offset dinâmico (suporta DST se um dia mudar TZ).
+  const parts = getDatePartsInAppTz(reference);
+  const y = parseInt(parts.year, 10);
+  const m = parseInt(parts.month, 10);
+  const d = parseInt(parts.day, 10);
+
+  // Offset positivo (Cuiabá = +4h pra add em UTC pra obter wall-clock)
+  const offsetMs = getAppTimezoneOffsetMs(reference);
+
+  // Início do dia no fuso da app (wall-clock 00:00) → equivalente em UTC
+  const hojeFromMs = Date.UTC(y, m - 1, d, 0, 0, 0, 0) + offsetMs;
   const hojeToMs = hojeFromMs + 24 * 60 * 60 * 1000;
-  const futuroToMs = hojeFromMs + (weeksAhead * 7) * 24 * 60 * 60 * 1000;
+  const futuroToMs = hojeFromMs + weeksAhead * 7 * 24 * 60 * 60 * 1000;
 
   return {
     hojeFromIso: new Date(hojeFromMs).toISOString(),

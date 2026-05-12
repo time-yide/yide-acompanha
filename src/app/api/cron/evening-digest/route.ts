@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { detectEventsTomorrow } from "@/lib/cron/detectors/evento-calendario-amanha";
+import { getTodayDate } from "@/lib/datetime/timezone";
 import type { Json } from "@/types/database";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +20,7 @@ export async function GET(req: Request) {
   }
 
   const supabase = createServiceRoleClient();
-  const today = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const today = getTodayDate();
 
   const { data: existing } = await supabase
     .from("cron_runs")

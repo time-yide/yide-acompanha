@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { LeadActions } from "@/components/gerador-leads/LeadActions";
 import { LeadEditCard } from "@/components/gerador-leads/LeadEditCard";
 import { STATUS_LEAD_DEFS, POTENCIAL_DEFS } from "@/lib/gerador-leads/tipos";
+import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 const ALLOWED_ROLES = ["adm", "socio", "comercial", "coordenador", "assessor"];
 const ROLES_QUE_GERENCIAM = ["adm", "socio", "comercial", "coordenador", "assessor"];
@@ -156,7 +157,7 @@ export default async function LeadDetalhePage({
                   <p className="text-[11px] text-destructive">{erro}</p>
                   {enriquecidoEm && (
                     <p className="text-[10px] text-muted-foreground">
-                      Tentado em {new Date(enriquecidoEm).toLocaleString("pt-BR")}
+                      Tentado em {new Date(enriquecidoEm).toLocaleString("pt-BR", { timeZone: APP_TIMEZONE })}
                     </p>
                   )}
                   <p className="text-[11px] text-muted-foreground pt-2 border-t">
@@ -179,7 +180,7 @@ export default async function LeadDetalhePage({
                   </p>
                   {enriquecidoEm && (
                     <p className="text-[10px] text-muted-foreground pt-1 border-t">
-                      Enriquecido em {new Date(enriquecidoEm).toLocaleString("pt-BR")}
+                      Enriquecido em {new Date(enriquecidoEm).toLocaleString("pt-BR", { timeZone: APP_TIMEZONE })}
                     </p>
                   )}
                 </Card>

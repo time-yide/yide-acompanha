@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { EventCell } from "./EventCell";
 import type { CalendarEvent } from "@/lib/calendario/schema";
 import { getBrtDayOfWeek } from "@/lib/calendario/timezone";
+import { APP_TIMEZONE, getAppTimezoneOffsetMs, getDatePartsInAppTz } from "@/lib/datetime/timezone";
 
 const DAYS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 
@@ -26,14 +27,14 @@ export function WeekView({ weekStart, events }: Props) {
   }
 
   const todayUtc = useMemo(() => {
-    const BRT_OFFSET_MS = 3 * 60 * 60 * 1000;
-    // eslint-disable-next-line react-hooks/purity
-    const todayBrtMs = Date.now() - BRT_OFFSET_MS;
-    const today = new Date(todayBrtMs);
-    today.setUTCHours(0, 0, 0, 0);
-    // Volta pra UTC pra comparar com dates[] que estão em UTC
-    const todayUtcMs = today.getTime() + BRT_OFFSET_MS;
-    return new Date(todayUtcMs);
+    // "Hoje" calculado no fuso da app (Cuiabá UTC-4), convertido pra ms UTC
+    // pra comparar com dates[] que estão em UTC.
+    const parts = getDatePartsInAppTz(new Date());
+    const y = parseInt(parts.year, 10);
+    const m = parseInt(parts.month, 10);
+    const d = parseInt(parts.day, 10);
+    const offsetMs = getAppTimezoneOffsetMs();
+    return new Date(Date.UTC(y, m - 1, d, 0, 0, 0, 0) + offsetMs);
   }, []);
 
   return (
@@ -53,7 +54,7 @@ export function WeekView({ weekStart, events }: Props) {
             >
               <div className="text-[11px] font-semibold uppercase tracking-wider">{DAYS[i]}</div>
               <div className="text-lg font-bold tabular-nums">
-                {d.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit" })}
+                {d.toLocaleDateString("pt-BR", { timeZone: APP_TIMEZONE, day: "2-digit", month: "2-digit" })}
               </div>
               {/* Contador inline no mobile pra dia vazio ficar evidente sem ocupar coluna inteira */}
               {isEmpty && (

@@ -1,6 +1,7 @@
 // SERVER ONLY
 import { unstable_cache } from "next/cache";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { getDatePartsInAppTz } from "@/lib/datetime/timezone";
 import type { StatusLigacao, TipoLigacao } from "./tipos";
 
 // Quando alguém criar webhook de PABX/Evolution, chamar `revalidateTag("ligacoes")`
@@ -392,12 +393,10 @@ async function _getHeatmapHorariosImpl(
   }
 
   for (const r of rows) {
-    // Considera horário BRT (UTC-3). Subtrai 3h da hora UTC.
-    const dt = new Date(r.iniciada_em);
-    const brtMs = dt.getTime() - 3 * 60 * 60 * 1000;
-    const brt = new Date(brtMs);
-    const dia = brt.getUTCDay();
-    const hora = brt.getUTCHours();
+    // Considera horário do fuso da app (Cuiabá UTC-4, sem DST).
+    const parts = getDatePartsInAppTz(new Date(r.iniciada_em));
+    const dia = parts.weekday;
+    const hora = parseInt(parts.hour, 10);
     const key = `${dia}:${hora}`;
     const cur = map.get(key);
     if (cur) {

@@ -2,6 +2,7 @@ import { unstable_cache } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import type { CalendarEvent, SubCalendar } from "./schema";
+import { getAppTimezoneOffsetMs, getDatePartsInAppTz } from "@/lib/datetime/timezone";
 
 const HOUR = 60 * 60 * 1000;
 
@@ -30,27 +31,22 @@ export interface WeekRange {
 }
 
 export function getWeekRange(reference: Date = new Date()): WeekRange {
-  // Trabalha em BRT: a semana do usuário é Segunda BRT 00:00 → próxima Segunda BRT 00:00.
-  // O retorno é em UTC pra usar como bound do query.
-  const BRT_OFFSET_MS = 3 * 60 * 60 * 1000;
+  // Trabalha no fuso da app (Cuiabá UTC-4): semana é Segunda 00:00 → próxima
+  // Segunda 00:00. Retorno é em UTC pra usar como bound do query Postgres.
+  const parts = getDatePartsInAppTz(reference);
+  const y = parseInt(parts.year, 10);
+  const m = parseInt(parts.month, 10);
+  const d = parseInt(parts.day, 10);
+  const dayOfWeek = parts.weekday; // 0=Dom, 1=Seg, ..., 6=Sab
+  const daysSinceMonday = (dayOfWeek + 6) % 7;
 
-  // Reference convertida pra "tempo BRT" (subtraindo o offset UTC-3)
-  const refBrtMs = reference.getTime() - BRT_OFFSET_MS;
-  const refBrt = new Date(refBrtMs);
+  const offsetMs = getAppTimezoneOffsetMs(reference);
 
-  // BRT day-of-week: 0=Dom, 1=Seg, ..., 6=Sáb
-  const dayOfWeekBrt = (refBrt.getUTCDay() + 6) % 7; // 0=Seg, 1=Ter, ..., 6=Dom
+  // Segunda 00:00 no fuso da app → UTC
+  const startUtcMs = Date.UTC(y, m - 1, d - daysSinceMonday, 0, 0, 0, 0) + offsetMs;
+  const endUtcMs = startUtcMs + 7 * 24 * 60 * 60 * 1000;
 
-  // Volta pra Segunda BRT 00:00 (representada como UTC)
-  refBrt.setUTCHours(0, 0, 0, 0);
-  refBrt.setUTCDate(refBrt.getUTCDate() - dayOfWeekBrt);
-
-  // Converte BRT Monday midnight de volta pra UTC (adiciona offset)
-  const start = new Date(refBrt.getTime() + BRT_OFFSET_MS);
-  const end = new Date(start);
-  end.setUTCDate(end.getUTCDate() + 7);
-
-  return { start, end };
+  return { start: new Date(startUtcMs), end: new Date(endUtcMs) };
 }
 
 /**

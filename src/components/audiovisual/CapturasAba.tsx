@@ -6,6 +6,7 @@ import { CapturasOrganizadas } from "./CapturasOrganizadas";
 import { AudiovisualToastFlash } from "./AudiovisualToastFlash";
 import type { CapturaRow } from "@/lib/audiovisual/captura-utils";
 import type { PendenteEvento } from "@/lib/audiovisual/queries";
+import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 interface Props {
   isVideomaker: boolean;
@@ -42,7 +43,7 @@ export function CapturasAba({
             {pendentes.map((p) => (
               <li key={p.event_id} className="flex flex-wrap items-center gap-2">
                 <span className={p.isOverdue ? "font-semibold text-destructive" : "text-muted-foreground"}>
-                  {new Date(p.inicio).toLocaleDateString("pt-BR")} · {p.titulo}
+                  {new Date(p.inicio).toLocaleDateString("pt-BR", { timeZone: APP_TIMEZONE })} · {p.titulo}
                   {p.client_nome ? ` · ${p.client_nome}` : ""}
                 </span>
                 {p.isOverdue && (

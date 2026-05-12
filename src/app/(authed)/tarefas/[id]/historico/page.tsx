@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 const ACAO_LABEL: Record<string, string> = {
   create: "Criada",
@@ -193,7 +194,7 @@ export default async function TarefaHistoricoPage({
                     <span className="text-muted-foreground">·</span>
                     <span className="text-muted-foreground">
                       {new Date(e.created_at).toLocaleString("pt-BR", {
-                        timeZone: "America/Sao_Paulo",
+                        timeZone: APP_TIMEZONE,
                         day: "2-digit",
                         month: "2-digit",
                         year: "numeric",

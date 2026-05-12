@@ -8,14 +8,15 @@ import {
 } from "@/lib/lixeira/queries";
 import { RestoreButton } from "@/components/lixeira/RestoreButton";
 import { Card } from "@/components/ui/card";
+import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 const ROLES_ACESSO = ["adm", "socio", "coordenador", "assessor"];
 const ROLES_RESTAURAR = ["adm", "socio", "coordenador", "assessor"];
 
 function formatDateTimeBR(iso: string): string {
   const d = new Date(iso);
-  const date = d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
-  const time = d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const date = d.toLocaleDateString("pt-BR", { timeZone: APP_TIMEZONE, day: "2-digit", month: "2-digit", year: "numeric" });
+  const time = d.toLocaleTimeString("pt-BR", { timeZone: APP_TIMEZONE, hour: "2-digit", minute: "2-digit" });
   return `${date} ${time}`;
 }
 

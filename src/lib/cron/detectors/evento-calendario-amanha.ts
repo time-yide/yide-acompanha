@@ -1,6 +1,7 @@
 // SERVER ONLY
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
+import { APP_TIMEZONE, getAppTimezoneOffsetMs, getDatePartsInAppTz } from "@/lib/datetime/timezone";
 
 interface CounterShape { evento_calendario_amanha: number }
 interface EventRow {
@@ -22,12 +23,17 @@ interface EventRow {
 export async function detectEventsTomorrow(counters: CounterShape): Promise<void> {
   const supabase = createServiceRoleClient();
 
-  // "Amanhã" em BRT — shift -3h da hora UTC pra trabalhar no fuso BRT
-  const nowBRT = new Date(Date.now() - 3 * 60 * 60 * 1000);
-  const tomorrowBRT = new Date(nowBRT.getFullYear(), nowBRT.getMonth(), nowBRT.getDate() + 1);
-  // Reconverte os limites pra UTC pra usar no .gte/.lt
-  const startUTC = new Date(tomorrowBRT.getTime() + 3 * 60 * 60 * 1000);
-  const endUTC = new Date(startUTC.getTime() + 24 * 60 * 60 * 1000);
+  // "Amanhã" no fuso da app (Cuiabá UTC-4). Calcula dia local, monta janela
+  // 00:00→24:00 wall-clock e converte pra UTC pra usar no .gte/.lt.
+  const parts = getDatePartsInAppTz(new Date());
+  const y = parseInt(parts.year, 10);
+  const m = parseInt(parts.month, 10);
+  const d = parseInt(parts.day, 10);
+  const offsetMs = getAppTimezoneOffsetMs();
+  const startUtcMs = Date.UTC(y, m - 1, d + 1, 0, 0, 0, 0) + offsetMs;
+  const endUtcMs = startUtcMs + 24 * 60 * 60 * 1000;
+  const startUTC = new Date(startUtcMs);
+  const endUTC = new Date(endUtcMs);
 
   const { data } = await supabase
     .from("calendar_events")
@@ -60,7 +66,7 @@ export async function detectEventsTomorrow(counters: CounterShape): Promise<void
       const hora = new Date(e.inicio).toLocaleTimeString("pt-BR", {
         hour: "2-digit",
         minute: "2-digit",
-        timeZone: "America/Sao_Paulo",
+        timeZone: APP_TIMEZONE,
       });
       const prefix = e.sub_calendar === "videomakers" ? "Gravação" : "Reunião";
       return `${hora} — ${prefix} ${e.titulo}`;

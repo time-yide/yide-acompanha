@@ -3,6 +3,7 @@ import { ChatHeader } from "./ChatHeader";
 import { ChatInput } from "./ChatInput";
 import { MessageBubble } from "./MessageBubble";
 import type { ConversaMock, MensagemMock } from "@/lib/conversas/mock-data";
+import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 interface Props {
   conversa: ConversaMock | null;
@@ -30,8 +31,8 @@ function agruparPorDia(mensagens: MensagemMock[]): Array<{ dia: string; rotulo: 
         const d = new Date(`${dia}T12:00:00`);
         const diffDias = (Date.now() - d.getTime()) / 86400000;
         rotulo = diffDias < 7
-          ? d.toLocaleDateString("pt-BR", { weekday: "long" })
-          : d.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
+          ? d.toLocaleDateString("pt-BR", { timeZone: APP_TIMEZONE, weekday: "long" })
+          : d.toLocaleDateString("pt-BR", { timeZone: APP_TIMEZONE, day: "2-digit", month: "long", year: "numeric" });
       }
       return { dia, rotulo, itens };
     });

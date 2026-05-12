@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { respondToSocialApprovalAction } from "@/lib/social-media/approval-actions";
+import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 interface PostData {
   id: string;
@@ -172,7 +173,7 @@ export function ApprovalClient({ token, post }: { token: string; post: PostData 
             {post.agendar_para && (
               <p className="text-[11px] text-muted-foreground">
                 <CalendarIcon className="inline h-3 w-3 mr-1" />
-                Agendado pra <strong className="text-foreground">{new Date(post.agendar_para).toLocaleString("pt-BR")}</strong>
+                Agendado pra <strong className="text-foreground">{new Date(post.agendar_para).toLocaleString("pt-BR", { timeZone: APP_TIMEZONE })}</strong>
               </p>
             )}
 

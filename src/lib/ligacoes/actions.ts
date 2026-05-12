@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { requireAuth } from "@/lib/auth/session";
+import { getAppTimezoneOffsetMs } from "@/lib/datetime/timezone";
 import {
   updateLigacaoSchema,
   archiveLigacaoSchema,
@@ -185,11 +186,12 @@ export async function popularMockLigacoesAction(formData: FormData): Promise<Act
         iniciaMs -= (dow === 0 ? 2 : 1) * 24 * 60 * 60 * 1000;
       }
     }
-    // Define hora BRT entre 9-18
-    const brt = new Date(iniciaMs - 3 * 60 * 60 * 1000);
+    // Define hora local (no fuso da app) entre 9-18
+    const tzOffsetMs = getAppTimezoneOffsetMs(new Date(iniciaMs));
+    const local = new Date(iniciaMs - tzOffsetMs);
     const horaCom = 9 + Math.floor(Math.random() * 9);
-    brt.setUTCHours(horaCom, Math.floor(Math.random() * 60), Math.floor(Math.random() * 60), 0);
-    iniciaMs = brt.getTime() + 3 * 60 * 60 * 1000;
+    local.setUTCHours(horaCom, Math.floor(Math.random() * 60), Math.floor(Math.random() * 60), 0);
+    iniciaMs = local.getTime() + tzOffsetMs;
 
     const status = pickStatus();
     const tipo = Math.random() < 0.55 ? "telefone" : "whatsapp";

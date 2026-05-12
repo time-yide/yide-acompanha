@@ -1,5 +1,6 @@
 import { Users, TrendingDown, UserPlus, Sparkles } from "lucide-react";
 import { KpiCard } from "../KpiCard";
+import { getCurrentMonthYM } from "@/lib/datetime/timezone";
 
 interface Props {
   clientesAtivos: number;
@@ -15,13 +16,6 @@ function deltaCount(v: number): { valor: string; direction: "up" | "down" | "neu
   return { valor: String(Math.abs(v)), direction: v > 0 ? "up" : "down" };
 }
 
-/** Mês atual no formato YYYY-MM (BRT). */
-function mesAtualBRT(): string {
-  const d = new Date();
-  const brt = new Date(d.getTime() - 3 * 60 * 60 * 1000);
-  return `${brt.getUTCFullYear()}-${String(brt.getUTCMonth() + 1).padStart(2, "0")}`;
-}
-
 /**
  * KPIs específicos da ADM — só números, sem soma em R$.
  * Carteira/comissão em valor fica reservada pro sócio.
@@ -34,7 +28,7 @@ export function KpiRowAdm({
   pontuaisAtivos,
   pontuaisConcluidosMes,
 }: Props) {
-  const mesAtual = mesAtualBRT();
+  const mesAtual = getCurrentMonthYM();
   return (
     <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
       <KpiCard
