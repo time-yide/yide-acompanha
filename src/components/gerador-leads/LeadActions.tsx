@@ -8,6 +8,7 @@ import {
 import { archiveLeadAction, changeLeadStatusAction } from "@/lib/gerador-leads/actions";
 import { STATUS_LEAD_VALORES, STATUS_LEAD_DEFS } from "@/lib/gerador-leads/tipos";
 import type { LeadGeradoRow } from "@/lib/gerador-leads/queries";
+import { BuscarDonoButton } from "./BuscarDonoButton";
 
 interface Props {
   lead: LeadGeradoRow;
@@ -139,6 +140,15 @@ export function LeadActions({ lead, canManage }: Props) {
           {copied === "email" ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
           {copied === "email" ? "Copiado" : "Email"}
         </button>
+      )}
+
+      {/* Buscar dono (IA + Hunter + IG + site scraper) */}
+      {canManage && (
+        <BuscarDonoButton
+          leadId={lead.id}
+          jaEnriquecido={!!lead.observacoes_ia || !!lead.decisor_nome}
+          enriquecendo={!!(lead.diagnostico && (lead.diagnostico as Record<string, unknown>)._enriquecendo)}
+        />
       )}
 
       {/* Status select */}

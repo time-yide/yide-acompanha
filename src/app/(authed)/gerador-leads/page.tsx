@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Radar, Sparkles } from "lucide-react";
+import { Radar } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import {
   listLeadsGerados,
@@ -10,7 +10,6 @@ import {
 } from "@/lib/gerador-leads/queries";
 import type { StatusLead } from "@/lib/gerador-leads/tipos";
 import { STATUS_LEAD_VALORES } from "@/lib/gerador-leads/tipos";
-import { Card } from "@/components/ui/card";
 import { LeadsTable } from "@/components/gerador-leads/LeadsTable";
 import { LeadsToolbar } from "@/components/gerador-leads/LeadsToolbar";
 import { PesquisasRecentes } from "@/components/gerador-leads/PesquisasRecentes";
@@ -85,17 +84,6 @@ export default async function GeradorLeadsPage({
           <KpiTile label="Viraram cliente" value={totalClientes} accent="emerald" />
         </div>
       </header>
-
-      <Card className="border-primary/30 bg-primary/5 p-3 flex items-start gap-2 text-xs">
-        <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-        <div>
-          <strong className="text-foreground">Fase 1 (essa):</strong> busca via
-          Outscraper (Google Maps) → empresa, telefone, WhatsApp, site, Instagram, avaliações.
-          {" "}
-          <strong className="text-foreground">Próxima fase:</strong> enriquecimento com
-          Apollo/Hunter (decisor + email corporativo) + IA scoring.
-        </div>
-      </Card>
 
       {/* Pesquisas recentes — auto-refresh quando tem rodando */}
       <section className="space-y-2">

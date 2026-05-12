@@ -21,6 +21,14 @@ const serverSchema = z.object({
   // Sem isso, criar pesquisa retorna erro pedindo pra configurar.
   // Conta grátis em https://app.outscraper.com (2k créditos sem cartão).
   OUTSCRAPER_API_KEY: z.string().optional(),
+  // Enriquecimento Fase 2 — opcional. Sem essa key, o enriquecimento
+  // ainda roda usando só site scraping (gratuito) + IA Claude.
+  // Free tier: 25 buscas/mês em hunter.io.
+  HUNTER_API_KEY: z.string().optional(),
+  // Apify — usado pra scraping de perfis de Instagram (pega bio, contato, etc).
+  // Free tier: $5/mês de créditos (~100 perfis).
+  // Settings → Integrations → API tokens em apify.com
+  APIFY_API_TOKEN: z.string().optional(),
 });
 
 const clientSchema = z.object({
