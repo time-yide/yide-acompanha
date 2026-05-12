@@ -5,7 +5,7 @@ import Image from "next/image";
 import { SidebarItem } from "./SidebarItem";
 import { SidebarGroup } from "./SidebarGroup";
 import { visibleNavStructure } from "./nav-config";
-import type { Role } from "@/lib/auth/permissions";
+import { roleLabel, type Role } from "@/lib/auth/permissions";
 
 export interface SidebarBadges {
   recados?: number;
@@ -55,7 +55,7 @@ export function Sidebar({ role, nome, badges }: { role: Role; nome: string; badg
         <SidebarItem href="/configuracoes" icon={Settings} label="Configurações" />
         <div className="mt-3 px-3 text-xs text-muted-foreground">
           <div className="font-medium text-foreground">{nome}</div>
-          <div className="mt-0.5 capitalize">{role}</div>
+          <div className="mt-0.5">{roleLabel(role)}</div>
         </div>
       </div>
     </aside>
