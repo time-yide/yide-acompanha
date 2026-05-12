@@ -7,7 +7,12 @@ interface AuditEntry {
   acao: "create" | "update" | "soft_delete" | "delete" | "complete" | "reopen" | "approve";
   dados_antes?: Record<string, unknown>;
   dados_depois?: Record<string, unknown>;
-  ator_id: string;
+  /**
+   * UUID do ator humano. Use `null` quando a ação foi disparada por
+   * automação/cron (ex.: auto-marcar entrega após 7 dias).
+   * `audit_log.ator_id` é nullable no schema.
+   */
+  ator_id: string | null;
   justificativa?: string;
 }
 
