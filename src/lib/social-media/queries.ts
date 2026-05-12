@@ -1,6 +1,19 @@
 // SERVER ONLY
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
+/**
+ * Pacotes que fazem postagens em rede social.
+ * Filtra fora pacotes "trafego" puro e "audiovisual" puro (esses não tem
+ * componente de social media — só anúncios pagos / vídeos brutos).
+ *
+ * Critério: pacotes com `design: 1` na PACOTE_COLUMNS matrix.
+ */
+export const PACOTES_COM_SOCIAL_MEDIA = [
+  "trafego_estrategia",
+  "estrategia",
+  "yide_360",
+] as const;
+
 export interface ClienteSocialRow {
   id: string;
   nome: string;
@@ -27,7 +40,9 @@ export async function listClientesSocial(filter: {
     let q = supabase
       .from("clients")
       .select(selectStr)
-      .eq("status", "ativo");
+      .eq("status", "ativo")
+      // Só pacotes que fazem social media (exclui "trafego" puro e "audiovisual" puro)
+      .in("tipo_pacote", [...PACOTES_COM_SOCIAL_MEDIA]);
     if (filter.assessorId) q = q.eq("assessor_id", filter.assessorId);
     if (filter.coordenadorId) q = q.eq("coordenador_id", filter.coordenadorId);
     if (filter.designerId) q = q.eq("designer_id", filter.designerId);
