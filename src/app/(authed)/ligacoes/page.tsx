@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Phone } from "lucide-react";
+import { Phone, Settings } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import {
   listLigacoes,
@@ -109,6 +109,13 @@ export default async function LigacoesPage({
             {new Date(`${ate}T12:00:00`).toLocaleDateString("pt-BR")}
           </p>
         </div>
+        <Link
+          href="/ligacoes/configuracoes"
+          className="inline-flex h-9 items-center gap-2 rounded-md border bg-card px-3 text-sm hover:bg-muted"
+        >
+          <Settings className="h-4 w-4" />
+          Configurar números
+        </Link>
       </header>
 
       {/* KPIs */}

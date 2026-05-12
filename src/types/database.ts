@@ -1439,6 +1439,7 @@ export type Database = {
           observacoes: string | null
           organization_id: string
           origem: string
+          instancia_id: string | null
           raw_data: Json | null
           resumo_ia: string | null
           status: string
@@ -1466,6 +1467,7 @@ export type Database = {
           observacoes?: string | null
           organization_id: string
           origem?: string
+          instancia_id?: string | null
           raw_data?: Json | null
           resumo_ia?: string | null
           status: string
@@ -1487,6 +1489,7 @@ export type Database = {
           gravacao_url?: string | null
           id?: string
           iniciada_em?: string
+          instancia_id?: string | null
           lead_gerado_id?: string | null
           lead_id?: string | null
           numero?: string
@@ -1535,6 +1538,88 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ligacoes_instancia_id_fkey"
+            columns: ["instancia_id"]
+            isOneToOne: false
+            referencedRelation: "ligacoes_instancias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ligacoes_instancias: {
+        Row: {
+          arquivado_em: string | null
+          colaborador_id: string | null
+          created_at: string
+          credenciais: Json
+          id: string
+          nome: string
+          numero: string | null
+          organization_id: string
+          provedor: string
+          ramal: string | null
+          status: string
+          status_mensagem: string | null
+          tipo: string
+          total_ligacoes: number
+          ultimo_evento_em: string | null
+          updated_at: string
+          webhook_secret: string | null
+        }
+        Insert: {
+          arquivado_em?: string | null
+          colaborador_id?: string | null
+          created_at?: string
+          credenciais?: Json
+          id?: string
+          nome: string
+          numero?: string | null
+          organization_id: string
+          provedor?: string
+          ramal?: string | null
+          status?: string
+          status_mensagem?: string | null
+          tipo: string
+          total_ligacoes?: number
+          ultimo_evento_em?: string | null
+          updated_at?: string
+          webhook_secret?: string | null
+        }
+        Update: {
+          arquivado_em?: string | null
+          colaborador_id?: string | null
+          created_at?: string
+          credenciais?: Json
+          id?: string
+          nome?: string
+          numero?: string | null
+          organization_id?: string
+          provedor?: string
+          ramal?: string | null
+          status?: string
+          status_mensagem?: string | null
+          tipo?: string
+          total_ligacoes?: number
+          ultimo_evento_em?: string | null
+          updated_at?: string
+          webhook_secret?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ligacoes_instancias_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ligacoes_instancias_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
