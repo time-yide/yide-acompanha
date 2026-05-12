@@ -9,10 +9,12 @@ import {
 } from "@/lib/reunioes/tipos";
 import { ParticipantStack } from "./ParticipantAvatar";
 import { MeetingStatusBadge } from "./MeetingStatusBadge";
+import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 function formatDataHora(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleString("pt-BR", {
+    timeZone: APP_TIMEZONE,
     day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
   });
 }

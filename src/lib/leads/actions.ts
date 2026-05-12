@@ -13,6 +13,7 @@ import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 import { inferTipoPacote } from "@/lib/clientes/schema";
 import { PROSPECTS_CACHE_TAG } from "@/lib/prospeccao/queries";
 import { LEADS_CACHE_TAG } from "./queries";
+import { getTodayDate } from "@/lib/datetime/timezone";
 
 function prettyStage(stage: string): string {
   switch (stage) {
@@ -320,7 +321,7 @@ export async function moveStageAction(formData: FormData) {
     const { data: org } = await supabase.from("organizations").select("id").limit(1).single();
     if (!org) return { error: "Organização não encontrada" };
 
-    const today = new Date().toISOString().slice(0, 10);
+    const today = getTodayDate();
     const { data: newClient, error: clientErr } = await supabase
       .from("clients")
       .insert({
@@ -346,7 +347,7 @@ export async function moveStageAction(formData: FormData) {
   }
 
   if (toStage === "ativo") {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = getTodayDate();
 
     if (lead.client_id) {
       // Cliente já foi criado em marco_zero. Apenas promove pra status='ativo'

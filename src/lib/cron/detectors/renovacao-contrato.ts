@@ -1,6 +1,7 @@
 // SERVER ONLY: do not import from client components
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
+import { formatIsoDate } from "@/lib/datetime/timezone";
 
 const WINDOWS = [45, 15, 5];
 
@@ -9,9 +10,11 @@ export async function detectRenovacoes(counters: { renovacao_contrato: number })
   const today = new Date();
 
   for (const days of WINDOWS) {
-    const target = new Date(today);
-    target.setDate(target.getDate() + days);
-    const targetIso = target.toISOString().slice(0, 10);
+    // targetIso = YYYY-MM-DD no fuso da app (Cuiabá). Compara contra coluna
+    // `date` no Postgres (que não tem TZ). Sem isso, server UTC erra a data
+    // após ~20h locais.
+    const target = new Date(today.getTime() + days * 24 * 60 * 60 * 1000);
+    const targetIso = formatIsoDate(target);
 
     const { data } = await supabase
       .from("client_important_dates")

@@ -1,11 +1,15 @@
 // SERVER ONLY: do not import from client components
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
+import { getDatePartsInAppTz } from "@/lib/datetime/timezone";
 
 export async function detectColaboradorBirthdays(counters: { aniversario_colaborador: number }): Promise<void> {
   const supabase = createServiceRoleClient();
   const target = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
-  const monthDay = `${String(target.getMonth() + 1).padStart(2, "0")}-${String(target.getDate()).padStart(2, "0")}`;
+  // MM-DD calculado no fuso da app (Cuiabá). Sem isso, servidor UTC dispara
+  // 1 dia adiantado quando rodando após ~20h locais.
+  const parts = getDatePartsInAppTz(target);
+  const monthDay = `${parts.month}-${parts.day}`;
 
   const { data } = await supabase
     .from("profiles")

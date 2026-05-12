@@ -1,3 +1,5 @@
+import { getDatePartsInAppTz } from "@/lib/datetime/timezone";
+
 export type StepKey =
   | "cronograma"
   | "design"
@@ -38,6 +40,9 @@ export function getDeadline(stepKey: StepKey): number {
 
 export function isAtrasada(stepKey: StepKey, status: StepStatus, today: Date = new Date()): boolean {
   if (status === "pronto") return false;
-  const dia = today.getUTCDate();
+  // Dia do mês no fuso da app (Cuiabá UTC-4), não em UTC. Antes usava
+  // getUTCDate() — perto da virada do dia, marcava como atrasado um dia
+  // antes/depois do esperado.
+  const dia = parseInt(getDatePartsInAppTz(today).day, 10);
   return dia > STEP_DEADLINES[stepKey];
 }

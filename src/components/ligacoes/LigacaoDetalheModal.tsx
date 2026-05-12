@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { updateLigacaoAction, archiveLigacaoAction } from "@/lib/ligacoes/actions";
 import { STATUS_DEFS, formatDuracao, formatNumeroBR, ORIGEM_LABELS } from "@/lib/ligacoes/tipos";
 import type { LigacaoRow } from "@/lib/ligacoes/queries";
+import { formatDateTimeBR, formatTimeBR } from "@/lib/datetime/timezone";
 
 interface Props {
   open: boolean;
@@ -33,8 +34,6 @@ export function LigacaoDetalheModal({ open, onOpenChange, ligacao, canManage }: 
 
   const statusDef = STATUS_DEFS[ligacao.status as keyof typeof STATUS_DEFS];
   const isWA = ligacao.tipo === "whatsapp";
-  const dataHora = new Date(ligacao.iniciada_em);
-  const finalizadaHora = ligacao.finalizada_em ? new Date(ligacao.finalizada_em) : null;
 
   function addTag() {
     const v = tagInput.trim();
@@ -116,9 +115,9 @@ export function LigacaoDetalheModal({ open, onOpenChange, ligacao, canManage }: 
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 text-sm">
               <DetalheLinha label="Número" value={formatNumeroBR(ligacao.numero)} mono />
               <DetalheLinha label="Duração" value={formatDuracao(ligacao.duracao_segundos)} mono />
-              <DetalheLinha label="Iniciada em" value={dataHora.toLocaleString("pt-BR")} />
-              {finalizadaHora && (
-                <DetalheLinha label="Finalizada em" value={finalizadaHora.toLocaleString("pt-BR")} />
+              <DetalheLinha label="Iniciada em" value={formatDateTimeBR(ligacao.iniciada_em)} />
+              {ligacao.finalizada_em && (
+                <DetalheLinha label="Finalizada em" value={formatDateTimeBR(ligacao.finalizada_em)} />
               )}
               <DetalheLinha label="Colaborador" value={ligacao.colaborador_nome ?? "—"} />
               {ligacao.client_nome && (
@@ -240,7 +239,7 @@ export function LigacaoDetalheModal({ open, onOpenChange, ligacao, canManage }: 
                 </Button>
                 {savedAt && !pending && (
                   <span className="text-[11px] text-emerald-600 dark:text-emerald-400 ml-auto">
-                    ✓ Salvo {savedAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                    ✓ Salvo {formatTimeBR(savedAt)}
                   </span>
                 )}
               </div>

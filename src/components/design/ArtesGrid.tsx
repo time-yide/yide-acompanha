@@ -15,6 +15,7 @@ import { AgendarPostagemModal } from "./AgendarPostagemModal";
 import { archiveArteAction, changeArteStatusAction } from "@/lib/design/actions";
 import { STATUS_DEFS, FORMATOS, STATUS_VALORES } from "@/lib/design/tipos";
 import type { ArteRow } from "@/lib/design/queries";
+import { formatDateBR, formatDateTimeBR } from "@/lib/datetime/timezone";
 
 const formatoLabels: Record<string, string> = Object.fromEntries(
   FORMATOS.map((f) => [f.value, f.label]),
@@ -180,7 +181,7 @@ function ArteCard({
               {formatoLabels[arte.formato] ?? arte.formato}
             </Badge>
             <span>·</span>
-            <span>{new Date(arte.created_at).toLocaleDateString("pt-BR")}</span>
+            <span>{formatDateBR(arte.created_at)}</span>
           </div>
         </div>
 
@@ -193,7 +194,7 @@ function ArteCard({
         {arte.agendado_para && (
           <p className="text-[10px] text-violet-600 dark:text-violet-400">
             <CalendarIcon className="inline h-3 w-3 mr-0.5" />
-            Agendado: {new Date(arte.agendado_para).toLocaleString("pt-BR")}
+            Agendado: {formatDateTimeBR(arte.agendado_para)}
           </p>
         )}
 

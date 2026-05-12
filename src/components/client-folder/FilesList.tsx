@@ -3,6 +3,7 @@ import { getFileSignedUrl } from "@/lib/client-folder/files-actions";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Download } from "lucide-react";
+import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 interface FileRow {
   id: string;
@@ -50,7 +51,7 @@ export async function FilesList({ files }: { files: FileRow[] }) {
                 <Badge variant="secondary" className="flex-shrink-0">{catLabels[f.categoria]}</Badge>
               </div>
               <div className="mt-0.5 text-xs text-muted-foreground">
-                {f.uploader?.nome ?? "—"} · {new Date(f.created_at).toLocaleDateString("pt-BR")} · {formatSize(f.size_bytes)}
+                {f.uploader?.nome ?? "—"} · {new Date(f.created_at).toLocaleDateString("pt-BR", { timeZone: APP_TIMEZONE })} · {formatSize(f.size_bytes)}
               </div>
             </div>
             {f.signedUrl && (

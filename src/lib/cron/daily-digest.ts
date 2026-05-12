@@ -1,5 +1,6 @@
 // SERVER ONLY: do not import from client components
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { getTodayDate } from "@/lib/datetime/timezone";
 import { detectOverdueTasks } from "./detectors/task-overdue";
 import { detectTasksDuesoon } from "./detectors/task-prazo-amanha";
 import { detectEventsToday } from "./detectors/evento-calendario-hoje";
@@ -28,7 +29,7 @@ type DigestResult =
 
 export async function runDailyDigest(): Promise<DigestResult> {
   const supabase = createServiceRoleClient();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getTodayDate();
 
   const { data: existing } = await supabase
     .from("cron_runs")

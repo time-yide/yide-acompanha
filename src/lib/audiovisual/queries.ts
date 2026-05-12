@@ -1,8 +1,9 @@
 // SERVER ONLY
 import { unstable_cache } from "next/cache";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { getAppTimezoneOffsetMs } from "@/lib/datetime/timezone";
 
-const DEADLINE_HOUR_BRT = 9;
+const DEADLINE_HOUR_LOCAL = 9; // 09h no fuso da app (Cuiabá)
 
 export const AUDIOVISUAL_PENDENTE_TAG = "audiovisual-pendente";
 export const AUDIOVISUAL_CAPTURAS_TAG = "audiovisual-capturas";
@@ -22,13 +23,18 @@ export interface PendenteEvento {
   isOverdue: boolean; // passou das 09h do dia D+1
 }
 
-/** Calcula prazo limite (dia seguinte ao evento, 09h BRT). */
+/**
+ * Calcula prazo limite: dia seguinte ao evento, 09h no fuso da app (Cuiabá).
+ * Usa offset dinâmico — Cuiabá é UTC-4 sempre, mas o helper funciona pra
+ * qualquer timezone configurado.
+ */
 function getDeadline(eventInicioIso: string): Date {
   const inicio = new Date(eventInicioIso);
-  // Próximo dia em BRT às 09h. Aproximação: pega a data UTC, soma 1 dia, fixa hora 12 UTC (= 09h BRT no horário padrão).
   const deadline = new Date(inicio);
+  // Próximo dia, 09h no fuso da app. Em Cuiabá UTC-4: 09h local = 13h UTC.
   deadline.setUTCDate(deadline.getUTCDate() + 1);
-  deadline.setUTCHours(DEADLINE_HOUR_BRT + 3, 0, 0, 0); // BRT = UTC-3
+  const offsetHours = getAppTimezoneOffsetMs() / (60 * 60 * 1000);
+  deadline.setUTCHours(DEADLINE_HOUR_LOCAL + offsetHours, 0, 0, 0);
   return deadline;
 }
 

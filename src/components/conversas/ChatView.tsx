@@ -3,7 +3,7 @@ import { ChatHeader } from "./ChatHeader";
 import { ChatInput } from "./ChatInput";
 import { MessageBubble } from "./MessageBubble";
 import type { ConversaMock, MensagemMock } from "@/lib/conversas/mock-data";
-import { APP_TIMEZONE } from "@/lib/datetime/timezone";
+import { APP_TIMEZONE, getTodayDate } from "@/lib/datetime/timezone";
 
 interface Props {
   conversa: ConversaMock | null;
@@ -18,8 +18,8 @@ function agruparPorDia(mensagens: MensagemMock[]): Array<{ dia: string; rotulo: 
     cur.push(m);
     grupos.set(dia, cur);
   }
-  const hoje = new Date().toISOString().slice(0, 10);
-  const ontem = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const hoje = getTodayDate();
+  const ontem = getTodayDate(new Date(Date.now() - 86400000));
 
   return [...grupos.entries()]
     .sort(([a], [b]) => a.localeCompare(b))

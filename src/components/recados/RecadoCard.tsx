@@ -22,6 +22,7 @@ import {
 import type { RecadoRow } from "@/lib/recados/queries";
 import { REACAO_EMOJIS } from "@/lib/recados/schema";
 import { cn } from "@/lib/utils";
+import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 const EMOJI_ORDER = new Map<string, number>(REACAO_EMOJIS.map((e, i) => [e, i]));
 
@@ -98,7 +99,7 @@ export function RecadoCard({ recado, currentUserId, currentUserRole }: Props) {
                 </span>
               )}
             </div>
-            <div className="text-[11px] text-muted-foreground" title={new Date(recado.criado_em).toLocaleString("pt-BR")}>
+            <div className="text-[11px] text-muted-foreground" title={new Date(recado.criado_em).toLocaleString("pt-BR", { timeZone: APP_TIMEZONE })}>
               {timeAgo(recado.criado_em)}
             </div>
           </div>

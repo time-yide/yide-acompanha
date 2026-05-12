@@ -8,6 +8,7 @@ import { requireAuth } from "@/lib/auth/session";
 import { logAudit } from "@/lib/audit/log";
 import { PAINEL_CACHE_TAG } from "@/lib/painel/queries";
 import { createClienteSchema, editClienteSchema, churnClienteSchema, inferTipoPacote, TIPOS_RELACAO } from "./schema";
+import { getTodayDate } from "@/lib/datetime/timezone";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -63,7 +64,7 @@ export async function createClienteAction(formData: FormData) {
     telefone: parsed.data.telefone || null,
     valor_mensal: valorMensal,
     servico_contratado: parsed.data.servico_contratado || null,
-    data_entrada: parsed.data.data_entrada || new Date().toISOString().slice(0, 10),
+    data_entrada: parsed.data.data_entrada || getTodayDate(),
     assessor_id: parsed.data.assessor_id || null,
     coordenador_id: parsed.data.coordenador_id || null,
     data_aniversario_socio_cliente: parsed.data.data_aniversario_socio_cliente || null,
@@ -226,7 +227,7 @@ export async function churnClienteAction(formData: FormData) {
   const updatePayload = {
     status: "churn" as const,
     motivo_churn: parsed.data.motivo_churn,
-    data_churn: parsed.data.data_churn || new Date().toISOString().slice(0, 10),
+    data_churn: parsed.data.data_churn || getTodayDate(),
   };
 
   const { error } = await supabase.from("clients").update(updatePayload).eq("id", parsed.data.id);

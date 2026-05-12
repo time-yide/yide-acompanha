@@ -1,6 +1,7 @@
 // SERVER ONLY: do not import from client components
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
+import { getDatePartsInAppTz } from "@/lib/datetime/timezone";
 
 const WINDOWS = [30, 7, 1];
 
@@ -9,9 +10,11 @@ export async function detectClientBirthdays(counters: { aniversario_socio_client
   const today = new Date();
 
   for (const days of WINDOWS) {
-    const target = new Date(today);
-    target.setDate(target.getDate() + days);
-    const monthDay = `${String(target.getMonth() + 1).padStart(2, "0")}-${String(target.getDate()).padStart(2, "0")}`;
+    // target = "hoje + N dias" como timestamp, e depois MM-DD calculado no fuso
+    // da app (Cuiabá). Sem isso, server UTC erra MM-DD após ~20h locais.
+    const target = new Date(today.getTime() + days * 24 * 60 * 60 * 1000);
+    const parts = getDatePartsInAppTz(target);
+    const monthDay = `${parts.month}-${parts.day}`;
 
     const { data } = await supabase
       .from("client_important_dates")

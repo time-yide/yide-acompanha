@@ -1,3 +1,5 @@
+import { APP_TIMEZONE, formatTimeBR, getDatePartsInAppTz } from "@/lib/datetime/timezone";
+
 /**
  * Formata uma data ISO em estilo "lista de chats do WhatsApp":
  * - <1 min: "agora"
@@ -12,24 +14,35 @@ export function formatRelativeChatTime(iso: string): string {
   const diffMin = diffMs / 60_000;
   if (diffMin < 1) return "agora";
 
+  const dParts = getDatePartsInAppTz(d);
+  const nowParts = getDatePartsInAppTz(now);
+
   const sameDay =
-    d.getFullYear() === now.getFullYear() &&
-    d.getMonth() === now.getMonth() &&
-    d.getDate() === now.getDate();
+    dParts.year === nowParts.year &&
+    dParts.month === nowParts.month &&
+    dParts.day === nowParts.day;
   if (sameDay) {
-    return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    return formatTimeBR(d);
   }
 
-  const yesterday = new Date(now);
-  yesterday.setDate(yesterday.getDate() - 1);
+  // "Ontem" no fuso da app — calcula via Date.UTC + 1 dia atrás.
+  const yesterdayUtcMs = Date.UTC(
+    parseInt(nowParts.year, 10),
+    parseInt(nowParts.month, 10) - 1,
+    parseInt(nowParts.day, 10) - 1,
+    12,
+    0,
+    0,
+  );
+  const yesterdayParts = getDatePartsInAppTz(new Date(yesterdayUtcMs));
   const isYesterday =
-    d.getFullYear() === yesterday.getFullYear() &&
-    d.getMonth() === yesterday.getMonth() &&
-    d.getDate() === yesterday.getDate();
+    dParts.year === yesterdayParts.year &&
+    dParts.month === yesterdayParts.month &&
+    dParts.day === yesterdayParts.day;
   if (isYesterday) return "ontem";
 
-  if (d.getFullYear() === now.getFullYear()) {
-    return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  if (dParts.year === nowParts.year) {
+    return d.toLocaleDateString("pt-BR", { timeZone: APP_TIMEZONE, day: "2-digit", month: "2-digit" });
   }
-  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
+  return d.toLocaleDateString("pt-BR", { timeZone: APP_TIMEZONE, day: "2-digit", month: "2-digit", year: "2-digit" });
 }

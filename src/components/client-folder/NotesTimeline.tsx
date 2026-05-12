@@ -1,5 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 interface Note {
   id: string;
@@ -33,7 +34,7 @@ export function NotesTimeline({ notes }: { notes: Note[] }) {
               <Badge variant="secondary">{typeLabel[n.tipo] ?? n.tipo}</Badge>
               <span>{n.autor?.nome ?? "—"}</span>
               <span>·</span>
-              <span>{new Date(n.created_at).toLocaleString("pt-BR")}</span>
+              <span>{new Date(n.created_at).toLocaleString("pt-BR", { timeZone: APP_TIMEZONE })}</span>
             </div>
             <p className="whitespace-pre-wrap text-sm">{n.texto_rico}</p>
           </Card>

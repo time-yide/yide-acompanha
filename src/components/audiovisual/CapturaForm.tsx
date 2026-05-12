@@ -12,6 +12,7 @@ import { createCapturaAction } from "@/lib/audiovisual/actions";
 import { RATING_FIELDS } from "@/lib/audiovisual/schema";
 import { cn } from "@/lib/utils";
 import { formatBrtDateOnly } from "@/lib/calendario/timezone";
+import { formatDateBR, getTodayDate } from "@/lib/datetime/timezone";
 
 type ActionResult = { error?: string } | undefined;
 
@@ -70,9 +71,7 @@ function StarPicker({ name, value, onChange, disabled, error }: {
 }
 
 function todayBR(): string {
-  const d = new Date();
-  d.setUTCHours(d.getUTCHours() - 3);
-  return d.toISOString().slice(0, 10);
+  return getTodayDate();
 }
 
 export function CapturaForm({ clientes, pendentes, hidePendenteSelect = false }: Props) {
@@ -143,7 +142,7 @@ export function CapturaForm({ clientes, pendentes, hidePendenteSelect = false }:
               <option value="">— Captação avulsa —</option>
               {pendentes.map((p) => (
                 <option key={p.event_id} value={p.event_id}>
-                  {new Date(p.inicio).toLocaleDateString("pt-BR")} · {p.titulo}
+                  {formatDateBR(p.inicio)} · {p.titulo}
                   {p.client_nome ? ` · ${p.client_nome}` : ""}
                 </option>
               ))}
