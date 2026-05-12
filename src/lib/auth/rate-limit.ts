@@ -8,7 +8,7 @@ export interface RateLimitResult {
 
 interface RateLimitOptions {
   /** Identificador único da operação (ex: 'login', 'reset') */
-  scope: "login" | "reset";
+  scope: "login" | "reset" | "login-cliente";
   /** Identificador do recurso (ex: email do usuário) */
   identifier: string;
   /** Máximo de tentativas dentro da janela */
@@ -59,7 +59,7 @@ export async function checkRateLimit(
  * que errou senha 4x e finalmente acertou).
  */
 export async function resetRateLimit(
-  scope: "login" | "reset",
+  scope: "login" | "reset" | "login-cliente",
   identifier: string,
 ): Promise<void> {
   const supabase = createServiceRoleClient();

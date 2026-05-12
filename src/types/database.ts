@@ -343,6 +343,48 @@ export type Database = {
           },
         ]
       }
+      client_portal_users: {
+        Row: {
+          user_id: string
+          client_id: string
+          nome_contato: string | null
+          ativo: boolean
+          created_at: string
+          last_login_at: string | null
+        }
+        Insert: {
+          user_id: string
+          client_id: string
+          nome_contato?: string | null
+          ativo?: boolean
+          created_at?: string
+          last_login_at?: string | null
+        }
+        Update: {
+          user_id?: string
+          client_id?: string
+          nome_contato?: string | null
+          ativo?: boolean
+          created_at?: string
+          last_login_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_portal_users_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_portal_users_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_monthly_adjustments: {
         Row: {
           client_id: string
