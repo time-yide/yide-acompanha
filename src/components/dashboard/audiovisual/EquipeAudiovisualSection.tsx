@@ -1,7 +1,7 @@
 import { getEquipeAudiovisual } from "@/lib/dashboard/audiovisual";
 import { PeriodoSelector } from "@/components/dashboard/personal/PeriodoSelector";
 import type { Periodo } from "@/lib/dashboard/personal";
-import { Video, CheckCircle2, Wrench } from "lucide-react";
+import { Video, CheckCircle2, Wrench, AlertTriangle } from "lucide-react";
 import { MemberRow } from "./MemberRow";
 
 interface Props {
@@ -27,13 +27,38 @@ export async function EquipeAudiovisualSection({ periodo }: Props) {
         <PeriodoSelector current={periodo} />
       </div>
 
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="grid gap-3 md:grid-cols-4">
         <div className="rounded-xl border bg-card p-4">
           <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
             <Video className="h-3.5 w-3.5" /> Próximas gravações
           </div>
           <p className="mt-1 text-2xl font-bold tabular-nums">{agregados.totalGravacoesProximas}</p>
           <p className="text-xs text-muted-foreground">Hoje + futuro (2 semanas)</p>
+        </div>
+        <div
+          className={`rounded-xl border p-4 ${
+            agregados.totalAtrasadasEdicao > 0
+              ? "border-rose-500/40 bg-rose-500/5"
+              : "border bg-card"
+          }`}
+        >
+          <div
+            className={`flex items-center gap-2 text-xs uppercase tracking-wider ${
+              agregados.totalAtrasadasEdicao > 0
+                ? "text-rose-600 dark:text-rose-400"
+                : "text-muted-foreground"
+            }`}
+          >
+            <AlertTriangle className="h-3.5 w-3.5" /> Edição atrasada
+          </div>
+          <p
+            className={`mt-1 text-2xl font-bold tabular-nums ${
+              agregados.totalAtrasadasEdicao > 0 ? "text-rose-600 dark:text-rose-400" : ""
+            }`}
+          >
+            {agregados.totalAtrasadasEdicao}
+          </p>
+          <p className="text-xs text-muted-foreground">Abertas com prazo vencido</p>
         </div>
         <div className="rounded-xl border bg-card p-4">
           <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
@@ -104,6 +129,7 @@ export async function EquipeAudiovisualSection({ periodo }: Props) {
                 <tr>
                   <th className="px-3 py-2 text-left font-medium">Nome</th>
                   <th className="px-3 py-2 text-left font-medium">Função</th>
+                  <th className="px-3 py-2 text-right font-medium text-rose-600 dark:text-rose-400">Atrasadas</th>
                   <th className="px-3 py-2 text-right font-medium">Próximas</th>
                   <th className="px-3 py-2 text-right font-medium">Em andamento</th>
                   <th className="px-3 py-2 text-right font-medium">Concluídas</th>
@@ -116,9 +142,11 @@ export async function EquipeAudiovisualSection({ periodo }: Props) {
                     variant="edicao"
                     nome={e.nome}
                     funcao={roleLabel(e.role)}
+                    atrasadas={e.atrasadas}
                     proximas={e.proximas}
                     emAndamento={e.emAndamento}
                     concluidas={e.concluidas}
+                    atrasadasList={e.atrasadasList}
                     proximasList={e.proximasList}
                     emAndamentoList={e.emAndamentoList}
                     concluidasList={e.concluidasList}

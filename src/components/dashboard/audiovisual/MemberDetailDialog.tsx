@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Calendar, Clock, ListTodo, ExternalLink, CheckCircle2, Wrench } from "lucide-react";
+import { Calendar, Clock, ListTodo, ExternalLink, CheckCircle2, Wrench, AlertTriangle } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import type { GravacaoItem, TaskItem, CapturaItem } from "@/lib/dashboard/audiovisual";
 
@@ -20,6 +20,8 @@ interface EditorProps {
   onOpenChange: (open: boolean) => void;
   nome: string;
   variant: "edicao";
+  /** Tarefas abertas com prazo já vencido. Aparecem destacadas em vermelho. */
+  atrasadasList: TaskItem[];
   proximasList: TaskItem[];
   emAndamentoList: TaskItem[];
   concluidasList: TaskItem[];
@@ -99,17 +101,41 @@ function CapturaRow({ c }: { c: CapturaItem }) {
   );
 }
 
-function TaskRow({ t }: { t: TaskItem }) {
+function diasAtraso(due: string | null): number | null {
+  if (!due) return null;
+  const [y, m, d] = due.split("-").map(Number);
+  if (!y || !m || !d) return null;
+  // "Hoje BRT" como UTC midnight do dia BRT — comparação puramente de calendário.
+  const brtNow = new Date(Date.now() - 3 * 60 * 60 * 1000);
+  const hojeUTC = Date.UTC(brtNow.getUTCFullYear(), brtNow.getUTCMonth(), brtNow.getUTCDate());
+  const dueUTC = Date.UTC(y, m - 1, d);
+  const diff = Math.round((hojeUTC - dueUTC) / 86400000);
+  return diff > 0 ? diff : null;
+}
+
+function TaskRow({ t, atrasada = false }: { t: TaskItem; atrasada?: boolean }) {
+  const dias = atrasada ? diasAtraso(t.due_date) : null;
   return (
     <Link
       href={`/tarefas/${t.id}`}
-      className="flex items-start justify-between gap-2 rounded-lg border bg-card px-3 py-2 hover:bg-muted/40"
+      className={`flex items-start justify-between gap-2 rounded-lg border px-3 py-2 transition-colors ${
+        atrasada
+          ? "border-rose-500/40 bg-rose-500/5 hover:bg-rose-500/10"
+          : "border-border bg-card hover:bg-muted/40"
+      }`}
     >
       <div className="min-w-0 flex-1 space-y-0.5">
         <p className="truncate text-sm font-medium">{t.titulo}</p>
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <span>{STATUS_LABEL[t.status] ?? t.status}</span>
-          <span>· Prazo {formatDueDateBR(t.due_date)}</span>
+          <span className={atrasada ? "text-rose-600 dark:text-rose-400 font-medium" : ""}>
+            · Prazo {formatDueDateBR(t.due_date)}
+            {atrasada && dias !== null && (
+              <span className="ml-1">
+                ({dias === 1 ? "1 dia" : `${dias} dias`} de atraso)
+              </span>
+            )}
+          </span>
           {t.prioridade && (
             <span className={`rounded border px-1.5 py-0 text-[10px] uppercase ${PRIO_BADGE[t.prioridade] ?? ""}`}>
               {t.prioridade}
@@ -126,17 +152,24 @@ function Section({
   icon,
   titulo,
   count,
+  tom = "muted",
   children,
 }: {
   icon: React.ReactNode;
   titulo: string;
   count: number;
+  /** "danger" = vermelho (atrasadas), "muted" = padrão */
+  tom?: "muted" | "danger";
   children: React.ReactNode;
 }) {
   if (count === 0) return null;
+  const headerColor =
+    tom === "danger"
+      ? "text-rose-600 dark:text-rose-400"
+      : "text-muted-foreground";
   return (
     <div className="space-y-2">
-      <h4 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+      <h4 className={`flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider ${headerColor}`}>
         {icon} {titulo} ({count})
       </h4>
       <div className="space-y-1.5">{children}</div>
@@ -148,7 +181,7 @@ export function MemberDetailDialog(props: Props) {
   const totalCount =
     props.variant === "videomaker"
       ? props.proximasList.length + props.hojeList.length + props.concluidasList.length
-      : props.proximasList.length + props.emAndamentoList.length + props.concluidasList.length;
+      : props.atrasadasList.length + props.proximasList.length + props.emAndamentoList.length + props.concluidasList.length;
 
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
@@ -185,6 +218,14 @@ export function MemberDetailDialog(props: Props) {
               </>
             ) : (
               <>
+                <Section
+                  icon={<AlertTriangle className="h-3.5 w-3.5" />}
+                  titulo="Atrasadas"
+                  count={props.atrasadasList.length}
+                  tom="danger"
+                >
+                  {props.atrasadasList.map((t) => <TaskRow key={t.id} t={t} atrasada />)}
+                </Section>
                 <Section icon={<ListTodo className="h-3.5 w-3.5" />} titulo="Próximas" count={props.proximasList.length}>
                   {props.proximasList.map((t) => <TaskRow key={t.id} t={t} />)}
                 </Section>

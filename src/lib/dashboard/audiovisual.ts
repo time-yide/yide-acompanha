@@ -43,9 +43,13 @@ export interface EditorStat {
   nome: string;
   /** "editor" | "videomaker" | "audiovisual_chefe" — pra UI mostrar a função real. */
   role: string;
+  /** Abertas com prazo já vencido (`due_date < hoje BRT`). */
+  atrasadas: number;
+  /** Abertas com prazo hoje ou no futuro, ou sem prazo. */
   proximas: number;
   emAndamento: number;
   concluidas: number;
+  atrasadasList: TaskItem[];
   proximasList: TaskItem[];
   emAndamentoList: TaskItem[];
   concluidasList: TaskItem[];
@@ -56,6 +60,7 @@ export interface EquipeAudiovisual {
   editores: EditorStat[];
   agregados: {
     totalGravacoesProximas: number;
+    totalAtrasadasEdicao: number;
     totalEmAndamentoEdicao: number;
     totalConcluidasNoPeriodo: number;
   };
@@ -92,6 +97,9 @@ async function _getEquipeAudiovisualImpl(periodo: Periodo): Promise<EquipeAudiov
   const supabase = createServiceRoleClient();
   const { fromIso: periodoFrom, toIso: periodoTo } = resolvePeriodo(periodo);
   const { hojeFromIso, hojeToIso, futuroFromIso, futuroToIso } = getHojeAndFuturoBRT(2);
+  // "Hoje BRT" como YYYY-MM-DD pra comparar com due_date (que é DATE, não timestamp).
+  // hojeFromIso = BRT 00:00 em UTC; .slice(0,10) dá YYYY-MM-DD correto pro dia BRT.
+  const hojeBRTDate = hojeFromIso.slice(0, 10);
 
   const { data: profilesData } = await supabase
     .from("profiles")
@@ -104,7 +112,7 @@ async function _getEquipeAudiovisualImpl(periodo: Periodo): Promise<EquipeAudiov
     return {
       videomakers: [],
       editores: [],
-      agregados: { totalGravacoesProximas: 0, totalEmAndamentoEdicao: 0, totalConcluidasNoPeriodo: 0 },
+      agregados: { totalGravacoesProximas: 0, totalAtrasadasEdicao: 0, totalEmAndamentoEdicao: 0, totalConcluidasNoPeriodo: 0 },
     };
   }
   const ids = profiles.map((p) => p.id);
@@ -199,8 +207,18 @@ async function _getEquipeAudiovisualImpl(periodo: Periodo): Promise<EquipeAudiov
 
   const editores: EditorStat[] = profiles
     .map((p) => {
-      const proximasList: TaskItem[] = tasks
-        .filter((t) => t.status === "aberta" && pertence(t, p.id))
+      // Abertas: separa em "atrasadas" (due_date < hoje) e "próximas" (due_date
+      // >= hoje OU sem prazo). Antes "Próximas" filtrava só por status, então
+      // tarefas vencidas ficavam infiltradas — coordenador via prazo de ontem
+      // listado como "próximo".
+      const abertasDoMembro = tasks.filter(
+        (t) => t.status === "aberta" && pertence(t, p.id),
+      );
+      const atrasadasList: TaskItem[] = abertasDoMembro
+        .filter((t) => !!t.due_date && t.due_date < hojeBRTDate)
+        .map((t) => ({ id: t.id, titulo: t.titulo, status: t.status, due_date: t.due_date, prioridade: t.prioridade }));
+      const proximasList: TaskItem[] = abertasDoMembro
+        .filter((t) => !t.due_date || t.due_date >= hojeBRTDate)
         .map((t) => ({ id: t.id, titulo: t.titulo, status: t.status, due_date: t.due_date, prioridade: t.prioridade }));
 
       const emAndamentoList: TaskItem[] = tasks
@@ -235,6 +253,9 @@ async function _getEquipeAudiovisualImpl(periodo: Periodo): Promise<EquipeAudiov
         if (b.due_date) return 1;
         return 0;
       };
+      // Atrasadas: do prazo mais antigo (mais atrasado) pro mais recente.
+      atrasadasList.sort(sortByDue);
+      // Próximas e em andamento: do prazo mais próximo pro mais distante.
       proximasList.sort(sortByDue);
       emAndamentoList.sort(sortByDue);
 
@@ -242,9 +263,11 @@ async function _getEquipeAudiovisualImpl(periodo: Periodo): Promise<EquipeAudiov
         id: p.id,
         nome: p.nome,
         role: p.role,
+        atrasadas: atrasadasList.length,
         proximas: proximasList.length,
         emAndamento: emAndamentoList.length,
         concluidas: concluidasList.length,
+        atrasadasList,
         proximasList,
         emAndamentoList,
         concluidasList,
@@ -252,10 +275,11 @@ async function _getEquipeAudiovisualImpl(periodo: Periodo): Promise<EquipeAudiov
     })
     .filter((row) => {
       if (row.role === "editor") return true;
-      return row.proximas + row.emAndamento + row.concluidas > 0;
+      return row.atrasadas + row.proximas + row.emAndamento + row.concluidas > 0;
     });
 
   const totalGravacoesProximas = videomakers.reduce((s, v) => s + v.proximas + v.hoje, 0);
+  const totalAtrasadasEdicao = editores.reduce((s, e) => s + e.atrasadas, 0);
   const totalEmAndamentoEdicao = editores.reduce((s, e) => s + e.emAndamento, 0);
   const totalConcluidasNoPeriodo =
     videomakers.reduce((s, v) => s + v.concluidas, 0) +
@@ -264,7 +288,7 @@ async function _getEquipeAudiovisualImpl(periodo: Periodo): Promise<EquipeAudiov
   return {
     videomakers,
     editores,
-    agregados: { totalGravacoesProximas, totalEmAndamentoEdicao, totalConcluidasNoPeriodo },
+    agregados: { totalGravacoesProximas, totalAtrasadasEdicao, totalEmAndamentoEdicao, totalConcluidasNoPeriodo },
   };
 }
 
@@ -272,7 +296,8 @@ export async function getEquipeAudiovisual(periodo: Periodo): Promise<EquipeAudi
   const cached = unstable_cache(
     async (p: string) => _getEquipeAudiovisualImpl(p as Periodo),
     // v3: shape mudou (videomaker proximas/hoje/concluidas, editor proximas/emAndamento/concluidas)
-    ["dashboard-audiovisual-equipe-v3"],
+    // v4: EditorStat ganhou atrasadas + atrasadasList (separa por due_date < hoje BRT)
+    ["dashboard-audiovisual-equipe-v4"],
     { revalidate: 60, tags: ["dashboard", "tasks", "calendar", AUDIOVISUAL_CAPTURAS_TAG] },
   );
   return cached(periodo);
