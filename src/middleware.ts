@@ -2,7 +2,12 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { env } from "@/lib/env";
 
-const PUBLIC_PATHS = ["/login", "/recuperar-senha", "/definir-senha", "/auth/callback", "/monitoring", "/aprovacao-design", "/aprovacao-post"];
+const PUBLIC_PATHS = ["/login", "/recuperar-senha", "/definir-senha", "/auth/callback", "/monitoring", "/aprovacao-design", "/aprovacao-post", "/cliente/login"];
+
+// Paths do portal cliente — middleware deixa passar pra page-level
+// `requireClientPortalAuth()` validar (que checa também `client_portal_users.ativo`).
+// Aqui só garantimos que tenha sessão Supabase válida.
+const CLIENT_PORTAL_PATHS_PREFIX = "/cliente";
 
 const LEGACY_HOST = "yide-acompanha.vercel.app";
 const CANONICAL_HOST = "sistemaacompanha.yidedigital.com.br";
@@ -44,16 +49,39 @@ export async function middleware(request: NextRequest) {
   );
 
   const { data: { user } } = await supabase.auth.getUser();
+  const isClientPortalPath = pathname.startsWith(CLIENT_PORTAL_PATHS_PREFIX);
+
+  // `kind` foi setado no auth.user_metadata em createUser (action de criar
+  // acesso ao portal). Permite o middleware diferenciar portal cliente x
+  // colaborador interno SEM um round-trip pro DB toda request.
+  const userKind = user?.user_metadata?.kind as string | undefined;
+  const isClientPortalUser = userKind === "client_portal";
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
+    url.pathname = isClientPortalPath ? "/cliente/login" : "/login";
     url.searchParams.set("redirect", pathname);
     return NextResponse.redirect(url);
   }
 
+  // Cliente portal logado tentando rota interna → manda pro painel cliente.
+  // Evita loop infinito de /login ↔ / quando cliente portal user (sem
+  // profile) cai no requireAuth interno.
+  if (user && isClientPortalUser && !isClientPortalPath) {
+    return NextResponse.redirect(new URL("/cliente", request.url));
+  }
+
+  // Colaborador interno tentando portal cliente → manda pro dashboard interno.
+  if (user && !isClientPortalUser && isClientPortalPath && pathname !== "/cliente/login") {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+
   if (user && pathname === "/login") {
     return NextResponse.redirect(new URL("/", request.url));
+  }
+
+  if (user && pathname === "/cliente/login") {
+    return NextResponse.redirect(new URL("/cliente", request.url));
   }
 
   return response;
