@@ -5,7 +5,11 @@ import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/lib/auth/session";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { logAudit } from "@/lib/audit/log";
-import type { ChecklistItem } from "./template";
+import {
+  D0_D30_TEMPLATE,
+  makeInitialChecklist,
+  type ChecklistItem,
+} from "./template";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -347,13 +351,25 @@ export async function adicionarClienteManualAction(
     return { error: "Esse cliente já tem onboarding iniciado" };
   }
 
-  // Chama a função stored procedure no banco que faz o seed
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error: rpcError } = await (admin.rpc as any)("seed_client_onboarding_etapas", {
-    p_client_id: parsed.data.client_id,
-    p_d0_date: parsed.data.d0_date,
-  });
-  if (rpcError) return { error: rpcError.message };
+  // Insere as 9 etapas direto do template em TypeScript (não usa RPC pra
+  // evitar problemas de schema cache do PostgREST). A função SQL
+  // `seed_client_onboarding_etapas` continua existindo no banco e é usada
+  // pelo trigger automático quando cliente vira `status=ativo`.
+  const rowsToInsert = D0_D30_TEMPLATE.map((etapa) => ({
+    client_id: parsed.data.client_id,
+    etapa_numero: etapa.numero,
+    etapa_codigo: etapa.codigo,
+    dia_inicio_previsto: etapa.dia_inicio_previsto,
+    dia_fim_previsto: etapa.dia_fim_previsto,
+    fluxo_checklist: makeInitialChecklist(etapa.fluxo),
+    saidas_checklist: makeInitialChecklist(etapa.saidas),
+    d0_date: parsed.data.d0_date,
+  }));
+
+  const { error: insertError } = await sb
+    .from("client_onboarding_etapas")
+    .insert(rowsToInsert);
+  if (insertError) return { error: insertError.message };
 
   await logAudit({
     entidade: "client_onboarding_etapas",
