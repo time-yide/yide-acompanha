@@ -8,7 +8,8 @@ import { requireAuth } from "@/lib/auth/session";
 import { logAudit } from "@/lib/audit/log";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 import { isoWeek } from "@/lib/satisfacao/iso-week";
-import { createCapturaSchema, RATING_FIELDS } from "./schema";
+import { createCapturaSchema, markEntregueRapidoSchema, RATING_FIELDS } from "./schema";
+import { formatIsoDate } from "@/lib/datetime/timezone";
 import { avgRating } from "./queries";
 import { ROLES_QUE_EDITAM } from "./roles";
 
@@ -388,6 +389,120 @@ export async function deleteCapturaAction(capturaId: string): Promise<{ error?: 
   revalidateTag(AUDIOVISUAL_CAPTURAS_TAG, "default");
   revalidateTag(AUDIOVISUAL_PENDENTE_TAG, "default");
   return { success: true };
+}
+
+/**
+ * Marca uma captação como entregue em modo "rápido" — pra casos onde a
+ * entrega já aconteceu fora do sistema (drive enviado por outro canal,
+ * erro do form completo, etc.) e o usuário só quer remover da lista de
+ * pendentes.
+ *
+ * Não exige ratings nem URL obrigatória — insere registro mínimo com
+ * placeholder e marca origem da entrega no `observacoes`.
+ *
+ * Pra adicionar feedback completo depois, editar a captação normalmente.
+ */
+export async function markCapturaEntregueRapidoAction(
+  input: { event_id: string; drive_url?: string; observacoes?: string | null },
+): Promise<{ error?: string; success?: boolean; capturaId?: string }> {
+  const actor = await requireAuth();
+
+  const parsed = markEntregueRapidoSchema.safeParse(input);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+
+  // Busca dados do evento pra preencher client_id, videomaker_id e data
+  const { data: eventData } = await sb
+    .from("calendar_events")
+    .select("id, inicio, client_id, participantes_ids")
+    .eq("id", parsed.data.event_id)
+    .single();
+
+  if (!eventData) return { error: "Evento não encontrado" };
+  const event = eventData as {
+    id: string;
+    inicio: string;
+    client_id: string | null;
+    participantes_ids: string[] | null;
+  };
+
+  if (!event.client_id) {
+    return {
+      error:
+        "Esse evento não tem cliente vinculado — abra o formulário completo (clicando no card) e selecione o cliente lá.",
+    };
+  }
+
+  // Permissão: precisa ser participante do evento OU adm/socio/audiovisual_chefe
+  const isParticipant = (event.participantes_ids ?? []).includes(actor.id);
+  const isPriv = ["adm", "socio", "audiovisual_chefe", "coordenador"].includes(actor.role);
+  if (!isParticipant && !isPriv) {
+    return { error: "Sem permissão pra marcar entrega deste evento" };
+  }
+
+  // videomaker_id: prefere o ator se for participante, senão pega primeiro participante
+  const videomakerId = isParticipant
+    ? actor.id
+    : (event.participantes_ids ?? [])[0];
+  if (!videomakerId) return { error: "Evento sem videomaker definido" };
+
+  // data_captacao = data do início no fuso da app
+  const dataCaptacao = formatIsoDate(event.inicio);
+
+  // Placeholder pra drive_url quando vazio (coluna é NOT NULL)
+  const driveUrl = parsed.data.drive_url && parsed.data.drive_url.trim().length > 0
+    ? parsed.data.drive_url.trim()
+    : "—";
+
+  // Composição do observacoes: combina input do user + tag de origem
+  const tagOrigem = `[Entrega marcada em modo rápido por ${actor.nome}, sem feedback completo]`;
+  const observacoesFinal = parsed.data.observacoes && parsed.data.observacoes.trim().length > 0
+    ? `${parsed.data.observacoes.trim()}\n\n${tagOrigem}`
+    : tagOrigem;
+
+  const insertPayload = {
+    event_id: parsed.data.event_id,
+    client_id: event.client_id,
+    videomaker_id: videomakerId,
+    data_captacao: dataCaptacao,
+    drive_url: driveUrl,
+    qtd_videos: 0,
+    qtd_fotos: 0,
+    observacoes: observacoesFinal,
+    // Ratings ficam null — não força avaliar
+  };
+
+  const { data: created, error } = await sb
+    .from("audiovisual_capturas")
+    .insert(insertPayload)
+    .select("id")
+    .single();
+
+  if (error) {
+    // Captura constraint de unique(event_id): já tem captura registrada
+    if (error.message?.includes("uq_audiovisual_capturas_event")) {
+      return { error: "Esta gravação já tem uma captura registrada." };
+    }
+    return { error: error.message };
+  }
+
+  await logAudit({
+    entidade: "audiovisual_capturas",
+    entidade_id: created.id,
+    acao: "create",
+    dados_depois: insertPayload as unknown as Record<string, unknown>,
+    ator_id: actor.id,
+    justificativa: "Marcação rápida — entrega registrada sem feedback completo",
+  });
+
+  revalidatePath("/audiovisual");
+  revalidateTag(AUDIOVISUAL_PENDENTE_TAG, "default");
+  revalidateTag(AUDIOVISUAL_CAPTURAS_TAG, "default");
+
+  return { success: true, capturaId: created.id };
 }
 
 /** Desmarca uma captação que estava como concluída — volta pro fluxo normal. */
