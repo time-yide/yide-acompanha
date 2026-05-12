@@ -61,7 +61,12 @@ export default async function ClientesPage({ searchParams }: { searchParams: Pro
       : Promise.resolve([]),
     getClientesStats(),
     canManage ? listColaboradores({ ativo: true, role: "assessor" }) : Promise.resolve([]),
-    canManage ? listColaboradores({ ativo: true, role: "coordenador" }) : Promise.resolve([]),
+    // "Coordenador" no UI cobre tanto o modelo novo (role `socio`) quanto
+    // legado (role `coordenador`). Inclui os dois pra dropdown nunca ficar
+    // vazia depois do PR #258.
+    canManage
+      ? listColaboradores({ ativo: true, roles: ["socio", "coordenador"] })
+      : Promise.resolve([]),
   ]);
   const assessores = assessoresRaw.map((r) => ({ id: r.id, nome: r.nome }));
   const coordenadores = coordenadoresRaw.map((r) => ({ id: r.id, nome: r.nome }));
