@@ -1,7 +1,7 @@
 import {
   LayoutGrid, Users, Briefcase, KanbanSquare, ListChecks,
   DollarSign, Smile, Calendar, UserCog, ClipboardList, MessageSquare,
-  TrendingUp, Video, Trash2, MessagesSquare, GraduationCap, Megaphone, Share2, Database,
+  TrendingUp, Video, Trash2, MessagesSquare, GraduationCap, Megaphone, Share2, Database, Palette,
   type LucideIcon,
 } from "lucide-react";
 import type { Role } from "@/lib/auth/permissions";
@@ -59,6 +59,7 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
       { type: "link", href: "/trafego", icon: Megaphone, label: "Tráfego", roles: ["adm", "socio", "coordenador", "assessor", "comercial"], badgeKey: null },
       { type: "link", href: "/social-media", icon: Share2, label: "Social Media", roles: ["adm", "socio", "coordenador", "assessor", "designer", "videomaker", "editor", "audiovisual_chefe"], badgeKey: null },
       { type: "link", href: "/crm", icon: Database, label: "CRM", roles: ["adm", "socio", "coordenador", "assessor", "comercial"], badgeKey: null },
+      { type: "link", href: "/design", icon: Palette, label: "Design", roles: ["adm", "socio", "coordenador", "assessor", "designer", "videomaker", "editor", "audiovisual_chefe"], badgeKey: null },
       { type: "link", href: "/painel", icon: ClipboardList, label: "Painel mensal", roles: ["adm", "socio", "coordenador", "assessor", "designer", "videomaker", "editor", "audiovisual_chefe"], badgeKey: null },
       { type: "link", href: "/calendario", icon: Calendar, label: "Calendário Interno", roles: "all", badgeKey: null },
     ],
