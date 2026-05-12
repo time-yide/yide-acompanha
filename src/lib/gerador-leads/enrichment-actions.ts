@@ -10,15 +10,14 @@ import { hunterDomainSearch } from "./services/hunter";
 import { scrapeInstagramProfile } from "./services/apify-instagram";
 import { analisarLeadComIA } from "./services/ia-enrichment";
 
-// Tempo máximo de execução do background (after callback). Funções server actions
-// herdam esse limite. Em Vercel Pro = 5min; em Hobby fica capped em 60s.
-// Como o IG scraping pode demorar e a IA também, deixamos 5min de margem.
-export const maxDuration = 300;
+// Nota: Next.js 16 não permite exportar constantes não-async de arquivos
+// "use server". Pra configurar maxDuration, usar vercel.json ou exportar
+// em route handlers. Por enquanto, dependemos do default do Vercel
+// (60s Hobby, 5min Pro pra Server Actions).
 
 interface ActionOk { success: true }
 interface ActionErr { error: string }
 type ActionResult = ActionOk | ActionErr;
-type CreateResult = (ActionOk & { id: string }) | ActionErr;
 
 const ROLES_QUE_GERENCIAM = [
   "adm", "socio", "comercial", "coordenador", "assessor",
@@ -331,5 +330,3 @@ function inferDecisorFromSources(
   return update;
 }
 
-// Re-export of type aliases for compatibility (CreateResult was defined but unused above)
-export type { ActionResult, CreateResult };
