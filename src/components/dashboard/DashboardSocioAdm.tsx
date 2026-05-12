@@ -9,12 +9,15 @@ import {
   CarteiraPorAssessorSection,
   RankingSection,
   ProximosEventosSection,
+  RemuneracaoSection,
+  RemuneracaoSkeleton,
   KpiRowSkeleton,
   ChartSkeleton,
   ListSkeleton,
 } from "./sections";
 
 interface Props {
+  userId: string;
   nome: string;
 }
 
@@ -23,7 +26,7 @@ interface Props {
  * imediatamente, KPIs/charts/listas chegam quando suas queries resolvem.
  * Mobile vê algo em ~300ms ao invés de esperar 2s+ pelo Promise.all.
  */
-export function DashboardSocioAdm({ nome }: Props) {
+export function DashboardSocioAdm({ userId, nome }: Props) {
   return (
     <HiddenValuesProvider>
       <div className="space-y-4 sm:space-y-6">
@@ -43,6 +46,10 @@ export function DashboardSocioAdm({ nome }: Props) {
 
         <Suspense fallback={<KpiRowSkeleton />}>
           <KpiRowSection />
+        </Suspense>
+
+        <Suspense fallback={<RemuneracaoSkeleton />}>
+          <RemuneracaoSection userId={userId} />
         </Suspense>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

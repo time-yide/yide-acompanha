@@ -28,7 +28,7 @@ function parsePeriodo(raw: string | undefined): Periodo {
 
 function renderDashboardForRole(target: TargetUser, periodo: Periodo) {
   if (target.role === "socio") {
-    return <DashboardSocioAdm nome={target.nome} />;
+    return <DashboardSocioAdm userId={target.id} nome={target.nome} />;
   }
   if (target.role === "adm") {
     return <DashboardAdm nome={target.nome} />;

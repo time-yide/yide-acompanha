@@ -13,6 +13,7 @@ import {
   getProximosEventos,
   getMesAguardandoAprovacao,
 } from "@/lib/dashboard/queries";
+import { getComissaoPrevista } from "@/lib/dashboard/comissao-prevista";
 import { KpiRow } from "./KpiRow";
 import { ChartCarteiraTimeline } from "./ChartCarteiraTimeline";
 import { ChartEntradaChurn } from "./ChartEntradaChurn";
@@ -20,6 +21,7 @@ import { CarteiraPorAssessorList } from "./CarteiraPorAssessorList";
 import { RankingResumo } from "./RankingResumo";
 import { ProximosEventosList } from "./ProximosEventosList";
 import { AlertaAprovacao } from "./AlertaAprovacao";
+import { RemuneracaoCard } from "./RemuneracaoCard";
 import { Section } from "./Section";
 
 // Charts são "use client" — Next code-splita automaticamente por rota.
@@ -124,4 +126,18 @@ export async function ProximosEventosSection() {
       <ProximosEventosList eventos={eventos} />
     </Section>
   );
+}
+
+/**
+ * Remuneração pessoal do sócio (prolábore fixo em `profiles.fixo_mensal`,
+ * sem parte variável). RemuneracaoCard detecta o modo "soFixo" e renderiza
+ * em 2 colunas (Fixo + Total) ao invés de 3.
+ */
+export async function RemuneracaoSection({ userId }: { userId: string }) {
+  const comissao = await getComissaoPrevista(userId, "socio");
+  return <RemuneracaoCard comissao={comissao} />;
+}
+
+export function RemuneracaoSkeleton() {
+  return <Skel className="h-32 sm:h-28" />;
 }
