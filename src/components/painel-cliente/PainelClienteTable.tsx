@@ -19,7 +19,7 @@ type ClientStatus = "ativo" | "revogado" | "sem_acesso";
 type FilterKey = "todos" | "com_acesso" | "sem_acesso" | "revogados";
 
 function formatDate(iso: string | null): string {
-  if (!iso) return "—";
+  if (!iso) return "";
   return new Date(iso).toLocaleString("pt-BR", {
     timeZone: "America/Cuiaba",
     day: "2-digit",
@@ -290,7 +290,7 @@ function ClienteRowGroup({
                 <tbody>
                   {r.portals.map((p) => (
                     <tr key={p.user_id} className="border-t border-border/40">
-                      <td className="py-2">{p.nome_contato ?? "—"}</td>
+                      <td className="py-2">{p.nome_contato ?? ""}</td>
                       <td className="py-2 text-muted-foreground">{p.email}</td>
                       <td className="py-2">
                         {p.ativo ? (
