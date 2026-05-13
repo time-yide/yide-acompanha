@@ -31,7 +31,7 @@ function renderDashboardForRole(target: TargetUser, periodo: Periodo) {
     return <DashboardSocioAdm userId={target.id} nome={target.nome} />;
   }
   if (target.role === "adm") {
-    return <DashboardAdm nome={target.nome} />;
+    return <DashboardAdm userId={target.id} nome={target.nome} />;
   }
   if (target.role === "coordenador") {
     return <DashboardCoord userId={target.id} nome={target.nome} />;

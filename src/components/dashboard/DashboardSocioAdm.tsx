@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { HiddenValuesProvider, HiddenValueToggle } from "./HiddenValuesContext";
 import { PainelAudiovisualSection } from "./audiovisual/PainelAudiovisualSection";
+import { AlertaOnboardingAtrasadoSection } from "./AlertaOnboardingAtrasado";
 import {
   AlertaAprovacaoSection,
   KpiRowSection,
@@ -42,6 +43,10 @@ export function DashboardSocioAdm({ userId, nome }: Props) {
 
         <Suspense fallback={null}>
           <AlertaAprovacaoSection />
+        </Suspense>
+
+        <Suspense fallback={null}>
+          <AlertaOnboardingAtrasadoSection userId={userId} role="socio" />
         </Suspense>
 
         <Suspense fallback={<KpiRowSkeleton />}>

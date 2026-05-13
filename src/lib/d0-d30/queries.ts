@@ -2,7 +2,13 @@
 // `requireAuth` filtra permissão depois.
 
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { getDiaAtual, type ChecklistItem, type EtapaCodigo, type StatusEtapa } from "./template";
+import {
+  getDiaAtual,
+  addDaysShort,
+  type ChecklistItem,
+  type EtapaCodigo,
+  type StatusEtapa,
+} from "./template";
 
 export interface EtapaRow {
   id: string;
@@ -307,4 +313,108 @@ export async function listClientesElegiveisParaOnboarding(): Promise<
   const jaTem = new Set(((ja ?? []) as Array<{ client_id: string }>).map((r) => r.client_id));
 
   return rows.filter((c) => !jaTem.has(c.id));
+}
+
+// ─── Etapas atrasadas (pra alerta no dashboard) ──────────────────────────────
+
+export interface EtapaAtrasadaResumo {
+  etapa_id: string;
+  client_id: string;
+  client_nome: string;
+  etapa_numero: number;
+  etapa_nome: string;
+  date_range: string;       // "29/04–01/05"
+  dias_atrasado: number;    // quantos dias passou do fim_previsto
+}
+
+const NOMES_ETAPAS_COMPLETO: Record<string, string> = {
+  entrada: "Entrada do lead",
+  cadastro: "Cadastro e organização",
+  marco_zero: "Reunião marco zero",
+  trafego: "Tráfego + estratégia",
+  producao: "Planejamento e produção",
+  apresentacao: "Apresentação ao cliente",
+  publicacao: "Publicação + tráfego",
+  monitoramento: "Monitoramento e otimização",
+  relacionamento: "Relacionamento contínuo",
+};
+
+/**
+ * Lista etapas atrasadas (não concluídas e que já passaram do `dia_fim_previsto`)
+ * filtradas pelo escopo do user:
+ *  - adm / socio: tudo
+ *  - coordenador: tudo (eles supervisionam onboarding)
+ *  - assessor / comercial: apenas onde é responsável (assessor_id ou coordenador_id)
+ *
+ * Etapas contínuas (8 e 9) com dia_fim null nunca aparecem.
+ */
+export async function getEtapasAtrasadasParaUser(
+  userId: string,
+  role: string,
+): Promise<EtapaAtrasadaResumo[]> {
+  const admin = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = admin as any;
+
+  // Pega TODAS as etapas não concluídas + join com cliente (pra filtrar
+  // responsabilidade e pegar nome). Filtra "atrasada" em memória pra simplificar
+  // (poucos clientes em onboarding ao mesmo tempo, custo desprezível).
+  const { data } = await sb
+    .from("client_onboarding_etapas")
+    .select(
+      "id, client_id, etapa_numero, etapa_codigo, status, dia_fim_previsto, d0_date, " +
+        "cliente:clients!client_id(id, nome, assessor_id, coordenador_id)",
+    )
+    .neq("status", "concluido")
+    .not("dia_fim_previsto", "is", null);
+
+  const rows = (data ?? []) as Array<{
+    id: string;
+    client_id: string;
+    etapa_numero: number;
+    etapa_codigo: string;
+    status: string;
+    dia_fim_previsto: number;
+    d0_date: string;
+    cliente: {
+      id: string;
+      nome: string;
+      assessor_id: string | null;
+      coordenador_id: string | null;
+    } | null;
+  }>;
+
+  const hoje = new Date();
+  const isPriv = ["adm", "socio", "coordenador"].includes(role);
+
+  const out: EtapaAtrasadaResumo[] = [];
+  for (const r of rows) {
+    if (!r.cliente) continue;
+
+    // Filtro de permissão
+    if (!isPriv) {
+      const isResp =
+        r.cliente.assessor_id === userId || r.cliente.coordenador_id === userId;
+      if (!isResp) continue;
+    }
+
+    const diaAtual = getDiaAtual(r.d0_date, hoje);
+    if (diaAtual <= r.dia_fim_previsto) continue; // ainda no prazo
+    const diasAtrasado = diaAtual - r.dia_fim_previsto;
+
+    out.push({
+      etapa_id: r.id,
+      client_id: r.client_id,
+      client_nome: r.cliente.nome,
+      etapa_numero: r.etapa_numero,
+      etapa_nome: NOMES_ETAPAS_COMPLETO[r.etapa_codigo] ?? r.etapa_codigo,
+      // Pra alerta mostramos só o prazo final ("vencia em DD/MM")
+      date_range: addDaysShort(r.d0_date, r.dia_fim_previsto),
+      dias_atrasado: diasAtrasado,
+    });
+  }
+
+  // Ordena por dias_atrasado desc (pior primeiro)
+  out.sort((a, b) => b.dias_atrasado - a.dias_atrasado);
+  return out;
 }
