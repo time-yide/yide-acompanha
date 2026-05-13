@@ -6,6 +6,7 @@ import { requireAuth } from "@/lib/auth/session";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { logAudit } from "@/lib/audit/log";
 import { generateStrongPassword } from "@/lib/auth/password-generator";
+import { MAX_ACESSOS_ATIVOS_POR_CLIENTE } from "./constants";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -70,9 +71,9 @@ export async function createClientPortalAccessAction(
     .eq("client_id", parsed.data.client_id)
     .eq("ativo", true);
   const activeCount = activePortals?.length ?? 0;
-  if (activeCount >= 5) {
+  if (activeCount >= MAX_ACESSOS_ATIVOS_POR_CLIENTE) {
     return {
-      error: "Limite de 5 acessos ativos por cliente atingido. Revogue um pra criar outro.",
+      error: `Limite de ${MAX_ACESSOS_ATIVOS_POR_CLIENTE} acessos ativos por cliente atingido. Revogue um pra criar outro.`,
     };
   }
 

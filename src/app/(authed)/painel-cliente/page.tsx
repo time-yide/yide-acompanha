@@ -10,12 +10,18 @@ export default async function PainelClientePage() {
   if (!["adm", "socio"].includes(user.role)) notFound();
 
   const rows = await listClientesComAcessoPortal();
-  const comAcesso = rows.filter((r) => r.portal !== null && r.portal.ativo).length;
-  const semAcesso = rows.filter((r) => r.portal === null).length;
-  const revogados = rows.filter((r) => r.portal !== null && !r.portal.ativo).length;
+
+  // Cada métrica conta CLIENTES (não acessos):
+  //  - comAcesso: cliente tem ≥1 acesso ativo
+  //  - semAcesso: cliente nunca recebeu acesso
+  //  - revogados: cliente já teve acesso mas nenhum está ativo
+  const comAcesso = rows.filter((r) => r.portals.some((p) => p.ativo)).length;
+  const semAcesso = rows.filter((r) => r.portals.length === 0).length;
+  const revogados = rows.filter(
+    (r) => r.portals.length > 0 && !r.portals.some((p) => p.ativo),
+  ).length;
 
   // URL única do portal — todo cliente entra pelo mesmo /cliente/login
-  // (não há token por cliente, autenticação é email + senha).
   const loginUrl = `${env.NEXT_PUBLIC_APP_URL}/cliente/login`;
 
   return (
@@ -24,14 +30,14 @@ export default async function PainelClientePage() {
         <h1 className="text-2xl font-bold tracking-tight">Painel do cliente</h1>
         <p className="text-sm text-muted-foreground">
           Gerencie acessos dos seus clientes ao portal externo onde eles acompanham
-          contrato, tráfego, entregas e mais.
+          contrato, tráfego, entregas e mais. Cada cliente pode ter até 5 acessos
+          ativos — útil pra empresas com sócios.
         </p>
         <p className="mt-2 text-xs text-muted-foreground">
           {comAcesso} com acesso · {semAcesso} sem acesso · {revogados} revogados
         </p>
       </header>
 
-      {/* Link público pro cliente entrar — copia pra mandar no WhatsApp junto da senha */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
         <div className="space-y-0.5">
           <p className="text-xs font-semibold uppercase tracking-wider text-primary/80">
