@@ -37,9 +37,13 @@ function getClientStatus(r: ClienteComAcesso): ClientStatus {
 }
 
 function getMaxLastLogin(portals: PortalUser[]): string | null {
-  const ativos = portals.filter((p) => p.ativo && p.last_login_at);
-  if (ativos.length === 0) return null;
-  return ativos
+  // Reflete o último login HISTÓRICO do cliente (ativos + revogados).
+  // Pra cliente revogado, mostrar o último uso real ajuda na auditoria
+  // (cf. revisão: "revoked but they were using it last week").
+  // ISO 8601 timestamps são lexicograficamente ordenáveis = cronológicos.
+  const comLogin = portals.filter((p) => p.last_login_at);
+  if (comLogin.length === 0) return null;
+  return comLogin
     .map((p) => p.last_login_at as string)
     .sort((a, b) => b.localeCompare(a))[0];
 }
@@ -211,6 +215,19 @@ function ClienteRowGroup({
       <tr
         className={`border-b last:border-b-0 ${canExpand ? "cursor-pointer hover:bg-muted/20" : ""}`}
         onClick={canExpand ? onToggle : undefined}
+        onKeyDown={
+          canExpand
+            ? (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onToggle();
+                }
+              }
+            : undefined
+        }
+        tabIndex={canExpand ? 0 : undefined}
+        role={canExpand ? "button" : undefined}
+        aria-expanded={canExpand ? isExpanded : undefined}
       >
         <td className="px-4 py-3 font-medium">
           <div className="flex items-center gap-2">
