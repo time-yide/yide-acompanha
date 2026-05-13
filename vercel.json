@@ -6,6 +6,7 @@
     { "path": "/api/cron/monthly-snapshot", "schedule": "0 3 1 * *" },
     { "path": "/api/cron/recados-arquivar", "schedule": "0 6 * * *" },
     { "path": "/api/cron/cleanup-old-recordings", "schedule": "0 4 * * *" },
-    { "path": "/api/cron/audiovisual-auto-marcar-entregue", "schedule": "0 5 * * *" }
+    { "path": "/api/cron/audiovisual-auto-marcar-entregue", "schedule": "0 5 * * *" },
+    { "path": "/api/cron/trafego-meta-sync", "schedule": "0 4 * * *" }
   ]
 }

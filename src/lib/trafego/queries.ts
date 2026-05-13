@@ -144,6 +144,8 @@ export interface ClienteTrafegoDetalhe {
   google_ads_customer_id: string | null;
   valor_trafego_google: number | null;
   valor_trafego_meta: number | null;
+  meta_last_sync_at: string | null;
+  meta_last_sync_error: string | null;
 }
 
 export async function getClienteTrafego(clientId: string): Promise<ClienteTrafegoDetalhe | null> {
@@ -152,13 +154,19 @@ export async function getClienteTrafego(clientId: string): Promise<ClienteTrafeg
   const buildQuery = (selectStr: string) =>
     supabase.from("clients").select(selectStr).eq("id", clientId).maybeSingle();
 
-  const SELECT_COMPLETO = "id, nome, tipo_pacote, meta_ad_account_id, google_ads_customer_id, valor_trafego_google, valor_trafego_meta";
+  const SELECT_COMPLETO =
+    "id, nome, tipo_pacote, meta_ad_account_id, google_ads_customer_id, valor_trafego_google, valor_trafego_meta, meta_last_sync_at, meta_last_sync_error";
+  const SELECT_FALLBACK_META =
+    "id, nome, tipo_pacote, meta_ad_account_id, google_ads_customer_id, valor_trafego_google, valor_trafego_meta";
   const SELECT_FALLBACK = "id, nome, tipo_pacote, valor_trafego_google, valor_trafego_meta";
 
   let resp = await buildQuery(SELECT_COMPLETO);
   if (resp.error) {
     const msg = resp.error.message ?? "";
-    if (msg.includes("meta_ad_account_id") || msg.includes("google_ads_customer_id") || msg.includes("schema cache")) {
+    if (msg.includes("meta_last_sync_at") || msg.includes("meta_last_sync_error")) {
+      // Migration de Fase 2 ainda não rodou — fallback pra select sem essas cols.
+      resp = await buildQuery(SELECT_FALLBACK_META);
+    } else if (msg.includes("meta_ad_account_id") || msg.includes("google_ads_customer_id") || msg.includes("schema cache")) {
       resp = await buildQuery(SELECT_FALLBACK);
     }
   }
@@ -172,6 +180,8 @@ export async function getClienteTrafego(clientId: string): Promise<ClienteTrafeg
     google_ads_customer_id?: string | null;
     valor_trafego_google: number | null;
     valor_trafego_meta: number | null;
+    meta_last_sync_at?: string | null;
+    meta_last_sync_error?: string | null;
   };
   return {
     id: c.id,
@@ -181,6 +191,8 @@ export async function getClienteTrafego(clientId: string): Promise<ClienteTrafeg
     google_ads_customer_id: c.google_ads_customer_id ?? null,
     valor_trafego_google: c.valor_trafego_google,
     valor_trafego_meta: c.valor_trafego_meta,
+    meta_last_sync_at: c.meta_last_sync_at ?? null,
+    meta_last_sync_error: c.meta_last_sync_error ?? null,
   };
 }
 

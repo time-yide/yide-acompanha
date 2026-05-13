@@ -29,6 +29,12 @@ const serverSchema = z.object({
   // Free tier: $5/mês de créditos (~100 perfis).
   // Settings → Integrations → API tokens em apify.com
   APIFY_API_TOKEN: z.string().optional(),
+  // Meta Ads (Facebook) — System User access token gerado na BM da Yide.
+  // Sem isso, sync com Meta fica desabilitado (módulo /trafego ainda funciona
+  // pra cadastro manual). Doc de setup em docs/trafego-meta-setup.md
+  META_SYSTEM_USER_TOKEN: z.string().optional(),
+  // Versão da Graph API a usar. Default: v21.0 (atual em mai/2026).
+  META_GRAPH_API_VERSION: z.string().optional(),
 });
 
 const clientSchema = z.object({
