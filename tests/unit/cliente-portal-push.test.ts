@@ -21,8 +21,8 @@ function setupPortalUsers(rows: Array<{ user_id: string; ativo: boolean }>) {
     if (table !== "client_portal_users") throw new Error(`unexpected ${table}`);
     return {
       select: () => ({
-        eq: (col1: string, val1: string) => ({
-          eq: (col2: string, val2: string) => {
+        eq: (col1: string, val1: unknown) => ({
+          eq: (col2: string, val2: unknown) => {
             const filtered = rows.filter(
               (r) =>
                 (col1 === "client_id" ? CLIENT_ID === val1 : true) &&
