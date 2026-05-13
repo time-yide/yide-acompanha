@@ -1,5 +1,6 @@
 "use server";
 
+import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/auth/session";
@@ -11,6 +12,7 @@ import {
   updateClienteAdAccountsSchema,
 } from "./schema";
 import { METRICA_KEYS } from "./metricas";
+import { syncMetaForClient } from "./meta-sync";
 
 interface ActionOk { success: true }
 interface ActionErr { error: string }
@@ -236,4 +238,49 @@ export async function updateClienteAdAccountsAction(formData: FormData): Promise
 
   revalidatePath(`/trafego/${parsed.data.client_id}`);
   return { success: true };
+}
+
+// ─── Sync com Meta Ads (botão "Sincronizar agora") ──────────────────────────
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const syncMetaSchema = z.object({
+  client_id: z.string().regex(UUID_RE, "ID inválido"),
+});
+
+interface SyncMetaResultOk {
+  success: true;
+  campaigns_found: number;
+  campaigns_upserted: number;
+  metrics_upserted: number;
+}
+
+/**
+ * Sincroniza UM cliente sob demanda — chamada do botão "Sincronizar agora"
+ * na página /trafego/[clientId].
+ *
+ * Permite roles que gerenciam tráfego. Demora ~2-10s dependendo de quantas
+ * campanhas o cliente tem.
+ */
+export async function syncMetaForClientAction(
+  formData: FormData,
+): Promise<SyncMetaResultOk | ActionErr> {
+  const actor = await requireAuth();
+  if (!canManage(actor.role)) return { error: "Sem permissão" };
+
+  const parsed = syncMetaSchema.safeParse({ client_id: formData.get("client_id") });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const result = await syncMetaForClient(parsed.data.client_id, { daysBack: 7 });
+  if (!result.ok) {
+    return { error: result.error ?? "Falha ao sincronizar" };
+  }
+
+  revalidatePath(`/trafego/${parsed.data.client_id}`);
+  return {
+    success: true,
+    campaigns_found: result.campaigns_found,
+    campaigns_upserted: result.campaigns_upserted,
+    metrics_upserted: result.metrics_upserted,
+  };
 }

@@ -13,6 +13,7 @@ const ROLES_QUE_GERENCIAM = ["adm", "socio", "comercial", "coordenador", "assess
 
 // Importa de forma lazy do client component
 import { CampanhasList } from "@/components/trafego/CampanhasList";
+import { SyncMetaButton } from "@/components/trafego/SyncMetaButton";
 
 const PACOTE_LABELS: Record<string, string> = {
   trafego_estrategia: "Tráfego + Estratégia",
@@ -51,7 +52,17 @@ export default async function TrafegoClientePage({
         >
           <ArrowLeft className="h-3 w-3" /> Voltar pra lista
         </Link>
-        <h1 className="text-2xl font-bold tracking-tight">{cliente.nome}</h1>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <h1 className="text-2xl font-bold tracking-tight">{cliente.nome}</h1>
+          {canManage && (
+            <SyncMetaButton
+              clientId={cliente.id}
+              hasAdAccount={!!cliente.meta_ad_account_id}
+              lastSyncAt={cliente.meta_last_sync_at}
+              lastSyncError={cliente.meta_last_sync_error}
+            />
+          )}
+        </div>
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <span className="rounded-full border bg-card px-2 py-0.5">
             {PACOTE_LABELS[cliente.tipo_pacote] ?? cliente.tipo_pacote}
