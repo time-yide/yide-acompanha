@@ -86,41 +86,46 @@ componente `NotificacoesSection` entre `HeroSection` e `PastaSection`.
 Card discreto. Some silenciosamente se `NEXT_PUBLIC_VAPID_PUBLIC_KEY`
 não estiver setado (mesmo padrão do interno).
 
-### Triggers
+### Triggers — escopo de v1
 
-**1. Nova reunião agendada com cliente**
+Investigação no código revelou que 2 dos 3 triggers planejados dependem
+de features ainda em Fase 0/3. **V1 entrega 1 trigger ativo + a
+infraestrutura pronta pros outros 2 ligarem em 1 linha quando os
+features pais maturarem.**
 
-Quando uma `reuniao` é criada com `client_id != null`, dispara
-`sendPushToClient(client_id, ...)`. Local exato: onde quer que seja o
-ponto canônico de criação de reunião (server action, cron de
-agendamento, ou trigger DB). Plano vai identificar e plugar.
+**1. Nova reunião agendada com cliente — DEFERIDO**
 
-Payload:
+Não tem `meetings.insert` em código de produção hoje (módulo reuniões
+em Fase 0/1, só mock data). Helper `sendPushToClient` fica pronto pra
+ser chamado quando o ponto de criação de reunião existir.
+
+Payload planejado:
 ```
 title: "Yide — Nova reunião agendada"
 body:  "[DD/MM] às [HH:mm] — [título da reunião]"
 url:   "/cliente"
 ```
 
-**2. Resumo de reunião pronto**
+**2. Resumo de reunião pronto — DEFERIDO**
 
-Quando `reunioes.summary_ready` transiciona de `false` pra `true` e
-`client_id != null`. Plano vai identificar o ponto (provavelmente
-`syntheseizer` ou cron que processa transcrições).
+`src/lib/reunioes/ai/summarizer.ts` é stub
+(`throw new Error("Sumarização IA ainda não implementada — Fase 3")`).
+`summary_ready` nunca flipa em produção. Helper fica pronto.
 
-Payload:
+Payload planejado:
 ```
 title: "Yide — Resumo da reunião disponível"
 body:  "O resumo da reunião [título/data] tá pronto pra você ler"
 url:   "/cliente"
 ```
 
-**3. Autoavaliação semanal pedida**
+**3. Autoavaliação semanal pedida — ATIVO EM V1**
 
-Quando o cron/lógica que cria a satisfação semanal roda. Existe
-`src/lib/cron/detectors/satisfacao-pendente.ts` — o detector já
-identifica clientes elegíveis. Plugar push aí pros clientes que vão
-receber o pedido.
+Não existe "pedido semanal" hoje — o formulário de self-satisfaction
+fica sempre disponível no portal. Vamos criar um detector novo
+(`src/lib/cron/detectors/cliente-self-satisfaction-semanal.ts`) que
+roda toda segunda e dispara push pros clientes sem entry da semana
+atual em `client_self_satisfaction`.
 
 Payload:
 ```
@@ -128,6 +133,9 @@ title: "Yide — Como tá a parceria essa semana?"
 body:  "Manda sua nota rapidinho pra gente saber como melhorar 👋"
 url:   "/cliente"
 ```
+
+Integra no cron existente do projeto (segue o padrão dos outros
+detectores em `src/lib/cron/detectors/`).
 
 ### Texto do botão "Ativar notificações"
 
