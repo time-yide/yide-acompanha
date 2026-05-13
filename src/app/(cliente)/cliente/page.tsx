@@ -14,6 +14,8 @@ import { SatisfacaoSection } from "@/components/cliente-portal/SatisfacaoSection
 import { ReunioesSection } from "@/components/cliente-portal/ReunioesSection";
 import { CRMPlaceholderSection } from "@/components/cliente-portal/CRMPlaceholderSection";
 import { RelatoriosSection } from "@/components/cliente-portal/RelatoriosSection";
+import { NotificacoesSection } from "@/components/cliente-portal/NotificacoesSection";
+import { env } from "@/lib/env";
 
 export default async function ClientePainelPage() {
   const user = await requireClientPortalAuth();
@@ -47,6 +49,7 @@ export default async function ClientePainelPage() {
           nomeContato={user.nomeContato}
           clientNome={data.cliente.nome}
         />
+        <NotificacoesSection vapidPublicKey={env.NEXT_PUBLIC_VAPID_PUBLIC_KEY} />
         <PastaSection driveUrl={data.cliente.drive_url} />
         <RelatoriosSection />
         <ReunioesSection reunioes={reunioes} />
