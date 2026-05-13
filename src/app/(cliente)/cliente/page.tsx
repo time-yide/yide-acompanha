@@ -45,17 +45,16 @@ export default async function ClientePainelPage() {
         <HeroSection
           nomeContato={user.nomeContato}
           clientNome={data.cliente.nome}
-          dataEntrada={data.cliente.data_entrada}
         />
-        <ContratoSection cliente={data.cliente} assessor={data.assessor} />
+        <PastaSection driveUrl={data.cliente.drive_url} />
+        <ReunioesSection reunioes={reunioes} />
         <TrafegoSection
           google={data.cliente.valor_trafego_google}
           meta={data.cliente.valor_trafego_meta}
         />
-        <SatisfacaoSection selfLast={selfSat} agencyLast={agencyPerception} />
-        <ReunioesSection reunioes={reunioes} />
-        <PastaSection driveUrl={data.cliente.drive_url} />
         <CRMPlaceholderSection />
+        <SatisfacaoSection selfLast={selfSat} agencyLast={agencyPerception} />
+        <ContratoSection cliente={data.cliente} assessor={data.assessor} />
       </main>
     </>
   );

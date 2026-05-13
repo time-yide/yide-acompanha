@@ -7,10 +7,10 @@ import { Database, Construction, Sparkles } from "lucide-react";
 export function CRMPlaceholderSection() {
   return (
     <section className="overflow-hidden rounded-2xl border bg-card">
-      <div className="bg-gradient-to-br from-amber-500/10 via-card to-card p-6 sm:p-8">
+      <div className="bg-gradient-to-br from-primary/10 via-card to-card p-6 sm:p-8">
         <header className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/15 text-primary">
               <Database className="h-4 w-4" />
             </div>
             <div>
@@ -18,7 +18,7 @@ export function CRMPlaceholderSection() {
               <p className="text-xs text-muted-foreground">Tracking de leads e atividades</p>
             </div>
           </div>
-          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-300">
+          <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-primary">
             <Construction className="h-3 w-3" />
             Em breve
           </span>
@@ -37,8 +37,8 @@ export function CRMPlaceholderSection() {
 
 function ComingSoonItem({ text }: { text: string }) {
   return (
-    <div className="flex items-start gap-2 rounded-lg border border-dashed border-amber-500/20 bg-amber-500/5 p-3">
-      <Sparkles className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-amber-500" />
+    <div className="flex items-start gap-2 rounded-lg border border-dashed border-primary/20 bg-primary/5 p-3">
+      <Sparkles className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-primary" />
       <p className="text-xs text-muted-foreground">{text}</p>
     </div>
   );

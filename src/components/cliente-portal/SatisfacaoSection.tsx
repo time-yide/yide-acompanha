@@ -22,9 +22,9 @@ function formatDate(iso: string): string {
 export function SatisfacaoSection({ selfLast, agencyLast }: Props) {
   return (
     <section className="overflow-hidden rounded-2xl border bg-card">
-      <div className="bg-gradient-to-br from-rose-500/10 via-card to-card p-6 sm:p-8">
+      <div className="bg-gradient-to-br from-primary/10 via-card to-card p-6 sm:p-8">
         <header className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-rose-500/15 text-rose-600 dark:text-rose-400">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/15 text-primary">
             <Heart className="h-4 w-4 fill-current" />
           </div>
           <div>
