@@ -31,7 +31,7 @@ export default async function PainelClientePage() {
         <p className="text-sm text-muted-foreground">
           Gerencie acessos dos seus clientes ao portal externo onde eles acompanham
           contrato, tráfego, entregas e mais. Cada cliente pode ter até 5 acessos
-          ativos — útil pra empresas com sócios.
+          ativos, útil pra empresas com sócios.
         </p>
         <p className="mt-2 text-xs text-muted-foreground">
           {comAcesso} com acesso · {semAcesso} sem acesso · {revogados} revogados
