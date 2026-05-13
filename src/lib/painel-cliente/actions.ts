@@ -214,3 +214,74 @@ export async function revokeClientPortalAccessAction(
   revalidatePath("/painel-cliente");
   return { success: true };
 }
+
+const deleteSchema = z.object({
+  user_id: z.string().regex(UUID_RE, "ID inválido"),
+});
+
+/**
+ * Exclui DEFINITIVAMENTE um acesso ao portal — só permitido pra linhas já
+ * revogadas (ativo=false). Apaga `client_portal_users` E o `auth.user`
+ * correspondente, pra não deixar conta órfã.
+ *
+ * Use quando o operador concedeu acesso errado e quer limpar o histórico
+ * (em vez de só revogar e deixar a linha "Revogado" visível pra sempre).
+ */
+export async function deleteClientPortalAccessAction(
+  formData: FormData,
+): Promise<{ success: true } | { error: string }> {
+  const actor = await requireAuth();
+  if (!["adm", "socio"].includes(actor.role)) {
+    return { error: "Sem permissão" };
+  }
+
+  const parsed = deleteSchema.safeParse({ user_id: formData.get("user_id") });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const admin = createServiceRoleClient();
+
+  // 1. Confirma que é mesmo um portal user E que já está revogado.
+  //    Bloqueia exclusão acidental de acesso ativo — pra apagar ativo,
+  //    revoga primeiro.
+  const { data: portalUser } = await admin
+    .from("client_portal_users")
+    .select("user_id, client_id, ativo")
+    .eq("user_id", parsed.data.user_id)
+    .single();
+  if (!portalUser) return { error: "Acesso não encontrado" };
+  if (portalUser.ativo) {
+    return { error: "Revogue o acesso antes de excluir definitivamente" };
+  }
+
+  // 2. Apaga a linha em client_portal_users.
+  const { error: deletePortalErr } = await admin
+    .from("client_portal_users")
+    .delete()
+    .eq("user_id", parsed.data.user_id);
+  if (deletePortalErr) return { error: deletePortalErr.message };
+
+  // 3. Apaga o auth.user. Se falhar, registra mas não retorna erro — a linha
+  //    do portal já foi removida e o auth.user fica órfão (sem prejuízo, já
+  //    que ele só era usável via client_portal_users que agora não existe).
+  const { error: deleteAuthErr } = await admin.auth.admin.deleteUser(
+    parsed.data.user_id,
+  );
+  if (deleteAuthErr) {
+    console.error(
+      `Falha ao excluir auth.user ${parsed.data.user_id} (acesso já removido do portal):`,
+      deleteAuthErr.message,
+    );
+  }
+
+  await logAudit({
+    entidade: "client_portal_users",
+    entidade_id: parsed.data.user_id,
+    acao: "delete",
+    dados_antes: { client_id: portalUser.client_id, ativo: portalUser.ativo },
+    ator_id: actor.id,
+    justificativa: "Exclusão definitiva de acesso ao portal do cliente",
+  });
+
+  revalidatePath("/painel-cliente");
+  return { success: true };
+}
