@@ -13,6 +13,7 @@ import { PastaSection } from "@/components/cliente-portal/PastaSection";
 import { SatisfacaoSection } from "@/components/cliente-portal/SatisfacaoSection";
 import { ReunioesSection } from "@/components/cliente-portal/ReunioesSection";
 import { CRMPlaceholderSection } from "@/components/cliente-portal/CRMPlaceholderSection";
+import { RelatoriosSection } from "@/components/cliente-portal/RelatoriosSection";
 
 export default async function ClientePainelPage() {
   const user = await requireClientPortalAuth();
@@ -47,6 +48,7 @@ export default async function ClientePainelPage() {
           clientNome={data.cliente.nome}
         />
         <PastaSection driveUrl={data.cliente.drive_url} />
+        <RelatoriosSection />
         <ReunioesSection reunioes={reunioes} />
         <TrafegoSection
           google={data.cliente.valor_trafego_google}
