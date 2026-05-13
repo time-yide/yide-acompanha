@@ -61,16 +61,19 @@ export async function createClientPortalAccessAction(
     .single();
   if (!client) return { error: "Cliente não encontrado" };
 
-  // 3. Valida que o cliente ainda não tem acesso ativo (1 acesso por cliente
-  //    por enquanto — se quiser múltiplos contatos, remover essa checagem).
-  const { data: existingAccess } = await admin
+  // 3. Valida que o cliente ainda não bateu o teto de 5 acessos ATIVOS.
+  //    Revogados não contam — cliente pode ter histórico de N revogados +
+  //    até 5 ativos vivos. Sócios de uma empresa entram cada um com a conta dele.
+  const { data: activePortals } = await admin
     .from("client_portal_users")
-    .select("user_id, ativo")
+    .select("user_id")
     .eq("client_id", parsed.data.client_id)
-    .eq("ativo", true)
-    .maybeSingle();
-  if (existingAccess) {
-    return { error: "Esse cliente já tem um acesso ativo. Revogue antes de criar outro." };
+    .eq("ativo", true);
+  const activeCount = activePortals?.length ?? 0;
+  if (activeCount >= 5) {
+    return {
+      error: "Limite de 5 acessos ativos por cliente atingido. Revogue um pra criar outro.",
+    };
   }
 
   // 4. Gera senha forte ANTES de chamar Supabase (assim ela existe mesmo se
