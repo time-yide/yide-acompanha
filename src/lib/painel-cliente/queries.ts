@@ -1,24 +1,28 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
+export interface PortalUser {
+  user_id: string;
+  email: string;
+  nome_contato: string | null;
+  ativo: boolean;
+  created_at: string;
+  last_login_at: string | null;
+}
+
 export interface ClienteComAcesso {
   client_id: string;
   client_nome: string;
   client_ativo: boolean;
-  /** Linha do portal user — null se cliente ainda não tem acesso */
-  portal: {
-    user_id: string;
-    email: string;
-    nome_contato: string | null;
-    ativo: boolean;
-    created_at: string;
-    last_login_at: string | null;
-  } | null;
+  /**
+   * Todos os acessos do cliente (ativos + revogados), ordenados por
+   * created_at DESC. Vazio = cliente sem nenhum acesso ainda.
+   */
+  portals: PortalUser[];
 }
 
 /**
- * Lista TODOS os clientes ativos + (se existe) seu acesso ao portal.
- * Usa service-role pra ler auth.users (email). Filtro: só clientes
- * com status="ativo" (deleted_at IS NULL).
+ * Lista TODOS os clientes ativos + seus acessos ao portal (até 5 ativos +
+ * histórico de revogados). Usa service-role pra ler auth.users (email).
  */
 export async function listClientesComAcessoPortal(): Promise<ClienteComAcesso[]> {
   const admin = createServiceRoleClient();
@@ -34,12 +38,13 @@ export async function listClientesComAcessoPortal(): Promise<ClienteComAcesso[]>
 
   if (clients.length === 0) return [];
 
-  // 2) Portal users desses clientes
+  // 2) Portal users desses clientes (ativos + revogados)
   const clientIds = clients.map((c) => c.id);
   const { data: portalData } = await admin
     .from("client_portal_users")
     .select("user_id, client_id, nome_contato, ativo, created_at, last_login_at")
-    .in("client_id", clientIds);
+    .in("client_id", clientIds)
+    .order("created_at", { ascending: false });
   const portalRows = (portalData ?? []) as Array<{
     user_id: string;
     client_id: string;
@@ -53,9 +58,9 @@ export async function listClientesComAcessoPortal(): Promise<ClienteComAcesso[]>
   const portalUserIds = portalRows.map((p) => p.user_id);
   const emailByUserId = new Map<string, string>();
   if (portalUserIds.length > 0) {
-    // listUsers paginado — pegamos só 1000 por chamada (limite Supabase).
-    // Pra agência com <1000 clientes-portal isso é suficiente. Quando passar
-    // disso, paginar com loop ou fazer a busca direto na auth schema via SQL.
+    // Mesmo padrão de antes — paginação simples (1 página, 1000 users máx).
+    // Como agora pode ter até 5x mais portal users (5 por cliente), atenção:
+    // com >200 clientes-com-acesso isso vira limitação. Paginar quando passar.
     const { data: usersData } = await admin.auth.admin.listUsers({ perPage: 1000 });
     for (const u of usersData?.users ?? []) {
       if (u.email && portalUserIds.includes(u.id)) {
@@ -64,31 +69,28 @@ export async function listClientesComAcessoPortal(): Promise<ClienteComAcesso[]>
     }
   }
 
-  // 4) Indexa portal rows por client_id
-  const portalByClientId = new Map<string, typeof portalRows[number]>();
+  // 4) Agrupa portal rows por client_id
+  const portalsByClientId = new Map<string, PortalUser[]>();
   for (const p of portalRows) {
-    portalByClientId.set(p.client_id, p);
+    const list = portalsByClientId.get(p.client_id) ?? [];
+    list.push({
+      user_id: p.user_id,
+      email: emailByUserId.get(p.user_id) ?? "—",
+      nome_contato: p.nome_contato,
+      ativo: p.ativo,
+      created_at: p.created_at,
+      last_login_at: p.last_login_at,
+    });
+    portalsByClientId.set(p.client_id, list);
   }
 
   // 5) Monta resposta
-  return clients.map((c) => {
-    const portal = portalByClientId.get(c.id);
-    return {
-      client_id: c.id,
-      client_nome: c.nome,
-      client_ativo: c.status === "ativo",
-      portal: portal
-        ? {
-            user_id: portal.user_id,
-            email: emailByUserId.get(portal.user_id) ?? "—",
-            nome_contato: portal.nome_contato,
-            ativo: portal.ativo,
-            created_at: portal.created_at,
-            last_login_at: portal.last_login_at,
-          }
-        : null,
-    };
-  });
+  return clients.map((c) => ({
+    client_id: c.id,
+    client_nome: c.nome,
+    client_ativo: c.status === "ativo",
+    portals: portalsByClientId.get(c.id) ?? [],
+  }));
 }
 
 export interface ClientPortalData {
@@ -108,16 +110,11 @@ export interface ClientPortalData {
 }
 
 /**
- * Dados que o cliente portal vê no dashboard dele. Lê só o próprio client
- * (RLS já garante isso, mas usamos service-role aqui por simplicidade —
- * passando o `clientId` validado pela sessão).
+ * Dados que o cliente portal vê no dashboard dele. Lê só o próprio client.
  */
 export async function getClientPortalData(clientId: string): Promise<ClientPortalData | null> {
   const admin = createServiceRoleClient();
 
-  // `select("*")` em vez de listar colunas — os types de database.ts ainda
-  // não têm `modalidade` (out-of-date), mas a coluna existe no DB.
-  // Service-role + cast manual abaixo cobre isso.
   const { data: clientData } = await admin
     .from("clients")
     .select("*")
