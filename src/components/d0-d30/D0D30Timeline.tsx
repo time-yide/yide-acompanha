@@ -1,3 +1,4 @@
+import { formatEtapaRangeDates } from "@/lib/d0-d30/template";
 import type { EtapaRow } from "@/lib/d0-d30/queries";
 
 interface Props {
@@ -79,6 +80,9 @@ export function D0D30Timeline({ etapas, diaAtual }: Props) {
                 <div className="text-[10px] font-mono text-muted-foreground">{diaLabel}</div>
                 <div className="text-[11px] font-medium leading-tight">
                   {ETAPA_NOMES[e.etapa_codigo] ?? e.etapa_codigo}
+                </div>
+                <div className="text-[9px] text-muted-foreground/70">
+                  {formatEtapaRangeDates(e.d0_date, e.dia_inicio_previsto, e.dia_fim_previsto)}
                 </div>
               </div>
             </div>
