@@ -18,7 +18,11 @@ import { TaskRealtimeWatcher } from "@/components/tarefas/TaskRealtimeWatcher";
 import { Linkify } from "@/lib/utils/linkify";
 
 function isPrivileged(user: CurrentUser): boolean {
-  return user.role === "adm" || user.role === "socio";
+  return (
+    user.role === "adm" ||
+    user.role === "socio" ||
+    user.role === "audiovisual_chefe"
+  );
 }
 
 const STATUS_LABEL: Record<string, string> = {
