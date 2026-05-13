@@ -1,10 +1,9 @@
-import { FileText, Briefcase, Calendar, Package, User, DollarSign } from "lucide-react";
+import { FileText, Briefcase, Calendar, User, DollarSign } from "lucide-react";
 
 interface Props {
   cliente: {
     valor_mensal: number;
     servico_contratado: string | null;
-    tipo_pacote: string | null;
     modalidade: string | null;
   };
   assessor: { nome: string } | null;
@@ -13,18 +12,7 @@ interface Props {
 const BRL = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-const TIPO_PACOTE_LABEL: Record<string, string> = {
-  basico: "Básico",
-  intermediario: "Intermediário",
-  avancado: "Avançado",
-  premium: "Premium",
-  customizado: "Customizado",
-};
-
 export function ContratoSection({ cliente, assessor }: Props) {
-  const pacote = cliente.tipo_pacote
-    ? TIPO_PACOTE_LABEL[cliente.tipo_pacote] ?? cliente.tipo_pacote
-    : "—";
   const modalidade = cliente.modalidade
     ? cliente.modalidade === "pontual"
       ? "Pontual"
@@ -34,10 +22,10 @@ export function ContratoSection({ cliente, assessor }: Props) {
 
   return (
     <section className="overflow-hidden rounded-2xl border bg-card">
-      <div className="bg-gradient-to-br from-emerald-500/10 via-card to-card p-6 sm:p-8">
+      <div className="bg-gradient-to-br from-primary/10 via-card to-card p-6 sm:p-8">
         <header className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/15 text-primary">
               <FileText className="h-4 w-4" />
             </div>
             <div>
@@ -51,7 +39,7 @@ export function ContratoSection({ cliente, assessor }: Props) {
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
                 Valor mensal
               </div>
-              <div className="text-xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400 sm:text-2xl">
+              <div className="text-xl font-bold tabular-nums text-primary sm:text-2xl">
                 {BRL(valor)}
               </div>
             </div>
@@ -65,7 +53,6 @@ export function ContratoSection({ cliente, assessor }: Props) {
             value={cliente.servico_contratado ?? "—"}
           />
           <InfoCard icon={Calendar} label="Modalidade" value={modalidade} />
-          <InfoCard icon={Package} label="Pacote" value={pacote} />
           {valor > 0 && cliente.modalidade !== "pontual" && (
             <InfoCard
               icon={DollarSign}
@@ -105,7 +92,7 @@ function InfoCard({
     <div
       className={`rounded-xl border bg-background/40 p-3 ${
         span === 2 ? "sm:col-span-2" : ""
-      } ${highlight ? "border-emerald-500/30 bg-emerald-500/5" : ""}`}
+      } ${highlight ? "border-primary/30 bg-primary/5" : ""}`}
     >
       <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
         <Icon className="h-3 w-3" />
@@ -113,7 +100,7 @@ function InfoCard({
       </div>
       <div
         className={`mt-1 text-sm font-semibold ${
-          highlight ? "text-emerald-600 dark:text-emerald-400" : ""
+          highlight ? "text-primary" : ""
         }`}
       >
         {value}

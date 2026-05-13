@@ -29,9 +29,9 @@ export function ReunioesSection({ reunioes }: Props) {
   if (reunioes.length === 0) {
     return (
       <section className="overflow-hidden rounded-2xl border bg-card">
-        <div className="bg-gradient-to-br from-violet-500/10 via-card to-card p-6 sm:p-8">
+        <div className="bg-gradient-to-br from-primary/10 via-card to-card p-6 sm:p-8">
           <header className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-500/15 text-violet-600 dark:text-violet-400">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/15 text-primary">
               <Mic className="h-4 w-4" />
             </div>
             <div>
@@ -41,7 +41,7 @@ export function ReunioesSection({ reunioes }: Props) {
           </header>
 
           <div className="mt-6 flex flex-col items-center gap-3 rounded-xl border border-dashed bg-muted/20 px-6 py-10 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-violet-500/15 text-violet-600 dark:text-violet-400">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/15 text-primary">
               <Video className="h-5 w-5" />
             </div>
             <p className="max-w-sm text-sm text-muted-foreground">
@@ -56,9 +56,9 @@ export function ReunioesSection({ reunioes }: Props) {
 
   return (
     <section className="overflow-hidden rounded-2xl border bg-card">
-      <div className="bg-gradient-to-br from-violet-500/10 via-card to-card p-6 sm:p-8">
+      <div className="bg-gradient-to-br from-primary/10 via-card to-card p-6 sm:p-8">
         <header className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-500/15 text-violet-600 dark:text-violet-400">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/15 text-primary">
             <Mic className="h-4 w-4" />
           </div>
           <div>
@@ -73,10 +73,10 @@ export function ReunioesSection({ reunioes }: Props) {
           {reunioes.map((r) => (
             <li
               key={r.id}
-              className="group rounded-xl border bg-background/40 p-4 transition-all hover:border-violet-500/40 hover:bg-background/70"
+              className="group rounded-xl border bg-background/40 p-4 transition-all hover:border-primary/40 hover:bg-background/70"
             >
               <div className="flex items-start gap-3">
-                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-violet-500/10 text-violet-600 dark:text-violet-400">
+                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                   <MessageSquareText className="h-4 w-4" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -89,8 +89,8 @@ export function ReunioesSection({ reunioes }: Props) {
                   {r.summary_ready && r.resumo_preview ? (
                     <p className="mt-1.5 text-sm text-muted-foreground">{r.resumo_preview}</p>
                   ) : (
-                    <p className="mt-1.5 inline-flex items-center gap-1.5 text-xs italic text-violet-600/70 dark:text-violet-400/70">
-                      <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-violet-500" />
+                    <p className="mt-1.5 inline-flex items-center gap-1.5 text-xs italic text-primary/70">
+                      <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
                       Resumo em processamento…
                     </p>
                   )}

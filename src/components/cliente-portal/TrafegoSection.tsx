@@ -17,9 +17,9 @@ export function TrafegoSection({ google, meta }: Props) {
   if (semTrafego) {
     return (
       <section className="overflow-hidden rounded-2xl border bg-card">
-        <div className="bg-gradient-to-br from-amber-500/10 via-card to-card p-6 sm:p-8">
+        <div className="bg-gradient-to-br from-primary/10 via-card to-card p-6 sm:p-8">
           <header className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/15 text-primary">
               <Megaphone className="h-4 w-4" />
             </div>
             <div>
@@ -29,7 +29,7 @@ export function TrafegoSection({ google, meta }: Props) {
           </header>
 
           <div className="mt-5 flex items-center gap-3 rounded-lg border border-dashed bg-muted/30 px-4 py-5 text-sm text-muted-foreground">
-            <Sparkles className="h-4 w-4 flex-shrink-0 text-amber-500" />
+            <Sparkles className="h-4 w-4 flex-shrink-0 text-primary" />
             <p>
               Sem investimento em tráfego registrado ainda. Quando começarmos
               campanhas pra vocês, os valores aparecem aqui.
