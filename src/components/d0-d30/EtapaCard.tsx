@@ -28,8 +28,8 @@ interface Props {
 }
 
 export function EtapaCard({ etapa, diaAtual, canEdit }: Props) {
-  // Etapas pendentes que JÁ deveriam ter começado começam abertas;
-  // Etapas em progresso também. Concluídas e futuras começam fechadas.
+  // Decisão Yasmin: TODAS começam recolhidas. Ela expande clicando na setinha.
+  // O status (atrasada / atenção / etc.) ainda é computado pra badge visual.
   const isAtrasada =
     etapa.status !== "concluido" &&
     etapa.dia_fim_previsto !== null &&
@@ -39,8 +39,7 @@ export function EtapaCard({ etapa, diaAtual, canEdit }: Props) {
     etapa.dia_inicio_previsto !== null &&
     diaAtual >= etapa.dia_inicio_previsto;
 
-  const defaultOpen = etapa.status === "em_progresso" || isAtrasada || isAtencao;
-  const [open, setOpen] = useState(defaultOpen);
+  const [open, setOpen] = useState(false);
 
   const diaLabel =
     etapa.dia_inicio_previsto === null
