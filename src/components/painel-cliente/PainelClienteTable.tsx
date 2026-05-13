@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ConcederAcessoDialog } from "./ConcederAcessoDialog";
 import { ResetPasswordDialog } from "./ResetPasswordDialog";
 import { RevogarAcessoButton } from "./RevogarAcessoButton";
+import { ExcluirAcessoButton } from "./ExcluirAcessoButton";
 import { CopyLinkButton } from "./CopyLinkButton";
 import { MAX_ACESSOS_ATIVOS_POR_CLIENTE } from "@/lib/painel-cliente/constants";
 import type { ClienteComAcesso, PortalUser } from "@/lib/painel-cliente/queries";
@@ -322,9 +323,16 @@ function ClienteRowGroup({
                             />
                           </div>
                         ) : (
-                          <Button size="sm" variant="outline" onClick={onConceder}>
-                            Conceder novo
-                          </Button>
+                          <div className="flex flex-wrap justify-end gap-1.5">
+                            <Button size="sm" variant="outline" onClick={onConceder}>
+                              Conceder novo
+                            </Button>
+                            <ExcluirAcessoButton
+                              userId={p.user_id}
+                              clientNome={r.client_nome}
+                              contatoEmail={p.email}
+                            />
+                          </div>
                         )}
                       </td>
                     </tr>
