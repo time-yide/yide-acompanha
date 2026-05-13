@@ -321,9 +321,11 @@ export interface EtapaAtrasadaResumo {
   etapa_id: string;
   client_id: string;
   client_nome: string;
+  client_dia_atual: number; // D do cliente hoje (D7, D15...)
   etapa_numero: number;
   etapa_nome: string;
-  date_range: string;       // "29/04–01/05"
+  etapa_codigo: string;
+  date_range: string;       // "01/05" (data do prazo final)
   dias_atrasado: number;    // quantos dias passou do fim_previsto
 }
 
@@ -406,8 +408,10 @@ export async function getEtapasAtrasadasParaUser(
       etapa_id: r.id,
       client_id: r.client_id,
       client_nome: r.cliente.nome,
+      client_dia_atual: diaAtual,
       etapa_numero: r.etapa_numero,
       etapa_nome: NOMES_ETAPAS_COMPLETO[r.etapa_codigo] ?? r.etapa_codigo,
+      etapa_codigo: r.etapa_codigo,
       // Pra alerta mostramos só o prazo final ("vencia em DD/MM")
       date_range: addDaysShort(r.d0_date, r.dia_fim_previsto),
       dias_atrasado: diasAtrasado,
