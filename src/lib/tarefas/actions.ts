@@ -30,7 +30,11 @@ function fd(formData: FormData, key: string) {
 type ActionResult = { error?: string } | undefined;
 
 function isPrivileged(user: CurrentUser): boolean {
-  return user.role === "adm" || user.role === "socio";
+  return (
+    user.role === "adm" ||
+    user.role === "socio" ||
+    user.role === "audiovisual_chefe"
+  );
 }
 
 /**
@@ -38,8 +42,8 @@ function isPrivileged(user: CurrentUser): boolean {
  * concluir/aprovar/etc.) — mesmo sem ser criador ou atribuído. Adm/sócio (sempre)
  * + coordenador + assessor (gestão operacional).
  *
- * NOTA: delete continua restrito a criador + adm/socio (isPrivileged) —
- * ação destrutiva, decisão de manter ou não fica com quem criou.
+ * NOTA: delete fica com criador + adm/socio + audiovisual_chefe (isPrivileged).
+ * Soft delete vai pra /lixeira por 30 dias, dá pra restaurar.
  */
 function canManageAnyTask(user: CurrentUser): boolean {
   return (
