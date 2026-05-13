@@ -211,14 +211,26 @@ export async function getClienteOnboardingDetalhe(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = admin as any;
 
-  const { data: clienteData } = await sb
-    .from("clients")
-    .select("id, nome, data_entrada, status, assessor_id, coordenador_id")
-    .eq("id", clientId)
-    .single();
-  if (!clienteData) return null;
+  // Roda cliente + etapas em paralelo (não dependem um do outro).
+  // Antes era sequencial (cliente → etapas → profiles) = 3 round-trips
+  // serializados. Agora cliente+etapas em paralelo, depois profiles.
+  const [clienteRes, etapasRes] = await Promise.all([
+    sb
+      .from("clients")
+      .select("id, nome, data_entrada, status, assessor_id, coordenador_id")
+      .eq("id", clientId)
+      .single(),
+    sb
+      .from("client_onboarding_etapas")
+      .select(
+        "id, client_id, etapa_numero, etapa_codigo, status, dia_inicio_previsto, dia_fim_previsto, iniciado_em, concluido_em, concluido_por, observacoes, fluxo_checklist, saidas_checklist, d0_date",
+      )
+      .eq("client_id", clientId)
+      .order("etapa_numero"),
+  ]);
 
-  const cliente = clienteData as {
+  if (!clienteRes.data) return null;
+  const cliente = clienteRes.data as {
     id: string;
     nome: string;
     data_entrada: string;
@@ -227,18 +239,13 @@ export async function getClienteOnboardingDetalhe(
     coordenador_id: string | null;
   };
 
-  const { data: etapasData } = await sb
-    .from("client_onboarding_etapas")
-    .select("*")
-    .eq("client_id", clientId)
-    .order("etapa_numero");
-  const etapas = (etapasData ?? []) as EtapaRow[];
-
+  const etapas = (etapasRes.data ?? []) as EtapaRow[];
   if (etapas.length === 0) return null;
 
   const d0 = etapas[0].d0_date;
   const diaAtual = getDiaAtual(d0);
 
+  // Profiles em separado — depende de cliente.assessor_id/coordenador_id.
   let assessor: { id: string; nome: string } | null = null;
   let coordenador: { id: string; nome: string } | null = null;
   const ids = [cliente.assessor_id, cliente.coordenador_id].filter(Boolean) as string[];

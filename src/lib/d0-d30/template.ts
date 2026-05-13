@@ -216,3 +216,30 @@ export function getDiaAtual(d0Date: string, now: Date = new Date()): number {
   const diffMs = today - d0;
   return Math.floor(diffMs / (24 * 60 * 60 * 1000));
 }
+
+/**
+ * Soma N dias a uma data YYYY-MM-DD e retorna no formato curto pt-BR (DD/MM).
+ * Ex.: addDaysShort("2026-04-24", 5) → "29/04"
+ */
+export function addDaysShort(d0Date: string, n: number): string {
+  const [y, m, d] = d0Date.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d + n));
+  const dd = String(dt.getUTCDate()).padStart(2, "0");
+  const mm = String(dt.getUTCMonth() + 1).padStart(2, "0");
+  return `${dd}/${mm}`;
+}
+
+/**
+ * Formata range de uma etapa em DD/MM - DD/MM. Se inicio === fim, devolve
+ * só uma data. Para etapas contínuas (null), devolve string vazia.
+ */
+export function formatEtapaRangeDates(
+  d0Date: string,
+  diaInicio: number | null,
+  diaFim: number | null,
+): string {
+  if (diaInicio === null || diaFim === null) return "";
+  const inicio = addDaysShort(d0Date, diaInicio);
+  const fim = addDaysShort(d0Date, diaFim);
+  return inicio === fim ? inicio : `${inicio}–${fim}`;
+}

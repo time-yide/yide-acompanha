@@ -6,6 +6,7 @@ import { ChecklistRow } from "./ChecklistRow";
 import { ObservacoesEditor } from "./ObservacoesEditor";
 import { MarcarConcluidaButton } from "./MarcarConcluidaButton";
 import { ReabrirButton } from "./ReabrirButton";
+import { formatEtapaRangeDates } from "@/lib/d0-d30/template";
 import type { EtapaRow } from "@/lib/d0-d30/queries";
 
 const ETAPA_NOMES: Record<string, string> = {
@@ -47,6 +48,12 @@ export function EtapaCard({ etapa, diaAtual, canEdit }: Props) {
       : etapa.dia_inicio_previsto === etapa.dia_fim_previsto
       ? `D${etapa.dia_inicio_previsto}`
       : `D${etapa.dia_inicio_previsto}–D${etapa.dia_fim_previsto}`;
+
+  const dateRange = formatEtapaRangeDates(
+    etapa.d0_date,
+    etapa.dia_inicio_previsto,
+    etapa.dia_fim_previsto,
+  );
 
   const totalItens = etapa.fluxo_checklist.length + etapa.saidas_checklist.length;
   const feitosItens =
@@ -108,6 +115,9 @@ export function EtapaCard({ etapa, diaAtual, canEdit }: Props) {
               {ETAPA_NOMES[etapa.etapa_codigo] ?? etapa.etapa_codigo}
             </span>
             <span className="font-mono text-[11px] text-muted-foreground">{diaLabel}</span>
+            {dateRange && (
+              <span className="text-[11px] text-muted-foreground/70">· {dateRange}</span>
+            )}
           </div>
         </div>
         <span className="text-[11px] tabular-nums text-muted-foreground">
