@@ -45,8 +45,8 @@ export function PastaSection({ driveUrl }: Props) {
         </header>
 
         <p className="mt-5 text-sm text-muted-foreground">
-          Tudo da sua conta — <strong>artes, briefings, relatórios, materiais</strong> —
-          está organizado aqui no Drive.
+          Tudo da sua conta está organizado aqui no Drive:{" "}
+          <strong>artes, briefings, relatórios, materiais</strong>.
         </p>
 
         <a

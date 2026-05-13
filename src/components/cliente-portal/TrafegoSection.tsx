@@ -101,7 +101,7 @@ export function TrafegoSection({ google, meta }: Props) {
         </div>
 
         <p className="mt-4 text-[11px] text-muted-foreground">
-          Valores investidos por mês — definidos no seu plano.
+          Valores investidos por mês, definidos no seu plano.
         </p>
       </div>
     </section>
