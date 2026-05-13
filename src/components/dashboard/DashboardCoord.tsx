@@ -15,8 +15,10 @@ import { CarteiraPorAssessorList } from "./CarteiraPorAssessorList";
 import { RankingResumo } from "./RankingResumo";
 import { ProximosEventosList } from "./ProximosEventosList";
 import { PainelAudiovisualSection } from "./audiovisual/PainelAudiovisualSection";
+import { AlertaOnboardingAtrasadoSection } from "./AlertaOnboardingAtrasado";
 import { Section } from "./Section";
 import { HiddenValuesProvider, HiddenValueToggle } from "./HiddenValuesContext";
+import { Suspense } from "react";
 
 interface Props {
   userId: string;
@@ -47,6 +49,10 @@ export async function DashboardCoord({ userId, nome }: Props) {
           </div>
           <HiddenValueToggle />
         </header>
+
+        <Suspense fallback={null}>
+          <AlertaOnboardingAtrasadoSection userId={userId} role="coordenador" />
+        </Suspense>
 
         <KpiRowCoord kpis={kpis} />
         <RemuneracaoCard comissao={comissao} />

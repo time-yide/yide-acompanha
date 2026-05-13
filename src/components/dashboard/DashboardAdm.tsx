@@ -13,9 +13,12 @@ import { PayrollPaymentsTable } from "./adm/PayrollPaymentsTable";
 import { RankingResumo } from "./RankingResumo";
 import { ProximosEventosList } from "./ProximosEventosList";
 import { PainelAudiovisualSection } from "./audiovisual/PainelAudiovisualSection";
+import { AlertaOnboardingAtrasadoSection } from "./AlertaOnboardingAtrasado";
 import { Section } from "./Section";
+import { Suspense } from "react";
 
 interface Props {
+  userId: string;
   nome: string;
 }
 
@@ -29,7 +32,7 @@ async function getEmAcompanhamentoCount(): Promise<number> {
   return count ?? 0;
 }
 
-export async function DashboardAdm({ nome }: Props) {
+export async function DashboardAdm({ userId, nome }: Props) {
   const mes = getCurrentMonthRef();
 
   const [kpis, leadsByStage, emAcompanhamento, ranking, eventos, clientPayments, payroll] = await Promise.all([
@@ -53,6 +56,10 @@ export async function DashboardAdm({ nome }: Props) {
         <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Olá, {nome.split(" ")[0]}</h1>
         <p className="text-sm text-muted-foreground">Visão administrativa</p>
       </header>
+
+      <Suspense fallback={null}>
+        <AlertaOnboardingAtrasadoSection userId={userId} role="adm" />
+      </Suspense>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <LeadsContratoCard leads={leadsContrato} />
