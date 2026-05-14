@@ -14,7 +14,12 @@ export default async function CalendarioPage({ searchParams }: { searchParams: P
   const params = await searchParams;
   const user = await requireAuth();
 
-  const ref = params.week ? new Date(params.week) : new Date();
+  // Anchor a data ao meio-dia UTC pra evitar shift de timezone:
+  // `new Date("2026-05-19")` = UTC midnight, que em Cuiabá (UTC-4) é
+  // 2026-05-18 20:00 (domingo). Aí o getWeekRange enxerga como semana
+  // anterior e a navegação next/prev fica errada. Meio-dia UTC = 8h
+  // Cuiabá, mesma data em todos os fusos do hemisfério ocidental.
+  const ref = params.week ? new Date(`${params.week}T12:00:00Z`) : new Date();
   const { start, end } = getWeekRange(ref);
   const todayStart = getWeekRange(new Date()).start;
   const isOnTodayWeek = start.getTime() === todayStart.getTime();
