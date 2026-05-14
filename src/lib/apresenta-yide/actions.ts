@@ -186,7 +186,7 @@ export async function gerarPdfApresentacaoAction(
   // 2. Gera token e monta URL da rota interna.
   const token = signPdfToken(apresentacaoId, serverEnv.APRESENTACAO_PDF_SECRET);
   const baseUrl = publicEnv.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
-  const htmlUrl = `${baseUrl}/api/internal/apresenta-yide-pdf/${apresentacaoId}?token=${token}`;
+  const htmlUrl = `${baseUrl}/apresenta-yide-pdf/${apresentacaoId}?token=${token}`;
 
   // 3. Roda Puppeteer.
   let pdfBuffer: Buffer;
