@@ -277,20 +277,41 @@ describe("getEntradaChurn", () => {
 
     fromMock.mockImplementation(() => ({
       select: () => makeChainableQuery([
-        { id: "c1", data_entrada: "2026-02-15", data_churn: null },
-        { id: "c2", data_entrada: "2026-02-20", data_churn: null },
-        { id: "c3", data_entrada: "2026-03-05", data_churn: null },
-        { id: "c4", data_entrada: "2025-08-01", data_churn: "2026-03-10" },
-        { id: "c5", data_entrada: "2025-09-01", data_churn: "2026-04-15" },
+        { id: "c1", nome: "Cliente Um", data_entrada: "2026-02-15", data_churn: null },
+        { id: "c2", nome: "Cliente Dois", data_entrada: "2026-02-20", data_churn: null },
+        { id: "c3", nome: "Cliente Três", data_entrada: "2026-03-05", data_churn: null },
+        { id: "c4", nome: "Cliente Quatro", data_entrada: "2025-08-01", data_churn: "2026-03-10" },
+        { id: "c5", nome: "Cliente Cinco", data_entrada: "2025-09-01", data_churn: "2026-04-15" },
       ]),
     }));
 
     const data = await _getEntradaChurnImpl(3);
     expect(data).toHaveLength(3);
     expect(data.map((p) => p.mes)).toEqual(["2026-02", "2026-03", "2026-04"]);
-    expect(data[0]).toEqual({ mes: "2026-02", entradas: 2, churns: 0 });
-    expect(data[1]).toEqual({ mes: "2026-03", entradas: 1, churns: 1 });
-    expect(data[2]).toEqual({ mes: "2026-04", entradas: 0, churns: 1 });
+    expect(data[0]).toEqual({
+      mes: "2026-02",
+      entradas: 2,
+      churns: 0,
+      entradas_clientes: [
+        { id: "c1", nome: "Cliente Um" },
+        { id: "c2", nome: "Cliente Dois" },
+      ],
+      churns_clientes: [],
+    });
+    expect(data[1]).toEqual({
+      mes: "2026-03",
+      entradas: 1,
+      churns: 1,
+      entradas_clientes: [{ id: "c3", nome: "Cliente Três" }],
+      churns_clientes: [{ id: "c4", nome: "Cliente Quatro" }],
+    });
+    expect(data[2]).toEqual({
+      mes: "2026-04",
+      entradas: 0,
+      churns: 1,
+      entradas_clientes: [],
+      churns_clientes: [{ id: "c5", nome: "Cliente Cinco" }],
+    });
 
     vi.useRealTimers();
   });
@@ -304,8 +325,8 @@ describe("getEntradaChurn", () => {
     }));
     const data = await _getEntradaChurnImpl(2);
     expect(data).toEqual([
-      { mes: "2026-03", entradas: 0, churns: 0 },
-      { mes: "2026-04", entradas: 0, churns: 0 },
+      { mes: "2026-03", entradas: 0, churns: 0, entradas_clientes: [], churns_clientes: [] },
+      { mes: "2026-04", entradas: 0, churns: 0, entradas_clientes: [], churns_clientes: [] },
     ]);
 
     vi.useRealTimers();

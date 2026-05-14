@@ -255,10 +255,19 @@ export async function getCarteiraTimeline(months = 12, filter?: ClientFilter): P
 
 // ─── getEntradaChurn ─────────────────────────────────────────────────────────
 
+export interface EntradaChurnClient {
+  id: string;
+  nome: string;
+}
+
 export interface EntradaChurnPoint {
   mes: string;
   entradas: number;
   churns: number;
+  /** Clientes que entraram nesse mês — lista pra drill-down do gráfico. */
+  entradas_clientes: EntradaChurnClient[];
+  /** Clientes que deram churn nesse mês. */
+  churns_clientes: EntradaChurnClient[];
 }
 
 export async function _getEntradaChurnImpl(
@@ -271,7 +280,7 @@ export async function _getEntradaChurnImpl(
 
   let clientsQuery = supabase
     .from("clients")
-    .select("id, data_entrada, data_churn, tipo_relacao, assessor_id, coordenador_id")
+    .select("id, nome, data_entrada, data_churn, tipo_relacao, assessor_id, coordenador_id")
     .is("deleted_at", null)
     .eq("tipo_relacao", "comum");
   clientsQuery = buildClientFilterQuery(clientsQuery as never, filter) as never;
@@ -279,6 +288,7 @@ export async function _getEntradaChurnImpl(
   const { data: clientsData } = await clientsQuery;
   const clients = (clientsData ?? []) as Array<{
     id: string;
+    nome: string;
     data_entrada: string;
     data_churn: string | null;
     tipo_relacao?: string | null;
@@ -287,9 +297,19 @@ export async function _getEntradaChurnImpl(
   }>;
 
   return meses.map((mes) => {
-    const entradas = clients.filter((c) => isInMonth(c.data_entrada, mes)).length;
-    const churns = clients.filter((c) => isInMonth(c.data_churn, mes)).length;
-    return { mes, entradas, churns };
+    const entradas_clientes = clients
+      .filter((c) => isInMonth(c.data_entrada, mes))
+      .map((c) => ({ id: c.id, nome: c.nome }));
+    const churns_clientes = clients
+      .filter((c) => isInMonth(c.data_churn, mes))
+      .map((c) => ({ id: c.id, nome: c.nome }));
+    return {
+      mes,
+      entradas: entradas_clientes.length,
+      churns: churns_clientes.length,
+      entradas_clientes,
+      churns_clientes,
+    };
   });
 }
 
@@ -299,7 +319,8 @@ export async function getEntradaChurn(months = 6, filter?: ClientFilter): Promis
       const { months: m, filter: f } = JSON.parse(paramsJson) as { months: number; filter: ClientFilter | null };
       return _getEntradaChurnImpl(m, f ?? undefined);
     },
-    ["dashboard-entrada-churn"],
+    // v2: shape mudou — adicionado entradas_clientes/churns_clientes pro drill-down
+    ["dashboard-entrada-churn-v2"],
     { revalidate: 300, tags: ["dashboard"] },
   );
   return cached(JSON.stringify({ months, filter: filter ?? null }));
