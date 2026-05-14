@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { ExternalLink } from "lucide-react";
 import { prazoUrgency, formatPrazoLabel } from "@/lib/tarefas/grouping";
 import type { TaskRow } from "@/lib/tarefas/queries";
 import { cn } from "@/lib/utils";
@@ -94,6 +95,24 @@ export function TaskCard({ task, draggable = false }: Props) {
             <p className="truncate">por {criadorNome}</p>
           )}
         </div>
+
+        {/* Link da entrega: aparece a partir de "Concluído Operacional" e
+            segue visível em Aprovação / Aprovada / Agendado / Postada.
+            data-no-card-click pra clicar abrir o link em vez de navegar
+            pro detalhe da tarefa. */}
+        {task.drive_link && (
+          <a
+            href={task.drive_link}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-no-card-click="true"
+            onClick={(e) => e.stopPropagation()}
+            className="mt-1 inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/20"
+          >
+            <ExternalLink className="h-3 w-3" />
+            Abrir entrega
+          </a>
+        )}
       </div>
     </div>
   );
