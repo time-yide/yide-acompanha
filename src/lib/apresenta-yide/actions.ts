@@ -6,6 +6,9 @@ import { redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth/session";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { logAudit } from "@/lib/audit/log";
+import { signPdfToken } from "./pdf-token";
+import { generatePdfFromUrl } from "./pdf-generator";
+import { getServerEnv, env as publicEnv } from "@/lib/env";
 
 const ROLES_PERMITIDOS = ["adm", "socio", "coordenador", "assessor", "comercial"];
 
@@ -130,4 +133,102 @@ export async function criarApresentacaoComRedirectAction(formData: FormData): Pr
   const r = await criarApresentacaoAction(formData);
   if ("error" in r) return r;
   redirect(r.redirect);
+}
+
+type GerarPdfResult = { error: string } | { signedUrl: string };
+
+/**
+ * Gera (ou regenera) o PDF de uma apresentação pronta. Roda Puppeteer
+ * server-side, faz upload pro Storage e retorna signed URL pra download.
+ */
+export async function gerarPdfApresentacaoAction(
+  apresentacaoId: string,
+): Promise<GerarPdfResult> {
+  const actor = await requireAuth();
+  if (!ROLES_PERMITIDOS.includes(actor.role)) {
+    return { error: "Sem permissão" };
+  }
+
+  const serverEnv = getServerEnv();
+  if (!serverEnv.APRESENTACAO_PDF_SECRET) {
+    return { error: "PDF não configurado no servidor (APRESENTACAO_PDF_SECRET)" };
+  }
+
+  const admin = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = admin as any;
+
+  const { data: row } = await sb
+    .from("apresentacoes_yide")
+    .select("id, status, criado_por, pdf_storage_path")
+    .eq("id", apresentacaoId)
+    .single();
+  if (!row) return { error: "Apresentação não encontrada" };
+
+  const isPriv = actor.role === "adm" || actor.role === "socio";
+  if (row.criado_por !== actor.id && !isPriv) {
+    return { error: "Sem permissão" };
+  }
+  if (row.status !== "pronta") {
+    return { error: "Apresentação ainda não está pronta" };
+  }
+
+  // 1. Se já tem PDF salvo, retorna signed URL direto.
+  if (row.pdf_storage_path) {
+    const { data: signed } = await admin.storage
+      .from("apresentacoes-yide")
+      .createSignedUrl(row.pdf_storage_path, 60 * 60);
+    if (signed) return { signedUrl: signed.signedUrl };
+    // Se signed falhar, segue pra regerar.
+  }
+
+  // 2. Gera token e monta URL da rota interna.
+  const token = signPdfToken(apresentacaoId, serverEnv.APRESENTACAO_PDF_SECRET);
+  const baseUrl = publicEnv.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+  const htmlUrl = `${baseUrl}/api/internal/apresenta-yide-pdf/${apresentacaoId}?token=${token}`;
+
+  // 3. Roda Puppeteer.
+  let pdfBuffer: Buffer;
+  try {
+    pdfBuffer = await generatePdfFromUrl({ htmlUrl });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Falha desconhecida";
+    return { error: `Erro ao gerar PDF: ${msg}` };
+  }
+
+  // 4. Upload pro Storage.
+  const storagePath = `${apresentacaoId}.pdf`;
+  const { error: uploadErr } = await admin.storage
+    .from("apresentacoes-yide")
+    .upload(storagePath, pdfBuffer, {
+      contentType: "application/pdf",
+      upsert: true,
+    });
+  if (uploadErr) {
+    return { error: `Falha no upload: ${uploadErr.message}` };
+  }
+
+  // 5. Atualiza DB.
+  await sb
+    .from("apresentacoes_yide")
+    .update({ pdf_storage_path: storagePath })
+    .eq("id", apresentacaoId);
+
+  // 6. Retorna signed URL.
+  const { data: signed } = await admin.storage
+    .from("apresentacoes-yide")
+    .createSignedUrl(storagePath, 60 * 60);
+  if (!signed) return { error: "Falha ao gerar URL de download" };
+
+  await logAudit({
+    entidade: "apresentacoes_yide",
+    entidade_id: apresentacaoId,
+    acao: "update",
+    dados_depois: { pdf_storage_path: storagePath },
+    ator_id: actor.id,
+    justificativa: "PDF gerado",
+  });
+
+  revalidatePath(`/social-media/apresenta-yide/${apresentacaoId}`);
+  return { signedUrl: signed.signedUrl };
 }

@@ -35,6 +35,10 @@ const serverSchema = z.object({
   META_SYSTEM_USER_TOKEN: z.string().optional(),
   // Versão da Graph API a usar. Default: v21.0 (atual em mai/2026).
   META_GRAPH_API_VERSION: z.string().optional(),
+  // Apresenta Yide — HMAC secret pra autorizar Puppeteer a buscar a rota
+  // interna de HTML do PDF. Sem isso, geração de PDF falha amigavelmente.
+  // Gere com: openssl rand -hex 32
+  APRESENTACAO_PDF_SECRET: z.string().min(16).optional(),
 });
 
 const clientSchema = z.object({
