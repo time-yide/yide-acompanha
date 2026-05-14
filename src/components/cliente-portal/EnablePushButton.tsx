@@ -124,7 +124,7 @@ export function EnablePushButton({ vapidPublicKey }: Props) {
         toast.error(r.error);
         return;
       }
-      toast.success("Notificação enviada — confira a tela do celular");
+      toast.success("Notificação enviada, confira a tela do celular");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao enviar teste");
     } finally {

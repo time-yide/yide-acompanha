@@ -47,5 +47,5 @@ export interface SummarizeResult {
  */
 export async function summarizeMeeting(_opts: SummarizeOptions): Promise<SummarizeResult> {
   void _opts;
-  throw new Error("Sumarização IA ainda não implementada — Fase 3 do roadmap.");
+  throw new Error("Sumarização IA ainda não implementada (Fase 3 do roadmap).");
 }

@@ -252,7 +252,7 @@ export async function delegateCapturaAction(formData: FormData): Promise<Delegat
   }
 
   // Monta título e descrição da task
-  const clienteNome = captura.cliente?.nome ?? "—";
+  const clienteNome = captura.cliente?.nome ?? "";
   const dataBr = captura.data_captacao
     ? new Date(captura.data_captacao + "T12:00:00Z").toLocaleDateString("pt-BR")
     : "";
@@ -432,7 +432,7 @@ export async function markCapturaEntregueRapidoAction(
   if (!event.client_id) {
     return {
       error:
-        "Esse evento não tem cliente vinculado — abra o formulário completo (clicando no card) e selecione o cliente lá.",
+        "Esse evento não tem cliente vinculado. Abra o formulário completo (clicando no card) e selecione o cliente lá.",
     };
   }
 
@@ -455,7 +455,7 @@ export async function markCapturaEntregueRapidoAction(
   // Placeholder pra drive_url quando vazio (coluna é NOT NULL)
   const driveUrl = parsed.data.drive_url && parsed.data.drive_url.trim().length > 0
     ? parsed.data.drive_url.trim()
-    : "—";
+    : "";
 
   // Composição do observacoes: combina input do user + tag de origem
   const tagOrigem = `[Entrega marcada em modo rápido por ${actor.nome}, sem feedback completo]`;
@@ -495,7 +495,7 @@ export async function markCapturaEntregueRapidoAction(
     acao: "create",
     dados_depois: insertPayload as unknown as Record<string, unknown>,
     ator_id: actor.id,
-    justificativa: "Marcação rápida — entrega registrada sem feedback completo",
+    justificativa: "Marcação rápida, entrega registrada sem feedback completo",
   });
 
   revalidatePath("/audiovisual");

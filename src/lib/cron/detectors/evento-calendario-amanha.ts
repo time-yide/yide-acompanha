@@ -69,7 +69,7 @@ export async function detectEventsTomorrow(counters: CounterShape): Promise<void
         timeZone: APP_TIMEZONE,
       });
       const prefix = e.sub_calendar === "videomakers" ? "Gravação" : "Reunião";
-      return `${hora} — ${prefix} ${e.titulo}`;
+      return `${hora} ${prefix} ${e.titulo}`;
     }).join(" · ");
 
     const remaining = userEvents.length - 5;

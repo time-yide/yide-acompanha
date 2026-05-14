@@ -26,7 +26,7 @@ export function CarteiraResponsavelSelector({ responsaveis, current }: Props) {
         onChange={(e) => onChange(e.target.value)}
         className="h-8 rounded-md border bg-card px-2 text-sm"
       >
-        <option value="">— Selecione —</option>
+        <option value="">Selecione</option>
         {responsaveis.map((r) => (
           <option key={r.id} value={r.id}>{r.nome}</option>
         ))}

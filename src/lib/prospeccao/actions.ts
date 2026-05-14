@@ -47,7 +47,7 @@ export async function agendarReuniaoAction(formData: FormData): Promise<ActionRe
   const lead = leadData as { id: string; nome_prospect: string; organization_id: string };
 
   const tituloEvento = parsed.data.tipo === "marco_zero"
-    ? `Marco zero — ${lead.nome_prospect}`
+    ? `Marco zero · ${lead.nome_prospect}`
     : `Reunião com ${lead.nome_prospect}`;
 
   // Converte wall-clock do datetime-local pra ISO UTC, interpretando no fuso

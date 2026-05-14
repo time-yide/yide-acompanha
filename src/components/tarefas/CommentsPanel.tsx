@@ -26,7 +26,7 @@ interface Props {
 }
 
 function initials(nome: string | undefined | null): string {
-  if (!nome) return "—";
+  if (!nome) return "";
   const parts = nome.trim().split(/\s+/);
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
@@ -109,7 +109,7 @@ export function CommentsPanel({ taskId, initialComments, canComment, currentUser
     <Card className="space-y-4 p-5">
       <div>
         <h3 className="text-sm font-semibold">Comentários</h3>
-        <p className="text-xs text-muted-foreground">Conversa geral da demanda — visível pra todos os envolvidos.</p>
+        <p className="text-xs text-muted-foreground">Conversa geral da demanda, visível pra todos os envolvidos.</p>
       </div>
 
       <div className="space-y-3">
@@ -120,7 +120,7 @@ export function CommentsPanel({ taskId, initialComments, canComment, currentUser
             const isMine = c.autor_id === currentUser.id;
             return (
               <div key={c.id} className={isMine ? "flex gap-2.5 flex-row-reverse" : "flex gap-2.5"}>
-                <Avatar className="h-7 w-7" title={c.autor?.nome ?? "—"}>
+                <Avatar className="h-7 w-7" title={c.autor?.nome ?? ""}>
                   {c.autor?.avatar_url ? (
                     <AvatarImage src={c.autor.avatar_url} alt={c.autor.nome} />
                   ) : null}
@@ -130,7 +130,7 @@ export function CommentsPanel({ taskId, initialComments, canComment, currentUser
                 </Avatar>
                 <div className={isMine ? "max-w-[80%] space-y-0.5 text-right" : "max-w-[80%] space-y-0.5"}>
                   <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
-                    <span className="font-medium text-foreground">{c.autor?.nome ?? "—"}</span>
+                    <span className="font-medium text-foreground">{c.autor?.nome ?? ""}</span>
                     <span>{formatDateTimeBR(c.criado_em)}</span>
                   </div>
                   <div

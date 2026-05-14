@@ -887,7 +887,7 @@ export async function concludeOperationalAction(formData: FormData): Promise<{ e
   if (!assignee) return { error: "Responsável não encontrado" };
 
   if (!isRoleQueEntrega(assignee.role)) {
-    return { error: "Esta tarefa não exige entrega via modal — use a movimentação normal" };
+    return { error: "Esta tarefa não exige entrega via modal, use a movimentação normal" };
   }
 
   const isAssignee = actor.id === task.atribuido_a;

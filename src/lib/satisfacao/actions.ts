@@ -194,7 +194,7 @@ export async function synthesizeAndStore(
       await dispatchNotification({
         evento_tipo: "cliente_perto_churn",
         titulo: `Atenção: ${clienteData.nome} em zona vermelha por 2 semanas`,
-        mensagem: synthesis.acao_sugerida ?? "Risco de churn — ação urgente recomendada",
+        mensagem: synthesis.acao_sugerida ?? "Risco de churn, ação urgente recomendada",
         link: `/clientes/${clientId}/satisfacao`,
         source_user_id: sourceUserId,
       });

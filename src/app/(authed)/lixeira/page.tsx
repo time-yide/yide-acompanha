@@ -70,7 +70,7 @@ export default async function LixeiraPage() {
               <Row
                 key={c.id}
                 principal={c.nome}
-                secundario={c.status ?? "—"}
+                secundario={c.status ?? ""}
                 deleted_at={c.deleted_at}
                 deleted_by_nome={c.deleted_by_nome}
                 action={<RestoreButton id={c.id} entidade="cliente" canRestore={canRestore} />}
@@ -88,7 +88,7 @@ export default async function LixeiraPage() {
               <Row
                 key={l.id}
                 principal={l.nome_prospect}
-                secundario={l.stage ?? "—"}
+                secundario={l.stage ?? ""}
                 deleted_at={l.deleted_at}
                 deleted_by_nome={l.deleted_by_nome}
                 action={<RestoreButton id={l.id} entidade="lead" canRestore={canRestore} />}
@@ -185,7 +185,7 @@ function Row({
     <tr className="hover:bg-muted/30">
       <td className="px-3 py-2 font-medium">{principal}</td>
       <td className="px-3 py-2 text-xs text-muted-foreground">{secundario}</td>
-      <td className="px-3 py-2 text-xs text-muted-foreground">{deleted_by_nome ?? "—"}</td>
+      <td className="px-3 py-2 text-xs text-muted-foreground">{deleted_by_nome ?? ""}</td>
       <td className="px-3 py-2 text-xs text-muted-foreground">{formatDateTimeBR(deleted_at)}</td>
       <td className="px-3 py-2 text-xs">
         <span className={dias <= 5 ? "text-rose-600 dark:text-rose-400 font-medium" : "text-muted-foreground"}>

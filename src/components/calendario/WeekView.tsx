@@ -71,7 +71,7 @@ export function WeekView({ weekStart, events }: Props) {
             {/* No desktop, dia vazio mostra container com placeholder pra manter altura uniforme. */}
             {isEmpty && (
               <div className="hidden min-h-[200px] space-y-1.5 rounded-md bg-muted/20 p-1.5 sm:block">
-                <p className="px-1 py-2 text-center text-[10px] text-muted-foreground">—</p>
+                <p className="px-1 py-2 text-center text-[10px] text-muted-foreground">Sem eventos</p>
               </div>
             )}
           </div>

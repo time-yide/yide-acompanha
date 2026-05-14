@@ -94,7 +94,7 @@ export function LigacoesTable({ ligacoes, canManage }: Props) {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <p className="text-xs">{lig.colaborador_nome ?? "—"}</p>
+                    <p className="text-xs">{lig.colaborador_nome ?? ""}</p>
                   </TableCell>
                   <TableCell>
                     <span

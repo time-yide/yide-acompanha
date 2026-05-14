@@ -62,7 +62,7 @@ function Avatar({ url, nome }: { url: string | null; nome: string }) {
 }
 
 function commissionLabel(role: string, comissao: number, comissao1Mes: number): string {
-  if (PRODUCERS.has(role)) return "—";
+  if (PRODUCERS.has(role)) return "";
   if (role === "comercial") return `${comissao1Mes}%`;
   return `${comissao}%`;
 }
@@ -112,7 +112,7 @@ export function ColaboradoresTable({
             </TableCell>
             <TableCell className="text-sm text-muted-foreground">{r.email}</TableCell>
             <TableCell className="text-sm text-muted-foreground">
-              {r.data_admissao ? new Date(r.data_admissao).toLocaleDateString("pt-BR", { timeZone: APP_TIMEZONE }) : "—"}
+              {r.data_admissao ? new Date(r.data_admissao).toLocaleDateString("pt-BR", { timeZone: APP_TIMEZONE }) : ""}
             </TableCell>
             <TableCell>
               {r.ativo ? (

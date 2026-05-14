@@ -81,7 +81,7 @@ export const MOCK_CONVERSAS: ConversaMock[] = [
     comercial_nome: "Yasmin",
     comercial_avatar: null,
     lead_vinculado_id: "lead-002",
-    lead_vinculado_nome: "Dr Tetilla — Clínica",
+    lead_vinculado_nome: "Dr Tetilla (Clínica)",
     instancia_nome: "WPP Comercial 1",
     arquivada: false,
     fixada: false,

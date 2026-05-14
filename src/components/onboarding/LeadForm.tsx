@@ -79,7 +79,7 @@ export function LeadForm({ action, defaults = {}, coordenadores = [], assessores
               <Snowflake className={cn("mt-0.5 h-4 w-4 flex-shrink-0", isCold ? "text-sky-600 dark:text-sky-400" : "text-muted-foreground")} />
               <div className="space-y-0.5">
                 <p className={cn("text-sm font-medium", isCold && "text-sky-700 dark:text-sky-300")}>Lead frio</p>
-                <p className="text-[11px] text-muted-foreground">Apenas Empresa, contato e telefone — pra lista fria do comercial.</p>
+                <p className="text-[11px] text-muted-foreground">Apenas Empresa, contato e telefone, pra lista fria do comercial.</p>
               </div>
             </button>
             <button
@@ -93,7 +93,7 @@ export function LeadForm({ action, defaults = {}, coordenadores = [], assessores
               <FileText className={cn("mt-0.5 h-4 w-4 flex-shrink-0", !isCold ? "text-primary" : "text-muted-foreground")} />
               <div className="space-y-0.5">
                 <p className={cn("text-sm font-medium", !isCold && "text-primary")}>Lead detalhado</p>
-                <p className="text-[11px] text-muted-foreground">Todos os campos — quando já tem mais informação coletada.</p>
+                <p className="text-[11px] text-muted-foreground">Todos os campos, quando já tem mais informação coletada.</p>
               </div>
             </button>
           </div>

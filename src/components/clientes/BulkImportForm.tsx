@@ -72,7 +72,7 @@ export function BulkImportForm() {
                       <td className="px-3 py-2 text-right tabular-nums">
                         {r.valor_mensal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                       </td>
-                      <td className="px-3 py-2 text-muted-foreground">{r.servico_contratado ?? "—"}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{r.servico_contratado ?? ""}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -84,7 +84,7 @@ export function BulkImportForm() {
             <ul className="space-y-1 text-xs text-rose-600 dark:text-rose-400">
               {preview.errors.map((e) => (
                 <li key={e.line_number}>
-                  Linha {e.line_number}: {e.message} — <code className="font-mono">{e.raw_line}</code>
+                  Linha {e.line_number}: {e.message} · <code className="font-mono">{e.raw_line}</code>
                 </li>
               ))}
             </ul>

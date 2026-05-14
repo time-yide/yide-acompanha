@@ -44,7 +44,7 @@ export default async function ConversasPage({
       <div className="flex items-center justify-center gap-2 border-b bg-amber-500/10 px-4 py-1.5 text-[11px] text-amber-700 dark:text-amber-300">
         <Sparkles className="h-3 w-3" />
         <span>
-          UI prévia — conexão com Evolution API ainda em construção. Mensagens não são enviadas.
+          UI prévia. Conexão com Evolution API ainda em construção. Mensagens não são enviadas.
         </span>
       </div>
 

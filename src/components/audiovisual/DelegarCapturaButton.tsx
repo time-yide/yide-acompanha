@@ -85,7 +85,7 @@ export function DelegarCapturaButton({ capturaId, delegated, concluidaEm, editor
         toast.error(r.error);
         return;
       }
-      toast.success("Concluída desmarcada — voltou pro fluxo");
+      toast.success("Concluída desmarcada, voltou pro fluxo");
       router.refresh();
     });
   }
@@ -160,7 +160,7 @@ export function DelegarCapturaButton({ capturaId, delegated, concluidaEm, editor
                 href={`/tarefas/${delegated.taskId}`}
                 className="text-[11px] text-muted-foreground hover:text-foreground hover:underline"
               >
-                delegado a {delegated.editorNome ?? "—"}
+                delegado a {delegated.editorNome ?? ""}
               </Link>
             )}
             {canDelegate && (
@@ -274,10 +274,10 @@ export function DelegarCapturaButton({ capturaId, delegated, concluidaEm, editor
                 disabled={pending}
                 className="flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
               >
-                <option value="">— Selecione —</option>
+                <option value="">Selecione</option>
                 {sortedEditores.map((e) => (
                   <option key={e.id} value={e.id}>
-                    {e.nome}{e.role && ROLE_LABEL[e.role] ? ` — ${ROLE_LABEL[e.role]}` : ""}
+                    {e.nome}{e.role && ROLE_LABEL[e.role] ? ` · ${ROLE_LABEL[e.role]}` : ""}
                   </option>
                 ))}
               </select>
@@ -323,7 +323,7 @@ export function DelegarCapturaButton({ capturaId, delegated, concluidaEm, editor
                     toast.error(r.error);
                     return;
                   }
-                  toast.success("Captação delegada — tarefa criada");
+                  toast.success("Captação delegada, tarefa criada");
                   setOpen(false);
                   setEditorId("");
                   setDueDate("");

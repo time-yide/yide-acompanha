@@ -27,7 +27,7 @@ export default async function CulturaPage() {
           Em construção
         </span>
         <p className="mt-4 text-sm text-muted-foreground">
-          Aqui vai entrar o que define a cultura da Yide — como damos feedback,
+          Aqui vai entrar o que define a cultura da Yide: como damos feedback,
           como tomamos decisões, o que celebramos, o que não toleramos.
         </p>
       </section>

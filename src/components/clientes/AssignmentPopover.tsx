@@ -76,7 +76,7 @@ export function AssignmentPopover({
             type="button"
             className="cursor-pointer text-left text-sm text-muted-foreground hover:underline"
           >
-            {currentName ?? "—"}
+            {currentName ?? ""}
           </button>
         }
       />

@@ -53,7 +53,7 @@ export function CapturaPendenteLockGate({ overdue, clientes }: Props) {
 
         <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Gravações sem entrega — clique pra entregar agora
+            Gravações sem entrega · clique pra entregar agora
           </p>
           <ul className="space-y-1.5">
             {overdue.map((p) => (

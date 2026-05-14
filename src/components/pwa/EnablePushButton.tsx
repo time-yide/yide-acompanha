@@ -141,7 +141,7 @@ export function EnablePushButton({ vapidPublicKey }: Props) {
         toast.error(r.error);
         return;
       }
-      toast.success("Notificação enviada — confira o sininho do iPhone/Mac");
+      toast.success("Notificação enviada, confira o sininho do iPhone/Mac");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao enviar teste");
     } finally {

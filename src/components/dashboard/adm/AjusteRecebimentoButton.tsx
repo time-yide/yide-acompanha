@@ -112,7 +112,7 @@ export function AjusteRecebimentoButton({ clientId, mesReferencia, valorMensal, 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Ajustar valor recebido — {fmtMes(mesReferencia)}</DialogTitle>
+            <DialogTitle>Ajustar valor recebido · {fmtMes(mesReferencia)}</DialogTitle>
             <DialogDescription>
               Use quando o cliente paga menos (desconto) ou não paga (bônus de retenção).
               A comissão de assessor/coord recalcula automaticamente sobre o valor efetivo.
@@ -153,7 +153,7 @@ export function AjusteRecebimentoButton({ clientId, mesReferencia, valorMensal, 
             {tipo === "desconto_parcial" && (
               <div className="space-y-2">
                 <Label htmlFor="valor_desconto">
-                  Valor do desconto (R$) — sobre {formatBRL(valorMensal)} mensal
+                  Valor do desconto (R$) sobre {formatBRL(valorMensal)} mensal
                 </Label>
                 <Input
                   id="valor_desconto"

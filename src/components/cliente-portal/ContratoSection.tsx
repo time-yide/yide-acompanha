@@ -17,7 +17,7 @@ export function ContratoSection({ cliente, assessor }: Props) {
     ? cliente.modalidade === "pontual"
       ? "Pontual"
       : "Mensal"
-    : "—";
+    : "";
   const valor = Number(cliente.valor_mensal) || 0;
 
   return (
@@ -50,7 +50,7 @@ export function ContratoSection({ cliente, assessor }: Props) {
           <InfoCard
             icon={Briefcase}
             label="Serviço"
-            value={cliente.servico_contratado ?? "—"}
+            value={cliente.servico_contratado ?? ""}
           />
           <InfoCard icon={Calendar} label="Modalidade" value={modalidade} />
           {valor > 0 && cliente.modalidade !== "pontual" && (

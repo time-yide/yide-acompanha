@@ -85,7 +85,7 @@ export default async function ManualPage() {
       </div>
 
       <footer className="rounded-xl border border-dashed bg-muted/10 px-4 py-3 text-xs text-muted-foreground">
-        Manual vivo — vai sendo construído pelo time. Tem algo importante que
+        Manual vivo, vai sendo construído pelo time. Tem algo importante que
         devia estar aqui? Avisa a Yasmin no Escritório Virtual.
       </footer>
     </div>

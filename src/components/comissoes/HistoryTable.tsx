@@ -55,7 +55,7 @@ export function HistoryTable({ snapshots }: { snapshots: Snapshot[] }) {
               <td className="px-3 py-2 text-right tabular-nums">{brl(Number(s.fixo))}</td>
               <td className="px-3 py-2 text-right tabular-nums">{brl(Number(s.valor_variavel))}</td>
               <td className="px-3 py-2 text-right tabular-nums">
-                {Number(s.ajuste_manual) !== 0 ? brl(Number(s.ajuste_manual)) : "—"}
+                {Number(s.ajuste_manual) !== 0 ? brl(Number(s.ajuste_manual)) : ""}
               </td>
               <td className="px-3 py-2 text-right tabular-nums font-medium">{brl(Number(s.valor_total))}</td>
               <td className="px-3 py-2">

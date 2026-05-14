@@ -244,7 +244,7 @@ function CalendarPostChip({ post, onClick }: { post: SocialPostRow; onClick: () 
         "w-full flex items-center gap-1 rounded border px-1 py-0.5 text-left transition-colors hover:opacity-80",
         statusDef?.color ?? "border-border bg-muted/30",
       )}
-      title={`${post.titulo ?? post.legenda ?? "Sem título"} — ${statusDef?.label ?? post.status}`}
+      title={`${post.titulo ?? post.legenda ?? "Sem título"} · ${statusDef?.label ?? post.status}`}
     >
       {cover && !cover.match(/\.(mp4|mov|webm)$/i) && (
         // eslint-disable-next-line @next/next/no-img-element

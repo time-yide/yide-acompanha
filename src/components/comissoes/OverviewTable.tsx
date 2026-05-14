@@ -58,14 +58,14 @@ export function OverviewTable({ rows }: { rows: Row[] }) {
           <tbody>
             {rows.map((r) => (
               <tr key={r.id} className="border-t">
-                <td className="px-3 py-2">{r.profile?.nome ?? "—"}</td>
+                <td className="px-3 py-2">{r.profile?.nome ?? ""}</td>
                 <td className="px-3 py-2 text-xs text-muted-foreground">
                   {roleLabels[r.papel_naquele_mes] ?? r.papel_naquele_mes}
                 </td>
                 <td className="px-3 py-2 text-right tabular-nums">{brl(Number(r.fixo))}</td>
                 <td className="px-3 py-2 text-right tabular-nums">{brl(Number(r.valor_variavel))}</td>
                 <td className="px-3 py-2 text-right tabular-nums">
-                  {Number(r.ajuste_manual) !== 0 ? brl(Number(r.ajuste_manual)) : "—"}
+                  {Number(r.ajuste_manual) !== 0 ? brl(Number(r.ajuste_manual)) : ""}
                 </td>
                 <td className="px-3 py-2 text-right tabular-nums font-medium">{brl(Number(r.valor_total))}</td>
                 <td className="px-3 py-2">

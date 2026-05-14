@@ -102,7 +102,7 @@ export async function sendTestClientPortalPushAction(): Promise<ActionResult> {
   }
 
   await sendWebPushToUser(user.userId, {
-    title: "Yide — Teste",
+    title: "Yide · Teste",
     body: "Push está funcionando neste dispositivo ✓",
     url: "/cliente",
     tag: "test",

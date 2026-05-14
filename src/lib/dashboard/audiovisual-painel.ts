@@ -66,8 +66,8 @@ async function _getPainelAudiovisualImpl(): Promise<CapturaPainelRow[]> {
     return {
       id: c.id,
       data_captacao: c.data_captacao,
-      cliente_nome: c.cliente?.nome ?? "—",
-      videomaker_nome: c.videomaker?.nome ?? "—",
+      cliente_nome: c.cliente?.nome ?? "",
+      videomaker_nome: c.videomaker?.nome ?? "",
       qtd_videos: c.qtd_videos ?? 0,
       qtd_fotos: c.qtd_fotos ?? 0,
       statusAtual,

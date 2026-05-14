@@ -37,7 +37,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 function formatDateBR(iso: string | null | undefined): string {
-  if (!iso) return "—";
+  if (!iso) return "";
   const [y, m, d] = iso.split("-").map(Number);
   if (!y || !m || !d) return iso;
   return new Date(y, m - 1, d).toLocaleDateString("pt-BR");
@@ -205,8 +205,8 @@ export default async function TarefaPage({
             </div>
 
             <div className="grid grid-cols-1 gap-4 border-t pt-5 text-sm sm:grid-cols-2">
-              <Field label="Responsável pela execução" value={task.atribuido?.nome ?? "—"} />
-              <Field label="Criado por" value={task.criador?.nome ?? "—"} />
+              <Field label="Responsável pela execução" value={task.atribuido?.nome ?? ""} />
+              <Field label="Criado por" value={task.criador?.nome ?? ""} />
               <Field
                 label="Prioridade"
                 node={<PriorityBadge prioridade={task.prioridade} />}
@@ -377,7 +377,7 @@ function Field({
   return (
     <div className="space-y-1">
       <p className="text-xs font-medium text-muted-foreground">{label}</p>
-      <div className="text-sm">{node ?? value ?? "—"}</div>
+      <div className="text-sm">{node ?? value ?? ""}</div>
     </div>
   );
 }

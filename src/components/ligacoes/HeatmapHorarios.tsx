@@ -32,7 +32,7 @@ export function HeatmapHorarios({ cells }: Props) {
   return (
     <Card className="p-5 space-y-3">
       <div>
-        <h2 className="font-semibold text-sm">Mapa de calor — horários</h2>
+        <h2 className="font-semibold text-sm">Mapa de calor · horários</h2>
         <p className="text-[11px] text-muted-foreground">
           Volume de chamadas por dia da semana × hora (BRT)
         </p>

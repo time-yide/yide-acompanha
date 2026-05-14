@@ -32,7 +32,7 @@ export default async function RegrasDaCasaPage() {
           </span>
         </header>
         <p className="mt-3 text-sm text-muted-foreground">
-          Yasmin vai escrever as regras gerais aqui — horário, comunicação,
+          Yasmin vai escrever as regras gerais aqui: horário, comunicação,
           padrões de qualidade, processo de decisão, etc.
         </p>
       </section>
@@ -48,7 +48,7 @@ export default async function RegrasDaCasaPage() {
               Jornada do cliente (D0 → D30)
             </h2>
             <p className="text-xs text-muted-foreground">
-              {D0_D30_TEMPLATE.length} etapas do primeiro mês de cliente — quem faz o quê e o que precisa entregar.
+              {D0_D30_TEMPLATE.length} etapas do primeiro mês de cliente: quem faz o quê e o que precisa entregar.
             </p>
           </div>
         </header>

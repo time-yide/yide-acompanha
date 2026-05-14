@@ -39,7 +39,7 @@ export async function detectClientBirthdays(counters: { aniversario_socio_client
       await dispatchNotification({
         evento_tipo: "aniversario_socio_cliente",
         titulo: `Aniversário em ${days} dia${days === 1 ? "" : "s"}`,
-        mensagem: `${d.cliente?.nome ?? "Cliente"} — ${d.descricao ?? "aniversário do sócio"}`,
+        mensagem: `${d.cliente?.nome ?? "Cliente"} · ${d.descricao ?? "aniversário do sócio"}`,
         link: `/clientes/${d.client_id}`,
         user_ids_extras: recipients,
       });

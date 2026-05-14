@@ -184,7 +184,7 @@ export const PROCESSING_STEP_LABEL: Record<ProcessingStep, string> = {
 // ─── Helpers de formatação ─────────────────────────────────────────────────
 
 export function formatDuracao(segundos: number | null | undefined): string {
-  if (!segundos || segundos <= 0) return "—";
+  if (!segundos || segundos <= 0) return "";
   const h = Math.floor(segundos / 3600);
   const m = Math.floor((segundos % 3600) / 60);
   const s = segundos % 60;

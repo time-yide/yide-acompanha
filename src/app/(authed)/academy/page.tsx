@@ -36,7 +36,7 @@ export default async function AcademyPage() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Yide Academy</h1>
             <p className="text-sm text-muted-foreground">
-              Treinamentos da equipe — finalize a prova pra desbloquear pontos.
+              Treinamentos da equipe. Finalize a prova pra desbloquear pontos.
             </p>
           </div>
         </div>

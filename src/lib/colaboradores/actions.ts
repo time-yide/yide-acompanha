@@ -86,7 +86,7 @@ export async function createColaboradorAction(
         { userId: created.user.id, email: parsed.data.email, deleteErr, updateErr },
       );
     }
-    return { error: "Falha ao atualizar dados financeiros — colaborador não foi criado, tente novamente" };
+    return { error: "Falha ao atualizar dados financeiros, colaborador não foi criado, tente novamente" };
   }
 
   await logAudit({

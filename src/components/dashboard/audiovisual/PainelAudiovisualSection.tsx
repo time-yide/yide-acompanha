@@ -51,7 +51,7 @@ export async function PainelAudiovisualSection() {
     <section className="space-y-3">
       <div>
         <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-foreground/80">
-          <Film className="h-4 w-4" /> Audiovisual — Últimos 3 dias
+          <Film className="h-4 w-4" /> Audiovisual · Últimos 3 dias
         </h2>
         {totalCount > 0 && (
           <p className="mt-1 text-xs text-muted-foreground">

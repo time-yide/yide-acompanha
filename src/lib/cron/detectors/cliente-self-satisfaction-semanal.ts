@@ -37,7 +37,7 @@ export async function detectClienteSelfSatisfactionSemanal(
   );
 
   const payload = {
-    title: "Yide — Como tá a parceria essa semana?",
+    title: "Yide · Como tá a parceria essa semana?",
     body: "Manda sua nota rapidinho pra gente saber como melhorar 👋",
     url: "/cliente",
     tag: "self-satisfaction-semanal",

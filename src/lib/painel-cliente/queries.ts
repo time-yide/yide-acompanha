@@ -75,7 +75,7 @@ export async function listClientesComAcessoPortal(): Promise<ClienteComAcesso[]>
     const list = portalsByClientId.get(p.client_id) ?? [];
     list.push({
       user_id: p.user_id,
-      email: emailByUserId.get(p.user_id) ?? "—",
+      email: emailByUserId.get(p.user_id) ?? "",
       nome_contato: p.nome_contato,
       ativo: p.ativo,
       created_at: p.created_at,

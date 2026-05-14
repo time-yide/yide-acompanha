@@ -157,7 +157,7 @@ async function _listChannelsWithUnreadImpl(userId: string, userRole: string): Pr
       last_message: last
         ? {
             autor_id: last.autor_id,
-            autor_nome: last.autor?.nome ?? "—",
+            autor_nome: last.autor?.nome ?? "",
             conteudo: last.conteudo,
             created_at: last.created_at,
           }

@@ -17,7 +17,7 @@ function formatDateTime(iso: string): string {
 }
 
 function formatDuracao(segundos: number | null): string {
-  if (!segundos) return "—";
+  if (!segundos) return "";
   const min = Math.round(segundos / 60);
   if (min < 60) return `${min}min`;
   const h = Math.floor(min / 60);

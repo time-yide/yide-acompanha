@@ -162,7 +162,7 @@ export function ApprovalCard({
   const tipoLabel = tipo === "video" ? "Vídeo" : "Arte";
   const formatosLabel = formatos.length > 0
     ? formatos.map((f) => (f === "feed" ? "Feed" : "Story")).join(" + ")
-    : "—";
+    : "";
 
   return (
     <>
@@ -186,7 +186,7 @@ export function ApprovalCard({
           <div className="flex items-start gap-2 rounded-md border border-orange-500/40 bg-orange-500/10 px-3 py-2 text-xs text-orange-700 dark:text-orange-400">
             <Clock className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
             <span>
-              Aprovada há <strong>{aprovadaStaleHours}h</strong> sem ser postada — equipe responsável pelo perfil precisa publicar.
+              Aprovada há <strong>{aprovadaStaleHours}h</strong> sem ser postada. Equipe responsável pelo perfil precisa publicar.
             </span>
           </div>
         )}
@@ -247,7 +247,7 @@ export function ApprovalCard({
         {!canSend && !canApproveOrAdjust && !canPost && (
           <p className="border-t pt-3 text-xs text-muted-foreground">
             {status === "postada"
-              ? "Tarefa postada — fluxo concluído."
+              ? "Tarefa postada, fluxo concluído."
               : statusAprovacao === "aprovado"
                 ? "Aprovada e aguardando postagem pelo time responsável pelo perfil."
                 : statusAprovacao === "em_analise"

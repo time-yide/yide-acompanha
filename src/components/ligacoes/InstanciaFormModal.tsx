@@ -117,7 +117,7 @@ export function InstanciaFormModal({ open, onOpenChange, instancia, colaboradore
               <Select value={colaboradorId || "_none"} onValueChange={(v) => setColaboradorId(v === "_none" ? "" : (v ?? ""))}>
                 <SelectTrigger id="colaborador"><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="_none">— Sem responsável —</SelectItem>
+                  <SelectItem value="_none">Sem responsável</SelectItem>
                   {colaboradores.map((c) => (
                     <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
                   ))}
@@ -157,7 +157,7 @@ export function InstanciaFormModal({ open, onOpenChange, instancia, colaboradore
               <p className="text-sm font-medium">Conectar via QR Code</p>
               <p className="text-[11px] text-muted-foreground">
                 Cadastra o número primeiro. Depois aparece o QR Code aqui pra você
-                escanear com o celular do colaborador (ainda em construção — disponível
+                escanear com o celular do colaborador (ainda em construção, disponível
                 quando o servidor de WhatsApp estiver no ar).
               </p>
             </div>

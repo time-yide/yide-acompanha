@@ -14,7 +14,7 @@ export const FORMATOS = [
   { value: "story",     label: "Story (1080×1920)",       ratio: "9:16" },
   { value: "carrossel", label: "Carrossel (múltiplas imagens)", ratio: "1:1" },
   { value: "reels",     label: "Reels (vertical)",        ratio: "9:16" },
-  { value: "outro",     label: "Outro",                   ratio: "—" },
+  { value: "outro",     label: "Outro",                   ratio: "" },
 ] as const;
 
 export type Formato = (typeof FORMATOS)[number]["value"];

@@ -118,12 +118,12 @@ export async function GET(request: NextRequest) {
         client_id: evento.client_id,
         videomaker_id: videomakerId,
         data_captacao: formatIsoDate(evento.inicio),
-        drive_url: "—",
+        drive_url: "(sem link)",
         qtd_videos: 0,
         qtd_fotos: 0,
         observacoes:
-          `[AUTO-MARCADA — entrega presumida após ${DIAS_PARA_AUTO_MARCAR} dias do evento sem registro manual. ` +
-          `Se você acabou de entregar, edite essa captação pra adicionar link do drive e feedback.]`,
+          `[AUTO-MARCADA] Entrega presumida após ${DIAS_PARA_AUTO_MARCAR} dias do evento sem registro manual. ` +
+          `Se você acabou de entregar, edite essa captação pra adicionar link do drive e feedback.`,
       };
 
       const { data: created, error: insertErr } = await sb

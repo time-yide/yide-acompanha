@@ -76,7 +76,7 @@ export default async function MetricasReunioesPage() {
         <section className="rounded-xl border bg-card p-5 space-y-3">
           <h2 className="flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wider text-foreground/80">
             <Award className="h-3.5 w-3.5 text-amber-500" />
-            Ranking — quem mais reúne
+            Ranking: quem mais reúne
           </h2>
           {metrics.porColaborador.length === 0 ? (
             <p className="text-sm text-muted-foreground">Sem dados ainda.</p>
@@ -154,7 +154,7 @@ export default async function MetricasReunioesPage() {
           Mapa da semana
         </h2>
         <p className="text-xs text-muted-foreground">
-          Distribuição por dia da semana — útil pra planejar quando a equipe tá mais ou menos ocupada.
+          Distribuição por dia da semana, útil pra planejar quando a equipe tá mais ou menos ocupada.
         </p>
         <div className="grid grid-cols-7 gap-2 pt-1">
           {metrics.porDiaSemana.map((d) => {

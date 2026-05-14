@@ -51,7 +51,7 @@ export async function createClientPortalAccessAction(
     .eq("email", parsed.data.email)
     .maybeSingle();
   if (existingProfile) {
-    return { error: "Esse email já é de um colaborador interno — escolha outro" };
+    return { error: "Esse email já é de um colaborador interno, escolha outro" };
   }
 
   // 2. Valida que o cliente existe e está ativo.
@@ -103,7 +103,7 @@ export async function createClientPortalAccessAction(
   if (insertErr) {
     // Rollback: deleta auth.user pra não deixar conta órfã.
     await admin.auth.admin.deleteUser(created.user.id);
-    return { error: "Falha ao registrar acesso — tente novamente" };
+    return { error: "Falha ao registrar acesso, tente novamente" };
   }
 
   await logAudit({

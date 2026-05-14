@@ -138,7 +138,7 @@ function Field({
   return (
     <div className={className}>
       <dt className="text-xs uppercase tracking-wide text-muted-foreground">{label}</dt>
-      <dd className="mt-0.5 font-medium">{value ?? <span className="text-muted-foreground">—</span>}</dd>
+      <dd className="mt-0.5 font-medium">{value ?? <span className="text-muted-foreground">&nbsp;</span>}</dd>
     </div>
   );
 }

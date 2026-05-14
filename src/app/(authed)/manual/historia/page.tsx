@@ -25,7 +25,7 @@ export default async function HistoriaPage() {
           Em construção
         </span>
         <p className="mt-4 text-sm text-muted-foreground">
-          Yasmin vai contar a história da Yide aqui — quando começou, marcos
+          Yasmin vai contar a história da Yide aqui: quando começou, marcos
           importantes, momentos de virada, conquistas. Tudo que faz a gente
           ser a Yide.
         </p>

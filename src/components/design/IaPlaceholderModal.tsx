@@ -20,7 +20,7 @@ export function IaPlaceholderModal({ open, onOpenChange }: Props) {
           </DialogTitle>
           <DialogDescription>
             A geração com IA chega na <strong>Fase 2</strong> desse módulo. Aqui ficam os
-            provedores planejados — quando você decidir, eu ativo conforme as env vars
+            provedores planejados. Quando você decidir, eu ativo conforme as env vars
             forem configuradas no Vercel.
           </DialogDescription>
         </DialogHeader>
@@ -53,7 +53,7 @@ export function IaPlaceholderModal({ open, onOpenChange }: Props) {
         <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-[11px]">
           <p className="font-semibold text-foreground mb-1">⚠️ Atenção:</p>
           <p className="text-muted-foreground">
-            <strong>Claude (Anthropic)</strong> não gera imagens — só faz texto e análise visual.
+            <strong>Claude (Anthropic)</strong> não gera imagens. Só faz texto e análise visual.
             Por isso não está na lista. As opções de geração real são as 4 acima.
           </p>
         </div>

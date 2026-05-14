@@ -61,10 +61,10 @@ export function DREView({ data, prev }: { data: DREData; prev?: DREData | null }
   function delta(curr: number, p: number | undefined): string | null {
     if (p === undefined) return null;
     const d = curr - p;
-    if (d === 0) return "—";
+    if (d === 0) return "";
     const sign = d > 0 ? "+" : "−";
     const abs = Math.abs(d).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-    const pct = p !== 0 ? ((d / Math.abs(p)) * 100).toFixed(1) : "—";
+    const pct = p !== 0 ? ((d / Math.abs(p)) * 100).toFixed(1) : "";
     return `${sign}${abs} (${pct}%)`;
   }
 
@@ -156,7 +156,7 @@ export function DREView({ data, prev }: { data: DREData; prev?: DREData | null }
 
       {data.despesas.length === 0 && (
         <p className="pt-2 pl-8 text-xs text-muted-foreground">
-          Nenhuma despesa cadastrada — receita está em {BRL(data.receita_bruta)}, comissões em {BRL(data.custo_servicos.comissoes)}.
+          Nenhuma despesa cadastrada. Receita está em {BRL(data.receita_bruta)}, comissões em {BRL(data.custo_servicos.comissoes)}.
         </p>
       )}
 
@@ -222,7 +222,7 @@ function BreakdownList({
         <div key={r.user_id} className="flex items-center justify-between gap-3 py-0.5 text-[11px]">
           <span className="flex items-center gap-1.5">
             <span className="text-foreground">{r.nome}</span>
-            <span className="text-muted-foreground">— {ROLE_LABEL[r.role] ?? r.role}</span>
+            <span className="text-muted-foreground">· {ROLE_LABEL[r.role] ?? r.role}</span>
           </span>
           <span className="tabular-nums text-muted-foreground">{BRL(r[field])}</span>
         </div>

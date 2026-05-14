@@ -44,7 +44,7 @@ export function CredentialItem({ credential, onEdit }: Props) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      setErro("Não foi possível copiar — copia manualmente");
+      setErro("Não foi possível copiar, copia manualmente");
     }
   }
 

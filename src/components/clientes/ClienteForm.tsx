@@ -100,7 +100,7 @@ export function ClienteForm({ action, defaults = {}, assessores, coordenadores, 
           </Select>
           {tipoRelacao !== "comum" && (
             <p className="text-xs text-muted-foreground">
-              {tipoRelacao === "parceria" ? "Parceria" : "Permuta"} não gera cobrança — valor mensal será R$ 0,00.
+              {tipoRelacao === "parceria" ? "Parceria" : "Permuta"} não gera cobrança. Valor mensal será R$ 0,00.
             </p>
           )}
         </div>
@@ -118,7 +118,7 @@ export function ClienteForm({ action, defaults = {}, assessores, coordenadores, 
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">
-            Pontual (vídeo avulso, projeto fechado): conta na carteira enquanto vigente, mas <strong>não vira churn</strong> ao encerrar — fica em &quot;Serviços pontuais concluídos no mês&quot;.
+            Pontual (vídeo avulso, projeto fechado): conta na carteira enquanto vigente, mas <strong>não vira churn</strong> ao encerrar. Fica em &quot;Serviços pontuais concluídos no mês&quot;.
           </p>
         </div>
 
@@ -200,7 +200,7 @@ export function ClienteForm({ action, defaults = {}, assessores, coordenadores, 
               defaultValue={defaults.designer_id ?? ""}
               className="mt-1 block w-full h-9 rounded-md border bg-card px-2 text-sm"
             >
-              <option value="">— Sem designer —</option>
+              <option value="">Sem designer</option>
               {designers.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
             </select>
           </div>
@@ -211,7 +211,7 @@ export function ClienteForm({ action, defaults = {}, assessores, coordenadores, 
               defaultValue={defaults.videomaker_id ?? ""}
               className="mt-1 block w-full h-9 rounded-md border bg-card px-2 text-sm"
             >
-              <option value="">— Sem videomaker —</option>
+              <option value="">Sem videomaker</option>
               {videomakers.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
             </select>
           </div>
@@ -222,7 +222,7 @@ export function ClienteForm({ action, defaults = {}, assessores, coordenadores, 
               defaultValue={defaults.editor_id ?? ""}
               className="mt-1 block w-full h-9 rounded-md border bg-card px-2 text-sm"
             >
-              <option value="">— Sem editor —</option>
+              <option value="">Sem editor</option>
               {editors.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
             </select>
           </div>
@@ -297,10 +297,10 @@ export function ClienteForm({ action, defaults = {}, assessores, coordenadores, 
             <label className="text-xs font-medium text-muted-foreground">Tipo de pacote</label>
             <Select name="tipo_pacote" defaultValue={defaults.tipo_pacote ?? ""}>
               <SelectTrigger className="h-9 text-sm">
-                <SelectValue placeholder="— Selecione —" />
+                <SelectValue placeholder="Selecione" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">— Inferir automaticamente —</SelectItem>
+                <SelectItem value="">Inferir automaticamente</SelectItem>
                 {TIPOS_PACOTE.map((p) => (
                   <SelectItem key={p} value={p}>{tipoPacoteBadge(p).label}</SelectItem>
                 ))}
@@ -312,10 +312,10 @@ export function ClienteForm({ action, defaults = {}, assessores, coordenadores, 
             <label className="text-xs font-medium text-muted-foreground">Cadência de reunião</label>
             <Select name="cadencia_reuniao" defaultValue={defaults.cadencia_reuniao ?? ""}>
               <SelectTrigger className="h-9 text-sm">
-                <SelectValue placeholder="— Selecione —" />
+                <SelectValue placeholder="Selecione" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">— Não definido —</SelectItem>
+                <SelectItem value="">Não definido</SelectItem>
                 {CADENCIAS_REUNIAO.map((c) => (
                   <SelectItem key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</SelectItem>
                 ))}

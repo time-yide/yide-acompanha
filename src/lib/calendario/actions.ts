@@ -54,7 +54,7 @@ async function notifyCalendarParticipants(params: {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       evento_tipo: "evento_calendario_marcado" as any,
       titulo: "Você foi adicionado em um evento",
-      mensagem: `${params.actorNome} adicionou você no evento "${params.titulo}" — ${dataFmt}`,
+      mensagem: `${params.actorNome} adicionou você no evento "${params.titulo}" · ${dataFmt}`,
       link: `/calendario/${params.eventId}`,
       user_ids_extras: recipients,
       source_user_id: params.actorId,

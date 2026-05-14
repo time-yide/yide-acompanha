@@ -38,7 +38,7 @@ export default async function D0D30Page() {
       <header>
         <h1 className="text-2xl font-bold tracking-tight">D0 → D30</h1>
         <p className="text-sm text-muted-foreground">
-          Acompanhamento estruturado dos primeiros 30 dias do cliente — desde a entrada
+          Acompanhamento estruturado dos primeiros 30 dias do cliente, desde a entrada
           até o primeiro mês ativo.
         </p>
         <p className="mt-2 text-xs text-muted-foreground">

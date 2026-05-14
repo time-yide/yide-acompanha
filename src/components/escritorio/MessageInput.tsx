@@ -202,7 +202,7 @@ export function MessageInput({ channelId, mentionables, replyTo, onClearReply, c
       {replyTo && (
         <div className="flex items-start justify-between gap-2 rounded-md border-l-2 border-primary/50 bg-muted/30 px-2 py-1.5 text-xs">
           <div className="min-w-0">
-            <p className="font-medium text-muted-foreground">Respondendo a {replyTo.autor?.nome ?? "—"}</p>
+            <p className="font-medium text-muted-foreground">Respondendo a {replyTo.autor?.nome ?? ""}</p>
             <p className="line-clamp-2 text-muted-foreground/80">{replyTo.conteudo}</p>
           </div>
           <button type="button" onClick={onClearReply} className="rounded-full p-1 text-muted-foreground hover:bg-muted">

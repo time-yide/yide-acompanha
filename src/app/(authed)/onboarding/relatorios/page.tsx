@@ -34,7 +34,7 @@ export default async function RelatoriosPage({
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Relatórios</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Visão analítica do funil — {PERIOD_LABELS[periodKey].toLowerCase()}
+            Visão analítica do funil · {PERIOD_LABELS[periodKey].toLowerCase()}
           </p>
         </div>
         <PeriodSelector current={periodKey} />

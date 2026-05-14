@@ -33,7 +33,7 @@ export default async function SatisfacaoPage({
     .map((s) => ({
       id: s.id,
       client_id: s.client_id,
-      cliente_nome: s.cliente?.nome ?? "—",
+      cliente_nome: s.cliente?.nome ?? "",
       score_final: Number(s.score_final),
       cor_final: s.cor_final,
     }));

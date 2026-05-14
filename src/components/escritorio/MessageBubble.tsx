@@ -6,7 +6,7 @@ import type { ChatMessage } from "@/lib/escritorio/types";
 import { cn } from "@/lib/utils";
 
 function initials(nome: string | undefined | null): string {
-  if (!nome) return "—";
+  if (!nome) return "";
   const parts = nome.trim().split(/\s+/);
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
@@ -105,7 +105,7 @@ export function MessageBubble({ message, isMine, prev, onReply }: Props) {
   return (
     <div className={cn("group flex gap-2", isMine && "flex-row-reverse", continuation ? "mt-0.5" : "mt-2")}>
       {!isMine && !continuation && (
-        <Avatar className="h-8 w-8 mt-1" title={message.autor?.nome ?? "—"}>
+        <Avatar className="h-8 w-8 mt-1" title={message.autor?.nome ?? ""}>
           {message.autor?.avatar_url ? (
             <AvatarImage src={message.autor.avatar_url} alt={message.autor.nome} />
           ) : null}
@@ -119,13 +119,13 @@ export function MessageBubble({ message, isMine, prev, onReply }: Props) {
       <div className={cn("min-w-0 max-w-[78%]", isMine && "text-right")}>
         {!isMine && !continuation && (
           <div className={cn("mb-0.5 px-1 text-xs font-semibold", nameColor(message.autor_id))}>
-            {message.autor?.nome ?? "—"}
+            {message.autor?.nome ?? ""}
           </div>
         )}
 
         {message.reply_to && (
           <div className="mb-1 rounded-md border-l-2 border-primary/50 bg-muted/30 px-2 py-1 text-left text-xs">
-            <p className="font-medium text-muted-foreground">↳ {message.reply_to.autor_nome ?? "—"}</p>
+            <p className="font-medium text-muted-foreground">↳ {message.reply_to.autor_nome ?? ""}</p>
             <p className="line-clamp-2 text-muted-foreground/80">{message.reply_to.conteudo}</p>
           </div>
         )}

@@ -60,7 +60,7 @@ export function ServicoPopover({ clienteId, current }: Props) {
             type="button"
             className="cursor-pointer text-left text-sm text-muted-foreground hover:underline"
           >
-            {current ?? "—"}
+            {current ?? ""}
           </button>
         }
       />

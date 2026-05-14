@@ -116,7 +116,7 @@ function Item({ rank, s, kind }: {
             href={`/clientes/${s.client_id}/satisfacao`}
             className="font-medium text-sm truncate hover:underline"
           >
-            {s.cliente?.nome ?? "—"}
+            {s.cliente?.nome ?? ""}
           </Link>
           <StatusBadge status={s.status} votos={s.votos_atuais} esperados={s.votos_esperados} />
         </div>

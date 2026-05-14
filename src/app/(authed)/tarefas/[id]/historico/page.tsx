@@ -58,10 +58,10 @@ const TRACKED_FIELDS: Array<{ key: string; label: string }> = [
 ];
 
 function formatValue(v: unknown, profileNames: Map<string, string>): string {
-  if (v === null || v === undefined || v === "") return "—";
+  if (v === null || v === undefined || v === "") return "";
   if (typeof v === "boolean") return v ? "Sim" : "Não";
   if (Array.isArray(v)) {
-    if (v.length === 0) return "—";
+    if (v.length === 0) return "";
     return v.map((x) => (typeof x === "string" ? profileNames.get(x) ?? x : String(x))).join(", ");
   }
   if (typeof v === "string") {
@@ -190,7 +190,7 @@ export default async function TarefaHistoricoPage({
                     >
                       {ACAO_LABEL[e.acao] ?? e.acao}
                     </Badge>
-                    <span className="font-medium">{e.ator?.nome ?? "—"}</span>
+                    <span className="font-medium">{e.ator?.nome ?? ""}</span>
                     <span className="text-muted-foreground">·</span>
                     <span className="text-muted-foreground">
                       {new Date(e.created_at).toLocaleString("pt-BR", {

@@ -69,8 +69,8 @@ export default async function DesignListPage({
         <div>
           <strong className="text-foreground">Fase 1 (essa):</strong> cadastro manual de artes + style guide por cliente.
           {" "}
-          <strong className="text-foreground">Próxima fase:</strong> botão &quot;Gerar com IA&quot; usando GPT-Image-1, Imagen, Flux ou Ideogram —
-          o style guide vai automaticamente pro prompt.
+          <strong className="text-foreground">Próxima fase:</strong> botão &quot;Gerar com IA&quot; usando GPT-Image-1, Imagen, Flux ou Ideogram.
+          O style guide vai automaticamente pro prompt.
         </div>
       </Card>
 

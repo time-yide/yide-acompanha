@@ -58,7 +58,7 @@ function CapturaCard({ captura: c, showVideomaker, editores, canDelegate, canDel
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <h3 className="truncate text-sm font-semibold leading-tight">
-              {c.cliente?.nome ?? "—"}
+              {c.cliente?.nome ?? ""}
             </h3>
             <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
               {formatDateBR(c.data_captacao)}

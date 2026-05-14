@@ -77,7 +77,7 @@ export function BulkExpenseImportForm() {
               <p className="mb-1 text-xs font-semibold text-destructive">Erros:</p>
               <ul className="space-y-1 text-xs text-destructive">
                 {preview.errors.slice(0, 10).map((er, i) => (
-                  <li key={i}>L{er.linha}: {er.mensagem} — <code className="text-[10px]">{er.raw}</code></li>
+                  <li key={i}>L{er.linha}: {er.mensagem} · <code className="text-[10px]">{er.raw}</code></li>
                 ))}
                 {preview.errors.length > 10 && <li>...e mais {preview.errors.length - 10}</li>}
               </ul>
@@ -104,7 +104,7 @@ export function BulkExpenseImportForm() {
                       <td className="px-2 py-1 text-right tabular-nums">R$ {r.valor.toLocaleString("pt-BR")}</td>
                       <td className="px-2 py-1">{r.tipo}</td>
                       <td className="px-2 py-1 text-muted-foreground">
-                        {r.tipo === "avulsa" ? r.mes_referencia : `${r.inicio_mes ?? "—"} → ${r.fim_mes ?? "ativa"}`}
+                        {r.tipo === "avulsa" ? r.mes_referencia : `${r.inicio_mes ?? ""} → ${r.fim_mes ?? "ativa"}`}
                       </td>
                     </tr>
                   ))}

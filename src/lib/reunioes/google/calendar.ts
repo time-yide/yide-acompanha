@@ -50,7 +50,7 @@ export async function listEvents(
   _timeMax: string,
 ): Promise<GoogleCalendarEvent[]> {
   void _accessToken; void _timeMin; void _timeMax;
-  throw new Error("Google Calendar API ainda não implementada — Fase 1 do roadmap.");
+  throw new Error("Google Calendar API ainda não implementada (Fase 1 do roadmap).");
 }
 
 /**
@@ -62,7 +62,7 @@ export async function incrementalSync(
   _syncToken: string,
 ): Promise<{ events: GoogleCalendarEvent[]; nextSyncToken: string | null }> {
   void _accessToken; void _syncToken;
-  throw new Error("Google Calendar incremental sync ainda não implementado — Fase 1 do roadmap.");
+  throw new Error("Google Calendar incremental sync ainda não implementado (Fase 1 do roadmap).");
 }
 
 /**

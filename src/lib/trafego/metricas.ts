@@ -102,7 +102,7 @@ export const METRICAS_DEFAULT: string[] = [
 
 /** Formata um valor pra exibição conforme a unidade. */
 export function formatMetricaValor(valor: number | null | undefined, unidade: MetricaUnidade): string {
-  if (valor === null || valor === undefined) return "—";
+  if (valor === null || valor === undefined) return "";
   switch (unidade) {
     case "moeda":
       return new Intl.NumberFormat("pt-BR", {

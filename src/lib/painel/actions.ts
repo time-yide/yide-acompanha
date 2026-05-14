@@ -109,7 +109,7 @@ export async function markStepProntoAction(formData: FormData): Promise<ActionRe
       await dispatchNotification({
         evento_tipo: "checklist_step_delegada",
         titulo: `Etapa "${nextStep.next}" delegada pra você`,
-        mensagem: `Cliente — fase ${nextStep.next} aguardando você`,
+        mensagem: `Cliente · fase ${nextStep.next} aguardando você`,
         link: "/painel",
         user_ids_extras: [nextStep.responsavel_id],
       });
