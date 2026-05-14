@@ -41,6 +41,44 @@ describe("computeBirthdayThisYear", () => {
   });
 });
 
+describe("navegação de semana via ?week= (parsing TZ-safe)", () => {
+  // Regression: `new Date("2026-05-19")` retorna UTC midnight, que em
+  // Cuiabá (UTC-4) cai no dia anterior (Sunday). Resultado: o `getWeekRange`
+  // computa a semana errada e a setinha "próxima semana" fica parada
+  // (issue: usuária reportou em 2026-05-14).
+  // Fix: anchor com `T12:00:00Z` — meio-dia UTC = 8h Cuiabá, mesma data
+  // em qualquer fuso ocidental.
+
+  function parseWeekParam(week: string): Date {
+    return new Date(`${week}T12:00:00Z`);
+  }
+
+  function getDayInCuiaba(d: Date): string {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Cuiaba",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(d);
+  }
+
+  it("week=2026-05-19 (Segunda UTC) → Segunda 2026-05-19 em Cuiabá", () => {
+    const parsed = parseWeekParam("2026-05-19");
+    expect(getDayInCuiaba(parsed)).toBe("2026-05-19");
+  });
+
+  it("week=2026-05-04 (Segunda UTC) → Segunda 2026-05-04 em Cuiabá", () => {
+    const parsed = parseWeekParam("2026-05-04");
+    expect(getDayInCuiaba(parsed)).toBe("2026-05-04");
+  });
+
+  it("sem anchor (bug antigo) — UTC midnight cai no dia anterior em Cuiabá", () => {
+    // Garantia que o problema original existia antes do fix.
+    const buggy = new Date("2026-05-19");
+    expect(getDayInCuiaba(buggy)).toBe("2026-05-18");
+  });
+});
+
 describe("eventOverlapsWeek", () => {
   const weekStart = new Date("2026-04-27T00:00:00Z");
   const weekEnd = new Date("2026-05-04T00:00:00Z");
