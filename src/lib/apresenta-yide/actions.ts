@@ -9,6 +9,7 @@ import { logAudit } from "@/lib/audit/log";
 import { signPdfToken } from "./pdf-token";
 import { generatePdfFromUrl } from "./pdf-generator";
 import { getServerEnv, env as publicEnv } from "@/lib/env";
+import { isValidSlide, type Slide } from "./tipos";
 
 const ROLES_PERMITIDOS = ["adm", "socio", "coordenador", "assessor", "comercial"];
 
@@ -231,4 +232,147 @@ export async function gerarPdfApresentacaoAction(
 
   revalidatePath(`/social-media/apresenta-yide/${apresentacaoId}`);
   return { signedUrl: signed.signedUrl };
+}
+
+const atualizarSlideSchema = z.object({
+  apresentacao_id: z.string().uuid(),
+  slide_index: z.coerce.number().int().nonnegative(),
+  content: z.string().min(1), // JSON string, parsed below
+});
+
+export async function atualizarSlideAction(
+  formData: FormData,
+): Promise<{ error?: string; success?: true }> {
+  const actor = await requireAuth();
+  if (!ROLES_PERMITIDOS.includes(actor.role)) {
+    return { error: "Sem permissão" };
+  }
+
+  const parsed = atualizarSlideSchema.safeParse({
+    apresentacao_id: formData.get("apresentacao_id"),
+    slide_index: formData.get("slide_index"),
+    content: formData.get("content"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  let newContent: unknown;
+  try {
+    newContent = JSON.parse(parsed.data.content);
+  } catch {
+    return { error: "Content inválido (JSON malformado)" };
+  }
+
+  // Wrap em { template, content } pra validar shape via isValidSlide
+  const newSlide = isObj(newContent) && typeof newContent.template === "string"
+    ? { template: newContent.template, content: newContent }
+    : null;
+  if (!newSlide || !isValidSlide(newSlide)) {
+    return { error: "Content do slide inválido — verifique os campos" };
+  }
+
+  const admin = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = admin as any;
+  const { data: row } = await sb
+    .from("apresentacoes_yide")
+    .select("id, criado_por, slides")
+    .eq("id", parsed.data.apresentacao_id)
+    .single();
+  if (!row) return { error: "Apresentação não encontrada" };
+
+  const isPriv = actor.role === "adm" || actor.role === "socio";
+  if (row.criado_por !== actor.id && !isPriv) {
+    return { error: "Sem permissão pra editar essa apresentação" };
+  }
+
+  const slides = (row.slides ?? []) as Slide[];
+  if (parsed.data.slide_index >= slides.length) {
+    return { error: `Slide index ${parsed.data.slide_index} fora do range (0..${slides.length - 1})` };
+  }
+
+  const newSlides = slides.slice();
+  newSlides[parsed.data.slide_index] = newSlide;
+
+  const { error } = await sb
+    .from("apresentacoes_yide")
+    .update({ slides: newSlides })
+    .eq("id", parsed.data.apresentacao_id);
+  if (error) return { error: error.message };
+
+  await logAudit({
+    entidade: "apresentacoes_yide",
+    entidade_id: parsed.data.apresentacao_id,
+    acao: "update",
+    dados_depois: { slide_atualizado: parsed.data.slide_index },
+    ator_id: actor.id,
+    justificativa: "Edição inline de slide",
+  });
+
+  revalidatePath(`/social-media/apresenta-yide/${parsed.data.apresentacao_id}`);
+  return { success: true };
+}
+
+const excluirSlideSchema = z.object({
+  apresentacao_id: z.string().uuid(),
+  slide_index: z.coerce.number().int().nonnegative(),
+});
+
+export async function excluirSlideAction(
+  formData: FormData,
+): Promise<{ error?: string; success?: true }> {
+  const actor = await requireAuth();
+  if (!ROLES_PERMITIDOS.includes(actor.role)) {
+    return { error: "Sem permissão" };
+  }
+
+  const parsed = excluirSlideSchema.safeParse({
+    apresentacao_id: formData.get("apresentacao_id"),
+    slide_index: formData.get("slide_index"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const admin = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = admin as any;
+  const { data: row } = await sb
+    .from("apresentacoes_yide")
+    .select("id, criado_por, slides")
+    .eq("id", parsed.data.apresentacao_id)
+    .single();
+  if (!row) return { error: "Apresentação não encontrada" };
+
+  const isPriv = actor.role === "adm" || actor.role === "socio";
+  if (row.criado_por !== actor.id && !isPriv) {
+    return { error: "Sem permissão pra editar essa apresentação" };
+  }
+
+  const slides = (row.slides ?? []) as Slide[];
+  if (parsed.data.slide_index >= slides.length) {
+    return { error: `Slide index ${parsed.data.slide_index} fora do range (0..${slides.length - 1})` };
+  }
+
+  const newSlides = slides.slice();
+  newSlides.splice(parsed.data.slide_index, 1);
+
+  const { error } = await sb
+    .from("apresentacoes_yide")
+    .update({ slides: newSlides })
+    .eq("id", parsed.data.apresentacao_id);
+  if (error) return { error: error.message };
+
+  await logAudit({
+    entidade: "apresentacoes_yide",
+    entidade_id: parsed.data.apresentacao_id,
+    acao: "update",
+    dados_depois: { slide_excluido: parsed.data.slide_index },
+    ator_id: actor.id,
+    justificativa: "Exclusão de slide individual",
+  });
+
+  revalidatePath(`/social-media/apresenta-yide/${parsed.data.apresentacao_id}`);
+  return { success: true };
+}
+
+function isObj(x: unknown): x is Record<string, unknown> {
+  return typeof x === "object" && x !== null && !Array.isArray(x);
 }
