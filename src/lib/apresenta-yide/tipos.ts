@@ -144,7 +144,8 @@ export function isValidSlide(x: unknown): x is Slide {
   if (!isObj(x)) return false;
   if (!isStr(x.template) || !TEMPLATES.includes(x.template as SlideTemplate)) return false;
   if (!isObj(x.content) || x.content.template !== x.template) return false;
-  switch (x.template) {
+  const template = x.template as SlideTemplate;
+  switch (template) {
     case "capa": return isCapa(x.content);
     case "conteudo": return isConteudo(x.content);
     case "duas_colunas": return isDuasColunas(x.content);
