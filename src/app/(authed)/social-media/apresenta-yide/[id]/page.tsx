@@ -85,7 +85,12 @@ export default async function ApresentacaoDetailPage({
             Falha ao gerar essa apresentação. Tente criar uma nova com prompt diferente.
           </div>
         ) : (
-          <ApresentacaoEditor slides={apresentacao.slides} titulo={apresentacao.titulo} />
+          <ApresentacaoEditor
+            slides={apresentacao.slides}
+            titulo={apresentacao.titulo}
+            editable={apresentacao.criado_por === user.id || isPrivileged}
+            apresentacaoId={apresentacao.id}
+          />
         )}
       </div>
     </div>
