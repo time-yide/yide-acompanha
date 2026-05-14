@@ -151,3 +151,21 @@
 html[data-sidebar="hidden"] [data-role="sidebar"] {
   display: none;
 }
+
+@keyframes funil-grow {
+  from { width: 0 !important; opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes card-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-funil-grow {
+  animation: funil-grow 800ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-card-rise {
+  animation: card-rise 400ms ease-out both;
+}
