@@ -1,43 +1,44 @@
-import { BookOpen, Sparkles, Heart, Workflow, Users, HelpCircle, Construction } from "lucide-react";
+import Link from "next/link";
+import { BookOpen, FolderOpen, ScrollText, Heart, Sparkles, Compass } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 
-interface Section {
+interface Card {
+  href: string;
   icon: typeof BookOpen;
   titulo: string;
   resumo: string;
-  topicos: string[];
 }
 
-const SECOES: Section[] = [
+const CARDS: Card[] = [
   {
+    href: "/manual/materiais",
+    icon: FolderOpen,
+    titulo: "Materiais",
+    resumo: "Modelo de briefing, decks, planilhas e outros arquivos da equipe.",
+  },
+  {
+    href: "/manual/regras-da-casa",
+    icon: ScrollText,
+    titulo: "Regras da casa",
+    resumo: "Como a Yide opera no dia a dia + jornada D0 → D30 do cliente.",
+  },
+  {
+    href: "/manual/historia",
+    icon: Compass,
+    titulo: "História da Yide",
+    resumo: "De onde a gente veio e como chegamos até aqui.",
+  },
+  {
+    href: "/manual/cultura",
     icon: Heart,
-    titulo: "Cultura & valores",
-    resumo: "Quem somos, no que acreditamos e como nos comportamos no dia a dia.",
-    topicos: ["Missão e visão", "Princípios da Yide", "Como damos feedback", "Comemorações e rituais"],
+    titulo: "Cultura",
+    resumo: "Como nos comportamos, como damos feedback, o que valorizamos.",
   },
   {
-    icon: Workflow,
-    titulo: "Como trabalhamos",
-    resumo: "Processos, rituais e responsabilidades de cada área.",
-    topicos: ["Fluxo do D0 → D30", "Como abrir e entregar tarefas", "Pipeline comercial", "Reuniões e cadências"],
-  },
-  {
-    icon: Users,
-    titulo: "Quem é quem",
-    resumo: "Estrutura do time, responsabilidades e quem procurar pra cada assunto.",
-    topicos: ["Organograma", "Áreas e responsabilidades", "Pontos focais por cliente", "Decisões: quem pode aprovar o quê"],
-  },
-  {
+    href: "/manual/missao-valores",
     icon: Sparkles,
-    titulo: "Ferramentas",
-    resumo: "Tudo que usamos no dia a dia, com guias rápidos.",
-    topicos: ["Sistema interno (este aqui)", "Drive da Yide", "Meta Business Manager", "WhatsApp Business"],
-  },
-  {
-    icon: HelpCircle,
-    titulo: "FAQ & dúvidas comuns",
-    resumo: "Respostas rápidas pras perguntas que mais aparecem.",
-    topicos: ["Folgas e férias", "Reembolsos", "Suporte técnico", "Onboarding de novo colaborador"],
+    titulo: "Missão & valores",
+    resumo: "Pra que a gente existe e os princípios que nos guiam.",
   },
 ];
 
@@ -54,49 +55,38 @@ export default async function ManualPage() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Manual da Yide</h1>
             <p className="text-sm text-muted-foreground">
-              Tudo que você precisa saber pra trabalhar bem na Yide
+              Tudo que você precisa saber pra trabalhar bem aqui
             </p>
           </div>
         </div>
       </header>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {SECOES.map((s) => {
-          const Icon = s.icon;
+        {CARDS.map((c) => {
+          const Icon = c.icon;
           return (
-            <section key={s.titulo} className="rounded-2xl border bg-card p-5 transition-colors hover:bg-card/80">
-              <header className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <Icon className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <h2 className="text-base font-semibold tracking-tight">{s.titulo}</h2>
-                    <p className="text-xs text-muted-foreground">{s.resumo}</p>
-                  </div>
+            <Link
+              key={c.href}
+              href={c.href}
+              className="group rounded-2xl border bg-card p-5 transition-all hover:border-primary/40 hover:bg-card/80"
+            >
+              <header className="flex items-center gap-2.5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary/15">
+                  <Icon className="h-4 w-4" />
                 </div>
-                <span className="inline-flex items-center gap-1 rounded-full bg-muted/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  <Construction className="h-3 w-3" />
-                  Em breve
-                </span>
+                <div>
+                  <h2 className="text-base font-semibold tracking-tight">{c.titulo}</h2>
+                  <p className="text-xs text-muted-foreground">{c.resumo}</p>
+                </div>
               </header>
-
-              <ul className="mt-4 space-y-1.5 text-sm text-muted-foreground">
-                {s.topicos.map((t) => (
-                  <li key={t} className="flex items-start gap-2">
-                    <span className="mt-1 inline-block h-1 w-1 flex-shrink-0 rounded-full bg-primary/60" />
-                    <span>{t}</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
+            </Link>
           );
         })}
       </div>
 
       <footer className="rounded-xl border border-dashed bg-muted/10 px-4 py-3 text-xs text-muted-foreground">
-        Este manual é vivo — vai sendo construído pelo time. Tem algo importante
-        que devia estar aqui? Avisa a Yasmin no Escritório Virtual.
+        Manual vivo — vai sendo construído pelo time. Tem algo importante que
+        devia estar aqui? Avisa a Yasmin no Escritório Virtual.
       </footer>
     </div>
   );
