@@ -4,6 +4,7 @@ import { ChevronLeft, Presentation } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import { getApresentacao } from "@/lib/apresenta-yide/queries";
 import { ApresentacaoEditor } from "@/components/apresenta-yide/ApresentacaoEditor";
+import { StreamingApresentacao } from "@/components/apresenta-yide/StreamingApresentacao";
 
 const ROLES_PERMITIDOS = ["adm", "socio", "coordenador", "assessor", "comercial"];
 
@@ -55,14 +56,27 @@ export default async function ApresentacaoDetailPage({
           )}
           <div className="rounded-xl border border-dashed bg-muted/10 p-5 text-xs text-muted-foreground">
             <p>
-              <strong className="text-foreground">PR 1:</strong> o PDF e a geração via
-              IA real entram nas próximas fases. Por enquanto você consegue ver o
-              design dos slides com conteúdo de exemplo.
+              <strong className="text-foreground">Exportar PDF:</strong> em breve. Por
+              enquanto dá pra ver a apresentação aqui e fazer screenshot pra mandar
+              pro cliente.
             </p>
           </div>
         </aside>
 
-        <ApresentacaoEditor slides={apresentacao.slides} titulo={apresentacao.titulo} />
+        {apresentacao.status === "gerando" ? (
+          <StreamingApresentacao
+            apresentacaoId={apresentacao.id}
+            titulo={apresentacao.titulo}
+            initialSlides={apresentacao.slides}
+            numSlidesAlvo={apresentacao.num_slides_alvo}
+          />
+        ) : apresentacao.status === "erro" ? (
+          <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-6 text-sm text-destructive">
+            Falha ao gerar essa apresentação. Tente criar uma nova com prompt diferente.
+          </div>
+        ) : (
+          <ApresentacaoEditor slides={apresentacao.slides} titulo={apresentacao.titulo} />
+        )}
       </div>
     </div>
   );

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { criarApresentacaoMockAction } from "@/lib/apresenta-yide/actions";
+import { criarApresentacaoAction } from "@/lib/apresenta-yide/actions";
 import { useRouter } from "next/navigation";
 
 export function PromptForm() {
@@ -18,7 +18,7 @@ export function PromptForm() {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     startTransition(async () => {
-      const r = await criarApresentacaoMockAction(fd);
+      const r = await criarApresentacaoAction(fd);
       if ("error" in r) {
         toast.error(r.error);
         return;
@@ -89,8 +89,7 @@ export function PromptForm() {
       </Button>
 
       <p className="rounded-lg border border-dashed bg-muted/10 px-3 py-2 text-[11px] text-muted-foreground">
-        <strong className="text-foreground">PR 1:</strong> v1 cria a apresentação com slides
-        de exemplo pra você ver o design. A geração via IA real entra na próxima fase.
+        Após clicar, a IA vai gerar os slides ao vivo no preview à direita. Costuma levar 15-30 segundos pra um deck de 8 slides.
       </p>
     </form>
   );
