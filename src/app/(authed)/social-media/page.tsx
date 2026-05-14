@@ -5,6 +5,7 @@ import { requireAuth } from "@/lib/auth/session";
 import { listClientesSocial } from "@/lib/social-media/queries";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { TabsSocialMedia } from "@/components/social-media/TabsSocialMedia";
 
 const ALLOWED_ROLES = [
   "adm", "socio", "coordenador", "assessor",
@@ -46,6 +47,7 @@ export default async function SocialMediaListPage({
 
   return (
     <div className="space-y-5">
+      <TabsSocialMedia active="feed" />
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">

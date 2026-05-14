@@ -1,0 +1,134 @@
+"use server";
+
+import { z } from "zod";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { requireAuth } from "@/lib/auth/session";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { logAudit } from "@/lib/audit/log";
+import { MOCK_APRESENTACAO_SLIDES } from "./mock-data";
+
+const ROLES_PERMITIDOS = ["adm", "socio", "coordenador", "assessor", "comercial"];
+
+const createSchema = z.object({
+  titulo: z.string().min(1, "Título obrigatório").max(200),
+  prompt: z.string().min(20, "Prompt precisa de pelo menos 20 caracteres").max(5000),
+  objetivo: z.string().max(500).optional().nullable(),
+  num_slides_alvo: z.coerce.number().int().min(5).max(15),
+});
+
+type CreateResult = { error: string } | { redirect: string };
+
+/**
+ * Cria apresentação com slides MOCK (PR 1). PR 2 substitui mock pelo
+ * Claude streaming. Mesmo assim o registro fica salvo no DB.
+ */
+export async function criarApresentacaoMockAction(formData: FormData): Promise<CreateResult> {
+  const actor = await requireAuth();
+  if (!ROLES_PERMITIDOS.includes(actor.role)) {
+    return { error: "Seu papel não tem acesso ao Apresenta Yide" };
+  }
+
+  const parsed = createSchema.safeParse({
+    titulo: formData.get("titulo"),
+    prompt: formData.get("prompt"),
+    objetivo: formData.get("objetivo") || null,
+    num_slides_alvo: formData.get("num_slides_alvo"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const admin = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = admin as any;
+
+  // Resolve org_id do criador
+  const { data: prof } = await sb
+    .from("profiles")
+    .select("organization_id")
+    .eq("id", actor.id)
+    .single();
+  if (!prof?.organization_id) return { error: "Organização não encontrada" };
+
+  const { data: inserted, error } = await sb
+    .from("apresentacoes_yide")
+    .insert({
+      titulo: parsed.data.titulo,
+      prompt: parsed.data.prompt,
+      objetivo: parsed.data.objetivo,
+      num_slides_alvo: parsed.data.num_slides_alvo,
+      slides: MOCK_APRESENTACAO_SLIDES,
+      status: "pronta", // PR 1: mock vem "pronta" direto. PR 2: muda pra gerando→pronta
+      criado_por: actor.id,
+      organization_id: prof.organization_id,
+    })
+    .select("id")
+    .single();
+  if (error || !inserted) return { error: error?.message ?? "Falha ao criar" };
+
+  await logAudit({
+    entidade: "apresentacoes_yide",
+    entidade_id: inserted.id,
+    acao: "create",
+    dados_depois: { titulo: parsed.data.titulo, prompt_length: parsed.data.prompt.length },
+    ator_id: actor.id,
+  });
+
+  revalidatePath("/social-media/apresenta-yide");
+  return { redirect: `/social-media/apresenta-yide/${inserted.id}` };
+}
+
+const deleteSchema = z.object({ id: z.string().uuid() });
+
+export async function deleteApresentacaoAction(formData: FormData): Promise<{ error?: string; success?: boolean }> {
+  const actor = await requireAuth();
+  const parsed = deleteSchema.safeParse({ id: formData.get("id") });
+  if (!parsed.success) return { error: "ID inválido" };
+
+  const admin = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = admin as any;
+
+  // Confirma propriedade (RLS também bloqueia, mas erro feio).
+  const { data: own } = await sb
+    .from("apresentacoes_yide")
+    .select("criado_por, titulo, pdf_storage_path")
+    .eq("id", parsed.data.id)
+    .single();
+  if (!own) return { error: "Apresentação não encontrada" };
+  const isPriv = actor.role === "adm" || actor.role === "socio";
+  if (own.criado_por !== actor.id && !isPriv) {
+    return { error: "Sem permissão pra excluir essa apresentação" };
+  }
+
+  // Apaga PDF do Storage se existir
+  if (own.pdf_storage_path) {
+    await admin.storage.from("apresentacoes-yide").remove([own.pdf_storage_path]);
+  }
+
+  const { error } = await sb
+    .from("apresentacoes_yide")
+    .delete()
+    .eq("id", parsed.data.id);
+  if (error) return { error: error.message };
+
+  await logAudit({
+    entidade: "apresentacoes_yide",
+    entidade_id: parsed.data.id,
+    acao: "delete",
+    dados_antes: { titulo: own.titulo },
+    ator_id: actor.id,
+  });
+
+  revalidatePath("/social-media/apresenta-yide");
+  return { success: true };
+}
+
+/**
+ * Wrapper que faz redirect após criar — pra usar com form action.
+ * Server actions com redirect throw NEXT_REDIRECT, então separamos.
+ */
+export async function criarApresentacaoComRedirectAction(formData: FormData): Promise<void | { error: string }> {
+  const r = await criarApresentacaoMockAction(formData);
+  if ("error" in r) return r;
+  redirect(r.redirect);
+}
