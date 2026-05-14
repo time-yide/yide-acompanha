@@ -2,7 +2,7 @@ import {
   LayoutGrid, Users, Briefcase, KanbanSquare, ListChecks,
   DollarSign, Smile, Calendar, UserCog, ClipboardList, MessageSquare,
   TrendingUp, Video, Trash2, MessagesSquare, GraduationCap, Megaphone, Share2, Database, Palette, Radar, MessageCircle, Phone, Mic,
-  IdCard, Rocket,
+  IdCard, Rocket, BookOpen,
   type LucideIcon,
 } from "lucide-react";
 import type { Role } from "@/lib/auth/permissions";
@@ -89,6 +89,7 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
     id: "equipe",
     label: "Equipe",
     items: [
+      { type: "link", href: "/manual", icon: BookOpen, label: "Manual da Yide", roles: "all", badgeKey: null },
       { type: "link", href: "/academy", icon: GraduationCap, label: "Yide Academy", roles: "all", badgeKey: null },
       { type: "link", href: "/colaboradores", icon: UserCog, label: "Colaboradores", roles: "all", badgeKey: null },
       { type: "link", href: "/satisfacao", icon: Smile, label: "Satisfação", roles: "all", badgeKey: null },
