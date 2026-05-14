@@ -13,10 +13,10 @@ interface Props {
 
 export function TpgTpmCell({ checklistId, field, ativo, valorAcordado, canEdit }: Props) {
   if (!checklistId) {
-    return <span className="text-[11px] text-muted-foreground/60">—</span>;
+    return <span className="text-[11px] text-muted-foreground/60">·</span>;
   }
 
-  const label = ativo === null ? "—" : ativo ? "ATIVO" : "INATIVO";
+  const label = ativo === null ? "·" : ativo ? "ATIVO" : "INATIVO";
   const colorClass =
     ativo === null
       ? "border-muted-foreground/30 text-muted-foreground"

@@ -50,7 +50,7 @@ export async function submitClientSelfSatisfactionAction(
     score: parsed.data.score,
     comentario: parsed.data.comentario?.trim() || null,
   });
-  if (error) return { error: "Falha ao registrar avaliação — tente novamente" };
+  if (error) return { error: "Falha ao registrar avaliação, tente novamente" };
 
   revalidatePath("/cliente");
   return { success: true };

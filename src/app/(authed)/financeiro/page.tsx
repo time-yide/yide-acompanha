@@ -82,7 +82,7 @@ function PageShell({ mesRef, mode, children }: { mesRef: string; mode: Mode; chi
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Financeiro</h1>
-          <p className="text-sm text-muted-foreground">DRE — visão de sócio</p>
+          <p className="text-sm text-muted-foreground">DRE, visão de sócio</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Link href="/financeiro/pagamentos">

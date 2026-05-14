@@ -64,7 +64,7 @@ function StarPicker({ name, value, onChange, disabled, error }: {
           error ? "font-medium text-destructive" : "text-muted-foreground",
         )}
       >
-        {value ? `${value}/5` : error ? "Obrigatório" : "—/5"}
+        {value ? `${value}/5` : error ? "Obrigatório" : "·/5"}
       </span>
     </div>
   );
@@ -139,7 +139,7 @@ export function CapturaForm({ clientes, pendentes, hidePendenteSelect = false }:
               onChange={handlePendente}
               className="block w-full h-9 rounded-md border bg-card px-2 text-sm"
             >
-              <option value="">— Captação avulsa —</option>
+              <option value="">Captação avulsa</option>
               {pendentes.map((p) => (
                 <option key={p.event_id} value={p.event_id}>
                   {formatDateBR(p.inicio)} · {p.titulo}

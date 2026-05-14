@@ -47,7 +47,7 @@ export function OverrideDialog({ expenseId, descricao, mesRef, valorAtual, onClo
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="w-full max-w-sm space-y-4 rounded-xl border bg-card p-5 shadow-xl">
         <div>
-          <h3 className="text-lg font-semibold">{descricao} — {mesRef}</h3>
+          <h3 className="text-lg font-semibold">{descricao} · {mesRef}</h3>
           <p className="text-xs text-muted-foreground">Override só desse mês. Não afeta meses anteriores nem o valor padrão da despesa.</p>
         </div>
 

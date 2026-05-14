@@ -72,7 +72,7 @@ export function ResetSenhaButton({
                 <DialogTitle>Resetar senha de {userNome}?</DialogTitle>
                 <DialogDescription>
                   Tem certeza que quer resetar a senha de {userNome}? A senha atual será invalidada
-                  e uma nova será gerada — você precisará enviá-la ao colaborador.
+                  e uma nova será gerada. Você precisará enviá-la ao colaborador.
                 </DialogDescription>
               </DialogHeader>
 
@@ -104,7 +104,7 @@ export function ResetSenhaButton({
           {state.stage === "success" && (
             <>
               <DialogHeader>
-                <DialogTitle>Senha resetada — copie agora</DialogTitle>
+                <DialogTitle>Senha resetada, copie agora</DialogTitle>
                 <DialogDescription>
                   ⚠️ Esta senha só aparecerá uma vez. Copie e envie para {userNome} no WhatsApp.
                 </DialogDescription>

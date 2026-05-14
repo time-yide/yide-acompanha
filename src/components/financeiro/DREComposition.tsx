@@ -27,7 +27,7 @@ const BRL = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const PCT = (v: number, base: number) =>
-  base > 0 ? `${((v / base) * 100).toFixed(1)}%` : "—";
+  base > 0 ? `${((v / base) * 100).toFixed(1)}%` : "";
 
 export function DREComposition({ data }: Props) {
   const { slices, total, prejuizo } = useMemo(() => {

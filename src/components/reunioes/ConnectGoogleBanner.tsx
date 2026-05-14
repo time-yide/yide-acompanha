@@ -50,7 +50,7 @@ export function ConnectGoogleBanner({ connected, googleEmail }: Props) {
           </h2>
           <p className="max-w-xl text-sm text-muted-foreground">
             Suas reuniões do Google Meet aparecem aqui em tempo real. Depois da call, a IA gera resumo,
-            tópicos, decisões e tarefas — pronto pra revisar.
+            tópicos, decisões e tarefas. Pronto pra revisar.
           </p>
         </div>
         <Link

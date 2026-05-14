@@ -468,7 +468,7 @@ async function _getRankingColaboradoresImpl(
       colaborador_id: r.colaborador_id,
       colaborador_nome: r.colaborador?.nome ?? "Sem nome",
       avatar_url: r.colaborador?.avatar_url ?? null,
-      role: r.colaborador?.role ?? "—",
+      role: r.colaborador?.role ?? "",
       total: 0,
       atendidas: 0,
       perdidas: 0,

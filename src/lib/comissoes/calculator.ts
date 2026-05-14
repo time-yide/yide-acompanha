@@ -137,7 +137,7 @@ function computeCommissionForProfile(
       valor_variavel += comissao;
       items.push({
         tipo: "deal_fechado_comercial",
-        descricao: `${d.cliente?.nome ?? "Cliente"} — 1º mês R$ ${v.toFixed(2)}`,
+        descricao: `${d.cliente?.nome ?? "Cliente"} · 1º mês R$ ${v.toFixed(2)}`,
         base: MONEY(v),
         percentual,
         valor: comissao,

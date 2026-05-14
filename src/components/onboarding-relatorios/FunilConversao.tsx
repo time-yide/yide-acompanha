@@ -25,7 +25,7 @@ function computeWidths(funil: FunilStep[]): number[] {
 }
 
 function conversao(curr: number, prev: number): string {
-  if (prev === 0) return "—";
+  if (prev === 0) return "";
   return `${((curr / prev) * 100).toFixed(1)}%`;
 }
 

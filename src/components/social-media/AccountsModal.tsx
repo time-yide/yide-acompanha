@@ -50,7 +50,7 @@ export function AccountsModal({ open, onOpenChange, clientId, clientNome, initia
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Contas de redes sociais — {clientNome}</DialogTitle>
+          <DialogTitle>Contas de redes sociais · {clientNome}</DialogTitle>
           <DialogDescription>
             Necessário pra Fase 2 publicar automático. Cada cliente precisa do
             Instagram Business vinculado a uma Facebook Page dentro da sua BM.

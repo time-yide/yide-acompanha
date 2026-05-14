@@ -129,7 +129,7 @@ export async function createLeadAction(formData: FormData) {
     await dispatchNotification({
       evento_tipo: "prospeccao_agendada",
       titulo: "Prospecção agendada",
-      mensagem: `${parsed.data.nome_prospect} — ${formatBrtDate(datetimeLocalToUtcOrNull(parsed.data.data_prospeccao_agendada) ?? parsed.data.data_prospeccao_agendada)}`,
+      mensagem: `${parsed.data.nome_prospect} · ${formatBrtDate(datetimeLocalToUtcOrNull(parsed.data.data_prospeccao_agendada) ?? parsed.data.data_prospeccao_agendada)}`,
       link: `/onboarding/${created.id}`,
       source_user_id: actor.id,
     });
@@ -439,7 +439,7 @@ export async function moveStageAction(formData: FormData) {
         );
         await sb.from("calendar_events").insert({
           organization_id: org.id,
-          titulo: `Reunião comercial — ${lead.nome_prospect}`,
+          titulo: `Reunião comercial · ${lead.nome_prospect}`,
           descricao: lead.servico_proposto
             ? `Proposta: ${lead.servico_proposto}`
             : null,

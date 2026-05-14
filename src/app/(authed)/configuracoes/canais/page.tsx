@@ -32,7 +32,7 @@ export default async function CanaisAdminPage() {
       <header>
         <h1 className="text-2xl font-bold tracking-tight">Foto dos canais</h1>
         <p className="text-sm text-muted-foreground">
-          Sobe uma imagem por canal — aparece na sidebar do Escritório virtual no lugar do
+          Sobe uma imagem por canal. Aparece na sidebar do Escritório virtual no lugar do
           ícone padrão. Conversas diretas (DM) usam a foto da pessoa, não dessa lista.
         </p>
       </header>

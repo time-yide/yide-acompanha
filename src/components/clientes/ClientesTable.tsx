@@ -23,9 +23,9 @@ export function ClientesTable({ rows, canSeeMoney }: { rows: ClienteRow[]; canSe
               <Link href={`/clientes/${r.id}`} className="hover:underline">{r.nome}</Link>
             </TableCell>
             <TableCell><StatusBadge status={r.status} /></TableCell>
-            <TableCell className="text-sm text-muted-foreground">{r.servico_contratado ?? "—"}</TableCell>
-            <TableCell className="text-sm text-muted-foreground">{r.assessor_nome ?? "—"}</TableCell>
-            <TableCell className="text-sm text-muted-foreground">{r.coordenador_nome ?? "—"}</TableCell>
+            <TableCell className="text-sm text-muted-foreground">{r.servico_contratado ?? ""}</TableCell>
+            <TableCell className="text-sm text-muted-foreground">{r.assessor_nome ?? ""}</TableCell>
+            <TableCell className="text-sm text-muted-foreground">{r.coordenador_nome ?? ""}</TableCell>
             {canSeeMoney && (
               <TableCell className="text-right tabular-nums">
                 {Number(r.valor_mensal).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}

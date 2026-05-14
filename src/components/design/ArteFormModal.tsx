@@ -110,7 +110,7 @@ export function ArteFormModal({ open, onOpenChange, clientId, arte, onIaClick }:
                 required
                 minLength={2}
                 maxLength={200}
-                placeholder="Ex.: Carrossel Black Friday — Slide 1"
+                placeholder="Ex.: Carrossel Black Friday Slide 1"
               />
             </div>
 

@@ -37,5 +37,5 @@ export interface TranscribeOptions {
 
 export async function transcribeAudio(_opts: TranscribeOptions): Promise<TranscriptionResult> {
   void _opts;
-  throw new Error("Transcrição ainda não implementada — Fase 2 do roadmap.");
+  throw new Error("Transcrição ainda não implementada (Fase 2 do roadmap).");
 }

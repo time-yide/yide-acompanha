@@ -56,7 +56,7 @@ export function MetricCards({ metricas }: Props) {
                 isNegative ? "text-rose-500" : "text-foreground"
               }`}
             >
-              {valor === null ? "—" : format(valor)}
+              {valor === null ? "" : format(valor)}
             </div>
           </div>
         );

@@ -75,8 +75,8 @@ export function ColaboradorCreateForm({ canSetCommission }: { canSetCommission: 
               </SelectContent>
             </Select>
             <p className="text-[11px] text-muted-foreground">
-              Produtores audiovisuais (videomaker / designer / editor) recebem apenas fixo —
-              os campos de % serão zerados automaticamente.
+              Produtores audiovisuais (videomaker / designer / editor) recebem apenas fixo.
+              Os campos de % serão zerados automaticamente.
             </p>
           </div>
           <div className="space-y-2">
@@ -123,7 +123,7 @@ export function ColaboradorCreateForm({ canSetCommission }: { canSetCommission: 
       <Dialog open={!!success} onOpenChange={(open) => { if (!open) handleClose(); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Colaborador criado — copie a senha agora</DialogTitle>
+            <DialogTitle>Colaborador criado, copie a senha agora</DialogTitle>
             <DialogDescription>
               ⚠️ Esta senha só aparecerá uma vez. Copie e envie pro funcionário no WhatsApp.
             </DialogDescription>

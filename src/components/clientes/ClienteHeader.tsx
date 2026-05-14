@@ -60,7 +60,7 @@ export function ClienteHeader({ cliente, canSeeMoney, canDelete, canLancarAjuste
             {ajusteMes.tipo === "gratuidade_total"
               ? "Mês grátis"
               : `Desconto R$ ${Number(ajusteMes.valor_desconto).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-            {" — "}{ajusteMes.motivo}
+            {" · "}{ajusteMes.motivo}
           </p>
         )}
       </div>

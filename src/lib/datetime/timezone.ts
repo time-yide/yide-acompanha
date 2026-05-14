@@ -24,9 +24,9 @@ export const APP_LOCALE = "pt-BR" as const;
  * Aceita Date, ISO string, ou timestamp number.
  */
 export function formatDateBR(date: Date | string | number | null | undefined): string {
-  if (date === null || date === undefined) return "—";
+  if (date === null || date === undefined) return "";
   const d = toDate(date);
-  if (Number.isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return "";
   return new Intl.DateTimeFormat(APP_LOCALE, {
     timeZone: APP_TIMEZONE,
     day: "2-digit",
@@ -39,9 +39,9 @@ export function formatDateBR(date: Date | string | number | null | undefined): s
  * Formata como "DD/MM/YYYY HH:mm" no fuso da app.
  */
 export function formatDateTimeBR(date: Date | string | number | null | undefined): string {
-  if (date === null || date === undefined) return "—";
+  if (date === null || date === undefined) return "";
   const d = toDate(date);
-  if (Number.isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return "";
   return new Intl.DateTimeFormat(APP_LOCALE, {
     timeZone: APP_TIMEZONE,
     day: "2-digit",
@@ -54,9 +54,9 @@ export function formatDateTimeBR(date: Date | string | number | null | undefined
 
 /** Formata só hora "HH:mm" no fuso da app. */
 export function formatTimeBR(date: Date | string | number | null | undefined): string {
-  if (date === null || date === undefined) return "—";
+  if (date === null || date === undefined) return "";
   const d = toDate(date);
-  if (Number.isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return "";
   return new Intl.DateTimeFormat(APP_LOCALE, {
     timeZone: APP_TIMEZONE,
     hour: "2-digit",
@@ -68,9 +68,9 @@ export function formatTimeBR(date: Date | string | number | null | undefined): s
  * Formata como "DD de MMMM de YYYY" (formato longo, com nome do mês por extenso).
  */
 export function formatLongDateBR(date: Date | string | number | null | undefined): string {
-  if (date === null || date === undefined) return "—";
+  if (date === null || date === undefined) return "";
   const d = toDate(date);
-  if (Number.isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return "";
   return new Intl.DateTimeFormat(APP_LOCALE, {
     timeZone: APP_TIMEZONE,
     day: "2-digit",
@@ -83,9 +83,9 @@ export function formatLongDateBR(date: Date | string | number | null | undefined
  * Formata como "DD/MM HH:mm" (compacto, sem ano — útil pra cards e listas).
  */
 export function formatShortDateTimeBR(date: Date | string | number | null | undefined): string {
-  if (date === null || date === undefined) return "—";
+  if (date === null || date === undefined) return "";
   const d = toDate(date);
-  if (Number.isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return "";
   return new Intl.DateTimeFormat(APP_LOCALE, {
     timeZone: APP_TIMEZONE,
     day: "2-digit",

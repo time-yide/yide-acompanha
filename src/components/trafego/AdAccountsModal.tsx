@@ -44,7 +44,7 @@ export function AdAccountsModal({ open, onOpenChange, clientId, clientNome, init
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Contas de anúncios — {clientNome}</DialogTitle>
+          <DialogTitle>Contas de anúncios · {clientNome}</DialogTitle>
           <DialogDescription>
             Quando preenchido, a Fase 2 (sync automático) consegue puxar métricas direto das plataformas.
             E a Fase 3 (criação de anúncio direto pelo sistema) usa esses IDs pra subir na conta certa.

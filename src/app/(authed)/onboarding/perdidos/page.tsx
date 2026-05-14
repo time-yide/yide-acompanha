@@ -24,7 +24,7 @@ const STAGE_LABEL: Record<string, string> = {
 };
 
 function formatBR(date: string | null | undefined) {
-  if (!date) return "—";
+  if (!date) return "";
   return new Date(date).toLocaleString("pt-BR", { timeZone: APP_TIMEZONE, dateStyle: "short", timeStyle: "short" });
 }
 

@@ -67,7 +67,7 @@ export function ValorMensalPopover({ clienteId, current, tipoRelacao }: Props) {
           <div className="text-sm font-medium text-foreground">Valor mensal</div>
           {isLocked ? (
             <p className="text-xs text-muted-foreground">
-              Cliente em <strong>{tipoRelacao}</strong> — valor fixo em R$ 0. Mude o tipo de relação no detalhe pra editar.
+              Cliente em <strong>{tipoRelacao}</strong>, valor fixo em R$ 0. Mude o tipo de relação no detalhe pra editar.
             </p>
           ) : (
             <>

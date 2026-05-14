@@ -42,7 +42,7 @@ export default async function ConectarReunioesPage() {
           </h1>
           <p className="max-w-2xl text-sm text-muted-foreground">
             Sincronize sua agenda do Google Calendar com o sistema. Toda reunião do Google Meet
-            aparece aqui automaticamente — antes, durante e depois da call.
+            aparece aqui automaticamente: antes, durante e depois da call.
           </p>
         </div>
       </header>
@@ -85,7 +85,7 @@ export default async function ConectarReunioesPage() {
               <div>
                 <p className="font-medium">Nenhuma conta conectada</p>
                 <p className="text-xs text-muted-foreground">
-                  Vamos pedir acesso apenas pra sua agenda — leitura, nada de escrita.
+                  Vamos pedir acesso apenas pra sua agenda: leitura, nada de escrita.
                 </p>
               </div>
             </div>
@@ -93,7 +93,7 @@ export default async function ConectarReunioesPage() {
               type="button"
               className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
               disabled
-              title="Em breve — Fase 1"
+              title="Em breve (Fase 1)"
             >
               <GoogleIcon className="h-4 w-4" />
               Conectar com Google
@@ -144,7 +144,7 @@ export default async function ConectarReunioesPage() {
           <FeatureCard
             icon={Calendar}
             titulo="Reuniões aparecem automaticamente"
-            desc="Toda reunião do Meet vira um card aqui — antes, durante e depois da call."
+            desc="Toda reunião do Meet vira um card aqui: antes, durante e depois da call."
           />
           <FeatureCard
             icon={Mic}
@@ -159,7 +159,7 @@ export default async function ConectarReunioesPage() {
           <FeatureCard
             icon={ListChecks}
             titulo="Tarefas geradas automaticamente"
-            desc="Próximos passos viram tarefas atribuídas — com 1 clique você confirma."
+            desc="Próximos passos viram tarefas atribuídas. Com 1 clique você confirma."
           />
         </div>
       </section>

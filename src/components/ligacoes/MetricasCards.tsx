@@ -18,7 +18,7 @@ export function MetricasCards({ m }: { m: MetricasGerais }) {
         subtitle={
           m.variacao_total_pct !== null
             ? `${m.variacao_total_pct > 0 ? "+" : ""}${m.variacao_total_pct.toFixed(1)}% vs anterior`
-            : "—"
+            : ""
         }
         trend={m.variacao_total_pct}
         tone="from-blue-500/20 to-blue-500/5 border-blue-500/30"

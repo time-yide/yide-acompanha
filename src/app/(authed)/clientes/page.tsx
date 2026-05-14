@@ -102,7 +102,7 @@ export default async function ClientesPage({ searchParams }: { searchParams: Pro
             {stats.total_ativos} ativos · {stats.total_churn} em churn · carteira{" "}
             {canSeeMoney
               ? stats.carteira_total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
-              : "—"}
+              : ""}
           </p>
         </div>
         {canManage && (

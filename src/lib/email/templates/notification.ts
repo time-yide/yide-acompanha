@@ -29,7 +29,7 @@ export function renderNotificationEmail(args: TemplateArgs): { html: string; tex
 ${titulo}
 ${mensagem}
 ${ctaUrl ? `\nAcessar: ${ctaUrl}\n` : ""}
-— Yide Acompanha`;
+Yide Acompanha`;
 
   const html = `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; color: #0a0a0f;">
   <div style="font-size: 18px; font-weight: 600; color: #2BA39C;">Yide Acompanha</div>

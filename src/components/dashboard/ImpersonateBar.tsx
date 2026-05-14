@@ -54,7 +54,7 @@ export function ImpersonateBar({ colaboradores, currentTargetId, isImpersonating
     return (
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-2.5 text-sm">
         <span className="text-amber-700 dark:text-amber-300">
-          👁 Visualizando como <strong>{current?.nome ?? "—"}</strong>
+          👁 Visualizando como <strong>{current?.nome ?? ""}</strong>
           {current && (
             <span className="ml-1 opacity-70">
               ({ROLE_LABEL[current.role] ?? current.role})
@@ -92,7 +92,7 @@ export function ImpersonateBar({ colaboradores, currentTargetId, isImpersonating
         onChange={(e) => onChange(e.target.value)}
         className="h-7 rounded-md border bg-card px-2 text-xs"
       >
-        <option value="">— Selecione —</option>
+        <option value="">Selecione</option>
         {colaboradores.map((c) => (
           <option key={c.id} value={c.id}>
             {c.nome} · {ROLE_LABEL[c.role] ?? c.role}

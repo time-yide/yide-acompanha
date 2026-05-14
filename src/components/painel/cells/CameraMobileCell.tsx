@@ -14,7 +14,7 @@ interface Props {
 export function CameraMobileCell({ stepId, status, canEdit }: Props) {
   const [pending, startTransition] = useTransition();
 
-  if (!stepId) return <span className="text-[11px] text-muted-foreground/60">—</span>;
+  if (!stepId) return <span className="text-[11px] text-muted-foreground/60">·</span>;
 
   function marcarPronto() {
     if (!stepId) return;

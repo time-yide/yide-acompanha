@@ -125,7 +125,7 @@ export async function CommissionBreakdown({
                   const c = Math.round(v * percentual_aplicado / 100 * 100) / 100;
                   return (
                     <tr key={d.id} className="border-t">
-                      <td className="px-3 py-2">{d.cliente?.nome ?? "—"}</td>
+                      <td className="px-3 py-2">{d.cliente?.nome ?? ""}</td>
                       <td className="px-3 py-2 text-right tabular-nums">{brl(v)}</td>
                       <td className="px-3 py-2 text-right tabular-nums">{percentual_aplicado}%</td>
                       <td className="px-3 py-2 text-right tabular-nums">{brl(c)}</td>

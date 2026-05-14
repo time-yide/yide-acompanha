@@ -119,7 +119,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
             <div className="text-xs text-muted-foreground">
               {formatBrtDateTime(event.inicio)} → {formatBrtDateTime(event.fim)}
             </div>
-            <div className="text-xs">Criado por {event.criador?.nome ?? "—"}</div>
+            <div className="text-xs">Criado por {event.criador?.nome ?? ""}</div>
           </div>
         )}
       </Card>

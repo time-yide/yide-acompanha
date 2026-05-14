@@ -161,7 +161,7 @@ export function ExpenseTable({ rows }: { rows: ExpenseListRow[] }) {
                   <td className="px-3 py-2 text-xs text-muted-foreground">
                     {r.tipo === "avulsa"
                       ? r.mes_referencia
-                      : `${r.inicio_mes ?? "—"} → ${r.fim_mes ?? "ativa"}`}
+                      : `${r.inicio_mes ?? ""} → ${r.fim_mes ?? "ativa"}`}
                   </td>
                   <td className="px-3 py-2 text-right tabular-nums">{BRL(Number(r.valor))}</td>
                   <td className="px-3 py-2 text-right">
@@ -247,7 +247,7 @@ export function ExpenseTable({ rows }: { rows: ExpenseListRow[] }) {
               type="text"
               value={bulkJustificativa}
               onChange={(e) => setBulkJustificativa(e.target.value)}
-              placeholder="Motivo (mín. 3 chars) — aplicado a todas"
+              placeholder="Motivo (mín. 3 chars), aplicado a todas"
               className="w-full rounded-md border border-input bg-card px-2 py-1.5 text-sm"
             />
             <div className="flex justify-end gap-2">

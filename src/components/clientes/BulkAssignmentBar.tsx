@@ -70,7 +70,7 @@ export function BulkAssignmentBar({
             disabled={pending}
             className="rounded-md border border-input bg-card px-2 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <option value={UNTOUCHED}>—</option>
+            <option value={UNTOUCHED}>(não alterar)</option>
             <option value="">(Sem atribuição)</option>
             {assessores.map((o) => (
               <option key={o.id} value={o.id}>
@@ -88,7 +88,7 @@ export function BulkAssignmentBar({
             disabled={pending}
             className="rounded-md border border-input bg-card px-2 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <option value={UNTOUCHED}>—</option>
+            <option value={UNTOUCHED}>(não alterar)</option>
             <option value="">(Sem atribuição)</option>
             {coordenadores.map((o) => (
               <option key={o.id} value={o.id}>

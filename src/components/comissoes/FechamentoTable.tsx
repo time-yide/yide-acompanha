@@ -53,7 +53,7 @@ export function FechamentoTable({ rows }: { rows: Row[] }) {
           <tbody>
             {rows.map((r) => (
               <tr key={r.id} className="border-t">
-                <td className="px-3 py-2">{r.profile?.nome ?? "—"}</td>
+                <td className="px-3 py-2">{r.profile?.nome ?? ""}</td>
                 <td className="px-3 py-2 text-xs text-muted-foreground">
                   {roleLabels[r.papel_naquele_mes] ?? r.papel_naquele_mes}
                 </td>
@@ -66,7 +66,7 @@ export function FechamentoTable({ rows }: { rows: Row[] }) {
                 </td>
                 <td className="px-3 py-2 text-right tabular-nums font-medium">{brl(Number(r.valor_total))}</td>
                 <td className="px-3 py-2 text-xs text-muted-foreground max-w-[200px] truncate">
-                  {r.justificativa_ajuste ?? "—"}
+                  {r.justificativa_ajuste ?? ""}
                 </td>
                 <td className="px-3 py-2 text-right">
                   {r.status === "pending_approval" && (

@@ -85,7 +85,7 @@ export function PendenteEntregaAba({ rows, showVideomaker, canDeliver, canQuickM
               </div>
               <p className="truncate text-sm font-medium">{r.titulo}</p>
               <p className="text-xs text-muted-foreground">
-                {r.client_nome ?? "Cliente —"}
+                {r.client_nome ?? "Cliente"}
                 {showVideomaker && r.videomaker_nome && <> · {r.videomaker_nome}</>}
               </p>
             </div>

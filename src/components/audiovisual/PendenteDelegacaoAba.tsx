@@ -46,8 +46,8 @@ export function PendenteDelegacaoAba({ rows, editores, canDelegate, canDelete = 
                   <span>·</span>
                   <span>{r.qtd_videos}v · {r.qtd_fotos}f</span>
                 </div>
-                <p className="truncate text-sm font-medium">{r.cliente_nome ?? "Cliente —"}</p>
-                <p className="text-xs text-muted-foreground">{r.videomaker_nome ?? "Videomaker —"}</p>
+                <p className="truncate text-sm font-medium">{r.cliente_nome ?? "Cliente"}</p>
+                <p className="text-xs text-muted-foreground">{r.videomaker_nome ?? "Videomaker"}</p>
               </div>
               <Link
                 href={r.drive_url}

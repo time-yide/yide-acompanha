@@ -137,7 +137,7 @@ export async function listAccessLogByCredential(credentialId: string): Promise<A
     client_id: r.client_id,
     user_id: r.user_id,
     user_nome: r.user_profile?.nome ?? null,
-    service_name: r.credential?.service_name ?? "—",
+    service_name: r.credential?.service_name ?? "",
     action: r.action,
     accessed_at: r.accessed_at,
   }));

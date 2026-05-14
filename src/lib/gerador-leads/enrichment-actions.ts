@@ -218,7 +218,7 @@ async function processarEnrichment(lead: {
         _instagram_ok: instagramResult?.ok ?? null,
       };
       update.observacoes_ia = iaResult.skipped
-        ? "ANTHROPIC_API_KEY não configurada — IA pulada. Outras fontes salvas."
+        ? "ANTHROPIC_API_KEY não configurada, IA pulada. Outras fontes salvas."
         : `IA falhou: ${iaResult.error}. Outras fontes salvas.`;
     }
 

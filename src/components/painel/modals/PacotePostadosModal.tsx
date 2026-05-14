@@ -47,7 +47,7 @@ export function PacotePostadosModal({
       <DialogContent>
         <form onSubmit={onSubmit} className="space-y-4">
           <DialogHeader>
-            <DialogTitle>Postagens — {clientNome}</DialogTitle>
+            <DialogTitle>Postagens · {clientNome}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-2">

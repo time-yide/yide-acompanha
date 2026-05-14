@@ -30,7 +30,7 @@ export function GmnCell({
 }: Props) {
   const [open, setOpen] = useState(false);
   if (!checklistId) {
-    return <span className="text-[11px] text-muted-foreground/60">—</span>;
+    return <span className="text-[11px] text-muted-foreground/60">·</span>;
   }
 
   const semDados = notaMedia === null && comentarios === 0 && avaliacoes === 0;
@@ -54,7 +54,7 @@ export function GmnCell({
         title={tooltip}
       >
         {semDados ? (
-          "—"
+          "·"
         ) : (
           <>
             <Star className="h-3 w-3 fill-current" />

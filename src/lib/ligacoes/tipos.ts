@@ -83,7 +83,7 @@ export const ORIGEM_LABELS: Record<Origem, string> = {
  * Formata duração em segundos pra "Xmin Ys" ou "Xs".
  */
 export function formatDuracao(segundos: number | null | undefined): string {
-  if (!segundos || segundos < 0) return "—";
+  if (!segundos || segundos < 0) return "";
   if (segundos < 60) return `${segundos}s`;
   const min = Math.floor(segundos / 60);
   const sec = segundos % 60;
@@ -97,7 +97,7 @@ export function formatDuracao(segundos: number | null | undefined): string {
  * Formata número de telefone BR pra exibição: +5511999999999 → (11) 99999-9999
  */
 export function formatNumeroBR(numero: string | null | undefined): string {
-  if (!numero) return "—";
+  if (!numero) return "";
   const cleaned = numero.replace(/\D/g, "");
   // Com DDI 55
   if (cleaned.length === 13 && cleaned.startsWith("55")) {

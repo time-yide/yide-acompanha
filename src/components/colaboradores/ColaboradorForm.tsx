@@ -80,7 +80,7 @@ export function ColaboradorForm({ data, canEditFinance, canEditRole, canEditMeta
               <SelectItem value="comercial">Comercial</SelectItem>
               {data.role === "coordenador" && (
                 <SelectItem value="coordenador">
-                  ⚠️ Coordenador (legado — descontinuado)
+                  ⚠️ Coordenador (legado, descontinuado)
                 </SelectItem>
               )}
               <SelectItem value="assessor">Assessor</SelectItem>
@@ -96,7 +96,7 @@ export function ColaboradorForm({ data, canEditFinance, canEditRole, canEditMeta
               <p className="mt-1">
                 Pra dar todas as permissões de gestão (gerenciar usuários, aprovar fechamento, financeiro, etc.),
                 escolha <strong>&quot;Coordenador&quot;</strong>. Pra rebaixar pra rotina de atendimento,
-                escolha <strong>Assessor</strong>. Não deixe ninguém ativo em &quot;legado&quot; — esse role
+                escolha <strong>Assessor</strong>. Não deixe ninguém ativo em &quot;legado&quot;: esse role
                 tem permissões muito limitadas.
               </p>
             </div>
@@ -146,8 +146,8 @@ export function ColaboradorForm({ data, canEditFinance, canEditRole, canEditMeta
 
         {(data.role === "videomaker" || data.role === "designer" || data.role === "editor") && (
           <p className="md:col-span-2 text-xs text-muted-foreground">
-            Produtores audiovisuais (videomaker / designer / editor) recebem apenas fixo —
-            os campos de % de comissão são zerados automaticamente ao salvar.
+            Produtores audiovisuais (videomaker / designer / editor) recebem apenas fixo.
+            Os campos de % de comissão são zerados automaticamente ao salvar.
           </p>
         )}
 

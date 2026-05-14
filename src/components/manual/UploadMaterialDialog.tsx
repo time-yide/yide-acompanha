@@ -69,7 +69,7 @@ export function UploadMaterialDialog() {
         <DialogHeader>
           <DialogTitle>Subir material</DialogTitle>
           <DialogDescription>
-            PDF, slide, planilha, doc — qualquer arquivo até 25MB. Visível pra
+            PDF, slide, planilha, doc: qualquer arquivo até 25MB. Visível pra
             toda a equipe.
           </DialogDescription>
         </DialogHeader>

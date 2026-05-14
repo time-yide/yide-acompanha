@@ -66,7 +66,7 @@ interface Props {
 const PROFILE_NONE = "_none";
 
 function nomeOf(profiles: ProfileOption[], id: string | null | undefined): string {
-  if (!id) return "—";
+  if (!id) return "";
   return profiles.find((p) => p.id === id)?.nome ?? id.slice(0, 8);
 }
 

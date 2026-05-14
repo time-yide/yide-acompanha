@@ -61,7 +61,7 @@ export function GmnModal({
       <DialogContent>
         <form onSubmit={onSubmit} className="space-y-4">
           <DialogHeader>
-            <DialogTitle>GMN — {clientNome} — {mesReferencia}</DialogTitle>
+            <DialogTitle>GMN · {clientNome} · {mesReferencia}</DialogTitle>
           </DialogHeader>
 
           <div className="grid grid-cols-2 gap-3">

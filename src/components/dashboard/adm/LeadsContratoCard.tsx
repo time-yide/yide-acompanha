@@ -21,7 +21,7 @@ export function LeadsContratoCard({ leads }: Props) {
           <h3 className="text-sm font-semibold">Leads em fase de Contrato</h3>
           <p className="text-xs text-muted-foreground">
             {leads.length === 0
-              ? "Sem pendências — tudo encaminhado."
+              ? "Sem pendências, tudo encaminhado."
               : `Você é responsável: contate cada um, feche e avance pra Marco zero.`}
           </p>
         </div>

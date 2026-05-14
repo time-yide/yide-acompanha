@@ -32,7 +32,7 @@ export function NotesTimeline({ notes }: { notes: Note[] }) {
           <Card className="p-4">
             <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
               <Badge variant="secondary">{typeLabel[n.tipo] ?? n.tipo}</Badge>
-              <span>{n.autor?.nome ?? "—"}</span>
+              <span>{n.autor?.nome ?? ""}</span>
               <span>·</span>
               <span>{new Date(n.created_at).toLocaleString("pt-BR", { timeZone: APP_TIMEZONE })}</span>
             </div>

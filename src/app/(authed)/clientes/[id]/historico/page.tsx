@@ -44,7 +44,7 @@ export default async function HistoricoPage({ params }: { params: Promise<{ id: 
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Badge variant="secondary">{acaoLabel[e.acao] ?? e.acao}</Badge>
                   {/* @ts-expect-error nested */}
-                  <span>{e.ator?.nome ?? "—"}</span>
+                  <span>{e.ator?.nome ?? ""}</span>
                   <span>·</span>
                   <span>{new Date(e.created_at).toLocaleString("pt-BR", { timeZone: APP_TIMEZONE })}</span>
                 </div>

@@ -15,7 +15,7 @@ export function StatusCell({ status }: Props) {
   if (status === null) {
     return (
       <div className="inline-flex items-center justify-center w-8 h-8 rounded-md bg-muted text-muted-foreground">
-        —
+        ·
       </div>
     );
   }

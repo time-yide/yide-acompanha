@@ -85,7 +85,7 @@ function CapturaRow({ c }: { c: CapturaItem }) {
     >
       <div className="min-w-0 flex-1 space-y-0.5">
         <p className="truncate text-sm font-medium">
-          {c.cliente_nome ?? "Cliente —"}
+          {c.cliente_nome ?? "Cliente"}
           {c.task_titulo && <span className="ml-1 text-muted-foreground">· {c.task_titulo}</span>}
         </p>
         <p className="text-xs text-muted-foreground">{formatDateOnlyBR(c.data_captacao)}</p>

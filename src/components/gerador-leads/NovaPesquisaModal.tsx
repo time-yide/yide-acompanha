@@ -116,7 +116,7 @@ export function NovaPesquisaModal({ open, onOpenChange }: Props) {
           <div className="rounded-md border bg-muted/20 p-3 text-[11px] text-muted-foreground">
             <p>
               <strong className="text-foreground">Dica:</strong> a pesquisa roda em
-              background. Pode fechar essa janela — quando voltar, os leads vão
+              background. Pode fechar essa janela. Quando voltar, os leads vão
               aparecer na lista.
             </p>
           </div>

@@ -42,7 +42,7 @@ export interface GoogleOAuthConnectionRow {
  */
 export function buildAuthorizeUrl(_state: string, _redirectUri: string): string {
   void _state; void _redirectUri;
-  throw new Error("Google OAuth ainda não implementado — Fase 1 do roadmap. Veja docs/reunioes-roadmap.md");
+  throw new Error("Google OAuth ainda não implementado (Fase 1 do roadmap). Veja docs/reunioes-roadmap.md");
 }
 
 /**
@@ -56,7 +56,7 @@ export async function exchangeCodeForTokens(_code: string, _redirectUri: string)
   id_token: string;
 }> {
   void _code; void _redirectUri;
-  throw new Error("Google OAuth ainda não implementado — Fase 1 do roadmap.");
+  throw new Error("Google OAuth ainda não implementado (Fase 1 do roadmap).");
 }
 
 /**
@@ -67,7 +67,7 @@ export async function refreshAccessToken(_refreshToken: string): Promise<{
   expires_in: number;
 }> {
   void _refreshToken;
-  throw new Error("Google OAuth ainda não implementado — Fase 1 do roadmap.");
+  throw new Error("Google OAuth ainda não implementado (Fase 1 do roadmap).");
 }
 
 /**

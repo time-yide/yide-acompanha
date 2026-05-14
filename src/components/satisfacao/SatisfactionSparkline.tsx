@@ -30,7 +30,7 @@ export async function SatisfactionSparkline({ clientId, size = "sm" }: Props) {
       {slots.map((slot, i) => (
         <span
           key={i}
-          title={slot.semana ? `${slot.semana} — score ${slot.score?.toFixed(1)}` : "sem dados"}
+          title={slot.semana ? `${slot.semana} · score ${slot.score?.toFixed(1)}` : "sem dados"}
           className={`${dim} rounded-sm ${slot.cor ? colorMap[slot.cor] : "bg-muted"}`}
         />
       ))}

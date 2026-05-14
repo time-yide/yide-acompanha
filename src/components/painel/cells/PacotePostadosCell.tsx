@@ -21,7 +21,7 @@ export function PacotePostadosCell({
   const pct = total > 0 ? Math.min(100, (done / total) * 100) : 0;
 
   if (!checklistId) {
-    return <span className="text-[11px] text-muted-foreground/60">—</span>;
+    return <span className="text-[11px] text-muted-foreground/60">·</span>;
   }
 
   const isComplete = total > 0 && done >= total;
@@ -41,7 +41,7 @@ export function PacotePostadosCell({
           "font-semibold tabular-nums",
           isComplete && "text-emerald-600 dark:text-emerald-400",
         )}>
-          {done} / {total || "—"}
+          {done} / {total || "0"}
         </span>
         {total > 0 && (
           <span className="h-1 overflow-hidden rounded-full bg-muted">

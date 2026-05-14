@@ -37,7 +37,7 @@ export async function detectRenovacoes(counters: { renovacao_contrato: number })
       await dispatchNotification({
         evento_tipo: "renovacao_contrato",
         titulo: `Renovação em ${days} dias`,
-        mensagem: `${d.cliente?.nome ?? "Cliente"} — ${d.descricao ?? "renovação de contrato"}`,
+        mensagem: `${d.cliente?.nome ?? "Cliente"} · ${d.descricao ?? "renovação de contrato"}`,
         link: `/clientes/${d.client_id}`,
         user_ids_extras: recipients,
       });

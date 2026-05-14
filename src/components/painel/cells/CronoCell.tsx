@@ -26,7 +26,7 @@ interface Props {
  *  client.link_estrategia — não depende mais do markStepProntoAction.
  */
 export function CronoCell({ stepId, status, linkEstrategia, clientId }: Props) {
-  if (!stepId) return <span className="text-[11px] text-muted-foreground/60">—</span>;
+  if (!stepId) return <span className="text-[11px] text-muted-foreground/60">·</span>;
 
   const hasLink = !!(linkEstrategia && linkEstrategia.trim().length > 0);
   // Pronto pode vir do banco (manual) OU do auto-derive (link preenchido).

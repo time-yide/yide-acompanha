@@ -93,7 +93,7 @@ export function PainelTable({ checklists, userRole, userId }: Props) {
                   <TipoPacoteBadge pacote={pacote} numeroUnidades={row.client_numero_unidades} />
                   {!row.client_tipo_pacote_revisado && (
                     <p className="mt-0.5 text-[9px] text-amber-600 dark:text-amber-400">
-                      ⚠ Tipo inferido — revise
+                      ⚠ Tipo inferido, revise
                     </p>
                   )}
                 </td>

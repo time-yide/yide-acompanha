@@ -38,11 +38,11 @@ const STAGE_TITLE: Record<string, string> = {
 };
 
 const STAGE_DESC: Record<string, string> = {
-  leads_ativos: "Confirme o telefone do contato — sem isso o time comercial não consegue avançar.",
+  leads_ativos: "Confirme o telefone do contato. Sem isso o time comercial não consegue avançar.",
   proposta_enviada: "Informe o valor mensal e o link da proposta enviada ao cliente.",
   reuniao_comercial: "Agende data e horário da reunião. Vamos criar o evento no calendário interno automaticamente.",
   contrato: "Confirme o valor e o serviço/especificações do que foi fechado.",
-  marco_zero: "Agende a reunião de Marco zero — coordenador conduz a partir desse ponto.",
+  marco_zero: "Agende a reunião de Marco zero. Coordenador conduz a partir desse ponto.",
 };
 
 export function TransitionDialog({ leadId, toStage, open, onOpenChange, defaults = {}, onSuccess }: Props) {
@@ -93,7 +93,7 @@ export function TransitionDialog({ leadId, toStage, open, onOpenChange, defaults
       try {
         new URL(link);
       } catch {
-        setError("Link da proposta inválido — precisa começar com http:// ou https://");
+        setError("Link da proposta inválido. Precisa começar com http:// ou https://");
         return;
       }
       fd.set("valor_proposto", String(v));

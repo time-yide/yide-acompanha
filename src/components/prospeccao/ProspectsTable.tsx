@@ -77,7 +77,7 @@ export function ProspectsTable({ rows }: Props) {
                 )}
               </td>
               <td className="px-3 py-2 text-right tabular-nums">{formatBRL(Number(r.valor_proposto))}</td>
-              <td className="px-3 py-2 text-muted-foreground">{r.comercial?.nome ?? "—"}</td>
+              <td className="px-3 py-2 text-muted-foreground">{r.comercial?.nome ?? ""}</td>
               <td className="px-3 py-2 text-muted-foreground text-xs">
                 {new Date(r.created_at).toLocaleDateString("pt-BR")}
               </td>

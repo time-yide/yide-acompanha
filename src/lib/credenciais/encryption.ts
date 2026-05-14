@@ -55,7 +55,7 @@ export function encryptPassword(plaintext: string): string {
 export function decryptPassword(stored: string): string {
   const parts = stored.split(":");
   if (parts.length !== 3) {
-    throw new Error("Formato inválido — esperado iv:tag:ciphertext");
+    throw new Error("Formato inválido. Esperado iv:tag:ciphertext");
   }
   const [ivHex, tagHex, ciphertextHex] = parts;
   const key = getKey();

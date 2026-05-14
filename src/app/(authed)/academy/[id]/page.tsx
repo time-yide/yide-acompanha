@@ -100,7 +100,7 @@ export default async function CursoPage({
           <AlertTriangle className="mt-0.5 h-6 w-6 flex-shrink-0 text-amber-600 dark:text-amber-400" />
           <div>
             <p className="text-sm font-bold text-amber-800 dark:text-amber-300">
-              Você ainda não passou — tente de novo
+              Você ainda não passou. Tente de novo
             </p>
             <p className="text-sm text-amber-700 dark:text-amber-400">
               Acertou <strong>{provaAcertos}/{QUESTOES_POR_CURSO}</strong>. Precisa de pelo menos {NOTA_MINIMA} pra concluir. Revise o material e tente quantas vezes precisar.
@@ -113,7 +113,7 @@ export default async function CursoPage({
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{curso.titulo}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Criado por {curso.criador?.nome ?? "—"} · {formatDateTimeBR(curso.criado_em)}
+            Criado por {curso.criador?.nome ?? ""} · {formatDateTimeBR(curso.criado_em)}
           </p>
         </div>
         {canDelete && (
@@ -210,7 +210,7 @@ export default async function CursoPage({
         ) : (
           <ul className="space-y-1 text-sm text-muted-foreground">
             {responsaveis.map((r) => (
-              <li key={r.participante_id}>{r.participante?.nome ?? "—"}</li>
+              <li key={r.participante_id}>{r.participante?.nome ?? ""}</li>
             ))}
           </ul>
         )}
@@ -241,7 +241,7 @@ function ResponsaveisProgresso({
         const s = stats.get(r.participante_id);
         return (
           <li key={r.participante_id} className="flex items-center justify-between gap-2">
-            <span>{r.participante?.nome ?? "—"}</span>
+            <span>{r.participante?.nome ?? ""}</span>
             {s?.aprovado ? (
               <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
                 <CheckCircle2 className="h-3.5 w-3.5" />

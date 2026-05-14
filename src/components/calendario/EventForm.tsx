@@ -46,7 +46,7 @@ const SUB_LABELS: Record<SelectableSub, string> = {
 
 const SUB_DESC: Record<SelectableSub, string> = {
   agencia: "Reunião interna, daily, geral.",
-  videomakers: "Gravação. Todos os campos extras são opcionais — preenche o que tiver.",
+  videomakers: "Gravação. Todos os campos extras são opcionais, preenche o que tiver.",
   assessores: "Reunião de assessoria.",
   coordenadores: "Reunião de coordenação.",
 };
@@ -101,7 +101,7 @@ export function EventForm({ action, defaults = {}, profiles, clientes, canCreate
 
       <div className="space-y-2">
         <Label htmlFor="titulo">Título</Label>
-        <Input id="titulo" name="titulo" defaultValue={defaults.titulo ?? ""} required minLength={2} placeholder={isVideomaker ? "Ex.: Gravação reels — Padaria Doce Vida" : "Ex.: Daily da equipe"} />
+        <Input id="titulo" name="titulo" defaultValue={defaults.titulo ?? ""} required minLength={2} placeholder={isVideomaker ? "Ex.: Gravação reels Padaria Doce Vida" : "Ex.: Daily da equipe"} />
       </div>
 
       <div className="space-y-2">

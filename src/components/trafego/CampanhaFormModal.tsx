@@ -66,7 +66,7 @@ export function CampanhaFormModal({ open, onOpenChange, clientId, campanha }: Pr
                 required
                 minLength={2}
                 maxLength={200}
-                placeholder="Ex.: BlackFriday — Conversões — Out/26"
+                placeholder="Ex.: BlackFriday Conversões Out/26"
               />
             </div>
 

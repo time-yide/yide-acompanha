@@ -119,7 +119,7 @@ export function LigacaoDetalheModal({ open, onOpenChange, ligacao, canManage }: 
               {ligacao.finalizada_em && (
                 <DetalheLinha label="Finalizada em" value={formatDateTimeBR(ligacao.finalizada_em)} />
               )}
-              <DetalheLinha label="Colaborador" value={ligacao.colaborador_nome ?? "—"} />
+              <DetalheLinha label="Colaborador" value={ligacao.colaborador_nome ?? ""} />
               {ligacao.client_nome && (
                 <DetalheLinha label="Cliente" value={ligacao.client_nome} />
               )}

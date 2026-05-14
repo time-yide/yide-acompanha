@@ -4,7 +4,7 @@ export function DriveCell({ driveUrl }: { driveUrl: string | null }) {
   if (!driveUrl) {
     return (
       <span title="Sem drive cadastrado" className="text-[11px] text-muted-foreground/60">
-        —
+        ·
       </span>
     );
   }

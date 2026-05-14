@@ -118,7 +118,7 @@ export async function agendarPostagemFromArteAction(
     return { error: "Arte precisa estar aprovada antes de agendar postagem" };
   }
   if (!Array.isArray(arte.midias) || arte.midias.length === 0) {
-    return { error: "Arte sem mídias — adicione antes de agendar" };
+    return { error: "Arte sem mídias, adicione antes de agendar" };
   }
 
   // Valida que data é futura

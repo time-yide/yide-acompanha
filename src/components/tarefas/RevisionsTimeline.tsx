@@ -65,7 +65,7 @@ export function RevisionsTimeline({ revisoes }: Props) {
                 <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                   <span className="text-sm font-medium">{meta.label}</span>
                   <span className="text-xs text-muted-foreground">
-                    por {r.autor?.nome ?? "—"} · {formatDateTimeBR(r.criado_em)}
+                    por {r.autor?.nome ?? ""} · {formatDateTimeBR(r.criado_em)}
                   </span>
                 </div>
                 {r.observacoes && (

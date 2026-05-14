@@ -71,7 +71,7 @@ export function AddClienteDialog({ elegiveis, onClose }: Props) {
                 onChange={(e) => setSelectedId(e.target.value)}
                 className="block w-full h-9 rounded-md border bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
               >
-                <option value="">— Selecione —</option>
+                <option value="">Selecione</option>
                 {elegiveis.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.nome} (entrou em {c.data_entrada})

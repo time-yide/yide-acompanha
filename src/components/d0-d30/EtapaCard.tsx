@@ -195,7 +195,7 @@ export function EtapaCard({ etapa, diaAtual, canEdit }: Props) {
                 {etapa.status === "concluido"
                   ? `Concluída em ${new Date(etapa.concluido_em ?? "").toLocaleDateString("pt-BR")}`
                   : todasSaidasFeitas
-                  ? "Pronta pra concluir — todas as saídas estão feitas."
+                  ? "Pronta pra concluir, todas as saídas estão feitas."
                   : "Marque as saídas obrigatórias antes de concluir a etapa."}
               </p>
               {etapa.status === "concluido" ? (

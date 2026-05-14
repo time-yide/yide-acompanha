@@ -73,7 +73,7 @@ export async function sendTestPushAction(): Promise<ActionResult> {
   }
 
   await sendWebPushToUser(actor.id, {
-    title: "Yide — Teste",
+    title: "Yide · Teste",
     body: "Push está funcionando neste dispositivo ✓",
     url: "/configuracoes",
     tag: "test",
@@ -96,7 +96,7 @@ export async function sendTestEventTomorrowAction(): Promise<ActionResult> {
   await dispatchNotification({
     evento_tipo: "evento_calendario_amanha",
     titulo: "Você tem 2 eventos amanhã",
-    mensagem: "10h — Reunião de teste · 14h — Gravação de teste",
+    mensagem: "10h · Reunião de teste · 14h · Gravação de teste",
     link: "/calendario",
     user_ids_extras: [actor.id],
   });

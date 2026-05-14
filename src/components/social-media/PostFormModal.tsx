@@ -161,10 +161,10 @@ export function PostFormModal({ open, onOpenChange, clientId, post, defaultDate 
                 id="titulo"
                 name="titulo"
                 defaultValue={post?.titulo ?? ""}
-                placeholder="Ex.: BlackFriday — Slide 1"
+                placeholder="Ex.: BlackFriday Slide 1"
                 maxLength={200}
               />
-              <p className="text-[10px] text-muted-foreground">Só pra você organizar — não vai aparecer no post.</p>
+              <p className="text-[10px] text-muted-foreground">Só pra você organizar, não vai aparecer no post.</p>
             </div>
 
             <div className="space-y-1.5">
