@@ -14,6 +14,11 @@ const nextConfig: NextConfig = {
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
     imageSizes: [16, 32, 48, 64, 96, 128, 176, 256, 384],
   },
+  // @sparticuz/chromium ships a binário do Chromium + libs (.so) dentro do
+  // pacote npm. Se Next.js bundlar via Turbopack, perde os arquivos não-JS
+  // (libnss3.so etc) e o launch falha com "error while loading shared
+  // libraries". Marca como externo pra ficar no node_modules como native dep.
+  serverExternalPackages: ["@sparticuz/chromium", "puppeteer-core"],
   experimental: {
     serverActions: {
       bodySizeLimit: "2mb",
