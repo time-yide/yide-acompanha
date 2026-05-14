@@ -6,7 +6,6 @@ import { redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth/session";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { logAudit } from "@/lib/audit/log";
-import { MOCK_APRESENTACAO_SLIDES } from "./mock-data";
 
 const ROLES_PERMITIDOS = ["adm", "socio", "coordenador", "assessor", "comercial"];
 
@@ -20,10 +19,11 @@ const createSchema = z.object({
 type CreateResult = { error: string } | { redirect: string };
 
 /**
- * Cria apresentação com slides MOCK (PR 1). PR 2 substitui mock pelo
- * Claude streaming. Mesmo assim o registro fica salvo no DB.
+ * Cria apresentação com slides vazios + status='gerando'. O streaming
+ * via Claude começa quando a /[id] page detecta esse status e dispara
+ * POST pra /api/apresenta-yide/[id]/gerar.
  */
-export async function criarApresentacaoMockAction(formData: FormData): Promise<CreateResult> {
+export async function criarApresentacaoAction(formData: FormData): Promise<CreateResult> {
   const actor = await requireAuth();
   if (!ROLES_PERMITIDOS.includes(actor.role)) {
     return { error: "Seu papel não tem acesso ao Apresenta Yide" };
@@ -41,7 +41,6 @@ export async function criarApresentacaoMockAction(formData: FormData): Promise<C
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = admin as any;
 
-  // Resolve org_id do criador
   const { data: prof } = await sb
     .from("profiles")
     .select("organization_id")
@@ -56,8 +55,8 @@ export async function criarApresentacaoMockAction(formData: FormData): Promise<C
       prompt: parsed.data.prompt,
       objetivo: parsed.data.objetivo,
       num_slides_alvo: parsed.data.num_slides_alvo,
-      slides: MOCK_APRESENTACAO_SLIDES,
-      status: "pronta", // PR 1: mock vem "pronta" direto. PR 2: muda pra gerando→pronta
+      slides: [],
+      status: "gerando",
       criado_por: actor.id,
       organization_id: prof.organization_id,
     })
@@ -128,7 +127,7 @@ export async function deleteApresentacaoAction(formData: FormData): Promise<{ er
  * Server actions com redirect throw NEXT_REDIRECT, então separamos.
  */
 export async function criarApresentacaoComRedirectAction(formData: FormData): Promise<void | { error: string }> {
-  const r = await criarApresentacaoMockAction(formData);
+  const r = await criarApresentacaoAction(formData);
   if ("error" in r) return r;
   redirect(r.redirect);
 }
