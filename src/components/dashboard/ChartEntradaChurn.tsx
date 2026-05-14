@@ -88,7 +88,7 @@ export function ChartEntradaChurn({ data }: Props) {
       </p>
 
       <Dialog open={drilldown !== null} onOpenChange={(open) => { if (!open) setDrilldown(null); }}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>{drilldown?.mesLabel}</DialogTitle>
             <DialogDescription>
@@ -97,7 +97,7 @@ export function ChartEntradaChurn({ data }: Props) {
           </DialogHeader>
 
           {drilldown && (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="grid min-h-0 grid-cols-1 gap-4 overflow-y-auto sm:grid-cols-2">
               <ClienteListSection
                 titulo="Entradas"
                 icon={ArrowUpRight}
