@@ -96,6 +96,7 @@ export async function createClienteAction(formData: FormData) {
   });
 
   revalidatePath("/clientes");
+  revalidatePath("/");
   revalidateTag("dashboard", "default");
   revalidateTag("clients", "default");
   revalidateTag(PAINEL_CACHE_TAG, "default");
@@ -203,6 +204,7 @@ export async function updateClienteAction(formData: FormData) {
 
   revalidatePath(`/clientes/${id}`);
   revalidatePath("/clientes");
+  revalidatePath("/");
   revalidateTag("dashboard", "default");
   revalidateTag("clients", "default");
   revalidateTag(PAINEL_CACHE_TAG, "default");
@@ -244,6 +246,7 @@ export async function churnClienteAction(formData: FormData) {
 
   revalidatePath("/clientes");
   revalidatePath(`/clientes/${parsed.data.id}`);
+  revalidatePath("/");
   revalidateTag("dashboard", "default");
   revalidateTag("clients", "default");
   revalidateTag(PAINEL_CACHE_TAG, "default");
@@ -273,6 +276,7 @@ export async function reactivateClienteAction(id: string) {
 
   revalidatePath("/clientes");
   revalidatePath(`/clientes/${id}`);
+  revalidatePath("/");
   revalidateTag("dashboard", "default");
   revalidateTag("clients", "default");
   revalidateTag(PAINEL_CACHE_TAG, "default");
@@ -344,6 +348,7 @@ export async function deleteClienteAction(formData: FormData) {
   }
 
   revalidatePath("/clientes");
+  revalidatePath("/");
   revalidateTag("dashboard", "default");
   revalidateTag("clients", "default");
   revalidateTag(PAINEL_CACHE_TAG, "default");
@@ -469,6 +474,7 @@ export async function updateClienteAssignmentAction(formData: FormData) {
 
   revalidatePath("/clientes");
   revalidatePath(`/clientes/${clienteId}`);
+  revalidatePath("/");
   revalidateTag("dashboard", "default");
   revalidateTag("clients", "default");
   revalidateTag(PAINEL_CACHE_TAG, "default");
@@ -583,6 +589,7 @@ export async function updateClienteFieldAction(formData: FormData) {
 
   revalidatePath("/clientes");
   revalidatePath(`/clientes/${parsed.data.cliente_id}`);
+  revalidatePath("/");
   revalidateTag("dashboard", "default");
   revalidateTag("clients", "default");
   revalidateTag(PAINEL_CACHE_TAG, "default");
@@ -665,6 +672,7 @@ export async function bulkAssignClientesAction(formData: FormData) {
   }
 
   revalidatePath("/clientes");
+  revalidatePath("/");
   revalidateTag("dashboard", "default");
   revalidateTag("clients", "default");
   revalidateTag(PAINEL_CACHE_TAG, "default");
@@ -731,6 +739,7 @@ export async function setAjusteMensalAction(formData: FormData) {
 
   revalidatePath(`/clientes/${parsed.data.client_id}`);
   revalidatePath("/clientes");
+  revalidatePath("/");
   revalidateTag("dashboard", "default");
   revalidateTag("clients", "default");
   revalidateTag(PAINEL_CACHE_TAG, "default");
@@ -753,6 +762,7 @@ export async function removeAjusteMensalAction(clientId: string, mesReferencia: 
 
   revalidatePath(`/clientes/${clientId}`);
   revalidatePath("/clientes");
+  revalidatePath("/");
   revalidateTag("dashboard", "default");
   revalidateTag("clients", "default");
   revalidateTag(PAINEL_CACHE_TAG, "default");
