@@ -5,6 +5,7 @@ import { requireAuth } from "@/lib/auth/session";
 import { getApresentacao } from "@/lib/apresenta-yide/queries";
 import { ApresentacaoEditor } from "@/components/apresenta-yide/ApresentacaoEditor";
 import { StreamingApresentacao } from "@/components/apresenta-yide/StreamingApresentacao";
+import { DownloadPdfButton } from "@/components/apresenta-yide/DownloadPdfButton";
 
 const ROLES_PERMITIDOS = ["adm", "socio", "coordenador", "assessor", "comercial"];
 
@@ -54,13 +55,22 @@ export default async function ApresentacaoDetailPage({
               <p className="mt-2 text-sm text-foreground/90">{apresentacao.objetivo}</p>
             </div>
           )}
-          <div className="rounded-xl border border-dashed bg-muted/10 p-5 text-xs text-muted-foreground">
-            <p>
-              <strong className="text-foreground">Exportar PDF:</strong> em breve. Por
-              enquanto dá pra ver a apresentação aqui e fazer screenshot pra mandar
-              pro cliente.
-            </p>
-          </div>
+          {apresentacao.status === "pronta" && (
+            <div className="rounded-xl border bg-card p-5">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Exportar
+              </h3>
+              <p className="mt-2 text-sm text-foreground/90">
+                Gera o PDF da apresentação no padrão visual da Yide, pronto pra mandar pro cliente.
+              </p>
+              <div className="mt-3">
+                <DownloadPdfButton
+                  apresentacaoId={apresentacao.id}
+                  hasExistingPdf={!!apresentacao.pdf_storage_path}
+                />
+              </div>
+            </div>
+          )}
         </aside>
 
         {apresentacao.status === "gerando" ? (
