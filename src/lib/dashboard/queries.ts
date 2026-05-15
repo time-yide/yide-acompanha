@@ -262,12 +262,18 @@ export interface EntradaChurnClient {
 
 export interface EntradaChurnPoint {
   mes: string;
+  /** Mensais (assinaturas) que entraram no mês. */
   entradas: number;
+  /** Mensais (assinaturas) que deram churn no mês. */
   churns: number;
-  /** Clientes que entraram nesse mês — lista pra drill-down do gráfico. */
+  /** Serviços pontuais (avulsos) que começaram no mês — não são churn quando terminam. */
+  avulsos: number;
+  /** Clientes que entraram nesse mês (mensais) — lista pra drill-down. */
   entradas_clientes: EntradaChurnClient[];
-  /** Clientes que deram churn nesse mês. */
+  /** Clientes que deram churn nesse mês (mensais). */
   churns_clientes: EntradaChurnClient[];
+  /** Pontuais que começaram nesse mês. */
+  avulsos_clientes: EntradaChurnClient[];
 }
 
 export async function _getEntradaChurnImpl(
@@ -278,11 +284,27 @@ export async function _getEntradaChurnImpl(
   const now = new Date();
   const meses = monthRange(months, now);
 
-  let clientsQuery = supabase
+  // Filtros SQL:
+  // - deleted_at IS NULL → ignora lixeira
+  // - tipo_relacao = 'comum' → ignora parceria/permuta (não envolvem $)
+  // - status != 'em_onboarding' → consistência com KPIs (cliente em onboarding
+  //   ainda não entrou na carteira — antes essa query contava como entrada)
+  //
+  // `modalidade` é puxada pra separar mensal (entrada/churn) de pontual
+  // (avulso). Avulso aparece quando começa, não quando termina (terminar
+  // pontual não é "churn" — é conclusão de serviço único).
+  //
+  // Cast `as any`: types do Supabase ainda não conhecem a coluna `modalidade`
+  // (gerada após `npm run db:types` pós-migration). Mesma técnica usada em
+  // _getKpisImpl acima.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  let clientsQuery = sb
     .from("clients")
-    .select("id, nome, data_entrada, data_churn, tipo_relacao, assessor_id, coordenador_id")
+    .select("id, nome, data_entrada, data_churn, tipo_relacao, modalidade, status, assessor_id, coordenador_id")
     .is("deleted_at", null)
-    .eq("tipo_relacao", "comum");
+    .eq("tipo_relacao", "comum")
+    .neq("status", "em_onboarding");
   clientsQuery = buildClientFilterQuery(clientsQuery as never, filter) as never;
 
   const { data: clientsData } = await clientsQuery;
@@ -292,23 +314,35 @@ export async function _getEntradaChurnImpl(
     data_entrada: string;
     data_churn: string | null;
     tipo_relacao?: string | null;
+    modalidade?: string | null;
+    status?: string | null;
     assessor_id?: string | null;
     coordenador_id?: string | null;
   }>;
 
+  // Default de modalidade é "mensal" no schema — clientes antigos sem o campo
+  // setado também são tratados como mensal.
+  const ehMensal = (c: { modalidade?: string | null }) => !c.modalidade || c.modalidade === "mensal";
+  const ehPontual = (c: { modalidade?: string | null }) => c.modalidade === "pontual";
+
   return meses.map((mes) => {
     const entradas_clientes = clients
-      .filter((c) => isInMonth(c.data_entrada, mes))
+      .filter((c) => ehMensal(c) && isInMonth(c.data_entrada, mes))
       .map((c) => ({ id: c.id, nome: c.nome }));
     const churns_clientes = clients
-      .filter((c) => isInMonth(c.data_churn, mes))
+      .filter((c) => ehMensal(c) && isInMonth(c.data_churn, mes))
+      .map((c) => ({ id: c.id, nome: c.nome }));
+    const avulsos_clientes = clients
+      .filter((c) => ehPontual(c) && isInMonth(c.data_entrada, mes))
       .map((c) => ({ id: c.id, nome: c.nome }));
     return {
       mes,
       entradas: entradas_clientes.length,
       churns: churns_clientes.length,
+      avulsos: avulsos_clientes.length,
       entradas_clientes,
       churns_clientes,
+      avulsos_clientes,
     };
   });
 }
@@ -319,8 +353,9 @@ export async function getEntradaChurn(months = 6, filter?: ClientFilter): Promis
       const { months: m, filter: f } = JSON.parse(paramsJson) as { months: number; filter: ClientFilter | null };
       return _getEntradaChurnImpl(m, f ?? undefined);
     },
-    // v2: shape mudou — adicionado entradas_clientes/churns_clientes pro drill-down
-    ["dashboard-entrada-churn-v2"],
+    // v3: shape mudou — adicionado avulsos/avulsos_clientes (pontuais) +
+    // fix bug em_onboarding contado como entrada.
+    ["dashboard-entrada-churn-v3"],
     { revalidate: 300, tags: ["dashboard"] },
   );
   return cached(JSON.stringify({ months, filter: filter ?? null }));

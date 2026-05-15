@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
-import { ArrowUpRight, ArrowDownRight, ExternalLink } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, ExternalLink, Sparkles } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +23,7 @@ interface DialogState {
   mesLabel: string;
   entradas: EntradaChurnClient[];
   churns: EntradaChurnClient[];
+  avulsos: EntradaChurnClient[];
 }
 
 export function ChartEntradaChurn({ data }: Props) {
@@ -33,18 +34,20 @@ export function ChartEntradaChurn({ data }: Props) {
     mesRaw: p.mes,
     Entradas: p.entradas,
     Churns: p.churns,
+    Avulsos: p.avulsos,
   }));
 
   function handleBarClick(payload: { mesRaw?: string }) {
     if (!payload?.mesRaw) return;
     const point = data.find((p) => p.mes === payload.mesRaw);
     if (!point) return;
-    if (point.entradas === 0 && point.churns === 0) return;
+    if (point.entradas === 0 && point.churns === 0 && point.avulsos === 0) return;
     setDrilldown({
       mes: point.mes,
       mesLabel: monthLabel(point.mes),
       entradas: point.entradas_clientes,
       churns: point.churns_clientes,
+      avulsos: point.avulsos_clientes,
     });
   }
 
@@ -79,6 +82,14 @@ export function ChartEntradaChurn({ data }: Props) {
               cursor="pointer"
               onClick={(p) => handleBarClick(p as { mesRaw?: string })}
             />
+            <Bar
+              dataKey="Avulsos"
+              name="Serviços avulsos"
+              fill="#a855f7"
+              radius={[4, 4, 0, 0]}
+              cursor="pointer"
+              onClick={(p) => handleBarClick(p as { mesRaw?: string })}
+            />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -97,7 +108,7 @@ export function ChartEntradaChurn({ data }: Props) {
           </DialogHeader>
 
           {drilldown && (
-            <div className="grid min-h-0 grid-cols-1 gap-4 overflow-y-auto sm:grid-cols-2">
+            <div className="grid min-h-0 grid-cols-1 gap-4 overflow-y-auto sm:grid-cols-3">
               <ClienteListSection
                 titulo="Entradas"
                 icon={ArrowUpRight}
@@ -110,6 +121,12 @@ export function ChartEntradaChurn({ data }: Props) {
                 accent="rose"
                 clientes={drilldown.churns}
               />
+              <ClienteListSection
+                titulo="Serviços avulsos"
+                icon={Sparkles}
+                accent="violet"
+                clientes={drilldown.avulsos}
+              />
             </div>
           )}
         </DialogContent>
@@ -121,14 +138,18 @@ export function ChartEntradaChurn({ data }: Props) {
 interface SectionProps {
   titulo: string;
   icon: typeof ArrowUpRight;
-  accent: "emerald" | "rose";
+  accent: "emerald" | "rose" | "violet";
   clientes: EntradaChurnClient[];
 }
 
+const SECTION_STYLES: Record<SectionProps["accent"], { bg: string; text: string }> = {
+  emerald: { bg: "bg-emerald-500/10", text: "text-emerald-600 dark:text-emerald-400" },
+  rose: { bg: "bg-rose-500/10", text: "text-rose-600 dark:text-rose-400" },
+  violet: { bg: "bg-violet-500/10", text: "text-violet-600 dark:text-violet-400" },
+};
+
 function ClienteListSection({ titulo, icon: Icon, accent, clientes }: SectionProps) {
-  const styles = accent === "emerald"
-    ? { bg: "bg-emerald-500/10", text: "text-emerald-600 dark:text-emerald-400" }
-    : { bg: "bg-rose-500/10", text: "text-rose-600 dark:text-rose-400" };
+  const styles = SECTION_STYLES[accent];
 
   return (
     <div className="rounded-xl border bg-card/40 p-3">
