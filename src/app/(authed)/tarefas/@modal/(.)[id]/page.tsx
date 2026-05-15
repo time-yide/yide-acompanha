@@ -197,7 +197,12 @@ export default async function TarefaModalPage({
           />
         )}
 
-        {/* Footer: link pra página completa (edit, anexos, histórico) */}
+        {/* Footer: link pra página completa (edit, anexos, histórico).
+            Usa <a> em vez de <Link> pra "Ver página completa" — Link
+            client-side dispara o intercepting route de novo (mesma rota
+            /tarefas/[id]), prendendo o usuário no modal. <a> força full
+            page nav, escapando da intercepção e renderizando o page.tsx
+            regular com formulário de edit e tudo mais. */}
         <div className="flex flex-wrap items-center justify-end gap-2 border-t pt-3">
           <Link
             href={`/tarefas/${id}/historico`}
@@ -206,12 +211,12 @@ export default async function TarefaModalPage({
             <History className="mr-1 h-4 w-4" />
             Histórico
           </Link>
-          <Link
+          <a
             href={canEdit ? `/tarefas/${id}?edit=1` : `/tarefas/${id}`}
             className={buttonVariants({ variant: "outline", size: "sm" })}
           >
             {canEdit ? "Editar / Ver página completa" : "Ver página completa"}
-          </Link>
+          </a>
         </div>
       </div>
     </TaskModalShell>
