@@ -17,6 +17,7 @@ import { CRMPlaceholderSection } from "@/components/cliente-portal/CRMPlaceholde
 import { RelatoriosSection } from "@/components/cliente-portal/RelatoriosSection";
 import { NotificacoesSection } from "@/components/cliente-portal/NotificacoesSection";
 import { UnidadesSection } from "@/components/cliente-portal/UnidadesSection";
+import { GmbSection } from "@/components/cliente-portal/GmbSection";
 import { env } from "@/lib/env";
 
 export default async function ClientePainelPage() {
@@ -60,6 +61,12 @@ export default async function ClientePainelPage() {
         <TrafegoSection
           google={data.cliente.valor_trafego_google}
           meta={data.cliente.valor_trafego_meta}
+        />
+        <GmbSection
+          gmb_link={data.cliente.gmb_link}
+          gmb_rating={data.cliente.gmb_rating}
+          gmb_review_count={data.cliente.gmb_review_count}
+          gmb_last_update_at={data.cliente.gmb_last_update_at}
         />
         <CRMPlaceholderSection />
         <SatisfacaoSection selfLast={selfSat} agencyLast={agencyPerception} />

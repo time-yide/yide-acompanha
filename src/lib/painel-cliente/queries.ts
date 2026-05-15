@@ -105,6 +105,14 @@ export interface ClientPortalData {
     valor_trafego_google: number | null;
     valor_trafego_meta: number | null;
     drive_url: string | null;
+    /** Link do perfil GMB (Google Maps). */
+    gmb_link: string | null;
+    /** Nota média 0-5 do GMB. Manual por enquanto. */
+    gmb_rating: number | null;
+    /** Quantidade de reviews. */
+    gmb_review_count: number | null;
+    /** Quando esses dados foram atualizados pela última vez. */
+    gmb_last_update_at: string | null;
   };
   assessor: { nome: string } | null;
 }
@@ -134,6 +142,10 @@ export async function getClientPortalData(clientId: string): Promise<ClientPorta
     valor_trafego_meta: number | null;
     drive_url: string | null;
     assessor_id: string | null;
+    gmb_link: string | null;
+    gmb_rating: number | string | null; // numeric vem como string às vezes
+    gmb_review_count: number | null;
+    gmb_last_update_at: string | null;
   };
 
   let assessor: { nome: string } | null = null;
@@ -158,6 +170,10 @@ export async function getClientPortalData(clientId: string): Promise<ClientPorta
       valor_trafego_google: client.valor_trafego_google,
       valor_trafego_meta: client.valor_trafego_meta,
       drive_url: client.drive_url,
+      gmb_link: client.gmb_link,
+      gmb_rating: client.gmb_rating !== null ? Number(client.gmb_rating) : null,
+      gmb_review_count: client.gmb_review_count,
+      gmb_last_update_at: client.gmb_last_update_at,
     },
     assessor,
   };
