@@ -16,21 +16,22 @@ interface Props {
   clientes: ClienteAgrupado[];
   totalClientes: number;
   totalEtapas: number;
-  /** Quando true, começa recolhido. Default false (expandido). */
+  /** Quando true, começa recolhido. Default true (Yasmin prefere fechado). */
   defaultCollapsed?: boolean;
 }
 
 /**
  * Wrapper client-side do AlertaOnboardingAtrasado pra dar collapse/expand
- * via clique no header. Decisão UX: começa expandido (a maioria das vezes
- * quer ver na hora), mas o sócio recolhe se já viu hoje e quer ver outras
- * coisas do dashboard.
+ * via clique no header. Decisão UX (Yasmin): começa FECHADO por padrão —
+ * só conta resumida no header (X etapas em atraso · Y clientes). Sócio
+ * clica no chevron pra expandir e ver detalhes. State não persiste entre
+ * page loads — refresh volta pro estado default (fechado).
  */
 export function AlertaOnboardingAtrasadoClient({
   clientes,
   totalClientes,
   totalEtapas,
-  defaultCollapsed = false,
+  defaultCollapsed = true,
 }: Props) {
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
 
