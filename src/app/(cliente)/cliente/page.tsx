@@ -7,6 +7,7 @@ import {
 } from "@/lib/cliente-portal/queries";
 import { listUnidadesAtivasByClient } from "@/lib/clientes/unidades/queries";
 import { getGmbTimeSeries } from "@/lib/clientes/gmb-snapshots";
+import { listRequestsByClient } from "@/lib/portal-requests/queries";
 import { ClientPortalHeader } from "@/components/cliente-portal/ClientPortalHeader";
 import { HeroSection } from "@/components/cliente-portal/HeroSection";
 import { ContratoSection } from "@/components/cliente-portal/ContratoSection";
@@ -19,19 +20,21 @@ import { RelatoriosSection } from "@/components/cliente-portal/RelatoriosSection
 import { NotificacoesSection } from "@/components/cliente-portal/NotificacoesSection";
 import { UnidadesSection } from "@/components/cliente-portal/UnidadesSection";
 import { GmbSection } from "@/components/cliente-portal/GmbSection";
+import { SolicitacoesSection } from "@/components/cliente-portal/SolicitacoesSection";
 import { env } from "@/lib/env";
 
 export default async function ClientePainelPage() {
   const user = await requireClientPortalAuth();
 
-  // 6 queries em paralelo — todos os dados que o portal precisa.
-  const [data, selfSat, agencyPerception, reunioes, unidades, gmbTimeSeries] = await Promise.all([
+  // 7 queries em paralelo — todos os dados que o portal precisa.
+  const [data, selfSat, agencyPerception, reunioes, unidades, gmbTimeSeries, requests] = await Promise.all([
     getClientPortalData(user.clientId),
     getLastSelfSatisfaction(user.clientId),
     getLastAgencyPerception(user.clientId),
     getLastMeetingsForClient(user.clientId, 5),
     listUnidadesAtivasByClient(user.clientId),
     getGmbTimeSeries(user.clientId, 90),
+    listRequestsByClient(user.clientId),
   ]);
 
   if (!data) {
@@ -56,6 +59,7 @@ export default async function ClientePainelPage() {
           clientNome={data.cliente.nome}
         />
         <NotificacoesSection vapidPublicKey={env.NEXT_PUBLIC_VAPID_PUBLIC_KEY} />
+        <SolicitacoesSection requests={requests} />
         <PastaSection driveUrl={data.cliente.drive_url} />
         <UnidadesSection unidades={unidades} />
         <RelatoriosSection />
