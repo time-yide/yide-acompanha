@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/auth/session";
 import { logAudit } from "@/lib/audit/log";
 import { fetchGmbByUrl, fetchGmbByPlaceId } from "./gmb-places";
+import { recordGmbSnapshot } from "./gmb-snapshots";
 
 type ActionResult = { success?: boolean; error?: string; autoFetched?: boolean };
 
@@ -106,6 +107,16 @@ export async function updateClienteGmbAction(formData: FormData): Promise<Action
     .eq("id", parsed.data.client_id);
   if (error) return { error: error.message };
 
+  // Snapshot pro histórico — best-effort, não derruba se falhar
+  if (finalRating !== null || finalReviewCount !== null) {
+    await recordGmbSnapshot({
+      clientId: parsed.data.client_id,
+      rating: finalRating,
+      reviewCount: finalReviewCount,
+      source: "manual",
+    });
+  }
+
   await logAudit({
     entidade: "clients",
     entidade_id: parsed.data.client_id,
@@ -116,6 +127,7 @@ export async function updateClienteGmbAction(formData: FormData): Promise<Action
 
   revalidatePath(`/clientes/${parsed.data.client_id}/gmb`);
   revalidatePath(`/clientes/${parsed.data.client_id}`);
+  revalidatePath(`/painel-gmb`);
   return { success: true, autoFetched };
 }
 
@@ -168,6 +180,14 @@ export async function refreshClienteGmbAction(clientId: string): Promise<ActionR
     .eq("id", clientId);
   if (error) return { error: error.message };
 
+  // Snapshot pro histórico (origem: botão de refresh manual)
+  await recordGmbSnapshot({
+    clientId,
+    rating: result.rating,
+    reviewCount: result.reviewCount,
+    source: "refresh_button",
+  });
+
   await logAudit({
     entidade: "clients",
     entidade_id: clientId,
@@ -182,5 +202,6 @@ export async function refreshClienteGmbAction(clientId: string): Promise<ActionR
 
   revalidatePath(`/clientes/${clientId}/gmb`);
   revalidatePath(`/clientes/${clientId}`);
+  revalidatePath(`/painel-gmb`);
   return { success: true, autoFetched: true };
 }
