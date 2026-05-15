@@ -10,7 +10,7 @@ import { ViewToggle } from "@/components/tarefas/ViewToggle";
 import { GroupBySelector } from "@/components/tarefas/GroupBySelector";
 import { TaskToastFlash } from "@/components/tarefas/TaskToastFlash";
 import { TasksRealtimeWatcher } from "@/components/tarefas/TasksRealtimeWatcher";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 
 type Aba = "minhas" | "criadas" | "todas";
@@ -94,10 +94,16 @@ export default async function TarefasPage({ searchParams }: { searchParams: Prom
           <h1 className="text-2xl font-bold tracking-tight">Tarefas</h1>
           <p className="text-sm text-muted-foreground">{tasks.length} resultado(s)</p>
         </div>
-        <Link href="/tarefas/nova">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />Nova tarefa
-          </Button>
+        {/* Link com className={buttonVariants()} (sem aninhar <Button>) —
+            o aninhamento `<Link><Button>` resulta em `<a><button>`, que é
+            invalid HTML e em alguns browsers o Base UI Button swallowa o
+            evento de click antes do Link processar. Padrão usado em todas
+            as outras páginas (vide /academy). */}
+        <Link
+          href="/tarefas/nova"
+          className={buttonVariants()}
+        >
+          <Plus className="mr-2 h-4 w-4" />Nova tarefa
         </Link>
       </header>
 
