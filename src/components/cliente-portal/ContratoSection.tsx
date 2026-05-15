@@ -7,18 +7,23 @@ interface Props {
     modalidade: string | null;
   };
   assessor: { nome: string } | null;
+  /** Quando false, esconde valor mensal (usuário sem acesso financeiro). */
+  verValores: boolean;
 }
 
 const BRL = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-export function ContratoSection({ cliente, assessor }: Props) {
+export function ContratoSection({ cliente, assessor, verValores }: Props) {
   const modalidade = cliente.modalidade
     ? cliente.modalidade === "pontual"
       ? "Pontual"
       : "Mensal"
     : "";
   const valor = Number(cliente.valor_mensal) || 0;
+  // Quando o usuário não tem acesso financeiro, esconde o valor — mostra
+  // só servico/modalidade/assessor (informação não-sensível).
+  const showValor = verValores && valor > 0;
 
   return (
     <section className="overflow-hidden rounded-2xl border bg-card">
@@ -34,7 +39,7 @@ export function ContratoSection({ cliente, assessor }: Props) {
             </div>
           </div>
 
-          {valor > 0 && (
+          {showValor && (
             <div className="text-right">
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
                 Valor mensal
@@ -53,7 +58,7 @@ export function ContratoSection({ cliente, assessor }: Props) {
             value={cliente.servico_contratado ?? ""}
           />
           <InfoCard icon={Calendar} label="Modalidade" value={modalidade} />
-          {valor > 0 && cliente.modalidade !== "pontual" && (
+          {showValor && cliente.modalidade !== "pontual" && (
             <InfoCard
               icon={DollarSign}
               label="Valor mensal"

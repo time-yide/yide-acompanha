@@ -3,16 +3,49 @@ import { Megaphone, Sparkles } from "lucide-react";
 interface Props {
   google: number | null;
   meta: number | null;
+  /** Quando false, oculta valores investidos (mostra placeholder genérico). */
+  verValores: boolean;
 }
 
 const BRL = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-export function TrafegoSection({ google, meta }: Props) {
+export function TrafegoSection({ google, meta, verValores }: Props) {
   const g = Number(google) || 0;
   const m = Number(meta) || 0;
   const total = g + m;
   const semTrafego = total === 0;
+
+  // Sem acesso financeiro mas TEM tráfego: mostra placeholder confirmando
+  // que tem campanha rodando, sem revelar valores.
+  if (!verValores && !semTrafego) {
+    return (
+      <section className="overflow-hidden rounded-2xl border bg-card">
+        <div className="bg-gradient-to-br from-primary/10 via-card to-card p-6 sm:p-8">
+          <header className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/15 text-primary">
+              <Megaphone className="h-4 w-4" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold uppercase tracking-wider">Tráfego pago</h2>
+              <p className="text-xs text-muted-foreground">Campanhas ativas</p>
+            </div>
+          </header>
+          <div className="mt-5 flex items-center gap-3 rounded-lg border border-dashed bg-muted/30 px-4 py-5 text-sm text-muted-foreground">
+            <Sparkles className="h-4 w-4 flex-shrink-0 text-primary" />
+            <p>
+              Tem campanhas de tráfego rodando.{" "}
+              {g > 0 && m > 0
+                ? "Google Ads + Meta Ads."
+                : g > 0
+                  ? "Google Ads."
+                  : "Meta Ads."}
+            </p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   if (semTrafego) {
     return (

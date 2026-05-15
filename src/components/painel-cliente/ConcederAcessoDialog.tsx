@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Dialog,
@@ -36,6 +36,7 @@ interface Props {
 export function ConcederAcessoDialog({ clientId, clientNome, loginUrl, onClose }: Props) {
   const router = useRouter();
   const [state, formAction, isPending] = useActionState(actionWrapper, null);
+  const [verValores, setVerValores] = useState<boolean>(true);
   const success = state && "success" in state ? state : null;
   const errorMsg = state && "error" in state ? state.error : null;
 
@@ -113,6 +114,32 @@ export function ConcederAcessoDialog({ clientId, clientNome, loginUrl, onClose }
                 placeholder="João da Silva"
                 maxLength={200}
               />
+            </div>
+
+            {/* Nível de acesso — ver valores financeiros */}
+            <div className="space-y-2 rounded-md border bg-muted/30 p-3">
+              <label
+                htmlFor="ver_valores"
+                className="flex items-start gap-2.5 cursor-pointer"
+              >
+                <input
+                  id="ver_valores"
+                  name="ver_valores"
+                  type="checkbox"
+                  checked={verValores}
+                  onChange={(e) => setVerValores(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 cursor-pointer"
+                  value="1"
+                />
+                <div className="flex-1 space-y-0.5">
+                  <div className="text-sm font-medium">Pode ver valores financeiros</div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Marcado: vê valor mensal do contrato e investimento em tráfego.
+                    Desmarcado: oculta esses valores (útil pra funcionário do cliente
+                    que não deve ter acesso financeiro).
+                  </p>
+                </div>
+              </label>
             </div>
 
             {errorMsg && <p className="text-sm text-destructive">{errorMsg}</p>}

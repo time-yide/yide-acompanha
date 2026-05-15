@@ -56,10 +56,15 @@ export default async function ClientePainelPage() {
         <TrafegoSection
           google={data.cliente.valor_trafego_google}
           meta={data.cliente.valor_trafego_meta}
+          verValores={user.verValores}
         />
         <CRMPlaceholderSection />
         <SatisfacaoSection selfLast={selfSat} agencyLast={agencyPerception} />
-        <ContratoSection cliente={data.cliente} assessor={data.assessor} />
+        <ContratoSection
+          cliente={data.cliente}
+          assessor={data.assessor}
+          verValores={user.verValores}
+        />
       </main>
     </>
   );

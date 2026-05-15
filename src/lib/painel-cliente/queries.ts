@@ -7,6 +7,8 @@ export interface PortalUser {
   ativo: boolean;
   created_at: string;
   last_login_at: string | null;
+  /** Nível de acesso: false oculta valores financeiros no portal. Default true. */
+  ver_valores: boolean;
 }
 
 export interface ClienteComAcesso {
@@ -40,9 +42,12 @@ export async function listClientesComAcessoPortal(): Promise<ClienteComAcesso[]>
 
   // 2) Portal users desses clientes (ativos + revogados)
   const clientIds = clients.map((c) => c.id);
-  const { data: portalData } = await admin
+  // Cast `as any`: tipos do Supabase ainda não conhecem `ver_valores`.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const adminAny = admin as any;
+  const { data: portalData } = await adminAny
     .from("client_portal_users")
-    .select("user_id, client_id, nome_contato, ativo, created_at, last_login_at")
+    .select("user_id, client_id, nome_contato, ativo, ver_valores, created_at, last_login_at")
     .in("client_id", clientIds)
     .order("created_at", { ascending: false });
   const portalRows = (portalData ?? []) as Array<{
@@ -50,6 +55,7 @@ export async function listClientesComAcessoPortal(): Promise<ClienteComAcesso[]>
     client_id: string;
     nome_contato: string | null;
     ativo: boolean;
+    ver_valores: boolean;
     created_at: string;
     last_login_at: string | null;
   }>;
@@ -78,6 +84,7 @@ export async function listClientesComAcessoPortal(): Promise<ClienteComAcesso[]>
       email: emailByUserId.get(p.user_id) ?? "",
       nome_contato: p.nome_contato,
       ativo: p.ativo,
+      ver_valores: p.ver_valores !== false,
       created_at: p.created_at,
       last_login_at: p.last_login_at,
     });

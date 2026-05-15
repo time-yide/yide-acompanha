@@ -18,6 +18,11 @@ const createAccessSchema = z.object({
   client_id: z.string().regex(UUID_RE, "ID do cliente inválido"),
   email: z.string().email("Email inválido"),
   nome_contato: z.string().min(1, "Nome do contato é obrigatório").max(200),
+  /** "1" / "on" / "true" = true; ausente ou outro valor = false. */
+  ver_valores: z.preprocess(
+    (v) => (v === "1" || v === "on" || v === "true" || v === true),
+    z.boolean(),
+  ),
 });
 
 /**
@@ -39,6 +44,7 @@ export async function createClientPortalAccessAction(
     client_id: formData.get("client_id"),
     email: formData.get("email"),
     nome_contato: formData.get("nome_contato"),
+    ver_valores: formData.get("ver_valores"),
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
@@ -93,12 +99,16 @@ export async function createClientPortalAccessAction(
   }
 
   // 6. Linka em client_portal_users.
-  const { error: insertErr } = await admin
+  // Cast `as any`: tipos do Supabase ainda não conhecem `ver_valores`.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const adminAny = admin as any;
+  const { error: insertErr } = await adminAny
     .from("client_portal_users")
     .insert({
       user_id: created.user.id,
       client_id: parsed.data.client_id,
       nome_contato: parsed.data.nome_contato,
+      ver_valores: parsed.data.ver_valores,
     });
   if (insertErr) {
     // Rollback: deleta auth.user pra não deixar conta órfã.
@@ -114,12 +124,58 @@ export async function createClientPortalAccessAction(
       client_id: parsed.data.client_id,
       email: parsed.data.email,
       nome_contato: parsed.data.nome_contato,
+      ver_valores: parsed.data.ver_valores,
     },
     ator_id: actor.id,
   });
 
   revalidatePath("/painel-cliente");
   return { success: true, password };
+}
+
+const updateVerValoresSchema = z.object({
+  user_id: z.string().regex(UUID_RE, "ID inválido"),
+  ver_valores: z.boolean(),
+});
+
+/**
+ * Liga/desliga o acesso a valores financeiros de um portal user existente.
+ * Adm/Sócio. Usado pelo toggle na tabela do painel-cliente.
+ */
+export async function updateClientPortalVerValoresAction(
+  userId: string,
+  verValores: boolean,
+): Promise<{ success: true } | { error: string }> {
+  const actor = await requireAuth();
+  if (!["adm", "socio"].includes(actor.role)) {
+    return { error: "Apenas ADM/Sócio podem mudar nível de acesso" };
+  }
+
+  const parsed = updateVerValoresSchema.safeParse({
+    user_id: userId,
+    ver_valores: verValores,
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const admin = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const adminAny = admin as any;
+  const { error } = await adminAny
+    .from("client_portal_users")
+    .update({ ver_valores: parsed.data.ver_valores })
+    .eq("user_id", parsed.data.user_id);
+  if (error) return { error: error.message };
+
+  await logAudit({
+    entidade: "client_portal_users",
+    entidade_id: parsed.data.user_id,
+    acao: "update",
+    dados_depois: { ver_valores: parsed.data.ver_valores },
+    ator_id: actor.id,
+  });
+
+  revalidatePath("/painel-cliente");
+  return { success: true };
 }
 
 const resetPasswordSchema = z.object({

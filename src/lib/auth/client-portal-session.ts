@@ -19,6 +19,11 @@ export interface ClientPortalUser {
   clientId: string;
   clientNome: string;
   nomeContato: string | null;
+  /**
+   * Nível de acesso: false = usuário NÃO vê valores financeiros
+   * (valor mensal do contrato, investimento em tráfego). Default true.
+   */
+  verValores: boolean;
 }
 
 /**
@@ -33,9 +38,13 @@ export const getClientPortalUser = cache(async (): Promise<ClientPortalUser | nu
   // service-role pra bypassar RLS na validação (mais rápido e seguro do
   // que depender de RLS pra essa lookup específica).
   const sb = createServiceRoleClient();
-  const { data: portalUser } = await sb
+  // Cast `as any`: tipos do Supabase ainda não conhecem `ver_valores`
+  // (precisaria de `npm run db:types` pós-migration).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sbAny = sb as any;
+  const { data: portalUser } = await sbAny
     .from("client_portal_users")
-    .select("user_id, client_id, nome_contato, ativo, client:clients(nome)")
+    .select("user_id, client_id, nome_contato, ativo, ver_valores, client:clients(nome)")
     .eq("user_id", user.id)
     .eq("ativo", true)
     .single();
@@ -50,6 +59,7 @@ export const getClientPortalUser = cache(async (): Promise<ClientPortalUser | nu
     clientId: portalUser.client_id,
     clientNome: client.nome,
     nomeContato: portalUser.nome_contato ?? null,
+    verValores: portalUser.ver_valores !== false,
   };
 });
 

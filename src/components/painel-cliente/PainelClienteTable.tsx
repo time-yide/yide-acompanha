@@ -8,6 +8,7 @@ import { ResetPasswordDialog } from "./ResetPasswordDialog";
 import { RevogarAcessoButton } from "./RevogarAcessoButton";
 import { ExcluirAcessoButton } from "./ExcluirAcessoButton";
 import { CopyLinkButton } from "./CopyLinkButton";
+import { VerValoresToggle } from "./VerValoresToggle";
 import { MAX_ACESSOS_ATIVOS_POR_CLIENTE } from "@/lib/painel-cliente/constants";
 import type { ClienteComAcesso, PortalUser } from "@/lib/painel-cliente/queries";
 
@@ -284,6 +285,7 @@ function ClienteRowGroup({
                     <th className="py-1.5 text-left font-medium">Contato</th>
                     <th className="py-1.5 text-left font-medium">Email</th>
                     <th className="py-1.5 text-left font-medium">Status</th>
+                    <th className="py-1.5 text-left font-medium">Nível</th>
                     <th className="py-1.5 text-left font-medium">Último login</th>
                     <th className="py-1.5 text-right font-medium">Ações</th>
                   </tr>
@@ -303,6 +305,13 @@ function ClienteRowGroup({
                             Revogado
                           </span>
                         )}
+                      </td>
+                      <td className="py-2">
+                        <VerValoresToggle
+                          userId={p.user_id}
+                          initialVerValores={p.ver_valores}
+                          canEdit={p.ativo}
+                        />
                       </td>
                       <td className="py-2 text-muted-foreground">
                         {formatDate(p.last_login_at)}
