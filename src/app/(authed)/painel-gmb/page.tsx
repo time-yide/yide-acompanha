@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
 import { Star } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
-import { listClientesGmb } from "@/lib/painel-gmb/queries";
+import { listClientesGmb, listClientesSemGmb } from "@/lib/painel-gmb/queries";
 import { PainelGmbSummaryCards } from "@/components/painel-gmb/PainelGmbSummary";
 import { PainelGmbList } from "@/components/painel-gmb/PainelGmbList";
+import { AdicionarGmbDialog } from "@/components/painel-gmb/AdicionarGmbDialog";
 
 const ROLES_PERMITIDOS = ["adm", "socio", "coordenador", "assessor", "audiovisual_chefe"];
 
@@ -11,8 +12,11 @@ export default async function PainelGmbPage() {
   const user = await requireAuth();
   if (!ROLES_PERMITIDOS.includes(user.role)) redirect("/");
 
-  const { clientes, summary } = await listClientesGmb();
   const placesApiEnabled = !!process.env.GOOGLE_PLACES_API_KEY;
+  const [{ clientes, summary }, clientesSemGmb] = await Promise.all([
+    listClientesGmb(),
+    listClientesSemGmb(),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -31,11 +35,34 @@ export default async function PainelGmbPage() {
             </p>
           </div>
         </div>
+        {/* Botão pra cadastrar GMB de um cliente direto do painel */}
+        <AdicionarGmbDialog
+          clientesElegiveis={clientesSemGmb}
+          placesApiEnabled={placesApiEnabled}
+        />
       </header>
 
       <PainelGmbSummaryCards summary={summary} />
 
-      <PainelGmbList clientes={clientes} />
+      {clientes.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed bg-muted/20 p-10 text-center">
+          <Star className="h-10 w-10 text-amber-500/40" />
+          <div className="space-y-1">
+            <p className="font-medium">Nenhum cliente com GMB cadastrado ainda</p>
+            <p className="text-sm text-muted-foreground">
+              Clique em <strong>&ldquo;Adicionar GMB&rdquo;</strong> no canto superior direito pra cadastrar
+              o primeiro cliente. Você precisa apenas do link do Google Maps.
+            </p>
+          </div>
+          {clientesSemGmb.length === 0 && (
+            <p className="text-xs text-muted-foreground">
+              Nenhum cliente ativo disponível pra cadastrar. Cadastre clientes em <code>/clientes</code> primeiro.
+            </p>
+          )}
+        </div>
+      ) : (
+        <PainelGmbList clientes={clientes} />
+      )}
 
       {!placesApiEnabled && (
         <p className="rounded-lg border border-dashed bg-muted/20 p-4 text-center text-xs text-muted-foreground">
