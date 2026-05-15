@@ -41,11 +41,26 @@ export function filterColaboradoresByAdmissionAfter<T extends Pick<ColaboradorRo
 
 async function _listColaboradoresImpl(filters?: ColaboradorFilters): Promise<ColaboradorRow[]> {
   const supabase = createServiceRoleClient();
+
+  // Defense in depth: pega ids de usuários do portal do cliente pra excluir
+  // do resultado. O trigger `handle_new_user` agora pula esses (vide migration
+  // 20260524000000_fix_handle_new_user_skip_client_portal), mas se algum
+  // profile fantasma legacy ainda existir (mesmo inativo) ou se alguém criar
+  // um manualmente, esse filtro garante que não vaza pra /colaboradores.
+  const { data: portalUsers } = await supabase
+    .from("client_portal_users")
+    .select("user_id");
+  const portalUserIds = (portalUsers ?? []).map((r) => r.user_id as string);
+
   let query = supabase
     .from("profiles")
     .select(
       "id, nome, email, role, ativo, fixo_mensal, comissao_percent, comissao_primeiro_mes_percent, created_at, data_admissao, avatar_url",
     );
+
+  if (portalUserIds.length > 0) {
+    query = query.not("id", "in", `(${portalUserIds.join(",")})`);
+  }
 
   if (typeof filters?.ativo === "boolean") query = query.eq("ativo", filters.ativo);
   type RoleEnum =
