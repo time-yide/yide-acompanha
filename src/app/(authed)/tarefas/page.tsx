@@ -94,17 +94,22 @@ export default async function TarefasPage({ searchParams }: { searchParams: Prom
           <h1 className="text-2xl font-bold tracking-tight">Tarefas</h1>
           <p className="text-sm text-muted-foreground">{tasks.length} resultado(s)</p>
         </div>
-        {/* Link com className={buttonVariants()} (sem aninhar <Button>) —
-            o aninhamento `<Link><Button>` resulta em `<a><button>`, que é
-            invalid HTML e em alguns browsers o Base UI Button swallowa o
-            evento de click antes do Link processar. Padrão usado em todas
-            as outras páginas (vide /academy). */}
-        <Link
+        {/* <a> em vez de <Link> intencional: o intercepting route @modal/(.)[id]
+            captura navegação client-side pra QUALQUER segmento-filho de
+            /tarefas — inclusive o literal "nova". O UUID guard no modal
+            retorna null, mas em alguns casos o roteamento paralelo do Next
+            confunde os slots e a navegação não atualiza children pra
+            mostrar /tarefas/nova/page.tsx. Hard navigation via <a> contorna
+            o problema forçando full page load, escapando da intercepção.
+            Mesma técnica usada no botão "Editar / Ver página completa"
+            dentro do modal. */}
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+        <a
           href="/tarefas/nova"
           className={buttonVariants()}
         >
           <Plus className="mr-2 h-4 w-4" />Nova tarefa
-        </Link>
+        </a>
       </header>
 
       <div className="flex flex-wrap items-center gap-3 text-sm">
