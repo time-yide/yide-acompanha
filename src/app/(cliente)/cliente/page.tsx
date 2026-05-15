@@ -4,6 +4,7 @@ import {
   getLastSelfSatisfaction,
   getLastAgencyPerception,
   getLastMeetingsForClient,
+  getTarefasForPortal,
 } from "@/lib/cliente-portal/queries";
 import { listUnidadesAtivasByClient } from "@/lib/clientes/unidades/queries";
 import { getGmbTimeSeries } from "@/lib/clientes/gmb-snapshots";
@@ -21,13 +22,14 @@ import { NotificacoesSection } from "@/components/cliente-portal/NotificacoesSec
 import { UnidadesSection } from "@/components/cliente-portal/UnidadesSection";
 import { GmbSection } from "@/components/cliente-portal/GmbSection";
 import { SolicitacoesSection } from "@/components/cliente-portal/SolicitacoesSection";
+import { TarefasPortalSection } from "@/components/cliente-portal/TarefasPortalSection";
 import { env } from "@/lib/env";
 
 export default async function ClientePainelPage() {
   const user = await requireClientPortalAuth();
 
-  // 7 queries em paralelo — todos os dados que o portal precisa.
-  const [data, selfSat, agencyPerception, reunioes, unidades, gmbTimeSeries, requests] = await Promise.all([
+  // 8 queries em paralelo — todos os dados que o portal precisa.
+  const [data, selfSat, agencyPerception, reunioes, unidades, gmbTimeSeries, requests, tarefas] = await Promise.all([
     getClientPortalData(user.clientId),
     getLastSelfSatisfaction(user.clientId),
     getLastAgencyPerception(user.clientId),
@@ -35,6 +37,7 @@ export default async function ClientePainelPage() {
     listUnidadesAtivasByClient(user.clientId),
     getGmbTimeSeries(user.clientId, 90),
     listRequestsByClient(user.clientId),
+    getTarefasForPortal(user.clientId),
   ]);
 
   if (!data) {
@@ -62,6 +65,7 @@ export default async function ClientePainelPage() {
         <SolicitacoesSection requests={requests} />
         <PastaSection driveUrl={data.cliente.drive_url} />
         <UnidadesSection unidades={unidades} />
+        <TarefasPortalSection tarefas={tarefas} />
         <RelatoriosSection />
         <ReunioesSection reunioes={reunioes} />
         <TrafegoSection

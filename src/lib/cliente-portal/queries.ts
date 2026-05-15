@@ -99,3 +99,115 @@ export async function getLastMeetingsForClient(
     summary_ready: r.summary_ready,
   }));
 }
+
+/**
+ * Status simplificado mostrado pro cliente (sem jargão interno).
+ * Mapping: status interno → label client-facing.
+ */
+export type PortalTaskStatus =
+  | "em_producao"
+  | "em_revisao"
+  | "aprovada"
+  | "agendada"
+  | "publicada"
+  | "concluida";
+
+export interface PortalTaskRow {
+  id: string;
+  titulo: string;
+  tipo: "geral" | "video" | "arte";
+  status: PortalTaskStatus;
+  /** Link de entrega (drive_link), só quando aprovada/publicada/agendada/concluída. */
+  drive_link: string | null;
+  /** Timestamp da última transição relevante — usado pra ordenar + "há X dias". */
+  ultima_atualizacao: string;
+}
+
+/**
+ * Lista tarefas que o cliente vê no portal — com fields sanitizados (NÃO
+ * expõe prazo, prioridade, responsável, descrição, etc). Decisão da
+ * Yasmin: cliente vê o que ESTÁ SENDO FEITO e o que FOI ENTREGUE, sem
+ * info de gerenciamento interno.
+ *
+ * Status que NÃO mostra: aberta (ainda não começou), alteracao (problema
+ * interno entre time e cliente — não polui o portal).
+ * Status concluida só mostra pra tipo geral (vídeo/arte concluida vira
+ * em_aprovacao/aprovada/postada — não chega no portal).
+ *
+ * Retorna até 50 tarefas — primeiro as em andamento, depois as concluídas
+ * dos últimos 60 dias.
+ */
+export async function getTarefasForPortal(clientId: string): Promise<PortalTaskRow[]> {
+  const admin = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = admin as any;
+  const sinceIso = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString();
+  const { data } = await sb
+    .from("tasks")
+    .select("id, titulo, tipo, status, drive_link, updated_at, completed_at, aprovada_em, created_at")
+    .eq("client_id", clientId)
+    .is("deleted_at", null)
+    .in("status", ["em_andamento", "em_aprovacao", "aprovada", "agendado", "postada", "concluida"])
+    .gte("updated_at", sinceIso)
+    .order("updated_at", { ascending: false })
+    .limit(50);
+
+  const rows = (data ?? []) as Array<{
+    id: string;
+    titulo: string;
+    tipo: "geral" | "video" | "arte" | null;
+    status:
+      | "em_andamento"
+      | "em_aprovacao"
+      | "aprovada"
+      | "agendado"
+      | "postada"
+      | "concluida";
+    drive_link: string | null;
+    updated_at: string;
+    completed_at: string | null;
+    aprovada_em: string | null;
+    created_at: string;
+  }>;
+
+  // Mapeia status interno → status portal
+  function mapStatus(
+    statusInt: typeof rows[number]["status"],
+    tipo: typeof rows[number]["tipo"],
+  ): PortalTaskStatus | null {
+    switch (statusInt) {
+      case "em_andamento":
+        return "em_producao";
+      case "em_aprovacao":
+        return "em_revisao";
+      case "aprovada":
+        return "aprovada";
+      case "agendado":
+        return "agendada";
+      case "postada":
+        return "publicada";
+      case "concluida":
+        // Tarefas tipo "video" ou "arte" não param em concluida no portal —
+        // viram em_aprovacao/aprovada/postada. Concluida pro portal só faz
+        // sentido pra tipo "geral".
+        return tipo === "video" || tipo === "arte" ? null : "concluida";
+      default:
+        return null;
+    }
+  }
+
+  const out: PortalTaskRow[] = [];
+  for (const r of rows) {
+    const status = mapStatus(r.status, r.tipo);
+    if (!status) continue;
+    out.push({
+      id: r.id,
+      titulo: r.titulo,
+      tipo: r.tipo ?? "geral",
+      status,
+      drive_link: r.drive_link,
+      ultima_atualizacao: r.aprovada_em ?? r.completed_at ?? r.updated_at,
+    });
+  }
+  return out;
+}
