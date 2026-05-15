@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { GraduationCap, Plus, Trophy } from "lucide-react";
+import { BookOpen, GraduationCap, Plus, Trophy } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import { listMeusCursos, listAllCursos, getRanking } from "@/lib/academy/queries";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CursoCard } from "@/components/academy/CursoCard";
 import { RankingPanel } from "@/components/academy/RankingPanel";
@@ -40,14 +40,24 @@ export default async function AcademyPage() {
             </p>
           </div>
         </div>
-        {canCreate(user.role) && (
-          <Link href="/academy/novo">
-            <Button>
-              <Plus className="mr-1.5 h-4 w-4" />
-              Novo treinamento
-            </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/academy/cursos-online"
+            className={buttonVariants({ variant: "outline" })}
+            title="Acessos aos cursos externos (Hotmart, Udemy, etc.)"
+          >
+            <BookOpen className="mr-1.5 h-4 w-4" />
+            Cursos online
           </Link>
-        )}
+          {canCreate(user.role) && (
+            <Link href="/academy/novo">
+              <Button>
+                <Plus className="mr-1.5 h-4 w-4" />
+                Novo treinamento
+              </Button>
+            </Link>
+          )}
+        </div>
       </header>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_280px]">
