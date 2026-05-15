@@ -1,7 +1,10 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { TrendingUp } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { GmbForm } from "@/components/clientes/gmb/GmbForm";
+import { buttonVariants } from "@/components/ui/button";
 
 const ROLES_PERMITIDOS = ["adm", "socio", "coordenador", "assessor"];
 
@@ -30,7 +33,7 @@ export default async function GmbPage({
   const placesApiEnabled = !!process.env.GOOGLE_PLACES_API_KEY;
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-2xl space-y-4">
       <GmbForm
         clientId={id}
         placesApiEnabled={placesApiEnabled}
@@ -42,6 +45,18 @@ export default async function GmbPage({
           gmb_last_update_at: cliente.gmb_last_update_at ?? null,
         }}
       />
+
+      {/* Link rápido pro painel-gmb individual do cliente — onde tá o
+          gráfico de evolução. Mantém esta página focada na edição. */}
+      <div className="flex justify-end">
+        <Link
+          href={`/painel-gmb/${id}`}
+          className={buttonVariants({ variant: "outline", size: "sm" })}
+        >
+          <TrendingUp className="mr-1.5 h-4 w-4" />
+          Ver histórico e gráfico
+        </Link>
+      </div>
     </div>
   );
 }

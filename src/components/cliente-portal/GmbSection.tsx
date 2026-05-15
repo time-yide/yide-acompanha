@@ -1,10 +1,14 @@
-import { Star, ExternalLink, MessageCircle } from "lucide-react";
+import { Star, ExternalLink, MessageCircle, TrendingUp } from "lucide-react";
+import type { GmbTimeSeriesPoint } from "@/lib/clientes/gmb-snapshots";
+import { GmbEvolutionChart } from "@/components/painel-gmb/GmbEvolutionChart";
 
 interface Props {
   gmb_link: string | null;
   gmb_rating: number | null;
   gmb_review_count: number | null;
   gmb_last_update_at: string | null;
+  /** Histórico dos últimos 90 dias pra plotar evolução. Vazio = sem dados ainda. */
+  timeSeries?: GmbTimeSeriesPoint[];
 }
 
 const BR_DATE = (iso: string): string =>
@@ -25,6 +29,7 @@ export function GmbSection({
   gmb_rating,
   gmb_review_count,
   gmb_last_update_at,
+  timeSeries = [],
 }: Props) {
   // Se NENHUM dado tá cadastrado, esconde a seção
   const hasAnyData = gmb_link || gmb_rating !== null || gmb_review_count !== null;
@@ -117,6 +122,19 @@ export function GmbSection({
           <p className="mt-3 text-[11px] text-muted-foreground">
             Dados atualizados em {BR_DATE(gmb_last_update_at)}.
           </p>
+        )}
+
+        {/* Gráfico de evolução — só renderiza se tem snapshots histórico */}
+        {timeSeries.length >= 2 && (
+          <div className="mt-6 rounded-xl border bg-background/40 p-4">
+            <div className="mb-3 flex items-center gap-1.5">
+              <TrendingUp className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Evolução nos últimos 90 dias
+              </h3>
+            </div>
+            <GmbEvolutionChart data={timeSeries} />
+          </div>
         )}
       </div>
     </section>
