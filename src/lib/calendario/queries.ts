@@ -49,6 +49,44 @@ export function getWeekRange(reference: Date = new Date()): WeekRange {
   return { start: new Date(startUtcMs), end: new Date(endUtcMs) };
 }
 
+export interface MonthGridRange {
+  /** Início da grade (Segunda ≤ dia 1 do mês), em UTC. */
+  start: Date;
+  /** Fim da grade (Segunda 6 semanas depois do início), em UTC. */
+  end: Date;
+  /** Ano/mês de referência (1-12) no fuso da app — pra colorir células in/out. */
+  year: number;
+  month: number;
+}
+
+/**
+ * Calcula o range de 6 semanas (42 dias) que cobrem o mês de `reference`,
+ * começando na Segunda anterior (ou igual) ao dia 1. Estilo Google Calendar
+ * mas com semana iniciando na Segunda (consistente com o WeekView da app).
+ */
+export function getMonthGridRange(reference: Date = new Date()): MonthGridRange {
+  const parts = getDatePartsInAppTz(reference);
+  const y = parseInt(parts.year, 10);
+  const m = parseInt(parts.month, 10);
+
+  const offsetMs = getAppTimezoneOffsetMs(reference);
+
+  // Weekday do dia 1 do mês no fuso da app
+  const firstOfMonthUtcMs = Date.UTC(y, m - 1, 1, 0, 0, 0, 0) + offsetMs;
+  const firstWeekday = getDatePartsInAppTz(new Date(firstOfMonthUtcMs)).weekday;
+  const daysBeforeMonday = (firstWeekday + 6) % 7;
+
+  const startUtcMs = Date.UTC(y, m - 1, 1 - daysBeforeMonday, 0, 0, 0, 0) + offsetMs;
+  const endUtcMs = startUtcMs + 42 * 24 * 60 * 60 * 1000;
+
+  return {
+    start: new Date(startUtcMs),
+    end: new Date(endUtcMs),
+    year: y,
+    month: m,
+  };
+}
+
 /**
  * Implementação interna que faz as 5 queries pesadas. Usa service-role pra
  * funcionar dentro de unstable_cache (não há request context). RLS é
