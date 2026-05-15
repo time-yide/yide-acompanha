@@ -39,6 +39,11 @@ const serverSchema = z.object({
   // interna de HTML do PDF. Sem isso, geração de PDF falha amigavelmente.
   // Gere com: openssl rand -hex 32
   APRESENTACAO_PDF_SECRET: z.string().min(16).optional(),
+  // Google Places API — usado pra puxar nota/reviews do GMB de cada cliente.
+  // Opcional: sem essa key, modo automático fica desabilitado e sistema cai
+  // pro modo manual (assessor digita os dados). Gerar em Google Cloud →
+  // APIs & Services → Credentials → Create API key. Ativar "Places API (New)".
+  GOOGLE_PLACES_API_KEY: z.string().min(20).optional(),
 });
 
 const clientSchema = z.object({
