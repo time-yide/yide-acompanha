@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ChevronDown, ChevronRight, Check, AlertCircle, Clock, CircleCheck } from "lucide-react";
 import { ChecklistRow } from "./ChecklistRow";
 import { ObservacoesEditor } from "./ObservacoesEditor";
+import { LinkEtapaEditor } from "./LinkEtapaEditor";
 import { MarcarConcluidaButton } from "./MarcarConcluidaButton";
 import { ReabrirButton } from "./ReabrirButton";
 import { formatEtapaRangeDates } from "@/lib/d0-d30/template";
@@ -20,6 +21,23 @@ const ETAPA_NOMES: Record<string, string> = {
   monitoramento: "Monitoramento e otimização",
   relacionamento: "Relacionamento contínuo",
 };
+
+/**
+ * Label do campo de link por etapa. Pra cada etapa um nome semântico
+ * (estratégia em tráfego/marco_zero, pasta em produção, etc). Default
+ * "Link de referência" pras genéricas.
+ */
+const LINK_LABEL_POR_ETAPA: Record<string, string> = {
+  marco_zero: "Link da estratégia",
+  trafego: "Link da estratégia",
+  producao: "Link da pasta de produção",
+  apresentacao: "Link da apresentação",
+  publicacao: "Link da postagem",
+};
+
+function linkLabelFor(etapaCodigo: string): string {
+  return LINK_LABEL_POR_ETAPA[etapaCodigo] ?? "Link de referência";
+}
 
 interface Props {
   etapa: EtapaRow;
@@ -170,6 +188,29 @@ export function EtapaCard({ etapa, diaAtual, canEdit }: Props) {
               ))}
             </ul>
           </div>
+
+          {/* Link de referência (varia por etapa — estratégia, pasta, etc.) */}
+          {canEdit && etapa.status !== "concluido" ? (
+            <LinkEtapaEditor
+              etapaId={etapa.id}
+              initialValue={etapa.link_etapa}
+              label={linkLabelFor(etapa.etapa_codigo)}
+            />
+          ) : etapa.link_etapa ? (
+            <div>
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                {linkLabelFor(etapa.etapa_codigo)}
+              </h3>
+              <a
+                href={etapa.link_etapa}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-sm text-primary underline underline-offset-2 break-all hover:text-primary/80"
+              >
+                {etapa.link_etapa}
+              </a>
+            </div>
+          ) : null}
 
           {/* Observações */}
           {canEdit && etapa.status !== "concluido" ? (

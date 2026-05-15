@@ -270,6 +270,12 @@ const observacoesSchema = z.object({
   observacoes: z.string().max(5000),
 });
 
+const linkEtapaSchema = z.object({
+  etapa_id: z.string().regex(UUID_RE),
+  // string vazia = limpar campo; senão precisa ser URL válida
+  link_etapa: z.union([z.literal(""), z.string().url("Link inválido").max(500)]),
+});
+
 export async function salvarObservacoesAction(
   formData: FormData,
 ): Promise<{ success: true } | { error: string }> {
@@ -299,6 +305,46 @@ export async function salvarObservacoesAction(
   const { error } = await sb
     .from("client_onboarding_etapas")
     .update({ observacoes: parsed.data.observacoes.trim() || null })
+    .eq("id", parsed.data.etapa_id);
+  if (error) return { error: error.message };
+
+  revalidatePath(`/d0-d30/${etapa.client_id}`);
+  return { success: true };
+}
+
+/**
+ * Salva o link de referência da etapa (URL livre — ex: link da estratégia
+ * em "Tráfego + estratégia"). String vazia limpa o campo.
+ */
+export async function salvarLinkEtapaAction(
+  formData: FormData,
+): Promise<{ success: true } | { error: string }> {
+  const actor = await requireAuth();
+
+  const parsed = linkEtapaSchema.safeParse({
+    etapa_id: formData.get("etapa_id"),
+    link_etapa: (formData.get("link_etapa") ?? "").toString().trim(),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const admin = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = admin as any;
+
+  const { data: etapa } = await sb
+    .from("client_onboarding_etapas")
+    .select("id, client_id")
+    .eq("id", parsed.data.etapa_id)
+    .single();
+  if (!etapa) return { error: "Etapa não encontrada" };
+
+  if (!(await canEditEtapa(actor, etapa.client_id))) {
+    return { error: "Sem permissão" };
+  }
+
+  const { error } = await sb
+    .from("client_onboarding_etapas")
+    .update({ link_etapa: parsed.data.link_etapa || null })
     .eq("id", parsed.data.etapa_id);
   if (error) return { error: error.message };
 
