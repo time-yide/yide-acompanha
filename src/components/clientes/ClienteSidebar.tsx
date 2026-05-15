@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
-  LayoutGrid, FileText, MessagesSquare, Folder, Calendar, ListChecks, Smile, History, Pencil, KeyRound,
+  LayoutGrid, FileText, MessagesSquare, Folder, Calendar, ListChecks, Smile, History, Pencil, KeyRound, MapPin,
 } from "lucide-react";
 
 type NavItem = {
@@ -18,6 +18,7 @@ type NavItem = {
 const items: NavItem[] = [
   { slug: "", icon: LayoutGrid, label: "Visão geral" },
   { slug: "/briefing", icon: FileText, label: "Briefing" },
+  { slug: "/unidades", icon: MapPin, label: "Unidades" },
   { slug: "/reunioes", icon: MessagesSquare, label: "Reuniões" },
   { slug: "/arquivos", icon: Folder, label: "Arquivos" },
   { slug: "/credenciais", icon: KeyRound, label: "Credenciais", credenciais: true },

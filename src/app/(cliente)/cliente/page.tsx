@@ -5,6 +5,7 @@ import {
   getLastAgencyPerception,
   getLastMeetingsForClient,
 } from "@/lib/cliente-portal/queries";
+import { listUnidadesAtivasByClient } from "@/lib/clientes/unidades/queries";
 import { ClientPortalHeader } from "@/components/cliente-portal/ClientPortalHeader";
 import { HeroSection } from "@/components/cliente-portal/HeroSection";
 import { ContratoSection } from "@/components/cliente-portal/ContratoSection";
@@ -15,17 +16,19 @@ import { ReunioesSection } from "@/components/cliente-portal/ReunioesSection";
 import { CRMPlaceholderSection } from "@/components/cliente-portal/CRMPlaceholderSection";
 import { RelatoriosSection } from "@/components/cliente-portal/RelatoriosSection";
 import { NotificacoesSection } from "@/components/cliente-portal/NotificacoesSection";
+import { UnidadesSection } from "@/components/cliente-portal/UnidadesSection";
 import { env } from "@/lib/env";
 
 export default async function ClientePainelPage() {
   const user = await requireClientPortalAuth();
 
-  // 4 queries em paralelo — todos os dados que o portal precisa.
-  const [data, selfSat, agencyPerception, reunioes] = await Promise.all([
+  // 5 queries em paralelo — todos os dados que o portal precisa.
+  const [data, selfSat, agencyPerception, reunioes, unidades] = await Promise.all([
     getClientPortalData(user.clientId),
     getLastSelfSatisfaction(user.clientId),
     getLastAgencyPerception(user.clientId),
     getLastMeetingsForClient(user.clientId, 5),
+    listUnidadesAtivasByClient(user.clientId),
   ]);
 
   if (!data) {
@@ -51,6 +54,7 @@ export default async function ClientePainelPage() {
         />
         <NotificacoesSection vapidPublicKey={env.NEXT_PUBLIC_VAPID_PUBLIC_KEY} />
         <PastaSection driveUrl={data.cliente.drive_url} />
+        <UnidadesSection unidades={unidades} />
         <RelatoriosSection />
         <ReunioesSection reunioes={reunioes} />
         <TrafegoSection
