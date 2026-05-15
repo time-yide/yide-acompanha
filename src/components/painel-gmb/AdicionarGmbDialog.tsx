@@ -69,7 +69,11 @@ export function AdicionarGmbDialog({ clientesElegiveis, placesApiEnabled }: Prop
 
   return (
     <>
-      <Button onClick={() => setOpen(true)} disabled={clientesElegiveis.length === 0}>
+      {/* Botão sempre clicável — se não tem cliente elegível, dialog mostra
+          mensagem explicativa dentro. Antes ficava disabled quando lista
+          vinha vazia (mesmo que por erro silencioso na query), e o usuário
+          não tinha como entender por quê. */}
+      <Button onClick={() => setOpen(true)}>
         <Plus className="mr-1.5 h-4 w-4" />
         Adicionar GMB
       </Button>
@@ -86,6 +90,36 @@ export function AdicionarGmbDialog({ clientesElegiveis, placesApiEnabled }: Prop
             </DialogDescription>
           </DialogHeader>
 
+          {clientesElegiveis.length === 0 ? (
+            <div className="space-y-3 rounded-md border border-amber-500/30 bg-amber-500/5 p-4 text-sm">
+              <p className="font-medium text-amber-700 dark:text-amber-300">
+                Nenhum cliente elegível pra cadastrar agora.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Possíveis motivos:
+              </p>
+              <ul className="ml-4 list-disc space-y-1 text-xs text-muted-foreground">
+                <li>Todos os clientes ativos já têm GMB cadastrado.</li>
+                <li>
+                  Os clientes estão com status diferente de <code>ativo</code> (ex:{" "}
+                  <code>em_onboarding</code>).
+                </li>
+                <li>
+                  Pode estar faltando rodar a migration{" "}
+                  <code>20260528000002_clients_gmb_place_id.sql</code> no Supabase.
+                </li>
+              </ul>
+              <p className="text-xs text-muted-foreground">
+                Alternativa: vá direto em{" "}
+                <code>/clientes/[id]/gmb</code> de um cliente específico pra cadastrar lá.
+              </p>
+              <DialogFooter>
+                <Button type="button" onClick={() => setOpen(false)}>
+                  Fechar
+                </Button>
+              </DialogFooter>
+            </div>
+          ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <input type="hidden" name="client_id" value={clientId} />
 
@@ -144,6 +178,7 @@ export function AdicionarGmbDialog({ clientesElegiveis, placesApiEnabled }: Prop
               </Button>
             </DialogFooter>
           </form>
+          )}
         </DialogContent>
       </Dialog>
     </>
