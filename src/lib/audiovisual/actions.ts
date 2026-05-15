@@ -12,6 +12,7 @@ import { createCapturaSchema, markEntregueRapidoSchema, RATING_FIELDS } from "./
 import { formatIsoDate } from "@/lib/datetime/timezone";
 import { avgRating } from "./queries";
 import { ROLES_QUE_EDITAM } from "./roles";
+import { getCoordenadoresAudiovisualIds } from "@/lib/tarefas/client-team";
 
 const RATING_LABEL_BY_NAME = new Map<string, string>(
   RATING_FIELDS.map((f) => [f.name, f.label]),
@@ -281,6 +282,13 @@ export async function delegateCapturaAction(formData: FormData): Promise<Delegat
   const linksJson = linkAdicionalRaw
     ? [{ label: "Link adicional", url: linkAdicionalRaw }]
     : [];
+  // Auto-inclui coordenadores audiovisuais como participantes (exceto o
+  // editor designado e o criador da delegação) pra ficarem sempre atribuídos
+  // na entrega.
+  const coordenadoresAv = await getCoordenadoresAudiovisualIds();
+  const participantesAuto = coordenadoresAv.filter(
+    (id) => id !== editorId && id !== actor.id,
+  );
   const { data: createdTask, error: taskErr } = await sb
     .from("tasks")
     .insert({
@@ -293,6 +301,7 @@ export async function delegateCapturaAction(formData: FormData): Promise<Delegat
       client_id: captura.client_id,
       due_date: dueDateRaw || null,
       links: linksJson,
+      participantes_ids: participantesAuto,
     })
     .select("id")
     .single();

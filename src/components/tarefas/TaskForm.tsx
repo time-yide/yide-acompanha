@@ -112,12 +112,14 @@ export function TaskForm({
       setTipo(auto);
       // Default razoável: feed (usuário pode adicionar story depois).
       if (formatos.length === 0) setFormatos(["feed"]);
+      addCoordenadoresAvIfVideo(auto);
     }
   }
 
   function onTipoChange(v: string) {
     setTipo(v);
     setTipoManuallySet(true);
+    addCoordenadoresAvIfVideo(v);
   }
 
   function toggleFormato(value: string) {
@@ -143,6 +145,21 @@ export function TaskForm({
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId]);
+
+  /**
+   * Auto-adiciona coordenador audiovisual quando demanda vira "video".
+   * Chamado nos handlers de troca de tipo e de responsável. Usuário pode
+   * remover se quiser — só atua nas transições pra "video".
+   */
+  function addCoordenadoresAvIfVideo(novoTipo: string) {
+    if (isEdit) return;
+    if (novoTipo !== "video") return;
+    const coordenadoresAv = profiles
+      .filter((p) => p.role === "audiovisual_chefe")
+      .map((p) => p.id);
+    if (coordenadoresAv.length === 0) return;
+    setParticipantes((prev) => Array.from(new Set([...prev, ...coordenadoresAv])));
+  }
 
   function addLink() {
     setLinks((prev) => [...prev, { label: "", url: "" }]);
