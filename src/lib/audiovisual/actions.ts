@@ -132,53 +132,69 @@ export async function createCapturaAction(_prev: ActionResult, formData: FormDat
 
   // Integração com satisfação: UPSERT entry do videomaker pra esse cliente na semana
   // da captação. Se já existir entry da semana, atualiza com a cor/comentário desta.
-  const media = avgRating(insertPayload);
-  if (media !== null) {
-    const semanaIso = isoWeek(new Date(parsed.data.data_captacao + "T12:00:00Z"));
-    const cor = mediaParaCor(media);
-    const comentario = comentarioFromCaptura({
-      qtdVideos: parsed.data.qtd_videos,
-      qtdFotos: parsed.data.qtd_fotos,
-      pontos_positivos: parsed.data.pontos_positivos,
-      pontos_dificuldade: parsed.data.pontos_dificuldade,
-      sugestoes: parsed.data.sugestoes,
-      observacoes: parsed.data.observacoes,
-    });
+  //
+  // try/catch: se RLS bloquear ou der erro, NÃO derruba a entrega — a captura
+  // já foi inserida com sucesso na linha anterior. Falha no sync de satisfação
+  // não deve fazer o videomaker reenviar do zero.
+  try {
+    const media = avgRating(insertPayload);
+    if (media !== null) {
+      const semanaIso = isoWeek(new Date(parsed.data.data_captacao + "T12:00:00Z"));
+      const cor = mediaParaCor(media);
+      const comentario = comentarioFromCaptura({
+        qtdVideos: parsed.data.qtd_videos,
+        qtdFotos: parsed.data.qtd_fotos,
+        pontos_positivos: parsed.data.pontos_positivos,
+        pontos_dificuldade: parsed.data.pontos_dificuldade,
+        sugestoes: parsed.data.sugestoes,
+        observacoes: parsed.data.observacoes,
+      });
 
-    await sb
-      .from("satisfaction_entries")
-      .upsert(
-        {
-          client_id: parsed.data.client_id,
-          autor_id: actor.id,
-          papel_autor: "videomaker",
-          semana_iso: semanaIso,
-          cor,
-          comentario,
-        },
-        { onConflict: "client_id,autor_id,semana_iso" },
-      );
+      const { error: satErr } = await sb
+        .from("satisfaction_entries")
+        .upsert(
+          {
+            client_id: parsed.data.client_id,
+            autor_id: actor.id,
+            papel_autor: "videomaker",
+            semana_iso: semanaIso,
+            cor,
+            comentario,
+          },
+          { onConflict: "client_id,autor_id,semana_iso" },
+        );
+      if (satErr) {
+        console.error("[createCapturaAction] satisfaction sync failed:", satErr);
+      }
+    }
+  } catch (e) {
+    console.error("[createCapturaAction] satisfaction sync threw:", e);
   }
 
-  // Notifica coord/assessor responsáveis pelo cliente
-  const { data: client } = await supabase
-    .from("clients")
-    .select("nome, assessor_id, coordenador_id")
-    .eq("id", parsed.data.client_id)
-    .single();
-  if (client) {
-    const recipients = [client.assessor_id, client.coordenador_id]
-      .filter((id): id is string => !!id && id !== actor.id);
-    if (recipients.length > 0) {
-      await dispatchNotification({
-        evento_tipo: "task_assigned",
-        titulo: "Captação entregue",
-        mensagem: `${actor.nome} entregou captação de ${client.nome}`,
-        link: `/audiovisual`,
-        user_ids_extras: recipients,
-        source_user_id: actor.id,
-      });
+  // Notifica coord/assessor responsáveis pelo cliente.
+  // try/catch: notificação não-crítica — falha não deve impedir a entrega.
+  try {
+    const { data: client } = await supabase
+      .from("clients")
+      .select("nome, assessor_id, coordenador_id")
+      .eq("id", parsed.data.client_id)
+      .single();
+    if (client) {
+      const recipients = [client.assessor_id, client.coordenador_id]
+        .filter((id): id is string => !!id && id !== actor.id);
+      if (recipients.length > 0) {
+        await dispatchNotification({
+          evento_tipo: "task_assigned",
+          titulo: "Captação entregue",
+          mensagem: `${actor.nome} entregou captação de ${client.nome}`,
+          link: `/audiovisual`,
+          user_ids_extras: recipients,
+          source_user_id: actor.id,
+        });
+      }
     }
+  } catch (e) {
+    console.error("[createCapturaAction] notification dispatch failed:", e);
   }
 
   revalidatePath("/audiovisual");
