@@ -24,6 +24,14 @@ export interface KpiData {
   custoComissaoPct: { pct: number };
   /** Pontuais: ativos hoje (vigentes) + concluídos no mês corrente + soma do valor dos ativos. */
   servicosPontuais: { ativos: number; concluidosMes: number; valorTotal: number };
+  /** Ticket médio = carteira ativa / nº de mensais ativos (comum). */
+  ticketMedio: { valor: number };
+  /**
+   * LTV (Lifetime Value) = ticket médio / churn rate mensal.
+   * `valor: null` quando churn do mês = 0 (não dá pra calcular sem churn).
+   * `churnRatePct`: taxa de churn do mês em %, exposta pro tooltip do card.
+   */
+  ltv: { valor: number | null; churnRatePct: number };
 }
 
 export interface ClientFilter {
@@ -173,12 +181,38 @@ export async function _getKpisImpl(filter?: ClientFilter): Promise<KpiData> {
 
   const pctComissao = carteiraAtivaValor > 0 ? (totalComissao / carteiraAtivaValor) * 100 : 0;
 
+  // Ticket médio = carteira ativa (R$) / nº de mensais comum ativos.
+  // Excluímos pontuais (modalidade=pontual) do denominador — eles têm
+  // valor_mensal que representa o projeto único, distorceria a média.
+  const mensaisAtivosComum = ativosHojeComum.filter((c) => !c.modalidade || c.modalidade === "mensal");
+  const ticketMedioValor =
+    mensaisAtivosComum.length > 0 ? carteiraAtivaValor / mensaisAtivosComum.length : 0;
+
+  // LTV (Lifetime Value) = ticket médio / churn rate mensal.
+  // Numerador do churn rate: churns mensais do mês (já filtrado por ehMensal).
+  // Denominador: mensais comum ATIVOS no fim do mês anterior (base que
+  // entrou no mês corrente). Pontuais ficam fora pra não diluir a base
+  // (não dão churn, dão "conclusão").
+  const mensaisFimMesAnteriorComum = ativosFimMesAnteriorComum.filter(
+    (c) => !c.modalidade || c.modalidade === "mensal",
+  );
+  const churnsMensaisComumDoMes = churnsDoMes.filter(
+    (c) => !c.tipo_relacao || c.tipo_relacao === "comum",
+  );
+  const churnRateMensal =
+    mensaisFimMesAnteriorComum.length > 0
+      ? churnsMensaisComumDoMes.length / mensaisFimMesAnteriorComum.length
+      : 0;
+  const ltvValor = churnRateMensal > 0 ? ticketMedioValor / churnRateMensal : null;
+
   return {
     carteiraAtiva: { valor: carteiraAtivaValor, deltaValor: carteiraAtivaValor - carteiraMesAnteriorValor },
     clientesAtivos: { quantidade: ativosHoje.length, deltaQuantidade: ativosHoje.length - ativosFimMesAnterior.length },
     churnMes: { quantidade: churnsDoMes.length, valorPerdido: valorChurnado },
     custoComissaoPct: { pct: pctComissao },
     servicosPontuais: { ativos: pontuaisAtivos, concluidosMes: pontuaisConcluidosMes, valorTotal: pontuaisValorTotal },
+    ticketMedio: { valor: ticketMedioValor },
+    ltv: { valor: ltvValor, churnRatePct: churnRateMensal * 100 },
   };
 }
 
@@ -190,7 +224,8 @@ export async function getKpis(filter?: ClientFilter): Promise<KpiData> {
     },
     // v3: distingue mensal vs pontual no churn + KPI de serviços pontuais
     // v4: shape mudou (servicosPontuais ganhou valorTotal)
-    ["dashboard-kpis-v4"],
+    // v5: shape mudou (adicionado ticketMedio + ltv)
+    ["dashboard-kpis-v5"],
     { revalidate: 300, tags: ["dashboard"] },
   );
   return cached(JSON.stringify(filter ?? null));
