@@ -51,6 +51,23 @@ export const deleteLeadSchema = z.object({
 });
 
 /**
+ * Estágios em que faz sentido importar um cliente existente. Os pré-contrato
+ * (leads_potencial, leads_ativos, reuniao_comercial, proposta_enviada) não
+ * cabem porque o cliente já está em `clients` — ou seja, contrato já foi
+ * assinado. Marco_zero/ativo permitem completar processos pendentes do
+ * onboarding sem duplicar cadastro.
+ */
+export const STAGES_IMPORT_ELEGIVEIS = ["contrato", "marco_zero"] as const;
+export type StageImportElegivel = typeof STAGES_IMPORT_ELEGIVEIS[number];
+
+export const importClientToOnboardingSchema = z.object({
+  client_id: z.string().uuid("Cliente inválido"),
+  to_stage: z.enum(STAGES_IMPORT_ELEGIVEIS),
+  servico_proposto: z.string().optional().nullable(),
+  info_briefing: z.string().optional().nullable(),
+});
+
+/**
  * Quem pode interagir (mover, marcar perdido, arrastar) com um card baseado
  * no estágio atual. Mapa compartilhado entre server (actions) e client
  * (LeadCard) pra UI esconder botões e action bloquear.

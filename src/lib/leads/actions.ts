@@ -7,6 +7,7 @@ import { requireAuth } from "@/lib/auth/session";
 import { logAudit } from "@/lib/audit/log";
 import {
   createLeadSchema, editLeadSchema, moveStageSchema, markLostSchema, deleteLeadSchema,
+  importClientToOnboardingSchema,
   canInteractWithStage, type Stage,
 } from "./schema";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
@@ -134,6 +135,104 @@ export async function createLeadAction(formData: FormData) {
       source_user_id: actor.id,
     });
   }
+
+  revalidatePath("/onboarding");
+  revalidateTag(PROSPECTS_CACHE_TAG, "default");
+  revalidateTag(LEADS_CACHE_TAG, "default");
+  redirect(`/onboarding/${created.id}`);
+}
+
+/**
+ * Importa um cliente existente (já cadastrado em `clients`) pro kanban do
+ * onboarding, criando um `leads` row vinculado via `client_id`.
+ *
+ * Caso de uso: cliente foi cadastrado direto no sistema sem passar pelo
+ * fluxo de onboarding (ex: migração inicial). Agora precisa completar
+ * processos de contrato/marco_zero sem duplicar o cadastro.
+ *
+ * Validações:
+ * - Cliente deve existir e não estar excluído (deleted_at = null)
+ * - Não pode haver lead ativo já vinculado a esse client_id
+ * - to_stage limitado a contrato/marco_zero (vide STAGES_IMPORT_ELEGIVEIS)
+ *
+ * Backfill: campos do lead são populados a partir dos dados do cliente
+ * (nome, email, telefone, valor_mensal, equipe alocada). Servico e
+ * briefing podem ser sobrescritos pelo form.
+ */
+export async function importClientToOnboardingAction(formData: FormData) {
+  const actor = await requireAuth();
+  if (!["adm", "socio", "comercial"].includes(actor.role)) {
+    return { error: "Apenas Comercial, ADM ou Sócio podem importar clientes pro onboarding" };
+  }
+
+  const parsed = importClientToOnboardingSchema.safeParse({
+    client_id: fd(formData, "client_id"),
+    to_stage: fd(formData, "to_stage"),
+    servico_proposto: fd(formData, "servico_proposto"),
+    info_briefing: fd(formData, "info_briefing"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const supabase = await createClient();
+
+  // 1. Carrega o cliente (com defesa contra deleted_at)
+  const { data: client } = await supabase
+    .from("clients")
+    .select("id, nome, email, telefone, contato_principal, valor_mensal, servico_contratado, assessor_id, coordenador_id, organization_id")
+    .eq("id", parsed.data.client_id)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (!client) return { error: "Cliente não encontrado ou foi excluído" };
+
+  // 2. Garante que não tem lead vinculado ainda (evita duplicação)
+  const { data: existingLead } = await supabase
+    .from("leads")
+    .select("id, stage")
+    .eq("client_id", parsed.data.client_id)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (existingLead) {
+    return {
+      error: `Esse cliente já tem lead no kanban (estágio: ${prettyStage(existingLead.stage)}). Acesse pelo onboarding.`,
+    };
+  }
+
+  // 3. Cria o lead com dados backfilled do cliente
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const insertPayload = {
+    organization_id: client.organization_id,
+    nome_prospect: client.nome,
+    contato_principal: client.contato_principal,
+    email: client.email,
+    telefone: client.telefone,
+    valor_proposto: client.valor_mensal,
+    servico_proposto: parsed.data.servico_proposto ?? client.servico_contratado,
+    info_briefing: parsed.data.info_briefing,
+    comercial_id: actor.id,
+    stage: parsed.data.to_stage,
+    client_id: client.id,
+    coord_alocado_id: client.coordenador_id,
+    assessor_alocado_id: client.assessor_id,
+  };
+
+  const { data: created, error } = await sb
+    .from("leads")
+    .insert(insertPayload)
+    .select("id")
+    .single();
+  if (error || !created) return { error: error?.message ?? "Falha ao importar cliente" };
+
+  await logAudit({
+    entidade: "leads",
+    entidade_id: created.id,
+    acao: "create",
+    dados_depois: {
+      ...insertPayload,
+      origem: "import_cliente_existente",
+    } as unknown as Record<string, unknown>,
+    ator_id: actor.id,
+  });
 
   revalidatePath("/onboarding");
   revalidateTag(PROSPECTS_CACHE_TAG, "default");
