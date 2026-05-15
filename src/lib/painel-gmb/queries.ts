@@ -1,6 +1,36 @@
 // SERVER ONLY
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
+export interface ClienteSemGmb {
+  id: string;
+  nome: string;
+}
+
+/**
+ * Lista clientes ativos que AINDA não têm GMB cadastrado.
+ * Usado pelo dialog "Adicionar GMB" do painel pra popular o seletor.
+ */
+export async function listClientesSemGmb(): Promise<ClienteSemGmb[]> {
+  const admin = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = admin as any;
+  const { data } = await sb
+    .from("clients")
+    .select("id, nome, gmb_link, gmb_place_id")
+    .eq("status", "ativo")
+    .is("deleted_at", null)
+    .order("nome");
+  const all = (data ?? []) as Array<{
+    id: string;
+    nome: string;
+    gmb_link: string | null;
+    gmb_place_id: string | null;
+  }>;
+  return all
+    .filter((c) => !c.gmb_link && !c.gmb_place_id)
+    .map((c) => ({ id: c.id, nome: c.nome }));
+}
+
 export interface GmbClienteRow {
   id: string;
   nome: string;
