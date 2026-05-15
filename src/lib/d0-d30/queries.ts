@@ -22,6 +22,8 @@ export interface EtapaRow {
   concluido_em: string | null;
   concluido_por: string | null;
   observacoes: string | null;
+  /** URL livre opcional — ex: link da estratégia na etapa de tráfego. */
+  link_etapa: string | null;
   fluxo_checklist: ChecklistItem[];
   saidas_checklist: ChecklistItem[];
   d0_date: string;
@@ -229,7 +231,7 @@ export async function getClienteOnboardingDetalhe(
     sb
       .from("client_onboarding_etapas")
       .select(
-        "id, client_id, etapa_numero, etapa_codigo, status, dia_inicio_previsto, dia_fim_previsto, iniciado_em, concluido_em, concluido_por, observacoes, fluxo_checklist, saidas_checklist, d0_date",
+        "id, client_id, etapa_numero, etapa_codigo, status, dia_inicio_previsto, dia_fim_previsto, iniciado_em, concluido_em, concluido_por, observacoes, link_etapa, fluxo_checklist, saidas_checklist, d0_date",
       )
       .eq("client_id", clientId)
       .order("etapa_numero"),

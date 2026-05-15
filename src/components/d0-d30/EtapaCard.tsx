@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ChevronDown, ChevronRight, Check, AlertCircle, Clock, CircleCheck } from "lucide-react";
 import { ChecklistRow } from "./ChecklistRow";
 import { ObservacoesEditor } from "./ObservacoesEditor";
+import { LinkEtapaEditor } from "./LinkEtapaEditor";
 import { MarcarConcluidaButton } from "./MarcarConcluidaButton";
 import { ReabrirButton } from "./ReabrirButton";
 import { formatEtapaRangeDates } from "@/lib/d0-d30/template";
@@ -20,6 +21,21 @@ const ETAPA_NOMES: Record<string, string> = {
   monitoramento: "Monitoramento e otimização",
   relacionamento: "Relacionamento contínuo",
 };
+
+/**
+ * Etapas que mostram o campo de link de referência. Pedido da Yasmin:
+ * só faz sentido em 2 momentos — quando a estratégia é definida (tráfego)
+ * e quando ela é apresentada ao cliente. Outras etapas nem renderizam o
+ * campo (limpeza visual + menos coisa pra preencher).
+ */
+const LINK_LABEL_POR_ETAPA: Record<string, string> = {
+  trafego: "Link da estratégia",
+  apresentacao: "Link da apresentação",
+};
+
+function linkLabelFor(etapaCodigo: string): string | null {
+  return LINK_LABEL_POR_ETAPA[etapaCodigo] ?? null;
+}
 
 interface Props {
   etapa: EtapaRow;
@@ -170,6 +186,40 @@ export function EtapaCard({ etapa, diaAtual, canEdit }: Props) {
               ))}
             </ul>
           </div>
+
+          {/* Link de referência — só nas etapas que justificam (tráfego e
+              apresentação). Outras nem renderizam. */}
+          {(() => {
+            const linkLabel = linkLabelFor(etapa.etapa_codigo);
+            if (!linkLabel) return null;
+            if (canEdit && etapa.status !== "concluido") {
+              return (
+                <LinkEtapaEditor
+                  etapaId={etapa.id}
+                  initialValue={etapa.link_etapa}
+                  label={linkLabel}
+                />
+              );
+            }
+            if (etapa.link_etapa) {
+              return (
+                <div>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    {linkLabel}
+                  </h3>
+                  <a
+                    href={etapa.link_etapa}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-sm text-primary underline underline-offset-2 break-all hover:text-primary/80"
+                  >
+                    {etapa.link_etapa}
+                  </a>
+                </div>
+              );
+            }
+            return null;
+          })()}
 
           {/* Observações */}
           {canEdit && etapa.status !== "concluido" ? (
