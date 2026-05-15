@@ -56,12 +56,16 @@ export interface TarefaPendenteRow {
 
 export async function _getMinhasTarefasPendentesImpl(userId: string): Promise<TarefaPendenteRow[]> {
   const supabase = createServiceRoleClient();
+  // `deleted_at is null` filtra "demandas fantasma" — tarefas soft-deleted que
+  // continuavam aparecendo no card "Tarefas pendentes" mesmo depois do criador
+  // ter mandado pra /lixeira.
   const { data } = await supabase
     .from("tasks")
     .select(`
       id, titulo, prioridade, due_date, status,
       cliente:clients(nome)
     `)
+    .is("deleted_at", null)
     .in("status", ["aberta", "em_andamento", "alteracao"])
     .or(`atribuido_a.eq.${userId},participantes_ids.cs.{${userId}}`)
     .order("due_date", { ascending: true, nullsFirst: false });
@@ -170,6 +174,7 @@ export async function _getProducaoNoPeriodoImpl(
   const { data } = await (supabase as any)
     .from("tasks")
     .select("tipo, status, artes_entregues, completed_at, aprovada_em")
+    .is("deleted_at", null)
     .eq("atribuido_a", userId)
     .in("status", ["concluida", "aprovada", "postada"]);
   const rows = (data ?? []) as Row[];

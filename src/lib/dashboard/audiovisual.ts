@@ -125,10 +125,12 @@ async function _getEquipeAudiovisualImpl(periodo: Periodo): Promise<EquipeAudiov
     sb
       .from("tasks")
       .select("id, titulo, atribuido_a, participantes_ids, status, completed_at, aprovada_em, updated_at, due_date, prioridade")
+      .is("deleted_at", null)
       .in("atribuido_a", ids),
     sb
       .from("tasks")
       .select("id, titulo, atribuido_a, participantes_ids, status, completed_at, aprovada_em, updated_at, due_date, prioridade")
+      .is("deleted_at", null)
       .overlaps("participantes_ids", ids),
     sb
       .from("calendar_events")
