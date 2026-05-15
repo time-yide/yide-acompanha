@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getMinhasTarefasPendentes } from "@/lib/dashboard/personal";
+import { getMinhasTarefasPendentes, type TarefaPendenteRow } from "@/lib/dashboard/personal";
 import { cn } from "@/lib/utils";
 import { getDatePartsInAppTz } from "@/lib/datetime/timezone";
 
@@ -37,8 +37,36 @@ function urgencyClass(due: string | null): string {
   return "text-muted-foreground";
 }
 
+function TaskItem({ t }: { t: TarefaPendenteRow }) {
+  return (
+    <li>
+      <Link
+        href={`/tarefas/${t.id}`}
+        className="flex items-center justify-between gap-3 rounded-lg border bg-card p-3 transition-colors hover:bg-muted/40"
+      >
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-medium">{t.titulo}</p>
+          {t.cliente_nome && (
+            <p className="truncate text-xs text-muted-foreground">{t.cliente_nome}</p>
+          )}
+        </div>
+        <span className={cn("text-xs tabular-nums", urgencyClass(t.due_date))}>
+          {formatDueDate(t.due_date)}
+        </span>
+      </Link>
+    </li>
+  );
+}
+
 export async function MinhasTarefasPendentes({ userId }: Props) {
   const tarefas = await getMinhasTarefasPendentes(userId);
+
+  // Separa em dois grupos pra dar visão imediata do estado (antes precisava
+  // clicar uma a uma pra ver se estava em alteração ou não).
+  const andamento = tarefas.filter(
+    (t) => t.status === "aberta" || t.status === "em_andamento",
+  );
+  const alteracao = tarefas.filter((t) => t.status === "alteracao");
 
   return (
     <div className="space-y-3">
@@ -53,26 +81,36 @@ export async function MinhasTarefasPendentes({ userId }: Props) {
           Nenhuma tarefa pendente. ✨
         </p>
       ) : (
-        <ul className="space-y-2">
-          {tarefas.map((t) => (
-            <li key={t.id}>
-              <Link
-                href={`/tarefas/${t.id}`}
-                className="flex items-center justify-between gap-3 rounded-lg border bg-card p-3 transition-colors hover:bg-muted/40"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">{t.titulo}</p>
-                  {t.cliente_nome && (
-                    <p className="truncate text-xs text-muted-foreground">{t.cliente_nome}</p>
-                  )}
-                </div>
-                <span className={cn("text-xs tabular-nums", urgencyClass(t.due_date))}>
-                  {formatDueDate(t.due_date)}
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <div className="space-y-4">
+          {andamento.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                Em andamento
+                <span className="font-normal">({andamento.length})</span>
+              </div>
+              <ul className="space-y-2">
+                {andamento.map((t) => (
+                  <TaskItem key={t.id} t={t} />
+                ))}
+              </ul>
+            </div>
+          )}
+          {alteracao.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                Em alteração
+                <span className="font-normal">({alteracao.length})</span>
+              </div>
+              <ul className="space-y-2">
+                {alteracao.map((t) => (
+                  <TaskItem key={t.id} t={t} />
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
