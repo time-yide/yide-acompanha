@@ -1,4 +1,4 @@
-import { Wallet, Users, TrendingDown, Percent, Sparkles, DollarSign } from "lucide-react";
+import { Wallet, Users, TrendingDown, Percent, Sparkles, DollarSign, Receipt, Infinity as InfinityIcon } from "lucide-react";
 import { KpiCard } from "./KpiCard";
 import { Money } from "./HiddenValuesContext";
 import type { KpiData } from "@/lib/dashboard/queries";
@@ -19,8 +19,17 @@ export function KpiRow({ kpis }: { kpis: KpiData }) {
   // Mês atual no fuso da app (Cuiabá UTC-4) — usado no link de drill-down "Churn do mês"
   const mesAtual = getCurrentMonthYM();
 
+  // LTV helpers — quando não tem churn no mês, valor é null. Mostramos "—"
+  // com helper explicando, em vez de um número infinito ou confuso.
+  const ltvDisplay = kpis.ltv.valor === null
+    ? { node: "—" as React.ReactNode, helper: "Sem churn no mês — LTV indefinido" }
+    : {
+        node: <Money value={kpis.ltv.valor} noDecimals />,
+        helper: `Churn mensal: ${kpis.ltv.churnRatePct.toFixed(1)}%`,
+      };
+
   return (
-    <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-6">
+    <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-4 lg:grid-cols-4">
       <KpiCard
         label="Carteira ativa"
         valor={<Money value={kpis.carteiraAtiva.valor} noDecimals />}
@@ -36,6 +45,18 @@ export function KpiRow({ kpis }: { kpis: KpiData }) {
         helperText="vs mês anterior"
         icon={Users}
         href="/clientes?status=ativo"
+      />
+      <KpiCard
+        label="Ticket médio"
+        valor={<Money value={kpis.ticketMedio.valor} noDecimals />}
+        helperText="por mensal ativo"
+        icon={Receipt}
+      />
+      <KpiCard
+        label="LTV"
+        valor={ltvDisplay.node}
+        helperText={ltvDisplay.helper}
+        icon={InfinityIcon}
       />
       <KpiCard
         label="Churn do mês"
