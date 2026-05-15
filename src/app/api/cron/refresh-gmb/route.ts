@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { fetchGmbByPlaceId } from "@/lib/clientes/gmb-places";
+import { recordGmbSnapshot } from "@/lib/clientes/gmb-snapshots";
 import { logAudit } from "@/lib/audit/log";
 
 /**
@@ -78,6 +79,13 @@ export async function GET(request: NextRequest) {
         errors.push({ client: c.nome, error: updErr.message });
         continue;
       }
+      // Snapshot diário pro histórico (UPSERT por dia)
+      await recordGmbSnapshot({
+        clientId: c.id,
+        rating: result.rating,
+        reviewCount: result.reviewCount,
+        source: "cron",
+      });
       refreshed += 1;
     } catch (e) {
       failed += 1;
