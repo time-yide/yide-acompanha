@@ -6,6 +6,7 @@ import {
   getLastMeetingsForClient,
 } from "@/lib/cliente-portal/queries";
 import { listUnidadesAtivasByClient } from "@/lib/clientes/unidades/queries";
+import { getGmbTimeSeries } from "@/lib/clientes/gmb-snapshots";
 import { ClientPortalHeader } from "@/components/cliente-portal/ClientPortalHeader";
 import { HeroSection } from "@/components/cliente-portal/HeroSection";
 import { ContratoSection } from "@/components/cliente-portal/ContratoSection";
@@ -23,13 +24,14 @@ import { env } from "@/lib/env";
 export default async function ClientePainelPage() {
   const user = await requireClientPortalAuth();
 
-  // 5 queries em paralelo — todos os dados que o portal precisa.
-  const [data, selfSat, agencyPerception, reunioes, unidades] = await Promise.all([
+  // 6 queries em paralelo — todos os dados que o portal precisa.
+  const [data, selfSat, agencyPerception, reunioes, unidades, gmbTimeSeries] = await Promise.all([
     getClientPortalData(user.clientId),
     getLastSelfSatisfaction(user.clientId),
     getLastAgencyPerception(user.clientId),
     getLastMeetingsForClient(user.clientId, 5),
     listUnidadesAtivasByClient(user.clientId),
+    getGmbTimeSeries(user.clientId, 90),
   ]);
 
   if (!data) {
@@ -67,6 +69,7 @@ export default async function ClientePainelPage() {
           gmb_rating={data.cliente.gmb_rating}
           gmb_review_count={data.cliente.gmb_review_count}
           gmb_last_update_at={data.cliente.gmb_last_update_at}
+          timeSeries={gmbTimeSeries}
         />
         <CRMPlaceholderSection />
         <SatisfacaoSection selfLast={selfSat} agencyLast={agencyPerception} />
