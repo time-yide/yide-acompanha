@@ -23,20 +23,18 @@ const ETAPA_NOMES: Record<string, string> = {
 };
 
 /**
- * Label do campo de link por etapa. Pra cada etapa um nome semântico
- * (estratégia em tráfego/marco_zero, pasta em produção, etc). Default
- * "Link de referência" pras genéricas.
+ * Etapas que mostram o campo de link de referência. Pedido da Yasmin:
+ * só faz sentido em 2 momentos — quando a estratégia é definida (tráfego)
+ * e quando ela é apresentada ao cliente. Outras etapas nem renderizam o
+ * campo (limpeza visual + menos coisa pra preencher).
  */
 const LINK_LABEL_POR_ETAPA: Record<string, string> = {
-  marco_zero: "Link da estratégia",
   trafego: "Link da estratégia",
-  producao: "Link da pasta de produção",
   apresentacao: "Link da apresentação",
-  publicacao: "Link da postagem",
 };
 
-function linkLabelFor(etapaCodigo: string): string {
-  return LINK_LABEL_POR_ETAPA[etapaCodigo] ?? "Link de referência";
+function linkLabelFor(etapaCodigo: string): string | null {
+  return LINK_LABEL_POR_ETAPA[etapaCodigo] ?? null;
 }
 
 interface Props {
@@ -189,28 +187,39 @@ export function EtapaCard({ etapa, diaAtual, canEdit }: Props) {
             </ul>
           </div>
 
-          {/* Link de referência (varia por etapa — estratégia, pasta, etc.) */}
-          {canEdit && etapa.status !== "concluido" ? (
-            <LinkEtapaEditor
-              etapaId={etapa.id}
-              initialValue={etapa.link_etapa}
-              label={linkLabelFor(etapa.etapa_codigo)}
-            />
-          ) : etapa.link_etapa ? (
-            <div>
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                {linkLabelFor(etapa.etapa_codigo)}
-              </h3>
-              <a
-                href={etapa.link_etapa}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-sm text-primary underline underline-offset-2 break-all hover:text-primary/80"
-              >
-                {etapa.link_etapa}
-              </a>
-            </div>
-          ) : null}
+          {/* Link de referência — só nas etapas que justificam (tráfego e
+              apresentação). Outras nem renderizam. */}
+          {(() => {
+            const linkLabel = linkLabelFor(etapa.etapa_codigo);
+            if (!linkLabel) return null;
+            if (canEdit && etapa.status !== "concluido") {
+              return (
+                <LinkEtapaEditor
+                  etapaId={etapa.id}
+                  initialValue={etapa.link_etapa}
+                  label={linkLabel}
+                />
+              );
+            }
+            if (etapa.link_etapa) {
+              return (
+                <div>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    {linkLabel}
+                  </h3>
+                  <a
+                    href={etapa.link_etapa}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-sm text-primary underline underline-offset-2 break-all hover:text-primary/80"
+                  >
+                    {etapa.link_etapa}
+                  </a>
+                </div>
+              );
+            }
+            return null;
+          })()}
 
           {/* Observações */}
           {canEdit && etapa.status !== "concluido" ? (
