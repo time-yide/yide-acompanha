@@ -6,7 +6,7 @@ import { KanbanBoard } from "@/components/onboarding/KanbanBoard";
 import { OnboardingRealtimeWatcher } from "@/components/onboarding/OnboardingRealtimeWatcher";
 import { TabsOnboarding } from "@/components/onboarding/TabsOnboarding";
 import { buttonVariants } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Download } from "lucide-react";
 
 // LGPD: só roles que precisam operar com dados de prospect têm acesso.
 const ROLES_PERMITIDOS = ["adm", "socio", "comercial", "assessor", "coordenador", "audiovisual_chefe"];
@@ -36,9 +36,19 @@ export default async function OnboardingPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {canCreate && (
-            <Link href="/onboarding/novo" className={buttonVariants()}>
-              <Plus className="mr-2 h-4 w-4" />Novo prospect
-            </Link>
+            <>
+              <Link
+                href="/onboarding/importar"
+                className={buttonVariants({ variant: "outline" })}
+                title="Importar cliente já cadastrado no sistema (sem duplicar)"
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Importar cliente
+              </Link>
+              <Link href="/onboarding/novo" className={buttonVariants()}>
+                <Plus className="mr-2 h-4 w-4" />Novo prospect
+              </Link>
+            </>
           )}
         </div>
       </header>
