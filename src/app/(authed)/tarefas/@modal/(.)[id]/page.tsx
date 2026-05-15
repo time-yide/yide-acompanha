@@ -43,12 +43,19 @@ function formatDateBR(iso: string | null | undefined): string {
   return new Date(y, m - 1, d).toLocaleDateString("pt-BR");
 }
 
+// `[id]` é dinâmico no router e captura QUALQUER segment-filho de /tarefas —
+// inclusive irmãos literais como /tarefas/nova. Sem este guard, o slot @modal
+// tenta buscar uma tarefa com id="nova" e mostra "Tarefa não encontrada"
+// sobreposto à página real de criação. Só intercepta UUIDs.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export default async function TarefaModalPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  if (!UUID_RE.test(id)) return null;
   const user = await requireAuth();
 
   let task;
