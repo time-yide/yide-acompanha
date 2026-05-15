@@ -219,8 +219,18 @@ export async function delegateCapturaAction(formData: FormData): Promise<Delegat
   const capturaId = String(formData.get("captura_id") ?? "");
   const editorId = String(formData.get("editor_id") ?? "");
   const dueDateRaw = String(formData.get("due_date") ?? "").trim();
+  const linkAdicionalRaw = String(formData.get("link_adicional") ?? "").trim();
   if (!capturaId) return { error: "Captação não informada" };
   if (!editorId) return { error: "Selecione um editor" };
+  // Valida URL se foi informada. URL inválida vai pra mensagem de erro
+  // (não silencia) pra usuária ver o problema.
+  if (linkAdicionalRaw) {
+    try {
+      new URL(linkAdicionalRaw);
+    } catch {
+      return { error: "Link adicional inválido (precisa começar com http:// ou https://)" };
+    }
+  }
 
   const supabase = await createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -268,6 +278,9 @@ export async function delegateCapturaAction(formData: FormData): Promise<Delegat
   const descricao = descricaoLines.join("\n\n");
 
   // Cria a task. tipo="geral" pra evitar exigência de formatos.
+  const linksJson = linkAdicionalRaw
+    ? [{ label: "Link adicional", url: linkAdicionalRaw }]
+    : [];
   const { data: createdTask, error: taskErr } = await sb
     .from("tasks")
     .insert({
@@ -279,6 +292,7 @@ export async function delegateCapturaAction(formData: FormData): Promise<Delegat
       criado_por: actor.id,
       client_id: captura.client_id,
       due_date: dueDateRaw || null,
+      links: linksJson,
     })
     .select("id")
     .single();

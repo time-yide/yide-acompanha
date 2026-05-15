@@ -416,7 +416,16 @@ export async function moveTaskStatusAction(formData: FormData) {
   // concludeOperationalAction (com modal de entrega) pra ir pra
   // "concluida" ou "em_aprovacao" — os 2 destinos exigem drive_link.
   // Defense in depth caso o client burle o trigger do modal.
-  if (parsed.data.to_status === "concluida" || parsed.data.to_status === "em_aprovacao") {
+  //
+  // Exceção: se a tarefa JÁ tem drive_link salvo (caso de re-conclusão depois
+  // de alteração), bypass do modal — o link de entrega só precisa ser pedido
+  // uma vez por tarefa.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const beforeDriveLink = (before as any).drive_link as string | null | undefined;
+  if (
+    (parsed.data.to_status === "concluida" || parsed.data.to_status === "em_aprovacao") &&
+    !beforeDriveLink
+  ) {
     const { data: assignee } = await supabase
       .from("profiles")
       .select("role")

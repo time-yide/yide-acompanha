@@ -58,6 +58,7 @@ export function DelegarCapturaButton({ capturaId, delegated, concluidaEm, editor
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [editorId, setEditorId] = useState<string>("");
   const [dueDate, setDueDate] = useState<string>("");
+  const [linkAdicional, setLinkAdicional] = useState<string>("");
   const [pending, startTransition] = useTransition();
   const router = useRouter();
 
@@ -301,6 +302,21 @@ export function DelegarCapturaButton({ capturaId, delegated, concluidaEm, editor
                 Deixar em branco = sem prazo.
               </p>
             </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="link_adicional">Link adicional (opcional)</Label>
+              <Input
+                id="link_adicional"
+                type="url"
+                placeholder="https://… (briefing, roteiro, referência)"
+                value={linkAdicional}
+                onChange={(e) => setLinkAdicional(e.target.value)}
+                disabled={pending}
+              />
+              <p className="text-xs text-muted-foreground">
+                Anexado à tarefa criada (alem do link da pasta da captação).
+              </p>
+            </div>
           </div>
 
           <DialogFooter>
@@ -317,6 +333,7 @@ export function DelegarCapturaButton({ capturaId, delegated, concluidaEm, editor
                 fd.set("captura_id", capturaId);
                 fd.set("editor_id", editorId);
                 if (dueDate) fd.set("due_date", dueDate);
+                if (linkAdicional.trim()) fd.set("link_adicional", linkAdicional.trim());
                 startTransition(async () => {
                   const r = await delegateCapturaAction(fd);
                   if (r.error) {
@@ -327,6 +344,7 @@ export function DelegarCapturaButton({ capturaId, delegated, concluidaEm, editor
                   setOpen(false);
                   setEditorId("");
                   setDueDate("");
+                  setLinkAdicional("");
                   router.refresh();
                 });
               }}
