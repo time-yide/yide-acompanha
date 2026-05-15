@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAuth, requirePermission, type CurrentUser } from "@/lib/auth/session";
 import { logAudit } from "@/lib/audit/log";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
+import { getCoordenadoresAudiovisualIds } from "./client-team";
 import {
   createTaskSchema,
   editTaskSchema,
@@ -107,8 +108,19 @@ export async function createTaskAction(_prevState: ActionResult, formData: FormD
   const assignee = await getProfileNameAndActive(supabase, parsed.data.atribuido_a);
   if (!assignee || !assignee.ativo) return { error: "Responsável inválido ou desativado" };
 
-  // Remove o atribuido_a dos participantes (evita duplicação)
-  const participantes = parsed.data.participantes_ids.filter((id) => id !== parsed.data.atribuido_a);
+  // Auto-inclui coordenador audiovisual como participante quando demanda é
+  // de vídeo — pra ele acompanhar a entrega independente de quem executa.
+  // Defense in depth: o TaskForm já tenta adicionar no client, mas garantimos
+  // server-side caso o form seja burlado ou criação venha de outro fluxo.
+  let extraParticipantes: string[] = [];
+  if (parsed.data.tipo === "video") {
+    extraParticipantes = await getCoordenadoresAudiovisualIds();
+  }
+
+  // Remove o atribuido_a dos participantes (evita duplicação) + dedupe via Set
+  const participantes = Array.from(
+    new Set([...parsed.data.participantes_ids, ...extraParticipantes]),
+  ).filter((id) => id !== parsed.data.atribuido_a);
 
   const requiresApproval = parsed.data.tipo === "video" || parsed.data.tipo === "arte";
   const insertPayload = {
