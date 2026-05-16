@@ -9,15 +9,17 @@ import { listPendenteParaVideomaker } from "@/lib/audiovisual/queries";
 import { CapturaPendenteLockGate } from "@/components/audiovisual/CapturaPendenteLockGate";
 import { countChannelsWithUnread } from "@/lib/escritorio/queries";
 import { HeartbeatProvider } from "@/components/produtividade/HeartbeatProvider";
+import { getUnitContext } from "@/lib/units/session";
 
 export default async function AuthedLayout({ children }: { children: React.ReactNode }) {
   const user = await requireAuth();
   const isVideomaker = user.role === "videomaker";
-  const [recadosNaoLidos, lockState, audiovisualPendentes, escritorioUnread] = await Promise.all([
+  const [recadosNaoLidos, lockState, audiovisualPendentes, escritorioUnread, unitContext] = await Promise.all([
     countRecadosNaoLidos(user.id),
     checkSatisfactionLock(user.id, user.role),
     isVideomaker ? listPendenteParaVideomaker(user.id) : Promise.resolve([]),
     countChannelsWithUnread(user.id, user.role).catch(() => 0),
+    getUnitContext().catch(() => null),
   ]);
   const audiovisualOverdue = audiovisualPendentes.filter((p) => p.isOverdue);
 
@@ -45,6 +47,7 @@ export default async function AuthedLayout({ children }: { children: React.React
           avatarUrl={user.avatarUrl}
           role={user.role}
           badges={{ recados: recadosNaoLidos, escritorio: escritorioUnread }}
+          unitContext={unitContext}
         />
         <main
           className="flex-1 overflow-auto bg-muted/20 p-3 md:p-6"
