@@ -14,7 +14,13 @@ export async function listRequestsByClient(clientId: string): Promise<RequestRow
     .select(SELECT_FIELDS)
     .eq("client_id", clientId)
     .order("created_at", { ascending: false });
-  if (error) throw error;
+  if (error) {
+    // Não derruba o portal do cliente se a tabela ainda não existir —
+    // só loga e devolve vazio. O painel do cliente tem várias seções e
+    // não faz sentido tudo crashar por uma feature opcional.
+    console.error("[portal-requests] listRequestsByClient failed:", error);
+    return [];
+  }
   return (data ?? []) as RequestRow[];
 }
 
@@ -46,7 +52,10 @@ export async function listAllRequests(filters?: {
   }
 
   const { data, error } = await query;
-  if (error) throw error;
+  if (error) {
+    console.error("[portal-requests] listAllRequests failed:", error);
+    throw new Error(error.message || "Falha ao listar solicitações");
+  }
   const rows = (data ?? []) as Array<RequestRow & { cliente?: { nome: string } | null }>;
   return rows.map((r) => ({
     ...r,
@@ -68,7 +77,10 @@ export async function getRequestById(id: string): Promise<RequestDetail | null> 
     .select(`${SELECT_FIELDS}, cliente:clients(nome), resolvedor:profiles!client_portal_requests_resolvido_por_fkey(nome)`)
     .eq("id", id)
     .maybeSingle();
-  if (error) throw error;
+  if (error) {
+    console.error("[portal-requests] getRequestById failed:", error);
+    throw new Error(error.message || "Falha ao carregar solicitação");
+  }
   if (!data) return null;
   const row = data as RequestRow & {
     cliente?: { nome: string } | null;
