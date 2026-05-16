@@ -8,6 +8,7 @@ import { SatisfactionLockGate } from "@/components/satisfacao/SatisfactionLockGa
 import { listPendenteParaVideomaker } from "@/lib/audiovisual/queries";
 import { CapturaPendenteLockGate } from "@/components/audiovisual/CapturaPendenteLockGate";
 import { countChannelsWithUnread } from "@/lib/escritorio/queries";
+import { HeartbeatProvider } from "@/components/produtividade/HeartbeatProvider";
 
 export default async function AuthedLayout({ children }: { children: React.ReactNode }) {
   const user = await requireAuth();
@@ -54,6 +55,7 @@ export default async function AuthedLayout({ children }: { children: React.React
       </div>
       <SatisfactionLockGate state={lockState} />
       <CapturaPendenteLockGate overdue={audiovisualOverdue} clientes={clientesAtivos} />
+      <HeartbeatProvider />
     </div>
   );
 }
