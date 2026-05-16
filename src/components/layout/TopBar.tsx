@@ -3,8 +3,10 @@ import { UserMenu } from "./UserMenu";
 import { MobileNav } from "./MobileNav";
 import { SidebarToggle } from "./SidebarToggle";
 import { NotificationBell } from "@/components/notificacoes/NotificationBell";
+import { UnitSwitcher } from "@/components/units/UnitSwitcher";
 import type { Role } from "@/lib/auth/permissions";
 import type { SidebarBadges } from "./Sidebar";
+import type { UnitContext } from "@/lib/units/session";
 
 export function TopBar({
   userId,
@@ -13,6 +15,7 @@ export function TopBar({
   avatarUrl,
   role,
   badges,
+  unitContext,
 }: {
   userId: string;
   nome: string;
@@ -20,6 +23,7 @@ export function TopBar({
   avatarUrl: string | null;
   role: Role;
   badges?: SidebarBadges;
+  unitContext: UnitContext | null;
 }) {
   return (
     // sticky + safe-area-inset-top empurra o conteúdo da TopBar pra baixo do
@@ -36,6 +40,17 @@ export function TopBar({
           <SidebarToggle />
         </div>
         <div className="flex flex-1 items-center justify-end gap-2">
+          {/* Seletor de unidade — só renderiza pra master (adm/sócio).
+              Non-master nem vê o badge da unidade aqui (Fase 1 mantém UI
+              minimalista; quando for confuso aí mostramos um badge passivo). */}
+          {unitContext?.isMaster && (
+            <UnitSwitcher
+              activeUnit={unitContext.activeUnit}
+              homeUnit={unitContext.homeUnit}
+              accessibleUnits={unitContext.accessibleUnits}
+              isViewingOtherUnit={unitContext.isViewingOtherUnit}
+            />
+          )}
           <NotificationBell userId={userId} />
           <ThemeToggle />
           <UserMenu nome={nome} email={email} avatarUrl={avatarUrl} />
