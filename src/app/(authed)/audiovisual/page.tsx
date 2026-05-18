@@ -13,6 +13,9 @@ import { ROLES_QUE_EDITAM } from "@/lib/audiovisual/roles";
 import { CapturasAba } from "@/components/audiovisual/CapturasAba";
 import { PendenteEntregaAba } from "@/components/audiovisual/PendenteEntregaAba";
 import { PendenteDelegacaoAba } from "@/components/audiovisual/PendenteDelegacaoAba";
+import { AguardandoVideomakerAba } from "@/components/audiovisual/AguardandoVideomakerAba";
+import { listPendingDelegations, listVideomakersAtivos, listScheduledByVideomaker } from "@/lib/audiovisual/coord-queries";
+import { canRoleDelegateVideomaker, canRoleViewCoord } from "@/lib/audiovisual/coord-roles";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -21,12 +24,13 @@ const ROLES_QUE_DELEGAM = ["audiovisual_chefe", "adm", "socio"];
 const ROLES_GESTAO = ["audiovisual_chefe", "coordenador", "assessor", "adm", "socio"];
 const ROLES_QUE_EXCLUEM = ["audiovisual_chefe", "coordenador", "adm", "socio"];
 
-type TabKey = "capturas" | "pendente_entrega" | "pendente_delegacao";
+type TabKey = "capturas" | "pendente_entrega" | "pendente_delegacao" | "aguardando_videomaker";
 
 const TAB_LABELS: Record<TabKey, string> = {
   capturas: "Capturas",
   pendente_entrega: "Pendente de entrega",
-  pendente_delegacao: "Pendente de delegação",
+  pendente_delegacao: "Pendente edição",
+  aguardando_videomaker: "Aguardando coord",
 };
 
 interface SearchParams { tab?: string; }
@@ -45,6 +49,10 @@ export default async function AudiovisualPage({
   const canDelete = ROLES_QUE_EXCLUEM.includes(user.role);
   // Pendente delegação visível pra coord/assessor (read-only) + quem pode delegar.
   const canSeeDelegacao = ROLES_GESTAO.includes(user.role);
+  // Aguardando coord videomaker: audiovisual_chefe/adm/sócio.
+  // Sócio vê mas não delega (canRoleDelegateVideomaker é false pra ele).
+  const canSeeAguardando = canRoleViewCoord(user.role);
+  const canDelegateVideomaker = canRoleDelegateVideomaker(user.role);
 
   // Banner de captação atrasada — sempre visível pro videomaker, em qualquer aba.
   const overdueForBanner = isVideomaker
@@ -52,6 +60,7 @@ export default async function AudiovisualPage({
     : [];
 
   const availableTabs: TabKey[] = ["capturas", "pendente_entrega"];
+  if (canSeeAguardando) availableTabs.push("aguardando_videomaker");
   if (canSeeDelegacao) availableTabs.push("pendente_delegacao");
 
   const { tab: tabParam } = await searchParams;
@@ -138,6 +147,27 @@ export default async function AudiovisualPage({
     ]);
     content = (
       <PendenteDelegacaoAba rows={rows} editores={editoresData} canDelegate={canDelegate} canDelete={canDelete} />
+    );
+  } else if (activeTab === "aguardando_videomaker") {
+    const [pending, videomakersList] = await Promise.all([
+      listPendingDelegations(),
+      listVideomakersAtivos(),
+    ]);
+    const scheduledMap = await listScheduledByVideomaker(
+      videomakersList.map((v) => v.id),
+      14,
+    );
+    const scheduledByVideomaker: Record<string, NonNullable<ReturnType<typeof scheduledMap.get>>> = {};
+    for (const [k, v] of scheduledMap.entries()) {
+      if (v) scheduledByVideomaker[k] = v;
+    }
+    content = (
+      <AguardandoVideomakerAba
+        pending={pending}
+        videomakers={videomakersList}
+        scheduledByVideomaker={scheduledByVideomaker}
+        canDelegate={canDelegateVideomaker}
+      />
     );
   }
 
