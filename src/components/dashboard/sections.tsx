@@ -13,6 +13,7 @@ import {
   getProximosEventos,
   getMesAguardandoAprovacao,
 } from "@/lib/dashboard/queries";
+import { getEffectiveUnitId } from "@/lib/units/session";
 import { getComissaoPrevista } from "@/lib/dashboard/comissao-prevista";
 import { KpiRow } from "./KpiRow";
 import { ChartCarteiraTimeline } from "./ChartCarteiraTimeline";
@@ -75,12 +76,14 @@ export async function AlertaAprovacaoSection() {
 }
 
 export async function KpiRowSection() {
-  const kpis = await getKpis();
+  const unitId = await getEffectiveUnitId();
+  const kpis = await getKpis({ unitId });
   return <KpiRow kpis={kpis} />;
 }
 
 export async function CarteiraTimelineSection() {
-  const data = await getCarteiraTimeline(12);
+  const unitId = await getEffectiveUnitId();
+  const data = await getCarteiraTimeline(12, { unitId });
   return (
     <Section title="Evolução da carteira" subtitle="Últimos 12 meses">
       <ChartCarteiraTimeline data={data} />
@@ -89,7 +92,8 @@ export async function CarteiraTimelineSection() {
 }
 
 export async function EntradaChurnSection() {
-  const data = await getEntradaChurn(6);
+  const unitId = await getEffectiveUnitId();
+  const data = await getEntradaChurn(6, { unitId });
   return (
     <Section title="Entrada vs Churn" subtitle="Últimos 6 meses">
       <ChartEntradaChurn data={data} />
@@ -98,7 +102,8 @@ export async function EntradaChurnSection() {
 }
 
 export async function CarteiraPorAssessorSection() {
-  const items = await getCarteiraPorAssessor();
+  const unitId = await getEffectiveUnitId();
+  const items = await getCarteiraPorAssessor({ unitId });
   return (
     <Section title="Carteira por assessor">
       <CarteiraPorAssessorList items={items} />
