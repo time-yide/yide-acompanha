@@ -102,13 +102,34 @@ async function _listEventsForWeekImpl(weekStartIso: string, weekEndIso: string):
   // 1) Manual events
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabaseAny = supabase as any;
-  const { data: manual = [] } = await supabaseAny
+  const fullSelect = `id, titulo, descricao, inicio, fim, sub_calendar, client_id, lead_id, criado_por, participantes_ids, localizacao_endereco, localizacao_maps_url, link_roteiro, observacoes_gravacao, videomaker_status, videomaker_assigned_id`;
+  const legacySelect = `id, titulo, descricao, inicio, fim, sub_calendar, client_id, lead_id, criado_por, participantes_ids, localizacao_endereco, localizacao_maps_url, link_roteiro, observacoes_gravacao`;
+
+  let manualResult = await supabaseAny
     .from("calendar_events")
-    .select(`id, titulo, descricao, inicio, fim, sub_calendar, client_id, lead_id, criado_por, participantes_ids, localizacao_endereco, localizacao_maps_url, link_roteiro, observacoes_gravacao, videomaker_status, videomaker_assigned_id`)
+    .select(fullSelect)
     .gte("inicio", weekStart.toISOString())
     .lt("inicio", weekEnd.toISOString());
 
-  for (const m of manual ?? []) {
+  // Fallback: se a migration 20260603000000 (videomaker_status etc) ainda não
+  // foi aplicada nesse ambiente, o select dispara erro de coluna inexistente.
+  // Re-tenta sem as colunas novas pra não esvaziar o calendário inteiro.
+  if (manualResult.error) {
+    const msg = String(manualResult.error.message ?? "");
+    if (msg.includes("videomaker_status") || msg.includes("videomaker_assigned_id") || msg.includes("schema cache")) {
+      console.warn("[calendario] fallback pro select legacy (migration 20260603000000 não aplicada):", msg);
+      manualResult = await supabaseAny
+        .from("calendar_events")
+        .select(legacySelect)
+        .gte("inicio", weekStart.toISOString())
+        .lt("inicio", weekEnd.toISOString());
+    } else {
+      console.error("[calendario] manual events fetch failed:", manualResult.error);
+    }
+  }
+
+  const manual = manualResult.data ?? [];
+  for (const m of manual) {
     events.push({
       id: m.id,
       origem: "manual",
@@ -124,8 +145,8 @@ async function _listEventsForWeekImpl(weekStartIso: string, weekEndIso: string):
       localizacao_maps_url: m.localizacao_maps_url,
       link_roteiro: m.link_roteiro,
       observacoes_gravacao: m.observacoes_gravacao,
-      videomaker_status: m.videomaker_status,
-      videomaker_assigned_id: m.videomaker_assigned_id,
+      videomaker_status: m.videomaker_status ?? null,
+      videomaker_assigned_id: m.videomaker_assigned_id ?? null,
     });
   }
 
