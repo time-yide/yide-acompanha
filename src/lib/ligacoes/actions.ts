@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { requireAuth } from "@/lib/auth/session";
+import { logActivityInternal } from "@/lib/produtividade/actions";
 import { getAppTimezoneOffsetMs } from "@/lib/datetime/timezone";
 import {
   updateLigacaoSchema,
@@ -70,6 +71,11 @@ export async function updateLigacaoAction(formData: FormData): Promise<ActionRes
   const sb = supabase as any;
   const { error } = await sb.from("ligacoes").update(update).eq("id", parsed.data.id);
   if (error) return { error: error.message };
+
+  await logActivityInternal(actor.id, "ligacao_registrada", {
+    entityType: "ligacoes",
+    entityId: parsed.data.id,
+  });
 
   revalidatePath("/ligacoes");
   return { success: true };
