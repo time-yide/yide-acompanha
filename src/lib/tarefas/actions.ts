@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth, requirePermission, type CurrentUser } from "@/lib/auth/session";
 import { logAudit } from "@/lib/audit/log";
+import { logActivityInternal } from "@/lib/produtividade/actions";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 import { getCoordenadoresAudiovisualIds } from "./client-team";
 import {
@@ -178,6 +179,13 @@ export async function createTaskAction(_prevState: ActionResult, formData: FormD
       source_user_id: actor.id,
     });
   }
+
+  await logActivityInternal(actor.id, "tarefa_criada", {
+    entityType: "tasks",
+    entityId: created.id,
+    clientId: created.client_id ?? null,
+    metadata: { titulo: created.titulo, tipo: parsed.data.tipo },
+  });
 
   revalidatePath("/tarefas");
   revalidateTag("tasks", "default");
@@ -383,6 +391,17 @@ export async function toggleTaskCompletionAction(taskId: string) {
     });
   }
 
+  await logActivityInternal(
+    actor.id,
+    novoStatus === "concluida" ? "tarefa_concluida" : "tarefa_status_alterado",
+    {
+      entityType: "tasks",
+      entityId: taskId,
+      clientId: t.client_id ?? null,
+      metadata: { titulo: t.titulo, from: t.status, to: novoStatus },
+    },
+  );
+
   revalidatePath("/tarefas");
   revalidateTag("tasks", "default");
   revalidateTag("dashboard", "default");
@@ -502,6 +521,17 @@ export async function moveTaskStatusAction(formData: FormData) {
       source_user_id: actor.id,
     });
   }
+
+  await logActivityInternal(
+    actor.id,
+    parsed.data.to_status === "concluida" ? "tarefa_concluida" : "tarefa_status_alterado",
+    {
+      entityType: "tasks",
+      entityId: parsed.data.id,
+      clientId: before.client_id ?? null,
+      metadata: { titulo: before.titulo, from: before.status, to: parsed.data.to_status },
+    },
+  );
 
   revalidatePath("/tarefas");
   revalidateTag("tasks", "default");
@@ -735,6 +765,13 @@ export async function requestAdjustmentsAction(formData: FormData): Promise<Appr
     link: `/tarefas/${parsed.data.id}`,
     user_ids_extras: [task.atribuido_a],
     source_user_id: actor.id,
+  });
+
+  await logActivityInternal(actor.id, "tarefa_alteracao", {
+    entityType: "tasks",
+    entityId: parsed.data.id,
+    clientId: task.client_id ?? null,
+    metadata: { titulo: task.titulo },
   });
 
   revalidatePath(`/tarefas/${parsed.data.id}`);

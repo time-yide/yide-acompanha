@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/auth/session";
 import { logAudit } from "@/lib/audit/log";
+import { logActivityInternal } from "@/lib/produtividade/actions";
 import { PAINEL_CACHE_TAG } from "@/lib/painel/queries";
 import { createClienteSchema, editClienteSchema, churnClienteSchema, inferTipoPacote, TIPOS_RELACAO } from "./schema";
 import { getTodayDate } from "@/lib/datetime/timezone";
@@ -93,6 +94,13 @@ export async function createClienteAction(formData: FormData) {
     acao: "create",
     dados_depois: insertPayload,
     ator_id: actor.id,
+  });
+
+  await logActivityInternal(actor.id, "cliente_criado", {
+    entityType: "clients",
+    entityId: created.id,
+    clientId: created.id,
+    metadata: { nome: parsed.data.nome },
   });
 
   revalidatePath("/clientes");
@@ -200,6 +208,13 @@ export async function updateClienteAction(formData: FormData) {
     dados_antes: before as unknown as Record<string, unknown>,
     dados_depois: updatePayload as unknown as Record<string, unknown>,
     ator_id: actor.id,
+  });
+
+  await logActivityInternal(actor.id, "cliente_editado", {
+    entityType: "clients",
+    entityId: id,
+    clientId: id,
+    metadata: { nome: parsed.data.nome },
   });
 
   revalidatePath(`/clientes/${id}`);
