@@ -4,6 +4,7 @@ import { MobileNav } from "./MobileNav";
 import { SidebarToggle } from "./SidebarToggle";
 import { NotificationBell } from "@/components/notificacoes/NotificationBell";
 import { UnitSwitcher } from "@/components/units/UnitSwitcher";
+import { UnitSwitcherBoundary } from "@/components/units/UnitSwitcherBoundary";
 import type { Role } from "@/lib/auth/permissions";
 import type { SidebarBadges } from "./Sidebar";
 import type { UnitContext } from "@/lib/units/session";
@@ -44,12 +45,14 @@ export function TopBar({
               Non-master nem vê o badge da unidade aqui (Fase 1 mantém UI
               minimalista; quando for confuso aí mostramos um badge passivo). */}
           {unitContext?.isMaster && (
-            <UnitSwitcher
-              activeUnit={unitContext.activeUnit}
-              homeUnit={unitContext.homeUnit}
-              accessibleUnits={unitContext.accessibleUnits}
-              isViewingOtherUnit={unitContext.isViewingOtherUnit}
-            />
+            <UnitSwitcherBoundary>
+              <UnitSwitcher
+                activeUnit={unitContext.activeUnit}
+                homeUnit={unitContext.homeUnit}
+                accessibleUnits={unitContext.accessibleUnits}
+                isViewingOtherUnit={unitContext.isViewingOtherUnit}
+              />
+            </UnitSwitcherBoundary>
           )}
           <NotificationBell userId={userId} />
           <ThemeToggle />
