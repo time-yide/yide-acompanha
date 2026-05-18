@@ -50,6 +50,12 @@ export async function createClienteAction(formData: FormData) {
   const { data: org } = await supabase.from("organizations").select("id").limit(1).single();
   if (!org) return { error: "Organização não encontrada" };
 
+  // Multi-tenant Fase 2: cliente nasce na unidade ATIVA do master (cookie),
+  // ou na unidade home se não tem cookie (caso geral).
+  const { getEffectiveUnitId } = await import("@/lib/units/session");
+  const unitId = await getEffectiveUnitId();
+  if (!unitId) return { error: "Unidade não resolvida — sessão inválida" };
+
   // If user explicitly chose tipo_pacote, respect it and mark as reviewed.
   // Otherwise infer from servico_contratado and leave revisado=false.
   const tipoPacoteExplicito = parsed.data.tipo_pacote ?? null;
@@ -58,6 +64,7 @@ export async function createClienteAction(formData: FormData) {
   const valorMensal = tipoRelacao !== "comum" ? 0 : parsed.data.valor_mensal;
   const insertPayload = {
     organization_id: org.id,
+    unit_id: unitId,
     nome: parsed.data.nome,
     contato_principal: parsed.data.contato_principal || null,
     email: parsed.data.email || null,

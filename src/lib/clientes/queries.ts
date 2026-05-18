@@ -18,6 +18,8 @@ export interface ClienteRow {
   data_churn?: string | null;
   assessor_nome?: string | null;
   coordenador_nome?: string | null;
+  /** Multi-tenant Fase 2. */
+  unit_id?: string | null;
 }
 
 export interface ListClientesFilters {
@@ -31,6 +33,10 @@ export interface ListClientesFilters {
   /** YYYY-MM — filtra clientes cujo data_churn cai dentro do mês informado.
    * Usado pelo drill-down do KPI "Churn do mês" no dashboard. */
   churnMonth?: string;
+  /** Multi-tenant Fase 2: quando passado, restringe à unidade. Pra master
+   *  pode ser null = consolidado (ver todas). Pra non-master, sempre a home.
+   *  Pages devem passar via getEffectiveUnitId(). */
+  unitId?: string | null;
 }
 
 async function _listClientesImpl(filters?: ListClientesFilters): Promise<ClienteRow[]> {
@@ -45,13 +51,15 @@ async function _listClientesImpl(filters?: ListClientesFilters): Promise<Cliente
     .from("clients")
     .select(`
       id, nome, email, telefone, valor_mensal, servico_contratado, status, data_entrada,
-      assessor_id, coordenador_id, tipo_relacao, modalidade, data_churn,
+      assessor_id, coordenador_id, tipo_relacao, modalidade, data_churn, unit_id,
       assessor:profiles!clients_assessor_id_fkey(nome),
       coordenador:profiles!clients_coordenador_id_fkey(nome)
     `)
     .is("deleted_at", null)
     .order("nome");
 
+  // Filtro de unidade (Fase 2). unitId === null → consolidado (não filtra).
+  if (filters?.unitId) query = query.eq("unit_id", filters.unitId);
   if (filters?.status) query = query.eq("status", filters.status);
   if (filters?.assessorId) query = query.eq("assessor_id", filters.assessorId);
   if (filters?.responsibleUserId) {
@@ -128,8 +136,8 @@ export async function listClientes(filters?: ListClientesFilters): Promise<Clien
       const f = filtersJson !== "null" ? (JSON.parse(filtersJson) as ListClientesFilters) : undefined;
       return _listClientesImpl(f);
     },
-    // v2: shape ganhou modalidade + data_churn + filtros novos
-    ["clientes-list-v2"],
+    // v3: shape ganhou unit_id + filtro novo (multi-tenant Fase 2)
+    ["clientes-list-v3"],
     { revalidate: 60, tags: ["clients"] },
   );
   return cached(JSON.stringify(filters ?? null));
