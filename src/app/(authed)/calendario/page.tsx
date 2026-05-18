@@ -43,16 +43,30 @@ export default async function CalendarioPage({
         : undefined;
   const sub = rawSub && VALID_SUBS.has(rawSub) ? rawSub : null;
 
+  // Eventos de videomaker em status pending_delegation só aparecem pra
+  // quem precisa: coord audiovisual / adm / sócio (pra delegar) e o
+  // próprio criador (assessor). Videomakers NÃO veem antes da delegação —
+  // evita confusão de pensar que já está atribuído.
+  const podeVerPending = ["audiovisual_chefe", "adm", "socio", "coordenador"].includes(user.role);
+  function isVisibleByDelegationFlow(e: CalendarEvent): boolean {
+    if (e.sub_calendar !== "videomakers") return true;
+    if (e.videomaker_status !== "pending_delegation") return true;
+    if (podeVerPending) return true;
+    if (e.criado_por === user.id) return true;
+    return false;
+  }
+
   function applySubFilter(events: CalendarEvent[]) {
+    const visible = events.filter(isVisibleByDelegationFlow);
     if (sub === "meus") {
-      return events.filter(
+      return visible.filter(
         (e) =>
           e.criado_por === user.id ||
           (e.participantes_ids ?? []).includes(user.id),
       );
     }
-    if (sub) return events.filter((e) => e.sub_calendar === sub);
-    return events;
+    if (sub) return visible.filter((e) => e.sub_calendar === sub);
+    return visible;
   }
 
   const subQuery = sub ? `sub=${sub}` : "";
