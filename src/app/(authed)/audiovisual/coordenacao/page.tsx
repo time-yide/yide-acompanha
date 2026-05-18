@@ -7,11 +7,10 @@ import {
   listVideomakersAtivos,
   listScheduledByVideomaker,
 } from "@/lib/audiovisual/coord-queries";
+import { canRoleDelegateVideomaker, canRoleViewCoord } from "@/lib/audiovisual/coord-roles";
 import { Card } from "@/components/ui/card";
 import { DelegarVideomakerDialog } from "@/components/audiovisual/DelegarVideomakerDialog";
 import { buttonVariants } from "@/components/ui/button";
-
-const ROLES_PERMITIDOS = ["audiovisual_chefe", "adm", "socio"];
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +36,8 @@ export default async function CoordenacaoAudiovisualPage({
 }) {
   const params = await searchParams;
   const user = await requireAuth();
-  if (!ROLES_PERMITIDOS.includes(user.role)) redirect("/");
+  if (!canRoleViewCoord(user.role)) redirect("/");
+  const canDelegate = canRoleDelegateVideomaker(user.role);
 
   const [pending, videomakers] = await Promise.all([
     listPendingDelegations(),
@@ -172,6 +172,7 @@ export default async function CoordenacaoAudiovisualPage({
                       eventFim={p.fim}
                       videomakers={videomakers}
                       scheduledByVideomaker={scheduledByVideomaker}
+                      canDelegate={canDelegate}
                     />
                   </div>
                 </div>

@@ -9,8 +9,9 @@ import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 
 interface ActionResult { success?: boolean; error?: string }
 
-/** Roles que podem operar a fila de coordenação audiovisual. */
-const ROLES_COORD = new Set(["audiovisual_chefe", "adm", "socio"]);
+// Roles defs em coord-roles.ts (arquivo separado pra poder exportar
+// constants/funcs — "use server" só permite async exports aqui).
+import { ROLES_COORD_DELEGATE } from "./coord-roles";
 
 /**
  * Coord audiovisual delega uma captação pendente pra um videomaker
@@ -32,8 +33,8 @@ export async function delegateVideomakerAction(
   formData: FormData,
 ): Promise<ActionResult> {
   const actor = await requireAuth();
-  if (!ROLES_COORD.has(actor.role)) {
-    return { error: "Apenas coord audiovisual/adm/sócio podem delegar" };
+  if (!ROLES_COORD_DELEGATE.has(actor.role)) {
+    return { error: "Apenas coord audiovisual ou ADM podem delegar" };
   }
 
   const eventId = String(formData.get("event_id") ?? "");

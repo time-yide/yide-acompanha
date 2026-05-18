@@ -29,6 +29,8 @@ interface Props {
   videomakers: VideomakerOption[];
   /** Map de videomaker_id → eventos agendados nele (pra avisar quem tá sobrecarregado). */
   scheduledByVideomaker: Record<string, ScheduledRowForVideomaker[]>;
+  /** Quando false, dialog não abre — botão fica indicando "read only". */
+  canDelegate?: boolean;
   trigger?: React.ReactNode;
 }
 
@@ -46,12 +48,23 @@ export function DelegarVideomakerDialog({
   eventFim,
   videomakers,
   scheduledByVideomaker,
+  canDelegate = true,
   trigger,
 }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [videomakerId, setVideomakerId] = useState<string>("");
   const [pending, startTransition] = useTransition();
+
+  // Sócio só vê: badge "Aguardando coord" em vez do botão de delegar.
+  if (!canDelegate) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1.5 text-xs font-medium text-amber-700 dark:text-amber-300">
+        <Video className="h-3.5 w-3.5" />
+        Aguardando coord audiovisual
+      </span>
+    );
+  }
 
   const selectedScheduled = videomakerId
     ? scheduledByVideomaker[videomakerId] ?? []
