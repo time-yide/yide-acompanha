@@ -120,6 +120,10 @@ export interface TaskFilters {
   prioridade?: ("alta" | "media" | "baixa")[];
   /** Busca textual (ILIKE no titulo). Trim aplicado no caller. */
   q?: string;
+  /** Multi-tenant: lista de client_ids da unidade ativa. Quando passado e
+   *  não-vazio, filtra tasks pra somente esses clients. Vazio = nenhum
+   *  cliente na unidade (esconde tudo). null/undefined = sem filtro. */
+  unitClientIds?: string[] | null;
 }
 
 async function _listTasksImpl(filters?: TaskFilters): Promise<TaskRow[]> {
@@ -151,6 +155,18 @@ async function _listTasksImpl(filters?: TaskFilters): Promise<TaskRow[]> {
   }
   if (filters?.criadoPor) query = query.eq("criado_por", filters.criadoPor);
   if (filters?.clientId) query = query.eq("client_id", filters.clientId);
+  // Multi-tenant: filtra por client_ids da unidade ativa.
+  // - undefined/null = sem filtro (master vendo consolidado)
+  // - [] = unidade nova sem clients = nenhuma task (resultado vazio)
+  // - [ids] = só tasks desses clients
+  if (filters?.unitClientIds !== undefined && filters?.unitClientIds !== null) {
+    if (filters.unitClientIds.length === 0) {
+      // Trick pra forçar resultado vazio: usa um UUID impossível
+      query = query.eq("client_id", "00000000-0000-0000-0000-000000000000");
+    } else {
+      query = query.in("client_id", filters.unitClientIds);
+    }
+  }
   if (filters?.q && filters.q.trim()) {
     // Escapa % e _ pra evitar wildcards do usuário (digita um % e bate em tudo)
     const safe = filters.q.trim().replace(/[%_]/g, (m) => `\\${m}`);
@@ -175,8 +191,8 @@ export async function listTasks(filters?: TaskFilters): Promise<TaskRow[]> {
       const f = filtersJson !== "null" ? (JSON.parse(filtersJson) as TaskFilters) : undefined;
       return _listTasksImpl(f);
     },
-    // v4: shape mudou (adicionado atribuido_a_role + drive_link + entrega_observacoes)
-    ["tarefas-list-v4"],
+    // v5: filtros ganharam unitClientIds (multi-tenant)
+    ["tarefas-list-v5"],
     { revalidate: 60, tags: ["tasks"] },
   );
   return cached(JSON.stringify(filters ?? null));
