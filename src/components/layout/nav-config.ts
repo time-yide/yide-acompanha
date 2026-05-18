@@ -64,7 +64,6 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
       { type: "link", href: "/d0-d30", icon: Rocket, label: "D0 → D30", roles: ["adm", "socio", "coordenador", "assessor", "comercial"], badgeKey: null },
       { type: "link", href: "/tarefas", icon: ListChecks, label: "Tarefas", roles: "all", badgeKey: null },
       { type: "link", href: "/audiovisual", icon: Video, label: "Audiovisual", roles: ["adm", "socio", "coordenador", "assessor", "videomaker", "audiovisual_chefe"], badgeKey: null },
-      { type: "link", href: "/audiovisual/coordenacao", icon: Video, label: "Coord. Audiovisual", roles: ["adm", "socio", "audiovisual_chefe"], badgeKey: null },
       { type: "link", href: "/trafego", icon: Megaphone, label: "Tráfego", roles: ["adm", "socio", "coordenador", "assessor", "comercial"], badgeKey: null },
       { type: "link", href: "/social-media", icon: Share2, label: "Social Media", roles: ["adm", "socio", "coordenador", "assessor", "designer", "videomaker", "editor", "audiovisual_chefe"], badgeKey: null },
       { type: "link", href: "/crm", icon: Database, label: "CRM", roles: ["adm", "socio", "coordenador", "assessor", "comercial"], badgeKey: null },

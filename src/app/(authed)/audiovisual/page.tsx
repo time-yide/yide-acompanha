@@ -30,10 +30,10 @@ const TAB_LABELS: Record<TabKey, string> = {
   capturas: "Capturas",
   pendente_entrega: "Pendente de entrega",
   pendente_delegacao: "Pendente edição",
-  aguardando_videomaker: "Aguardando coord",
+  aguardando_videomaker: "Captações futuras",
 };
 
-interface SearchParams { tab?: string; }
+interface SearchParams { tab?: string; novo?: string; }
 
 export default async function AudiovisualPage({
   searchParams,
@@ -63,7 +63,7 @@ export default async function AudiovisualPage({
   if (canSeeAguardando) availableTabs.push("aguardando_videomaker");
   if (canSeeDelegacao) availableTabs.push("pendente_delegacao");
 
-  const { tab: tabParam } = await searchParams;
+  const { tab: tabParam, novo: novoEventoId } = await searchParams;
   const activeTab: TabKey = availableTabs.includes(tabParam as TabKey)
     ? (tabParam as TabKey)
     : "capturas";
@@ -194,6 +194,12 @@ export default async function AudiovisualPage({
             </div>
           </div>
         </Card>
+      )}
+
+      {novoEventoId && activeTab === "aguardando_videomaker" && (
+        <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
+          ✓ Captação criada. Coord audiovisual vai delegar qual videomaker grava.
+        </div>
       )}
 
       {/* Tabs nav */}
