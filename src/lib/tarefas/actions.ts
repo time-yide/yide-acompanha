@@ -934,7 +934,7 @@ export async function concludeOperationalAction(formData: FormData): Promise<{ e
 
   const { data: task } = await sb
     .from("tasks")
-    .select("id, atribuido_a, status, criado_por")
+    .select("id, atribuido_a, status, criado_por, participantes_ids")
     .eq("id", parsed.data.id)
     .single();
   if (!task) return { error: "Tarefa não encontrada" };
@@ -950,9 +950,17 @@ export async function concludeOperationalAction(formData: FormData): Promise<{ e
     return { error: "Esta tarefa não exige entrega via modal, use a movimentação normal" };
   }
 
+  // Permissões alinhadas com canManageAnyTask (toggleTaskCompletionAction):
+  // - Assignee (responsável)
+  // - Criador
+  // - Participantes (coord audiovisual em vídeos, etc)
+  // - Roles de gestão (adm, sócio, coordenador, audiovisual_chefe, assessor)
+  const participantes = (task.participantes_ids ?? []) as string[];
   const isAssignee = actor.id === task.atribuido_a;
-  const isPriv = actor.role === "adm" || actor.role === "socio";
-  if (!isAssignee && !isPriv) {
+  const isCreator = actor.id === task.criado_por;
+  const isParticipant = participantes.includes(actor.id);
+  const isManager = canManageAnyTask(actor);
+  if (!isAssignee && !isCreator && !isParticipant && !isManager) {
     return { error: "Sem permissão pra concluir esta tarefa" };
   }
 
