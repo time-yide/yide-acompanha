@@ -65,7 +65,7 @@ export default async function ClientesPage({ searchParams }: { searchParams: Pro
           unitId,
         })
       : Promise.resolve([]),
-    getClientesStats(),
+    getClientesStats(unitId),
     canManage ? listColaboradores({ ativo: true, role: "assessor" }) : Promise.resolve([]),
     // "Coordenador" no UI cobre tanto o modelo novo (role `socio`) quanto
     // legado (role `coordenador`). Inclui os dois pra dropdown nunca ficar

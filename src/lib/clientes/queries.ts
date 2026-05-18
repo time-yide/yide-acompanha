@@ -161,27 +161,59 @@ export async function getClienteById(id: string) {
   return data;
 }
 
-async function _getClientesStatsImpl() {
+async function _getClientesStatsImpl(unitId: string | null) {
   const supabase = createServiceRoleClient();
-  const { data, error } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let query: any = supabase
     .from("clients")
     .select("status, valor_mensal")
     .is("deleted_at", null);
-  if (error) throw error;
+  // Multi-tenant Fase 2: filtra por unidade quando passado.
+  // Fallback: se a coluna unit_id ainda não existir (migration não rodada),
+  // o erro é capturado e retorna stats consolidadas (legado).
+  if (unitId) query = query.eq("unit_id", unitId);
 
-  const ativos = (data ?? []).filter((c) => c.status === "ativo");
+  const { data, error } = await query;
+  if (error) {
+    const msg = String(error.message ?? "");
+    if (msg.includes("unit_id") || msg.includes("schema cache")) {
+      console.warn("[clientes] stats fallback sem unit_id:", msg);
+      const retry = await supabase
+        .from("clients")
+        .select("status, valor_mensal")
+        .is("deleted_at", null);
+      if (retry.error) throw retry.error;
+      const rows = (retry.data ?? []) as Array<{ status: string; valor_mensal: number | string }>;
+      const ativos = rows.filter((c) => c.status === "ativo");
+      return {
+        total_ativos: ativos.length,
+        total_churn: rows.filter((c) => c.status === "churn").length,
+        carteira_total: ativos.reduce((sum, c) => sum + Number(c.valor_mensal), 0),
+      };
+    }
+    throw error;
+  }
+
+  const ativos = (data ?? []).filter((c: { status: string }) => c.status === "ativo");
   return {
     total_ativos: ativos.length,
-    total_churn: (data ?? []).filter((c) => c.status === "churn").length,
-    carteira_total: ativos.reduce((sum, c) => sum + Number(c.valor_mensal), 0),
+    total_churn: (data ?? []).filter((c: { status: string }) => c.status === "churn").length,
+    carteira_total: ativos.reduce(
+      (sum: number, c: { valor_mensal: number | string }) => sum + Number(c.valor_mensal),
+      0,
+    ),
   };
 }
 
-export async function getClientesStats() {
+export async function getClientesStats(unitId?: string | null) {
   const cached = unstable_cache(
-    async () => _getClientesStatsImpl(),
-    ["clientes-stats"],
+    async (uid: string) => {
+      const u = uid === "" ? null : uid;
+      return _getClientesStatsImpl(u);
+    },
+    // v2: cache key inclui unitId pra master ver stats diferentes por unidade
+    ["clientes-stats-v2"],
     { revalidate: 60, tags: ["clients"] },
   );
-  return cached();
+  return cached(unitId ?? "");
 }
