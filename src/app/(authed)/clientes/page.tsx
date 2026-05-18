@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireAuth } from "@/lib/auth/session";
 import { canAccess } from "@/lib/auth/permissions";
 import { listClientes, getClientesStats } from "@/lib/clientes/queries";
+import { getEffectiveUnitId } from "@/lib/units/session";
 import { ClientesTable } from "@/components/clientes/ClientesTable";
 import { ClientesAssignmentTable } from "@/components/clientes/ClientesAssignmentTable";
 import { CarteiraResponsavelSelector } from "@/components/clientes/CarteiraResponsavelSelector";
@@ -47,6 +48,10 @@ export default async function ClientesPage({ searchParams }: { searchParams: Pro
   // Sócio/adm em chooser mode (sem id selecionado) → não consulta, mostra prompt.
   const shouldQuery = !isMinhaCarteira || effectiveResponsavel !== undefined;
 
+  // Multi-tenant Fase 2: filtra por unidade ativa. Master pode estar vendo
+  // Salvador (cookie); non-master sempre sua home unit.
+  const unitId = await getEffectiveUnitId();
+
   // Roda as 4 queries em paralelo: rows, stats, e (se canManage) as duas listas
   // de colaboradores. Ganho: ~3x menos round-trips na página /clientes (uma
   // das mais acessadas do app).
@@ -57,9 +62,10 @@ export default async function ClientesPage({ searchParams }: { searchParams: Pro
           responsibleUserId: effectiveResponsavel,
           modalidade,
           churnMonth,
+          unitId,
         })
       : Promise.resolve([]),
-    getClientesStats(),
+    getClientesStats(unitId),
     canManage ? listColaboradores({ ativo: true, role: "assessor" }) : Promise.resolve([]),
     // "Coordenador" no UI cobre tanto o modelo novo (role `socio`) quanto
     // legado (role `coordenador`). Inclui os dois pra dropdown nunca ficar
