@@ -100,9 +100,11 @@ async function _listEventsForWeekImpl(weekStartIso: string, weekEndIso: string):
   const events: CalendarEvent[] = [];
 
   // 1) Manual events
-  const { data: manual = [] } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabaseAny = supabase as any;
+  const { data: manual = [] } = await supabaseAny
     .from("calendar_events")
-    .select(`id, titulo, descricao, inicio, fim, sub_calendar, client_id, lead_id, criado_por, participantes_ids, localizacao_endereco, localizacao_maps_url, link_roteiro, observacoes_gravacao`)
+    .select(`id, titulo, descricao, inicio, fim, sub_calendar, client_id, lead_id, criado_por, participantes_ids, localizacao_endereco, localizacao_maps_url, link_roteiro, observacoes_gravacao, videomaker_status, videomaker_assigned_id`)
     .gte("inicio", weekStart.toISOString())
     .lt("inicio", weekEnd.toISOString());
 
@@ -122,6 +124,8 @@ async function _listEventsForWeekImpl(weekStartIso: string, weekEndIso: string):
       localizacao_maps_url: m.localizacao_maps_url,
       link_roteiro: m.link_roteiro,
       observacoes_gravacao: m.observacoes_gravacao,
+      videomaker_status: m.videomaker_status,
+      videomaker_assigned_id: m.videomaker_assigned_id,
     });
   }
 
@@ -259,7 +263,8 @@ export async function listEventsForWeek(weekStart: Date, weekEnd: Date): Promise
       const { from, to } = JSON.parse(paramsJson) as { from: string; to: string };
       return _listEventsForWeekImpl(from, to);
     },
-    ["calendario-week-events"],
+    // v2: shape ganhou videomaker_status + videomaker_assigned_id
+    ["calendario-week-events-v2"],
     { revalidate: 60, tags: ["calendar"] },
   );
   return cached(JSON.stringify({ from: weekStart.toISOString(), to: weekEnd.toISOString() }));

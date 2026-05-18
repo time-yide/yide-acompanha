@@ -114,6 +114,13 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
   const { data: org } = await supabase.from("organizations").select("id").limit(1).single();
   if (!org) return { error: "Organização não encontrada" };
 
+  // Pra eventos de videomaker, o fluxo agora é: assessor cria → cai na fila
+  // do coord audiovisual (pending_delegation). Coord delega via página de
+  // coordenação. Antes desse PR, ia direto pra agenda dos videomakers nos
+  // participantes_ids. Mantemos os participantes_ids preenchidos (pra
+  // contexto/notificação), mas a fonte da verdade da agenda é o
+  // videomaker_assigned_id (NULL enquanto pending).
+  const isVideomaker = parsed.data.sub_calendar === "videomakers";
   const insertPayload = {
     organization_id: org.id,
     titulo: parsed.data.titulo,
@@ -128,11 +135,15 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
     localizacao_maps_url: parsed.data.localizacao_maps_url?.trim() || null,
     link_roteiro: parsed.data.link_roteiro?.trim() || null,
     observacoes_gravacao: parsed.data.observacoes_gravacao?.trim() || null,
+    ...(isVideomaker
+      ? { videomaker_status: "pending_delegation" as const }
+      : {}),
   };
 
   const { data: created, error } = await supabase
     .from("calendar_events")
-    .insert(insertPayload)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .insert(insertPayload as any)
     .select("id")
     .single();
   if (error || !created) return { error: error?.message ?? "Falha ao criar evento" };
@@ -158,6 +169,13 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
   revalidatePath("/calendario");
   revalidateTag("calendar", "default");
   revalidateTag("dashboard", "default");
+  // Yasmin: quando assessor cria captação, redireciona pra página do coord
+  // audiovisual em vez do calendário — fluxo natural pra ele já delegar quem
+  // vai gravar antes mesmo de fechar a aba.
+  if (isVideomaker) {
+    revalidatePath("/audiovisual/coordenacao");
+    redirect(`/audiovisual/coordenacao?novo=${created.id}`);
+  }
   redirect(`/calendario`);
 }
 

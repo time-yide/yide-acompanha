@@ -62,4 +62,8 @@ export interface CalendarEvent {
   observacoes_gravacao?: string | null;
   criado_por?: string;
   participantes_ids?: string[];
+  /** Fluxo de delegação de captação (só relevante pra sub_calendar=videomakers). */
+  videomaker_status?: "pending_delegation" | "scheduled" | "completed" | "cancelled" | null;
+  /** Videomaker designado pelo coord (null enquanto pending). */
+  videomaker_assigned_id?: string | null;
 }
