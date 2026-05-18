@@ -169,12 +169,11 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
   revalidatePath("/calendario");
   revalidateTag("calendar", "default");
   revalidateTag("dashboard", "default");
-  // Yasmin: quando assessor cria captação, redireciona pra página do coord
-  // audiovisual em vez do calendário — fluxo natural pra ele já delegar quem
-  // vai gravar antes mesmo de fechar a aba.
+  // Yasmin: quando assessor cria captação, redireciona pra aba "Captações
+  // futuras" do painel audiovisual (onde o coord delega).
   if (isVideomaker) {
-    revalidatePath("/audiovisual/coordenacao");
-    redirect(`/audiovisual/coordenacao?novo=${created.id}`);
+    revalidatePath("/audiovisual");
+    redirect(`/audiovisual?tab=aguardando_videomaker&novo=${created.id}`);
   }
   redirect(`/calendario`);
 }
