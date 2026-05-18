@@ -105,7 +105,6 @@ export default async function DashboardPage({
       {unitContext?.isMaster && unitContext.accessibleUnits.length > 1 && (
         <UnitDashboardBanner
           activeUnit={unitContext.activeUnit}
-          homeUnit={unitContext.homeUnit}
           accessibleUnits={unitContext.accessibleUnits}
         />
       )}
