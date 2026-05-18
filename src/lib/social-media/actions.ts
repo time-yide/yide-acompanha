@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { requireAuth } from "@/lib/auth/session";
+import { logActivityInternal } from "@/lib/produtividade/actions";
 import { STATUS_VALORES } from "./tipos";
 
 interface ActionOk { success: true }
@@ -108,9 +109,17 @@ export async function createSocialPostAction(formData: FormData): Promise<Create
   }).select("id").single();
   if (error) return { error: error.message };
 
+  const postId = (data as { id: string }).id;
+  await logActivityInternal(actor.id, "post_criado", {
+    entityType: "social_media_posts",
+    entityId: postId,
+    clientId: parsed.data.client_id,
+    metadata: { titulo: parsed.data.titulo, formato: parsed.data.formato },
+  });
+
   revalidatePath("/social-media");
   revalidatePath(`/social-media/${parsed.data.client_id}`);
-  return { success: true, id: (data as { id: string }).id };
+  return { success: true, id: postId };
 }
 
 const updatePostSchema = createPostSchema.extend({
@@ -211,6 +220,13 @@ export async function changeSocialPostStatusAction(formData: FormData): Promise<
     .update(updatePayload)
     .eq("id", parsed.data.id);
   if (error) return { error: error.message };
+
+  if (parsed.data.status === "aprovado") {
+    await logActivityInternal(actor.id, "post_aprovado", {
+      entityType: "social_media_posts",
+      entityId: parsed.data.id,
+    });
+  }
 
   revalidatePath("/social-media");
   return { success: true };

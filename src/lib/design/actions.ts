@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { requireAuth } from "@/lib/auth/session";
+import { logActivityInternal } from "@/lib/produtividade/actions";
 import { STATUS_VALORES } from "./tipos";
 
 interface ActionOk { success: true }
@@ -104,9 +105,17 @@ export async function createArteAction(formData: FormData): Promise<CreateResult
   }).select("id").single();
   if (error) return { error: error.message };
 
+  const arteId = (data as { id: string }).id;
+  await logActivityInternal(actor.id, "arte_criada", {
+    entityType: "design_artes",
+    entityId: arteId,
+    clientId: parsed.data.client_id,
+    metadata: { titulo: parsed.data.titulo, formato: parsed.data.formato },
+  });
+
   revalidatePath("/design");
   revalidatePath(`/design/${parsed.data.client_id}`);
-  return { success: true, id: (data as { id: string }).id };
+  return { success: true, id: arteId };
 }
 
 const updateArteSchema = createArteSchema.extend({
@@ -206,6 +215,13 @@ export async function changeArteStatusAction(formData: FormData): Promise<Action
     .update(updatePayload)
     .eq("id", parsed.data.id);
   if (error) return { error: error.message };
+
+  if (parsed.data.status === "aprovado") {
+    await logActivityInternal(actor.id, "arte_aprovada", {
+      entityType: "design_artes",
+      entityId: parsed.data.id,
+    });
+  }
 
   revalidatePath("/design");
   return { success: true };

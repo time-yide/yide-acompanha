@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/auth/session";
 import { logAudit } from "@/lib/audit/log";
+import { logActivityInternal } from "@/lib/produtividade/actions";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 import { isoWeek } from "@/lib/satisfacao/iso-week";
 import { createCapturaSchema, markEntregueRapidoSchema, RATING_FIELDS } from "./schema";
@@ -197,6 +198,11 @@ export async function createCapturaAction(_prev: ActionResult, formData: FormDat
     console.error("[createCapturaAction] notification dispatch failed:", e);
   }
 
+  await logActivityInternal(actor.id, "captura_concluida", {
+    entityType: "captures",
+    metadata: { source: "createCapturaAction" },
+  });
+
   revalidatePath("/audiovisual");
   revalidateTag(AUDIOVISUAL_CAPTURAS_TAG, "default");
   revalidatePath("/satisfacao");
@@ -350,6 +356,12 @@ export async function delegateCapturaAction(formData: FormData): Promise<Delegat
     acao: "update",
     dados_depois: { task_id: createdTask.id, editor_id: editorId } as unknown as Record<string, unknown>,
     ator_id: actor.id,
+  });
+
+  await logActivityInternal(actor.id, "captura_criada", {
+    entityType: "audiovisual_capturas",
+    entityId: capturaId,
+    metadata: { task_id: createdTask.id, editor_id: editorId },
   });
 
   revalidatePath("/audiovisual");
