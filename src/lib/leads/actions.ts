@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/auth/session";
 import { logAudit } from "@/lib/audit/log";
+import { logActivityInternal } from "@/lib/produtividade/actions";
 import {
   createLeadSchema, editLeadSchema, moveStageSchema, markLostSchema, deleteLeadSchema,
   importClientToOnboardingSchema,
@@ -135,6 +136,12 @@ export async function createLeadAction(formData: FormData) {
       source_user_id: actor.id,
     });
   }
+
+  await logActivityInternal(actor.id, "lead_criado", {
+    entityType: "leads",
+    entityId: created.id,
+    metadata: { nome: parsed.data.nome_prospect },
+  });
 
   revalidatePath("/onboarding");
   revalidateTag(PROSPECTS_CACHE_TAG, "default");
@@ -604,6 +611,12 @@ export async function moveStageAction(formData: FormData) {
       source_user_id: actor.id,
     });
   }
+
+  await logActivityInternal(actor.id, "lead_movido", {
+    entityType: "leads",
+    entityId: parsed.data.id,
+    metadata: { nome: lead.nome_prospect, from: lead.stage, to: toStage },
+  });
 
   return { success: `Movido para ${toStage}` };
 }

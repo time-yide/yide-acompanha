@@ -5,6 +5,7 @@ import { requireClientPortalAuth } from "@/lib/auth/client-portal-session";
 import { requireAuth } from "@/lib/auth/session";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { logAudit } from "@/lib/audit/log";
+import { logActivityInternal } from "@/lib/produtividade/actions";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 import { createRequestSchema, respondRequestSchema, changeStatusSchema } from "./schema";
 
@@ -173,6 +174,12 @@ export async function respondPortalRequestAction(formData: FormData): Promise<Ac
     acao: "update",
     dados_depois: updatePayload as Record<string, unknown>,
     ator_id: actor.id,
+  });
+
+  await logActivityInternal(actor.id, "solicitacao_respondida", {
+    entityType: "client_portal_requests",
+    entityId: parsed.data.id,
+    metadata: { status: parsed.data.to_status },
   });
 
   revalidatePath("/solicitacoes");
