@@ -24,8 +24,10 @@ interface Props {
 
 /**
  * Seletor de unidade ativa no TopBar. Só renderiza pra master users (adm/socio).
- * Pra non-master, useUnitContext devolve só a home unit e o componente pai
- * decide não passar ele pro layout (ver TopBar.tsx).
+ *
+ * Defesa em camadas (PR #355+): se as props vierem mal-formadas (raro mas
+ * possível com migration parcial), render gracefully em vez de crashar a
+ * página inteira. Erros do action são capturados e mostrados via toast.
  */
 export function UnitSwitcher({
   activeUnit,
@@ -37,20 +39,42 @@ export function UnitSwitcher({
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
+  // Hard-fail guard: se algo vier null/undefined, não tenta renderizar
+  // (evita "Cannot read properties of undefined" em produção).
+  if (!activeUnit || !homeUnit || !Array.isArray(accessibleUnits)) {
+    if (typeof window !== "undefined") {
+      console.warn("[UnitSwitcher] props inválidas, não renderizando:", {
+        hasActive: !!activeUnit,
+        hasHome: !!homeUnit,
+        accessible: accessibleUnits,
+      });
+    }
+    return null;
+  }
+
   function handleSelect(unit: Unit) {
     if (unit.id === activeUnit.id) {
       setOpen(false);
       return;
     }
     startTransition(async () => {
-      const r = await switchActiveUnitAction(unit.slug);
-      if (!r.ok) {
-        toast.error(r.error ?? "Falha ao alternar unidade");
-        return;
+      try {
+        const r = await switchActiveUnitAction(unit.slug);
+        if (!r.ok) {
+          toast.error(r.error ?? "Falha ao alternar unidade");
+          return;
+        }
+        toast.success(`Agora você está vendo: ${unit.nome}`);
+        setOpen(false);
+        router.refresh();
+      } catch (err) {
+        console.error("[UnitSwitcher] switchActiveUnit falhou:", err);
+        toast.error(
+          err instanceof Error
+            ? `Erro: ${err.message}`
+            : "Falha inesperada ao alternar unidade",
+        );
       }
-      toast.success(`Agora você está vendo: ${unit.nome}`);
-      setOpen(false);
-      router.refresh();
     });
   }
 
