@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { requireAuth } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { listTasks, type TaskFilters as TaskFiltersData } from "@/lib/tarefas/queries";
+import { getClientIdsForActiveUnit } from "@/lib/units/filter-helpers";
 import { TasksBoard } from "@/components/tarefas/TasksBoard";
 import { TasksGroupedList, type GroupBy } from "@/components/tarefas/TasksGroupedList";
 import { TaskFilters } from "@/components/tarefas/TaskFilters";
@@ -53,6 +54,9 @@ export default async function TarefasPage({ searchParams }: { searchParams: Prom
   else if (aba === "todas" && params.atribuido && params.atribuido !== "qualquer") {
     filters.atribuidoA = params.atribuido;
   }
+
+  // Multi-tenant: pega ids dos clientes da unidade ativa e filtra.
+  filters.unitClientIds = await getClientIdsForActiveUnit();
 
   // Paraleliza tudo: tasks + profiles + clientes (são independentes).
   const supabase = await createClient();

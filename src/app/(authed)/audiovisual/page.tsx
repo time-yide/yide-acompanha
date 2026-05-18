@@ -10,6 +10,7 @@ import {
   listCapturasSemDelegacao,
 } from "@/lib/audiovisual/queries";
 import { ROLES_QUE_EDITAM } from "@/lib/audiovisual/roles";
+import { getClientIdsForActiveUnit } from "@/lib/units/filter-helpers";
 import { CapturasAba } from "@/components/audiovisual/CapturasAba";
 import { PendenteEntregaAba } from "@/components/audiovisual/PendenteEntregaAba";
 import { PendenteDelegacaoAba } from "@/components/audiovisual/PendenteDelegacaoAba";
@@ -96,13 +97,21 @@ export default async function AudiovisualPage({
     ]);
     const clientes = (clientesData ?? []) as Array<{ id: string; nome: string }>;
 
+    // Multi-tenant: filtra por client_ids da unidade ativa quando aplicável
+    const unitClientIds = await getClientIdsForActiveUnit();
     let capturas;
     if (isVideomaker) {
       capturas = await listCapturas({ videomakerId: user.id, limit: 50 });
     } else if (isAssessor) {
       const ids = (meusClientesRes.data ?? []).map((c) => (c as { id: string }).id);
       capturas = ids.length === 0 ? [] : await listCapturas({ clientIds: ids, limit: 100 });
+    } else if (unitClientIds !== null) {
+      // Master (coord/socio/adm/audiovisual_chefe): filtra por unidade ativa
+      capturas = unitClientIds.length === 0
+        ? []
+        : await listCapturas({ clientIds: unitClientIds, limit: 100 });
     } else {
+      // Migration unit_id ainda não rodada — fallback consolidado
       capturas = await listCapturas({ limit: 100 });
     }
 
