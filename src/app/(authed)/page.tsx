@@ -10,7 +10,9 @@ import { DashboardEditor } from "@/components/dashboard/DashboardEditor";
 import { DashboardAudiovisualChefe } from "@/components/dashboard/DashboardAudiovisualChefe";
 import { StubGreeting } from "@/components/dashboard/StubGreeting";
 import { ImpersonateBar } from "@/components/dashboard/ImpersonateBar";
+import { UnitDashboardBanner } from "@/components/units/UnitDashboardBanner";
 import { listColaboradores, getColaboradorById } from "@/lib/colaboradores/queries";
+import { getUnitContext } from "@/lib/units/session";
 import type { Periodo } from "@/lib/dashboard/personal";
 
 interface TargetUser {
@@ -86,16 +88,27 @@ export default async function DashboardPage({
   }
 
   // Lista de colaboradores pra dropdown — só fetch se o requester pode impersonate
-  const colaboradores = canImpersonate
-    ? (await listColaboradores({ ativo: true })).map((c) => ({
-        id: c.id,
-        nome: c.nome,
-        role: c.role,
-      }))
-    : [];
+  const [colaboradores, unitContext] = await Promise.all([
+    canImpersonate
+      ? listColaboradores({ ativo: true }).then((rows) =>
+          rows.map((c) => ({ id: c.id, nome: c.nome, role: c.role })),
+        )
+      : Promise.resolve([] as Array<{ id: string; nome: string; role: string }>),
+    getUnitContext().catch(() => null),
+  ]);
 
   return (
     <div className="space-y-4">
+      {/* Banner gigante de unidade — só renderiza pra master (adm/sócio) que
+          tenha mais de 1 unidade acessível. Permite trocar rápido sem ir no
+          TopBar discreto. */}
+      {unitContext?.isMaster && unitContext.accessibleUnits.length > 1 && (
+        <UnitDashboardBanner
+          activeUnit={unitContext.activeUnit}
+          homeUnit={unitContext.homeUnit}
+          accessibleUnits={unitContext.accessibleUnits}
+        />
+      )}
       {canImpersonate && (
         <ImpersonateBar
           colaboradores={colaboradores}
