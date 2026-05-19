@@ -575,20 +575,34 @@ export async function _getProximosEventosImpl(
     .order("inicio", { ascending: true })
     .limit(limit * 2); // pega mais pra compensar filtro pós-query
 
-  let rows = ((data ?? []) as Array<EventoRow & { client_id: string | null }>);
+  let rows = ((data ?? []) as Array<EventoRow & { client_id: string | null; sub_calendar: string }>);
 
-  // Multi-tenant: filtra eventos COM client_id pelos ids da unidade ativa.
-  // Eventos SEM client_id (aniversários de colab, reuniões gerais) passam
-  // por todas as unidades — são institucionais.
-  if (filter?.unitClientIds && filter.unitClientIds.length > 0) {
+  // Multi-tenant: filtro estrito.
+  // - sub_calendar='aniversarios' → institucional, sempre passa
+  // - resto → exige client_id na lista da unidade ativa
+  //
+  // Versão anterior (PR #363) deixava passar eventos com client_id=null
+  // como "institucionais", mas na prática muitos eventos legacy foram
+  // criados sem link explícito (só nome do cliente no título). Esses
+  // estavam vazando entre unidades. Agora ficam ocultos quando filtro
+  // ativo — assessor pode editar o evento pra linkar ao client_id se
+  // quiser que apareça.
+  if (filter?.unitClientIds !== undefined && filter?.unitClientIds !== null) {
     const allowedIds = new Set(filter.unitClientIds);
-    rows = rows.filter((r) => r.client_id === null || allowedIds.has(r.client_id));
-  } else if (filter?.unitClientIds && filter.unitClientIds.length === 0) {
-    // Unidade nova sem clientes — só eventos sem client_id
-    rows = rows.filter((r) => r.client_id === null);
+    rows = rows.filter((r) => {
+      if (r.sub_calendar === "aniversarios") return true;
+      if (r.client_id === null) return false;
+      return allowedIds.has(r.client_id);
+    });
   }
 
-  return rows.slice(0, limit).map(({ ...r }) => r as EventoRow);
+  return rows.slice(0, limit).map((r) => ({
+    id: r.id,
+    titulo: r.titulo,
+    inicio: r.inicio,
+    fim: r.fim,
+    sub_calendar: r.sub_calendar as EventoRow["sub_calendar"],
+  }));
 }
 
 export async function getProximosEventos(
@@ -601,8 +615,9 @@ export async function getProximosEventos(
       const { days: d, limit: l, filter: f } = JSON.parse(paramsJson) as { days: number; limit: number; filter: EventoFilter | null };
       return _getProximosEventosImpl(d, l, f ?? undefined);
     },
-    // v3: filter ganhou unitClientIds (multi-tenant)
-    ["dashboard-proximos-eventos-v3"],
+    // v4: filtro estrito — eventos sem client_id agora são ocultos
+    // quando filtro de unidade ativo (exceto sub_calendar='aniversarios')
+    ["dashboard-proximos-eventos-v4"],
     { revalidate: 300, tags: ["dashboard"] },
   );
   return cached(JSON.stringify({ days, limit, filter: filter ?? null }));
