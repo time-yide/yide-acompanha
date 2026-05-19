@@ -60,6 +60,13 @@ export default async function AudiovisualPage({
     ? (await listPendenteParaVideomaker(user.id)).filter((p) => p.isOverdue)
     : [];
 
+  // Contagem de pendências por aba (mostrada como badge no nav)
+  const pendingCounts: Partial<Record<TabKey, number>> = {};
+  if (canSeeAguardando) {
+    const pending = await listPendingDelegations();
+    pendingCounts.aguardando_videomaker = pending.length;
+  }
+
   const availableTabs: TabKey[] = ["capturas", "pendente_entrega"];
   if (canSeeAguardando) availableTabs.push("aguardando_videomaker");
   if (canSeeDelegacao) availableTabs.push("pendente_delegacao");
@@ -216,18 +223,31 @@ export default async function AudiovisualPage({
         <nav className="-mb-px flex flex-wrap gap-1" aria-label="Abas de audiovisual">
           {availableTabs.map((t) => {
             const active = t === activeTab;
+            const badge = pendingCounts[t];
             return (
               <Link
                 key={t}
                 href={t === "capturas" ? "/audiovisual" : `/audiovisual?tab=${t}`}
                 className={cn(
-                  "border-b-2 px-3 py-2 text-sm font-medium transition-colors",
+                  "inline-flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition-colors",
                   active
                     ? "border-primary text-foreground"
                     : "border-transparent text-muted-foreground hover:border-muted-foreground/30 hover:text-foreground",
                 )}
               >
                 {TAB_LABELS[t]}
+                {badge !== undefined && badge > 0 && (
+                  <span
+                    className={cn(
+                      "inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-bold tabular-nums",
+                      active
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-amber-500/20 text-amber-700 dark:text-amber-300",
+                    )}
+                  >
+                    {badge > 99 ? "99+" : badge}
+                  </span>
+                )}
               </Link>
             );
           })}
