@@ -26,15 +26,30 @@ const STAGE_DESC: Record<Stage, string> = {
   ativo: "Entrou na carteira",
 };
 
+interface Profile {
+  id: string;
+  nome: string;
+}
+
 interface Props {
   stage: Stage;
   leads: LeadRow[];
   onDropLead: (leadId: string, fromStage: Stage) => void;
   currentUserId: string;
   currentUserRole: string;
+  coordenadores?: Profile[];
+  assessores?: Profile[];
 }
 
-export function KanbanColumn({ stage, leads, onDropLead, currentUserId, currentUserRole }: Props) {
+export function KanbanColumn({
+  stage,
+  leads,
+  onDropLead,
+  currentUserId,
+  currentUserRole,
+  coordenadores = [],
+  assessores = [],
+}: Props) {
   const [isOver, setIsOver] = useState(false);
 
   function onDragOver(e: React.DragEvent) {
@@ -83,7 +98,14 @@ export function KanbanColumn({ stage, leads, onDropLead, currentUserId, currentU
           <p className="px-2 py-4 text-center text-xs text-muted-foreground">Vazio</p>
         ) : (
           leads.map((l) => (
-            <LeadCard key={l.id} lead={l} currentUserId={currentUserId} currentUserRole={currentUserRole} />
+            <LeadCard
+              key={l.id}
+              lead={l}
+              currentUserId={currentUserId}
+              currentUserRole={currentUserRole}
+              coordenadores={coordenadores}
+              assessores={assessores}
+            />
           ))
         )}
       </div>
