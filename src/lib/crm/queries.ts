@@ -19,6 +19,8 @@ interface ListFilter {
   searchQuery?: string;
   /** "todos" | "configurado" | "nao_configurado" | crmTipo específico */
   filtroCrm?: string;
+  /** Multi-tenant: filtra por unidade. */
+  unitId?: string | null;
 }
 
 export async function listClientesComCrm(filter: ListFilter = {}): Promise<ClienteCrmRow[]> {
@@ -26,10 +28,12 @@ export async function listClientesComCrm(filter: ListFilter = {}): Promise<Clien
 
   // Helper com fallback caso colunas crm_* ainda não tenham sido migradas
   const buildQuery = (selectStr: string) => {
-    let q = supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let q: any = supabase
       .from("clients")
       .select(selectStr)
       .eq("status", "ativo");
+    if (filter.unitId) q = q.eq("unit_id", filter.unitId);
     if (filter.assessorId) q = q.eq("assessor_id", filter.assessorId);
     if (filter.coordenadorId) q = q.eq("coordenador_id", filter.coordenadorId);
     if (filter.searchQuery && filter.searchQuery.trim()) {

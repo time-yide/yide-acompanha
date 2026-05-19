@@ -1,6 +1,7 @@
 import { requireAuth } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { getProspectsList, type ProspectStatus } from "@/lib/prospeccao/queries";
+import { getProfileIdsForActiveUnit } from "@/lib/units/filter-helpers";
 import { ProspectsTable } from "@/components/prospeccao/ProspectsTable";
 import { ProspectsFilters } from "@/components/prospeccao/ProspectsFilters";
 
@@ -19,10 +20,13 @@ export default async function ProspectsListPage({
   const valorMin = params.valor_min ? Number(params.valor_min) : undefined;
   const valorMax = params.valor_max ? Number(params.valor_max) : undefined;
 
+  // Multi-tenant: filtra prospects pelos comerciais da unidade ativa
+  const unitProfileIds = await getProfileIdsForActiveUnit();
+
   // Lista de prospects + comerciais (pro filtro) em paralelo.
   const supabase = await createClient();
   const [rows, comerciaisResult] = await Promise.all([
-    getProspectsList({ comercialId, status: statuses, valorMin, valorMax }),
+    getProspectsList({ comercialId, status: statuses, valorMin, valorMax, unitProfileIds }),
     isComercial
       ? Promise.resolve({ data: [] as Array<{ id: string; nome: string }> })
       : supabase.from("profiles").select("id, nome").eq("role", "comercial").eq("ativo", true).order("nome"),

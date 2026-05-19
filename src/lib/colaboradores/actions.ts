@@ -61,15 +61,25 @@ export async function createColaboradorAction(
     return { error: createErr?.message ?? "Falha ao criar colaborador" };
   }
 
+  // Multi-tenant: colaborador novo entra na unidade ATIVA do criador
+  // (cookie de master; ou home unit). Se contexto não disponível, fica
+  // null e o trigger do banco mantém o default (sem unidade).
+  const { getEffectiveUnitId } = await import("@/lib/units/session");
+  const unitId = await getEffectiveUnitId();
+
   // O trigger já criou o profile com role e nome via raw_user_meta_data.
   // Atualiza fixo e percentuais — usa service-role para gravar colunas sensíveis.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const updatePayload: any = {
+    fixo_mensal: parsed.data.fixo_mensal,
+    comissao_percent: parsed.data.comissao_percent,
+    comissao_primeiro_mes_percent: parsed.data.comissao_primeiro_mes_percent,
+  };
+  if (unitId) updatePayload.unit_id = unitId;
+
   const { error: updateErr } = await admin
     .from("profiles")
-    .update({
-      fixo_mensal: parsed.data.fixo_mensal,
-      comissao_percent: parsed.data.comissao_percent,
-      comissao_primeiro_mes_percent: parsed.data.comissao_primeiro_mes_percent,
-    })
+    .update(updatePayload)
     .eq("id", created.user.id);
 
   if (updateErr) {
