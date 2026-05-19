@@ -5,6 +5,7 @@ import { CommissionTabs } from "@/components/comissoes/CommissionTabs";
 import { FechamentoTable } from "@/components/comissoes/FechamentoTable";
 import { ApproveMonthButton } from "@/components/comissoes/ApproveMonthButton";
 import { listSnapshotsForMonth, getMonthsAwaitingApproval } from "@/lib/comissoes/queries";
+import { getProfileIdsForActiveUnit } from "@/lib/units/filter-helpers";
 
 function formatMonthLong(monthRef: string): string {
   const [year, month] = monthRef.split("-");
@@ -36,7 +37,8 @@ export default async function FechamentoPage({
     }
   }
 
-  const rows = (await listSnapshotsForMonth(monthRef)) as unknown as Parameters<typeof FechamentoTable>[0]["rows"];
+  const unitProfileIds = await getProfileIdsForActiveUnit();
+  const rows = (await listSnapshotsForMonth(monthRef, unitProfileIds)) as unknown as Parameters<typeof FechamentoTable>[0]["rows"];
   const pendingThisMonth = rows.filter((r) => r.status === "pending_approval");
   const hasNegative = pendingThisMonth.some((r) => Number(r.valor_total) < 0);
 

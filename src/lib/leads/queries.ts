@@ -28,12 +28,13 @@ export interface LeadRow {
   assessor_nome?: string | null;
 }
 
-async function _listLeadsByStageImpl(): Promise<Record<Stage, LeadRow[]>> {
+async function _listLeadsByStageImpl(unitProfileIds: string[] | null): Promise<Record<Stage, LeadRow[]>> {
   // Service-role: RLS de SELECT em leads é permissiva (`using (true)` pra
   // authenticated), resultado é idêntico ao cookie client. Necessário pra
   // funcionar dentro de unstable_cache (sem request context).
   const supabase = createServiceRoleClient();
-  const { data, error } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let q: any = supabase
     .from("leads")
     .select(`
       id, nome_prospect, site, telefone, valor_proposto, duracao_meses, servico_proposto, link_proposta, prioridade, stage,
@@ -44,10 +45,30 @@ async function _listLeadsByStageImpl(): Promise<Record<Stage, LeadRow[]>> {
       assessor:profiles!leads_assessor_alocado_id_fkey(nome)
     `)
     .is("deleted_at", null)
-    // Perdidos saem do kanban e vão pra /onboarding/perdidos.
     .is("motivo_perdido", null)
     .order("created_at", { ascending: false });
 
+  // Multi-tenant: filtra leads onde comercial/coord/assessor pertencem à
+  // unidade ativa. null = sem filtro. [] = nenhum lead pra unidade nova.
+  if (unitProfileIds !== null) {
+    if (unitProfileIds.length === 0) {
+      return {
+        leads_potencial: [],
+        leads_ativos: [],
+        reuniao_comercial: [],
+        proposta_enviada: [],
+        contrato: [],
+        marco_zero: [],
+        ativo: [],
+      };
+    }
+    const idsList = unitProfileIds.join(",");
+    q = q.or(
+      `comercial_id.in.(${idsList}),coord_alocado_id.in.(${idsList}),assessor_alocado_id.in.(${idsList})`,
+    );
+  }
+
+  const { data, error } = await q;
   if (error) throw error;
 
   const groups: Record<Stage, LeadRow[]> = {
@@ -60,13 +81,29 @@ async function _listLeadsByStageImpl(): Promise<Record<Stage, LeadRow[]>> {
     ativo: [],
   };
 
-  type JoinedRow = typeof data extends (infer U)[] | null ? U : never;
-  type WithJoins = JoinedRow & {
+  // Tipo manual já que `q: any` perde a inferência do select.
+  interface JoinedLeadRow {
+    id: string;
+    nome_prospect: string;
+    site: string | null;
+    telefone: string | null;
+    valor_proposto: number | string;
+    duracao_meses: number | null;
+    servico_proposto: string | null;
+    link_proposta: string | null;
+    prioridade: string;
+    stage: string;
+    data_prospeccao_agendada: string | null;
+    data_reuniao_marco_zero: string | null;
+    data_fechamento: string | null;
+    comercial_id: string | null;
+    coord_alocado_id: string | null;
+    assessor_alocado_id: string | null;
     comercial?: { nome: string } | null;
     coord?: { nome: string } | null;
     assessor?: { nome: string } | null;
-  };
-  for (const r of (data ?? []) as WithJoins[]) {
+  }
+  for (const r of (data ?? []) as JoinedLeadRow[]) {
     // Cast: types do Supabase ainda não conhecem os novos valores do enum lead_stage.
     const row = {
       ...r,
@@ -90,15 +127,21 @@ async function _listLeadsByStageImpl(): Promise<Record<Stage, LeadRow[]>> {
   return groups;
 }
 
-export async function listLeadsByStage(): Promise<Record<Stage, LeadRow[]>> {
+export async function listLeadsByStage(
+  unitProfileIds: string[] | null = null,
+): Promise<Record<Stage, LeadRow[]>> {
   const cached = unstable_cache(
-    async () => _listLeadsByStageImpl(),
-    ["leads-by-stage"],
+    async (idsJson: string) => {
+      const ids = idsJson === "null" ? null : (JSON.parse(idsJson) as string[]);
+      return _listLeadsByStageImpl(ids);
+    },
+    // v2: filtro por unitProfileIds (multi-tenant)
+    ["leads-by-stage-v2"],
     // TTL longo: o realtime watcher + revalidateTag das actions garantem
     // frescor. 5min é fallback pra cache não viver pra sempre.
     { revalidate: 300, tags: [LEADS_CACHE_TAG] },
   );
-  return cached();
+  return cached(unitProfileIds === null ? "null" : JSON.stringify(unitProfileIds));
 }
 
 export interface LeadPerdidoRow extends LeadRow {

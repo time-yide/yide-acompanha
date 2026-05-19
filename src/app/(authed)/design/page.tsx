@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowRight, Palette, Sparkles } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import { listClientesDesign } from "@/lib/design/queries";
+import { getEffectiveUnitId } from "@/lib/units/session";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -37,6 +38,8 @@ export default async function DesignListPage({
   if (user.role === "assessor") filter.assessorId = user.id;
   else if (user.role === "coordenador") filter.coordenadorId = user.id;
   else if (user.role === "designer") filter.designerId = user.id;
+  // Multi-tenant: master filtra pela unidade ativa
+  filter.unitId = await getEffectiveUnitId();
 
   const clientes = await listClientesDesign(filter);
 

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowRight, Share2, Sparkles } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import { listClientesSocial } from "@/lib/social-media/queries";
+import { getEffectiveUnitId } from "@/lib/units/session";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TabsSocialMedia } from "@/components/social-media/TabsSocialMedia";
@@ -38,6 +39,8 @@ export default async function SocialMediaListPage({
   if (user.role === "assessor") filter.assessorId = user.id;
   else if (user.role === "coordenador") filter.coordenadorId = user.id;
   else if (user.role === "designer") filter.designerId = user.id;
+  // Multi-tenant: filtra pela unidade ativa
+  filter.unitId = await getEffectiveUnitId();
 
   const clientes = await listClientesSocial(filter);
 

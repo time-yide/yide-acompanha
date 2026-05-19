@@ -6,6 +6,7 @@ import { CommissionTabs } from "@/components/comissoes/CommissionTabs";
 import { OverviewTable } from "@/components/comissoes/OverviewTable";
 import { listSnapshotsForMonth, getMonthsAwaitingApproval } from "@/lib/comissoes/queries";
 import { previewAllForMonth } from "@/lib/comissoes/preview";
+import { getProfileIdsForActiveUnit } from "@/lib/units/filter-helpers";
 import { getCurrentMonthYM } from "@/lib/datetime/timezone";
 
 function defaultMonth(): string {
@@ -33,12 +34,20 @@ export default async function VisaoGeralPage({
   const showFechamento = canAccess(user.role, "approve:monthly_closing");
   const monthRef = params.mes && /^\d{4}-\d{2}$/.test(params.mes) ? params.mes : defaultMonth();
 
+  const unitProfileIds = await getProfileIdsForActiveUnit();
   const [pending, snapshots] = await Promise.all([
     getMonthsAwaitingApproval(),
-    listSnapshotsForMonth(monthRef),
+    listSnapshotsForMonth(monthRef, unitProfileIds),
   ]);
   const isPreview = snapshots.length === 0;
-  const rows = isPreview ? await previewAllForMonth(monthRef) : snapshots;
+  // previewAllForMonth gera preview pra todos profiles ativos — filtra
+  // pelos da unidade ativa
+  const previewRows = isPreview ? await previewAllForMonth(monthRef) : [];
+  const rows = isPreview
+    ? (unitProfileIds === null
+        ? previewRows
+        : previewRows.filter((r) => r.profile && unitProfileIds.includes(r.profile.id)))
+    : snapshots;
 
   return (
     <div className="mx-auto max-w-5xl space-y-5">

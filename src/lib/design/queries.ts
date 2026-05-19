@@ -21,14 +21,18 @@ export async function listClientesDesign(filter: {
   coordenadorId?: string | null;
   designerId?: string | null;
   searchQuery?: string;
+  /** Multi-tenant: quando passado, filtra por unidade. */
+  unitId?: string | null;
 } = {}): Promise<ClienteDesignRow[]> {
   const supabase = createServiceRoleClient();
 
   const buildClientsQuery = (selectStr: string) => {
-    let q = supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let q: any = supabase
       .from("clients")
       .select(selectStr)
       .eq("status", "ativo");
+    if (filter.unitId) q = q.eq("unit_id", filter.unitId);
     if (filter.assessorId) q = q.eq("assessor_id", filter.assessorId);
     if (filter.coordenadorId) q = q.eq("coordenador_id", filter.coordenadorId);
     if (filter.designerId) q = q.eq("designer_id", filter.designerId);
