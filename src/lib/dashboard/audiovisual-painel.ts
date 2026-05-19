@@ -31,7 +31,7 @@ interface CapturaMinimal {
   task: { status: string } | null;
 }
 
-async function _getPainelAudiovisualImpl(): Promise<CapturaPainelRow[]> {
+async function _getPainelAudiovisualImpl(unitClientIds: string[] | null): Promise<CapturaPainelRow[]> {
   const supabase = createServiceRoleClient();
 
   // 3 dias atrás no fuso da app (Cuiabá). data_captacao é DATE (YYYY-MM-DD).
@@ -45,7 +45,8 @@ async function _getPainelAudiovisualImpl(): Promise<CapturaPainelRow[]> {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
-  const { data, error } = await sb
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let q: any = sb
     .from("audiovisual_capturas")
     .select(`
       id, data_captacao, qtd_videos, qtd_fotos, concluida_em, task_id,
@@ -56,6 +57,13 @@ async function _getPainelAudiovisualImpl(): Promise<CapturaPainelRow[]> {
     .gte("data_captacao", cutoffStr)
     .order("data_captacao", { ascending: false });
 
+  // Multi-tenant: filtra por client_ids da unidade ativa
+  if (unitClientIds !== null) {
+    if (unitClientIds.length === 0) return [];
+    q = q.in("client_id", unitClientIds);
+  }
+
+  const { data, error } = await q;
   if (error || !data) return [];
 
   return (data as CapturaMinimal[]).map((c) => {
@@ -77,11 +85,15 @@ async function _getPainelAudiovisualImpl(): Promise<CapturaPainelRow[]> {
   });
 }
 
-export async function getPainelAudiovisual(): Promise<CapturaPainelRow[]> {
+export async function getPainelAudiovisual(unitClientIds: string[] | null = null): Promise<CapturaPainelRow[]> {
   const cached = unstable_cache(
-    _getPainelAudiovisualImpl,
-    ["dashboard-audiovisual-painel-v1"],
+    async (idsJson: string) => {
+      const ids = idsJson === "null" ? null : (JSON.parse(idsJson) as string[]);
+      return _getPainelAudiovisualImpl(ids);
+    },
+    // v2: shape ganhou filtro unit_client_ids
+    ["dashboard-audiovisual-painel-v2"],
     { revalidate: 60, tags: ["dashboard", AUDIOVISUAL_CAPTURAS_TAG, "tasks"] },
   );
-  return cached();
+  return cached(unitClientIds === null ? "null" : JSON.stringify(unitClientIds));
 }

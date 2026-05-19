@@ -5,6 +5,8 @@ import type { SatisfactionColor } from "./schema";
 export interface RankingClientFilter {
   assessorId?: string;
   coordenadorId?: string;
+  /** Multi-tenant: filtra clientes pela unidade ativa. */
+  unitId?: string | null;
 }
 
 export interface RankedClient {
@@ -43,6 +45,7 @@ function applyClientFilter<T extends { eq: (col: string, val: string) => T }>(
   filter?: RankingClientFilter,
 ): T {
   let q = query;
+  if (filter?.unitId) q = q.eq("unit_id", filter.unitId);
   if (filter?.assessorId) q = q.eq("assessor_id", filter.assessorId);
   if (filter?.coordenadorId) q = q.eq("coordenador_id", filter.coordenadorId);
   return q;

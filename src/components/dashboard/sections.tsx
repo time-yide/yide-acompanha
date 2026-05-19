@@ -14,6 +14,7 @@ import {
   getMesAguardandoAprovacao,
 } from "@/lib/dashboard/queries";
 import { getEffectiveUnitId } from "@/lib/units/session";
+import { getClientIdsForActiveUnit } from "@/lib/units/filter-helpers";
 import { getComissaoPrevista } from "@/lib/dashboard/comissao-prevista";
 import { KpiRow } from "./KpiRow";
 import { ChartCarteiraTimeline } from "./ChartCarteiraTimeline";
@@ -112,7 +113,8 @@ export async function CarteiraPorAssessorSection() {
 }
 
 export async function RankingSection() {
-  const ranking = await getRankingSatisfacao();
+  const unitId = await getEffectiveUnitId();
+  const ranking = await getRankingSatisfacao({ unitId });
   return (
     <Section
       title="Satisfação"
@@ -125,7 +127,8 @@ export async function RankingSection() {
 }
 
 export async function ProximosEventosSection() {
-  const eventos = await getProximosEventos(30, 10);
+  const unitClientIds = await getClientIdsForActiveUnit();
+  const eventos = await getProximosEventos(30, 10, { unitClientIds });
   return (
     <Section title="Próximos eventos" cta={{ href: "/calendario", label: "Ver agenda →" }}>
       <ProximosEventosList eventos={eventos} />
