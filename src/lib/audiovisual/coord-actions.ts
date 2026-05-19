@@ -34,7 +34,7 @@ export async function delegateVideomakerAction(
 ): Promise<ActionResult> {
   const actor = await requireAuth();
   if (!ROLES_COORD_DELEGATE.has(actor.role)) {
-    return { error: "Apenas coord audiovisual ou ADM podem delegar" };
+    return { error: "Você não tem permissão pra delegar captação" };
   }
 
   const eventId = String(formData.get("event_id") ?? "");
@@ -159,6 +159,7 @@ export async function delegateVideomakerAction(
   });
 
   revalidatePath("/audiovisual/coordenacao");
+  revalidatePath("/audiovisual");
   revalidatePath("/calendario");
   revalidateTag("calendar", "default");
   return { success: true };

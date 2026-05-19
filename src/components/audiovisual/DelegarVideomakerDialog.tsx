@@ -55,7 +55,7 @@ export function DelegarVideomakerDialog({
   const [videomakerId, setVideomakerId] = useState<string>("");
   const [pending, startTransition] = useTransition();
 
-  // Sócio só vê: badge "Aguardando coord" em vez do botão de delegar.
+  // Quem não pode delegar (ex: viewer read-only) vê badge em vez do botão.
   if (!canDelegate) {
     return (
       <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1.5 text-xs font-medium text-amber-700 dark:text-amber-300">
