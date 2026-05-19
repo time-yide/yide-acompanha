@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Film, CheckCircle2, Wrench, AlertCircle } from "lucide-react";
 import { getPainelAudiovisual, type CapturaPainelRow, type StatusAtual } from "@/lib/dashboard/audiovisual-painel";
+import { getClientIdsForActiveUnit } from "@/lib/units/filter-helpers";
 
 function formatDateBR(iso: string): string {
   const datePart = iso.length === 10 ? iso : iso.slice(0, 10);
@@ -41,7 +42,8 @@ function rowHref(row: CapturaPainelRow): string {
 }
 
 export async function PainelAudiovisualSection() {
-  const rows = await getPainelAudiovisual();
+  const unitClientIds = await getClientIdsForActiveUnit();
+  const rows = await getPainelAudiovisual(unitClientIds);
 
   const totalCount = rows.length;
   const totalVideos = rows.reduce((s, r) => s + r.qtd_videos, 0);

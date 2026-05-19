@@ -517,7 +517,8 @@ export async function getRankingSatisfacao(filter?: ClientFilter): Promise<{
       const f = filterJson !== "null" ? (JSON.parse(filterJson) as ClientFilter) : undefined;
       return _getRankingSatisfacaoImpl(f);
     },
-    ["dashboard-ranking-satisfacao"],
+    // v2: filter ganhou unitId (multi-tenant)
+    ["dashboard-ranking-satisfacao-v2"],
     // 60s — responsivo a votos novos. Mutations de satisfação já invalidam
     // o tag 'dashboard', então em prática atualiza imediatamente após voto.
     { revalidate: 60, tags: ["dashboard"] },
@@ -540,6 +541,10 @@ export interface EventoFilter {
   /** Quando passado, restringe aos sub_calendars listados (ex.: ADM só vê
    * agencia/onboarding/aniversarios — não as gravações de videomakers). */
   subCalendars?: string[];
+  /** Multi-tenant: client_ids da unidade ativa. Quando passado, filtra
+   *  eventos com client_id apenas pra esses (eventos sem client_id passam
+   *  livres — são eventos gerais da agência tipo aniversários). */
+  unitClientIds?: string[] | null;
 }
 
 export async function _getProximosEventosImpl(
@@ -555,7 +560,7 @@ export async function _getProximosEventosImpl(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let query: any = supabase
     .from("calendar_events")
-    .select("id, titulo, inicio, fim, sub_calendar");
+    .select("id, titulo, inicio, fim, sub_calendar, client_id");
 
   if (filter?.userId) {
     query = query.contains("participantes_ids", [filter.userId]);
@@ -568,9 +573,22 @@ export async function _getProximosEventosImpl(
     .gte("inicio", start)
     .lte("inicio", end)
     .order("inicio", { ascending: true })
-    .limit(limit);
+    .limit(limit * 2); // pega mais pra compensar filtro pós-query
 
-  return (data ?? []) as EventoRow[];
+  let rows = ((data ?? []) as Array<EventoRow & { client_id: string | null }>);
+
+  // Multi-tenant: filtra eventos COM client_id pelos ids da unidade ativa.
+  // Eventos SEM client_id (aniversários de colab, reuniões gerais) passam
+  // por todas as unidades — são institucionais.
+  if (filter?.unitClientIds && filter.unitClientIds.length > 0) {
+    const allowedIds = new Set(filter.unitClientIds);
+    rows = rows.filter((r) => r.client_id === null || allowedIds.has(r.client_id));
+  } else if (filter?.unitClientIds && filter.unitClientIds.length === 0) {
+    // Unidade nova sem clientes — só eventos sem client_id
+    rows = rows.filter((r) => r.client_id === null);
+  }
+
+  return rows.slice(0, limit).map(({ ...r }) => r as EventoRow);
 }
 
 export async function getProximosEventos(
@@ -583,8 +601,8 @@ export async function getProximosEventos(
       const { days: d, limit: l, filter: f } = JSON.parse(paramsJson) as { days: number; limit: number; filter: EventoFilter | null };
       return _getProximosEventosImpl(d, l, f ?? undefined);
     },
-    // v2: filter agora suporta subCalendars
-    ["dashboard-proximos-eventos-v2"],
+    // v3: filter ganhou unitClientIds (multi-tenant)
+    ["dashboard-proximos-eventos-v3"],
     { revalidate: 300, tags: ["dashboard"] },
   );
   return cached(JSON.stringify({ days, limit, filter: filter ?? null }));
