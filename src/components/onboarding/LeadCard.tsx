@@ -56,14 +56,19 @@ export function LeadCard({
       onDragStart={canInteract ? onDragStart : undefined}
       className={`space-y-2 p-3 transition-opacity ${canInteract ? "cursor-grab active:cursor-grabbing [&[draggable=true]:active]:opacity-50" : ""}`}
     >
-      <div className="flex items-start justify-between gap-2">
-        <Link href={`/onboarding/${lead.id}`} className="font-semibold hover:underline">
-          {lead.nome_prospect}
-        </Link>
-        <Badge variant="outline" className={priorityClass[lead.prioridade]}>{lead.prioridade}</Badge>
-      </div>
+      <Link
+        href={`/onboarding/${lead.id}`}
+        className="block -m-3 mb-0 cursor-pointer p-3 pb-0 hover:bg-muted/30 rounded-t-xl"
+        title="Abrir lead pra editar coord/assessor/dados"
+      >
+        <div className="flex items-start justify-between gap-2">
+          <span className="font-semibold hover:underline">
+            {lead.nome_prospect}
+          </span>
+          <Badge variant="outline" className={priorityClass[lead.prioridade]}>{lead.prioridade}</Badge>
+        </div>
 
-      <div className="text-xs text-muted-foreground space-y-1">
+        <div className="mt-2 text-xs text-muted-foreground space-y-1">
         {lead.site && (
           <div className="flex items-center gap-1.5">
             <Globe className="h-3.5 w-3.5 flex-shrink-0" />
@@ -102,11 +107,12 @@ export function LeadCard({
         )}
       </div>
 
-      <div className="flex flex-wrap gap-1 pt-1 text-[10px] text-muted-foreground">
-        {lead.comercial_nome && <span>Com: {lead.comercial_nome}</span>}
-        {lead.coord_nome && <span>· Coord: {lead.coord_nome}</span>}
-        {lead.assessor_nome && <span>· Asses: {lead.assessor_nome}</span>}
-      </div>
+        <div className="flex flex-wrap gap-1 pt-1 text-[10px] text-muted-foreground">
+          {lead.comercial_nome && <span>Com: {lead.comercial_nome}</span>}
+          {lead.coord_nome && <span>· Coord: {lead.coord_nome}</span>}
+          {lead.assessor_nome && <span>· Asses: {lead.assessor_nome}</span>}
+        </div>
+      </Link>
 
       {canInteract && (
         <StageTransitionButtons

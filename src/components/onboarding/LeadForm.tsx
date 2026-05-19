@@ -184,23 +184,32 @@ export function LeadForm({ action, defaults = {}, coordenadores = [], assessores
               </div>
               <div className="space-y-2">
                 <Label htmlFor="coord_alocado_id">Coordenador alocado</Label>
-                <Select name="coord_alocado_id" defaultValue={defaults.coord_alocado_id ?? ""}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Sem coordenador</SelectItem>
-                    {coordenadores.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                {/* Native HTML select — Radix Select dava problemas de Portal */}
+                <select
+                  id="coord_alocado_id"
+                  name="coord_alocado_id"
+                  defaultValue={defaults.coord_alocado_id ?? ""}
+                  className="block h-9 w-full rounded-md border bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                >
+                  <option value="">Sem coordenador</option>
+                  {coordenadores.map((c) => (
+                    <option key={c.id} value={c.id}>{c.nome}</option>
+                  ))}
+                </select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="assessor_alocado_id">Assessor alocado</Label>
-                <Select name="assessor_alocado_id" defaultValue={defaults.assessor_alocado_id ?? ""}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Sem assessor</SelectItem>
-                    {assessores.map((a) => <SelectItem key={a.id} value={a.id}>{a.nome}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <select
+                  id="assessor_alocado_id"
+                  name="assessor_alocado_id"
+                  defaultValue={defaults.assessor_alocado_id ?? ""}
+                  className="block h-9 w-full rounded-md border bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                >
+                  <option value="">Sem assessor</option>
+                  {assessores.map((a) => (
+                    <option key={a.id} value={a.id}>{a.nome}</option>
+                  ))}
+                </select>
               </div>
             </>
           )}
