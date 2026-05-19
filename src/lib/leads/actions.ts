@@ -334,6 +334,11 @@ export async function moveStageAction(formData: FormData) {
   const inlineLinkProposta = fd(formData, "link_proposta");
   const inlineDataReuniao = fd(formData, "data_prospeccao_agendada");
   const inlineDataMarcoZero = fd(formData, "data_reuniao_marco_zero");
+  // Yasmin: ao mover pra "ativo", o dialog pede coord + assessor. Aplicamos
+  // antes da validação da transição pra a regra "exige coord + assessor"
+  // passar quando o user preenche tudo no mesmo modal.
+  const inlineCoordAlocado = fd(formData, "coord_alocado_id");
+  const inlineAssessorAlocado = fd(formData, "assessor_alocado_id");
 
   const supabase = await createClient();
   const { data: leadInitial } = await supabase.from("leads").select("*").eq("id", parsed.data.id).single();
@@ -360,6 +365,8 @@ export async function moveStageAction(formData: FormData) {
   if (inlineLinkProposta !== undefined) inlineUpdate.link_proposta = inlineLinkProposta || null;
   if (inlineDataReuniao !== undefined) inlineUpdate.data_prospeccao_agendada = datetimeLocalToUtcOrNull(inlineDataReuniao);
   if (inlineDataMarcoZero !== undefined) inlineUpdate.data_reuniao_marco_zero = datetimeLocalToUtcOrNull(inlineDataMarcoZero);
+  if (inlineCoordAlocado !== undefined) inlineUpdate.coord_alocado_id = inlineCoordAlocado || null;
+  if (inlineAssessorAlocado !== undefined) inlineUpdate.assessor_alocado_id = inlineAssessorAlocado || null;
 
   if (Object.keys(inlineUpdate).length > 0) {
     const { error: inlineErr } = await supabase

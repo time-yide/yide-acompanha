@@ -17,13 +17,26 @@ const STAGES: Stage[] = [
   "ativo",
 ];
 
+interface Profile {
+  id: string;
+  nome: string;
+}
+
 interface Props {
   groups: Record<Stage, LeadRow[]>;
   currentUserId: string;
   currentUserRole: string;
+  coordenadores?: Profile[];
+  assessores?: Profile[];
 }
 
-export function KanbanBoard({ groups, currentUserId, currentUserRole }: Props) {
+export function KanbanBoard({
+  groups,
+  currentUserId,
+  currentUserRole,
+  coordenadores = [],
+  assessores = [],
+}: Props) {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -63,6 +76,8 @@ export function KanbanBoard({ groups, currentUserId, currentUserRole }: Props) {
               onDropLead={(leadId, fromStage) => handleDrop(leadId, fromStage, s)}
               currentUserId={currentUserId}
               currentUserRole={currentUserRole}
+              coordenadores={coordenadores}
+              assessores={assessores}
             />
           ))}
         </div>

@@ -10,13 +10,14 @@ import { TransitionDialog } from "./TransitionDialog";
 
 // Estágios cuja transição PRA ELES requer informação adicional do user.
 // Quando um lead vai mover pra um desses, abrimos o TransitionDialog em vez
-// de mover direto. Pra demais (marco_zero, ativo, voltar) move direto.
+// de mover direto. Inclui "ativo" — precisa alocar coord + assessor.
 const STAGES_NEEDING_DIALOG = new Set<Stage>([
   "leads_ativos",
   "proposta_enviada",
   "reuniao_comercial",
   "contrato",
   "marco_zero",
+  "ativo",
 ]);
 
 interface LeadDefaults {
@@ -27,6 +28,13 @@ interface LeadDefaults {
   link_proposta?: string | null;
   data_prospeccao_agendada?: string | null;
   data_reuniao_marco_zero?: string | null;
+  coord_alocado_id?: string | null;
+  assessor_alocado_id?: string | null;
+}
+
+interface Profile {
+  id: string;
+  nome: string;
 }
 
 const STAGE_ORDER: Stage[] = [
@@ -57,9 +65,20 @@ interface Props {
   canDelete?: boolean;
   /** Defaults pra preencher o TransitionDialog quando o user avança. */
   leadDefaults?: LeadDefaults;
+  /** Listas pra alocação ao mover pra "ativo". */
+  coordenadores?: Profile[];
+  assessores?: Profile[];
 }
 
-export function StageTransitionButtons({ leadId, currentStage, compact = false, canDelete = false, leadDefaults = {} }: Props) {
+export function StageTransitionButtons({
+  leadId,
+  currentStage,
+  compact = false,
+  canDelete = false,
+  leadDefaults = {},
+  coordenadores = [],
+  assessores = [],
+}: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -202,6 +221,8 @@ export function StageTransitionButtons({ leadId, currentStage, compact = false, 
           open={dialogStage !== null}
           onOpenChange={(o) => { if (!o) setDialogStage(null); }}
           defaults={leadDefaults}
+          coordenadores={coordenadores}
+          assessores={assessores}
           onSuccess={() => router.refresh()}
         />
       )}

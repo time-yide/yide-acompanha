@@ -20,13 +20,26 @@ function formatBR(date: string | null) {
   return d.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 }
 
+interface Profile {
+  id: string;
+  nome: string;
+}
+
 interface Props {
   lead: LeadRow;
   currentUserId: string;
   currentUserRole: string;
+  coordenadores?: Profile[];
+  assessores?: Profile[];
 }
 
-export function LeadCard({ lead, currentUserId, currentUserRole }: Props) {
+export function LeadCard({
+  lead,
+  currentUserId,
+  currentUserRole,
+  coordenadores = [],
+  assessores = [],
+}: Props) {
   const canDelete = currentUserRole === "socio" || currentUserRole === "adm" || currentUserId === lead.comercial_id;
   // Permissão por estágio (mapa em src/lib/leads/schema.ts)
   const canInteract = canInteractWithStage(currentUserRole, lead.stage as Stage);
@@ -109,7 +122,11 @@ export function LeadCard({ lead, currentUserId, currentUserRole }: Props) {
             link_proposta: lead.link_proposta,
             data_prospeccao_agendada: lead.data_prospeccao_agendada,
             data_reuniao_marco_zero: lead.data_reuniao_marco_zero,
+            coord_alocado_id: lead.coord_alocado_id,
+            assessor_alocado_id: lead.assessor_alocado_id,
           }}
+          coordenadores={coordenadores}
+          assessores={assessores}
         />
       )}
     </Card>

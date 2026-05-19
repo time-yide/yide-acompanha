@@ -18,6 +18,13 @@ interface LeadDefaults {
   link_proposta?: string | null;
   data_prospeccao_agendada?: string | null;
   data_reuniao_marco_zero?: string | null;
+  coord_alocado_id?: string | null;
+  assessor_alocado_id?: string | null;
+}
+
+interface Profile {
+  id: string;
+  nome: string;
 }
 
 interface Props {
@@ -27,6 +34,9 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   defaults?: LeadDefaults;
   onSuccess?: () => void;
+  /** Listas pra dropdown ao mover pra "ativo" (precisa alocar coord + assessor). */
+  coordenadores?: Profile[];
+  assessores?: Profile[];
 }
 
 const STAGE_TITLE: Record<string, string> = {
@@ -35,6 +45,7 @@ const STAGE_TITLE: Record<string, string> = {
   reuniao_comercial: "Mover pra Reunião comercial",
   contrato: "Mover pra Contrato",
   marco_zero: "Mover pra Marco zero",
+  ativo: "Ativar cliente",
 };
 
 const STAGE_DESC: Record<string, string> = {
@@ -43,9 +54,19 @@ const STAGE_DESC: Record<string, string> = {
   reuniao_comercial: "Agende data e horário da reunião. Vamos criar o evento no calendário interno automaticamente.",
   contrato: "Confirme o valor e o serviço/especificações do que foi fechado.",
   marco_zero: "Agende a reunião de Marco zero. Coordenador conduz a partir desse ponto.",
+  ativo: "Aloque o coordenador e assessor responsáveis. Sem essa alocação o cliente não pode ser ativado.",
 };
 
-export function TransitionDialog({ leadId, toStage, open, onOpenChange, defaults = {}, onSuccess }: Props) {
+export function TransitionDialog({
+  leadId,
+  toStage,
+  open,
+  onOpenChange,
+  defaults = {},
+  onSuccess,
+  coordenadores = [],
+  assessores = [],
+}: Props) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -60,6 +81,8 @@ export function TransitionDialog({ leadId, toStage, open, onOpenChange, defaults
   const [dataMarcoZero, setDataMarcoZero] = useState(
     defaults.data_reuniao_marco_zero ? defaults.data_reuniao_marco_zero.slice(0, 16) : "",
   );
+  const [coordId, setCoordId] = useState(defaults.coord_alocado_id ?? "");
+  const [assessorId, setAssessorId] = useState(defaults.assessor_alocado_id ?? "");
   const [obs, setObs] = useState("");
 
   function handleSubmit(e: React.FormEvent) {
@@ -131,6 +154,19 @@ export function TransitionDialog({ leadId, toStage, open, onOpenChange, defaults
         return;
       }
       fd.set("data_reuniao_marco_zero", dataMarcoZero);
+    }
+
+    if (toStage === "ativo") {
+      if (!coordId) {
+        setError("Selecione o coordenador responsável");
+        return;
+      }
+      if (!assessorId) {
+        setError("Selecione o assessor responsável");
+        return;
+      }
+      fd.set("coord_alocado_id", coordId);
+      fd.set("assessor_alocado_id", assessorId);
     }
 
     startTransition(async () => {
@@ -247,6 +283,48 @@ export function TransitionDialog({ leadId, toStage, open, onOpenChange, defaults
                 A partir daqui o coordenador toma a frente. O assessor vai ser notificado quando o card for ativado.
               </p>
             </div>
+          )}
+
+          {toStage === "ativo" && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="coord_alocado">Coordenador responsável *</Label>
+                {/* Select HTML nativo — evita problemas de Portal/z-index do Radix Select dentro de Dialog */}
+                <select
+                  id="coord_alocado"
+                  value={coordId}
+                  onChange={(e) => setCoordId(e.target.value)}
+                  className="block h-9 w-full rounded-md border bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                  autoFocus
+                >
+                  <option value="">
+                    {coordenadores.length === 0 ? "Nenhum coordenador disponível" : "Selecione o coordenador"}
+                  </option>
+                  {coordenadores.map((c) => (
+                    <option key={c.id} value={c.id}>{c.nome}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="assessor_alocado">Assessor responsável *</Label>
+                <select
+                  id="assessor_alocado"
+                  value={assessorId}
+                  onChange={(e) => setAssessorId(e.target.value)}
+                  className="block h-9 w-full rounded-md border bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                >
+                  <option value="">
+                    {assessores.length === 0 ? "Nenhum assessor disponível" : "Selecione o assessor"}
+                  </option>
+                  {assessores.map((a) => (
+                    <option key={a.id} value={a.id}>{a.nome}</option>
+                  ))}
+                </select>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Cliente entra na carteira do assessor selecionado. Coord acompanha estratégico.
+              </p>
+            </>
           )}
 
           <div className="space-y-2">

@@ -82,7 +82,12 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
               servico_proposto: lead.servico_proposto,
               link_proposta: lead.link_proposta,
               data_prospeccao_agendada: lead.data_prospeccao_agendada,
+              data_reuniao_marco_zero: lead.data_reuniao_marco_zero,
+              coord_alocado_id: lead.coord_alocado_id,
+              assessor_alocado_id: lead.assessor_alocado_id,
             }}
+            coordenadores={coordenadores.map((p) => ({ id: p.id, nome: p.nome }))}
+            assessores={assessores.map((p) => ({ id: p.id, nome: p.nome }))}
           />
         ) : (
           <p className="text-sm text-muted-foreground">

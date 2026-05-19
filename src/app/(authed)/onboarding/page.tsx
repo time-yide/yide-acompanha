@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth/session";
 import { listLeadsByStage } from "@/lib/leads/queries";
 import { getProfileIdsForActiveUnit } from "@/lib/units/filter-helpers";
+import { listColaboradores } from "@/lib/colaboradores/queries";
 import { KanbanBoard } from "@/components/onboarding/KanbanBoard";
 import { OnboardingRealtimeWatcher } from "@/components/onboarding/OnboardingRealtimeWatcher";
 import { TabsOnboarding } from "@/components/onboarding/TabsOnboarding";
@@ -17,7 +18,13 @@ export default async function OnboardingPage() {
   if (!ROLES_PERMITIDOS.includes(user.role)) redirect("/");
   // Multi-tenant: filtra leads pelos profiles da unidade ativa
   const unitProfileIds = await getProfileIdsForActiveUnit();
-  const groups = await listLeadsByStage(unitProfileIds);
+  const [groups, coordenadoresRaw, assessoresRaw] = await Promise.all([
+    listLeadsByStage(unitProfileIds),
+    listColaboradores({ ativo: true, roles: ["socio", "coordenador"] }),
+    listColaboradores({ ativo: true, role: "assessor" }),
+  ]);
+  const coordenadores = coordenadoresRaw.map((c) => ({ id: c.id, nome: c.nome }));
+  const assessores = assessoresRaw.map((a) => ({ id: a.id, nome: a.nome }));
 
   const total =
     groups.leads_potencial.length + groups.leads_ativos.length + groups.reuniao_comercial.length +
@@ -56,7 +63,7 @@ export default async function OnboardingPage() {
         </div>
       </header>
 
-      <KanbanBoard groups={groups} currentUserId={user.id} currentUserRole={user.role} />
+      <KanbanBoard groups={groups} currentUserId={user.id} currentUserRole={user.role} coordenadores={coordenadores} assessores={assessores} />
     </div>
   );
 }
