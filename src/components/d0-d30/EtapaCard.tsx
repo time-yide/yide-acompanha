@@ -110,6 +110,9 @@ export function EtapaCard({ etapa, diaAtual, canEdit }: Props) {
   }
 
   const todasSaidasFeitas = etapa.saidas_checklist.every((i) => i.done);
+  const progressPct = totalItens === 0
+    ? (etapa.status === "concluido" ? 100 : 0)
+    : Math.round((feitosItens / totalItens) * 100);
 
   return (
     <div className="overflow-hidden rounded-xl border bg-card">
@@ -134,6 +137,25 @@ export function EtapaCard({ etapa, diaAtual, canEdit }: Props) {
               <span className="text-[11px] text-muted-foreground/70">· {dateRange}</span>
             )}
           </div>
+          {totalItens > 0 && (
+            <div className="mt-1.5 flex items-center gap-2">
+              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                <div
+                  className={`h-full rounded-full transition-all ${
+                    etapa.status === "concluido"
+                      ? "bg-emerald-500"
+                      : progressPct === 100
+                      ? "bg-emerald-500/70"
+                      : "bg-primary"
+                  }`}
+                  style={{ width: `${progressPct}%` }}
+                />
+              </div>
+              <span className="text-[10px] tabular-nums text-muted-foreground/70">
+                {progressPct}%
+              </span>
+            </div>
+          )}
         </div>
         <span className="text-[11px] tabular-nums text-muted-foreground">
           {feitosItens}/{totalItens}
@@ -245,15 +267,15 @@ export function EtapaCard({ etapa, diaAtual, canEdit }: Props) {
                 {etapa.status === "concluido"
                   ? `Concluída em ${new Date(etapa.concluido_em ?? "").toLocaleDateString("pt-BR")}`
                   : todasSaidasFeitas
-                  ? "Pronta pra concluir, todas as saídas estão feitas."
-                  : "Marque as saídas obrigatórias antes de concluir a etapa."}
+                  ? "Todas as saídas marcadas — pronta pra concluir."
+                  : `Você pode concluir mesmo com itens pendentes (${feitosItens}/${totalItens}).`}
               </p>
               {etapa.status === "concluido" ? (
                 <ReabrirButton etapaId={etapa.id} />
               ) : (
                 <MarcarConcluidaButton
                   etapaId={etapa.id}
-                  disabled={!todasSaidasFeitas}
+                  disabled={false}
                   d0Date={etapa.d0_date}
                 />
               )}

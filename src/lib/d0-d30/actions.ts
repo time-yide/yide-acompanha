@@ -180,14 +180,10 @@ export async function markEtapaConcluidaAction(
     return { error: "Sem permissão" };
   }
 
-  const saidas = etapa.saidas_checklist as ChecklistItem[];
-  const todasSaidasFeitas = saidas.every((i) => i.done);
-  if (!todasSaidasFeitas) {
-    return {
-      error:
-        "Pra concluir a etapa, primeiro marque todas as 'Saídas obrigatórias' como feitas",
-    };
-  }
+  // Yasmin: o fluxo real não exige que TODOS os itens estejam feitos pra
+  // concluir uma etapa. Algumas saídas ficam "em aberto" mesmo quando o
+  // marco é atingido. Permitimos concluir com itens pendentes —
+  // observabilidade fica na progress bar do card (parcial vs total).
 
   if (etapa.status === "concluido") return { success: true };
 
