@@ -50,8 +50,7 @@ export default async function AudiovisualPage({
   const canDelete = ROLES_QUE_EXCLUEM.includes(user.role);
   // Pendente delegação visível pra coord/assessor (read-only) + quem pode delegar.
   const canSeeDelegacao = ROLES_GESTAO.includes(user.role);
-  // Aguardando coord videomaker: audiovisual_chefe/adm/sócio.
-  // Sócio vê mas não delega (canRoleDelegateVideomaker é false pra ele).
+  // Aguardando coord videomaker: audiovisual_chefe/adm/sócio veem e delegam.
   const canSeeAguardando = canRoleViewCoord(user.role);
   const canDelegateVideomaker = canRoleDelegateVideomaker(user.role);
 
