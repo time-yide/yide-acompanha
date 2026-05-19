@@ -37,6 +37,9 @@ export interface KpiData {
 export interface ClientFilter {
   assessorId?: string;
   coordenadorId?: string;
+  /** Multi-tenant: quando passado, restringe à unidade. null/undefined = consolidado (master).
+   *  Page deve passar via getEffectiveUnitId(). */
+  unitId?: string | null;
 }
 
 function buildClientFilterQuery<T extends { eq: (col: string, val: string) => T }>(
@@ -44,6 +47,7 @@ function buildClientFilterQuery<T extends { eq: (col: string, val: string) => T 
   filter?: ClientFilter,
 ): T {
   let q = query;
+  if (filter?.unitId) q = q.eq("unit_id", filter.unitId);
   if (filter?.assessorId) q = q.eq("assessor_id", filter.assessorId);
   if (filter?.coordenadorId) q = q.eq("coordenador_id", filter.coordenadorId);
   return q;
@@ -225,7 +229,8 @@ export async function getKpis(filter?: ClientFilter): Promise<KpiData> {
     // v3: distingue mensal vs pontual no churn + KPI de serviços pontuais
     // v4: shape mudou (servicosPontuais ganhou valorTotal)
     // v5: shape mudou (adicionado ticketMedio + ltv)
-    ["dashboard-kpis-v5"],
+    // v6: filter ganhou unitId (multi-tenant)
+    ["dashboard-kpis-v6"],
     { revalidate: 300, tags: ["dashboard"] },
   );
   return cached(JSON.stringify(filter ?? null));
@@ -282,7 +287,8 @@ export async function getCarteiraTimeline(months = 12, filter?: ClientFilter): P
       const { months: m, filter: f } = JSON.parse(paramsJson) as { months: number; filter: ClientFilter | null };
       return _getCarteiraTimelineImpl(m, f ?? undefined);
     },
-    ["dashboard-carteira-timeline"],
+    // v2: filter ganhou unitId (multi-tenant)
+    ["dashboard-carteira-timeline-v2"],
     { revalidate: 300, tags: ["dashboard"] },
   );
   return cached(JSON.stringify({ months, filter: filter ?? null }));
@@ -390,7 +396,8 @@ export async function getEntradaChurn(months = 6, filter?: ClientFilter): Promis
     },
     // v3: shape mudou — adicionado avulsos/avulsos_clientes (pontuais) +
     // fix bug em_onboarding contado como entrada.
-    ["dashboard-entrada-churn-v3"],
+    // v4: filter ganhou unitId (multi-tenant)
+    ["dashboard-entrada-churn-v4"],
     { revalidate: 300, tags: ["dashboard"] },
   );
   return cached(JSON.stringify({ months, filter: filter ?? null }));
@@ -479,7 +486,8 @@ export async function getCarteiraPorAssessor(filter?: ClientFilter): Promise<Ass
       return _getCarteiraPorAssessorImpl(f);
     },
     // v2: valor por assessor agora considera ajustes mensais
-    ["dashboard-carteira-por-assessor-v2"],
+    // v3: filter ganhou unitId (multi-tenant)
+    ["dashboard-carteira-por-assessor-v3"],
     { revalidate: 300, tags: ["dashboard"] },
   );
   return cached(JSON.stringify(filter ?? null));
