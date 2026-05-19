@@ -121,7 +121,7 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
   // contexto/notificação), mas a fonte da verdade da agenda é o
   // videomaker_assigned_id (NULL enquanto pending).
   const isVideomaker = parsed.data.sub_calendar === "videomakers";
-  const insertPayload = {
+  const basePayload = {
     organization_id: org.id,
     titulo: parsed.data.titulo,
     descricao: parsed.data.descricao || null,
@@ -135,17 +135,35 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
     localizacao_maps_url: parsed.data.localizacao_maps_url?.trim() || null,
     link_roteiro: parsed.data.link_roteiro?.trim() || null,
     observacoes_gravacao: parsed.data.observacoes_gravacao?.trim() || null,
-    ...(isVideomaker
-      ? { videomaker_status: "pending_delegation" as const }
-      : {}),
   };
+  const insertPayload = isVideomaker
+    ? { ...basePayload, videomaker_status: "pending_delegation" as const }
+    : basePayload;
 
-  const { data: created, error } = await supabase
+  let createResult = await supabase
     .from("calendar_events")
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .insert(insertPayload as any)
     .select("id")
     .single();
+
+  // Fallback: se a migration 20260603000000 (videomaker_status) ainda não
+  // foi aplicada, insere sem o campo. O evento volta a ser visível
+  // diretamente na agenda (modo legado, sem fluxo de delegação).
+  if (createResult.error && isVideomaker) {
+    const msg = String(createResult.error.message ?? "");
+    if (msg.includes("videomaker_status") || msg.includes("schema cache")) {
+      console.warn("[calendario] migration videomaker_status não aplicada — fallback sem delegação");
+      createResult = await supabase
+        .from("calendar_events")
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .insert(basePayload as any)
+        .select("id")
+        .single();
+    }
+  }
+
+  const { data: created, error } = createResult;
   if (error || !created) return { error: error?.message ?? "Falha ao criar evento" };
 
   await logAudit({
