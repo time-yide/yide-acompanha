@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth/session";
 import { listLeadsByStage } from "@/lib/leads/queries";
+import { getProfileIdsForActiveUnit } from "@/lib/units/filter-helpers";
 import { KanbanBoard } from "@/components/onboarding/KanbanBoard";
 import { OnboardingRealtimeWatcher } from "@/components/onboarding/OnboardingRealtimeWatcher";
 import { TabsOnboarding } from "@/components/onboarding/TabsOnboarding";
@@ -14,7 +15,9 @@ const ROLES_PERMITIDOS = ["adm", "socio", "comercial", "assessor", "coordenador"
 export default async function OnboardingPage() {
   const user = await requireAuth();
   if (!ROLES_PERMITIDOS.includes(user.role)) redirect("/");
-  const groups = await listLeadsByStage();
+  // Multi-tenant: filtra leads pelos profiles da unidade ativa
+  const unitProfileIds = await getProfileIdsForActiveUnit();
+  const groups = await listLeadsByStage(unitProfileIds);
 
   const total =
     groups.leads_potencial.length + groups.leads_ativos.length + groups.reuniao_comercial.length +

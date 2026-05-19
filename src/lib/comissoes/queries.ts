@@ -45,24 +45,37 @@ export async function getSnapshotById(id: string) {
   return { snapshot: snap, items: items ?? [] };
 }
 
-async function _listSnapshotsForMonthImpl(monthRef: string) {
+async function _listSnapshotsForMonthImpl(monthRef: string, unitProfileIds: string[] | null) {
   const supabase = createServiceRoleClient();
-  const { data, error } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let q: any = supabase
     .from("commission_snapshots")
     .select("*, profile:profiles!commission_snapshots_user_id_fkey(id, nome, role, avatar_url)")
     .eq("mes_referencia", monthRef)
     .order("user_id");
+
+  // Multi-tenant: filtra snapshots dos users da unidade ativa
+  if (unitProfileIds !== null) {
+    if (unitProfileIds.length === 0) return [];
+    q = q.in("user_id", unitProfileIds);
+  }
+
+  const { data, error } = await q;
   if (error) throw error;
   return data ?? [];
 }
 
-export async function listSnapshotsForMonth(monthRef: string) {
+export async function listSnapshotsForMonth(monthRef: string, unitProfileIds: string[] | null = null) {
   const cached = unstable_cache(
-    async (m: string) => _listSnapshotsForMonthImpl(m),
-    ["comissoes-snapshots-month"],
+    async (m: string, idsJson: string) => {
+      const ids = idsJson === "null" ? null : (JSON.parse(idsJson) as string[]);
+      return _listSnapshotsForMonthImpl(m, ids);
+    },
+    // v2: filtra por unitProfileIds (multi-tenant — prolábore por unidade)
+    ["comissoes-snapshots-month-v2"],
     { revalidate: 60, tags: ["commissions"] },
   );
-  return cached(monthRef);
+  return cached(monthRef, unitProfileIds === null ? "null" : JSON.stringify(unitProfileIds));
 }
 
 async function _getMonthsAwaitingApprovalImpl(): Promise<string[]> {
