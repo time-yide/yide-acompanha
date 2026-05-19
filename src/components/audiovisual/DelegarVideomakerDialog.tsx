@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { SearchableSelect } from "@/components/ui/searchable-select";
 import { delegateVideomakerAction } from "@/lib/audiovisual/coord-actions";
 import type {
   VideomakerOption,
@@ -116,21 +115,33 @@ export function DelegarVideomakerDialog({
 
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <Label>Videomaker</Label>
-              <SearchableSelect
-                options={videomakers.map((v) => {
+              <Label htmlFor={`vm-select-${eventId}`}>Videomaker</Label>
+              {/* Select HTML nativo — evita problemas de Portal/z-index do
+                  SearchableSelect dentro do Dialog (Radix). Coord audiovisual
+                  reportou que não conseguia abrir o dropdown. */}
+              <select
+                id={`vm-select-${eventId}`}
+                value={videomakerId}
+                onChange={(e) => setVideomakerId(e.target.value)}
+                disabled={pending || videomakers.length === 0}
+                className="block h-9 w-full rounded-md border bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
+              >
+                <option value="">
+                  {videomakers.length === 0
+                    ? "Nenhum videomaker ativo cadastrado"
+                    : "Selecione o videomaker"}
+                </option>
+                {videomakers.map((v) => {
                   const count = scheduledByVideomaker[v.id]?.length ?? 0;
-                  return {
-                    value: v.id,
-                    label: count > 0 ? `${v.nome} · ${count} agendada${count > 1 ? "s" : ""}` : v.nome,
-                  };
+                  return (
+                    <option key={v.id} value={v.id}>
+                      {count > 0
+                        ? `${v.nome} · ${count} agendada${count > 1 ? "s" : ""}`
+                        : v.nome}
+                    </option>
+                  );
                 })}
-                value={videomakerId || null}
-                onChange={(v) => setVideomakerId(v ?? "")}
-                placeholder="Selecione o videomaker"
-                emptyText="Nenhum videomaker ativo"
-                disabled={pending}
-              />
+              </select>
               <p className="text-[11px] text-muted-foreground">
                 Sistema bloqueia se o videomaker já tiver captação no mesmo horário.
               </p>
