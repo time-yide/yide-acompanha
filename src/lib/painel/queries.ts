@@ -17,6 +17,11 @@ export interface ChecklistFilter {
   editorId?: string;
   /** Quando preenchido, retorna clientes onde o user é videomaker_id OU editor_id. */
   audiovisualUserId?: string;
+  /**
+   * Multi-tenant: ids dos clientes da unidade ativa. null = sem filtro
+   * (master vendo todas / migration não rodada). [] = unidade nova sem clientes.
+   */
+  unitClientIds?: string[] | null;
 }
 
 export interface ChecklistStepRow {
@@ -78,8 +83,8 @@ export async function getMonthlyChecklists(
       const f = JSON.parse(filterJson) as ChecklistFilter;
       return _getMonthlyChecklistsImpl(mes, f);
     },
-    // v4: hotfix com fallback resiliente (link_estrategia/gmn_otimizado opcionais)
-    ["painel-monthly-checklists-v4"],
+    // v5: filter ganhou unitClientIds (multi-tenant)
+    ["painel-monthly-checklists-v5"],
     { revalidate: 60, tags: [PAINEL_CACHE_TAG] },
   );
   return cached(mesReferencia, JSON.stringify(filter));
@@ -90,6 +95,11 @@ async function _getMonthlyChecklistsImpl(
   filter: ChecklistFilter,
 ): Promise<ChecklistRow[]> {
   const supabase = createServiceRoleClient();
+
+  // Filtro multi-tenant: se unidade não tem nenhum cliente, retorna vazio.
+  if (filter.unitClientIds !== null && filter.unitClientIds !== undefined && filter.unitClientIds.length === 0) {
+    return [];
+  }
 
   // 1) Lista clientes filtrados (apenas pacotes do painel mensal)
   // Helper que monta a query dado um SELECT (pra poder fazer fallback quando
@@ -111,6 +121,10 @@ async function _getMonthlyChecklistsImpl(
       q = q.or(
         `videomaker_id.eq.${filter.audiovisualUserId},editor_id.eq.${filter.audiovisualUserId}`,
       );
+    }
+    // Multi-tenant: filtra pela unidade ativa quando aplicável.
+    if (filter.unitClientIds && filter.unitClientIds.length > 0) {
+      q = q.in("id", filter.unitClientIds);
     }
     return q.order("nome");
   };

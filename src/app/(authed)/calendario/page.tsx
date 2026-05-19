@@ -5,6 +5,10 @@ import {
   getWeekRange,
   getMonthGridRange,
 } from "@/lib/calendario/queries";
+import {
+  getClientIdsForActiveUnit,
+  getProfileIdsForActiveUnit,
+} from "@/lib/units/filter-helpers";
 import { SUB_CALENDARS } from "@/lib/calendario/schema";
 import { WeekView } from "@/components/calendario/WeekView";
 import { MonthView, formatMonthLabel } from "@/components/calendario/MonthView";
@@ -71,10 +75,16 @@ export default async function CalendarioPage({
 
   const subQuery = sub ? `sub=${sub}` : "";
 
+  // Multi-tenant: resolve filtros da unidade ativa pra passar pra `listEventsForWeek`
+  const [unitClientIds, unitProfileIds] = await Promise.all([
+    getClientIdsForActiveUnit(),
+    getProfileIdsForActiveUnit(),
+  ]);
+
   if (view === "month") {
-    return renderMonth({ params, subQuery, sub, applySubFilter });
+    return renderMonth({ params, subQuery, sub, applySubFilter, unitClientIds, unitProfileIds });
   }
-  return renderWeek({ params, subQuery, sub, applySubFilter });
+  return renderWeek({ params, subQuery, sub, applySubFilter, unitClientIds, unitProfileIds });
 }
 
 // ─── Week view ─────────────────────────────────────────────────────────────
@@ -84,11 +94,15 @@ async function renderWeek({
   subQuery,
   sub,
   applySubFilter,
+  unitClientIds,
+  unitProfileIds,
 }: {
   params: { week?: string };
   subQuery: string;
   sub: string | null;
   applySubFilter: (events: CalendarEvent[]) => CalendarEvent[];
+  unitClientIds: string[] | null;
+  unitProfileIds: string[] | null;
 }) {
   // Anchor a data ao meio-dia UTC pra evitar shift de timezone:
   // `new Date("2026-05-19")` = UTC midnight, que em Cuiabá (UTC-4) é
@@ -100,7 +114,7 @@ async function renderWeek({
   const todayStart = getWeekRange(new Date()).start;
   const isOnTodayWeek = start.getTime() === todayStart.getTime();
 
-  const events = applySubFilter(await listEventsForWeek(start, end));
+  const events = applySubFilter(await listEventsForWeek(start, end, unitClientIds, unitProfileIds));
 
   const prevWeek = new Date(start);
   prevWeek.setUTCDate(prevWeek.getUTCDate() - 7);
@@ -139,11 +153,15 @@ async function renderMonth({
   subQuery,
   sub,
   applySubFilter,
+  unitClientIds,
+  unitProfileIds,
 }: {
   params: { month?: string };
   subQuery: string;
   sub: string | null;
   applySubFilter: (events: CalendarEvent[]) => CalendarEvent[];
+  unitClientIds: string[] | null;
+  unitProfileIds: string[] | null;
 }) {
   // `month` param é "YYYY-MM" — âncora qualquer dia do meio do mês pra evitar
   // problema de timezone com dia 1.
@@ -155,7 +173,7 @@ async function renderMonth({
   const isOnTodayMonth =
     grid.year === todayGrid.year && grid.month === todayGrid.month;
 
-  const events = applySubFilter(await listEventsForWeek(grid.start, grid.end));
+  const events = applySubFilter(await listEventsForWeek(grid.start, grid.end, unitClientIds, unitProfileIds));
 
   const prevMonth = grid.month === 1 ? 12 : grid.month - 1;
   const prevYear = grid.month === 1 ? grid.year - 1 : grid.year;

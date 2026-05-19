@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth/session";
 import { listClientesComAcessoPortal } from "@/lib/painel-cliente/queries";
+import { getClientIdsForActiveUnit } from "@/lib/units/filter-helpers";
 import { PainelClienteTable } from "@/components/painel-cliente/PainelClienteTable";
 import { CopyLinkButton } from "@/components/painel-cliente/CopyLinkButton";
 import { env } from "@/lib/env";
@@ -9,7 +10,9 @@ export default async function PainelClientePage() {
   const user = await requireAuth();
   if (!["adm", "socio"].includes(user.role)) notFound();
 
-  const rows = await listClientesComAcessoPortal();
+  // Multi-tenant: filtra clientes pela unidade ativa
+  const unitClientIds = await getClientIdsForActiveUnit();
+  const rows = await listClientesComAcessoPortal(unitClientIds);
 
   // Cada métrica conta CLIENTES (não acessos):
   //  - comAcesso: cliente tem ≥1 acesso ativo

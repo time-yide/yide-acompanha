@@ -23,17 +23,30 @@ export interface ClienteComAcesso {
 /**
  * Lista TODOS os clientes ativos + seus acessos ao portal (até 5 ativos +
  * histórico de revogados). Usa service-role pra ler auth.users (email).
+ *
+ * `unitClientIds`: filtro multi-tenant.
+ *   - null = sem filtro (master vendo todas / migration não rodada)
+ *   - [] = unidade nova sem clientes → retorna vazio
+ *   - [ids] = só clientes dessa unidade
  */
-export async function listClientesComAcessoPortal(): Promise<ClienteComAcesso[]> {
+export async function listClientesComAcessoPortal(
+  unitClientIds: string[] | null = null,
+): Promise<ClienteComAcesso[]> {
+  if (unitClientIds !== null && unitClientIds.length === 0) return [];
+
   const admin = createServiceRoleClient();
 
   // 1) Clientes ativos
-  const { data: clientsData } = await admin
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let q: any = admin
     .from("clients")
     .select("id, nome, status")
     .eq("status", "ativo")
-    .is("deleted_at", null)
-    .order("nome");
+    .is("deleted_at", null);
+  if (unitClientIds !== null) {
+    q = q.in("id", unitClientIds);
+  }
+  const { data: clientsData } = await q.order("nome");
   const clients = (clientsData ?? []) as Array<{ id: string; nome: string; status: string }>;
 
   if (clients.length === 0) return [];
