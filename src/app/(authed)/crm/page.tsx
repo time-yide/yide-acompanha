@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowRight, Database, ExternalLink } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import { listClientesComCrm } from "@/lib/crm/queries";
+import { getEffectiveUnitId } from "@/lib/units/session";
 import { CRM_BY_VALUE, CRM_DEFS, buildCrmOpenUrl } from "@/lib/crm/tipos";
 import { Card } from "@/components/ui/card";
 
@@ -22,6 +23,7 @@ export default async function CrmListPage({
   const filter: Parameters<typeof listClientesComCrm>[0] = { searchQuery: q, filtroCrm };
   if (user.role === "assessor") filter.assessorId = user.id;
   else if (user.role === "coordenador") filter.coordenadorId = user.id;
+  filter.unitId = await getEffectiveUnitId();
 
   const clientes = await listClientesComCrm(filter);
 

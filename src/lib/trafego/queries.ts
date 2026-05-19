@@ -25,16 +25,20 @@ export async function listClientesTrafego(filter: {
   assessorId?: string | null;
   coordenadorId?: string | null;
   searchQuery?: string;
+  /** Multi-tenant: filtra por unidade. */
+  unitId?: string | null;
 } = {}): Promise<ClienteTrafegoRow[]> {
   const supabase = createServiceRoleClient();
 
   // Helper pra fallback caso colunas novas não existam ainda no banco
   const buildClientsQuery = (selectStr: string) => {
-    let q = supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let q: any = supabase
       .from("clients")
       .select(selectStr)
       .eq("status", "ativo")
       .in("tipo_pacote", [...PACOTES_COM_TRAFEGO]);
+    if (filter.unitId) q = q.eq("unit_id", filter.unitId);
     if (filter.assessorId) q = q.eq("assessor_id", filter.assessorId);
     if (filter.coordenadorId) q = q.eq("coordenador_id", filter.coordenadorId);
     if (filter.searchQuery && filter.searchQuery.trim()) {

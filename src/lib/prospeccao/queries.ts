@@ -17,6 +17,9 @@ export interface ProspectsFilter {
   valorMin?: number;
   valorMax?: number;
   ultimoContatoApos?: string;    // 'YYYY-MM-DD'
+  /** Multi-tenant: profile_ids da unidade ativa. Restringe a prospects
+   *  cujo comercial_id está nessa lista. */
+  unitProfileIds?: string[] | null;
 }
 
 export interface ProspectListRow {
@@ -50,6 +53,13 @@ async function _getProspectsListImpl(filter: ProspectsFilter): Promise<ProspectL
 
   if (filter.comercialId) {
     query = query.eq("comercial_id", filter.comercialId);
+  }
+
+  // Multi-tenant: filtra por unidade. null = sem filtro.
+  // [] = unidade nova = nenhum prospect.
+  if (filter.unitProfileIds !== undefined && filter.unitProfileIds !== null) {
+    if (filter.unitProfileIds.length === 0) return [];
+    query = query.in("comercial_id", filter.unitProfileIds);
   }
 
   // Filtro de status (com 'perdido' como pseudo-status — coluna motivo_perdido NOT NULL)
@@ -89,13 +99,15 @@ async function _getProspectsListImpl(filter: ProspectsFilter): Promise<ProspectL
 export async function getProspectsList(filter: ProspectsFilter = {}): Promise<ProspectListRow[]> {
   const cached = unstable_cache(
     async (filterJson: string) => _getProspectsListImpl(JSON.parse(filterJson) as ProspectsFilter),
-    ["prospeccao-list"],
+    // v2: filter ganhou unitProfileIds (multi-tenant)
+    ["prospeccao-list-v2"],
     { revalidate: 60, tags: [PROSPECTS_CACHE_TAG] },
   );
   // Normaliza ordem do array de status pra cache key estável
   const normalized: ProspectsFilter = {
     ...filter,
     status: filter.status ? [...filter.status].sort() : undefined,
+    unitProfileIds: filter.unitProfileIds ? [...filter.unitProfileIds].sort() : filter.unitProfileIds,
   };
   return cached(JSON.stringify(normalized));
 }

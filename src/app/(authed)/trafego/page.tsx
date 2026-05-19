@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowRight, Megaphone } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import { listClientesTrafego } from "@/lib/trafego/queries";
+import { getEffectiveUnitId } from "@/lib/units/session";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -28,7 +29,8 @@ export default async function TrafegoListPage({
   const filter: Parameters<typeof listClientesTrafego>[0] = { searchQuery: q };
   if (user.role === "assessor") filter.assessorId = user.id;
   else if (user.role === "coordenador") filter.coordenadorId = user.id;
-  // adm/socio/comercial: vê tudo
+  // adm/socio/comercial: vê tudo (mas só da unidade ativa)
+  filter.unitId = await getEffectiveUnitId();
 
   const clientes = await listClientesTrafego(filter);
 
