@@ -93,9 +93,17 @@ export function getMonthGridRange(reference: Date = new Date()): MonthGridRange 
  * permissiva pra todos esses recursos (`using (true)` em authenticated),
  * então o resultado é idêntico ao cookie-based.
  */
-async function _listEventsForWeekImpl(weekStartIso: string, weekEndIso: string): Promise<CalendarEvent[]> {
+async function _listEventsForWeekImpl(
+  weekStartIso: string,
+  weekEndIso: string,
+  unitClientIds: string[] | null,
+  unitProfileIds: string[] | null,
+): Promise<CalendarEvent[]> {
   const weekStart = new Date(weekStartIso);
   const weekEnd = new Date(weekEndIso);
+  // Unidade nova sem clientes/profiles → nada pra mostrar (exceto aniversários
+  // de colab e eventos sem vínculo, abaixo). Não retornamos early pra não
+  // esconder o que NÃO depende de client/profile.
   const supabase = createServiceRoleClient();
   const events: CalendarEvent[] = [];
 
@@ -105,11 +113,26 @@ async function _listEventsForWeekImpl(weekStartIso: string, weekEndIso: string):
   const fullSelect = `id, titulo, descricao, inicio, fim, sub_calendar, client_id, lead_id, criado_por, participantes_ids, localizacao_endereco, localizacao_maps_url, link_roteiro, observacoes_gravacao, videomaker_status, videomaker_assigned_id`;
   const legacySelect = `id, titulo, descricao, inicio, fim, sub_calendar, client_id, lead_id, criado_por, participantes_ids, localizacao_endereco, localizacao_maps_url, link_roteiro, observacoes_gravacao`;
 
-  let manualResult = await supabaseAny
-    .from("calendar_events")
-    .select(fullSelect)
-    .gte("inicio", weekStart.toISOString())
-    .lt("inicio", weekEnd.toISOString());
+  const buildManualQuery = (selectStr: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let q: any = supabaseAny
+      .from("calendar_events")
+      .select(selectStr)
+      .gte("inicio", weekStart.toISOString())
+      .lt("inicio", weekEnd.toISOString());
+    // Multi-tenant: filtra eventos com client_id pela unidade ativa.
+    // Eventos SEM client_id (reunião interna, treinamento, etc.) seguem visíveis pra todos.
+    if (unitClientIds !== null) {
+      if (unitClientIds.length === 0) {
+        q = q.is("client_id", null);
+      } else {
+        q = q.or(`client_id.in.(${unitClientIds.join(",")}),client_id.is.null`);
+      }
+    }
+    return q;
+  };
+
+  let manualResult = await buildManualQuery(fullSelect);
 
   // Fallback: se a migration 20260603000000 (videomaker_status etc) ainda não
   // foi aplicada nesse ambiente, o select dispara erro de coluna inexistente.
@@ -118,11 +141,7 @@ async function _listEventsForWeekImpl(weekStartIso: string, weekEndIso: string):
     const msg = String(manualResult.error.message ?? "");
     if (msg.includes("videomaker_status") || msg.includes("videomaker_assigned_id") || msg.includes("schema cache")) {
       console.warn("[calendario] fallback pro select legacy (migration 20260603000000 não aplicada):", msg);
-      manualResult = await supabaseAny
-        .from("calendar_events")
-        .select(legacySelect)
-        .gte("inicio", weekStart.toISOString())
-        .lt("inicio", weekEnd.toISOString());
+      manualResult = await buildManualQuery(legacySelect);
     } else {
       console.error("[calendario] manual events fetch failed:", manualResult.error);
     }
@@ -150,13 +169,32 @@ async function _listEventsForWeekImpl(weekStartIso: string, weekEndIso: string):
     });
   }
 
-  // 2) Leads
-  const { data: leads = [] } = await supabase
-    .from("leads")
-    .select("id, nome_prospect, data_prospeccao_agendada, data_reuniao_marco_zero, stage")
-    .or(
-      `data_prospeccao_agendada.gte.${weekStart.toISOString()},data_reuniao_marco_zero.gte.${weekStart.toISOString()}`
-    );
+  // 2) Leads — filtra pela unidade quando aplicável (via responsáveis: comercial/coord/assessor).
+  //    null = sem filtro; [] = unidade nova → pula leads inteiramente.
+  let leads: Array<{
+    id: string;
+    nome_prospect: string;
+    data_prospeccao_agendada: string | null;
+    data_reuniao_marco_zero: string | null;
+    stage: string;
+  }> = [];
+  if (unitProfileIds === null || unitProfileIds.length > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let leadsQ: any = supabase
+      .from("leads")
+      .select("id, nome_prospect, data_prospeccao_agendada, data_reuniao_marco_zero, stage")
+      .or(
+        `data_prospeccao_agendada.gte.${weekStart.toISOString()},data_reuniao_marco_zero.gte.${weekStart.toISOString()}`
+      );
+    if (unitProfileIds !== null) {
+      const ids = unitProfileIds.join(",");
+      leadsQ = leadsQ.or(
+        `comercial_id.in.(${ids}),coord_alocado_id.in.(${ids}),assessor_alocado_id.in.(${ids})`,
+      );
+    }
+    const { data } = await leadsQ;
+    leads = (data ?? []) as typeof leads;
+  }
 
   for (const l of leads ?? []) {
     if (l.data_prospeccao_agendada) {
@@ -193,12 +231,23 @@ async function _listEventsForWeekImpl(weekStartIso: string, weekEndIso: string):
     }
   }
 
-  // 3) Client birthdays
-  const { data: clientsBirthdays = [] } = await supabase
+  // 3) Client birthdays — filtra pela unidade quando aplicável
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let clientsBirthdaysQ: any = supabase
     .from("clients")
     .select("id, nome, data_aniversario_socio_cliente")
     .eq("status", "ativo")
     .not("data_aniversario_socio_cliente", "is", null);
+  if (unitClientIds !== null) {
+    if (unitClientIds.length === 0) {
+      clientsBirthdaysQ = null;
+    } else {
+      clientsBirthdaysQ = clientsBirthdaysQ.in("id", unitClientIds);
+    }
+  }
+  const { data: clientsBirthdays = [] } = clientsBirthdaysQ
+    ? await clientsBirthdaysQ
+    : { data: [] as Array<{ id: string; nome: string; data_aniversario_socio_cliente: string | null }> };
 
   for (const c of clientsBirthdays ?? []) {
     if (!c.data_aniversario_socio_cliente) continue;
@@ -218,12 +267,23 @@ async function _listEventsForWeekImpl(weekStartIso: string, weekEndIso: string):
     }
   }
 
-  // 4) Collaborator birthdays
-  const { data: colabsBirthdays = [] } = await supabase
+  // 4) Collaborator birthdays — filtra pela unidade quando aplicável
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let colabsBirthdaysQ: any = supabase
     .from("profiles")
     .select("id, nome, data_nascimento")
     .eq("ativo", true)
     .not("data_nascimento", "is", null);
+  if (unitProfileIds !== null) {
+    if (unitProfileIds.length === 0) {
+      colabsBirthdaysQ = null;
+    } else {
+      colabsBirthdaysQ = colabsBirthdaysQ.in("id", unitProfileIds);
+    }
+  }
+  const { data: colabsBirthdays = [] } = colabsBirthdaysQ
+    ? await colabsBirthdaysQ
+    : { data: [] as Array<{ id: string; nome: string; data_nascimento: string | null }> };
 
   for (const p of colabsBirthdays ?? []) {
     if (!p.data_nascimento) continue;
@@ -243,8 +303,9 @@ async function _listEventsForWeekImpl(weekStartIso: string, weekEndIso: string):
     }
   }
 
-  // 5) Client important dates
-  const { data: clientDates = [] } = await supabase
+  // 5) Client important dates — filtra pela unidade quando aplicável
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let clientDatesQ: any = supabase
     .from("client_important_dates")
     .select(`
       id, data, descricao, tipo, client_id,
@@ -252,6 +313,16 @@ async function _listEventsForWeekImpl(weekStartIso: string, weekEndIso: string):
     `)
     .gte("data", weekStart.toISOString().slice(0, 10))
     .lt("data", weekEnd.toISOString().slice(0, 10));
+  if (unitClientIds !== null) {
+    if (unitClientIds.length === 0) {
+      clientDatesQ = null;
+    } else {
+      clientDatesQ = clientDatesQ.in("client_id", unitClientIds);
+    }
+  }
+  const { data: clientDates = [] } = clientDatesQ
+    ? await clientDatesQ
+    : { data: [] as Array<{ id: string; data: string; descricao: string; tipo: string; client_id: string; cliente: { id: string; nome: string } | null }> };
 
   for (const d of clientDates ?? []) {
     const start = new Date(`${d.data}T12:00:00Z`);
@@ -277,18 +348,39 @@ async function _listEventsForWeekImpl(weekStartIso: string, weekEndIso: string):
  * Versão cacheada (60s) com tag "calendar". Mutations no calendário
  * (createEventAction, updateEventAction, deleteEventAction) chamam
  * revalidateTag("calendar") pra invalidar imediatamente.
+ *
+ * Multi-tenant: `unitClientIds`/`unitProfileIds` filtram os eventos pela
+ * unidade ativa. null = sem filtro (ex.: master vendo todas). [] = vazio
+ * (unidade nova, esconde tudo que tem vínculo de cliente/profile).
  */
-export async function listEventsForWeek(weekStart: Date, weekEnd: Date): Promise<CalendarEvent[]> {
+export async function listEventsForWeek(
+  weekStart: Date,
+  weekEnd: Date,
+  unitClientIds: string[] | null = null,
+  unitProfileIds: string[] | null = null,
+): Promise<CalendarEvent[]> {
   const cached = unstable_cache(
     async (paramsJson: string) => {
-      const { from, to } = JSON.parse(paramsJson) as { from: string; to: string };
-      return _listEventsForWeekImpl(from, to);
+      const { from, to, uc, up } = JSON.parse(paramsJson) as {
+        from: string;
+        to: string;
+        uc: string[] | null;
+        up: string[] | null;
+      };
+      return _listEventsForWeekImpl(from, to, uc, up);
     },
-    // v2: shape ganhou videomaker_status + videomaker_assigned_id
-    ["calendario-week-events-v2"],
+    // v3: shape ganhou unitClientIds + unitProfileIds (multi-tenant)
+    ["calendario-week-events-v3"],
     { revalidate: 60, tags: ["calendar"] },
   );
-  return cached(JSON.stringify({ from: weekStart.toISOString(), to: weekEnd.toISOString() }));
+  return cached(
+    JSON.stringify({
+      from: weekStart.toISOString(),
+      to: weekEnd.toISOString(),
+      uc: unitClientIds,
+      up: unitProfileIds,
+    }),
+  );
 }
 
 export async function getEventById(id: string) {

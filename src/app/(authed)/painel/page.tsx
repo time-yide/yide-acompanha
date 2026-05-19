@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { getMonthlyChecklists, type ChecklistFilter } from "@/lib/painel/queries";
+import { getClientIdsForActiveUnit } from "@/lib/units/filter-helpers";
 import { PainelHeader } from "@/components/painel/PainelHeader";
 import { PainelTable } from "@/components/painel/PainelTable";
 import { PainelCardsList } from "@/components/painel/PainelCardsList";
@@ -49,7 +50,10 @@ export default async function PainelPage({
   const canFilterAssessor = PRIVILEGED_ROLES.includes(user.role);
   const assessorFiltro = canFilterAssessor && params.assessor ? params.assessor : null;
 
-  const filter: ChecklistFilter = {};
+  // Multi-tenant: filtra clientes pela unidade ativa
+  const unitClientIds = await getClientIdsForActiveUnit();
+
+  const filter: ChecklistFilter = { unitClientIds };
   if (user.role === "assessor") filter.assessorId = user.id;
   else if (user.role === "coordenador") {
     filter.coordenadorId = user.id;

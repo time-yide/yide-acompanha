@@ -20,12 +20,22 @@ export interface PendingDelegationRow {
 /**
  * Lista eventos de videomaker em status pending_delegation — fila do
  * coord audiovisual. Ordena por data de captação (mais próximos primeiro).
+ *
+ * `unitClientIds`: filtro multi-tenant.
+ *   - null = sem filtro (master vendo "todas" ou migration não rodada)
+ *   - [] = unidade nova sem clientes → retorna vazio
+ *   - [ids] = só captações de clientes dessa unidade (ou sem client_id)
  */
-export async function listPendingDelegations(): Promise<PendingDelegationRow[]> {
+export async function listPendingDelegations(
+  unitClientIds: string[] | null = null,
+): Promise<PendingDelegationRow[]> {
+  if (unitClientIds !== null && unitClientIds.length === 0) return [];
+
   const admin = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = admin as any;
-  const { data, error } = await sb
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let q: any = sb
     .from("calendar_events")
     .select(`
       id, titulo, inicio, fim, client_id, criado_por, created_at,
@@ -34,8 +44,16 @@ export async function listPendingDelegations(): Promise<PendingDelegationRow[]> 
       criador:profiles!calendar_events_criado_por_fkey(nome)
     `)
     .eq("sub_calendar", "videomakers")
-    .eq("videomaker_status", "pending_delegation")
-    .order("inicio", { ascending: true });
+    .eq("videomaker_status", "pending_delegation");
+
+  if (unitClientIds !== null) {
+    // Captações sem client_id (raro, mas existe) seguem visíveis pra todos —
+    // a coluna `client_id` é nullable e nem todo evento de videomaker tem
+    // cliente vinculado.
+    q = q.or(`client_id.in.(${unitClientIds.join(",")}),client_id.is.null`);
+  }
+
+  const { data, error } = await q.order("inicio", { ascending: true });
 
   if (error) {
     console.error("[audiovisual/coord] listPendingDelegations failed:", error);

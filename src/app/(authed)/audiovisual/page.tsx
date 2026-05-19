@@ -59,10 +59,13 @@ export default async function AudiovisualPage({
     ? (await listPendenteParaVideomaker(user.id)).filter((p) => p.isOverdue)
     : [];
 
+  // Multi-tenant: client_ids da unidade ativa pra filtrar listas que tocam clients
+  const unitClientIdsForFilter = await getClientIdsForActiveUnit();
+
   // Contagem de pendências por aba (mostrada como badge no nav)
   const pendingCounts: Partial<Record<TabKey, number>> = {};
   if (canSeeAguardando) {
-    const pending = await listPendingDelegations();
+    const pending = await listPendingDelegations(unitClientIdsForFilter);
     pendingCounts.aguardando_videomaker = pending.length;
   }
 
@@ -104,18 +107,17 @@ export default async function AudiovisualPage({
     const clientes = (clientesData ?? []) as Array<{ id: string; nome: string }>;
 
     // Multi-tenant: filtra por client_ids da unidade ativa quando aplicável
-    const unitClientIds = await getClientIdsForActiveUnit();
     let capturas;
     if (isVideomaker) {
       capturas = await listCapturas({ videomakerId: user.id, limit: 50 });
     } else if (isAssessor) {
       const ids = (meusClientesRes.data ?? []).map((c) => (c as { id: string }).id);
       capturas = ids.length === 0 ? [] : await listCapturas({ clientIds: ids, limit: 100 });
-    } else if (unitClientIds !== null) {
+    } else if (unitClientIdsForFilter !== null) {
       // Master (coord/socio/adm/audiovisual_chefe): filtra por unidade ativa
-      capturas = unitClientIds.length === 0
+      capturas = unitClientIdsForFilter.length === 0
         ? []
-        : await listCapturas({ clientIds: unitClientIds, limit: 100 });
+        : await listCapturas({ clientIds: unitClientIdsForFilter, limit: 100 });
     } else {
       // Migration unit_id ainda não rodada — fallback consolidado
       capturas = await listCapturas({ limit: 100 });
@@ -165,7 +167,7 @@ export default async function AudiovisualPage({
     );
   } else if (activeTab === "aguardando_videomaker") {
     const [pending, videomakersList] = await Promise.all([
-      listPendingDelegations(),
+      listPendingDelegations(unitClientIdsForFilter),
       listVideomakersAtivos(),
     ]);
     const scheduledMap = await listScheduledByVideomaker(
