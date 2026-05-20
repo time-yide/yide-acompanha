@@ -15,7 +15,7 @@ import { CapturasAba } from "@/components/audiovisual/CapturasAba";
 import { PendenteEntregaAba } from "@/components/audiovisual/PendenteEntregaAba";
 import { PendenteDelegacaoAba } from "@/components/audiovisual/PendenteDelegacaoAba";
 import { AguardandoVideomakerAba } from "@/components/audiovisual/AguardandoVideomakerAba";
-import { listPendingDelegations, listVideomakersAtivos, listScheduledByVideomaker } from "@/lib/audiovisual/coord-queries";
+import { listPendingDelegations, listScheduledFutureCaptures, listVideomakersAtivos, listScheduledByVideomaker } from "@/lib/audiovisual/coord-queries";
 import { canRoleDelegateVideomaker, canRoleViewCoord } from "@/lib/audiovisual/coord-roles";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -166,8 +166,9 @@ export default async function AudiovisualPage({
       <PendenteDelegacaoAba rows={rows} editores={editoresData} canDelegate={canDelegate} canDelete={canDelete} />
     );
   } else if (activeTab === "aguardando_videomaker") {
-    const [pending, videomakersList] = await Promise.all([
+    const [pending, scheduled, videomakersList] = await Promise.all([
       listPendingDelegations(unitClientIdsForFilter),
+      listScheduledFutureCaptures(unitClientIdsForFilter),
       listVideomakersAtivos(),
     ]);
     const scheduledMap = await listScheduledByVideomaker(
@@ -181,6 +182,7 @@ export default async function AudiovisualPage({
     content = (
       <AguardandoVideomakerAba
         pending={pending}
+        scheduled={scheduled}
         videomakers={videomakersList}
         scheduledByVideomaker={scheduledByVideomaker}
         canDelegate={canDelegateVideomaker}
