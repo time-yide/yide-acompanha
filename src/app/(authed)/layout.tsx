@@ -10,12 +10,15 @@ import { CapturaPendenteLockGate } from "@/components/audiovisual/CapturaPendent
 import { countChannelsWithUnread } from "@/lib/escritorio/queries";
 import { HeartbeatProvider } from "@/components/produtividade/HeartbeatProvider";
 import { getUnitContext } from "@/lib/units/session";
+import { getProfileIdsForActiveUnit } from "@/lib/units/filter-helpers";
 
 export default async function AuthedLayout({ children }: { children: React.ReactNode }) {
   const user = await requireAuth();
   const isVideomaker = user.role === "videomaker";
+  // Multi-tenant: profile_ids da unidade ativa pra filtrar contagens de recados.
+  const unitProfileIds = await getProfileIdsForActiveUnit();
   const [recadosNaoLidos, lockState, audiovisualPendentes, escritorioUnread, unitContext] = await Promise.all([
-    countRecadosNaoLidos(user.id),
+    countRecadosNaoLidos(user.id, unitProfileIds),
     checkSatisfactionLock(user.id, user.role),
     isVideomaker ? listPendenteParaVideomaker(user.id) : Promise.resolve([]),
     countChannelsWithUnread(user.id, user.role).catch(() => 0),

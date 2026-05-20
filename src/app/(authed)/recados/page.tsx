@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireAuth } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { listRecados } from "@/lib/recados/queries";
+import { getProfileIdsForActiveUnit } from "@/lib/units/filter-helpers";
 import { NovoRecadoDialog } from "@/components/recados/NovoRecadoDialog";
 import { RecadoFeed } from "@/components/recados/RecadoFeed";
 import { cn } from "@/lib/utils";
@@ -15,7 +16,9 @@ export default async function RecadosPage({ searchParams }: { searchParams: Prom
   const user = await requireAuth();
   const aba: "ativos" | "arquivados" = params.aba === "arquivados" ? "arquivados" : "ativos";
 
-  const recados = await listRecados(aba === "arquivados");
+  // Multi-tenant: filtra recados pelo unit_id do autor.
+  const unitProfileIds = await getProfileIdsForActiveUnit();
+  const recados = await listRecados(aba === "arquivados", unitProfileIds);
 
   if (aba === "ativos") {
     const supabase = await createClient();
