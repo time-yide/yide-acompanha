@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath, revalidateTag } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { requireAuth } from "@/lib/auth/session";
 import { logAudit } from "@/lib/audit/log";
 import { logActivityInternal } from "@/lib/produtividade/actions";
@@ -43,7 +43,11 @@ export async function delegateVideomakerAction(
     return { error: "Evento e videomaker são obrigatórios" };
   }
 
-  const supabase = await createClient();
+  // SERVICE-ROLE intencional: a RLS de UPDATE em calendar_events só permite
+  // criador/adm/sócio. `audiovisual_chefe` ficaria bloqueado silenciosamente
+  // (Supabase não erra em RLS deny — só retorna 0 rows afetadas). Auth tá
+  // garantida pelo check de role acima via ROLES_COORD_DELEGATE.
+  const supabase = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
 
@@ -107,7 +111,11 @@ export async function delegateVideomakerAction(
   // 5) Update — exclusion constraint do banco é a defesa em profundidade.
   //    Se duas delegações concorrentes acontecerem pro mesmo videomaker no
   //    mesmo segundo, uma vai falhar aqui mesmo após a checagem passar.
-  const { error } = await sb
+  //
+  //    `.select()` no fim força o PostgREST a devolver as linhas atualizadas
+  //    — usado pra detectar 0-rows-affected (RLS deny silencioso, eventId
+  //    inválido, etc.) e falhar com mensagem clara em vez de toast de sucesso.
+  const { data: updated, error } = await sb
     .from("calendar_events")
     .update({
       videomaker_assigned_id: videomakerId,
@@ -116,7 +124,8 @@ export async function delegateVideomakerAction(
       videomaker_delegado_em: new Date().toISOString(),
       participantes_ids: novosParticipantes,
     })
-    .eq("id", eventId);
+    .eq("id", eventId)
+    .select("id");
   if (error) {
     // Trata o caso da exclusion constraint disparar (race condition)
     if (error.message?.includes("no_videomaker_overlap")) {
@@ -125,6 +134,10 @@ export async function delegateVideomakerAction(
       };
     }
     return { error: error.message };
+  }
+  if (!updated || updated.length === 0) {
+    console.error("[audiovisual/coord] delegate update affected 0 rows", { eventId, videomakerId, actorId: actor.id });
+    return { error: "Não foi possível atualizar a captação (sem permissão ou evento removido). Recarregue e tente de novo." };
   }
 
   // 6) Notifica o videomaker designado
