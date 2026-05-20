@@ -9,19 +9,22 @@ import { listPendenteParaVideomaker } from "@/lib/audiovisual/queries";
 import { CapturaPendenteLockGate } from "@/components/audiovisual/CapturaPendenteLockGate";
 import { countChannelsWithUnread } from "@/lib/escritorio/queries";
 import { HeartbeatProvider } from "@/components/produtividade/HeartbeatProvider";
-import { getUnitContext } from "@/lib/units/session";
+import { getEffectiveUnitId, getUnitContext } from "@/lib/units/session";
 import { getProfileIdsForActiveUnit } from "@/lib/units/filter-helpers";
 
 export default async function AuthedLayout({ children }: { children: React.ReactNode }) {
   const user = await requireAuth();
   const isVideomaker = user.role === "videomaker";
-  // Multi-tenant: profile_ids da unidade ativa pra filtrar contagens de recados.
-  const unitProfileIds = await getProfileIdsForActiveUnit();
+  // Multi-tenant: resolve filtros da unidade ativa pras contagens de badges.
+  const [unitProfileIds, unitId] = await Promise.all([
+    getProfileIdsForActiveUnit(),
+    getEffectiveUnitId(),
+  ]);
   const [recadosNaoLidos, lockState, audiovisualPendentes, escritorioUnread, unitContext] = await Promise.all([
     countRecadosNaoLidos(user.id, unitProfileIds),
     checkSatisfactionLock(user.id, user.role),
     isVideomaker ? listPendenteParaVideomaker(user.id) : Promise.resolve([]),
-    countChannelsWithUnread(user.id, user.role).catch(() => 0),
+    countChannelsWithUnread(user.id, user.role, unitId).catch(() => 0),
     getUnitContext().catch(() => null),
   ]);
   const audiovisualOverdue = audiovisualPendentes.filter((p) => p.isOverdue);

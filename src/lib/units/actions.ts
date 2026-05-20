@@ -67,17 +67,32 @@ export async function createUnitAction(
   const admin = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = admin as any;
-  const { error } = await sb.from("units").insert({
+  const { data: inserted, error } = await sb.from("units").insert({
     nome: parsed.data.nome,
     slug: parsed.data.slug,
     endereco: parsed.data.endereco,
     cnpj: parsed.data.cnpj,
     cor_destaque: parsed.data.cor_destaque,
     ativa: parsed.data.ativa,
-  });
+  }).select("id").single();
   if (error) {
     console.error("[units] createUnitAction failed:", error);
     return { ok: false, error: error.message || "Falha ao criar unidade" };
+  }
+
+  // Seed dos canais de escritório virtual pra unidade nova (clona do Matriz).
+  // Função criada na migration 20260604000000. Se ainda não estiver no banco,
+  // skip silenciosamente — sysadmin pode rodar manualmente depois.
+  if (inserted?.id) {
+    const { error: seedErr } = await sb.rpc("seed_chat_channels_for_unit", {
+      p_unit_id: inserted.id as string,
+    });
+    if (seedErr) {
+      const msg = String(seedErr.message ?? "");
+      if (!msg.includes("function") && !msg.includes("does not exist")) {
+        console.warn("[units] seed_chat_channels_for_unit falhou:", msg);
+      }
+    }
   }
 
   revalidatePath("/unidades");

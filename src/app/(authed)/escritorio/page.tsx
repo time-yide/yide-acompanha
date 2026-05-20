@@ -1,10 +1,13 @@
 import { redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth/session";
 import { listChannelsWithUnread } from "@/lib/escritorio/queries";
+import { getEffectiveUnitId } from "@/lib/units/session";
 
 export default async function EscritorioIndexPage() {
   const user = await requireAuth();
-  const channels = await listChannelsWithUnread(user.id, user.role);
+  // Multi-tenant: resolve unidade ativa pra filtrar canais role-based.
+  const unitId = await getEffectiveUnitId();
+  const channels = await listChannelsWithUnread(user.id, user.role, unitId);
   if (channels.length === 0) {
     return (
       <div className="mx-auto max-w-2xl py-12">

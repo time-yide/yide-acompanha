@@ -9,6 +9,8 @@ import {
 import { canAccessDmChannel, type Channel } from "@/lib/escritorio/types";
 import { ChannelSidebar } from "@/components/escritorio/ChannelSidebar";
 import { ChannelView } from "@/components/escritorio/ChannelView";
+import { getEffectiveUnitId } from "@/lib/units/session";
+import { getProfileIdsForActiveUnit } from "@/lib/units/filter-helpers";
 
 export default async function DmPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -43,15 +45,29 @@ export default async function DmPage({ params }: { params: Promise<{ id: string 
     nome: otherProfile?.nome ?? "Usuário removido",
   };
 
+  // Multi-tenant: sidebar e mention/pessoas filtram pela unidade ativa.
+  // DMs em si são cross-unit (unit_id NULL) e seguem visíveis pro dono.
+  const [unitId, unitProfileIds] = await Promise.all([
+    getEffectiveUnitId(),
+    getProfileIdsForActiveUnit(),
+  ]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let pessoasQ: any = sb.from("profiles")
+    .select("id, nome, role, avatar_url")
+    .eq("ativo", true)
+    .neq("id", user.id);
+  if (unitProfileIds !== null) {
+    if (unitProfileIds.length === 0) {
+      pessoasQ = pessoasQ.eq("id", "00000000-0000-0000-0000-000000000000");
+    } else {
+      pessoasQ = pessoasQ.in("id", unitProfileIds);
+    }
+  }
   const [messages, sidebarChannels, mentionables, pessoasRes] = await Promise.all([
     listMessages(channel.id, 50),
-    listChannelsWithUnread(user.id, user.role),
-    listMentionables(),
-    sb.from("profiles")
-      .select("id, nome, role, avatar_url")
-      .eq("ativo", true)
-      .neq("id", user.id)
-      .order("nome"),
+    listChannelsWithUnread(user.id, user.role, unitId),
+    listMentionables(unitProfileIds),
+    pessoasQ.order("nome"),
   ]);
   const pessoas = (pessoasRes.data ?? []) as Array<{ id: string; nome: string; role: string; avatar_url: string | null }>;
 
