@@ -24,19 +24,47 @@ export async function listAccessibleChannels(userRole: string): Promise<Channel[
   return all.filter((c) => canAccessChannel(userRole, c.kind));
 }
 
-async function _listChannelsWithUnreadImpl(userId: string, userRole: string): Promise<ChannelWithUnread[]> {
+async function _listChannelsWithUnreadImpl(
+  userId: string,
+  userRole: string,
+  unitId: string | null,
+): Promise<ChannelWithUnread[]> {
   const supabase = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
 
-  // 1. Lista todos os channels acessíveis: role-based + DMs do user
-  const { data: roleChannels } = await sb
+  // 1. Lista todos os channels acessíveis: role-based (da unidade ativa) + DMs do user.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let roleChannelsQ: any = sb
     .from("chat_channels")
-    .select("id, kind, nome, descricao, ordem, member_ids, icon_url")
+    .select("id, kind, nome, descricao, ordem, member_ids, icon_url, unit_id")
     .neq("kind", "direct")
     .order("ordem", { ascending: true });
+  // Multi-tenant: filtra canais role-based pela unidade ativa.
+  // unitId null = sem filtro (master vendo "todas" no futuro / migration não rodada).
+  if (unitId !== null) {
+    roleChannelsQ = roleChannelsQ.eq("unit_id", unitId);
+  }
+  const { data: roleChannels, error: roleErr } = await roleChannelsQ;
+  // Fallback: se a coluna unit_id ainda não existir (migration não rodada),
+  // re-tenta sem o filtro pra não esvaziar o chat inteiro.
+  let roleChannelsData = roleChannels;
+  if (roleErr) {
+    const msg = String(roleErr.message ?? "");
+    if (msg.includes("unit_id") || msg.includes("schema cache")) {
+      console.warn("[escritorio/queries] chat_channels.unit_id não existe, fallback sem filtro:", msg);
+      const fb = await sb
+        .from("chat_channels")
+        .select("id, kind, nome, descricao, ordem, member_ids, icon_url")
+        .neq("kind", "direct")
+        .order("ordem", { ascending: true });
+      roleChannelsData = fb.data;
+    } else {
+      console.error("[escritorio/queries] listChannelsWithUnread roleChannels failed:", roleErr);
+    }
+  }
 
-  const accessibleRoleChannels = ((roleChannels ?? []) as Channel[])
+  const accessibleRoleChannels = ((roleChannelsData ?? []) as Channel[])
     .filter((c) => canAccessChannel(userRole, c.kind));
 
   const { data: dmChannels } = await sb
@@ -180,42 +208,84 @@ async function _listChannelsWithUnreadImpl(userId: string, userRole: string): Pr
 }
 
 /**
- * Cached por (userId, userRole) por 15s + tag pra invalidação manual quando
- * houver mensagem nova (sendChatMessageAction) ou marcação de lida
+ * Cached por (userId, userRole, unitId) por 15s + tag pra invalidação manual
+ * quando houver mensagem nova (sendChatMessageAction) ou marcação de lida
  * (markChannelReadAction).
+ *
+ * `unitId`: filtra canais role-based pela unidade ativa. DMs (cross-unit)
+ * seguem sempre visíveis pro dono.
  */
-export async function listChannelsWithUnread(userId: string, userRole: string): Promise<ChannelWithUnread[]> {
+export async function listChannelsWithUnread(
+  userId: string,
+  userRole: string,
+  unitId: string | null = null,
+): Promise<ChannelWithUnread[]> {
   const cached = unstable_cache(
-    async (uid: string, role: string) => _listChannelsWithUnreadImpl(uid, role),
-    ["escritorio-channels-unread"],
+    async (paramsJson: string) => {
+      const { uid, role, uni } = JSON.parse(paramsJson) as { uid: string; role: string; uni: string | null };
+      return _listChannelsWithUnreadImpl(uid, role, uni);
+    },
+    // v2: shape ganhou unitId (multi-tenant)
+    ["escritorio-channels-unread-v2"],
     { revalidate: 15, tags: [ESCRITORIO_UNREAD_TAG] },
   );
-  return cached(userId, userRole);
+  return cached(JSON.stringify({ uid: userId, role: userRole, uni: unitId }));
 }
 
-async function _getChannelByKindImpl(kind: ChannelKind): Promise<Channel | null> {
+async function _getChannelByKindImpl(kind: ChannelKind, unitId: string | null): Promise<Channel | null> {
   // Service-role pra rodar dentro de unstable_cache. chat_channels é tabela
   // seed (sem RLS sensitiva — quem pode ler quê é validado no page-level
   // via canAccessChannel).
   const supabase = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
-  const { data } = await sb
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let q: any = sb
     .from("chat_channels")
-    .select("id, kind, nome, descricao, ordem")
-    .eq("kind", kind)
-    .maybeSingle();
-  return (data as Channel | null) ?? null;
+    .select("id, kind, nome, descricao, ordem, unit_id")
+    .eq("kind", kind);
+  if (unitId !== null) {
+    q = q.eq("unit_id", unitId);
+  } else {
+    // unitId null + migration rodada = múltiplos canais por kind. .limit(1) evita erro.
+    q = q.limit(1);
+  }
+  const { data, error } = unitId !== null ? await q.maybeSingle() : await q;
+  if (error) {
+    const msg = String(error.message ?? "");
+    // Fallback pra ambientes sem unit_id ainda
+    if (msg.includes("unit_id") || msg.includes("schema cache")) {
+      const fb = await sb
+        .from("chat_channels")
+        .select("id, kind, nome, descricao, ordem")
+        .eq("kind", kind)
+        .maybeSingle();
+      return (fb.data as Channel | null) ?? null;
+    }
+    return null;
+  }
+  // Normaliza: quando passamos .limit(1) (unitId null), data é array; senão é objeto.
+  const row = Array.isArray(data) ? (data[0] ?? null) : data;
+  return (row as Channel | null) ?? null;
 }
 
-/** Cached 5min — canais são seed estático, nunca mudam em runtime. */
-export async function getChannelByKind(kind: ChannelKind): Promise<Channel | null> {
+/**
+ * Cached 5min — canais são seed estático, nunca mudam em runtime.
+ *
+ * `unitId`: pega o canal dessa unidade. Quando null, pega o primeiro
+ * encontrado (fallback pra ambientes pré-migration).
+ */
+export async function getChannelByKind(
+  kind: ChannelKind,
+  unitId: string | null = null,
+): Promise<Channel | null> {
   const cached = unstable_cache(
-    async (k: string) => _getChannelByKindImpl(k as ChannelKind),
-    ["escritorio-channel-by-kind"],
+    async (k: string, uni: string) => _getChannelByKindImpl(k as ChannelKind, uni === "null" ? null : uni),
+    // v2: ganhou unitId
+    ["escritorio-channel-by-kind-v2"],
     { revalidate: 300 },
   );
-  return cached(kind);
+  return cached(kind, unitId ?? "null");
 }
 
 export async function listMessages(channelId: string, limit = 50): Promise<ChatMessage[]> {
@@ -251,29 +321,50 @@ export async function listMessages(channelId: string, limit = 50): Promise<ChatM
   }));
 }
 
-async function _listMentionablesImpl(): Promise<Array<{ id: string; nome: string; role: string }>> {
+async function _listMentionablesImpl(
+  unitProfileIds: string[] | null,
+): Promise<Array<{ id: string; nome: string; role: string }>> {
   // Service-role pra rodar dentro de unstable_cache.
   const supabase = createServiceRoleClient();
-  const { data } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let q: any = supabase
     .from("profiles")
     .select("id, nome, role")
-    .eq("ativo", true)
-    .order("nome");
+    .eq("ativo", true);
+  if (unitProfileIds !== null) {
+    if (unitProfileIds.length === 0) return [];
+    q = q.in("id", unitProfileIds);
+  }
+  const { data } = await q.order("nome");
   return (data ?? []) as Array<{ id: string; nome: string; role: string }>;
 }
 
-/** Lista de usuários ativos pra autocomplete de @mention. Cached 60s. */
-export async function listMentionables(): Promise<Array<{ id: string; nome: string; role: string }>> {
+/**
+ * Lista de usuários ativos pra autocomplete de @mention. Cached 60s.
+ * `unitProfileIds`: filtra pra só sugerir users da unidade ativa
+ * (mention cross-unit não funcionaria — outro user nem vê o canal).
+ */
+export async function listMentionables(
+  unitProfileIds: string[] | null = null,
+): Promise<Array<{ id: string; nome: string; role: string }>> {
   const cached = unstable_cache(
-    async () => _listMentionablesImpl(),
-    ["escritorio-mentionables"],
+    async (paramsJson: string) => {
+      const { up } = JSON.parse(paramsJson) as { up: string[] | null };
+      return _listMentionablesImpl(up);
+    },
+    // v2: ganhou unitProfileIds
+    ["escritorio-mentionables-v2"],
     { revalidate: 60, tags: [ESCRITORIO_MENTIONABLES_TAG] },
   );
-  return cached();
+  return cached(JSON.stringify({ up: unitProfileIds }));
 }
 
 /** Total de canais com mensagens não lidas — pra badge no nav lateral. Reusa o cache. */
-export async function countChannelsWithUnread(userId: string, userRole: string): Promise<number> {
-  const channels = await listChannelsWithUnread(userId, userRole);
+export async function countChannelsWithUnread(
+  userId: string,
+  userRole: string,
+  unitId: string | null = null,
+): Promise<number> {
+  const channels = await listChannelsWithUnread(userId, userRole, unitId);
   return channels.filter((c) => c.unread_count > 0).length;
 }
