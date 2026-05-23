@@ -3,6 +3,7 @@ import { Inbox, Clock, MapPin, FileText, User, ExternalLink, Video, CheckCircle2
 import { Card } from "@/components/ui/card";
 import { DelegarVideomakerDialog } from "@/components/audiovisual/DelegarVideomakerDialog";
 import { EditarDelegacaoDialog } from "@/components/audiovisual/EditarDelegacaoDialog";
+import { CapturaActionsMenu } from "@/components/audiovisual/CapturaActionsMenu";
 import type {
   PendingDelegationRow,
   ScheduledFutureRow,
@@ -160,9 +161,20 @@ function PendingCard({
               </p>
             )}
           </div>
-          <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-amber-700 dark:text-amber-300">
-            Pendente
-          </span>
+          <div className="flex items-center gap-1">
+            <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-amber-700 dark:text-amber-300">
+              Pendente
+            </span>
+            {canDelegate && (
+              <CapturaActionsMenu
+                eventId={row.id}
+                eventTitulo={row.titulo}
+                eventInicio={row.inicio}
+                eventFim={row.fim}
+                variant="pending"
+              />
+            )}
+          </div>
         </div>
 
         <CommonFields
@@ -225,10 +237,21 @@ function ScheduledCard({
               </p>
             )}
           </div>
-          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
-            <CheckCircle2 className="h-3 w-3" />
-            Delegada
-          </span>
+          <div className="flex items-center gap-1">
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+              <CheckCircle2 className="h-3 w-3" />
+              Delegada
+            </span>
+            {canDelegate && (
+              <CapturaActionsMenu
+                eventId={row.id}
+                eventTitulo={row.titulo}
+                eventInicio={row.inicio}
+                eventFim={row.fim}
+                variant="scheduled"
+              />
+            )}
+          </div>
         </div>
 
         <CommonFields
