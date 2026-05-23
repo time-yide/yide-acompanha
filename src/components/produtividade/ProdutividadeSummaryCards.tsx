@@ -1,4 +1,4 @@
-import { Users, Clock, DollarSign, Activity, TrendingUp } from "lucide-react";
+import { Users, Clock, DollarSign, Activity, TrendingUp, AlertTriangle } from "lucide-react";
 import type { ProdutividadeSummary } from "@/lib/produtividade/queries";
 
 interface Props {
@@ -30,7 +30,15 @@ const CARDS = [
     icon: Clock,
     tone: "blue",
     getValue: (s: ProdutividadeSummary) => formatHours(s.tempo_ativo_total_seg_hoje),
-    getHint: () => "soma da equipe",
+    getHint: (s: ProdutividadeSummary) => {
+      const horasMedia =
+        s.total_colaboradores > 0
+          ? s.tempo_ativo_total_seg_hoje / 3600 / s.total_colaboradores
+          : 0;
+      return horasMedia > 0
+        ? `${horasMedia.toFixed(1)}h por colaborador (média)`
+        : "soma da equipe";
+    },
   },
   {
     label: "Eventos hoje",
@@ -38,6 +46,24 @@ const CARDS = [
     tone: "violet",
     getValue: (s: ProdutividadeSummary) => s.eventos_hoje.toLocaleString("pt-BR"),
     getHint: () => "ações no sistema",
+  },
+  {
+    label: "Atrasados",
+    icon: AlertTriangle,
+    tone: "rose",
+    getValue: (s: ProdutividadeSummary) =>
+      (s.tarefas_atrasadas_total + s.capturas_atrasadas_total).toLocaleString("pt-BR"),
+    getHint: (s: ProdutividadeSummary) => {
+      const partes: string[] = [];
+      if (s.tarefas_atrasadas_total > 0) {
+        partes.push(`${s.tarefas_atrasadas_total} tarefa${s.tarefas_atrasadas_total === 1 ? "" : "s"}`);
+      }
+      if (s.capturas_atrasadas_total > 0) {
+        partes.push(`${s.capturas_atrasadas_total} captura${s.capturas_atrasadas_total === 1 ? "" : "s"}`);
+      }
+      if (partes.length === 0) return "tudo em dia ✓";
+      return `${partes.join(" · ")} (${s.colaboradores_com_atraso} pessoa${s.colaboradores_com_atraso === 1 ? "" : "s"})`;
+    },
   },
   {
     label: "Custo do dia",
@@ -72,11 +98,16 @@ const TONE_CLASSES: Record<string, { bg: string; text: string; border: string }>
     text: "text-amber-600 dark:text-amber-400",
     border: "border-amber-500/20",
   },
+  rose: {
+    bg: "bg-rose-500/10",
+    text: "text-rose-600 dark:text-rose-400",
+    border: "border-rose-500/20",
+  },
 };
 
 export function ProdutividadeSummaryCards({ summary }: Props) {
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
       {CARDS.map((card) => {
         const Icon = card.icon;
         const tone = TONE_CLASSES[card.tone];

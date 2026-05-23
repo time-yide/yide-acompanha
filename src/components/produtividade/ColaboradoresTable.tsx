@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Circle, ArrowUp, ArrowDown, Trophy } from "lucide-react";
+import { Circle, ArrowUp, ArrowDown, Trophy, AlertTriangle, Video } from "lucide-react";
 import type { ColaboradorStatusRow } from "@/lib/produtividade/queries";
 import { formatHours, formatBRL } from "./ProdutividadeSummaryCards";
 
@@ -9,7 +9,7 @@ interface Props {
   rows: ColaboradorStatusRow[];
 }
 
-type SortKey = "nome" | "ativo" | "tempo" | "eventos" | "custo_dia" | "custo_hora";
+type SortKey = "nome" | "ativo" | "tempo" | "eventos" | "custo_dia" | "custo_hora" | "atrasados";
 type SortDir = "asc" | "desc";
 
 function StatusDot({ online, ativo }: { online: boolean; ativo: boolean }) {
@@ -68,6 +68,11 @@ export function ColaboradoresTable({ rows }: Props) {
         case "custo_hora":
           cmp = (b.custo_hora ?? 0) - (a.custo_hora ?? 0);
           break;
+        case "atrasados":
+          cmp =
+            (b.tarefas_atrasadas + b.capturas_atrasadas) -
+            (a.tarefas_atrasadas + a.capturas_atrasadas);
+          break;
       }
       return sortDir === "asc" ? -cmp : cmp;
     });
@@ -110,6 +115,9 @@ export function ColaboradoresTable({ rows }: Props) {
                 <SortBtn label="Eventos" k="eventos" sortKey={sortKey} sortDir={sortDir} toggle={toggleSort} />
               </th>
               <th className="px-4 py-2.5 text-right">
+                <SortBtn label="Atrasados" k="atrasados" sortKey={sortKey} sortDir={sortDir} toggle={toggleSort} />
+              </th>
+              <th className="px-4 py-2.5 text-right">
                 <SortBtn label="Custo/h" k="custo_hora" sortKey={sortKey} sortDir={sortDir} toggle={toggleSort} />
               </th>
               <th className="px-4 py-2.5 text-right">
@@ -147,12 +155,25 @@ export function ColaboradoresTable({ rows }: Props) {
                     <StatusDot online={r.online} ativo={r.ativo} />
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums">
-                    {r.tempo_ativo_seg_hoje > 0
-                      ? formatHours(r.tempo_ativo_seg_hoje)
-                      : <span className="text-muted-foreground/50">—</span>}
+                    {r.tempo_ativo_seg_hoje > 0 ? (
+                      <div className="flex flex-col items-end leading-tight">
+                        <span>{formatHours(r.tempo_ativo_seg_hoje)}</span>
+                        {r.tempo_externo_seg_hoje > 0 && (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] text-fuchsia-600 dark:text-fuchsia-400">
+                            <Video className="h-2.5 w-2.5" />
+                            {formatHours(r.tempo_externo_seg_hoje)} em captação
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground/50">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums">
                     {r.eventos_hoje > 0 ? r.eventos_hoje : <span className="text-muted-foreground/50">—</span>}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <AtrasadosBadge tarefas={r.tarefas_atrasadas} capturas={r.capturas_atrasadas} />
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums text-xs text-muted-foreground">
                     {r.custo_hora !== null
@@ -197,5 +218,24 @@ function SortBtn({
       {label}
       {active && (sortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}
     </button>
+  );
+}
+
+function AtrasadosBadge({ tarefas, capturas }: { tarefas: number; capturas: number }) {
+  const total = tarefas + capturas;
+  if (total === 0) {
+    return <span className="text-muted-foreground/50">—</span>;
+  }
+  const parts: string[] = [];
+  if (tarefas > 0) parts.push(`${tarefas} tarefa${tarefas === 1 ? "" : "s"}`);
+  if (capturas > 0) parts.push(`${capturas} captura${capturas === 1 ? "" : "s"}`);
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-full border border-rose-500/30 bg-rose-500/10 px-2 py-0.5 text-xs font-medium text-rose-700 dark:text-rose-300"
+      title={parts.join(" · ")}
+    >
+      <AlertTriangle className="h-3 w-3" />
+      {total}
+    </span>
   );
 }

@@ -7,6 +7,7 @@ import {
   ONLINE_WINDOW_SECONDS,
   SESSAO_GAP_SECONDS,
 } from "./schema";
+import { formatIsoDate, getAppTimezoneOffsetMs } from "@/lib/datetime/timezone";
 
 export interface ColaboradorStatusRow {
   user_id: string;
@@ -21,8 +22,14 @@ export interface ColaboradorStatusRow {
   ativo: boolean;
   /** Tempo ativo hoje em segundos (soma das sessões de eventos). */
   tempo_ativo_seg_hoje: number;
+  /** Quanto desse tempo veio de captação externa (videomaker). */
+  tempo_externo_seg_hoje: number;
   /** Eventos hoje. */
   eventos_hoje: number;
+  /** Tarefas atrasadas atribuídas (status != concluida, due_date < hoje). */
+  tarefas_atrasadas: number;
+  /** Capturas atrasadas (videomaker passou da deadline D+1 09h). */
+  capturas_atrasadas: number;
   /** Custo/hora calculado dinamicamente. Null se sem dados de fixo+comissão. */
   custo_hora: number | null;
   /** Custo do dia: custo_hora × (tempo_ativo_seg_hoje / 3600). */
@@ -51,48 +58,129 @@ interface EventRow {
   created_at: string;
 }
 
+interface VideomakerCaptureRow {
+  videomaker_assigned_id: string;
+  inicio: string;
+  fim: string;
+  videomaker_status: string;
+}
+
+interface OverdueTaskRow {
+  atribuido_a: string;
+}
+
+interface OverdueCaptureRow {
+  videomaker_assigned_id: string;
+  inicio: string;
+  id: string;
+}
+
+/**
+ * Calcula deadline de captura (D+1 09h no fuso da app). Mesmo critério que
+ * `audiovisual/queries.ts` — videomaker precisa entregar antes disso.
+ */
+function captureDeadline(inicioIso: string): Date {
+  const inicio = new Date(inicioIso);
+  const deadline = new Date(inicio);
+  deadline.setUTCDate(deadline.getUTCDate() + 1);
+  const offsetHours = getAppTimezoneOffsetMs() / (60 * 60 * 1000);
+  deadline.setUTCHours(9 + offsetHours, 0, 0, 0);
+  return deadline;
+}
+
 /** Retorna o status atual de cada colaborador ativo: online, tempo ativo
- *  hoje, eventos hoje, custo do dia. Base do dashboard /produtividade. */
+ *  hoje, eventos hoje, custo do dia, atrasados. Base do dashboard /produtividade. */
 export async function getColaboradoresStatus(): Promise<ColaboradorStatusRow[]> {
   const admin = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = admin as any;
   const now = Date.now();
-  const today = new Date(
-    new Date().toLocaleString("en-US", { timeZone: "America/Cuiaba" }),
-  );
-  today.setHours(0, 0, 0, 0);
-  const todayIso = today.toISOString();
+  // Data de hoje no fuso da app (Cuiabá). `event_date` é uma coluna `date`
+  // calculada server-side com `now() at time zone 'America/Cuiaba'`, então
+  // filtrar por igualdade resolve o boundary corretamente.
+  const today = formatIsoDate(new Date());
+  // Início/fim do dia em UTC pra queries de calendar_events.
+  const offsetHours = getAppTimezoneOffsetMs() / (60 * 60 * 1000);
+  const todayStartUtc = new Date(`${today}T${String(offsetHours).padStart(2, "0")}:00:00.000Z`).toISOString();
+  const tomorrowDate = new Date(`${today}T00:00:00.000Z`);
+  tomorrowDate.setUTCDate(tomorrowDate.getUTCDate() + 1);
+  const tomorrow = formatIsoDate(tomorrowDate);
+  const tomorrowStartUtc = new Date(`${tomorrow}T${String(offsetHours).padStart(2, "0")}:00:00.000Z`).toISOString();
 
   // Últimos 3 meses de commission_snapshots pra média
   const tresMesesAtras = new Date(now - 90 * 24 * 60 * 60 * 1000);
   const mesAtras = `${tresMesesAtras.getFullYear()}-${String(tresMesesAtras.getMonth() + 1).padStart(2, "0")}`;
 
-  const [{ data: profilesData }, { data: commissionData }, { data: eventsData }] =
-    await Promise.all([
-      sb
-        .from("profiles")
-        .select(
-          "id, nome, role, avatar_url, last_seen_at, last_active_event_at, fixo_mensal",
-        )
-        .eq("ativo", true)
-        .neq("role", "cliente")
-        .order("nome"),
-      sb
-        .from("commission_snapshots")
-        .select("user_id, valor_total, mes_referencia, status")
-        .gte("mes_referencia", mesAtras)
-        .in("status", ["paid", "approved"]),
-      sb
-        .from("activity_events")
-        .select("user_id, created_at")
-        .gte("created_at", todayIso)
-        .order("created_at", { ascending: true }),
-    ]);
+  const [
+    { data: profilesData },
+    { data: commissionData },
+    { data: eventsData },
+    { data: capturesData },
+    { data: overdueTasksData },
+    { data: scheduledCapturesData },
+    { data: capturesEntregasData },
+  ] = await Promise.all([
+    sb
+      .from("profiles")
+      .select(
+        "id, nome, role, avatar_url, last_seen_at, last_active_event_at, fixo_mensal",
+      )
+      .eq("ativo", true)
+      .neq("role", "cliente")
+      .order("nome"),
+    sb
+      .from("commission_snapshots")
+      .select("user_id, valor_total, mes_referencia, status")
+      .gte("mes_referencia", mesAtras)
+      .in("status", ["paid", "approved"]),
+    sb
+      .from("activity_events")
+      .select("user_id, created_at")
+      .eq("event_date", today)
+      .order("created_at", { ascending: true }),
+    // Capturas externas de videomaker que aconteceram hoje (conta como tempo produtivo)
+    sb
+      .from("calendar_events")
+      .select("videomaker_assigned_id, inicio, fim, videomaker_status")
+      .eq("sub_calendar", "videomakers")
+      .in("videomaker_status", ["scheduled", "completed"])
+      .gte("inicio", todayStartUtc)
+      .lt("inicio", tomorrowStartUtc)
+      .not("videomaker_assigned_id", "is", null),
+    // Tarefas atrasadas (não concluídas, due_date < hoje)
+    sb
+      .from("tasks")
+      .select("atribuido_a")
+      .neq("status", "concluida")
+      .lt("due_date", today)
+      .not("due_date", "is", null),
+    // Capturas potencialmente atrasadas: scheduled, no passado, deadline pode ter passado
+    sb
+      .from("calendar_events")
+      .select("id, videomaker_assigned_id, inicio")
+      .eq("sub_calendar", "videomakers")
+      .eq("videomaker_status", "scheduled")
+      .lt("inicio", new Date(now).toISOString())
+      .not("videomaker_assigned_id", "is", null)
+      .gte("inicio", new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString()),
+    // Capturas já entregues — pra excluir de atrasadas
+    sb
+      .from("audiovisual_capturas")
+      .select("event_id")
+      .not("event_id", "is", null),
+  ]);
 
   const profiles = (profilesData ?? []) as ProfileRow[];
   const commissions = (commissionData ?? []) as CommissionRow[];
   const events = (eventsData ?? []) as EventRow[];
+  const captures = (capturesData ?? []) as VideomakerCaptureRow[];
+  const overdueTasks = (overdueTasksData ?? []) as OverdueTaskRow[];
+  const scheduledCaptures = (scheduledCapturesData ?? []) as OverdueCaptureRow[];
+  const entregasEventIds = new Set(
+    ((capturesEntregasData ?? []) as Array<{ event_id: string | null }>)
+      .map((c) => c.event_id)
+      .filter((id): id is string => id !== null),
+  );
 
   // Agrega comissão por user_id (média dos últimos 3 meses)
   const commissionByUser = new Map<string, { soma: number; n: number }>();
@@ -104,12 +192,46 @@ export async function getColaboradoresStatus(): Promise<ColaboradorStatusRow[]> 
     commissionByUser.set(c.user_id, cur);
   }
 
-  // Agrega eventos por user_id e calcula tempo ativo via sessões
+  // Eventos por user_id pra cálculo de sessões
   const eventsByUser = new Map<string, EventRow[]>();
   for (const e of events) {
     const arr = eventsByUser.get(e.user_id) ?? [];
     arr.push(e);
     eventsByUser.set(e.user_id, arr);
+  }
+
+  // Tempo de captação externa por videomaker (segundos)
+  const tempoExternoByUser = new Map<string, number>();
+  for (const c of captures) {
+    if (!c.videomaker_assigned_id) continue;
+    const dur = Math.max(
+      0,
+      Math.floor((new Date(c.fim).getTime() - new Date(c.inicio).getTime()) / 1000),
+    );
+    tempoExternoByUser.set(
+      c.videomaker_assigned_id,
+      (tempoExternoByUser.get(c.videomaker_assigned_id) ?? 0) + dur,
+    );
+  }
+
+  // Tarefas atrasadas por user_id
+  const tarefasAtrasadasByUser = new Map<string, number>();
+  for (const t of overdueTasks) {
+    tarefasAtrasadasByUser.set(
+      t.atribuido_a,
+      (tarefasAtrasadasByUser.get(t.atribuido_a) ?? 0) + 1,
+    );
+  }
+
+  // Capturas atrasadas por videomaker (deadline passou + sem entrega)
+  const capturasAtrasadasByUser = new Map<string, number>();
+  for (const c of scheduledCaptures) {
+    if (entregasEventIds.has(c.id)) continue;
+    if (new Date(now) <= captureDeadline(c.inicio)) continue;
+    capturasAtrasadasByUser.set(
+      c.videomaker_assigned_id,
+      (capturasAtrasadasByUser.get(c.videomaker_assigned_id) ?? 0) + 1,
+    );
   }
 
   function tempoAtivoFromEvents(evs: EventRow[]): number {
@@ -139,7 +261,9 @@ export async function getColaboradoresStatus(): Promise<ColaboradorStatusRow[]> 
     const ativo = lastActive > 0 && now - lastActive < ATIVO_WINDOW_SECONDS * 1000;
 
     const userEvents = eventsByUser.get(p.id) ?? [];
-    const tempo_ativo_seg_hoje = tempoAtivoFromEvents(userEvents);
+    const tempoEventos = tempoAtivoFromEvents(userEvents);
+    const tempoExterno = tempoExternoByUser.get(p.id) ?? 0;
+    const tempo_ativo_seg_hoje = tempoEventos + tempoExterno;
 
     const fixo = p.fixo_mensal !== null ? Number(p.fixo_mensal) : 0;
     const com = commissionByUser.get(p.id);
@@ -161,7 +285,10 @@ export async function getColaboradoresStatus(): Promise<ColaboradorStatusRow[]> 
       online,
       ativo,
       tempo_ativo_seg_hoje,
+      tempo_externo_seg_hoje: tempoExterno,
       eventos_hoje: userEvents.length,
+      tarefas_atrasadas: tarefasAtrasadasByUser.get(p.id) ?? 0,
+      capturas_atrasadas: capturasAtrasadasByUser.get(p.id) ?? 0,
       custo_hora,
       custo_dia,
     };
@@ -176,6 +303,9 @@ export interface ProdutividadeSummary {
   eventos_hoje: number;
   custo_dia_total: number;
   custo_hora_medio: number | null;
+  tarefas_atrasadas_total: number;
+  capturas_atrasadas_total: number;
+  colaboradores_com_atraso: number;
 }
 
 export function summarizeStatus(rows: ColaboradorStatusRow[]): ProdutividadeSummary {
@@ -187,6 +317,11 @@ export function summarizeStatus(rows: ColaboradorStatusRow[]): ProdutividadeSumm
   );
   const eventos_hoje = rows.reduce((acc, r) => acc + r.eventos_hoje, 0);
   const custo_dia_total = rows.reduce((acc, r) => acc + (r.custo_dia ?? 0), 0);
+  const tarefas_atrasadas_total = rows.reduce((acc, r) => acc + r.tarefas_atrasadas, 0);
+  const capturas_atrasadas_total = rows.reduce((acc, r) => acc + r.capturas_atrasadas, 0);
+  const colaboradores_com_atraso = rows.filter(
+    (r) => r.tarefas_atrasadas + r.capturas_atrasadas > 0,
+  ).length;
   const comCusto = rows.filter((r) => r.custo_hora !== null);
   const custo_hora_medio =
     comCusto.length > 0
@@ -206,6 +341,9 @@ export function summarizeStatus(rows: ColaboradorStatusRow[]): ProdutividadeSumm
     eventos_hoje,
     custo_dia_total: Number(custo_dia_total.toFixed(2)),
     custo_hora_medio,
+    tarefas_atrasadas_total,
+    capturas_atrasadas_total,
+    colaboradores_com_atraso,
   };
 }
 

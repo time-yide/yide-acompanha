@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { Activity, Info } from "lucide-react";
+import { Activity, Info, AlertTriangle } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import { getColaboradoresStatus, summarizeStatus, listRecentEvents } from "@/lib/produtividade/queries";
 import { ProdutividadeSummaryCards } from "@/components/produtividade/ProdutividadeSummaryCards";
@@ -21,6 +21,15 @@ export default async function ProdutividadePage() {
   ]);
   const summary = summarizeStatus(rows);
 
+  // Top 5 com mais atrasados — destaque pra coord agir
+  const comAtraso = rows
+    .filter((r) => r.tarefas_atrasadas + r.capturas_atrasadas > 0)
+    .sort(
+      (a, b) =>
+        b.tarefas_atrasadas + b.capturas_atrasadas - (a.tarefas_atrasadas + a.capturas_atrasadas),
+    )
+    .slice(0, 5);
+
   return (
     <div className="space-y-6">
       <AutoRefresh intervalSeconds={30} />
@@ -40,6 +49,43 @@ export default async function ProdutividadePage() {
       </header>
 
       <ProdutividadeSummaryCards summary={summary} />
+
+      {comAtraso.length > 0 && (
+        <section className="rounded-xl border border-rose-500/30 bg-rose-500/[0.04] p-4">
+          <div className="mb-3 flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-rose-600 dark:text-rose-400" />
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-rose-700 dark:text-rose-300">
+              Quem está com atrasos
+            </h2>
+          </div>
+          <ul className="space-y-1.5">
+            {comAtraso.map((r) => {
+              const total = r.tarefas_atrasadas + r.capturas_atrasadas;
+              const parts: string[] = [];
+              if (r.tarefas_atrasadas > 0) {
+                parts.push(`${r.tarefas_atrasadas} tarefa${r.tarefas_atrasadas === 1 ? "" : "s"}`);
+              }
+              if (r.capturas_atrasadas > 0) {
+                parts.push(`${r.capturas_atrasadas} captura${r.capturas_atrasadas === 1 ? "" : "s"}`);
+              }
+              return (
+                <li
+                  key={r.user_id}
+                  className="flex items-center justify-between gap-2 rounded-md bg-card/60 px-3 py-2 text-sm"
+                >
+                  <span className="font-medium">{r.nome}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {parts.join(" · ")}
+                  </span>
+                  <span className="inline-flex h-6 min-w-[24px] items-center justify-center rounded-full bg-rose-500/20 px-2 text-xs font-bold tabular-nums text-rose-700 dark:text-rose-300">
+                    {total}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
       <section>
         <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
@@ -69,7 +115,14 @@ export default async function ProdutividadePage() {
             </p>
             <p>
               <strong className="text-foreground">Tempo ativo:</strong> soma das
-              sessões contínuas de eventos (gap de 10 min encerra sessão).
+              sessões contínuas de eventos (gap de 10 min encerra sessão){" "}
+              <strong className="text-fuchsia-600 dark:text-fuchsia-400">+ duração das captações externas</strong>{" "}
+              de videomakers (escala como tempo produtivo).
+            </p>
+            <p>
+              <strong className="text-foreground">Atrasados:</strong> tarefas
+              não concluídas com prazo vencido + capturas de videomaker que
+              passaram da deadline (D+1 às 9h) sem entrega.
             </p>
             <p>
               <strong className="text-foreground">Custo/hora:</strong>{" "}
