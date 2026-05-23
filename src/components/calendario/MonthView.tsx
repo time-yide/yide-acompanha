@@ -19,7 +19,7 @@ const subBar: Record<string, string> = {
 interface Props {
   /** Início da grade (segunda da 1ª linha), em UTC. */
   gridStart: Date;
-  /** Mês de referência (1-12) — células fora desse mês ficam atenuadas. */
+  /** Mês de referência (1-12) - células fora desse mês ficam atenuadas. */
   refMonth: number;
   events: CalendarEvent[];
 }
@@ -85,7 +85,7 @@ export function MonthView({ gridStart, refMonth, events }: Props) {
                 inMonth ? "bg-card" : "bg-muted/20",
               ].join(" ")}
             >
-              {/* Cabeçalho da célula — número do dia (com bolinha primary se hoje) */}
+              {/* Cabeçalho da célula - número do dia (com bolinha primary se hoje) */}
               <div className="flex items-center justify-between">
                 {isToday ? (
                   <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground tabular-nums">
@@ -160,7 +160,7 @@ const MONTHS_BR = [
   "Dezembro",
 ];
 
-/** Nome longo do mês em pt-BR — ex.: "Maio de 2026". */
+/** Nome longo do mês em pt-BR - ex.: "Maio de 2026". */
 export function formatMonthLabel(year: number, month: number): string {
   return `${MONTHS_BR[month - 1]} de ${year}`;
 }

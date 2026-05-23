@@ -14,10 +14,10 @@ export interface ClientPushPayload {
  * Envia push pra TODOS os portal users ativos de um cliente.
  *
  * Cliente pode ter até 5 portal users (ex.: sócios). Todos recebem o
- * push — cada um decide se desliga no próprio device. Best-effort:
+ * push - cada um decide se desliga no próprio device. Best-effort:
  * falha em um device não impede os outros.
  *
- * Use de código server (server actions, cron, route handlers) — nunca
+ * Use de código server (server actions, cron, route handlers) - nunca
  * de input direto do user (não autorizamos cliente disparar push pra
  * outro cliente).
  */

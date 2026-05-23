@@ -19,7 +19,7 @@ interface Props {
    */
   canDeliver: boolean;
   /**
-   * Marcação rápida (sem ratings) — pra casos onde a entrega já aconteceu
+   * Marcação rápida (sem ratings) - pra casos onde a entrega já aconteceu
    * fora do sistema, deu erro, ou gestor precisa destravar manualmente.
    * Tipicamente videomaker + coord/audiovisual_chefe/adm/socio.
    */
@@ -91,7 +91,7 @@ export function PendenteEntregaAba({ rows, showVideomaker, canDeliver, canQuickM
             </div>
           );
 
-          // Sem nenhuma ação disponível — só link pro calendário (visualizar)
+          // Sem nenhuma ação disponível - só link pro calendário (visualizar)
           if (!hasAnyAction) {
             return (
               <li key={key}>
@@ -105,7 +105,7 @@ export function PendenteEntregaAba({ rows, showVideomaker, canDeliver, canQuickM
             );
           }
 
-          // Função do clique no corpo do card — prefere form completo se disponível
+          // Função do clique no corpo do card - prefere form completo se disponível
           const handleBodyClick = () => {
             if (canDeliver) setOpenEvent(r);
             else if (canQuickMark) setOpenRapidoEvent(r);
@@ -127,7 +127,7 @@ export function PendenteEntregaAba({ rows, showVideomaker, canDeliver, canQuickM
 
                 {/* Botões de ação à direita */}
                 <div className="flex shrink-0 items-start gap-1">
-                  {/* Marcar entregue (rápido) — sem ratings */}
+                  {/* Marcar entregue (rápido) - sem ratings */}
                   {canQuickMark && (
                     <button
                       type="button"
@@ -143,7 +143,7 @@ export function PendenteEntregaAba({ rows, showVideomaker, canDeliver, canQuickM
                     </button>
                   )}
 
-                  {/* Form completo — ícone Upload */}
+                  {/* Form completo - ícone Upload */}
                   {canDeliver && (
                     <button
                       type="button"

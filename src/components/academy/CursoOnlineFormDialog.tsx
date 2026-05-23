@@ -76,7 +76,7 @@ export function CursoOnlineFormDialog({ open, onOpenChange, curso }: Props) {
               defaultValue={curso?.nome}
               required
               maxLength={200}
-              placeholder="Ex: Marketing Digital — Erico Rocha"
+              placeholder="Ex: Marketing Digital - Erico Rocha"
               disabled={pending}
             />
           </div>

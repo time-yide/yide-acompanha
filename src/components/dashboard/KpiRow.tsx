@@ -16,13 +16,13 @@ function formatDeltaCount(v: number): { valor: string; direction: "up" | "down" 
 
 export function KpiRow({ kpis }: { kpis: KpiData }) {
   const pontuais = kpis.servicosPontuais;
-  // Mês atual no fuso da app (Cuiabá UTC-4) — usado no link de drill-down "Churn do mês"
+  // Mês atual no fuso da app (Cuiabá UTC-4) - usado no link de drill-down "Churn do mês"
   const mesAtual = getCurrentMonthYM();
 
-  // LTV helpers — quando não tem churn no mês, valor é null. Mostramos "—"
+  // LTV helpers - quando não tem churn no mês, valor é null. Mostramos "-"
   // com helper explicando, em vez de um número infinito ou confuso.
   const ltvDisplay = kpis.ltv.valor === null
-    ? { node: "—" as React.ReactNode, helper: "Sem churn no mês — LTV indefinido" }
+    ? { node: "-" as React.ReactNode, helper: "Sem churn no mês - LTV indefinido" }
     : {
         node: <Money value={kpis.ltv.valor} noDecimals />,
         helper: `Churn mensal: ${kpis.ltv.churnRatePct.toFixed(1)}%`,

@@ -15,7 +15,7 @@ interface Props {
 
 /**
  * Banner gigante no topo do dashboard pra master users (adm/sócio) trocarem
- * de unidade rapidinho — visível, não escondido no TopBar. Cada unidade vira
+ * de unidade rapidinho - visível, não escondido no TopBar. Cada unidade vira
  * uma pill clicável.
  */
 export function UnitDashboardBanner({

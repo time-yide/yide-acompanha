@@ -75,7 +75,7 @@ export const CHANNEL_KIND_TO_ROLES: Record<ChannelKind, readonly string[]> = {
   designers: ["designer", "adm", "socio"],
   comercial: ["comercial", "adm", "socio"],
   administrativo: ["adm", "socio"],
-  // 'direct' não usa role-based access — controle é via member_ids
+  // 'direct' não usa role-based access - controle é via member_ids
   // (vide canAccessDmChannel). Mantemos vazio aqui pra satisfazer o
   // Record<ChannelKind, ...>.
   direct: [],
@@ -87,7 +87,7 @@ export function canAccessChannel(role: string, kind: ChannelKind): boolean {
 
 /**
  * Pra um DM (kind='direct'), retorna o ID do OUTRO membro a partir
- * do viewer. Se viewer é o único em member_ids (autodm — bloqueado
+ * do viewer. Se viewer é o único em member_ids (autodm - bloqueado
  * mas defensivo), retorna o próprio.
  */
 export function dmOtherMemberId(channel: Channel, viewerId: string): string {
@@ -97,7 +97,7 @@ export function dmOtherMemberId(channel: Channel, viewerId: string): string {
 
 /**
  * Permissão pra acessar um DM channel. User precisa estar em member_ids.
- * Não usa role — DM é per-user.
+ * Não usa role - DM é per-user.
  */
 export function canAccessDmChannel(channel: Channel, userId: string): boolean {
   if (channel.kind !== "direct" || !channel.member_ids) return false;

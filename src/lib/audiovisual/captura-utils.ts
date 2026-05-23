@@ -1,4 +1,4 @@
-// Tipos + funções puras de captura — SEM dependência de server.
+// Tipos + funções puras de captura - SEM dependência de server.
 // Permite importar de Client Components sem arrastar `next/headers` pro
 // bundle do client (que é o que `queries.ts` traz via `supabase/server`).
 

@@ -1,4 +1,4 @@
-// Mock data pra Fase 0 — UI funciona com dados realistas enquanto a integração
+// Mock data pra Fase 0 - UI funciona com dados realistas enquanto a integração
 // real (Google OAuth + Calendar + transcrição + IA) está em construção.
 // Quando o backend de verdade entrar, removemos este arquivo e substituímos
 // por queries reais em `src/lib/reunioes/queries.ts`.

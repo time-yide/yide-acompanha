@@ -23,7 +23,7 @@ export function MobileNav({ role, nome, badges }: Props) {
 
   // Fecha o drawer ao navegar. setTimeout tira o setState de dentro do
   // body do effect (passa no react-hooks/set-state-in-effect) sem mudar
-  // a UX — o drawer fecha logo após a navegação.
+  // a UX - o drawer fecha logo após a navegação.
   useEffect(() => {
     const t = setTimeout(() => setOpen(false), 0);
     return () => clearTimeout(t);

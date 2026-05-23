@@ -24,7 +24,7 @@ export async function detectChecklistPainel(counters: { checklist_painel: number
 
   if (isFirstDayOfMonth) {
     await createChecklistsForActiveClients(monthRef, counters);
-    // Skip atraso check on day 1 — steps were just created and cannot be overdue yet
+    // Skip atraso check on day 1 - steps were just created and cannot be overdue yet
     return;
   }
 

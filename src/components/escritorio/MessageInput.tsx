@@ -150,7 +150,7 @@ export function MessageInput({ channelId, mentionables, replyTo, onClearReply, c
         : null,
     };
 
-    // 1. Insere otimisticamente — UI atualiza imediato.
+    // 1. Insere otimisticamente - UI atualiza imediato.
     setMessages((prev) => [...prev, optimisticMsg]);
     setText("");
     setAttachments([]);

@@ -1,4 +1,4 @@
-// Geração de resumo/insights/tasks via Claude — STUB pra Fase 3.
+// Geração de resumo/insights/tasks via Claude - STUB pra Fase 3.
 //
 // Stack já tem @anthropic-ai/sdk + um cliente em src/lib/ai/client.ts
 // (usado pelo Gerador de Leads). Reusamos.
@@ -43,7 +43,7 @@ export interface SummarizeResult {
  *  4. Detecta insights (objeção, sinal de compra, etc.)
  *  5. Extrai tasks candidatas com citação da transcrição
  *
- * Idealmente roda como background job — bloqueia 10-30s.
+ * Idealmente roda como background job - bloqueia 10-30s.
  */
 export async function summarizeMeeting(_opts: SummarizeOptions): Promise<SummarizeResult> {
   void _opts;

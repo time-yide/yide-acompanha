@@ -49,7 +49,7 @@ export async function listClientesDesign(filter: {
   if (resp.error) {
     const msg = resp.error.message ?? "";
     if (msg.includes("design_style_guide") || msg.includes("schema cache")) {
-      console.warn("[design] design_style_guide indisponível — usando fallback");
+      console.warn("[design] design_style_guide indisponível - usando fallback");
       resp = await buildClientsQuery(SELECT_FALLBACK);
     }
   }

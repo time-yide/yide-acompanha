@@ -17,7 +17,7 @@ interface DmResult {
  * Permissão: any-to-any. Mas valida que target é profile ativo (defense
  * in depth).
  *
- * Race: 2 abas abrindo DM ao mesmo tempo — unique index garante que só 1
+ * Race: 2 abas abrindo DM ao mesmo tempo - unique index garante que só 1
  * vence; se a 2ª falhar no INSERT por conflict, retry busca o existente.
  */
 export async function openOrCreateDmAction(targetUserId: string): Promise<DmResult> {

@@ -87,7 +87,7 @@ export async function setPreferenceAction(formData: FormData) {
 
 /**
  * Server Actions devem retornar valores serializáveis. Map quebra em
- * Next 16 — retornamos plain object indexado por evento_tipo.
+ * Next 16 - retornamos plain object indexado por evento_tipo.
  */
 export async function getMyPreferencesAction(): Promise<Record<string, { in_app: boolean; email: boolean }>> {
   const actor = await requireAuth();

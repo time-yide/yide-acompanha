@@ -40,10 +40,10 @@ const LOG_PREFIX = "[enrichment]";
  * Dispara enriquecimento async pra um lead. Retorna imediatamente.
  *
  * O processamento real roda via `after()`:
- * 1. Site scraper (gratuito) — sempre
- * 2. Hunter.io (se HUNTER_API_KEY) — se tem domínio
- * 3. Apify Instagram (se APIFY_API_TOKEN) — se tem instagram
- * 4. IA Claude (se ANTHROPIC_API_KEY) — sempre cruza tudo
+ * 1. Site scraper (gratuito) - sempre
+ * 2. Hunter.io (se HUNTER_API_KEY) - se tem domínio
+ * 3. Apify Instagram (se APIFY_API_TOKEN) - se tem instagram
+ * 4. IA Claude (se ANTHROPIC_API_KEY) - sempre cruza tudo
  *
  * Tudo em paralelo (Promise.all). Resultados são gravados no lead.
  *
@@ -89,7 +89,7 @@ export async function enriquecerLeadAction(formData: FormData): Promise<ActionRe
     endereco: string | null;
   };
 
-  // Marca como "enriquecendo" — UI mostra spinner via polling
+  // Marca como "enriquecendo" - UI mostra spinner via polling
   const { error: markErr } = await sb
     .from("leads_gerados")
     .update({
@@ -205,7 +205,7 @@ async function processarEnrichment(lead: {
         _ia: "ok",
       };
     } else {
-      // IA não rodou (skipped) ou falhou — preenche o que conseguiu de outras fontes
+      // IA não rodou (skipped) ou falhou - preenche o que conseguiu de outras fontes
       const fallbackDecisor = inferDecisorFromSources(siteResult, hunterResult, instagramResult);
       Object.assign(update, fallbackDecisor);
       update.diagnostico = {

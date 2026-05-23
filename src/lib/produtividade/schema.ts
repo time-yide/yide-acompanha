@@ -67,12 +67,12 @@ export type LogEventInput = z.infer<typeof logEventSchema>;
 /** Horas úteis padrão por mês (22 dias × 8h). Usado pra calcular custo/hora. */
 export const HORAS_UTEIS_MES = 176;
 
-/** Janela considerada "online" — heartbeat há menos disso. */
+/** Janela considerada "online" - heartbeat há menos disso. */
 export const ONLINE_WINDOW_SECONDS = 120;
 
-/** Janela considerada "ativo" — evento real há menos disso. */
+/** Janela considerada "ativo" - evento real há menos disso. */
 export const ATIVO_WINDOW_SECONDS = 300;
 
-/** Janela contínua de eventos pra contar como mesma "sessão" — 10 min de
+/** Janela contínua de eventos pra contar como mesma "sessão" - 10 min de
  *  inatividade encerra a sessão. */
 export const SESSAO_GAP_SECONDS = 600;

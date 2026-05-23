@@ -1,4 +1,4 @@
-// SERVER ONLY — scraper leve do site da empresa
+// SERVER ONLY - scraper leve do site da empresa
 //
 // Estratégia:
 // 1. Acessa a homepage
@@ -24,7 +24,7 @@ const RELEVANT_PATH_KEYWORDS = [
   "diretoria", "diretores", "fundador", "fundadores", "founder",
 ];
 
-// Cargos que indicam decisor — ordem importa (do mais alto pra mais baixo)
+// Cargos que indicam decisor - ordem importa (do mais alto pra mais baixo)
 export const CARGOS_DECISOR = [
   "ceo", "presidente", "fundador", "fundadora", "founder", "co-founder", "cofundador",
   "sócio", "socio", "sócia", "socia", "owner", "proprietário", "proprietaria",
@@ -166,10 +166,10 @@ function extractPessoas($: cheerio.CheerioAPI, sourceUrl: string): PersonHit[] {
       // Tenta extrair nome próprio na vizinhança
       // Padrão A: "Cargo: Nome Sobrenome" ou "Cargo - Nome Sobrenome"
       const after = sentence.slice(idx + cargo.length).trim();
-      const nameMatchAfter = after.match(/^[\s:,\-—|]*((?:[A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç]+\s){1,3}[A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç]+)/);
+      const nameMatchAfter = after.match(/^[\s:,\--|]*((?:[A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç]+\s){1,3}[A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç]+)/);
       // Padrão B: "Nome Sobrenome, Cargo"
       const before = sentence.slice(0, idx).trim();
-      const nameMatchBefore = before.match(/((?:[A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç]+\s){1,3}[A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç]+)[\s:,\-—|]*$/);
+      const nameMatchBefore = before.match(/((?:[A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç]+\s){1,3}[A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç]+)[\s:,\--|]*$/);
 
       const nome = (nameMatchAfter?.[1] ?? nameMatchBefore?.[1] ?? "").trim();
       if (!nome || nome.length < 5) continue;
@@ -185,7 +185,7 @@ function extractPessoas($: cheerio.CheerioAPI, sourceUrl: string): PersonHit[] {
 }
 
 /**
- * Extrai texto da seção "sobre" — prioriza <main>, <article>, divs com classe sobre.
+ * Extrai texto da seção "sobre" - prioriza <main>, <article>, divs com classe sobre.
  * Retorna primeiros 2000 chars.
  */
 function extractTextoSobre($: cheerio.CheerioAPI): string | null {
@@ -205,7 +205,7 @@ function extractTextoSobre($: cheerio.CheerioAPI): string | null {
 
 /**
  * Faz scraping completo do site da empresa.
- * Sempre retorna um objeto — nunca throw. Erros vão em result.error.
+ * Sempre retorna um objeto - nunca throw. Erros vão em result.error.
  */
 export async function scrapeSiteEmpresa(websiteRaw: string | null | undefined): Promise<SiteScrapingResult> {
   const result: SiteScrapingResult = {
@@ -273,11 +273,11 @@ export async function scrapeSiteEmpresa(websiteRaw: string | null | undefined): 
       result.pagesVisited.push(link);
       processHtml(html, link);
     } catch {
-      // ignora — continua tentando outras
+      // ignora - continua tentando outras
     }
   }
 
-  // Dedupa pessoas (por nome) — prioriza cargos mais altos
+  // Dedupa pessoas (por nome) - prioriza cargos mais altos
   const pessoasMap = new Map<string, PersonHit>();
   for (const p of allPessoas) {
     const key = p.nome.toLowerCase();

@@ -21,7 +21,7 @@ export const listUnits = cache(async (): Promise<Unit[]> => {
   return (data ?? []) as Unit[];
 });
 
-/** Lista apenas unidades ativas — usado no seletor da TopBar. */
+/** Lista apenas unidades ativas - usado no seletor da TopBar. */
 export const listActiveUnits = cache(async (): Promise<Unit[]> => {
   const all = await listUnits();
   return all.filter((u) => u.ativa);
@@ -33,7 +33,7 @@ export async function getUnitById(id: string): Promise<Unit | null> {
   return units.find((u) => u.id === id) ?? null;
 }
 
-/** Busca uma unidade por slug — usado pra mapear cookie → unit_id. */
+/** Busca uma unidade por slug - usado pra mapear cookie → unit_id. */
 export async function getUnitBySlug(slug: string): Promise<Unit | null> {
   const units = await listUnits();
   return units.find((u) => u.slug === slug) ?? null;

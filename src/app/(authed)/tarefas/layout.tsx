@@ -4,7 +4,7 @@
  * pra /tarefas/[id] e exibe como dialog em vez de troca de página.
  *
  * Navegação hard (refresh, link compartilhado) cai no /tarefas/[id]/page.tsx
- * regular e mostra a página completa — o slot renderiza @modal/default (null).
+ * regular e mostra a página completa - o slot renderiza @modal/default (null).
  */
 export default function TarefasLayout({
   children,

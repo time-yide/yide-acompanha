@@ -36,7 +36,7 @@ export default async function UnidadesPage() {
           <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600 dark:text-amber-400" />
           <div className="space-y-1">
             <p className="font-medium text-amber-700 dark:text-amber-300">
-              Fase 1 — Fundação
+              Fase 1 - Fundação
             </p>
             <p className="text-xs text-muted-foreground">
               Esta é a fase inicial do multi-tenant. As unidades já existem

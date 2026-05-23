@@ -40,7 +40,7 @@ async function _countMyUnreadImpl(userId: string): Promise<number> {
 }
 
 export async function countMyUnread(): Promise<number> {
-  // Chamado pelo NotificationBell (sininho da topbar) — toda página authed
+  // Chamado pelo NotificationBell (sininho da topbar) - toda página authed
   // renderiza esse counter. Cacheado 30s por user_id. Mutations em
   // notifications (criar, marcar como lida) revalidam tag "notifications".
   const actor = await requireAuth();

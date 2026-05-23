@@ -127,7 +127,7 @@ function AgencyScoreDisplay({ data }: { data: AgencyPerceptionRow }) {
   const style = corStyles[data.cor_final];
   const score = Math.round(data.score_final);
 
-  // SVG ring — circunferência 2πr com r=42, perímetro ≈ 263.89
+  // SVG ring - circunferência 2πr com r=42, perímetro ≈ 263.89
   const radius = 42;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (score / 100) * circumference;

@@ -4,7 +4,7 @@ import type { Database } from "@/types/database";
 
 /**
  * Cliente admin com service_role. NUNCA usar fora de server actions/route handlers.
- * Não tem RLS — bypassa todas as policies. Usar só para operações privilegiadas
+ * Não tem RLS - bypassa todas as policies. Usar só para operações privilegiadas
  * (criar usuário, etc.).
  */
 export function createServiceRoleClient() {

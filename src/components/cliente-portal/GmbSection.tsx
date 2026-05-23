@@ -38,7 +38,7 @@ export function GmbSection({
   const rating = gmb_rating !== null ? Number(gmb_rating) : null;
   const reviews = gmb_review_count ?? 0;
 
-  // Estrelas — full / half / empty
+  // Estrelas - full / half / empty
   const renderStars = () => {
     if (rating === null) return null;
     const stars = [];
@@ -124,7 +124,7 @@ export function GmbSection({
           </p>
         )}
 
-        {/* Gráfico de evolução — só renderiza se tem snapshots histórico */}
+        {/* Gráfico de evolução - só renderiza se tem snapshots histórico */}
         {timeSeries.length >= 2 && (
           <div className="mt-6 rounded-xl border bg-background/40 p-4">
             <div className="mb-3 flex items-center gap-1.5">

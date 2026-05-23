@@ -1,7 +1,7 @@
 // Timezone canônico da aplicação.
 //
 // Decisão de produto: TODOS os colaboradores enxergam datas/horas no fuso
-// de Cuiabá (Mato Grosso, Brasil) — `America/Cuiaba`. Independente de onde
+// de Cuiabá (Mato Grosso, Brasil) - `America/Cuiaba`. Independente de onde
 // o colaborador esteja viajando. Independente do servidor (Vercel = UTC).
 //
 // Cuiabá é UTC-4 sempre (Mato Grosso não tem horário de verão). Brasília
@@ -11,13 +11,13 @@
 // `timeZone: APP_TIMEZONE`. NUNCA use offsets hardcoded como
 // `3 * 60 * 60 * 1000`. Sempre use os helpers deste arquivo.
 
-/** Timezone canônico da app — `America/Cuiaba` (UTC-4 sempre). */
+/** Timezone canônico da app - `America/Cuiaba` (UTC-4 sempre). */
 export const APP_TIMEZONE = "America/Cuiaba" as const;
 
 /** Locale padrão pra formatação. */
 export const APP_LOCALE = "pt-BR" as const;
 
-// ─── Helpers de formatação (Intl-based — robusto, lida com DST) ────────────
+// ─── Helpers de formatação (Intl-based - robusto, lida com DST) ────────────
 
 /**
  * Formata como "DD/MM/YYYY" no fuso da app.
@@ -80,7 +80,7 @@ export function formatLongDateBR(date: Date | string | number | null | undefined
 }
 
 /**
- * Formata como "DD/MM HH:mm" (compacto, sem ano — útil pra cards e listas).
+ * Formata como "DD/MM HH:mm" (compacto, sem ano - útil pra cards e listas).
  */
 export function formatShortDateTimeBR(date: Date | string | number | null | undefined): string {
   if (date === null || date === undefined) return "";
@@ -168,7 +168,7 @@ export function getDatePartsInAppTz(date: Date | string | number = new Date()): 
   const weekdayMap: Record<string, number> = {
     Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6,
   };
-  // Algumas runtimes retornam "24" pra meia-noite — normalizar pra "00".
+  // Algumas runtimes retornam "24" pra meia-noite - normalizar pra "00".
   const hourRaw = get("hour");
   const hour = hourRaw === "24" ? "00" : hourRaw;
   return {
@@ -238,7 +238,7 @@ export function getAppTimezoneOffsetMs(reference: Date = new Date()): number {
  * Ex.: se agora é 03:00 UTC (= 23:00 Cuiabá no dia anterior), retorna uma
  * Date que ao chamar `.getUTCDate()` dá o dia 22 (dia local em Cuiabá).
  *
- * Use SÓ pra cálculos auxiliares — pra exibição use os formatters acima.
+ * Use SÓ pra cálculos auxiliares - pra exibição use os formatters acima.
  */
 export function nowInAppTz(): Date {
   const offset = getAppTimezoneOffsetMs();

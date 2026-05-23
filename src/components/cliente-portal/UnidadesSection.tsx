@@ -7,7 +7,7 @@ interface Props {
 
 /**
  * Lista das unidades ativas do cliente no portal. Quando não tem unidade
- * cadastrada, seção não renderiza (return null) — não polui pra cliente
+ * cadastrada, seção não renderiza (return null) - não polui pra cliente
  * single-unidade.
  */
 export function UnidadesSection({ unidades }: Props) {

@@ -19,7 +19,7 @@ interface Item {
 }
 
 interface Props {
-  /** ID do user atual — usado pra filtrar a subscription do Realtime. */
+  /** ID do user atual - usado pra filtrar a subscription do Realtime. */
   userId: string;
 }
 
@@ -36,14 +36,14 @@ export function NotificationBell({ userId }: Props) {
       setItems(data.items);
       setUnread(data.unread);
     } catch {
-      // silencioso — falha de fetch não deve quebrar UI
+      // silencioso - falha de fetch não deve quebrar UI
     }
   }, []);
 
   // Fetch inicial + fallback de poll a cada 5min (caso o websocket caia
   // por algum motivo) + refetch on focus pra não confiar 100% no realtime.
   // O setTimeout(0) tira a primeira chamada de dentro do body do effect
-  // (sai do warning react-hooks/set-state-in-effect) sem mudar a UX —
+  // (sai do warning react-hooks/set-state-in-effect) sem mudar a UX -
   // ainda dispara antes do primeiro paint.
   useEffect(() => {
     const initialKick = setTimeout(() => void fetchData(), 0);

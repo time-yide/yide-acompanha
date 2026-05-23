@@ -30,7 +30,7 @@ export default async function EditClientePage({ params }: { params: Promise<{ id
   const [designersResp, videomakersResp, editorsResp] = await Promise.all([
     supabase.from("profiles").select("id, nome").eq("role", "designer").eq("ativo", true).order("nome"),
     supabase.from("profiles").select("id, nome").eq("role", "videomaker").eq("ativo", true).order("nome"),
-    // "Editor responsável" agora aceita editor, videomaker ou audiovisual_chefe —
+    // "Editor responsável" agora aceita editor, videomaker ou audiovisual_chefe -
     // videomaker/chefe também fazem edição em alguns clientes.
     supabase
       .from("profiles")

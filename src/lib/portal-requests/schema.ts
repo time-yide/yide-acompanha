@@ -39,7 +39,7 @@ export const createRequestSchema = z.object({
 export const respondRequestSchema = z.object({
   id: z.string().uuid(),
   resposta: z.string().trim().min(1, "Escreva a resposta").max(5000),
-  /** Novo status — só "em_andamento" ou "concluida" são opções pelo flow normal. */
+  /** Novo status - só "em_andamento" ou "concluida" são opções pelo flow normal. */
   to_status: z.enum(["em_andamento", "concluida"]),
 });
 

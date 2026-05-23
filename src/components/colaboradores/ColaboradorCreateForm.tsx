@@ -60,7 +60,7 @@ export function ColaboradorCreateForm({ canSetCommission }: { canSetCommission: 
               </SelectTrigger>
               <SelectContent>
                 {/*
-                  Role `coordenador` antigo foi descontinuado — não aparece
+                  Role `coordenador` antigo foi descontinuado - não aparece
                   como opção pra perfis novos. O que era "Sócio" virou
                   "Coordenador" no UI (role no banco continua `socio`).
                 */}

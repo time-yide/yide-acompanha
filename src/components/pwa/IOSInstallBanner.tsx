@@ -12,7 +12,7 @@ function isIOSSafari(): boolean {
     /iPad|iPhone|iPod/.test(ua) ||
     (ua.includes("Mac") && "ontouchend" in document); // iPad em modo desktop
   if (!isIOSDevice) return false;
-  // Filtra browsers de terceiros no iOS (Chrome/Firefox/Edge) — nenhum
+  // Filtra browsers de terceiros no iOS (Chrome/Firefox/Edge) - nenhum
   // suporta "Adicionar à Tela de Início" com PWA real.
   return !/CriOS|FxiOS|EdgiOS/.test(ua);
 }
@@ -39,7 +39,7 @@ export function IOSInstallBanner() {
       try {
         if (localStorage.getItem(STORAGE_KEY) === "1") return;
       } catch {
-        // localStorage pode estar bloqueado em modo privado — continua mostrando
+        // localStorage pode estar bloqueado em modo privado - continua mostrando
       }
       setShow(true);
     }, 0);

@@ -9,7 +9,7 @@ import { markEtapaConcluidaAction } from "@/lib/d0-d30/actions";
 interface Props {
   etapaId: string;
   disabled: boolean;
-  /** D0 do cliente (YYYY-MM-DD) — usado pra limitar o date picker. */
+  /** D0 do cliente (YYYY-MM-DD) - usado pra limitar o date picker. */
   d0Date?: string;
 }
 

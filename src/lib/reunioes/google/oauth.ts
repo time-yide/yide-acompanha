@@ -1,4 +1,4 @@
-// Google OAuth — STUBS pra Fase 1.
+// Google OAuth - STUBS pra Fase 1.
 //
 // Fluxo planejado:
 // 1. Usuário clica "Conectar Google" → /reunioes/conectar

@@ -24,7 +24,7 @@ export default async function ProvaPage({
   const isResponsavel = responsaveis.some((r) => r.participante_id === user.id);
   if (!isResponsavel) redirect(`/academy/${id}`);
 
-  // SEM `correta` — gabarito fica só no servidor
+  // SEM `correta` - gabarito fica só no servidor
   const questoes = await listQuestoes(id, false);
   if (questoes.length !== QUESTOES_POR_CURSO) {
     return (

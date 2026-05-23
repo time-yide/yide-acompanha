@@ -127,7 +127,7 @@ export async function deleteApresentacaoAction(formData: FormData): Promise<{ er
 }
 
 /**
- * Wrapper que faz redirect após criar — pra usar com form action.
+ * Wrapper que faz redirect após criar - pra usar com form action.
  * Server actions com redirect throw NEXT_REDIRECT, então separamos.
  */
 export async function criarApresentacaoComRedirectAction(formData: FormData): Promise<void | { error: string }> {
@@ -267,7 +267,7 @@ export async function atualizarSlideAction(
     ? { template: newContent.template, content: newContent }
     : null;
   if (!newSlide || !isValidSlide(newSlide)) {
-    return { error: "Content do slide inválido — verifique os campos" };
+    return { error: "Content do slide inválido - verifique os campos" };
   }
 
   const admin = createServiceRoleClient();

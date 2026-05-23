@@ -12,7 +12,7 @@ interface Props {
 
 /**
  * Despacha pro componente certo baseado no template do slide.
- * TypeScript garante exaustividade — se adicionar novo template
+ * TypeScript garante exaustividade - se adicionar novo template
  * em tipos.ts, esse switch reclama até cobrir.
  */
 export function SlidePreview({ slide }: Props) {

@@ -87,7 +87,7 @@ export function TaskForm({
   const [uploading, startUpload] = useTransition();
   const [tipo, setTipo] = useState<string>(defaults.tipo ?? "geral");
   const [formatos, setFormatos] = useState<string[]>(defaults.formatos ?? []);
-  // Marca se o usuário trocou o tipo manualmente — quando true, não auto-deriva
+  // Marca se o usuário trocou o tipo manualmente - quando true, não auto-deriva
   // mais ao trocar de responsável (evita sobrescrever escolha consciente).
   const [tipoManuallySet, setTipoManuallySet] = useState<boolean>(
     isEdit && !!defaults.tipo && defaults.tipo !== "geral",
@@ -99,7 +99,7 @@ export function TaskForm({
 
   /**
    * Auto-deriva o tipo a partir do role do responsável escolhido.
-   * Só atua se o usuário ainda não trocou o tipo manualmente — pra não atropelar
+   * Só atua se o usuário ainda não trocou o tipo manualmente - pra não atropelar
    * uma escolha consciente. Quando responsável volta pra alguém não-produtor, NÃO
    * reseta pra "geral" (pode ser intencional).
    */
@@ -149,7 +149,7 @@ export function TaskForm({
   /**
    * Auto-adiciona coordenador audiovisual quando demanda vira "video".
    * Chamado nos handlers de troca de tipo e de responsável. Usuário pode
-   * remover se quiser — só atua nas transições pra "video".
+   * remover se quiser - só atua nas transições pra "video".
    */
   function addCoordenadoresAvIfVideo(novoTipo: string) {
     if (isEdit) return;

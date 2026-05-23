@@ -9,12 +9,12 @@ import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
  * - IV (12 bytes): novo a cada criptografia, garante que mesmo plaintext gera
  *   ciphertext diferente (segurança contra análise de padrões).
  * - Auth tag (16 bytes): valida integridade. Se alguém alterar o ciphertext
- *   no DB, decrypt falha — não dá pra forjar senha.
+ *   no DB, decrypt falha - não dá pra forjar senha.
  * - Ciphertext: o conteúdo cifrado.
  *
  * Chave: 32 bytes (AES-256) lida de `CREDENTIALS_ENCRYPTION_KEY` (env var,
  * formato hex de 64 chars). Se essa chave vazar, todas as senhas no banco
- * podem ser decifradas — então fica em Vercel env vars (Production-only),
+ * podem ser decifradas - então fica em Vercel env vars (Production-only),
  * nunca commitada.
  *
  * Rotação de chave: não suportada nesta v1. Trocar a chave invalida todas

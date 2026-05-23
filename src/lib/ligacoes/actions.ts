@@ -106,7 +106,7 @@ export async function archiveLigacaoAction(formData: FormData): Promise<ActionRe
 }
 
 // ===========================================================================
-// Popular dados mock — pra demo enquanto não tem integração real com PABX
+// Popular dados mock - pra demo enquanto não tem integração real com PABX
 // ===========================================================================
 
 const NOMES_MOCK = [

@@ -72,7 +72,7 @@ export async function createPortalRequestAction(formData: FormData): Promise<Act
           mensagem: `${user.nomeContato ?? "Cliente"} (${cliente.nome}) abriu: ${parsed.data.titulo}`,
           link: `/solicitacoes/${created.id}`,
           user_ids_extras: recipients,
-          // source_user_id omitido — cliente portal não é colab; notificação
+          // source_user_id omitido - cliente portal não é colab; notificação
           // entra como "sistema".
         });
       }

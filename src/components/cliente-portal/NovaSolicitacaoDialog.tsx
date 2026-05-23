@@ -38,7 +38,7 @@ export function NovaSolicitacaoDialog({ open, onOpenChange }: Props) {
         toast.error(r.error);
         return;
       }
-      toast.success("Solicitação enviada — em breve a equipe responde");
+      toast.success("Solicitação enviada - em breve a equipe responde");
       onOpenChange(false);
       router.refresh();
     });

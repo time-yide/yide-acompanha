@@ -7,11 +7,11 @@ import { syncMetaForClient, listClientesParaSync } from "@/lib/trafego/meta-sync
  *
  * Schedule (vercel.json): `0 4 * * *` = 4h UTC = 1h Cuiabá (madrugada).
  *
- * Por cliente: puxa últimos 7 dias (acomoda atrasos do Meta — eles às vezes
+ * Por cliente: puxa últimos 7 dias (acomoda atrasos do Meta - eles às vezes
  * só fecham o número do dia 24-48h depois). Sync é idempotente via upsert
  * `(campanha_id, data, metrica_key)`.
  *
- * Erros por cliente NÃO abortam o cron — cada cliente roda isolado e o
+ * Erros por cliente NÃO abortam o cron - cada cliente roda isolado e o
  * resumo final mostra o que deu certo/errado.
  *
  * Auth: Authorization: Bearer ${CRON_SECRET}.
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
   }> = [];
 
   // Roda em série pra não estourar rate limit do Meta. Pra agência com
-  // <50 clientes em sync, série leva <5min — dentro do timeout do Vercel
+  // <50 clientes em sync, série leva <5min - dentro do timeout do Vercel
   // pra cron jobs (10min na free, 15min na pro).
   for (const cliente of clientes) {
     try {

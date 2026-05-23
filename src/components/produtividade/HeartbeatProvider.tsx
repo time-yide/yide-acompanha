@@ -2,13 +2,13 @@
 
 import { useEffect, useRef } from "react";
 
-/** Frequência do heartbeat — 30s é suficiente pra "online" funcionar com
+/** Frequência do heartbeat - 30s é suficiente pra "online" funcionar com
  *  janela de 2 min sem flicker. */
 const HEARTBEAT_INTERVAL_MS = 30_000;
 
 /**
  * Pinga /api/produtividade/heartbeat enquanto a aba estiver aberta e visível.
- * Pausado em background tabs (document.hidden) — não consome rede à toa.
+ * Pausado em background tabs (document.hidden) - não consome rede à toa.
  *
  * Montado em layout authed pra rodar em todas as páginas internas.
  */
@@ -18,7 +18,7 @@ export function HeartbeatProvider() {
 
   useEffect(() => {
     async function ping() {
-      // Throttle defensivo — se o setInterval disparar várias vezes seguido
+      // Throttle defensivo - se o setInterval disparar várias vezes seguido
       // (ex: aba volta do background), não manda múltiplos requests.
       const now = Date.now();
       if (now - lastPingRef.current < HEARTBEAT_INTERVAL_MS - 1000) return;
@@ -30,7 +30,7 @@ export function HeartbeatProvider() {
           keepalive: true,
         });
       } catch {
-        // Silencioso — rede caiu, próxima tentativa em 30s
+        // Silencioso - rede caiu, próxima tentativa em 30s
       }
     }
 

@@ -63,7 +63,7 @@ export function TasksBoard({ tasks, userRole }: { tasks: TaskRow[]; userRole: st
     // (editor/videomaker/designer/audiovisual_chefe/coordenador/assessor)
     // precisam preencher modal com link de entrega antes da movimentação.
     // Exceção: se a tarefa já tem drive_link salvo (re-conclusão depois de
-    // "alteração"), pula o modal — link só é pedido uma vez por tarefa.
+    // "alteração"), pula o modal - link só é pedido uma vez por tarefa.
     if (toStatus === "concluida" || toStatus === "em_aprovacao") {
       const task = tasks.find((t) => t.id === taskId);
       if (task && !task.drive_link) {

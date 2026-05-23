@@ -153,7 +153,7 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
   if (createResult.error && isVideomaker) {
     const msg = String(createResult.error.message ?? "");
     if (msg.includes("videomaker_status") || msg.includes("schema cache")) {
-      console.warn("[calendario] migration videomaker_status não aplicada — fallback sem delegação");
+      console.warn("[calendario] migration videomaker_status não aplicada - fallback sem delegação");
       createResult = await supabase
         .from("calendar_events")
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

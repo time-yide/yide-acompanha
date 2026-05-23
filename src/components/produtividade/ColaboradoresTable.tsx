@@ -166,11 +166,11 @@ export function ColaboradoresTable({ rows }: Props) {
                         )}
                       </div>
                     ) : (
-                      <span className="text-muted-foreground/50">—</span>
+                      <span className="text-muted-foreground/50">-</span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums">
-                    {r.eventos_hoje > 0 ? r.eventos_hoje : <span className="text-muted-foreground/50">—</span>}
+                    {r.eventos_hoje > 0 ? r.eventos_hoje : <span className="text-muted-foreground/50">-</span>}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <AtrasadosBadge tarefas={r.tarefas_atrasadas} capturas={r.capturas_atrasadas} />
@@ -178,12 +178,12 @@ export function ColaboradoresTable({ rows }: Props) {
                   <td className="px-4 py-3 text-right tabular-nums text-xs text-muted-foreground">
                     {r.custo_hora !== null
                       ? formatBRL(r.custo_hora)
-                      : <span className="text-muted-foreground/50">—</span>}
+                      : <span className="text-muted-foreground/50">-</span>}
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums font-medium">
                     {r.custo_dia !== null && r.custo_dia > 0
                       ? formatBRL(r.custo_dia)
-                      : <span className="text-muted-foreground/50">—</span>}
+                      : <span className="text-muted-foreground/50">-</span>}
                   </td>
                 </tr>
               );
@@ -224,7 +224,7 @@ function SortBtn({
 function AtrasadosBadge({ tarefas, capturas }: { tarefas: number; capturas: number }) {
   const total = tarefas + capturas;
   if (total === 0) {
-    return <span className="text-muted-foreground/50">—</span>;
+    return <span className="text-muted-foreground/50">-</span>;
   }
   const parts: string[] = [];
   if (tarefas > 0) parts.push(`${tarefas} tarefa${tarefas === 1 ? "" : "s"}`);

@@ -6,13 +6,13 @@ interface Props {
   unitId: string | null | undefined;
   /** Lista de unidades pra mapear id → nome/cor (passada pelo server). */
   units: Pick<Unit, "id" | "nome" | "cor_destaque">[];
-  /** Variante compacta — só ícone + nome curto. */
+  /** Variante compacta - só ícone + nome curto. */
   size?: "sm" | "md";
 }
 
 /**
  * Badge visual mostrando a unidade de um item (cliente, tarefa, etc).
- * Em Fase 2 é renderizado só pra master users — non-master só vê dados
+ * Em Fase 2 é renderizado só pra master users - non-master só vê dados
  * da própria unidade, então o badge seria redundante.
  */
 export function UnitBadge({ unitId, units, size = "sm" }: Props) {

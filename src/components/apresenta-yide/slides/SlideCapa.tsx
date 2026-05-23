@@ -6,7 +6,7 @@ interface Props {
 }
 
 /**
- * Slide de capa — primeira página. Logo Yide grande centralizada,
+ * Slide de capa - primeira página. Logo Yide grande centralizada,
  * título grande, subtítulo opcional menor abaixo.
  */
 export function SlideCapa({ content }: Props) {

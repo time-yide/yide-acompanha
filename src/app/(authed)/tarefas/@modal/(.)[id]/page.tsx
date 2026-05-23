@@ -43,7 +43,7 @@ function formatDateBR(iso: string | null | undefined): string {
   return new Date(y, m - 1, d).toLocaleDateString("pt-BR");
 }
 
-// `[id]` é dinâmico no router e captura QUALQUER segment-filho de /tarefas —
+// `[id]` é dinâmico no router e captura QUALQUER segment-filho de /tarefas -
 // inclusive irmãos literais como /tarefas/nova. Sem este guard, o slot @modal
 // tenta buscar uma tarefa com id="nova" e mostra "Tarefa não encontrada"
 // sobreposto à página real de criação. Só intercepta UUIDs.
@@ -132,9 +132,9 @@ export default async function TarefaModalPage({
 
         {/* Metadata grid */}
         <div className="grid grid-cols-2 gap-3 rounded-lg border bg-muted/20 p-3 text-sm">
-          <MiniField label="Responsável" value={task.atribuido?.nome ?? "—"} />
-          <MiniField label="Criado por" value={task.criador?.nome ?? "—"} />
-          <MiniField label="Prazo" value={formatDateBR(task.due_date) || "—"} />
+          <MiniField label="Responsável" value={task.atribuido?.nome ?? "-"} />
+          <MiniField label="Criado por" value={task.criador?.nome ?? "-"} />
+          <MiniField label="Prazo" value={formatDateBR(task.due_date) || "-"} />
         </div>
 
         {/* Approval workflow (video/arte) */}
@@ -198,7 +198,7 @@ export default async function TarefaModalPage({
         )}
 
         {/* Footer: link pra página completa (edit, anexos, histórico).
-            Usa <a> em vez de <Link> pra "Ver página completa" — Link
+            Usa <a> em vez de <Link> pra "Ver página completa" - Link
             client-side dispara o intercepting route de novo (mesma rota
             /tarefas/[id]), prendendo o usuário no modal. <a> força full
             page nav, escapando da intercepção e renderizando o page.tsx

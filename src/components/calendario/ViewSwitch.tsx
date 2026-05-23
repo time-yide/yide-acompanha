@@ -25,7 +25,7 @@ export function ViewSwitch({ current }: Props) {
 
   function select(view: "week" | "month") {
     const sp = new URLSearchParams(params.toString());
-    // Limpa âncora de data — vai pra "hoje" na nova view, igual ao Google
+    // Limpa âncora de data - vai pra "hoje" na nova view, igual ao Google
     // (quando troca de view, mantém o foco em "agora").
     sp.delete("week");
     if (view === "month") sp.set("view", "month");

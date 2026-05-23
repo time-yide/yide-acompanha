@@ -27,7 +27,7 @@ interface RealtimePayload {
  * faz fetch dos dados completos (com autor + reply_to) e adiciona ao state.
  *
  * Importante: o caller deve passar `key={channel.id}` no componente pai pra
- * forçar remount quando trocar de canal — assim o initialMessages vira o
+ * forçar remount quando trocar de canal - assim o initialMessages vira o
  * novo state inicial sem precisar de useEffect+setState (que viola
  * react-hooks/set-state-in-effect).
  *

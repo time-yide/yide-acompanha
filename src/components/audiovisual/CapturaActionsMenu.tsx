@@ -160,7 +160,7 @@ export function CapturaActionsMenu({
               <DialogHeader>
                 <DialogTitle>{confirmCopy[confirm].title}</DialogTitle>
                 <DialogDescription>
-                  &ldquo;{eventTitulo}&rdquo; — {confirmCopy[confirm].desc}
+                  &ldquo;{eventTitulo}&rdquo; - {confirmCopy[confirm].desc}
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter>

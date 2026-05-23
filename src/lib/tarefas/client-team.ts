@@ -21,7 +21,7 @@ export async function getClienteEquipe(clientId: string): Promise<ClienteEquipe 
 /**
  * Retorna IDs de todos os coordenadores audiovisuais ativos. Usado pra
  * auto-incluir o coordenador como participante quando assessor cria/delega
- * uma demanda de vídeo — pra ele acompanhar a entrega independente de quem
+ * uma demanda de vídeo - pra ele acompanhar a entrega independente de quem
  * vai executar.
  */
 export async function getCoordenadoresAudiovisualIds(): Promise<string[]> {

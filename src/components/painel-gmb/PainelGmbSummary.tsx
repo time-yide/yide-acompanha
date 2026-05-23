@@ -12,7 +12,7 @@ export function PainelGmbSummaryCards({ summary }: Props) {
       <KpiCard
         icon={<Star className="h-4 w-4 fill-current" />}
         label="Nota média"
-        value={summary.notaMedia !== null ? summary.notaMedia.toFixed(2) : "—"}
+        value={summary.notaMedia !== null ? summary.notaMedia.toFixed(2) : "-"}
         suffix={summary.notaMedia !== null ? "/ 5" : undefined}
         accent="amber"
       />

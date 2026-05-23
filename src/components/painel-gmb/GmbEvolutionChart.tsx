@@ -23,14 +23,14 @@ function formatDateLabel(date: string): string {
 
 /**
  * Gráfico de linha de evolução do GMB: nota (eixo Y1) + reviews (eixo Y2)
- * pelos últimos 90 dias. 2 séries com escalas independentes — nota varia
+ * pelos últimos 90 dias. 2 séries com escalas independentes - nota varia
  * pouco (1 decimal), reviews varia muito (centenas).
  */
 export function GmbEvolutionChart({ data }: Props) {
   if (data.length === 0) {
     return (
       <div className="rounded-lg border border-dashed bg-muted/20 p-10 text-center text-sm text-muted-foreground">
-        Sem histórico ainda — o gráfico vai aparecer conforme o cron diário coletar dados.
+        Sem histórico ainda - o gráfico vai aparecer conforme o cron diário coletar dados.
         Volte daqui a alguns dias.
       </div>
     );

@@ -2,7 +2,7 @@
 //
 // Fase 0: retorna mock data. Quando a Fase 1 entrar, troca o body destas
 // funções por queries Supabase reais. O contrato exposto (signature +
-// return type) é estável — UI não muda.
+// return type) é estável - UI não muda.
 
 import { unstable_cache } from "next/cache";
 import { MOCK_MEETINGS, getMockMeetingById } from "./mock-data";
@@ -121,7 +121,7 @@ export async function getMeetingMetrics(): Promise<MeetingMetrics> {
 }
 
 /**
- * Retorna se o usuário já conectou conta Google. STUB — Fase 1 troca por
+ * Retorna se o usuário já conectou conta Google. STUB - Fase 1 troca por
  * SELECT em google_oauth_connections.
  */
 export async function getGoogleConnection(_userId: string): Promise<{

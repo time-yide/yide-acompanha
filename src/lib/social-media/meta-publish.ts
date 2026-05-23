@@ -1,4 +1,4 @@
-// SERVER ONLY — publica posts no Instagram e Facebook via Graph API.
+// SERVER ONLY - publica posts no Instagram e Facebook via Graph API.
 //
 // Setup do System User Token da BM Yide:
 // - META_SYSTEM_USER_TOKEN: token gerado em business.facebook.com → Settings →
@@ -96,7 +96,7 @@ async function metaFetch<T = unknown>(
 
 /**
  * Publica no Instagram. Suporta foto única, vídeo, reels e carrossel.
- * Story (stories de 24h) usa endpoint diferente — fora do escopo da fase 1.
+ * Story (stories de 24h) usa endpoint diferente - fora do escopo da fase 1.
  */
 export async function publishToInstagram(
   igUserId: string,
@@ -106,7 +106,7 @@ export async function publishToInstagram(
     return { success: false, error: "Stories ainda não suportadas (fase 2)" };
   }
   if (post.midias.length === 0) {
-    return { success: false, error: "Post sem mídia — Instagram exige imagem ou vídeo" };
+    return { success: false, error: "Post sem mídia - Instagram exige imagem ou vídeo" };
   }
 
   const caption = montarCaption(post);
@@ -170,7 +170,7 @@ export async function publishToInstagram(
     return { success: false, error: `Criar container falhou: ${containerRes.error}` };
   }
 
-  // Pra vídeos/reels, container fica processando — aguarda status FINISHED.
+  // Pra vídeos/reels, container fica processando - aguarda status FINISHED.
   if (isVideo) {
     const containerId = containerRes.data.id;
     for (let i = 0; i < 30; i++) {
@@ -197,7 +197,7 @@ export async function publishToInstagram(
 
 /**
  * Publica no Facebook Page. Posts simples (texto + foto).
- * Vídeo no Facebook usa endpoint diferente — fora do escopo da fase 1.
+ * Vídeo no Facebook usa endpoint diferente - fora do escopo da fase 1.
  */
 export async function publishToFacebook(
   pageId: string,

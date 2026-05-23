@@ -11,7 +11,7 @@ interface Props {
 }
 
 /**
- * Botão de restaurar lead perdido — volta o card pro kanban no mesmo estágio
+ * Botão de restaurar lead perdido - volta o card pro kanban no mesmo estágio
  * que ele estava antes de ser marcado perdido.
  */
 export function RestoreLeadButton({ leadId }: Props) {

@@ -9,7 +9,7 @@ import type { LeadGeradoRow } from "@/lib/gerador-leads/queries";
 
 interface Props {
   total: number;
-  /** Leads já carregados na página atual — usado pra exportar CSV. */
+  /** Leads já carregados na página atual - usado pra exportar CSV. */
   leadsAtuais: LeadGeradoRow[];
   canManage: boolean;
 }

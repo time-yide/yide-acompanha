@@ -12,7 +12,7 @@ const submitSchema = z.object({
 
 /**
  * Cliente final submete a própria avaliação da Yide. Usa
- * `requireClientPortalAuth` pra obter `clientId` direto da sessão — o cliente
+ * `requireClientPortalAuth` pra obter `clientId` direto da sessão - o cliente
  * NUNCA decide pra qual client_id submeter (vem da sessão, não do form).
  */
 export async function submitClientSelfSatisfactionAction(
@@ -26,7 +26,7 @@ export async function submitClientSelfSatisfactionAction(
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  // Rate limit simples — 1 submission a cada 30s pra evitar spam de duplo-clique.
+  // Rate limit simples - 1 submission a cada 30s pra evitar spam de duplo-clique.
   // Sem checkRateLimit aqui porque o caso é diferente (mesma identity, mesma ação,
   // janela curta). Usamos query direta na tabela.
   const admin = createServiceRoleClient();

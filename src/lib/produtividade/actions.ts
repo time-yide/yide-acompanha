@@ -23,7 +23,7 @@ export async function heartbeatAction(): Promise<{ ok: boolean }> {
  * Registra evento de atividade. Atualiza profiles.last_active_event_at
  * em paralelo. Usado por API route + por hooks dentro de actions do app.
  *
- * Eventos "heartbeat" NÃO devem chegar aqui — heartbeat só atualiza
+ * Eventos "heartbeat" NÃO devem chegar aqui - heartbeat só atualiza
  * profiles, não vira linha em activity_events.
  */
 export async function logActivityEvent(
@@ -59,7 +59,7 @@ export async function logActivityEvent(
 }
 
 /**
- * Variante interna (sem auth) — usada por outras actions do app que JÁ
+ * Variante interna (sem auth) - usada por outras actions do app que JÁ
  * validaram o user. Evita uma chamada extra a `requireAuth()`.
  */
 export async function logActivityInternal(

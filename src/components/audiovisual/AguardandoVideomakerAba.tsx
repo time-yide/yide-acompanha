@@ -38,11 +38,11 @@ function duracaoMin(inicio: string, fim: string): number {
 
 /**
  * Lista de captações futuras com 2 seções:
- *  1. Pendentes — coord precisa delegar
- *  2. Já delegadas — quem ficou, quem delegou, quando
+ *  1. Pendentes - coord precisa delegar
+ *  2. Já delegadas - quem ficou, quem delegou, quando
  *
  * Mostra a mesma info que /audiovisual/coordenacao, mas integrada no painel
- * /audiovisual via tab — pra sócio acompanhar sem precisar trocar de rota.
+ * /audiovisual via tab - pra sócio acompanhar sem precisar trocar de rota.
  */
 export function AguardandoVideomakerAba({
   pending,
@@ -82,7 +82,7 @@ export function AguardandoVideomakerAba({
         </header>
         {pending.length === 0 ? (
           <p className="rounded-md border border-dashed p-4 text-center text-xs text-muted-foreground">
-            Nada pendente — tudo já delegado.
+            Nada pendente - tudo já delegado.
           </p>
         ) : (
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">

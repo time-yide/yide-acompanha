@@ -72,7 +72,7 @@ export default async function LeadDetalhePage({
           </Card>
 
           {/* Form editável */}
-          {/* key força remount quando lead atualiza — useState do form reinicializa com novos valores */}
+          {/* key força remount quando lead atualiza - useState do form reinicializa com novos valores */}
           <LeadEditCard key={lead.updated_at} lead={lead} canEdit={canEdit} />
         </div>
 
@@ -127,7 +127,7 @@ export default async function LeadDetalhePage({
             )}
           </Card>
 
-          {/* Análise IA — quando rodou ou falhou */}
+          {/* Análise IA - quando rodou ou falhou */}
           {(() => {
             const diag = (lead.diagnostico ?? {}) as Record<string, unknown>;
             const enriquecendo = !!diag._enriquecendo;

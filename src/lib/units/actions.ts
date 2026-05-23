@@ -33,7 +33,7 @@ export async function switchActiveUnitAction(
     maxAge: 60 * 60 * 24 * 30, // 30 dias
   });
 
-  // Revalida tudo — todas as queries que dependem de unit ativa
+  // Revalida tudo - todas as queries que dependem de unit ativa
   revalidatePath("/", "layout");
   return { ok: true };
 }
@@ -58,7 +58,7 @@ export async function createUnitAction(
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Dados inválidos" };
   }
 
-  // Checa duplicate slug — UX melhor que esperar erro do unique constraint
+  // Checa duplicate slug - UX melhor que esperar erro do unique constraint
   const existing = await getUnitBySlug(parsed.data.slug);
   if (existing) {
     return { ok: false, error: `Slug "${parsed.data.slug}" já está em uso` };
@@ -82,7 +82,7 @@ export async function createUnitAction(
 
   // Seed dos canais de escritório virtual pra unidade nova (clona do Matriz).
   // Função criada na migration 20260604000000. Se ainda não estiver no banco,
-  // skip silenciosamente — sysadmin pode rodar manualmente depois.
+  // skip silenciosamente - sysadmin pode rodar manualmente depois.
   if (inserted?.id) {
     const { error: seedErr } = await sb.rpc("seed_chat_channels_for_unit", {
       p_unit_id: inserted.id as string,

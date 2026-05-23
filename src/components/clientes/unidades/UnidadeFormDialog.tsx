@@ -73,7 +73,7 @@ export function UnidadeFormDialog({ open, onOpenChange, clientId, unidade }: Pro
               defaultValue={unidade?.nome}
               required
               maxLength={200}
-              placeholder="Ex: Gallo — Unidade Cuiabá Centro"
+              placeholder="Ex: Gallo - Unidade Cuiabá Centro"
               disabled={pending}
             />
           </div>

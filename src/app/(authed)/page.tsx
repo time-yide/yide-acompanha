@@ -83,11 +83,11 @@ export default async function DashboardPage({
         isImpersonating = target.id !== user.id;
       }
     } catch {
-      // uuid inválido ou não encontrado — silenciosamente cai no self
+      // uuid inválido ou não encontrado - silenciosamente cai no self
     }
   }
 
-  // Lista de colaboradores pra dropdown — só fetch se o requester pode impersonate
+  // Lista de colaboradores pra dropdown - só fetch se o requester pode impersonate
   const [colaboradores, unitContext] = await Promise.all([
     canImpersonate
       ? listColaboradores({ ativo: true }).then((rows) =>
@@ -99,7 +99,7 @@ export default async function DashboardPage({
 
   return (
     <div className="space-y-4">
-      {/* Banner gigante de unidade — só renderiza pra master (adm/sócio) que
+      {/* Banner gigante de unidade - só renderiza pra master (adm/sócio) que
           tenha mais de 1 unidade acessível. Permite trocar rápido sem ir no
           TopBar discreto. */}
       {unitContext?.isMaster && unitContext.accessibleUnits.length > 1 && (

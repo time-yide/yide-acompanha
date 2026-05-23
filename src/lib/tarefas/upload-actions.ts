@@ -18,7 +18,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 /**
  * Upload de anexo pra Storage bucket task-attachments.
- * taskId é gerado no client antes do submit do form (UUID v4) — assim
+ * taskId é gerado no client antes do submit do form (UUID v4) - assim
  * a tarefa ainda nem foi criada na DB mas já temos um path estável.
  *
  * Retorna URL pública.

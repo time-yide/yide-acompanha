@@ -15,7 +15,7 @@ interface Props {
 }
 
 /**
- * View de apresentação existente — exibe os slides na coluna direita,
+ * View de apresentação existente - exibe os slides na coluna direita,
  * com navegação prev/next + miniatura de paginação. Coluna esquerda
  * mostra metadados (PR 1 estático; PR 2 vai ter timeline do streaming).
  */
@@ -23,7 +23,7 @@ export function ApresentacaoEditor({ slides, titulo, editable = false, apresenta
   const [rawIdx, setRawIdx] = useState(0);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const total = slides.length;
-  // Derive idx during render — keeps view valid when a slide is deleted and
+  // Derive idx during render - keeps view valid when a slide is deleted and
   // rawIdx falls out of range. Avoids setState-in-effect.
   const idx = total > 0 ? Math.min(rawIdx, total - 1) : 0;
   const setIdx: typeof setRawIdx = setRawIdx;

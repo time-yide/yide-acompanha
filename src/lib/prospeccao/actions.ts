@@ -173,7 +173,7 @@ const updateMetasSchema = z.object({
 
 /**
  * Sócio/ADM atualiza as metas mensais de um comercial direto da página
- * de Metas — sem precisar abrir o cadastro do colaborador. Atualiza só
+ * de Metas - sem precisar abrir o cadastro do colaborador. Atualiza só
  * os 3 campos de meta (não toca em fixo, percentual, etc).
  *
  * Valor null em qualquer campo = "limpa a meta" → cai no fallback

@@ -22,7 +22,7 @@ export function DownloadPdfButton({ apresentacaoId, hasExistingPdf }: Props) {
         toast.error(r.error);
         return;
       }
-      // Abre em nova aba pra download — signed URL é válido por 1h.
+      // Abre em nova aba pra download - signed URL é válido por 1h.
       window.open(r.signedUrl, "_blank", "noopener,noreferrer");
       toast.success("PDF aberto em nova aba");
     });

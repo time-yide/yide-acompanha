@@ -10,7 +10,7 @@ interface Props {
 
 /**
  * Force-refresha a página atual a cada N segundos. Usado no dashboard de
- * produtividade pra "tempo real" sem WebSocket — abordagem simples e
+ * produtividade pra "tempo real" sem WebSocket - abordagem simples e
  * suficiente pra Fase 1 (Server Components re-rodam queries).
  *
  * Pausa quando aba está em background pra não pingar à toa.

@@ -8,7 +8,7 @@ export interface CredentialRow {
   client_id: string;
   service_name: string;
   username: string | null;
-  // password_encrypted NUNCA volta pra UI — só decryptado via revealPasswordAction.
+  // password_encrypted NUNCA volta pra UI - só decryptado via revealPasswordAction.
   notes: string | null;
   created_at: string;
   updated_at: string;

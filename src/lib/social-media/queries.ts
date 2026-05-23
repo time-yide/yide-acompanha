@@ -4,7 +4,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 /**
  * Pacotes que fazem postagens em rede social.
  * Filtra fora pacotes "trafego" puro e "audiovisual" puro (esses não tem
- * componente de social media — só anúncios pagos / vídeos brutos).
+ * componente de social media - só anúncios pagos / vídeos brutos).
  *
  * Critério: pacotes com `design: 1` na PACOTE_COLUMNS matrix.
  */
@@ -62,7 +62,7 @@ export async function listClientesSocial(filter: {
   if (resp.error) {
     const msg = resp.error.message ?? "";
     if (msg.includes("instagram_business_id") || msg.includes("facebook_page_id") || msg.includes("schema cache")) {
-      console.warn("[social] colunas de redes indisponíveis — usando fallback");
+      console.warn("[social] colunas de redes indisponíveis - usando fallback");
       resp = await buildQuery(SELECT_FALLBACK);
     }
   }
@@ -91,7 +91,7 @@ export async function listClientesSocial(filter: {
   if (postsResp.error) {
     const msg = postsResp.error.message ?? "";
     if (msg.includes("social_media_posts") || msg.includes("schema cache")) {
-      console.warn("[social] tabela social_media_posts indisponível — fallback vazio");
+      console.warn("[social] tabela social_media_posts indisponível - fallback vazio");
       postsResp = { data: [] } as { data: Array<{ client_id: string; status: string }> };
     }
   }

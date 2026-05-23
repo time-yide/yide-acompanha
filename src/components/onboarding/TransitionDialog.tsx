@@ -289,7 +289,7 @@ export function TransitionDialog({
             <>
               <div className="space-y-2">
                 <Label htmlFor="coord_alocado">Coordenador responsável *</Label>
-                {/* Select HTML nativo — evita problemas de Portal/z-index do Radix Select dentro de Dialog */}
+                {/* Select HTML nativo - evita problemas de Portal/z-index do Radix Select dentro de Dialog */}
                 <select
                   id="coord_alocado"
                   value={coordId}

@@ -5,7 +5,7 @@ const TTL_MS = 5 * 60 * 1000; // 5 minutos
 /**
  * Assina token HMAC com payload "timestamp.hmac" pra autorizar Puppeteer
  * a buscar a rota interna /api/internal/apresenta-yide-pdf/[id].
- * O token amarra (id, timestamp, secret) — não dá pra reusar com outro id
+ * O token amarra (id, timestamp, secret) - não dá pra reusar com outro id
  * nem fora da janela de 5 min.
  */
 export function signPdfToken(apresentacaoId: string, secret: string): string {

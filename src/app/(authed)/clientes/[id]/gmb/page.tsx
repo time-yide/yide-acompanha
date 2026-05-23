@@ -17,7 +17,7 @@ export default async function GmbPage({
   const user = await requireAuth();
   if (!ROLES_PERMITIDOS.includes(user.role)) redirect(`/clientes/${id}`);
 
-  // Service role — RLS de clientes pode bloquear leitura por role específico;
+  // Service role - RLS de clientes pode bloquear leitura por role específico;
   // página já gated por requireAuth + role check.
   const sb = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -46,7 +46,7 @@ export default async function GmbPage({
         }}
       />
 
-      {/* Link rápido pro painel-gmb individual do cliente — onde tá o
+      {/* Link rápido pro painel-gmb individual do cliente - onde tá o
           gráfico de evolução. Mantém esta página focada na edição. */}
       <div className="flex justify-end">
         <Link

@@ -41,8 +41,8 @@ function isPrivileged(user: CurrentUser): boolean {
 
 /**
  * Roles que podem gerenciar QUALQUER tarefa (alterar info, status, responsável,
- * concluir/aprovar/etc.) — mesmo sem ser criador ou atribuído. Adm/sócio (sempre)
- * + coordenador + assessor + audiovisual_chefe (gestão operacional — assessor e
+ * concluir/aprovar/etc.) - mesmo sem ser criador ou atribuído. Adm/sócio (sempre)
+ * + coordenador + assessor + audiovisual_chefe (gestão operacional - assessor e
  * coordenador audiovisual mexem nos cards um do outro pra coordenar entregas).
  *
  * NOTA: delete fica com criador + adm/socio + audiovisual_chefe (isPrivileged).
@@ -110,7 +110,7 @@ export async function createTaskAction(_prevState: ActionResult, formData: FormD
   if (!assignee || !assignee.ativo) return { error: "Responsável inválido ou desativado" };
 
   // Auto-inclui coordenador audiovisual como participante quando demanda é
-  // de vídeo — pra ele acompanhar a entrega independente de quem executa.
+  // de vídeo - pra ele acompanhar a entrega independente de quem executa.
   // Defense in depth: o TaskForm já tenta adicionar no client, mas garantimos
   // server-side caso o form seja burlado ou criação venha de outro fluxo.
   let extraParticipantes: string[] = [];
@@ -337,7 +337,7 @@ export async function toggleTaskCompletionAction(taskId: string) {
   if (!canToggle) return { error: "Sem permissão" };
 
   // Bloqueia conclusão simples pra roles que devem usar o modal de entrega
-  // (editor/videomaker/designer/audiovisual_chefe). Defense in depth — UI
+  // (editor/videomaker/designer/audiovisual_chefe). Defense in depth - UI
   // dispara concludeOperationalAction via modal.
   if (t.status !== "concluida") {
     const { data: assignee } = await supabase
@@ -447,11 +447,11 @@ export async function moveTaskStatusAction(formData: FormData) {
 
   // Guard: tarefas atribuídas a responsáveis de execução devem usar
   // concludeOperationalAction (com modal de entrega) pra ir pra
-  // "concluida" ou "em_aprovacao" — os 2 destinos exigem drive_link.
+  // "concluida" ou "em_aprovacao" - os 2 destinos exigem drive_link.
   // Defense in depth caso o client burle o trigger do modal.
   //
   // Exceção: se a tarefa JÁ tem drive_link salvo (caso de re-conclusão depois
-  // de alteração), bypass do modal — o link de entrega só precisa ser pedido
+  // de alteração), bypass do modal - o link de entrega só precisa ser pedido
   // uma vez por tarefa.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const beforeDriveLink = (before as any).drive_link as string | null | undefined;
@@ -464,7 +464,7 @@ export async function moveTaskStatusAction(formData: FormData) {
       .select("role")
       .eq("id", before.atribuido_a)
       .single();
-    // Mesma lista de ROLES_QUE_ENTREGAM — defense in depth.
+    // Mesma lista de ROLES_QUE_ENTREGAM - defense in depth.
     const ROLES = ROLES_QUE_ENTREGAM;
     if (assignee && (ROLES as readonly string[]).includes(assignee.role)) {
       return { error: "Use o modal de entrega pra mover essa tarefa" };
@@ -757,7 +757,7 @@ export async function requestAdjustmentsAction(formData: FormData): Promise<Appr
   }
 
   // Notifica o responsável que a tarefa precisa de ajustes. Mandatory por
-  // design — usuário não pode perder isso.
+  // design - usuário não pode perder isso.
   await dispatchNotification({
     evento_tipo: "task_alteracao_solicitada",
     titulo: `Ajustes solicitados: ${task.titulo}`,
@@ -898,7 +898,7 @@ export async function addCommentAction(formData: FormData): Promise<CommentResul
     });
   }
 
-  // Não revalida o path — o cliente já adiciona via optimistic update e
+  // Não revalida o path - o cliente já adiciona via optimistic update e
   // o realtime cobre os outros usuários. Revalidar aqui causa refetch
   // desnecessário.
   return { success: true, id: created.id, criado_em: created.criado_em };
@@ -914,7 +914,7 @@ export async function addCommentAction(formData: FormData): Promise<CommentResul
  * opcional). Aplica quando responsável é editor/videomaker/designer/audiovisual_chefe.
  *
  * Quem chama: ConcludeOperationalModal no client antes do drag virar efetivo.
- * Server-side é defense in depth — revalida role do responsável.
+ * Server-side é defense in depth - revalida role do responsável.
  */
 export async function concludeOperationalAction(formData: FormData): Promise<{ error?: string; success?: boolean }> {
   const actor = await requireAuth();

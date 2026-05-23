@@ -131,7 +131,7 @@ const unsubscribeSchema = z.object({
 
 /**
  * Remove a subscription pra esse endpoint. Browser também desativa local
- * via PushSubscription.unsubscribe() — esse action limpa o lado do server.
+ * via PushSubscription.unsubscribe() - esse action limpa o lado do server.
  */
 export async function unsubscribePushAction(formData: FormData): Promise<ActionResult> {
   const actor = await requireAuth();

@@ -4,7 +4,7 @@ export type Role =
 
 /**
  * Label visível no UI pra cada role. O enum `app_role` no banco mantém
- * `socio` (decisão Yasmin — renomear quebraria RLS/FKs), mas no UI
+ * `socio` (decisão Yasmin - renomear quebraria RLS/FKs), mas no UI
  * sócio aparece como "Coordenador". `coordenador` antigo virou "legado".
  */
 export const ROLE_LABELS: Record<string, string> = {

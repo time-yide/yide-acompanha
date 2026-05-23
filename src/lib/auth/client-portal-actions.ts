@@ -29,7 +29,7 @@ export async function clientPortalSigninAction(formData: FormData) {
     return { error: parsed.error.issues[0].message };
   }
 
-  // Rate limit: 5 tentativas em 15min, bloqueio de 15min — scope separado
+  // Rate limit: 5 tentativas em 15min, bloqueio de 15min - scope separado
   // do login interno pra um adversário não conseguir trancar conta de colab
   // tentando logar no portal cliente e vice-versa.
   const rateLimit = await checkRateLimit({

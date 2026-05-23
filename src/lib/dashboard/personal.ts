@@ -56,7 +56,7 @@ export interface TarefaPendenteRow {
 
 export async function _getMinhasTarefasPendentesImpl(userId: string): Promise<TarefaPendenteRow[]> {
   const supabase = createServiceRoleClient();
-  // `deleted_at is null` filtra "demandas fantasma" — tarefas soft-deleted que
+  // `deleted_at is null` filtra "demandas fantasma" - tarefas soft-deleted que
   // continuavam aparecendo no card "Tarefas pendentes" mesmo depois do criador
   // ter mandado pra /lixeira.
   const { data } = await supabase
@@ -156,11 +156,11 @@ export async function _getProducaoNoPeriodoImpl(
   //   - aprovada (arte/video): aprovada_em é o stamp
   //   - postada (arte/video, depois de aprovada): completed_at é o stamp
   // Estados que NÃO contam:
-  //   - em_aprovacao (aguardando validação) — material entregue mas não
+  //   - em_aprovacao (aguardando validação) - material entregue mas não
   //     aprovado ainda
-  //   - em_andamento / aberta — não terminou
+  //   - em_andamento / aberta - não terminou
   //
-  // Quando aprovador pede ajustes, task volta pra em_andamento — query
+  // Quando aprovador pede ajustes, task volta pra em_andamento - query
   // dinâmica deixa de contar automaticamente. Re-aprovação atualiza
   // aprovada_em pro novo momento (approveTaskAction sempre seta now).
   interface Row {

@@ -77,7 +77,7 @@ interface OverdueCaptureRow {
 
 /**
  * Calcula deadline de captura (D+1 09h no fuso da app). Mesmo critério que
- * `audiovisual/queries.ts` — videomaker precisa entregar antes disso.
+ * `audiovisual/queries.ts` - videomaker precisa entregar antes disso.
  */
 function captureDeadline(inicioIso: string): Date {
   const inicio = new Date(inicioIso);
@@ -123,7 +123,7 @@ export async function getColaboradoresStatus(): Promise<ColaboradorStatusRow[]> 
     // O filtro antigo `.neq("role", "cliente")` quebrava a query inteira:
     // "cliente" não existe no enum `user_role`, então Postgres rejeitava com
     // "invalid input value for enum". Resultado: profilesData=null, página
-    // toda zerava. Removido (não havia perfis com role=cliente mesmo —
+    // toda zerava. Removido (não havia perfis com role=cliente mesmo -
     // clientes ficam em `clients`, não em `profiles`).
     sb
       .from("profiles")
@@ -167,7 +167,7 @@ export async function getColaboradoresStatus(): Promise<ColaboradorStatusRow[]> 
       .lt("inicio", new Date(now).toISOString())
       .not("videomaker_assigned_id", "is", null)
       .gte("inicio", new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString()),
-    // Capturas já entregues — pra excluir de atrasadas
+    // Capturas já entregues - pra excluir de atrasadas
     sb
       .from("audiovisual_capturas")
       .select("event_id")

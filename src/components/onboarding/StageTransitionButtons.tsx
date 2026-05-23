@@ -10,7 +10,7 @@ import { TransitionDialog } from "./TransitionDialog";
 
 // Estágios cuja transição PRA ELES requer informação adicional do user.
 // Quando um lead vai mover pra um desses, abrimos o TransitionDialog em vez
-// de mover direto. Inclui "ativo" — precisa alocar coord + assessor.
+// de mover direto. Inclui "ativo" - precisa alocar coord + assessor.
 const STAGES_NEEDING_DIALOG = new Set<Stage>([
   "leads_ativos",
   "proposta_enviada",

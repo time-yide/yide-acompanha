@@ -47,7 +47,7 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
       { type: "link", href: "/ligacoes", icon: Phone, label: "Ligações", roles: ["adm", "socio", "comercial", "coordenador", "assessor"], badgeKey: null },
       { type: "link", href: "/reunioes", icon: Mic, label: "Reuniões", roles: ["adm", "socio", "comercial", "coordenador", "assessor", "audiovisual_chefe"], badgeKey: null },
       // LGPD: dados de prospects/leads (telefone, email, valor) só pra quem
-      // precisa operar — comercial cria/contata, assessor/coord acompanham,
+      // precisa operar - comercial cria/contata, assessor/coord acompanham,
       // audiovisual_chefe é coord audiovisual. Designer/videomaker/editor não veem.
       { type: "link", href: "/onboarding", icon: KanbanSquare, label: "Onboarding", roles: ["adm", "socio", "comercial", "assessor", "coordenador", "audiovisual_chefe"], badgeKey: null },
       { type: "link", href: "/prospeccao", icon: Briefcase, label: "Prospecção", roles: ["adm", "socio", "comercial"], badgeKey: null },
@@ -59,7 +59,7 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
     id: "operacao",
     label: "Operação",
     items: [
-      // D0 → D30 fica em primeiro — é o fluxo de entrada/onboarding do cliente
+      // D0 → D30 fica em primeiro - é o fluxo de entrada/onboarding do cliente
       // (decisão Yasmin: o que faz mais sentido ver ao abrir Operação).
       { type: "link", href: "/d0-d30", icon: Rocket, label: "D0 → D30", roles: ["adm", "socio", "coordenador", "assessor", "comercial"], badgeKey: null },
       { type: "link", href: "/tarefas", icon: ListChecks, label: "Tarefas", roles: "all", badgeKey: null },

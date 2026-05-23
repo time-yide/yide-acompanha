@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { authenticateRealtime } from "./realtime-auth";
 
-/** Janela de debounce em ms — coalesce eventos rápidos num só refresh. */
+/** Janela de debounce em ms - coalesce eventos rápidos num só refresh. */
 const REFRESH_DEBOUNCE_MS = 300;
 
 /**
@@ -14,7 +14,7 @@ const REFRESH_DEBOUNCE_MS = 300;
  * que precisam refletir mutações ao vivo (kanban de tarefas, kanban de
  * leads, listas que mostram dados compartilhados).
  *
- * Cobre INSERT, UPDATE e DELETE — Next.js só re-renderiza o que muda.
+ * Cobre INSERT, UPDATE e DELETE - Next.js só re-renderiza o que muda.
  *
  * Refresh é debounced em 300ms: batch updates (ex.: import em lote, mover
  * 5 cards rápido, bulk assign) viram UM refresh em vez de N.

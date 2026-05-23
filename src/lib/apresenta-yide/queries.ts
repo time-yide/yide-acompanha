@@ -18,7 +18,7 @@ interface ApresentacaoRaw {
 
 /**
  * Lista apresentações visíveis pro user (próprias + adm/sócio vê tudo).
- * RLS já filtra — service-role aqui só facilita join com profiles.
+ * RLS já filtra - service-role aqui só facilita join com profiles.
  */
 export async function listApresentacoes(
   userId: string,

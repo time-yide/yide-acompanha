@@ -44,7 +44,7 @@ export async function getComissaoPrevista(
 
   // Sócio (novo "Coordenador" no UI) e coordenador legado: só fixo
   // (prolábore de R$ 15.000 configurado em profiles.fixo_mensal pra sócio).
-  // Mantém base=0, comissao=0, percentual=0 — devolve só o fixo abaixo.
+  // Mantém base=0, comissao=0, percentual=0 - devolve só o fixo abaixo.
   if (role === "socio" || role === "coordenador") {
     // intencional: pula cálculo variável
   } else if (role === "assessor") {
@@ -88,7 +88,7 @@ export async function getComissaoPrevista(
 
   const fixo = Number(profile.fixo_mensal);
   // Sócio/coordenador legado: ignora qualquer `comissao_percent` salvo no
-  // perfil (legado) — sempre retorna percentual=0. Só assessor/comercial
+  // perfil (legado) - sempre retorna percentual=0. Só assessor/comercial
   // expõem o percentual configurado.
   const percentual =
     role === "socio" || role === "coordenador" ? 0 : Number(profile.comissao_percent);

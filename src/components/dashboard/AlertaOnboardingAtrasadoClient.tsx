@@ -22,10 +22,10 @@ interface Props {
 
 /**
  * Wrapper client-side do AlertaOnboardingAtrasado pra dar collapse/expand
- * via clique no header. Decisão UX (Yasmin): começa FECHADO por padrão —
+ * via clique no header. Decisão UX (Yasmin): começa FECHADO por padrão -
  * só conta resumida no header (X etapas em atraso · Y clientes). Sócio
  * clica no chevron pra expandir e ver detalhes. State não persiste entre
- * page loads — refresh volta pro estado default (fechado).
+ * page loads - refresh volta pro estado default (fechado).
  */
 export function AlertaOnboardingAtrasadoClient({
   clientes,
@@ -37,7 +37,7 @@ export function AlertaOnboardingAtrasadoClient({
 
   return (
     <section className="overflow-hidden rounded-2xl border border-red-500/30 bg-gradient-to-br from-red-500/10 via-card to-card">
-      {/* Header — clicável pra toggle */}
+      {/* Header - clicável pra toggle */}
       <button
         type="button"
         onClick={() => setCollapsed((c) => !c)}
@@ -65,7 +65,7 @@ export function AlertaOnboardingAtrasadoClient({
         />
       </button>
 
-      {/* Lista por cliente — só renderiza quando expandido */}
+      {/* Lista por cliente - só renderiza quando expandido */}
       {!collapsed && (
         <ul className="divide-y divide-red-500/10">
           {clientes.map((c) => (

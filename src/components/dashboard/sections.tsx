@@ -26,7 +26,7 @@ import { AlertaAprovacao } from "./AlertaAprovacao";
 import { RemuneracaoCard } from "./RemuneracaoCard";
 import { Section } from "./Section";
 
-// Charts são "use client" — Next code-splita automaticamente por rota.
+// Charts são "use client" - Next code-splita automaticamente por rota.
 // Tentei usar next/dynamic com ssr:false pra tirar do bundle inicial,
 // mas Next 16 proíbe ssr:false em Server Components (e essa file é
 // Server). O auto-split do "use client" já dá uma melhora menor mas

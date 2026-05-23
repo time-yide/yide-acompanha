@@ -39,7 +39,7 @@ export interface ProspectListRow {
 }
 
 /**
- * Implementação interna — service-role pra rodar dentro de unstable_cache.
+ * Implementação interna - service-role pra rodar dentro de unstable_cache.
  * Access control fica no caller (page passa comercialId quando role=comercial).
  * Filtros aplicados direto no SQL (eq/gte/lte/or) ao invés de em memória.
  */
@@ -62,7 +62,7 @@ async function _getProspectsListImpl(filter: ProspectsFilter): Promise<ProspectL
     query = query.in("comercial_id", filter.unitProfileIds);
   }
 
-  // Filtro de status (com 'perdido' como pseudo-status — coluna motivo_perdido NOT NULL)
+  // Filtro de status (com 'perdido' como pseudo-status - coluna motivo_perdido NOT NULL)
   if (filter.status && filter.status.length > 0) {
     const wantsPerdido = filter.status.includes("perdido");
     const realStatuses = filter.status.filter((s) => s !== "perdido");
@@ -175,7 +175,7 @@ async function _getProspectDetailImpl(leadId: string): Promise<ProspectDetail | 
   return (data as unknown as ProspectDetail | null) ?? null;
 }
 
-/** Cached 60s + tag PROSPECTS — invalidado por mutations em leads. */
+/** Cached 60s + tag PROSPECTS - invalidado por mutations em leads. */
 export async function getProspectDetail(leadId: string): Promise<ProspectDetail | null> {
   const cached = unstable_cache(
     async (id: string) => _getProspectDetailImpl(id),
@@ -316,7 +316,7 @@ function buildMetaItem(meta: number, realizado: number, configurada: boolean): M
  * (invalida quando profile.fixo_mensal/comissao_percent/meta_* mudam).
  *
  * Service-role: SELECT em profiles e leads é permissivo via "authenticated using (true)".
- * Filtra por userId/comercial_id no SQL — segurança preservada.
+ * Filtra por userId/comercial_id no SQL - segurança preservada.
  *
  * Cache key: monthRef vai junto pro key não confundir mês corrente com
  * histórico (a função é chamada com `now` opcional pra cálculo histórico).
@@ -345,7 +345,7 @@ async function _getMetasComercialImpl(
     .toISOString()
     .slice(0, 10);
 
-  // Profile e leadsMes são independentes — paralelizar pra economizar 1 round-trip
+  // Profile e leadsMes são independentes - paralelizar pra economizar 1 round-trip
   // (essa função roda no dashboard de cada comercial em todo refresh).
   const [{ data: profileData }, { data: leadsData }] = await Promise.all([
     supabase

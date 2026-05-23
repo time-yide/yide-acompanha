@@ -28,7 +28,7 @@ export function ChecklistRow({ etapaId, tipo, index, item, canEdit }: Props) {
     startTransition(async () => {
       const res = await toggleChecklistItemAction(fd);
       if (res && "error" in res) {
-        // Mostra erro inline simples — alert é OK pra MVP
+        // Mostra erro inline simples - alert é OK pra MVP
         alert(res.error);
         return;
       }

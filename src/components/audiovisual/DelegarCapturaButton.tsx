@@ -37,7 +37,7 @@ interface Props {
 
 /**
  * Badge minimalista: dot colorido + texto uppercase + cor de texto sutil.
- * Estilo Linear/Notion — comunica status sem o peso visual de um pill colorido.
+ * Estilo Linear/Notion - comunica status sem o peso visual de um pill colorido.
  */
 function StatusBadge({ tone, children }: { tone: "amber" | "sky" | "emerald"; children: React.ReactNode }) {
   const dotColor = {

@@ -12,7 +12,7 @@ const CATEGORIA_ORDER: ExpenseCategoria[] = [
   "marketing_proprio", "equipamento", "pro_labore", "outros",
 ];
 
-// Role `socio` no banco aparece como "Coordenador" no UI (decisão Yasmin —
+// Role `socio` no banco aparece como "Coordenador" no UI (decisão Yasmin -
 // renomear quebraria RLS/FKs). `coordenador` antigo virou legado.
 const ROLE_LABEL: Record<string, string> = {
   socio: "Coordenador",

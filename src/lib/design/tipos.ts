@@ -1,11 +1,11 @@
 /**
  * Tipos compartilhados do módulo Design.
  *
- * IMPORTANTE: na Fase 1 não temos integração com IA — todas as artes são
+ * IMPORTANTE: na Fase 1 não temos integração com IA - todas as artes são
  * cadastradas manualmente (upload). A Fase 2 vai conectar OpenAI (GPT-Image-1
  * / DALL-E 3), Google (Imagen 3/4), e provavelmente Flux Pro / Ideogram.
  *
- * Claude (Anthropic) NÃO gera imagens — só análise visual / texto. Por isso
+ * Claude (Anthropic) NÃO gera imagens - só análise visual / texto. Por isso
  * não está na lista de provedores.
  */
 
@@ -108,7 +108,7 @@ export const IA_PROVIDERS: IaProvider[] = [
 ];
 
 /**
- * Style guide do cliente — JSONB livre, mas com estrutura sugerida.
+ * Style guide do cliente - JSONB livre, mas com estrutura sugerida.
  * Persistido em clients.design_style_guide.
  */
 export interface StyleGuide {

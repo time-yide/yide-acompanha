@@ -32,7 +32,7 @@ export function SidebarGroup({ groupId, label, items, badges }: Props) {
   );
 
   // explicit: preferência do usuário em localStorage; null = nunca tocou.
-  // open final = explicit ?? containsActive — auto-abre quando dentro.
+  // open final = explicit ?? containsActive - auto-abre quando dentro.
   const [explicit, setExplicit] = useState<boolean | null>(null);
   const open = explicit ?? containsActive;
 
@@ -43,7 +43,7 @@ export function SidebarGroup({ groupId, label, items, badges }: Props) {
         const parsed = raw ? (JSON.parse(raw) as Record<string, boolean>) : {};
         if (groupId in parsed) setExplicit(parsed[groupId]);
       } catch {
-        // localStorage bloqueado em modo privado — ignora
+        // localStorage bloqueado em modo privado - ignora
       }
     }, 0);
     return () => clearTimeout(t);

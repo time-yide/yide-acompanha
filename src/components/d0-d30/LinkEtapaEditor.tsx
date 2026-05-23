@@ -9,7 +9,7 @@ import { salvarLinkEtapaAction } from "@/lib/d0-d30/actions";
 interface Props {
   etapaId: string;
   initialValue: string | null;
-  /** Label customizado por etapa — ex: "Link da estratégia" pra etapa de tráfego. */
+  /** Label customizado por etapa - ex: "Link da estratégia" pra etapa de tráfego. */
   label: string;
   placeholder?: string;
 }

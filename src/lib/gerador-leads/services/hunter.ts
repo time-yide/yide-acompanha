@@ -1,4 +1,4 @@
-// SERVER ONLY — Hunter.io API client (Domain Search)
+// SERVER ONLY - Hunter.io API client (Domain Search)
 //
 // Docs: https://hunter.io/api-documentation/v2#domain-search
 //
@@ -29,7 +29,7 @@ export interface HunterEmailFinding {
 
 export interface HunterDomainSearchResult {
   ok: boolean;
-  /** True quando HUNTER_API_KEY ausente — não é erro, só skip */
+  /** True quando HUNTER_API_KEY ausente - não é erro, só skip */
   skipped: boolean;
   error: string | null;
   organization: string | null;
@@ -63,7 +63,7 @@ export async function hunterDomainSearch(domain: string | null | undefined): Pro
   const url = new URL(`${HUNTER_BASE}/domain-search`);
   url.searchParams.set("domain", domain.trim().toLowerCase());
   url.searchParams.set("api_key", apiKey);
-  // Limita a 10 emails (suficiente; cada email conta 1 crédito no free tier? Não — domain-search
+  // Limita a 10 emails (suficiente; cada email conta 1 crédito no free tier? Não - domain-search
   // conta como 1 request independente do número retornado).
   url.searchParams.set("limit", "10");
 

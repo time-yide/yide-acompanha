@@ -39,7 +39,7 @@ const toggleSchema = z.object({
     .string()
     .transform((v) => v === "true")
     .pipe(z.boolean()),
-  /** Opcional: data customizada (YYYY-MM-DD) — pra backdate de items feitos
+  /** Opcional: data customizada (YYYY-MM-DD) - pra backdate de items feitos
    * antes do cliente ser cadastrado. Default = agora. */
   data_acao: z
     .string()
@@ -107,7 +107,7 @@ export async function toggleChecklistItemAction(
   });
 
   // Auto-promove status pra "em_progresso" se algum item foi marcado e status era "pendente".
-  // (Não promove pra "concluido" automaticamente — isso requer ação explícita.)
+  // (Não promove pra "concluido" automaticamente - isso requer ação explícita.)
   const algumMarcado = updated.some((i) => i.done) ||
     (parsed.data.tipo === "fluxo"
       ? (etapa.saidas_checklist as ChecklistItem[]).some((i) => i.done)
@@ -150,7 +150,7 @@ const markEtapaSchema = z.object({
  * `saidas_checklist` estiverem concluídos (lógica de gate). Itens de fluxo
  * podem ficar parciais.
  *
- * Aceita data_conclusao opcional pra backdate — útil quando você cadastra
+ * Aceita data_conclusao opcional pra backdate - útil quando você cadastra
  * cliente com D0 retroativo e quer marcar etapas que já foram feitas
  * efetivamente no passado.
  */
@@ -182,7 +182,7 @@ export async function markEtapaConcluidaAction(
 
   // Yasmin: o fluxo real não exige que TODOS os itens estejam feitos pra
   // concluir uma etapa. Algumas saídas ficam "em aberto" mesmo quando o
-  // marco é atingido. Permitimos concluir com itens pendentes —
+  // marco é atingido. Permitimos concluir com itens pendentes -
   // observabilidade fica na progress bar do card (parcial vs total).
 
   if (etapa.status === "concluido") return { success: true };
@@ -220,7 +220,7 @@ const reabrirSchema = z.object({
   etapa_id: z.string().regex(UUID_RE),
 });
 
-/** Reabre uma etapa concluída — caso tenha sido marcada errada. */
+/** Reabre uma etapa concluída - caso tenha sido marcada errada. */
 export async function reabrirEtapaAction(
   formData: FormData,
 ): Promise<{ success: true } | { error: string }> {
@@ -309,7 +309,7 @@ export async function salvarObservacoesAction(
 }
 
 /**
- * Salva o link de referência da etapa (URL livre — ex: link da estratégia
+ * Salva o link de referência da etapa (URL livre - ex: link da estratégia
  * em "Tráfego + estratégia"). String vazia limpa o campo.
  */
 export async function salvarLinkEtapaAction(

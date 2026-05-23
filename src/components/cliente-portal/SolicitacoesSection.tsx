@@ -58,7 +58,7 @@ export function SolicitacoesSection({ requests }: Props) {
               <div>
                 <h2 className="text-sm font-bold uppercase tracking-wider">Solicitações</h2>
                 <p className="text-xs text-muted-foreground">
-                  Peça alterações, tráfego, reuniões — fica tudo organizado aqui
+                  Peça alterações, tráfego, reuniões - fica tudo organizado aqui
                 </p>
               </div>
             </div>

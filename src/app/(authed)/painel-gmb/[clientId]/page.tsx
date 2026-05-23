@@ -114,7 +114,7 @@ export default async function PainelGmbClienteDetailPage({
               {cliente.gmb_review_count.toLocaleString("pt-BR")}
             </div>
           ) : (
-            <div className="mt-2 text-muted-foreground">—</div>
+            <div className="mt-2 text-muted-foreground">-</div>
           )}
         </Card>
         <Card className="p-4">

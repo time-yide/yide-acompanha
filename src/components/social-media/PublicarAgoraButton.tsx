@@ -17,7 +17,7 @@ interface Props {
  * Dispara publicação imediata no Meta (IG/FB). Usa o token System User
  * da BM Yide (META_SYSTEM_USER_TOKEN).
  *
- * Confirmação obrigatória — publicação real, sem desfazer.
+ * Confirmação obrigatória - publicação real, sem desfazer.
  */
 export function PublicarAgoraButton({ postId, status }: Props) {
   const router = useRouter();

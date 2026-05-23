@@ -4,7 +4,7 @@ import { AlertaOnboardingAtrasadoClient } from "./AlertaOnboardingAtrasadoClient
 /**
  * Banner persistente no topo do dashboard que avisa sobre etapas D0-D30
  * atrasadas dos clientes do user. Some sozinho quando todas forem concluídas
- * (sem botão de "dismissar" — Yasmin pediu que não saia até parar de estar
+ * (sem botão de "dismissar" - Yasmin pediu que não saia até parar de estar
  * atrasado).
  *
  * Server component só busca dados; renderização (com collapse/expand) é

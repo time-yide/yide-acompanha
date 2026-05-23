@@ -39,7 +39,7 @@ export function CursoOnlineCard({ curso, canManage }: Props) {
       await navigator.clipboard.writeText(value);
       toast.success(`${label} copiado`);
     } catch {
-      toast.error("Não consegui copiar — copia manualmente");
+      toast.error("Não consegui copiar - copia manualmente");
     }
   }
 

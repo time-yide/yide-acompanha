@@ -42,7 +42,7 @@ export default async function ColaboradoresPage({
   const canManage = canAccess(user.role, "manage:users");
   const canSeeFinance = canAccess(user.role, "view:other_commissions");
   const canEdit = canAccess(user.role, "edit:colaboradores");
-  // Mesma permissão de editar — quem pode editar pode arquivar.
+  // Mesma permissão de editar - quem pode editar pode arquivar.
   const canArchive = canEdit;
 
   const status = params.status ?? "ativos";

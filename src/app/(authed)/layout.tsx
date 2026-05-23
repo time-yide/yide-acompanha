@@ -29,7 +29,7 @@ export default async function AuthedLayout({ children }: { children: React.React
   ]);
   const audiovisualOverdue = audiovisualPendentes.filter((p) => p.isOverdue);
 
-  // Lista de clientes — usada pelo gate de captação pendente pro videomaker
+  // Lista de clientes - usada pelo gate de captação pendente pro videomaker
   // poder entregar inline (sem precisar sair pra /audiovisual).
   let clientesAtivos: Array<{ id: string; nome: string }> = [];
   if (audiovisualOverdue.length > 0) {

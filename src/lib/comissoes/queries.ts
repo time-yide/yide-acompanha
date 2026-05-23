@@ -71,7 +71,7 @@ export async function listSnapshotsForMonth(monthRef: string, unitProfileIds: st
       const ids = idsJson === "null" ? null : (JSON.parse(idsJson) as string[]);
       return _listSnapshotsForMonthImpl(m, ids);
     },
-    // v2: filtra por unitProfileIds (multi-tenant — prolábore por unidade)
+    // v2: filtra por unitProfileIds (multi-tenant - prolábore por unidade)
     ["comissoes-snapshots-month-v2"],
     { revalidate: 60, tags: ["commissions"] },
   );

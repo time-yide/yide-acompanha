@@ -1,4 +1,4 @@
-// Som de notificação gerado via Web Audio API — sem precisar de asset MP3.
+// Som de notificação gerado via Web Audio API - sem precisar de asset MP3.
 // Um "ding" curto (sine 880Hz → 440Hz, ~250ms com fade out).
 
 let audioCtx: AudioContext | null = null;
@@ -64,7 +64,7 @@ export function playNotificationSound(): void {
 
   try {
     if (ctx.state === "suspended") {
-      // Aguarda o resume antes de criar o oscillator — start() em ctx
+      // Aguarda o resume antes de criar o oscillator - start() em ctx
       // suspenso roda em silêncio e some no log.
       ctx.resume()
         .then(() => playOnContext(ctx))

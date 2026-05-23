@@ -33,7 +33,7 @@ export type TipoRelacaoCliente = (typeof TIPOS_RELACAO)[number];
 /**
  * Modalidade do cliente:
  * - mensal: recorrente (contrato em curso, churn quando encerra)
- * - pontual: serviço único (vídeo avulso, projeto fechado) — encerra
+ * - pontual: serviço único (vídeo avulso, projeto fechado) - encerra
  *   sem virar churn, conta separadamente nas métricas
  */
 export const MODALIDADES = ["mensal", "pontual"] as const;
@@ -75,7 +75,7 @@ export const editClienteSchema = createClienteSchema.extend({
   drive_url: z.string().url().or(z.literal("")).optional().nullable(),
   link_estrategia: z.string().url().or(z.literal("")).optional().nullable(),
   pacote_post_padrao: z.coerce.number().int().min(0).optional().nullable(),
-  // new fields already in base schema — inherited; explicit here for clarity
+  // new fields already in base schema - inherited; explicit here for clarity
 });
 
 export const churnClienteSchema = z.object({

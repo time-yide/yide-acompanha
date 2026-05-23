@@ -54,7 +54,7 @@ export interface MonthGridRange {
   start: Date;
   /** Fim da grade (Segunda 6 semanas depois do início), em UTC. */
   end: Date;
-  /** Ano/mês de referência (1-12) no fuso da app — pra colorir células in/out. */
+  /** Ano/mês de referência (1-12) no fuso da app - pra colorir células in/out. */
   year: number;
   month: number;
 }
@@ -169,7 +169,7 @@ async function _listEventsForWeekImpl(
     });
   }
 
-  // 2) Leads — filtra pela unidade quando aplicável (via responsáveis: comercial/coord/assessor).
+  // 2) Leads - filtra pela unidade quando aplicável (via responsáveis: comercial/coord/assessor).
   //    null = sem filtro; [] = unidade nova → pula leads inteiramente.
   let leads: Array<{
     id: string;
@@ -231,7 +231,7 @@ async function _listEventsForWeekImpl(
     }
   }
 
-  // 3) Client birthdays — filtra pela unidade quando aplicável
+  // 3) Client birthdays - filtra pela unidade quando aplicável
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let clientsBirthdaysQ: any = supabase
     .from("clients")
@@ -267,7 +267,7 @@ async function _listEventsForWeekImpl(
     }
   }
 
-  // 4) Collaborator birthdays — filtra pela unidade quando aplicável
+  // 4) Collaborator birthdays - filtra pela unidade quando aplicável
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let colabsBirthdaysQ: any = supabase
     .from("profiles")
@@ -303,7 +303,7 @@ async function _listEventsForWeekImpl(
     }
   }
 
-  // 5) Client important dates — filtra pela unidade quando aplicável
+  // 5) Client important dates - filtra pela unidade quando aplicável
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let clientDatesQ: any = supabase
     .from("client_important_dates")

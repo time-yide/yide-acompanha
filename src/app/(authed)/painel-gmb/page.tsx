@@ -31,7 +31,7 @@ export default async function PainelGmbPage() {
               Acompanhamento de notas e reviews dos clientes monitorados.
               {placesApiEnabled
                 ? " Atualizado automaticamente via Google Places API."
-                : " Modo manual — assessor digita os números."}
+                : " Modo manual - assessor digita os números."}
             </p>
           </div>
         </div>

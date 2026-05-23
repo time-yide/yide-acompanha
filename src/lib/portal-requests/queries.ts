@@ -15,7 +15,7 @@ export async function listRequestsByClient(clientId: string): Promise<RequestRow
     .eq("client_id", clientId)
     .order("created_at", { ascending: false });
   if (error) {
-    // Não derruba o portal do cliente se a tabela ainda não existir —
+    // Não derruba o portal do cliente se a tabela ainda não existir -
     // só loga e devolve vazio. O painel do cliente tem várias seções e
     // não faz sentido tudo crashar por uma feature opcional.
     console.error("[portal-requests] listRequestsByClient failed:", error);

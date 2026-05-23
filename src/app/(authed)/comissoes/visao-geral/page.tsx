@@ -40,7 +40,7 @@ export default async function VisaoGeralPage({
     listSnapshotsForMonth(monthRef, unitProfileIds),
   ]);
   const isPreview = snapshots.length === 0;
-  // previewAllForMonth gera preview pra todos profiles ativos — filtra
+  // previewAllForMonth gera preview pra todos profiles ativos - filtra
   // pelos da unidade ativa
   const previewRows = isPreview ? await previewAllForMonth(monthRef) : [];
   const rows = isPreview

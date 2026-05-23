@@ -7,12 +7,12 @@ import { logAudit } from "@/lib/audit/log";
 /**
  * Cron: refresh dos dados GMB de todos os clientes que têm `gmb_place_id`.
  * Roda 1x/dia, busca rating/userRatingCount fresco via Google Places API
- * (endpoint de Place Details — mais barato que searchText).
+ * (endpoint de Place Details - mais barato que searchText).
  *
  * Schedule (vercel.json): 1x/dia às 6h UTC = 2h Cuiabá (madrugada).
  *
  * Sem GOOGLE_PLACES_API_KEY: sai cedo, vira no-op (não erra).
- * Errors em clientes individuais não derrubam o cron — só logam e seguem.
+ * Errors em clientes individuais não derrubam o cron - só logam e seguem.
  */
 
 const MAX_PER_RUN = 200;

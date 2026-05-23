@@ -8,7 +8,7 @@ interface Props {
 /**
  * Renderiza todos os slides empilhados verticalmente, cada um numa
  * "página" com page-break-after pra Puppeteer gerar 1 slide = 1 página
- * de PDF. Cada wrapper tem 100% de largura e altura proporcional 16:9 —
+ * de PDF. Cada wrapper tem 100% de largura e altura proporcional 16:9 -
  * page CSS abaixo (no api route) força A4 landscape.
  */
 export function PdfRenderableDeck({ slides }: Props) {

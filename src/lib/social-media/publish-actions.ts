@@ -53,7 +53,7 @@ interface ClientAccounts {
 }
 
 /**
- * Publica um post agora — uso manual (botão "Publicar agora" na UI) ou
+ * Publica um post agora - uso manual (botão "Publicar agora" na UI) ou
  * chamado pelo cron de publicação agendada.
  *
  * Fluxo:
@@ -79,7 +79,7 @@ export async function publishSocialPostAction(formData: FormData): Promise<Actio
   return publishPostById(parsed.data.id, { actorId: actor.id, manual: true });
 }
 
-/** Interno — usado pelo cron + pela action. */
+/** Interno - usado pelo cron + pela action. */
 export async function publishPostById(
   postId: string,
   opts: { actorId: string | null; manual: boolean },

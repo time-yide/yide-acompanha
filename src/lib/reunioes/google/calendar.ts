@@ -1,4 +1,4 @@
-// Google Calendar API — STUBS pra Fase 1.
+// Google Calendar API - STUBS pra Fase 1.
 //
 // Endpoint base: https://www.googleapis.com/calendar/v3
 //

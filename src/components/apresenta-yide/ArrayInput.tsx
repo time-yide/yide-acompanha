@@ -15,7 +15,7 @@ interface Props {
 }
 
 /**
- * Lista editável de strings — bullets, tópicos, etc. Botão "+" adiciona
+ * Lista editável de strings - bullets, tópicos, etc. Botão "+" adiciona
  * item ao fim, "×" remove. Respeita maxItems/minItems pra desabilitar
  * os botões nos limites.
  */

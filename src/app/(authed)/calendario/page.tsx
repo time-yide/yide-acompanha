@@ -49,7 +49,7 @@ export default async function CalendarioPage({
 
   // Eventos de videomaker em status pending_delegation só aparecem pra
   // quem precisa: coord audiovisual / adm / sócio (pra delegar) e o
-  // próprio criador (assessor). Videomakers NÃO veem antes da delegação —
+  // próprio criador (assessor). Videomakers NÃO veem antes da delegação -
   // evita confusão de pensar que já está atribuído.
   const podeVerPending = ["audiovisual_chefe", "adm", "socio", "coordenador"].includes(user.role);
   function isVisibleByDelegationFlow(e: CalendarEvent): boolean {
@@ -163,7 +163,7 @@ async function renderMonth({
   unitClientIds: string[] | null;
   unitProfileIds: string[] | null;
 }) {
-  // `month` param é "YYYY-MM" — âncora qualquer dia do meio do mês pra evitar
+  // `month` param é "YYYY-MM" - âncora qualquer dia do meio do mês pra evitar
   // problema de timezone com dia 1.
   const ref = params.month
     ? new Date(`${params.month}-15T12:00:00Z`)

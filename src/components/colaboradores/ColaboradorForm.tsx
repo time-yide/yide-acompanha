@@ -69,7 +69,7 @@ export function ColaboradorForm({ data, canEditFinance, canEditRole, canEditMeta
             </SelectTrigger>
             <SelectContent>
               {/*
-                Role `coordenador` antigo virou legado — só aparece como
+                Role `coordenador` antigo virou legado - só aparece como
                 opção se o usuário sendo editado já tem esse role (pra não
                 quebrar a renderização do select). Pra perfis novos, prefira
                 "Coordenador" (role `socio` no banco), que tem todas as

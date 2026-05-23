@@ -1,4 +1,4 @@
-// SERVER ONLY — wrapper do Apify Instagram Profile Scraper
+// SERVER ONLY - wrapper do Apify Instagram Profile Scraper
 //
 // Actor usado: apify/instagram-profile-scraper
 // Docs: https://apify.com/apify/instagram-profile-scraper
@@ -136,7 +136,7 @@ export async function scrapeInstagramProfile(
       body: JSON.stringify({
         usernames: [user],
         resultsLimit: 1,
-        // Não baixa posts/stories — só o perfil em si (mais barato + rápido)
+        // Não baixa posts/stories - só o perfil em si (mais barato + rápido)
         addParentData: false,
       }),
       signal: controller.signal,

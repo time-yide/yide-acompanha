@@ -4,7 +4,7 @@ const optionalText = z.string().trim().max(2000).optional().nullable();
 
 /**
  * Lista canônica de plataformas pra mostrar como sugestão. Campo é texto
- * livre no banco — usuário pode digitar uma plataforma fora dessa lista.
+ * livre no banco - usuário pode digitar uma plataforma fora dessa lista.
  */
 export const PLATAFORMAS_SUGERIDAS = [
   "Hotmart",

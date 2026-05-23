@@ -17,7 +17,7 @@ const subscribeSchema = z.object({
 
 /**
  * Salva a Push Subscription criada pelo browser pra um cliente final.
- * Usa requireClientPortalAuth (sessão do portal externo) — NUNCA a
+ * Usa requireClientPortalAuth (sessão do portal externo) - NUNCA a
  * sessão de colaborador interno.
  *
  * Idempotente: re-subscribe do mesmo endpoint atualiza chaves.
@@ -80,7 +80,7 @@ export async function unsubscribeClientPortalPushAction(
 }
 
 /**
- * Dispara push de teste pro portal user logado — pra validar
+ * Dispara push de teste pro portal user logado - pra validar
  * end-to-end no celular instalado.
  */
 export async function sendTestClientPortalPushAction(): Promise<ActionResult> {

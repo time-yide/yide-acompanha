@@ -98,7 +98,7 @@ export default async function TarefaHistoricoPage({
 
   const supabase = await createClient();
 
-  // Verifica que a tarefa existe (mesmo soft-deletada — histórico continua acessível)
+  // Verifica que a tarefa existe (mesmo soft-deletada - histórico continua acessível)
   const { data: task } = await supabase
     .from("tasks")
     .select("id, titulo")
@@ -231,7 +231,7 @@ export default async function TarefaHistoricoPage({
                     </ul>
                   )}
 
-                  {/* Caso create — só dados_depois, sem diff. Mostra resumo. */}
+                  {/* Caso create - só dados_depois, sem diff. Mostra resumo. */}
                   {e.acao === "create" && diffs.length === 0 && (
                     <p className="text-xs italic text-muted-foreground">
                       Tarefa criada com os dados iniciais.

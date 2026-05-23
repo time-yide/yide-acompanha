@@ -20,7 +20,7 @@ function formatDueDate(iso: string | null): string {
 
 function urgencyClass(due: string | null): string {
   if (!due) return "text-muted-foreground";
-  // Compara via "hoje" no fuso da app (Cuiabá) — não usa Date local.
+  // Compara via "hoje" no fuso da app (Cuiabá) - não usa Date local.
   const datePart = due.length === 10 ? due : due.slice(0, 10);
   const [y, m, d] = datePart.split("-").map(Number);
   if (!y || !m || !d) return "text-muted-foreground";

@@ -12,7 +12,7 @@ export interface ClientPaymentRow {
   paid_at: string | null;
   observacao: string | null;
   payment_id: string | null;
-  /** Ajuste do mês — quando preenchido, redefine o valor efetivo cobrado e
+  /** Ajuste do mês - quando preenchido, redefine o valor efetivo cobrado e
    * a base de comissão de assessor/coord. */
   ajuste_tipo: "desconto_parcial" | "gratuidade_total" | null;
   ajuste_valor_desconto: number | null;
@@ -24,7 +24,7 @@ export interface ClientPaymentRow {
 /**
  * Lista clientes ATIVOS com:
  * - Status de pagamento do mês (pendente implícito quando não há registro)
- * - Ajuste mensal (gratuidade/desconto) — alimenta a redistribuição de comissão
+ * - Ajuste mensal (gratuidade/desconto) - alimenta a redistribuição de comissão
  * - valor_efetivo (valor que o cliente realmente paga depois do ajuste)
  */
 export async function listClientPaymentsForMonth(mesReferencia: string): Promise<ClientPaymentRow[]> {
@@ -64,7 +64,7 @@ export async function listClientPaymentsForMonth(mesReferencia: string): Promise
     const a = ajusteByClient.get(c.id) ?? null;
     const valor_mensal = Number(c.valor_mensal);
 
-    // Mesma lógica de valorEfetivoCliente — replicada aqui pra evitar
+    // Mesma lógica de valorEfetivoCliente - replicada aqui pra evitar
     // dependência cruzada entre lib/pagamentos e lib/clientes.
     let valor_efetivo: number;
     if (c.tipo_relacao !== "comum") {

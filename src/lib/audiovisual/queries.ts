@@ -25,7 +25,7 @@ export interface PendenteEvento {
 
 /**
  * Calcula prazo limite: dia seguinte ao evento, 09h no fuso da app (Cuiabá).
- * Usa offset dinâmico — Cuiabá é UTC-4 sempre, mas o helper funciona pra
+ * Usa offset dinâmico - Cuiabá é UTC-4 sempre, mas o helper funciona pra
  * qualquer timezone configurado.
  */
 function getDeadline(eventInicioIso: string): Date {
@@ -167,7 +167,7 @@ async function _listEventosSemCapturaImpl(options: { videomakerId?: string }): P
   const captured = new Set(((capturas ?? []) as Array<{ event_id: string | null }>).map((c) => c.event_id));
 
   // Pra montar nome dos videomakers em modo "todos", lookup batch nos participantes
-  // Filtra só videomakers — calendar_events.participantes_ids pode incluir
+  // Filtra só videomakers - calendar_events.participantes_ids pode incluir
   // não-videomakers (ex.: coord que acompanhou a gravação), e a aba deve
   // listar apenas quem efetivamente devia entregar captura.
   const profileIds = new Set<string>();
@@ -295,7 +295,7 @@ async function _listCapturasSemDelegacaoImpl(): Promise<CapturaSemDelegacaoRow[]
 export async function listCapturas(filters: {
   videomakerId?: string;
   clientId?: string;
-  /** Restringe a um conjunto de clientes (caso do assessor — vê só os dele). */
+  /** Restringe a um conjunto de clientes (caso do assessor - vê só os dele). */
   clientIds?: string[];
   limit?: number;
 } = {}): Promise<CapturaRow[]> {
