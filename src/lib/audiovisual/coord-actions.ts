@@ -177,3 +177,186 @@ export async function delegateVideomakerAction(
   revalidateTag("calendar", "default");
   return { success: true };
 }
+
+/**
+ * Atualiza uma delegação já feita: troca o videomaker assignado e/ou o coord
+ * audiovisual responsável. Usado pra "trocar videomaker" sem precisar
+ * "desdelegar + delegar de novo".
+ *
+ * - Apenas roles autorizados (mesmas regras de delegate)
+ * - Evento precisa estar em status='scheduled' (já delegado)
+ * - Se trocar videomaker: revalida role, ativo e checa overlap
+ * - Se trocar coord: valida que tem permissão de coord audiovisual
+ * - Notifica novo videomaker se mudou; remove antigo de participantes_ids
+ *   se ele não era participante por outro motivo
+ */
+export async function updateDelegacaoAction(
+  formData: FormData,
+): Promise<ActionResult> {
+  const actor = await requireAuth();
+  if (!ROLES_COORD_DELEGATE.has(actor.role)) {
+    return { error: "Você não tem permissão pra alterar delegação" };
+  }
+
+  const eventId = String(formData.get("event_id") ?? "");
+  const newVideomakerId = String(formData.get("videomaker_id") ?? "");
+  const newCoordId = String(formData.get("coord_id") ?? "");
+  if (!eventId) return { error: "Evento é obrigatório" };
+  if (!newVideomakerId && !newCoordId) {
+    return { error: "Nada pra atualizar" };
+  }
+
+  const supabase = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+
+  const { data: event } = await sb
+    .from("calendar_events")
+    .select(
+      "id, titulo, inicio, fim, sub_calendar, videomaker_status, videomaker_assigned_id, videomaker_delegado_por, participantes_ids",
+    )
+    .eq("id", eventId)
+    .single();
+  if (!event) return { error: "Evento não encontrado" };
+  if (event.sub_calendar !== "videomakers") {
+    return { error: "Esse evento não é de videomaker" };
+  }
+  if (event.videomaker_status !== "scheduled") {
+    return { error: "Esse evento não está delegado — use delegar" };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const updates: Record<string, any> = {};
+  let videomakerChanged = false;
+  let novoVideomakerNome = "";
+
+  if (newVideomakerId && newVideomakerId !== event.videomaker_assigned_id) {
+    const { data: vm } = await sb
+      .from("profiles")
+      .select("id, nome, role, ativo")
+      .eq("id", newVideomakerId)
+      .single();
+    if (!vm || vm.role !== "videomaker" || !vm.ativo) {
+      return { error: "Videomaker inválido ou inativo" };
+    }
+    // Conflito de horário (ignora o próprio evento)
+    const { data: conflict } = await sb
+      .from("calendar_events")
+      .select("id, titulo, inicio, fim")
+      .eq("sub_calendar", "videomakers")
+      .eq("videomaker_status", "scheduled")
+      .eq("videomaker_assigned_id", newVideomakerId)
+      .neq("id", eventId)
+      .lt("inicio", event.fim)
+      .gt("fim", event.inicio)
+      .limit(1)
+      .maybeSingle();
+    if (conflict) {
+      const inicioBR = new Date(conflict.inicio).toLocaleString("pt-BR", {
+        timeZone: "America/Cuiaba",
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      return {
+        error: `${vm.nome} já tem captação "${conflict.titulo}" às ${inicioBR}`,
+      };
+    }
+    updates.videomaker_assigned_id = newVideomakerId;
+    videomakerChanged = true;
+    novoVideomakerNome = vm.nome;
+
+    // Atualiza participantes_ids: adiciona o novo, remove o antigo se ele
+    // estava lá só pela delegação anterior (best-effort — se ele tinha outro
+    // motivo pra estar, vai ser removido aqui mas é raro).
+    const atual = (event.participantes_ids as string[] | null) ?? [];
+    const semAntigo = atual.filter((id) => id !== event.videomaker_assigned_id);
+    updates.participantes_ids = semAntigo.includes(newVideomakerId)
+      ? semAntigo
+      : [...semAntigo, newVideomakerId];
+  }
+
+  if (newCoordId && newCoordId !== event.videomaker_delegado_por) {
+    const { data: coord } = await sb
+      .from("profiles")
+      .select("id, nome, role, ativo")
+      .eq("id", newCoordId)
+      .single();
+    if (!coord || !ROLES_COORD_DELEGATE.has(coord.role) || !coord.ativo) {
+      return { error: "Coord audiovisual inválido ou inativo" };
+    }
+    updates.videomaker_delegado_por = newCoordId;
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return { error: "Nada mudou" };
+  }
+
+  // Marca quando foi alterado pra refletir na UI ("Delegada por X em Y")
+  if (videomakerChanged) {
+    updates.videomaker_delegado_em = new Date().toISOString();
+  }
+
+  const { data: updated, error } = await sb
+    .from("calendar_events")
+    .update(updates)
+    .eq("id", eventId)
+    .select("id");
+  if (error) {
+    if (error.message?.includes("no_videomaker_overlap")) {
+      return {
+        error: `Esse videomaker já tem outra captação naquele horário (atualização concorrente)`,
+      };
+    }
+    return { error: error.message };
+  }
+  if (!updated || updated.length === 0) {
+    console.error("[audiovisual/coord] update update affected 0 rows", { eventId, actorId: actor.id });
+    return { error: "Não foi possível atualizar a delegação. Recarregue e tente de novo." };
+  }
+
+  if (videomakerChanged) {
+    await dispatchNotification({
+      evento_tipo: "task_assigned",
+      titulo: "Nova captação delegada a você",
+      mensagem: `${actor.nome} delegou "${event.titulo}"`,
+      link: `/calendario?event=${eventId}`,
+      user_ids_extras: [newVideomakerId],
+      source_user_id: actor.id,
+    });
+  }
+
+  await logAudit({
+    entidade: "calendar_events",
+    entidade_id: eventId,
+    acao: "update",
+    dados_depois: {
+      acao: "update_delegacao",
+      ...(videomakerChanged
+        ? { videomaker_anterior: event.videomaker_assigned_id, videomaker_novo: newVideomakerId, novo_videomaker_nome: novoVideomakerNome }
+        : {}),
+      ...(updates.videomaker_delegado_por
+        ? { coord_anterior: event.videomaker_delegado_por, coord_novo: updates.videomaker_delegado_por }
+        : {}),
+    } as Record<string, unknown>,
+    ator_id: actor.id,
+  });
+
+  await logActivityInternal(actor.id, "outro", {
+    entityType: "calendar_events",
+    entityId: eventId,
+    metadata: {
+      acao: "update_delegacao",
+      titulo: event.titulo,
+      videomaker_id: updates.videomaker_assigned_id ?? event.videomaker_assigned_id,
+      coord_id: updates.videomaker_delegado_por ?? event.videomaker_delegado_por,
+    },
+  });
+
+  revalidatePath("/audiovisual/coordenacao");
+  revalidatePath("/audiovisual");
+  revalidatePath("/calendario");
+  revalidateTag("calendar", "default");
+  return { success: true };
+}

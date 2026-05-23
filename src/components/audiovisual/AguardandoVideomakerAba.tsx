@@ -2,17 +2,20 @@ import Link from "next/link";
 import { Inbox, Clock, MapPin, FileText, User, ExternalLink, Video, CheckCircle2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { DelegarVideomakerDialog } from "@/components/audiovisual/DelegarVideomakerDialog";
+import { EditarDelegacaoDialog } from "@/components/audiovisual/EditarDelegacaoDialog";
 import type {
   PendingDelegationRow,
   ScheduledFutureRow,
   VideomakerOption,
   ScheduledRowForVideomaker,
+  CoordOption,
 } from "@/lib/audiovisual/coord-queries";
 
 interface Props {
   pending: PendingDelegationRow[];
   scheduled: ScheduledFutureRow[];
   videomakers: VideomakerOption[];
+  coords: CoordOption[];
   scheduledByVideomaker: Record<string, ScheduledRowForVideomaker[]>;
   canDelegate: boolean;
 }
@@ -44,6 +47,7 @@ export function AguardandoVideomakerAba({
   pending,
   scheduled,
   videomakers,
+  coords,
   scheduledByVideomaker,
   canDelegate,
 }: Props) {
@@ -111,7 +115,14 @@ export function AguardandoVideomakerAba({
         ) : (
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             {scheduled.map((s) => (
-              <ScheduledCard key={s.id} row={s} />
+              <ScheduledCard
+                key={s.id}
+                row={s}
+                videomakers={videomakers}
+                coords={coords}
+                scheduledByVideomaker={scheduledByVideomaker}
+                canDelegate={canDelegate}
+              />
             ))}
           </div>
         )}
@@ -185,7 +196,19 @@ function PendingCard({
   );
 }
 
-function ScheduledCard({ row }: { row: ScheduledFutureRow }) {
+function ScheduledCard({
+  row,
+  videomakers,
+  coords,
+  scheduledByVideomaker,
+  canDelegate,
+}: {
+  row: ScheduledFutureRow;
+  videomakers: VideomakerOption[];
+  coords: CoordOption[];
+  scheduledByVideomaker: Record<string, ScheduledRowForVideomaker[]>;
+  canDelegate: boolean;
+}) {
   const dur = duracaoMin(row.inicio, row.fim);
   return (
     <Card className="overflow-hidden border-emerald-500/25 bg-emerald-500/[0.03]">
@@ -234,6 +257,22 @@ function ScheduledCard({ row }: { row: ScheduledFutureRow }) {
           <p className="rounded-md bg-muted/30 p-2 text-xs text-muted-foreground">
             {row.observacoes_gravacao}
           </p>
+        )}
+
+        {canDelegate && (
+          <div className="flex justify-end pt-1">
+            <EditarDelegacaoDialog
+              eventId={row.id}
+              eventTitulo={row.titulo}
+              eventInicio={row.inicio}
+              eventFim={row.fim}
+              currentVideomakerId={row.videomaker_assigned_id}
+              currentCoordId={row.videomaker_delegado_por}
+              videomakers={videomakers}
+              coords={coords}
+              scheduledByVideomaker={scheduledByVideomaker}
+            />
+          </div>
         )}
       </div>
     </Card>

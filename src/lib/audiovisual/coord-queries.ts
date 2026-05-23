@@ -261,6 +261,25 @@ export async function listVideomakersAtivos(): Promise<VideomakerOption[]> {
   return (data ?? []) as VideomakerOption[];
 }
 
+export interface CoordOption {
+  id: string;
+  nome: string;
+}
+
+/** Lista coordenadores audiovisual ativos (roles que delegam captação). */
+export async function listAudiovisualCoords(): Promise<CoordOption[]> {
+  const admin = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = admin as any;
+  const { data } = await sb
+    .from("profiles")
+    .select("id, nome")
+    .in("role", ["audiovisual_chefe", "socio", "adm"])
+    .eq("ativo", true)
+    .order("nome");
+  return (data ?? []) as CoordOption[];
+}
+
 export interface ScheduledRowForVideomaker {
   id: string;
   inicio: string;
