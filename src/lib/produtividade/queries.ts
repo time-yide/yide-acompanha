@@ -92,15 +92,35 @@ export type PeriodoRange = "dia" | "semana" | "mes";
 
 export const PERIODO_LABEL: Record<PeriodoRange, string> = {
   dia: "Hoje",
-  semana: "Últimos 7 dias",
-  mes: "Últimos 30 dias",
+  semana: "Esta semana",
+  mes: "Este mês",
 };
 
-/** Quantos dias o range cobre (inclui o dia de hoje). */
-function rangeDays(range: PeriodoRange): number {
-  if (range === "semana") return 7;
-  if (range === "mes") return 30;
-  return 1;
+/**
+ * Calcula `since` (YYYY-MM-DD em Cuiabá) pro range pedido. Usa calendário:
+ *   - dia: hoje
+ *   - semana: segunda-feira da semana atual
+ *   - mes: dia 1 do mês atual
+ */
+function computeSince(range: PeriodoRange, todayIso: string): string {
+  if (range === "dia") return todayIso;
+  // todayIso é "YYYY-MM-DD" no fuso de Cuiabá; parseando como UTC dá uma data
+  // estável pra fazer aritmética. Pega weekday/mês em UTC mesmo (sem TZ
+  // shift) porque a string já está no fuso correto.
+  const [yyyy, mm, dd] = todayIso.split("-").map(Number);
+  const todayDate = new Date(Date.UTC(yyyy, mm - 1, dd));
+  if (range === "mes") {
+    return `${yyyy}-${String(mm).padStart(2, "0")}-01`;
+  }
+  // semana: segunda-feira. getUTCDay: 0=Dom..6=Sáb. Queremos diff até segunda (1).
+  const weekday = todayDate.getUTCDay();
+  const diffParaSegunda = weekday === 0 ? 6 : weekday - 1;
+  const segunda = new Date(todayDate);
+  segunda.setUTCDate(segunda.getUTCDate() - diffParaSegunda);
+  const sy = segunda.getUTCFullYear();
+  const sm = String(segunda.getUTCMonth() + 1).padStart(2, "0");
+  const sd = String(segunda.getUTCDate()).padStart(2, "0");
+  return `${sy}-${sm}-${sd}`;
 }
 
 /** Retorna o status de cada colaborador ativo no período pedido: tempo ativo,
@@ -113,14 +133,11 @@ export async function getColaboradoresStatus(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = admin as any;
   const now = Date.now();
-  // `event_date` é uma coluna `date` calculada server-side com
+  // `event_date` é coluna `date` calculada server-side com
   // `now() at time zone 'America/Cuiaba'` - filtrar por igualdade (1 dia) ou
-  // gte (7/30 dias) resolve o boundary de timezone corretamente.
+  // gte (semana/mês) resolve o boundary de timezone corretamente.
   const today = formatIsoDate(new Date());
-  const days = rangeDays(range);
-  const sinceDate = new Date();
-  sinceDate.setDate(sinceDate.getDate() - (days - 1));
-  const since = formatIsoDate(sinceDate);
+  const since = computeSince(range, today);
   // Início/fim do range em UTC pra queries de calendar_events.
   const offsetHours = getAppTimezoneOffsetMs() / (60 * 60 * 1000);
   const sinceStartUtc = new Date(`${since}T${String(offsetHours).padStart(2, "0")}:00:00.000Z`).toISOString();
