@@ -112,7 +112,7 @@ export async function getColaboradoresStatus(): Promise<ColaboradorStatusRow[]> 
   const mesAtras = `${tresMesesAtras.getFullYear()}-${String(tresMesesAtras.getMonth() + 1).padStart(2, "0")}`;
 
   const [
-    { data: profilesData },
+    { data: profilesData, error: profilesError },
     { data: commissionData },
     { data: eventsData },
     { data: capturesData },
@@ -120,13 +120,17 @@ export async function getColaboradoresStatus(): Promise<ColaboradorStatusRow[]> 
     { data: scheduledCapturesData },
     { data: capturesEntregasData },
   ] = await Promise.all([
+    // O filtro antigo `.neq("role", "cliente")` quebrava a query inteira:
+    // "cliente" não existe no enum `user_role`, então Postgres rejeitava com
+    // "invalid input value for enum". Resultado: profilesData=null, página
+    // toda zerava. Removido (não havia perfis com role=cliente mesmo —
+    // clientes ficam em `clients`, não em `profiles`).
     sb
       .from("profiles")
       .select(
         "id, nome, role, avatar_url, last_seen_at, last_active_event_at, fixo_mensal",
       )
       .eq("ativo", true)
-      .neq("role", "cliente")
       .order("nome"),
     sb
       .from("commission_snapshots")
@@ -170,6 +174,9 @@ export async function getColaboradoresStatus(): Promise<ColaboradorStatusRow[]> 
       .not("event_id", "is", null),
   ]);
 
+  if (profilesError) {
+    console.error("[produtividade/queries] profiles select failed:", profilesError);
+  }
   const profiles = (profilesData ?? []) as ProfileRow[];
   const commissions = (commissionData ?? []) as CommissionRow[];
   const events = (eventsData ?? []) as EventRow[];
