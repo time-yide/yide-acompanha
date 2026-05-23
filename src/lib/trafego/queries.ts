@@ -54,7 +54,7 @@ export async function listClientesTrafego(filter: {
   if (resp.error) {
     const msg = resp.error.message ?? "";
     if (msg.includes("meta_ad_account_id") || msg.includes("google_ads_customer_id") || msg.includes("schema cache")) {
-      console.warn("[trafego] colunas de ad accounts indisponíveis — usando fallback");
+      console.warn("[trafego] colunas de ad accounts indisponíveis - usando fallback");
       resp = await buildClientsQuery(SELECT_FALLBACK);
     }
   }
@@ -168,7 +168,7 @@ export async function getClienteTrafego(clientId: string): Promise<ClienteTrafeg
   if (resp.error) {
     const msg = resp.error.message ?? "";
     if (msg.includes("meta_last_sync_at") || msg.includes("meta_last_sync_error")) {
-      // Migration de Fase 2 ainda não rodou — fallback pra select sem essas cols.
+      // Migration de Fase 2 ainda não rodou - fallback pra select sem essas cols.
       resp = await buildQuery(SELECT_FALLBACK_META);
     } else if (msg.includes("meta_ad_account_id") || msg.includes("google_ads_customer_id") || msg.includes("schema cache")) {
       resp = await buildQuery(SELECT_FALLBACK);

@@ -35,7 +35,7 @@ export function ResetSenhaButton({
 
   function handleClose() {
     setOpen(false);
-    // Reset depois do fade-out — não estritamente necessário, mas evita que o
+    // Reset depois do fade-out - não estritamente necessário, mas evita que o
     // usuário veja a senha antiga ao reabrir o diálogo.
     setTimeout(() => setState({ stage: "confirm", error: null }), 200);
   }

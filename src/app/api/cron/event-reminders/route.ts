@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 /**
  * Roda a cada 5 min (Vercel cron "*\/5 * * * *").
- * Idempotência por evento via reminded_30min_at, não por dia — então
+ * Idempotência por evento via reminded_30min_at, não por dia - então
  * não usamos cron_runs aqui.
  */
 export async function GET(req: Request) {

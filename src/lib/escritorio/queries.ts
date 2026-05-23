@@ -108,7 +108,7 @@ async function _listChannelsWithUnreadImpl(
     if (!firstByChannel.has(m.channel_id)) firstByChannel.set(m.channel_id, m);
   });
 
-  // 4. Unread por canal — UMA query só, agrupa em memória.
+  // 4. Unread por canal - UMA query só, agrupa em memória.
   // Antes: loop com 1 query por canal (N queries pra N canais).
   // Agora: busca todas as msgs novas de TODOS os canais, agrupa.
   // Pra ter o lower bound do "newest read", usamos o min(last_read_at)
@@ -234,7 +234,7 @@ export async function listChannelsWithUnread(
 
 async function _getChannelByKindImpl(kind: ChannelKind, unitId: string | null): Promise<Channel | null> {
   // Service-role pra rodar dentro de unstable_cache. chat_channels é tabela
-  // seed (sem RLS sensitiva — quem pode ler quê é validado no page-level
+  // seed (sem RLS sensitiva - quem pode ler quê é validado no page-level
   // via canAccessChannel).
   const supabase = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -270,7 +270,7 @@ async function _getChannelByKindImpl(kind: ChannelKind, unitId: string | null): 
 }
 
 /**
- * Cached 5min — canais são seed estático, nunca mudam em runtime.
+ * Cached 5min - canais são seed estático, nunca mudam em runtime.
  *
  * `unitId`: pega o canal dessa unidade. Quando null, pega o primeiro
  * encontrado (fallback pra ambientes pré-migration).
@@ -292,7 +292,7 @@ export async function listMessages(channelId: string, limit = 50): Promise<ChatM
   const supabase = await createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
-  // Usa nome da COLUNA como hint (mais robusto que nome da FK constraint —
+  // Usa nome da COLUNA como hint (mais robusto que nome da FK constraint -
   // PostgREST schema cache às vezes não resolve self-joins via FK name).
   const { data, error } = await sb
     .from("chat_messages")
@@ -342,7 +342,7 @@ async function _listMentionablesImpl(
 /**
  * Lista de usuários ativos pra autocomplete de @mention. Cached 60s.
  * `unitProfileIds`: filtra pra só sugerir users da unidade ativa
- * (mention cross-unit não funcionaria — outro user nem vê o canal).
+ * (mention cross-unit não funcionaria - outro user nem vê o canal).
  */
 export async function listMentionables(
   unitProfileIds: string[] | null = null,
@@ -359,7 +359,7 @@ export async function listMentionables(
   return cached(JSON.stringify({ up: unitProfileIds }));
 }
 
-/** Total de canais com mensagens não lidas — pra badge no nav lateral. Reusa o cache. */
+/** Total de canais com mensagens não lidas - pra badge no nav lateral. Reusa o cache. */
 export async function countChannelsWithUnread(
   userId: string,
   userRole: string,

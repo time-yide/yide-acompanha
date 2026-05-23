@@ -22,7 +22,7 @@ export interface EtapaRow {
   concluido_em: string | null;
   concluido_por: string | null;
   observacoes: string | null;
-  /** URL livre opcional — ex: link da estratégia na etapa de tráfego. */
+  /** URL livre opcional - ex: link da estratégia na etapa de tráfego. */
   link_etapa: string | null;
   fluxo_checklist: ChecklistItem[];
   saidas_checklist: ChecklistItem[];
@@ -253,7 +253,7 @@ export async function getClienteOnboardingDetalhe(
   const d0 = etapas[0].d0_date;
   const diaAtual = getDiaAtual(d0);
 
-  // Profiles em separado — depende de cliente.assessor_id/coordenador_id.
+  // Profiles em separado - depende de cliente.assessor_id/coordenador_id.
   let assessor: { id: string; nome: string } | null = null;
   let coordenador: { id: string; nome: string } | null = null;
   const ids = [cliente.assessor_id, cliente.coordenador_id].filter(Boolean) as string[];
@@ -284,7 +284,7 @@ export async function getClienteOnboardingDetalhe(
 }
 
 /**
- * Lista clientes ativos que AINDA NÃO têm onboarding criado — pra modal de
+ * Lista clientes ativos que AINDA NÃO têm onboarding criado - pra modal de
  * adição manual.
  */
 export async function listClientesElegiveisParaOnboarding(): Promise<

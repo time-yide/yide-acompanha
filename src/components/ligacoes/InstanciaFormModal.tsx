@@ -18,7 +18,7 @@ interface Props {
 }
 
 /**
- * Provedor padrão por tipo. Decidido na arquitetura — UI não mostra essa info,
+ * Provedor padrão por tipo. Decidido na arquitetura - UI não mostra essa info,
  * só quem desenvolve precisa saber.
  *
  * - whatsapp → evolution (Evolution API, escolha do projeto)
@@ -150,7 +150,7 @@ export function InstanciaFormModal({ open, onOpenChange, instancia, colaboradore
             )}
           </div>
 
-          {/* Conexão — só pra WhatsApp, mostra placeholder de QR code */}
+          {/* Conexão - só pra WhatsApp, mostra placeholder de QR code */}
           {tipo === "whatsapp" && (
             <div className="rounded-md border bg-muted/20 p-4 text-center space-y-2">
               <QrCode className="h-12 w-12 mx-auto text-muted-foreground/40" />

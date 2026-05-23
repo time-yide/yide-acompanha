@@ -130,7 +130,7 @@ async function _getDREImpl(mesRef: string): Promise<DREData> {
   const overrides = overridesData as OverrideRow[];
 
   // ── Comissões = só a parte VARIÁVEL (valor_variavel). O fixo já é contado
-  // em "Salários fixos" abaixo — usar valor_total aqui causaria double-counting.
+  // em "Salários fixos" abaixo - usar valor_total aqui causaria double-counting.
   const variavelPorUser = new Map<string, number>();
   if (needsPreview) {
     for (const r of previewRows as Array<{ profile: { id: string } | null; valor_variavel: number }>) {

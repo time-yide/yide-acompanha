@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
  * Body: { event_type, entity_type?, entity_id?, client_id?, metadata? }
  *
  * Registra 1 linha em activity_events + atualiza last_active_event_at.
- * Best-effort — falha silenciosa do client.
+ * Best-effort - falha silenciosa do client.
  */
 export async function POST(req: Request) {
   try {

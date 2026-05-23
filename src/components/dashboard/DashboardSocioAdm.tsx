@@ -23,7 +23,7 @@ interface Props {
 }
 
 /**
- * Shell síncrono. Cada seção streama via Suspense — saudação aparece
+ * Shell síncrono. Cada seção streama via Suspense - saudação aparece
  * imediatamente, KPIs/charts/listas chegam quando suas queries resolvem.
  * Mobile vê algo em ~300ms ao invés de esperar 2s+ pelo Promise.all.
  */

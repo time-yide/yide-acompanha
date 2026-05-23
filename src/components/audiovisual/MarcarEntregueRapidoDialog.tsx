@@ -22,13 +22,13 @@ interface Props {
 }
 
 /**
- * Modal "Marcar como entregue (rápido)" — usado quando a entrega aconteceu
+ * Modal "Marcar como entregue (rápido)" - usado quando a entrega aconteceu
  * fora do sistema (drive enviado por outro canal, erro no form completo,
  * etc.) e o usuário só quer registrar a entrega pra sair da lista de
  * pendentes.
  *
  * Diferente do CapturaForm (que pede 7 ratings + URL + qtd):
- *  - URL do Drive opcional (placeholder "—" se vazio)
+ *  - URL do Drive opcional (placeholder "-" se vazio)
  *  - Sem ratings de feedback
  *  - Observação opcional explicando o porquê
  *

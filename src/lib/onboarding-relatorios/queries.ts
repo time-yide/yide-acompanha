@@ -50,7 +50,7 @@ export function periodToRange(period: PeriodKey): { from: Date; to: Date } {
   }
 }
 
-/** Número de meses no range — usado pra multiplicar gasto mensal de tráfego. */
+/** Número de meses no range - usado pra multiplicar gasto mensal de tráfego. */
 function monthsInRange(period: PeriodKey): number {
   switch (period) {
     case "este_mes":
@@ -120,7 +120,7 @@ export async function getOnboardingRelatorios(
 
   const admin = createServiceRoleClient();
 
-  // 1. Gasto total — soma dos valores mensais de tráfego dos clientes ativos,
+  // 1. Gasto total - soma dos valores mensais de tráfego dos clientes ativos,
   //    multiplicada pelo número de meses do período.
   const { data: clientsData } = await admin
     .from("clients")
@@ -145,13 +145,13 @@ export async function getOnboardingRelatorios(
     .lte("created_at", range.to.toISOString());
   const leadsGerados = leadsGeradosCount ?? 0;
 
-  // 3. Reuniões realizadas — depende do módulo reuniões maturar. Por enquanto
+  // 3. Reuniões realizadas - depende do módulo reuniões maturar. Por enquanto
   //    o módulo está em Fase 0 (mock data, sem tabela `meetings` no schema),
   //    então retornamos 0 e marcamos como placeholder no funil. Quando Fase 1
   //    entrar, basta substituir por SELECT real em `meetings`.
   const reunioes = 0;
 
-  // 4. Vendas fechadas + valor — leads que viraram cliente no período.
+  // 4. Vendas fechadas + valor - leads que viraram cliente no período.
   const { data: vendasData } = await admin
     .from("leads")
     .select("valor_proposto")

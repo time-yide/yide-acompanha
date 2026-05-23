@@ -10,7 +10,7 @@ interface Props {
 
 /**
  * Player de áudio simplificado. Quando o áudio real (mp3 URL do Storage)
- * entrar na Fase 2, basta apontar src pro audio_url. Por enquanto é mock —
+ * entrar na Fase 2, basta apontar src pro audio_url. Por enquanto é mock -
  * play/pause funcionam visualmente mas não há áudio real.
  */
 export function RecordingPlayer({ recording }: Props) {
@@ -36,7 +36,7 @@ export function RecordingPlayer({ recording }: Props) {
   function togglePlay() {
     const el = audioRef.current;
     if (!el) {
-      // Mock — sem áudio real, só simula
+      // Mock - sem áudio real, só simula
       setPlaying((p) => !p);
       return;
     }

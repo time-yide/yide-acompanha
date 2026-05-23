@@ -16,7 +16,7 @@ const FILTROS = [
 ] as const;
 
 /**
- * Sidebar esquerda — search + tabs + lista de conversas.
+ * Sidebar esquerda - search + tabs + lista de conversas.
  * Server Component: navegação por searchParams pra trocar conversa selecionada.
  */
 export function ConversasList({ conversas, conversaSelecionadaId, filtroAtivo }: Props) {

@@ -134,7 +134,7 @@ export function UnitFormDialog({ unit, trigger }: Props) {
                 required
               />
               <p className="text-[11px] text-muted-foreground">
-                Identificador url-safe — minúsculas, números e hífen.
+                Identificador url-safe - minúsculas, números e hífen.
               </p>
             </div>
 
@@ -168,7 +168,7 @@ export function UnitFormDialog({ unit, trigger }: Props) {
                 id="endereco"
                 value={endereco}
                 onChange={(e) => setEndereco(e.target.value)}
-                placeholder="Cidade — UF"
+                placeholder="Cidade - UF"
                 disabled={pending}
               />
             </div>

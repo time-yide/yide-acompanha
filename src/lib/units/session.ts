@@ -25,7 +25,7 @@ export interface UnitContext {
  * - Non-master: sempre sua unidade de origem (cookie ignorado).
  * - Master: cookie ACTIVE_UNIT_COOKIE (slug). Fallback = home unit.
  *
- * Cacheado por request — uma chamada por render mesmo se chamado várias vezes.
+ * Cacheado por request - uma chamada por render mesmo se chamado várias vezes.
  *
  * Server-only. Pra mostrar no cliente, passa via prop.
  */
@@ -35,7 +35,7 @@ export const getUnitContext = cache(async (): Promise<UnitContext | null> => {
 });
 
 async function resolveUnitContextForUser(user: CurrentUser): Promise<UnitContext | null> {
-  // Busca unit_id do user direto do banco (não está no CurrentUser ainda — Fase 1
+  // Busca unit_id do user direto do banco (não está no CurrentUser ainda - Fase 1
   // não toca em requireAuth pra evitar regressão no resto do app).
   const admin = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

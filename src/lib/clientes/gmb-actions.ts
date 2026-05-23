@@ -35,7 +35,7 @@ function fd(formData: FormData, key: string): string | undefined {
 /**
  * Atualiza dados do GMB do cliente. Quando GOOGLE_PLACES_API_KEY está
  * configurada E o usuário cola um link Google Maps, sistema tenta resolver
- * via Places API automaticamente — preenche rating/review_count/place_id
+ * via Places API automaticamente - preenche rating/review_count/place_id
  * e ignora valores manuais. Sem API key (ou se Places falha), grava o que
  * o usuário digitou.
  *
@@ -107,7 +107,7 @@ export async function updateClienteGmbAction(formData: FormData): Promise<Action
     .eq("id", parsed.data.client_id);
   if (error) return { error: error.message };
 
-  // Snapshot pro histórico — best-effort, não derruba se falhar
+  // Snapshot pro histórico - best-effort, não derruba se falhar
   if (finalRating !== null || finalReviewCount !== null) {
     await recordGmbSnapshot({
       clientId: parsed.data.client_id,
@@ -132,7 +132,7 @@ export async function updateClienteGmbAction(formData: FormData): Promise<Action
 }
 
 /**
- * Refresh manual de UM cliente — assessor aperta "Atualizar agora" na ficha
+ * Refresh manual de UM cliente - assessor aperta "Atualizar agora" na ficha
  * pra forçar uma busca imediata via Places API. Útil quando assessor sabe
  * que o GMB recebeu reviews novas e quer mostrar pro cliente já.
  */

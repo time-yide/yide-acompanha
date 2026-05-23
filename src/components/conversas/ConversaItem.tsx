@@ -9,7 +9,7 @@ interface Props {
 }
 
 /**
- * Linha de uma conversa na sidebar — avatar, nome, prévia, hora, badge unread.
+ * Linha de uma conversa na sidebar - avatar, nome, prévia, hora, badge unread.
  * Navega via Link (?c=ID) pra manter Server Component.
  */
 export function ConversaItem({ conversa, selecionada }: Props) {

@@ -31,7 +31,7 @@ export interface CrmDef {
   urlPlaceholder?: string;
   /** Identifier placeholder. */
   identifierPlaceholder?: string;
-  /** Quando true, é o CRM Yide — tem botão especial "Abrir como agência". */
+  /** Quando true, é o CRM Yide - tem botão especial "Abrir como agência". */
   isYide?: boolean;
 }
 

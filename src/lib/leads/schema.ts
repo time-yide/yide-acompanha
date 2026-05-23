@@ -53,7 +53,7 @@ export const deleteLeadSchema = z.object({
 /**
  * Estágios em que faz sentido importar um cliente existente. Os pré-contrato
  * (leads_potencial, leads_ativos, reuniao_comercial, proposta_enviada) não
- * cabem porque o cliente já está em `clients` — ou seja, contrato já foi
+ * cabem porque o cliente já está em `clients` - ou seja, contrato já foi
  * assinado. Marco_zero/ativo permitem completar processos pendentes do
  * onboarding sem duplicar cadastro.
  */

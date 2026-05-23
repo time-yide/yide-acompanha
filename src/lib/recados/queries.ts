@@ -116,7 +116,7 @@ export async function countRecadosNaoLidos(
   userId: string,
   unitProfileIds: string[] | null = null,
 ): Promise<number> {
-  // Cacheado 30s — chamado em TODA página autenticada via layout.tsx.
+  // Cacheado 30s - chamado em TODA página autenticada via layout.tsx.
   // Cache key inclui userId + unitProfileIds pra cada usuário+unidade ter cache próprio.
   // Mutations em recados (criar, marcar lido) chamam revalidateTag("recados").
   const cached = unstable_cache(

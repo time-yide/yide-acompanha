@@ -3,7 +3,7 @@ import type { ClientUnitRow } from "./schema";
 
 /**
  * Lista todas as unidades de um cliente, ativas + inativas. Ordena por nome.
- * Service-role pra bypassar RLS — caller decide se filtra ativas.
+ * Service-role pra bypassar RLS - caller decide se filtra ativas.
  */
 export async function listUnidadesByClient(clientId: string): Promise<ClientUnitRow[]> {
   const sb = createServiceRoleClient();

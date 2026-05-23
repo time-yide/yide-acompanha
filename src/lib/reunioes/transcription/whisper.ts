@@ -1,4 +1,4 @@
-// Whisper / OpenAI transcription provider — STUB pra Fase 2.
+// Whisper / OpenAI transcription provider - STUB pra Fase 2.
 //
 // Decisão de produto: Whisper API é barato (~$0.006/min) mas NÃO faz
 // diarização (separar quem falou). Se precisar diarização nativa,
@@ -7,7 +7,7 @@
 // Pra MVP: Whisper transcreve, depois Claude faz "speaker attribution"
 // olhando contexto (custa mais um round-trip mas funciona). Alternativa
 // melhor: pra reuniões com video, podemos detectar quem falou pela
-// imagem do Meet — mas isso é muito mais complexo, deixar pra Fase 4+.
+// imagem do Meet - mas isso é muito mais complexo, deixar pra Fase 4+.
 //
 // Variáveis .env:
 //   OPENAI_API_KEY=sk-...
@@ -29,7 +29,7 @@ export interface TranscriptionResult {
 export interface TranscribeOptions {
   /** URL pública do áudio (Supabase Storage ou S3). */
   audioUrl: string;
-  /** Idioma esperado — Whisper auto-detecta mas com hint fica melhor. */
+  /** Idioma esperado - Whisper auto-detecta mas com hint fica melhor. */
   idioma?: string;
   /** Diarização: nem todos os providers suportam. */
   diarizar?: boolean;

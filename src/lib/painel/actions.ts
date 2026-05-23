@@ -172,7 +172,7 @@ export async function updateChecklistFieldAction(formData: FormData): Promise<Ac
 }
 
 // =============================================
-// Fase 1 — actions novas
+// Fase 1 - actions novas
 // =============================================
 
 const setGmnSchema = z.object({
@@ -332,7 +332,7 @@ export async function delegarDesignAction(formData: FormData): Promise<ActionRes
 }
 
 // =============================================
-// Ensure monthly checklists — botão "Atualizar painel"
+// Ensure monthly checklists - botão "Atualizar painel"
 // =============================================
 
 /** Mapeia coluna do painel pro step_key correspondente. */
@@ -365,7 +365,7 @@ interface EnsureResult {
 /**
  * Garante que existe um client_monthly_checklist + checklist_steps pra cada
  * cliente ativo elegível (tipo_pacote no painel) pro mês especificado.
- * Idempotente — se já existe, não duplica.
+ * Idempotente - se já existe, não duplica.
  *
  * Usa service-role pq a RLS policy bloqueia INSERT/DELETE pra qualquer role
  * autenticado (só service-role pode inserir).

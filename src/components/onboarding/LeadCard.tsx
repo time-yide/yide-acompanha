@@ -81,7 +81,7 @@ export function LeadCard({
             <span className="truncate">{lead.servico_proposto}</span>
           </div>
         )}
-        {/* Valor aparece a partir de proposta_enviada — antes disso (frio,
+        {/* Valor aparece a partir de proposta_enviada - antes disso (frio,
             ativo, reunião comercial) ainda não tem proposta com valor. */}
         {lead.stage !== "leads_potencial" &&
           lead.stage !== "leads_ativos" &&

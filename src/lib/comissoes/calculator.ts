@@ -54,7 +54,7 @@ function computeCommissionForProfile(
   data: ProfileData,
 ): CommissionResult | null {
   // Sócio agora tem prolábore fixo (R$ 15.000 setado em `profiles.fixo_mensal`).
-  // Antes retornava null — sócio era invisível no calculator. Modelo novo
+  // Antes retornava null - sócio era invisível no calculator. Modelo novo
   // (decisão Yasmin): sócio aparece como "Coordenador" no UI e ganha
   // prolábore fixo, sem parte variável.
 
@@ -94,7 +94,7 @@ function computeCommissionForProfile(
     };
   }
 
-  // Role `coordenador` foi descontinuado (decisão de produto Yasmin —
+  // Role `coordenador` foi descontinuado (decisão de produto Yasmin -
   // o que antes era "Sócio" virou "Coordenador" no UI, e a função
   // antiga de coordenador deixou de existir). Mantemos o role no enum
   // pra não quebrar referências históricas, mas qualquer perfil
@@ -210,7 +210,7 @@ export async function calculateCommission(
       ((ajustesRes.data ?? []) as MonthlyAdjustment[]).map((a) => [a.client_id, a]),
     );
   } else if (p.role === "audiovisual_chefe") {
-    // Coordenador SEM parte variável (só fixo) — não precisa buscar clientes/ajustes.
+    // Coordenador SEM parte variável (só fixo) - não precisa buscar clientes/ajustes.
     // Audiovisual_chefe continua com fixo + % sobre carteira da agência.
     const { data: clientsRows } = await supabase
       .from("clients")
@@ -252,7 +252,7 @@ export interface BatchEntry {
 /**
  * Cálculo em batch pra TODOS os colaboradores ativos de uma vez. Faz só 4
  * queries paralelas no banco (em vez de N queries por user) e computa em
- * memória. Drop-in pro previewAllForMonth — ganho de ~60→4 queries.
+ * memória. Drop-in pro previewAllForMonth - ganho de ~60→4 queries.
  */
 export async function calculateCommissionsBatch(monthRef: string): Promise<BatchEntry[]> {
   const supabase = createServiceRoleClient();

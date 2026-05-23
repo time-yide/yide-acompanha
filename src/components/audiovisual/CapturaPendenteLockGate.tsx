@@ -103,7 +103,7 @@ export function CapturaPendenteLockGate({ overdue, clientes }: Props) {
               </DialogDescription>
             </DialogHeader>
             {/* Reutiliza o form da página /audiovisual passando só esse pendente
-                — ele aparece pré-selecionado no select interno. */}
+                - ele aparece pré-selecionado no select interno. */}
             <CapturaForm clientes={clientes} pendentes={[openPendente]} hidePendenteSelect />
           </DialogContent>
         </Dialog>

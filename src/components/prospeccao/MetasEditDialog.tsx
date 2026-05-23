@@ -12,7 +12,7 @@ import { updateMetasComercialAction } from "@/lib/prospeccao/actions";
 interface Props {
   comercialId: string;
   comercialNome: string;
-  /** Valores configurados no profile (null quando não tem meta — usa fallback). */
+  /** Valores configurados no profile (null quando não tem meta - usa fallback). */
   defaults: {
     meta_prospects_mes: number | null;
     meta_fechamentos_mes: number | null;

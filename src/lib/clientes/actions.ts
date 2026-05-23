@@ -55,7 +55,7 @@ export async function createClienteAction(formData: FormData) {
   // ou na unidade home se não tem cookie (caso geral).
   const { getEffectiveUnitId } = await import("@/lib/units/session");
   const unitId = await getEffectiveUnitId();
-  if (!unitId) return { error: "Unidade não resolvida — sessão inválida" };
+  if (!unitId) return { error: "Unidade não resolvida - sessão inválida" };
 
   // If user explicitly chose tipo_pacote, respect it and mark as reviewed.
   // Otherwise infer from servico_contratado and leave revisado=false.
@@ -443,7 +443,7 @@ export async function updateClienteAssignmentAction(formData: FormData) {
 
   const supabase = await createClient();
 
-  // Valida role antes de tocar no cliente — barra atribuição cruzada.
+  // Valida role antes de tocar no cliente - barra atribuição cruzada.
   for (const [field, value] of Object.entries(proposed) as Array<
     [AssignmentField, string | null]
   >) {
@@ -511,7 +511,7 @@ const updateFieldSchema = z.object({
 
 /**
  * Edição inline de campos do cliente direto na listagem.
- * Suporta servico_contratado e valor_mensal — ambos opcionais (envia só
+ * Suporta servico_contratado e valor_mensal - ambos opcionais (envia só
  * o que mudou). Idempotente.
  *
  * Parceria/permuta: bloqueia mudança de valor_mensal (forçado a 0 pelo

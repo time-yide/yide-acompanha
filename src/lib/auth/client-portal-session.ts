@@ -7,7 +7,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
  * Sessão do cliente final (portal externo `/cliente`). Distinto de
  * `getCurrentUser()` em `session.ts` (esse é só pra colab interno).
  *
- * Auth.users compartilhada com a equipe — diferenciação é via tabela:
+ * Auth.users compartilhada com a equipe - diferenciação é via tabela:
  * - `profiles` → colaborador interno
  * - `client_portal_users` → cliente final
  *
@@ -22,7 +22,7 @@ export interface ClientPortalUser {
 }
 
 /**
- * Memoizado com React.cache — uma só ida ao Supabase por render, mesmo se
+ * Memoizado com React.cache - uma só ida ao Supabase por render, mesmo se
  * chamado várias vezes (layout + page + childs).
  */
 export const getClientPortalUser = cache(async (): Promise<ClientPortalUser | null> => {

@@ -115,7 +115,7 @@ async function _listLigacoesImpl(
   if (error) {
     const msg = error.message ?? "";
     if (msg.includes("ligacoes") || msg.includes("schema cache")) {
-      console.warn("[ligacoes] tabela indisponível — retornando vazio");
+      console.warn("[ligacoes] tabela indisponível - retornando vazio");
       return { ligacoes: [], total: 0, page, pageSize, totalPages: 0 };
     }
     console.error("[ligacoes] listLigacoes error:", msg);
@@ -195,7 +195,7 @@ async function _getMetricasGeraisImpl(
   const desdeIso = `${periodo.desde}T00:00:00Z`;
   const ateIso = `${periodo.ate}T23:59:59Z`;
 
-  // Período anterior pra calcular variação — mesma duração que o atual,
+  // Período anterior pra calcular variação - mesma duração que o atual,
   // imediatamente antes de `desde`.
   const desdeMs = new Date(desdeIso).getTime();
   const ateMs = new Date(ateIso).getTime();
@@ -203,7 +203,7 @@ async function _getMetricasGeraisImpl(
   const anteriorAteIso = new Date(desdeMs - 1000).toISOString();
   const anteriorDesdeIso = new Date(desdeMs - 1000 - durMs).toISOString();
 
-  // Roda as duas queries em paralelo — antes era sequencial (atual → depois
+  // Roda as duas queries em paralelo - antes era sequencial (atual → depois
   // anterior). Período anterior só conta rows pra cálculo de variação.
   const [atualRes, anteriorRes] = await Promise.all([
     sb
@@ -509,7 +509,7 @@ export async function getRankingColaboradores(
 
 /**
  * Lista colaboradores ativos pra filtros.
- * Cacheada com tag genérica "profiles" — muda raramente.
+ * Cacheada com tag genérica "profiles" - muda raramente.
  */
 async function _listColaboradoresAtivosImpl(
   organizationId: string,
@@ -539,7 +539,7 @@ export async function listColaboradoresAtivos(
 }
 
 /**
- * Pega organization_id do perfil. Cacheado por user — não muda quase nunca.
+ * Pega organization_id do perfil. Cacheado por user - não muda quase nunca.
  */
 async function _getOrganizationIdImpl(userId: string): Promise<string | null> {
   const supabase = createServiceRoleClient();

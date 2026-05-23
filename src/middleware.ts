@@ -4,11 +4,11 @@ import { env } from "@/lib/env";
 
 const PUBLIC_PATHS = ["/login", "/recuperar-senha", "/definir-senha", "/auth/callback", "/monitoring", "/aprovacao-design", "/aprovacao-post", "/cliente/login", "/apresenta-yide-pdf"];
 
-// Paths do portal cliente — middleware deixa passar pra page-level
+// Paths do portal cliente - middleware deixa passar pra page-level
 // `requireClientPortalAuth()` validar (que checa também `client_portal_users.ativo`).
 // Aqui só garantimos que tenha sessão Supabase válida.
 // IMPORTANTE: tem que ser match exato OU prefixo `/cliente/` (com barra) pra
-// não pegar `/clientes` (sistema interno) — `startsWith("/cliente")` pegaria
+// não pegar `/clientes` (sistema interno) - `startsWith("/cliente")` pegaria
 // `/clientes` também e causaria redirect indevido.
 function isClientPortalPath(pathname: string): boolean {
   return pathname === "/cliente" || pathname.startsWith("/cliente/");
@@ -97,7 +97,7 @@ export const config = {
   // corromper o Content-Type (manifest e service worker precisam ser
   // servidos limpos, sem cookies de auth/redirect).
   //
-  // Também exclui `api/cron/*` e `api/webhooks/*` — esses endpoints são
+  // Também exclui `api/cron/*` e `api/webhooks/*` - esses endpoints são
   // chamados sem cookies de usuário (Vercel Cron, integrações externas),
   // então não faz sentido rodar `auth.getUser()` (~1 round-trip HTTP) neles.
   // Eles validam autenticação pelo próprio header (CRON_SECRET, signature

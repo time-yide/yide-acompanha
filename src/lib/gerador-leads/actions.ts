@@ -37,7 +37,7 @@ function fd(formData: FormData, key: string): string | null {
 }
 
 // =============================================================================
-// Criar pesquisa — dispara Outscraper, salva resultados
+// Criar pesquisa - dispara Outscraper, salva resultados
 // =============================================================================
 
 /**
@@ -111,7 +111,7 @@ export async function criarPesquisaAction(formData: FormData): Promise<CreateRes
 
 /**
  * Roda Outscraper + salva no DB. Atualiza status da pesquisa conforme progride.
- * Não tem return — erros são gravados em pesquisa.erro_mensagem.
+ * Não tem return - erros são gravados em pesquisa.erro_mensagem.
  */
 async function processarPesquisa(args: {
   pesquisaId: string;
@@ -154,7 +154,7 @@ async function processarPesquisa(args: {
       const norm = normalizeOutscraperPlace(raw);
       if (!norm) continue;
 
-      // Upsert por (organization_id, google_place_id) — evita duplicar
+      // Upsert por (organization_id, google_place_id) - evita duplicar
       // mesma empresa em buscas diferentes
       const { data: existing } = await sb
         .from("leads_gerados")
@@ -268,7 +268,7 @@ export async function updateLeadAction(formData: FormData): Promise<ActionResult
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  // Constrói update dinâmico — só atualiza campos passados
+  // Constrói update dinâmico - só atualiza campos passados
   const update: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(parsed.data)) {
     if (k === "id") continue;

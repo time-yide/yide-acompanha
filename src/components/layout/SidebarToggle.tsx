@@ -11,7 +11,7 @@ function applyHidden(hidden: boolean) {
 }
 
 /**
- * Botão de ocultar/mostrar a sidebar — só desktop. Mobile já usa drawer
+ * Botão de ocultar/mostrar a sidebar - só desktop. Mobile já usa drawer
  * via MobileNav (esse botão é hidden md:inline-flex).
  *
  * Persiste em localStorage e aplica via data-attribute no <html>. Sidebar
@@ -28,7 +28,7 @@ export function SidebarToggle() {
         setHidden(stored);
         applyHidden(stored);
       } catch {
-        // localStorage bloqueado em modo privado — ignora silenciosamente
+        // localStorage bloqueado em modo privado - ignora silenciosamente
       }
     }, 0);
     return () => clearTimeout(t);

@@ -7,7 +7,7 @@ import { useEffect } from "react";
  * Coloca uma vez no layout raiz pra cobrir todas as páginas.
  *
  * Falha silenciosa: se o browser não suporta SW (raro hoje) ou está em
- * desenvolvimento sem HTTPS, só não registra — sem quebrar a UI.
+ * desenvolvimento sem HTTPS, só não registra - sem quebrar a UI.
  *
  * Auto-reload em update: quando o sw.js muda no servidor (bump do
  * SW_VERSION), o browser instala o novo SW. Esperamos ele virar

@@ -8,7 +8,7 @@ interface Props {
 }
 
 /**
- * Sinaliza pra ADM os leads em fase "Contrato" — quem ela precisa contatar
+ * Sinaliza pra ADM os leads em fase "Contrato" - quem ela precisa contatar
  * pra fechar e mandar pro próximo passo do fluxo (Marco zero, conduzido
  * pelo coordenador depois).
  */

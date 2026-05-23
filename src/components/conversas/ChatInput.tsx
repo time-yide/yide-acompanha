@@ -10,7 +10,7 @@ interface Props {
 
 /**
  * Barra de input estilo WhatsApp: emoji + anexo + textarea + (mic | send).
- * Comportamento "real" — texto fica preso enquanto Evolution API não tá
+ * Comportamento "real" - texto fica preso enquanto Evolution API não tá
  * conectada. Click no enviar mostra toast "Em construção".
  */
 export function ChatInput({ onSend }: Props) {

@@ -21,7 +21,7 @@ interface DispatchArgs {
  * Dispatch custom porque cada destinatário precisa de texto/tag diferente:
  * - Mencionados: título "@você foi mencionado em #canal", tag única (não substitui)
  * - Não-mencionados: título "#canal", tag "chat-{channelId}" (próxima msg do
- *   mesmo canal substitui — evita pilha de notifs duplicadas)
+ *   mesmo canal substitui - evita pilha de notifs duplicadas)
  *
  * Bypass intencional do dispatchNotification central (em dispatch.ts) porque
  * aquele envia mesma mensagem pra todos.

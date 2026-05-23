@@ -18,7 +18,7 @@ export interface PendingDelegationRow {
 }
 
 /**
- * Lista eventos de videomaker em status pending_delegation — fila do
+ * Lista eventos de videomaker em status pending_delegation - fila do
  * coord audiovisual. Ordena por data de captação (mais próximos primeiro).
  *
  * `unitClientIds`: filtro multi-tenant.
@@ -47,7 +47,7 @@ export async function listPendingDelegations(
     .eq("videomaker_status", "pending_delegation");
 
   if (unitClientIds !== null) {
-    // Captações sem client_id (raro, mas existe) seguem visíveis pra todos —
+    // Captações sem client_id (raro, mas existe) seguem visíveis pra todos -
     // a coluna `client_id` é nullable e nem todo evento de videomaker tem
     // cliente vinculado.
     q = q.or(`client_id.in.(${unitClientIds.join(",")}),client_id.is.null`);
@@ -116,7 +116,7 @@ export interface ScheduledFutureRow {
  * não aconteceram (`inicio >= now()`). Mostra quem foi delegado e por quem,
  * pra coord saber o que já tá agendado vs. ainda falta delegar.
  *
- * `unitClientIds`: mesmo padrão do `listPendingDelegations` — null = sem
+ * `unitClientIds`: mesmo padrão do `listPendingDelegations` - null = sem
  * filtro, [] = unidade vazia, [ids] = filtra por client da unidade.
  */
 export async function listScheduledFutureCaptures(

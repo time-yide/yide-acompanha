@@ -22,7 +22,7 @@ export default async function ProdutividadePage() {
   ]);
   const summary = summarizeStatus(rows);
 
-  // Top 5 com mais atrasados — destaque pra coord agir
+  // Top 5 com mais atrasados - destaque pra coord agir
   const comAtraso = rows
     .filter((r) => r.tarefas_atrasadas + r.capturas_atrasadas > 0)
     .sort(
@@ -43,7 +43,7 @@ export default async function ProdutividadePage() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Produtividade</h1>
             <p className="text-sm text-muted-foreground">
-              Atividade em tempo real, ranking e custo da equipe — atualiza a cada 30s.
+              Atividade em tempo real, ranking e custo da equipe - atualiza a cada 30s.
             </p>
           </div>
         </div>
@@ -62,7 +62,7 @@ export default async function ProdutividadePage() {
           <ul className="space-y-1.5">
             {comAtraso.map((r) => {
               const total = r.tarefas_atrasadas + r.capturas_atrasadas;
-              // Link "principal" da linha aponta pro recurso com mais atraso —
+              // Link "principal" da linha aponta pro recurso com mais atraso -
               // tarefas tem URL filtrável por usuário; capturas tem só a aba.
               const primaryHref =
                 r.tarefas_atrasadas >= r.capturas_atrasadas
@@ -149,7 +149,7 @@ export default async function ProdutividadePage() {
             </p>
             <p className="mt-2 rounded-md bg-muted/40 p-2 text-[10px]">
               Monitoramento de apps do desktop, mouse/teclado e ociosidade
-              exige app nativo (Tauri/Electron) — Fase 3 do roadmap.
+              exige app nativo (Tauri/Electron) - Fase 3 do roadmap.
             </p>
           </div>
         </aside>

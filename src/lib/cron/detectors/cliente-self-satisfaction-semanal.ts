@@ -49,7 +49,7 @@ export async function detectClienteSelfSatisfactionSemanal(
   }
 
   // `currentIsoWeek` import só pra documentar a semântica de "semana atual"
-  // — não usamos diretamente, mas garante consistência com /satisfacao.
+  // - não usamos diretamente, mas garante consistência com /satisfacao.
   void currentIsoWeek;
 }
 

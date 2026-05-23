@@ -99,7 +99,7 @@ function diasAtraso(due: string | null): number | null {
   if (!due) return null;
   const [y, m, d] = due.split("-").map(Number);
   if (!y || !m || !d) return null;
-  // "Hoje" como UTC midnight do dia no fuso da app (Cuiabá UTC-4) — comparação
+  // "Hoje" como UTC midnight do dia no fuso da app (Cuiabá UTC-4) - comparação
   // puramente de calendário.
   const parts = getDatePartsInAppTz(new Date());
   const hojeUTC = Date.UTC(

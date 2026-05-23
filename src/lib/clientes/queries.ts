@@ -28,9 +28,9 @@ export interface ListClientesFilters {
   /** Filtra clientes onde o usuário é assessor OU coordenador. */
   responsibleUserId?: string;
   search?: string;
-  /** "mensal" | "pontual" — vem do dashboard (drill-down em serviços pontuais). */
+  /** "mensal" | "pontual" - vem do dashboard (drill-down em serviços pontuais). */
   modalidade?: "mensal" | "pontual";
-  /** YYYY-MM — filtra clientes cujo data_churn cai dentro do mês informado.
+  /** YYYY-MM - filtra clientes cujo data_churn cai dentro do mês informado.
    * Usado pelo drill-down do KPI "Churn do mês" no dashboard. */
   churnMonth?: string;
   /** Multi-tenant Fase 2: quando passado, restringe à unidade. Pra master

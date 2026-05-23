@@ -11,7 +11,7 @@ import { brtInputToUtcIso } from "@/lib/calendario/timezone";
 interface ActionResult { success?: boolean; error?: string }
 
 // Roles defs em coord-roles.ts (arquivo separado pra poder exportar
-// constants/funcs — "use server" só permite async exports aqui).
+// constants/funcs - "use server" só permite async exports aqui).
 import { ROLES_COORD_DELEGATE } from "./coord-roles";
 
 function revalidateAudiovisual() {
@@ -53,7 +53,7 @@ export async function delegateVideomakerAction(
 
   // SERVICE-ROLE intencional: a RLS de UPDATE em calendar_events só permite
   // criador/adm/sócio. `audiovisual_chefe` ficaria bloqueado silenciosamente
-  // (Supabase não erra em RLS deny — só retorna 0 rows afetadas). Auth tá
+  // (Supabase não erra em RLS deny - só retorna 0 rows afetadas). Auth tá
   // garantida pelo check de role acima via ROLES_COORD_DELEGATE.
   const supabase = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -116,12 +116,12 @@ export async function delegateVideomakerAction(
     ? participantesAtuais
     : [...participantesAtuais, videomakerId];
 
-  // 5) Update — exclusion constraint do banco é a defesa em profundidade.
+  // 5) Update - exclusion constraint do banco é a defesa em profundidade.
   //    Se duas delegações concorrentes acontecerem pro mesmo videomaker no
   //    mesmo segundo, uma vai falhar aqui mesmo após a checagem passar.
   //
   //    `.select()` no fim força o PostgREST a devolver as linhas atualizadas
-  //    — usado pra detectar 0-rows-affected (RLS deny silencioso, eventId
+  //    - usado pra detectar 0-rows-affected (RLS deny silencioso, eventId
   //    inválido, etc.) e falhar com mensagem clara em vez de toast de sucesso.
   const { data: updated, error } = await sb
     .from("calendar_events")
@@ -230,7 +230,7 @@ export async function updateDelegacaoAction(
     return { error: "Esse evento não é de videomaker" };
   }
   if (event.videomaker_status !== "scheduled") {
-    return { error: "Esse evento não está delegado — use delegar" };
+    return { error: "Esse evento não está delegado - use delegar" };
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -276,7 +276,7 @@ export async function updateDelegacaoAction(
     novoVideomakerNome = vm.nome;
 
     // Atualiza participantes_ids: adiciona o novo, remove o antigo se ele
-    // estava lá só pela delegação anterior (best-effort — se ele tinha outro
+    // estava lá só pela delegação anterior (best-effort - se ele tinha outro
     // motivo pra estar, vai ser removido aqui mas é raro).
     const atual = (event.participantes_ids as string[] | null) ?? [];
     const semAntigo = atual.filter((id) => id !== event.videomaker_assigned_id);
@@ -367,7 +367,7 @@ export async function updateDelegacaoAction(
 }
 
 /**
- * Marca uma captação pendente como "já gravada" — fecha sem precisar delegar.
+ * Marca uma captação pendente como "já gravada" - fecha sem precisar delegar.
  * Útil quando a gravação aconteceu mas o coord esqueceu de delegar antes.
  *
  * - Apenas roles autorizados

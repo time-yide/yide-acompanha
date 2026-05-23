@@ -17,7 +17,7 @@ interface Props {
   onClearSelection: () => void;
 }
 
-// Sentinela para "não tocar nesse campo" — diferente de "" que significa unassign.
+// Sentinela para "não tocar nesse campo" - diferente de "" que significa unassign.
 const UNTOUCHED = "__untouched__";
 
 export function BulkAssignmentBar({

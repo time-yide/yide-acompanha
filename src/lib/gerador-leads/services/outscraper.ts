@@ -1,10 +1,10 @@
-// SERVER ONLY — wrapper do Outscraper Google Maps API
+// SERVER ONLY - wrapper do Outscraper Google Maps API
 //
 // Docs: https://app.outscraper.com/api-docs#tag/Google/operation/google-maps-search-v3
 //
 // Endpoint que usamos: /maps/search-v3 (sync, retorna direto até 500 resultados)
 // - sync=true bloqueia até a busca terminar (timeout ~5 min)
-// - async=true retorna request_id pra polling — usaremos na Fase 2 quando
+// - async=true retorna request_id pra polling - usaremos na Fase 2 quando
 //   tivermos cron pra processar buscas grandes
 //
 // Rate limit: Outscraper free tier permite ~5 req/min. Implementamos retry
@@ -41,7 +41,7 @@ export interface OutscraperPlaceRaw {
   google_id?: string;
   cid?: string;
   reviews_link?: string;
-  // Redes sociais — Outscraper tenta extrair
+  // Redes sociais - Outscraper tenta extrair
   email_1?: string;
   email_2?: string;
   email_3?: string;
@@ -130,7 +130,7 @@ export async function searchGoogleMaps(params: SearchParams): Promise<Outscraper
           "X-API-KEY": apiKey,
           Accept: "application/json",
         },
-        // 5 min timeout — pesquisa grande pode demorar
+        // 5 min timeout - pesquisa grande pode demorar
         signal: AbortSignal.timeout(5 * 60 * 1000),
       });
 
@@ -139,7 +139,7 @@ export async function searchGoogleMaps(params: SearchParams): Promise<Outscraper
         lastError = `HTTP ${resp.status}: ${resp.statusText}`;
         if (attempt < MAX_RETRIES) {
           const delay = INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt);
-          console.warn(`[outscraper] ${lastError} — retry em ${delay}ms (attempt ${attempt + 1}/${MAX_RETRIES})`);
+          console.warn(`[outscraper] ${lastError} - retry em ${delay}ms (attempt ${attempt + 1}/${MAX_RETRIES})`);
           await sleep(delay);
           continue;
         }
@@ -163,7 +163,7 @@ export async function searchGoogleMaps(params: SearchParams): Promise<Outscraper
         data?: OutscraperPlaceRaw[][] | OutscraperPlaceRaw[];
       };
 
-      // Outscraper retorna `data: [[ ...results ]]` (array de arrays — 1 array por query)
+      // Outscraper retorna `data: [[ ...results ]]` (array de arrays - 1 array por query)
       // Quando passa só 1 query, vem `data[0]` com os resultados
       let results: OutscraperPlaceRaw[] = [];
       if (Array.isArray(data.data)) {
@@ -183,7 +183,7 @@ export async function searchGoogleMaps(params: SearchParams): Promise<Outscraper
       lastError = err instanceof Error ? err.message : String(err);
       if (attempt < MAX_RETRIES) {
         const delay = INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt);
-        console.warn(`[outscraper] network error: ${lastError} — retry em ${delay}ms`);
+        console.warn(`[outscraper] network error: ${lastError} - retry em ${delay}ms`);
         await sleep(delay);
         continue;
       }
@@ -194,7 +194,7 @@ export async function searchGoogleMaps(params: SearchParams): Promise<Outscraper
 }
 
 // =============================================================================
-// Helpers de normalização — converte raw Outscraper → schema do nosso DB
+// Helpers de normalização - converte raw Outscraper → schema do nosso DB
 // =============================================================================
 
 /**
@@ -212,7 +212,7 @@ export function extractDomain(url: string | null | undefined): string | null {
 }
 
 /**
- * Limpa telefone — remove espaços, traços, parênteses; mantém + inicial.
+ * Limpa telefone - remove espaços, traços, parênteses; mantém + inicial.
  */
 export function normalizePhone(phone: string | null | undefined): string | null {
   if (!phone) return null;

@@ -20,7 +20,7 @@ export default async function OnboardingPage() {
   const unitProfileIds = await getProfileIdsForActiveUnit();
   const [groups, coordenadoresRaw, assessoresRaw] = await Promise.all([
     listLeadsByStage(unitProfileIds),
-    // "Coordenador" no UI cobre adm/socio/coordenador — Yasmin opera como
+    // "Coordenador" no UI cobre adm/socio/coordenador - Yasmin opera como
     // sócia, mas alguns profiles antigos podem estar como adm.
     listColaboradores({ ativo: true, roles: ["adm", "socio", "coordenador"] }),
     listColaboradores({ ativo: true, role: "assessor" }),

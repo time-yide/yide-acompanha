@@ -60,7 +60,7 @@ function applyClientFilter<T extends { eq: (col: string, val: string) => T }>(
  * - Status "em_curso" / "completo" sempre computado live a partir de votos
  *   esperados (assessor + coordenador) vs respondidos.
  *
- * Não faz slicing — devolve a lista completa. Use `sliceTopBottom` pra dividir.
+ * Não faz slicing - devolve a lista completa. Use `sliceTopBottom` pra dividir.
  */
 export async function computeWeeklyRanking(
   weekIso: string,
@@ -180,7 +180,7 @@ export async function computeWeeklyRanking(
  * Bottom: vermelhos primeiro por score asc; quando faltam vermelhos, preenche
  * com amarelos (próximos do vermelho) por score asc.
  *
- * Amarelos podem aparecer em ambos os lados se a base tem poucos extremos —
+ * Amarelos podem aparecer em ambos os lados se a base tem poucos extremos -
  * comportamento intencional: extremos do amarelo viram "menos pior" e "menos bom".
  */
 export function sliceTopBottom(all: RankedClient[]): {

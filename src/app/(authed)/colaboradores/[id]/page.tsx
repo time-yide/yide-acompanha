@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Pencil } from "lucide-react";
 
 // Decisão de produto Yasmin: role `socio` no banco passou a se chamar
-// "Coordenador" no UI. Role `coordenador` antigo foi descontinuado — perfis
+// "Coordenador" no UI. Role `coordenador` antigo foi descontinuado - perfis
 // remanescentes aparecem com sufixo (legado).
 const roleLabels: Record<string, string> = {
   adm: "ADM",

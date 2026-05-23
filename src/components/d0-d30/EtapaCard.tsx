@@ -24,7 +24,7 @@ const ETAPA_NOMES: Record<string, string> = {
 
 /**
  * Etapas que mostram o campo de link de referência. Pedido da Yasmin:
- * só faz sentido em 2 momentos — quando a estratégia é definida (tráfego)
+ * só faz sentido em 2 momentos - quando a estratégia é definida (tráfego)
  * e quando ela é apresentada ao cliente. Outras etapas nem renderizam o
  * campo (limpeza visual + menos coisa pra preencher).
  */
@@ -209,7 +209,7 @@ export function EtapaCard({ etapa, diaAtual, canEdit }: Props) {
             </ul>
           </div>
 
-          {/* Link de referência — só nas etapas que justificam (tráfego e
+          {/* Link de referência - só nas etapas que justificam (tráfego e
               apresentação). Outras nem renderizam. */}
           {(() => {
             const linkLabel = linkLabelFor(etapa.etapa_codigo);
@@ -267,7 +267,7 @@ export function EtapaCard({ etapa, diaAtual, canEdit }: Props) {
                 {etapa.status === "concluido"
                   ? `Concluída em ${new Date(etapa.concluido_em ?? "").toLocaleDateString("pt-BR")}`
                   : todasSaidasFeitas
-                  ? "Todas as saídas marcadas — pronta pra concluir."
+                  ? "Todas as saídas marcadas - pronta pra concluir."
                   : `Você pode concluir mesmo com itens pendentes (${feitosItens}/${totalItens}).`}
               </p>
               {etapa.status === "concluido" ? (

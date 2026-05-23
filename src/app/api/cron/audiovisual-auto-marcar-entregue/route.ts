@@ -23,7 +23,7 @@ import { formatIsoDate, nowInAppTz } from "@/lib/datetime/timezone";
  * Janela:
  *  - Limite INFERIOR: now - 7 dias (eventos mais recentes ainda podem ser entregues)
  *  - Limite SUPERIOR: now - 60 dias (não pega coisas antiquíssimas que podem
- *    ter sido canceladas/esquecidas no calendário — limite conservador)
+ *    ter sido canceladas/esquecidas no calendário - limite conservador)
  *
  * Como reverter: usar `deleteCapturaAction` ou DELETE direto na captura.
  * Audit log marca `acao=create` com `ator_id=null` e
@@ -133,7 +133,7 @@ export async function GET(request: NextRequest) {
         .single();
 
       if (insertErr) {
-        // Pode ter sido criado entre a query e o insert (race) — ignora
+        // Pode ter sido criado entre a query e o insert (race) - ignora
         if (insertErr.message?.includes("uq_audiovisual_capturas_event")) {
           resultados.push({ event_id: evento.id, ok: false, error: "captura criada em paralelo" });
           continue;

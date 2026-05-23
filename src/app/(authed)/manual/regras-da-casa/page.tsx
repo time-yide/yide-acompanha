@@ -22,7 +22,7 @@ export default async function RegrasDaCasaPage() {
         </div>
       </header>
 
-      {/* Placeholder pras regras gerais — Yasmin preenche depois. */}
+      {/* Placeholder pras regras gerais - Yasmin preenche depois. */}
       <section className="rounded-2xl border border-dashed bg-muted/10 p-6">
         <header className="flex items-center justify-between gap-2">
           <h2 className="text-base font-semibold tracking-tight">Princípios gerais</h2>
@@ -37,7 +37,7 @@ export default async function RegrasDaCasaPage() {
         </p>
       </section>
 
-      {/* Jornada do cliente (D0 → D30) — vem do template canônico. */}
+      {/* Jornada do cliente (D0 → D30) - vem do template canônico. */}
       <section className="rounded-2xl border bg-card p-6 sm:p-8">
         <header className="flex items-center gap-2.5">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/15 text-primary">

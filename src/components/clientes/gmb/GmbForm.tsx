@@ -41,7 +41,7 @@ export function GmbForm({ clientId, initialValues, placesApiEnabled }: Props) {
       }
       toast.success(
         r.autoFetched
-          ? "Dados puxados do Google Places — nota e reviews atualizados ✨"
+          ? "Dados puxados do Google Places - nota e reviews atualizados ✨"
           : "Dados do GMB salvos (modo manual)",
       );
       router.refresh();
@@ -91,12 +91,12 @@ export function GmbForm({ clientId, initialValues, placesApiEnabled }: Props) {
         </div>
         <p className="text-sm text-muted-foreground">
           {placesApiEnabled
-            ? "Cole o link do Google Maps do GMB do cliente — sistema busca nota e reviews automático via Google Places API. Cron diário atualiza sozinho."
+            ? "Cole o link do Google Maps do GMB do cliente - sistema busca nota e reviews automático via Google Places API. Cron diário atualiza sozinho."
             : "Cadastre dados do GMB. Pra ativar busca automática, peça pra Yasmin configurar GOOGLE_PLACES_API_KEY no Vercel."}
         </p>
       </header>
 
-      {/* Stats atuais — só mostra se tem dado salvo */}
+      {/* Stats atuais - só mostra se tem dado salvo */}
       {(initialValues.gmb_rating !== null || initialValues.gmb_review_count !== null) && (
         <div className="grid grid-cols-2 gap-3">
           {initialValues.gmb_rating !== null && (
@@ -151,7 +151,7 @@ export function GmbForm({ clientId, initialValues, placesApiEnabled }: Props) {
           )}
         </div>
 
-        {/* Manual fallback — sempre disponível, recolhível quando auto ligado */}
+        {/* Manual fallback - sempre disponível, recolhível quando auto ligado */}
         {(showManual || !placesApiEnabled) && (
           <div className="grid grid-cols-1 gap-4 rounded-lg border bg-muted/10 p-3 sm:grid-cols-2">
             <div className="space-y-1.5">

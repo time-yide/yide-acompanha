@@ -42,7 +42,7 @@ export function EnablePushButton({ vapidPublicKey }: Props) {
     if (typeof window === "undefined") return;
     let cancelled = false;
     // setTimeout(0) tira o setState do body do effect (regra
-    // react-hooks/set-state-in-effect). UX não muda — roda no próximo tick.
+    // react-hooks/set-state-in-effect). UX não muda - roda no próximo tick.
     const t = setTimeout(() => {
       if (cancelled) return;
       if (!("serviceWorker" in navigator) || !("PushManager" in window)) {

@@ -15,7 +15,7 @@ function configureVapid() {
     // Sem VAPID configurado: push fica desabilitado, mas sininho/email
     // continuam. Logamos uma vez pra debug.
     if (!configured) {
-      console.warn("[push] VAPID keys ausentes — Web Push desabilitado");
+      console.warn("[push] VAPID keys ausentes - Web Push desabilitado");
       configured = true;
     }
     return false;

@@ -15,7 +15,7 @@ interface Props {
 /**
  * Linha de "Lead em Contrato" no dashboard ADM. Inclui botão direto pra
  * avançar pra Marco zero (abre o TransitionDialog que pede a data da
- * reunião) — fluxo da ADM: contata, fecha, agenda Marco zero, dispara
+ * reunião) - fluxo da ADM: contata, fecha, agenda Marco zero, dispara
  * pro coordenador.
  */
 export function LeadContratoItem({ lead }: Props) {

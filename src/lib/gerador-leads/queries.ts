@@ -64,7 +64,7 @@ export interface ListLeadsResult {
 
 /**
  * Lista leads_gerados com paginação + filtros.
- * Não filtra por organization_id aqui — assume RLS já restringe (todos as
+ * Não filtra por organization_id aqui - assume RLS já restringe (todos as
  * outras tabelas seguem mesmo padrão neste projeto).
  */
 export async function listLeadsGerados(
@@ -128,7 +128,7 @@ export async function listLeadsGerados(
   if (error) {
     const msg = error.message ?? "";
     if (msg.includes("leads_gerados") || msg.includes("schema cache")) {
-      console.warn("[gerador-leads] tabela indisponível — retornando vazio");
+      console.warn("[gerador-leads] tabela indisponível - retornando vazio");
       return { leads: [], total: 0, page, pageSize, totalPages: 0 };
     }
     console.error("[gerador-leads] listLeads error:", msg);
@@ -268,7 +268,7 @@ export async function listPesquisas(
 }
 
 /**
- * Pega organization_id do perfil — usado nas pages pra filtrar listagens.
+ * Pega organization_id do perfil - usado nas pages pra filtrar listagens.
  */
 export async function getOrganizationId(userId: string): Promise<string | null> {
   const supabase = createServiceRoleClient();

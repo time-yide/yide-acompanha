@@ -71,7 +71,7 @@ export async function listClientesComAcessoPortal(
   const portalUserIds = portalRows.map((p) => p.user_id);
   const emailByUserId = new Map<string, string>();
   if (portalUserIds.length > 0) {
-    // Mesmo padrão de antes — paginação simples (1 página, 1000 users máx).
+    // Mesmo padrão de antes - paginação simples (1 página, 1000 users máx).
     // Como agora pode ter até 5x mais portal users (5 por cliente), atenção:
     // com >200 clientes-com-acesso isso vira limitação. Paginar quando passar.
     const { data: usersData } = await admin.auth.admin.listUsers({ perPage: 1000 });

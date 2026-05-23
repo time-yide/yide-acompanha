@@ -7,7 +7,7 @@ function buildSystemPrompt(input: SynthesisInput): string {
   const historyText = input.history_4_weeks.length === 0
     ? "(sem histórico anterior)"
     : input.history_4_weeks
-        .map((h) => `- ${h.semana_iso}: ${h.cor_final} — ${h.resumo_ia}`)
+        .map((h) => `- ${h.semana_iso}: ${h.cor_final} - ${h.resumo_ia}`)
         .join("\n");
   return `Você é um analista de satisfação de clientes da Yide Digital.
 
@@ -39,7 +39,7 @@ Sintetize a satisfação desta semana em JSON:
 Regras:
 - Score 0-3 = vermelho, 4-7 = amarelo, 8-10 = verde
 - Se só tem 1 avaliação (a outra falhou), divergencia_detectada=false, score baseado nela
-- Resumo deve referenciar contexto histórico se houver tendência (ex: "3ª semana seguida em vermelho — ação urgente")
+- Resumo deve referenciar contexto histórico se houver tendência (ex: "3ª semana seguida em vermelho - ação urgente")
 - Tom profissional, direto, em português
 
 Retorne APENAS o JSON, sem texto antes ou depois.`;

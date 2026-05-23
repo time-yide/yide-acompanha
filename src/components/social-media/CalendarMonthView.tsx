@@ -24,9 +24,9 @@ function firstDayOfMonth(year: number, month: number): Date {
 /**
  * YYYY-MM-DD da Date.
  *
- * Para Dates construídas com args numéricos (`new Date(y, m, d)`) — usadas pra
- * montar a grade — pegamos getters locais, pois a Date representa o dia na TZ
- * local do JS. Pra timestamps reais (ISO/epoch — ex.: `agendar_para`), pegamos
+ * Para Dates construídas com args numéricos (`new Date(y, m, d)`) - usadas pra
+ * montar a grade - pegamos getters locais, pois a Date representa o dia na TZ
+ * local do JS. Pra timestamps reais (ISO/epoch - ex.: `agendar_para`), pegamos
  * via `getDatePartsInAppTz` pra fixar no fuso de Cuiabá.
  */
 function ymdFromLocalDate(d: Date): string {
@@ -58,7 +58,7 @@ export function CalendarMonthView({ posts, onCreateForDate, onEditPost, canManag
   const todayYmd = `${todayParts.year}-${todayParts.month}-${todayParts.day}`;
 
   // Agrupa posts por YYYY-MM-DD da agendar_para (ou created_at se não tem)
-  // no fuso da app — pra evitar D-1/D+1 quando o post for à noite UTC.
+  // no fuso da app - pra evitar D-1/D+1 quando o post for à noite UTC.
   const postsByDay = useMemo(() => {
     const map = new Map<string, SocialPostRow[]>();
     for (const p of posts) {
@@ -162,7 +162,7 @@ export function CalendarMonthView({ posts, onCreateForDate, onEditPost, canManag
         <div className="w-[160px]" />
       </div>
 
-      {/* Grid header — dias da semana */}
+      {/* Grid header - dias da semana */}
       <div className="grid grid-cols-7 gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
         {DIAS_SEMANA.map((d) => (
           <div key={d} className="text-center py-1">

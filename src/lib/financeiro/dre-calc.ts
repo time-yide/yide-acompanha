@@ -29,7 +29,7 @@ export function expenseAplicaNoMes(e: ExpenseRow, mesRef: string): boolean {
   return true;
 }
 
-/** Valor da despesa naquele mês — usa override se existir, senão valor padrão. */
+/** Valor da despesa naquele mês - usa override se existir, senão valor padrão. */
 export function valorNoMes(e: ExpenseRow, mesRef: string, overrides: OverrideRow[]): number {
   const ov = overrides.find((o) => o.expense_id === e.id && o.mes_referencia === mesRef);
   return ov ? Number(ov.valor) : Number(e.valor);

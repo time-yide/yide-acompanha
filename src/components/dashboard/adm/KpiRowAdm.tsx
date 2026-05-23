@@ -17,7 +17,7 @@ function deltaCount(v: number): { valor: string; direction: "up" | "down" | "neu
 }
 
 /**
- * KPIs específicos da ADM — só números, sem soma em R$.
+ * KPIs específicos da ADM - só números, sem soma em R$.
  * Carteira/comissão em valor fica reservada pro sócio.
  */
 export function KpiRowAdm({

@@ -25,7 +25,7 @@ export function formatRelativeChatTime(iso: string): string {
     return formatTimeBR(d);
   }
 
-  // "Ontem" no fuso da app — calcula via Date.UTC + 1 dia atrás.
+  // "Ontem" no fuso da app - calcula via Date.UTC + 1 dia atrás.
   const yesterdayUtcMs = Date.UTC(
     parseInt(nowParts.year, 10),
     parseInt(nowParts.month, 10) - 1,

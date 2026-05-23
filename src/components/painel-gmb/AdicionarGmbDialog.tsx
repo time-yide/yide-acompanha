@@ -25,7 +25,7 @@ interface Props {
 }
 
 /**
- * Botão + Dialog pra cadastrar GMB de um cliente direto do painel — sem
+ * Botão + Dialog pra cadastrar GMB de um cliente direto do painel - sem
  * precisar navegar pra ficha individual de cada cliente. Yasmin pediu pra
  * facilitar quando o time vai cadastrar vários de uma vez.
  */
@@ -56,7 +56,7 @@ export function AdicionarGmbDialog({ clientesElegiveis, placesApiEnabled }: Prop
       }
       toast.success(
         r.autoFetched
-          ? "GMB cadastrado — dados puxados automaticamente ✨"
+          ? "GMB cadastrado - dados puxados automaticamente ✨"
           : "GMB cadastrado (modo manual)",
       );
       // Reset
@@ -69,7 +69,7 @@ export function AdicionarGmbDialog({ clientesElegiveis, placesApiEnabled }: Prop
 
   return (
     <>
-      {/* Botão sempre clicável — se não tem cliente elegível, dialog mostra
+      {/* Botão sempre clicável - se não tem cliente elegível, dialog mostra
           mensagem explicativa dentro. Antes ficava disabled quando lista
           vinha vazia (mesmo que por erro silencioso na query), e o usuário
           não tinha como entender por quê. */}
@@ -86,7 +86,7 @@ export function AdicionarGmbDialog({ clientesElegiveis, placesApiEnabled }: Prop
               Cole o link do Google Maps do cliente.
               {placesApiEnabled
                 ? " Sistema busca nota e reviews automático via Google Places API."
-                : " Modo manual ativo — você digita nota/reviews depois na ficha do cliente."}
+                : " Modo manual ativo - você digita nota/reviews depois na ficha do cliente."}
             </DialogDescription>
           </DialogHeader>
 

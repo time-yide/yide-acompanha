@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 
 // Role `socio` no banco = "Coordenador" no UI (modelo novo).
-// Role `coordenador` antigo virou legado — mantido pra filtrar perfis
+// Role `coordenador` antigo virou legado - mantido pra filtrar perfis
 // remanescentes mas com sufixo claro.
 const ROLE_OPTIONS = [
   { value: "qualquer", label: "Todos" },

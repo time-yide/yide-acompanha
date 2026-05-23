@@ -5,7 +5,7 @@ interface Props {
 }
 
 /**
- * Logo Yide pra slides — SVG inline pra não depender de fonte/ícone externo.
+ * Logo Yide pra slides - SVG inline pra não depender de fonte/ícone externo.
  * "Yide Digital" com X estilizado no símbolo lateral.
  */
 export function YideLogo({ size = "small", className = "" }: Props) {

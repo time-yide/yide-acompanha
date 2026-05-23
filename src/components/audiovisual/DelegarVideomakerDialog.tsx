@@ -28,7 +28,7 @@ interface Props {
   videomakers: VideomakerOption[];
   /** Map de videomaker_id → eventos agendados nele (pra avisar quem tá sobrecarregado). */
   scheduledByVideomaker: Record<string, ScheduledRowForVideomaker[]>;
-  /** Quando false, dialog não abre — botão fica indicando "read only". */
+  /** Quando false, dialog não abre - botão fica indicando "read only". */
   canDelegate?: boolean;
   trigger?: React.ReactNode;
 }
@@ -116,7 +116,7 @@ export function DelegarVideomakerDialog({
           <div className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor={`vm-select-${eventId}`}>Videomaker</Label>
-              {/* Select HTML nativo — evita problemas de Portal/z-index do
+              {/* Select HTML nativo - evita problemas de Portal/z-index do
                   SearchableSelect dentro do Dialog (Radix). Coord audiovisual
                   reportou que não conseguia abrir o dropdown. */}
               <select

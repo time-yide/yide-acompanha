@@ -20,7 +20,7 @@ export default async function ClientesPage({ searchParams }: { searchParams: Pro
   const canPickAnyResponsavel = ["socio", "adm"].includes(user.role);
 
   // "Minha carteira" está ativo quando o param `responsavel` está presente
-  // (com qualquer valor, inclusive vazio — vazio = chooser mode pra sócio/adm).
+  // (com qualquer valor, inclusive vazio - vazio = chooser mode pra sócio/adm).
   const responsavelParam = params.responsavel;
   const isMinhaCarteira = responsavelParam !== undefined;
 
@@ -67,7 +67,7 @@ export default async function ClientesPage({ searchParams }: { searchParams: Pro
       : Promise.resolve([]),
     getClientesStats(unitId),
     canManage ? listColaboradores({ ativo: true, role: "assessor" }) : Promise.resolve([]),
-    // "Coordenador" no UI cobre adm/socio/coordenador — alguns profiles
+    // "Coordenador" no UI cobre adm/socio/coordenador - alguns profiles
     // antigos podem ter ficado como adm em vez de socio.
     canManage
       ? listColaboradores({ ativo: true, roles: ["adm", "socio", "coordenador"] })

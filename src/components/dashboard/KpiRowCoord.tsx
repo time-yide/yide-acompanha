@@ -19,7 +19,7 @@ interface Props {
 }
 
 export function KpiRowCoord({ kpis }: Props) {
-  // Mês atual no fuso da app (Cuiabá UTC-4) — usado no link drill-down "Churn do mês"
+  // Mês atual no fuso da app (Cuiabá UTC-4) - usado no link drill-down "Churn do mês"
   const mesAtual = getCurrentMonthYM();
   return (
     <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">

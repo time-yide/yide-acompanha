@@ -24,7 +24,7 @@ export default async function PainelClientePage() {
     (r) => r.portals.length > 0 && !r.portals.some((p) => p.ativo),
   ).length;
 
-  // URL única do portal — todo cliente entra pelo mesmo /cliente/login
+  // URL única do portal - todo cliente entra pelo mesmo /cliente/login
   const loginUrl = `${env.NEXT_PUBLIC_APP_URL}/cliente/login`;
 
   return (

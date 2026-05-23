@@ -184,7 +184,7 @@ export function LeadForm({ action, defaults = {}, coordenadores = [], assessores
               </div>
               <div className="space-y-2">
                 <Label htmlFor="coord_alocado_id">Coordenador alocado</Label>
-                {/* Native HTML select — Radix Select dava problemas de Portal */}
+                {/* Native HTML select - Radix Select dava problemas de Portal */}
                 <select
                   id="coord_alocado_id"
                   name="coord_alocado_id"

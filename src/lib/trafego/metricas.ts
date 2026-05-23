@@ -9,7 +9,7 @@
  * popular `trafego_metricas_diarias`.
  *
  * Pra adicionar uma métrica nova: adiciona aqui + update no sync da Fase 2.
- * Não precisa migration nova — a tabela é flexível.
+ * Não precisa migration nova - a tabela é flexível.
  */
 
 export type MetricaUnidade = "moeda" | "percentual" | "numero" | "segundos" | "decimal";

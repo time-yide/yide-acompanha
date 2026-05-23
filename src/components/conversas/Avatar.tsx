@@ -21,7 +21,7 @@ const DOT_POSITIONS = {
 };
 
 /**
- * Avatar circular tipo WhatsApp — usa initials quando não tem foto.
+ * Avatar circular tipo WhatsApp - usa initials quando não tem foto.
  * Bolinha verde no canto inferior direito quando online=true.
  */
 export function Avatar({ nome, avatarUrl, size = "md", online }: Props) {

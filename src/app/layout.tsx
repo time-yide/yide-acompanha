@@ -10,7 +10,7 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "sw
 
 // Ícones vêm dos arquivos em src/app/: icon.svg (favicon), apple-icon.tsx
 // (180x180), icon0.tsx (192x192), icon1.tsx (512x512). Não definir
-// `metadata.icons` aqui — sobrescreveria a convenção.
+// `metadata.icons` aqui - sobrescreveria a convenção.
 export const metadata: Metadata = {
   title: "Yide Digital",
   description: "Sistema de acompanhamento da Yide Digital",
@@ -29,7 +29,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   // Respeita safe-area do iPhone (notch + home indicator) quando instalado
-  // como PWA — sem isso a UI cola na borda do recorte da tela.
+  // como PWA - sem isso a UI cola na borda do recorte da tela.
   viewportFit: "cover",
 };
 

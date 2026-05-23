@@ -112,7 +112,7 @@ export default async function ReuniaoDetailPage({
         Voltar para Reuniões
       </Link>
 
-      {/* Banner do pipeline IA — só aparece se algo tá pendente */}
+      {/* Banner do pipeline IA - só aparece se algo tá pendente */}
       {meeting.recording_ready && (
         <ProcessingBanner
           recordingReady={meeting.recording_ready}

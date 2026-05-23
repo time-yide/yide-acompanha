@@ -41,7 +41,7 @@ export interface VideomakerStat {
 export interface EditorStat {
   id: string;
   nome: string;
-  /** "editor" | "videomaker" | "audiovisual_chefe" — pra UI mostrar a função real. */
+  /** "editor" | "videomaker" | "audiovisual_chefe" - pra UI mostrar a função real. */
   role: string;
   /** Abertas com prazo já vencido (`due_date < hoje BRT`). */
   atrasadas: number;
@@ -211,7 +211,7 @@ async function _getEquipeAudiovisualImpl(periodo: Periodo): Promise<EquipeAudiov
     .map((p) => {
       // Abertas: separa em "atrasadas" (due_date < hoje) e "próximas" (due_date
       // >= hoje OU sem prazo). Antes "Próximas" filtrava só por status, então
-      // tarefas vencidas ficavam infiltradas — coordenador via prazo de ontem
+      // tarefas vencidas ficavam infiltradas - coordenador via prazo de ontem
       // listado como "próximo".
       const abertasDoMembro = tasks.filter(
         (t) => t.status === "aberta" && pertence(t, p.id),

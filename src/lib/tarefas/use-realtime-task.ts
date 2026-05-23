@@ -9,7 +9,7 @@ import { authenticateRealtime } from "@/lib/supabase/realtime-auth";
  * Subscribe a UPDATEs da task atual e re-fetcha o server component via
  * router.refresh() quando algo muda (status, atribuição, prioridade,
  * aprovação, etc). Mais simples que sincronizar todo o state da página
- * — Next.js só re-renderiza o que realmente mudou.
+ * - Next.js só re-renderiza o que realmente mudou.
  *
  * Uso: <TaskRealtimeWatcher taskId={task.id} /> dentro do server
  * component da página de detalhe.

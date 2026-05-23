@@ -3,7 +3,7 @@ import { BarChart3, Construction, Sparkles } from "lucide-react";
 /**
  * Placeholder visual da seção Relatórios. Versão futura vai permitir
  * emitir/baixar relatórios direto pelo portal (performance, engajamento,
- * conversões) — espelhando o que vai ser construído dentro do sistema
+ * conversões) - espelhando o que vai ser construído dentro do sistema
  * pra equipe interna gerar.
  */
 export function RelatoriosSection() {

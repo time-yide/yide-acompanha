@@ -25,7 +25,7 @@ export interface QuestaoRow {
   ordem: number;
   enunciado: string;
   alternativas: string[];
-  /** Só preenche pra criador/admin — server filtra antes de mandar pro client. */
+  /** Só preenche pra criador/admin - server filtra antes de mandar pro client. */
   correta?: number;
 }
 

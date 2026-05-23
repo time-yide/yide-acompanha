@@ -68,7 +68,7 @@ export async function createColaboradorAction(
   const unitId = await getEffectiveUnitId();
 
   // O trigger já criou o profile com role e nome via raw_user_meta_data.
-  // Atualiza fixo e percentuais — usa service-role para gravar colunas sensíveis.
+  // Atualiza fixo e percentuais - usa service-role para gravar colunas sensíveis.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updatePayload: any = {
     fixo_mensal: parsed.data.fixo_mensal,
@@ -89,7 +89,7 @@ export async function createColaboradorAction(
     const { error: deleteErr } = await admin.auth.admin.deleteUser(created.user.id);
     if (deleteErr) {
       // Estado irrecuperável: createUser passou, update falhou, delete falhou.
-      // Loga direto no console pra aparecer nos logs do servidor — o logger
+      // Loga direto no console pra aparecer nos logs do servidor - o logger
       // de auditoria não cobre isso porque não há entidade consistente.
       console.error(
         "[createColaboradorAction] FAILED TO ROLLBACK auth user after profile update error",
@@ -273,7 +273,7 @@ export async function toggleColaboradorAtivoAction(
     return { error: "Você não pode arquivar a si mesmo" };
   }
 
-  // O cliente decide o estado-alvo e manda — evita race condition entre 2 abas.
+  // O cliente decide o estado-alvo e manda - evita race condition entre 2 abas.
   // Validação estrita: server action é endpoint público, não pode coagir
   // qualquer valor diferente de "true" para false (arquivaria por omissão).
   const ativoRaw = formData.get("ativo");

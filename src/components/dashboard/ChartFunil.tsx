@@ -7,7 +7,7 @@ interface Props {
   data: FunnelStage[];
 }
 
-// Cores progressivas — mais saturadas conforme avança no funil
+// Cores progressivas - mais saturadas conforme avança no funil
 const STAGE_COLORS: Record<string, string> = {
   prospeccao: "#cbd5e1",   // slate-300
   comercial: "#94a3b8",    // slate-400

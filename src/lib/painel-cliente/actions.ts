@@ -44,7 +44,7 @@ export async function createClientPortalAccessAction(
 
   const admin = createServiceRoleClient();
 
-  // 1. Valida que email não está em profiles (colab interno) — evita conflito.
+  // 1. Valida que email não está em profiles (colab interno) - evita conflito.
   const { data: existingProfile } = await admin
     .from("profiles")
     .select("id")
@@ -63,7 +63,7 @@ export async function createClientPortalAccessAction(
   if (!client) return { error: "Cliente não encontrado" };
 
   // 3. Valida que o cliente ainda não bateu o teto de 5 acessos ATIVOS.
-  //    Revogados não contam — cliente pode ter histórico de N revogados +
+  //    Revogados não contam - cliente pode ter histórico de N revogados +
   //    até 5 ativos vivos. Sócios de uma empresa entram cada um com a conta dele.
   const { data: activePortals } = await admin
     .from("client_portal_users")
@@ -181,7 +181,7 @@ const revokeSchema = z.object({
 });
 
 /**
- * Revoga acesso (set ativo=false). Não deleta auth.user — mantém histórico.
+ * Revoga acesso (set ativo=false). Não deleta auth.user - mantém histórico.
  * Cliente é deslogado na próxima request (RLS volta a bloquear o select dele).
  */
 export async function revokeClientPortalAccessAction(
@@ -220,7 +220,7 @@ const deleteSchema = z.object({
 });
 
 /**
- * Exclui DEFINITIVAMENTE um acesso ao portal — só permitido pra linhas já
+ * Exclui DEFINITIVAMENTE um acesso ao portal - só permitido pra linhas já
  * revogadas (ativo=false). Apaga `client_portal_users` E o `auth.user`
  * correspondente, pra não deixar conta órfã.
  *
@@ -241,7 +241,7 @@ export async function deleteClientPortalAccessAction(
   const admin = createServiceRoleClient();
 
   // 1. Confirma que é mesmo um portal user E que já está revogado.
-  //    Bloqueia exclusão acidental de acesso ativo — pra apagar ativo,
+  //    Bloqueia exclusão acidental de acesso ativo - pra apagar ativo,
   //    revoga primeiro.
   const { data: portalUser } = await admin
     .from("client_portal_users")
@@ -260,7 +260,7 @@ export async function deleteClientPortalAccessAction(
     .eq("user_id", parsed.data.user_id);
   if (deletePortalErr) return { error: deletePortalErr.message };
 
-  // 3. Apaga o auth.user. Se falhar, registra mas não retorna erro — a linha
+  // 3. Apaga o auth.user. Se falhar, registra mas não retorna erro - a linha
   //    do portal já foi removida e o auth.user fica órfão (sem prejuízo, já
   //    que ele só era usável via client_portal_users que agora não existe).
   const { error: deleteAuthErr } = await admin.auth.admin.deleteUser(

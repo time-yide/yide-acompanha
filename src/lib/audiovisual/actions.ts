@@ -134,7 +134,7 @@ export async function createCapturaAction(_prev: ActionResult, formData: FormDat
   // Integração com satisfação: UPSERT entry do videomaker pra esse cliente na semana
   // da captação. Se já existir entry da semana, atualiza com a cor/comentário desta.
   //
-  // try/catch: se RLS bloquear ou der erro, NÃO derruba a entrega — a captura
+  // try/catch: se RLS bloquear ou der erro, NÃO derruba a entrega - a captura
   // já foi inserida com sucesso na linha anterior. Falha no sync de satisfação
   // não deve fazer o videomaker reenviar do zero.
   try {
@@ -173,7 +173,7 @@ export async function createCapturaAction(_prev: ActionResult, formData: FormDat
   }
 
   // Notifica coord/assessor responsáveis pelo cliente.
-  // try/catch: notificação não-crítica — falha não deve impedir a entrega.
+  // try/catch: notificação não-crítica - falha não deve impedir a entrega.
   try {
     const { data: client } = await supabase
       .from("clients")
@@ -225,7 +225,7 @@ interface DelegateResult {
 }
 
 /**
- * Delega uma captação pra um editor — cria uma tarefa atribuída ao editor
+ * Delega uma captação pra um editor - cria uma tarefa atribuída ao editor
  * com link do Drive + observações da captação, e linka via task_id.
  *
  * Permissão: audiovisual_chefe, adm, sócio.
@@ -372,7 +372,7 @@ export async function delegateCapturaAction(formData: FormData): Promise<Delegat
 
 /**
  * Marca a captação como concluída (manual). Status independente da
- * delegação — admin pode usar quando a captação não precisa de edit
+ * delegação - admin pode usar quando a captação não precisa de edit
  * ou já foi 100% finalizada.
  */
 export async function markCapturaConcluidaAction(capturaId: string): Promise<{ error?: string; success?: boolean }> {
@@ -404,7 +404,7 @@ export async function markCapturaConcluidaAction(capturaId: string): Promise<{ e
 
 /**
  * Exclui uma captação permanentemente. Permite pra audiovisual_chefe,
- * adm, sócio e coordenador. FK task_id é ON DELETE SET NULL — task
+ * adm, sócio e coordenador. FK task_id é ON DELETE SET NULL - task
  * vinculada (se houver) sobrevive como tarefa normal.
  */
 export async function deleteCapturaAction(capturaId: string): Promise<{ error?: string; success?: boolean }> {
@@ -443,12 +443,12 @@ export async function deleteCapturaAction(capturaId: string): Promise<{ error?: 
 }
 
 /**
- * Marca uma captação como entregue em modo "rápido" — pra casos onde a
+ * Marca uma captação como entregue em modo "rápido" - pra casos onde a
  * entrega já aconteceu fora do sistema (drive enviado por outro canal,
  * erro do form completo, etc.) e o usuário só quer remover da lista de
  * pendentes.
  *
- * Não exige ratings nem URL obrigatória — insere registro mínimo com
+ * Não exige ratings nem URL obrigatória - insere registro mínimo com
  * placeholder e marca origem da entrega no `observacoes`.
  *
  * Pra adicionar feedback completo depois, editar a captação normalmente.
@@ -523,7 +523,7 @@ export async function markCapturaEntregueRapidoAction(
     qtd_videos: 0,
     qtd_fotos: 0,
     observacoes: observacoesFinal,
-    // Ratings ficam null — não força avaliar
+    // Ratings ficam null - não força avaliar
   };
 
   const { data: created, error } = await sb
@@ -556,7 +556,7 @@ export async function markCapturaEntregueRapidoAction(
   return { success: true, capturaId: created.id };
 }
 
-/** Desmarca uma captação que estava como concluída — volta pro fluxo normal. */
+/** Desmarca uma captação que estava como concluída - volta pro fluxo normal. */
 export async function unmarkCapturaConcluidaAction(capturaId: string): Promise<{ error?: string; success?: boolean }> {
   const actor = await requireAuth();
   if (!ROLES_QUE_DELEGAM.has(actor.role)) {

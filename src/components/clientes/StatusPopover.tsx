@@ -23,7 +23,7 @@ const BADGE: Record<Props["current"], { label: string; cls: string }> = {
   em_onboarding: { label: "Onboarding", cls: "border-blue-500/40 text-blue-600 dark:text-blue-400" },
 };
 
-// "Hoje" no fuso da app (Cuiabá). Antes usava toISOString() que dá UTC —
+// "Hoje" no fuso da app (Cuiabá). Antes usava toISOString() que dá UTC -
 // após 20:00 em Cuiabá pré-preenchia o dia seguinte.
 const TODAY = () => getTodayDate();
 

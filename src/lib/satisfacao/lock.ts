@@ -40,7 +40,7 @@ function isRoleQueTrava(role: string): role is RoleQueTrava {
  */
 /**
  * Wrapper cacheado pra checkSatisfactionLock. Layout authed chama em CADA
- * navegação — sem cache, são 2 queries Supabase por hop. TTL 30s é
+ * navegação - sem cache, são 2 queries Supabase por hop. TTL 30s é
  * conservador (gate visual, ok ter pequeno lag). Ações que mudam estado
  * (avaliar cliente) revalidam via tag.
  */

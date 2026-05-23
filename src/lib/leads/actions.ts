@@ -443,8 +443,8 @@ export async function moveStageAction(formData: FormData) {
   const updatePayload: any = { stage: toStage };
 
   // Cria o cliente assim que entra em marco_zero (mesmo sem coord/assessor
-  // alocados ainda — esses ficam null e serão preenchidos antes da ativação).
-  // Cliente nasce com status='em_onboarding' — entra na lista de /clientes,
+  // alocados ainda - esses ficam null e serão preenchidos antes da ativação).
+  // Cliente nasce com status='em_onboarding' - entra na lista de /clientes,
   // mas NÃO conta na carteira ativa nem em comissão até virar status=ativo.
   if (toStage === "marco_zero" && !lead.client_id) {
     const { data: org } = await supabase.from("organizations").select("id").limit(1).single();
@@ -540,7 +540,7 @@ export async function moveStageAction(formData: FormData) {
 
   // Quando o card entra em "reuniao_comercial", cria evento no calendário
   // interno (sub_calendar=onboarding). Best-effort: falha aqui não desfaz
-  // o move — só loga e segue.
+  // o move - só loga e segue.
   if (toStage === "reuniao_comercial" && lead.data_prospeccao_agendada) {
     try {
       const { data: org } = await supabase.from("organizations").select("id").limit(1).single();
@@ -640,7 +640,7 @@ export async function markLostAction(formData: FormData) {
   const { data: lead } = await supabase.from("leads").select("*").eq("id", parsed.data.id).single();
   if (!lead) return { error: "Lead não encontrado" };
 
-  // Mesma regra do moveStage — papel precisa interagir com o estágio atual
+  // Mesma regra do moveStage - papel precisa interagir com o estágio atual
   if (!canInteractWithStage(actor.role, lead.stage as Stage)) {
     return { error: `Seu papel não tem permissão pra marcar como perdido nesta fase` };
   }
@@ -676,7 +676,7 @@ export async function markLostAction(formData: FormData) {
 }
 
 /**
- * Restaura um lead que foi marcado como perdido — volta pro kanban no mesmo
+ * Restaura um lead que foi marcado como perdido - volta pro kanban no mesmo
  * estágio que ele estava. Limpa motivo_perdido e registra no histórico.
  *
  * Permissão: mesma do markLost (precisa poder interagir com o estágio atual).
@@ -758,7 +758,7 @@ export async function deleteLeadAction(formData: FormData) {
     return { error: "Apenas sócio, ADM ou o criador do card pode excluir" };
   }
 
-  // Lead já virou cliente — exclusão precisa ser feita pelo /clientes
+  // Lead já virou cliente - exclusão precisa ser feita pelo /clientes
   // (commission_snapshots referenciam lead_id sem cascade).
   if (lead.stage === "ativo" || lead.client_id) {
     return { error: "Lead já virou cliente. Use a página de clientes pra excluir." };

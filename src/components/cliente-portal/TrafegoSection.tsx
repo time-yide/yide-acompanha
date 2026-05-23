@@ -40,7 +40,7 @@ export function TrafegoSection({ google, meta }: Props) {
     );
   }
 
-  // Com dados — mostra o valor total grande no topo + proporção visual + cards.
+  // Com dados - mostra o valor total grande no topo + proporção visual + cards.
   const pctGoogle = total > 0 ? (g / total) * 100 : 50;
   const pctMeta = 100 - pctGoogle;
 

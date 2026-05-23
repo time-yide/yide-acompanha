@@ -1,4 +1,4 @@
-// SERVER ONLY — IA Claude analisa todos os dados coletados e:
+// SERVER ONLY - IA Claude analisa todos os dados coletados e:
 //  1. Identifica o provável decisor/dono
 //  2. Gera score 0-100
 //  3. Detecta oportunidades (sem site, marketing fraco, etc)
@@ -67,11 +67,11 @@ export type IaAnalysisResult = IaAnalysisOk | IaAnalysisError;
  * Retorna texto compactado em formato JSON-like, fácil pro modelo extrair.
  */
 function buildPrompt(input: IaAnalysisInput): string {
-  const sitePessoas = input.site?.pessoas?.map((p: PersonHit) => `${p.nome}${p.cargo ? ` (${p.cargo})` : ""}`).join(", ") ?? "—";
-  const siteEmails = input.site?.emails?.slice(0, 10).join(", ") ?? "—";
+  const sitePessoas = input.site?.pessoas?.map((p: PersonHit) => `${p.nome}${p.cargo ? ` (${p.cargo})` : ""}`).join(", ") ?? "-";
+  const siteEmails = input.site?.emails?.slice(0, 10).join(", ") ?? "-";
   const hunterEmails = input.hunter?.emails?.slice(0, 10).map((e: HunterEmailFinding) =>
     `${e.value} [${e.first_name ?? "?"} ${e.last_name ?? ""} - ${e.position ?? "?"} - confidence ${e.confidence ?? "?"}]`,
-  ).join("; ") ?? "—";
+  ).join("; ") ?? "-";
 
   return `Você é um analista comercial sênior de uma agência de marketing digital brasileira (Yide).
 
@@ -85,14 +85,14 @@ Você recebeu um lead potencial extraído do Google Maps + enriquecido com scrap
 ## Dados do lead
 
 EMPRESA: ${input.empresa}
-CATEGORIA: ${input.categoria ?? "—"}
-CIDADE: ${input.cidade ?? "—"}
-ENDEREÇO: ${input.endereco ?? "—"}
-TELEFONE: ${input.telefone ?? "—"}
-WHATSAPP: ${input.whatsapp ?? "—"}
+CATEGORIA: ${input.categoria ?? "-"}
+CIDADE: ${input.cidade ?? "-"}
+ENDEREÇO: ${input.endereco ?? "-"}
+TELEFONE: ${input.telefone ?? "-"}
+WHATSAPP: ${input.whatsapp ?? "-"}
 WEBSITE: ${input.website ?? "SEM SITE"}
 INSTAGRAM: ${input.instagram ? `@${input.instagram}` : "SEM INSTAGRAM"}
-GOOGLE RATING: ${input.google_rating ?? "—"} (${input.google_reviews_count ?? 0} avaliações)
+GOOGLE RATING: ${input.google_rating ?? "-"} (${input.google_reviews_count ?? 0} avaliações)
 
 ## Enriquecimento de site
 ${input.site ? `
@@ -100,28 +100,28 @@ Status: ${input.site.success ? "OK" : `Falhou (${input.site.error})`}
 Páginas visitadas: ${input.site.pagesVisited.length}
 Emails encontrados no site: ${siteEmails}
 Pessoas detectadas no site: ${sitePessoas}
-Texto sobre (resumo): ${input.site.textoSobre?.slice(0, 800) ?? "—"}
+Texto sobre (resumo): ${input.site.textoSobre?.slice(0, 800) ?? "-"}
 ` : "Não rodou (sem website)"}
 
 ## Enriquecimento de emails (Hunter.io)
 ${input.hunter && input.hunter.ok ? `
-Organização: ${input.hunter.organization ?? "—"}
+Organização: ${input.hunter.organization ?? "-"}
 Emails encontrados: ${hunterEmails}
-` : input.hunter?.skipped ? "Hunter.io não configurado" : `Falhou: ${input.hunter?.error ?? "—"}`}
+` : input.hunter?.skipped ? "Hunter.io não configurado" : `Falhou: ${input.hunter?.error ?? "-"}`}
 
 ## Enriquecimento de Instagram (Apify)
 ${input.instagram_data && input.instagram_data.ok ? `
-@${input.instagram_data.username} — ${input.instagram_data.fullName ?? "—"}
-Bio: "${input.instagram_data.bio ?? "—"}"
-Seguidores: ${input.instagram_data.followersCount ?? "—"} | Posts: ${input.instagram_data.postsCount ?? "—"}
+@${input.instagram_data.username} - ${input.instagram_data.fullName ?? "-"}
+Bio: "${input.instagram_data.bio ?? "-"}"
+Seguidores: ${input.instagram_data.followersCount ?? "-"} | Posts: ${input.instagram_data.postsCount ?? "-"}
 Conta business: ${input.instagram_data.isBusinessAccount ? "Sim" : "Não"} | Verificada: ${input.instagram_data.isVerified ? "Sim" : "Não"}
-Categoria business: ${input.instagram_data.businessCategoryName ?? "—"}
-URL externa: ${input.instagram_data.externalUrl ?? "—"}
-Ativo (último post < 60d): ${input.instagram_data.ativo === null ? "?" : input.instagram_data.ativo ? "Sim" : "Não — possível conta abandonada"}
-Email na bio: ${input.instagram_data.emailNaBio ?? "—"}
-WhatsApp na bio: ${input.instagram_data.whatsappNaBio ?? "—"}
-Nome detectado na bio: ${input.instagram_data.nomeNaBio ?? "—"}
-` : input.instagram_data?.skipped ? "Apify não configurado" : `Falhou: ${input.instagram_data?.error ?? "—"}`}
+Categoria business: ${input.instagram_data.businessCategoryName ?? "-"}
+URL externa: ${input.instagram_data.externalUrl ?? "-"}
+Ativo (último post < 60d): ${input.instagram_data.ativo === null ? "?" : input.instagram_data.ativo ? "Sim" : "Não - possível conta abandonada"}
+Email na bio: ${input.instagram_data.emailNaBio ?? "-"}
+WhatsApp na bio: ${input.instagram_data.whatsappNaBio ?? "-"}
+Nome detectado na bio: ${input.instagram_data.nomeNaBio ?? "-"}
+` : input.instagram_data?.skipped ? "Apify não configurado" : `Falhou: ${input.instagram_data?.error ?? "-"}`}
 
 ## Sua resposta
 
@@ -136,7 +136,7 @@ Responda APENAS com um JSON válido (sem markdown, sem texto antes ou depois) no
   "score": 0-100,
   "qualificado": true|false,
   "potencial_comercial": "alto"|"medio"|"baixo",
-  "observacoes_ia": "1-2 frases sobre o lead — o que tem de bom/ruim, qualificação geral",
+  "observacoes_ia": "1-2 frases sobre o lead - o que tem de bom/ruim, qualificação geral",
   "diagnostico": {
     "sem_site": bool,
     "sem_instagram": bool,

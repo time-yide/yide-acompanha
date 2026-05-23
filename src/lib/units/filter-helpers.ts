@@ -49,7 +49,7 @@ export const getProfileIdsForActiveUnit = cache(async (): Promise<string[] | nul
  * Quando a coluna `clients.unit_id` não existe ainda (migration não rodada),
  * retorna null pra sinalizar "sem filtro" (mostra tudo, fallback safe).
  *
- * Quando o filtro tem ZERO clientes (unidade nova), retorna [] — caller
+ * Quando o filtro tem ZERO clientes (unidade nova), retorna [] - caller
  * deve interpretar como "esconda tudo".
  *
  * Cacheado por request via React.cache.
@@ -69,7 +69,7 @@ export const getClientIdsForActiveUnit = cache(async (): Promise<string[] | null
 
   if (error) {
     const msg = String(error.message ?? "");
-    // Migration de unit_id ainda não rodada — retorna null (sem filtro)
+    // Migration de unit_id ainda não rodada - retorna null (sem filtro)
     if (msg.includes("unit_id") || msg.includes("schema cache")) {
       console.warn("[units/filter-helpers] clients.unit_id não existe, fallback sem filtro:", msg);
       return null;

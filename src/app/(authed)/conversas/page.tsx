@@ -24,7 +24,7 @@ export default async function ConversasPage({
     ? params.filtro
     : "todas";
 
-  // Aplica filtro nas conversas (placeholder — quando vier do DB, mover pra query).
+  // Aplica filtro nas conversas (placeholder - quando vier do DB, mover pra query).
   const conversasFiltradas = MOCK_CONVERSAS.filter((c) => {
     if (c.arquivada) return false;
     if (filtro === "nao_lidas") return c.nao_lidas > 0;
@@ -40,7 +40,7 @@ export default async function ConversasPage({
     // Quebra do padding do (authed)/layout pra ocupar a tela inteira.
     // 56px = altura do TopBar.
     <div className="-m-3 md:-m-6 flex h-[calc(100dvh-56px)] flex-col">
-      {/* Banner discreto "Em construção" — não rouba espaço da UI */}
+      {/* Banner discreto "Em construção" - não rouba espaço da UI */}
       <div className="flex items-center justify-center gap-2 border-b bg-amber-500/10 px-4 py-1.5 text-[11px] text-amber-700 dark:text-amber-300">
         <Sparkles className="h-3 w-3" />
         <span>
@@ -71,7 +71,7 @@ export default async function ConversasPage({
           <ChatView conversa={conversaAtual} />
         </div>
 
-        {/* Info do contato — só em viewports xl pra cima */}
+        {/* Info do contato - só em viewports xl pra cima */}
         {conversaAtual && <ContactInfoPanel conversa={conversaAtual} />}
       </div>
     </div>

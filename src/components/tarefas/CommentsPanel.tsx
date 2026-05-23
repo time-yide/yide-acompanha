@@ -68,7 +68,7 @@ export function CommentsPanel({ taskId, initialComments, canComment, currentUser
     const content = draft.trim();
     if (content.length === 0) return;
 
-    // Optimistic insert — UI atualiza imediato, antes do round-trip do server.
+    // Optimistic insert - UI atualiza imediato, antes do round-trip do server.
     const tempId = `optimistic-${crypto.randomUUID()}`;
     const optimistic: TaskComment = {
       id: tempId,
@@ -94,7 +94,7 @@ export function CommentsPanel({ taskId, initialComments, canComment, currentUser
         toast.error(r.error);
         return;
       }
-      // Substitui temp_id pelo id real — dedup do realtime cobre o resto.
+      // Substitui temp_id pelo id real - dedup do realtime cobre o resto.
       if (r?.id) {
         const realId = r.id;
         const realCriadoEm = r.criado_em ?? optimistic.criado_em;

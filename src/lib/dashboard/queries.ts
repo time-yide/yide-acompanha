@@ -70,12 +70,12 @@ export async function _getKpisImpl(filter?: ClientFilter): Promise<KpiData> {
   const prevMonthRef = getPreviousMonthYM();
   const prevMonthLastDay = lastDayOfMonth(prevMonthRef);
 
-  // Não filtra por status='ativo' no SQL — precisamos dos churnados pra contar
+  // Não filtra por status='ativo' no SQL - precisamos dos churnados pra contar
   // o churn do mês e o delta vs mês anterior. Onboarding é excluído porque
   // ainda não entrou no ciclo de vida da carteira.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
-  // Mete o snapshots no Promise.all original — não depende de nenhum dos outros.
+  // Mete o snapshots no Promise.all original - não depende de nenhum dos outros.
   // Antes era um await sequencial após esse bloco; agora poupa 1 round-trip.
   const [
     { data: clientsData },
@@ -136,7 +136,7 @@ export async function _getKpisImpl(filter?: ClientFilter): Promise<KpiData> {
   const ativosHoje = allClients.filter((c) => isActiveOn(c, todayIso));
   const ativosFimMesAnterior = allClients.filter((c) => isActiveOn(c, prevMonthLastDay));
 
-  // KPI financeiro: apenas clientes 'comum' (parceria/permuta excluídos — sem $ circulando)
+  // KPI financeiro: apenas clientes 'comum' (parceria/permuta excluídos - sem $ circulando)
   const ativosHojeComum = ativosHoje.filter((c) => !c.tipo_relacao || c.tipo_relacao === "comum");
   const ativosFimMesAnteriorComum = ativosFimMesAnterior.filter((c) => !c.tipo_relacao || c.tipo_relacao === "comum");
 
@@ -158,7 +158,7 @@ export async function _getKpisImpl(filter?: ClientFilter): Promise<KpiData> {
     .filter((c) => !c.tipo_relacao || c.tipo_relacao === "comum")
     .reduce((acc, c) => acc + Number(c.valor_mensal), 0);
 
-  // Serviços pontuais — contagem própria, sem entrar no churn.
+  // Serviços pontuais - contagem própria, sem entrar no churn.
   const pontuaisAtivosArr = allClients.filter((c) => ehPontual(c) && c.status === "ativo");
   const pontuaisAtivos = pontuaisAtivosArr.length;
   const pontuaisValorTotal = pontuaisAtivosArr.reduce((acc, c) => acc + Number(c.valor_mensal ?? 0), 0);
@@ -166,7 +166,7 @@ export async function _getKpisImpl(filter?: ClientFilter): Promise<KpiData> {
     (c) => ehPontual(c) && isInMonth(c.data_churn, monthRef),
   ).length;
 
-  // Custo de comissão: prefere snapshot oficial (mês fechado) — se não tem,
+  // Custo de comissão: prefere snapshot oficial (mês fechado) - se não tem,
   // calcula live usando o preview de comissões (mesma fonte que a página
   // /comissoes mostra como "Em curso"). snapshotsData já veio do Promise.all acima.
   const snapshots = (snapshotsData ?? []) as Array<{ mes_referencia: string; valor_total: number }>;
@@ -176,7 +176,7 @@ export async function _getKpisImpl(filter?: ClientFilter): Promise<KpiData> {
     : 0;
 
   // Sem snapshot e sem filtro (dashboard sócio): calcula preview live.
-  // Pra assessor/coord, KPI não é relevante — mantém 0.
+  // Pra assessor/coord, KPI não é relevante - mantém 0.
   if (totalComissao === 0 && !filter?.assessorId && !filter?.coordenadorId) {
     const { previewAllForMonth } = await import("@/lib/comissoes/preview");
     const previewRows = await previewAllForMonth(monthRef);
@@ -186,7 +186,7 @@ export async function _getKpisImpl(filter?: ClientFilter): Promise<KpiData> {
   const pctComissao = carteiraAtivaValor > 0 ? (totalComissao / carteiraAtivaValor) * 100 : 0;
 
   // Ticket médio = carteira ativa (R$) / nº de mensais comum ativos.
-  // Excluímos pontuais (modalidade=pontual) do denominador — eles têm
+  // Excluímos pontuais (modalidade=pontual) do denominador - eles têm
   // valor_mensal que representa o projeto único, distorceria a média.
   const mensaisAtivosComum = ativosHojeComum.filter((c) => !c.modalidade || c.modalidade === "mensal");
   const ticketMedioValor =
@@ -307,9 +307,9 @@ export interface EntradaChurnPoint {
   entradas: number;
   /** Mensais (assinaturas) que deram churn no mês. */
   churns: number;
-  /** Serviços pontuais (avulsos) que começaram no mês — não são churn quando terminam. */
+  /** Serviços pontuais (avulsos) que começaram no mês - não são churn quando terminam. */
   avulsos: number;
-  /** Clientes que entraram nesse mês (mensais) — lista pra drill-down. */
+  /** Clientes que entraram nesse mês (mensais) - lista pra drill-down. */
   entradas_clientes: EntradaChurnClient[];
   /** Clientes que deram churn nesse mês (mensais). */
   churns_clientes: EntradaChurnClient[];
@@ -329,11 +329,11 @@ export async function _getEntradaChurnImpl(
   // - deleted_at IS NULL → ignora lixeira
   // - tipo_relacao = 'comum' → ignora parceria/permuta (não envolvem $)
   // - status != 'em_onboarding' → consistência com KPIs (cliente em onboarding
-  //   ainda não entrou na carteira — antes essa query contava como entrada)
+  //   ainda não entrou na carteira - antes essa query contava como entrada)
   //
   // `modalidade` é puxada pra separar mensal (entrada/churn) de pontual
   // (avulso). Avulso aparece quando começa, não quando termina (terminar
-  // pontual não é "churn" — é conclusão de serviço único).
+  // pontual não é "churn" - é conclusão de serviço único).
   //
   // Cast `as any`: types do Supabase ainda não conhecem a coluna `modalidade`
   // (gerada após `npm run db:types` pós-migration). Mesma técnica usada em
@@ -361,7 +361,7 @@ export async function _getEntradaChurnImpl(
     coordenador_id?: string | null;
   }>;
 
-  // Default de modalidade é "mensal" no schema — clientes antigos sem o campo
+  // Default de modalidade é "mensal" no schema - clientes antigos sem o campo
   // setado também são tratados como mensal.
   const ehMensal = (c: { modalidade?: string | null }) => !c.modalidade || c.modalidade === "mensal";
   const ehPontual = (c: { modalidade?: string | null }) => c.modalidade === "pontual";
@@ -394,7 +394,7 @@ export async function getEntradaChurn(months = 6, filter?: ClientFilter): Promis
       const { months: m, filter: f } = JSON.parse(paramsJson) as { months: number; filter: ClientFilter | null };
       return _getEntradaChurnImpl(m, f ?? undefined);
     },
-    // v3: shape mudou — adicionado avulsos/avulsos_clientes (pontuais) +
+    // v3: shape mudou - adicionado avulsos/avulsos_clientes (pontuais) +
     // fix bug em_onboarding contado como entrada.
     // v4: filter ganhou unitId (multi-tenant)
     ["dashboard-entrada-churn-v4"],
@@ -519,7 +519,7 @@ export async function getRankingSatisfacao(filter?: ClientFilter): Promise<{
     },
     // v2: filter ganhou unitId (multi-tenant)
     ["dashboard-ranking-satisfacao-v2"],
-    // 60s — responsivo a votos novos. Mutations de satisfação já invalidam
+    // 60s - responsivo a votos novos. Mutations de satisfação já invalidam
     // o tag 'dashboard', então em prática atualiza imediatamente após voto.
     { revalidate: 60, tags: ["dashboard"] },
   );
@@ -539,11 +539,11 @@ export interface EventoRow {
 export interface EventoFilter {
   userId?: string;
   /** Quando passado, restringe aos sub_calendars listados (ex.: ADM só vê
-   * agencia/onboarding/aniversarios — não as gravações de videomakers). */
+   * agencia/onboarding/aniversarios - não as gravações de videomakers). */
   subCalendars?: string[];
   /** Multi-tenant: client_ids da unidade ativa. Quando passado, filtra
    *  eventos com client_id apenas pra esses (eventos sem client_id passam
-   *  livres — são eventos gerais da agência tipo aniversários). */
+   *  livres - são eventos gerais da agência tipo aniversários). */
   unitClientIds?: string[] | null;
 }
 
@@ -585,7 +585,7 @@ export async function _getProximosEventosImpl(
   // como "institucionais", mas na prática muitos eventos legacy foram
   // criados sem link explícito (só nome do cliente no título). Esses
   // estavam vazando entre unidades. Agora ficam ocultos quando filtro
-  // ativo — assessor pode editar o evento pra linkar ao client_id se
+  // ativo - assessor pode editar o evento pra linkar ao client_id se
   // quiser que apareça.
   if (filter?.unitClientIds !== undefined && filter?.unitClientIds !== null) {
     const allowedIds = new Set(filter.unitClientIds);
@@ -615,7 +615,7 @@ export async function getProximosEventos(
       const { days: d, limit: l, filter: f } = JSON.parse(paramsJson) as { days: number; limit: number; filter: EventoFilter | null };
       return _getProximosEventosImpl(d, l, f ?? undefined);
     },
-    // v4: filtro estrito — eventos sem client_id agora são ocultos
+    // v4: filtro estrito - eventos sem client_id agora são ocultos
     // quando filtro de unidade ativo (exceto sub_calendar='aniversarios')
     ["dashboard-proximos-eventos-v4"],
     { revalidate: 300, tags: ["dashboard"] },

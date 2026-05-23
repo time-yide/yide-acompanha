@@ -85,7 +85,7 @@ export default async function GeradorLeadsPage({
         </div>
       </header>
 
-      {/* Pesquisas recentes — auto-refresh quando tem rodando */}
+      {/* Pesquisas recentes - auto-refresh quando tem rodando */}
       <section className="space-y-2">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Pesquisas recentes

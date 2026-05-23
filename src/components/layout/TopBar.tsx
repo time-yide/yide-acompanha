@@ -41,7 +41,7 @@ export function TopBar({
           <SidebarToggle />
         </div>
         <div className="flex flex-1 items-center justify-end gap-2">
-          {/* Seletor de unidade — só renderiza pra master (adm/sócio).
+          {/* Seletor de unidade - só renderiza pra master (adm/sócio).
               Non-master nem vê o badge da unidade aqui (Fase 1 mantém UI
               minimalista; quando for confuso aí mostramos um badge passivo). */}
           {unitContext?.isMaster && (

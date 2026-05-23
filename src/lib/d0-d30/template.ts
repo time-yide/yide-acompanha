@@ -1,9 +1,9 @@
-// Template das 9 etapas do onboarding D0 → D30 (decisão Yasmin — fluxo
+// Template das 9 etapas do onboarding D0 → D30 (decisão Yasmin - fluxo
 // completo desde a entrada do cliente até o primeiro mês ativo).
 //
 // Quando cliente vira `status='ativo'`, trigger no banco insere uma linha em
 // `client_onboarding_etapas` por etapa, copiando `fluxo` e `saidas` daqui.
-// Mudar o template aqui afeta APENAS clientes futuros — os já criados
+// Mudar o template aqui afeta APENAS clientes futuros - os já criados
 // preservam o checklist deles (snapshot do template na época).
 
 export type EtapaCodigo =
@@ -33,9 +33,9 @@ export interface EtapaTemplate {
   dia_inicio_previsto: number | null; // null = contínua
   dia_fim_previsto: number | null;
   responsaveis: ResponsavelTipo[];
-  /** Itens do "Fluxo" — coisas que tem que fazer dentro da etapa. */
+  /** Itens do "Fluxo" - coisas que tem que fazer dentro da etapa. */
   fluxo: string[];
-  /** "Saídas obrigatórias" — entregáveis pra etapa ser considerada concluída. */
+  /** "Saídas obrigatórias" - entregáveis pra etapa ser considerada concluída. */
   saidas: string[];
 }
 

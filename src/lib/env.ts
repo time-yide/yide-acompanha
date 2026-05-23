@@ -21,25 +21,25 @@ const serverSchema = z.object({
   // Sem isso, criar pesquisa retorna erro pedindo pra configurar.
   // Conta grátis em https://app.outscraper.com (2k créditos sem cartão).
   OUTSCRAPER_API_KEY: z.string().optional(),
-  // Enriquecimento Fase 2 — opcional. Sem essa key, o enriquecimento
+  // Enriquecimento Fase 2 - opcional. Sem essa key, o enriquecimento
   // ainda roda usando só site scraping (gratuito) + IA Claude.
   // Free tier: 25 buscas/mês em hunter.io.
   HUNTER_API_KEY: z.string().optional(),
-  // Apify — usado pra scraping de perfis de Instagram (pega bio, contato, etc).
+  // Apify - usado pra scraping de perfis de Instagram (pega bio, contato, etc).
   // Free tier: $5/mês de créditos (~100 perfis).
   // Settings → Integrations → API tokens em apify.com
   APIFY_API_TOKEN: z.string().optional(),
-  // Meta Ads (Facebook) — System User access token gerado na BM da Yide.
+  // Meta Ads (Facebook) - System User access token gerado na BM da Yide.
   // Sem isso, sync com Meta fica desabilitado (módulo /trafego ainda funciona
   // pra cadastro manual). Doc de setup em docs/trafego-meta-setup.md
   META_SYSTEM_USER_TOKEN: z.string().optional(),
   // Versão da Graph API a usar. Default: v21.0 (atual em mai/2026).
   META_GRAPH_API_VERSION: z.string().optional(),
-  // Apresenta Yide — HMAC secret pra autorizar Puppeteer a buscar a rota
+  // Apresenta Yide - HMAC secret pra autorizar Puppeteer a buscar a rota
   // interna de HTML do PDF. Sem isso, geração de PDF falha amigavelmente.
   // Gere com: openssl rand -hex 32
   APRESENTACAO_PDF_SECRET: z.string().min(16).optional(),
-  // Google Places API — usado pra puxar nota/reviews do GMB de cada cliente.
+  // Google Places API - usado pra puxar nota/reviews do GMB de cada cliente.
   // Opcional: sem essa key, modo automático fica desabilitado e sistema cai
   // pro modo manual (assessor digita os dados). Gerar em Google Cloud →
   // APIs & Services → Credentials → Create API key. Ativar "Places API (New)".
@@ -50,7 +50,7 @@ const clientSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(20),
   NEXT_PUBLIC_APP_URL: z.string().url(),
-  // Pública VAPID — exposta ao browser pra criar Push Subscription.
+  // Pública VAPID - exposta ao browser pra criar Push Subscription.
   // Sem isso, botão "Ativar notificações" fica oculto.
   NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().optional(),
 });

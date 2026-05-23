@@ -14,7 +14,7 @@ interface EventRow {
 
 /**
  * Pra cada usuário com 1+ eventos amanhã, dispara UMA notificação resumo
- * com até 5 eventos formatados como "10h — Reunião X · 14h — Gravação Y".
+ * com até 5 eventos formatados como "10h - Reunião X · 14h - Gravação Y".
  * Mais que 5 vira "...e mais N".
  *
  * Timezone: usa BRT pra calcular "amanhã" (UTC-3, sem DST). Isso casa com

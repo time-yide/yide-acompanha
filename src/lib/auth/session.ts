@@ -15,7 +15,7 @@ export type CurrentUser = {
 };
 
 /**
- * Memoizado com `React.cache` — dentro do MESMO render (layout + page + childs),
+ * Memoizado com `React.cache` - dentro do MESMO render (layout + page + childs),
  * uma só chamada pro Supabase (`auth.getUser` + `select profiles`), mesmo que
  * `requireAuth()` seja chamado 3-4 vezes. Não persiste entre requests.
  *

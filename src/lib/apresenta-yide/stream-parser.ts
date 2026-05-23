@@ -4,7 +4,7 @@ import { isValidSlide, type Slide } from "./tipos";
  * Acumula chunks de texto do stream do Claude e emite slides à medida
  * que linhas completas chegam. Cada linha esperada é um JSON object
  * válido representando um Slide. Linhas inválidas (mal formatadas ou
- * que falham validação de shape) são silenciosamente descartadas —
+ * que falham validação de shape) são silenciosamente descartadas -
  * tipicamente isso indica chunk parcial ou ruído do modelo.
  */
 export class LineDelimitedSlideParser {

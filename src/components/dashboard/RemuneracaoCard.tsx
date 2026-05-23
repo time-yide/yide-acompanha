@@ -4,8 +4,8 @@ import type { ComissaoPrevista } from "@/lib/dashboard/comissao-prevista";
 
 export function RemuneracaoCard({ comissao }: { comissao: ComissaoPrevista }) {
   const temBase = comissao.baseCalculo > 0;
-  // Cargos sem parte variável (ex.: coordenador no novo modelo) — esconde
-  // a coluna do meio pra não ficar mostrando "R$ 0 — sem base no mês".
+  // Cargos sem parte variável (ex.: coordenador no novo modelo) - esconde
+  // a coluna do meio pra não ficar mostrando "R$ 0 - sem base no mês".
   const soFixo = comissao.percentual === 0 && comissao.baseCalculo === 0 && comissao.valorVariavel === 0;
 
   return (

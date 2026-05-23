@@ -38,7 +38,7 @@ export function WeekView({ weekStart, events }: Props) {
   }, []);
 
   return (
-    // Mobile (< sm): lista vertical de 7 dias full-width — eventos legíveis.
+    // Mobile (< sm): lista vertical de 7 dias full-width - eventos legíveis.
     // sm+: grid 7 colunas como antes pra visão semanal compacta.
     <div className="grid grid-cols-1 gap-2 sm:grid-cols-7">
       {dates.map((d, i) => {

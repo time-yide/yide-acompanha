@@ -54,7 +54,7 @@ export default async function AudiovisualPage({
   const canSeeAguardando = canRoleViewCoord(user.role);
   const canDelegateVideomaker = canRoleDelegateVideomaker(user.role);
 
-  // Banner de captação atrasada — sempre visível pro videomaker, em qualquer aba.
+  // Banner de captação atrasada - sempre visível pro videomaker, em qualquer aba.
   const overdueForBanner = isVideomaker
     ? (await listPendenteParaVideomaker(user.id)).filter((p) => p.isOverdue)
     : [];
@@ -119,7 +119,7 @@ export default async function AudiovisualPage({
         ? []
         : await listCapturas({ clientIds: unitClientIdsForFilter, limit: 100 });
     } else {
-      // Migration unit_id ainda não rodada — fallback consolidado
+      // Migration unit_id ainda não rodada - fallback consolidado
       capturas = await listCapturas({ limit: 100 });
     }
 

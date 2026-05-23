@@ -256,7 +256,7 @@ interface SyncMetaResultOk {
 }
 
 /**
- * Sincroniza UM cliente sob demanda — chamada do botão "Sincronizar agora"
+ * Sincroniza UM cliente sob demanda - chamada do botão "Sincronizar agora"
  * na página /trafego/[clientId].
  *
  * Permite roles que gerenciam tráfego. Demora ~2-10s dependendo de quantas

@@ -9,7 +9,7 @@ const URL_REGEX_TEST = /^https?:\/\/[^\s<>"]+[^\s<>".,;!?:'")\]]$/;
 
 /**
  * Renderiza texto plain transformando URLs em <a> clicáveis. Sem
- * parsing de markdown — só URL. Usado em campos de texto livre
+ * parsing de markdown - só URL. Usado em campos de texto livre
  * (comentários, descrição, observações de entrega, motivo de alteração).
  *
  * Quebra de linha (\n) é preservada via white-space: pre-wrap no

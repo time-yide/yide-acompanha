@@ -168,7 +168,7 @@ export async function agendarPostagemFromArteAction(
     .eq("id", arte.id);
 
   if (updErr) {
-    // Não é fatal — post foi criado mas arte não atualizou. Loga e segue.
+    // Não é fatal - post foi criado mas arte não atualizou. Loga e segue.
     console.error("[design->social] arte.status update falhou:", updErr.message);
   }
 

@@ -107,7 +107,7 @@ export const artesEntreguesSchema = z
   .min(0, "Não pode ser negativo");
 
 /**
- * Schema do modal "Registrar Entrega" — exigido pra editor, videomaker,
+ * Schema do modal "Registrar Entrega" - exigido pra editor, videomaker,
  * designer, audiovisual_chefe, coordenador e assessor ao mover tarefa pra
  * `concluida` (Concluído operacional) ou `em_aprovacao` (Aprovação).
  * Drive link e quantidade entregue obrigatórios; observações livres opcional.

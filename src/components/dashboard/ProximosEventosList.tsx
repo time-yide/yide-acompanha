@@ -7,7 +7,7 @@ interface Props {
 }
 
 // Mapeia cada sub_calendar pro seu ícone. IMPORTANTE: precisa cobrir TODOS
-// os valores possíveis de sub_calendar — caso contrário, lookup retorna
+// os valores possíveis de sub_calendar - caso contrário, lookup retorna
 // undefined e o React quebra com error #130 ("Element type is invalid").
 // Fallback CalendarClock + cor muted garantem segurança caso surjam novos
 // sub_calendars no futuro sem que esse mapa seja atualizado.

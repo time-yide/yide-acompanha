@@ -14,7 +14,7 @@ type Result = { error: string } | { success: true; iconUrl: string };
 
 /**
  * Upload da foto do canal de grupo. Apenas socio/adm podem chamar.
- * DMs (kind='direct') são rejeitadas — DM usa avatar do outro membro.
+ * DMs (kind='direct') são rejeitadas - DM usa avatar do outro membro.
  *
  * Bucket: reusa "avatars" (mesmo bucket dos colaboradores) com path
  * "channels/<channel_id>.<ext>" pra isolar.
@@ -79,7 +79,7 @@ export async function uploadChannelIconAction(
 }
 
 /**
- * Remove a foto custom do canal — volta pro fallback (Hash icon).
+ * Remove a foto custom do canal - volta pro fallback (Hash icon).
  */
 export async function removeChannelIconAction(channelId: string): Promise<{ error?: string; success?: boolean }> {
   const actor = await requireAuth();

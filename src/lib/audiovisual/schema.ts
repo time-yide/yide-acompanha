@@ -36,7 +36,7 @@ export type CreateCapturaInput = z.infer<typeof createCapturaSchema>;
  * usuário só quer marcar como entregue pra sair da lista de pendentes.
  *
  * Diferenças do schema completo:
- *  - `drive_url` é OPCIONAL (placeholder "—" se vazio)
+ *  - `drive_url` é OPCIONAL (placeholder "-" se vazio)
  *  - Todos os 7 ratings são OPCIONAIS (não força avaliação de feedback)
  *  - `event_id` obrigatório (vem do clique no card)
  *  - `client_id` opcional (busca do event_id se não vier)

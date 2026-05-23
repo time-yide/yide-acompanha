@@ -103,7 +103,7 @@ async function _getMonthlyChecklistsImpl(
 
   // 1) Lista clientes filtrados (apenas pacotes do painel mensal)
   // Helper que monta a query dado um SELECT (pra poder fazer fallback quando
-  // a coluna `link_estrategia` ainda não existe — migração não rodada).
+  // a coluna `link_estrategia` ainda não existe - migração não rodada).
   const buildClientsQuery = (selectStr: string) => {
     let q = supabase
       .from("clients")
@@ -149,7 +149,7 @@ async function _getMonthlyChecklistsImpl(
   if (clientsResp.error) {
     const msg = clientsResp.error.message ?? "";
     if (msg.includes("link_estrategia") || msg.includes("schema cache")) {
-      console.warn("[painel] link_estrategia indisponível no banco — usando fallback");
+      console.warn("[painel] link_estrategia indisponível no banco - usando fallback");
       clientsResp = await buildClientsQuery(SELECT_SEM_LINK_ESTRATEGIA);
     } else {
       console.error("[painel] erro ao listar clientes:", msg);
@@ -208,7 +208,7 @@ async function _getMonthlyChecklistsImpl(
   if (checklistsResp.error) {
     const msg = checklistsResp.error.message ?? "";
     if (msg.includes("gmn_otimizado") || msg.includes("schema cache")) {
-      console.warn("[painel] gmn_otimizado indisponível no banco — usando fallback");
+      console.warn("[painel] gmn_otimizado indisponível no banco - usando fallback");
       checklistsResp = await buildChecklistsQuery(SELECT_CHECKLIST_SEM_OTIMIZADO);
     } else {
       console.error("[painel] erro ao listar checklists:", msg);
@@ -289,7 +289,7 @@ async function _getMonthlyChecklistsImpl(
   // Quando dados reais mostram que algo foi feito (gravação entregue,
   // reunião agendada, tarefa de edição concluída/postada), marca o step
   // correspondente como pronto sem precisar de clique manual.
-  // Marca manual via markStepProntoAction continua funcionando — quem chegar
+  // Marca manual via markStepProntoAction continua funcionando - quem chegar
   // primeiro grava `pronto` no banco.
   const derivedDone = await getDerivedDoneSet(supabase, mesReferencia, clientIds);
   // Cronograma fica pronto quando o cliente tem link_estrategia preenchido
@@ -324,7 +324,7 @@ async function _getMonthlyChecklistsImpl(
   }
 
   // 5) Mapeia clientes → ChecklistRow
-  // Index pra evitar O(n²) — antes era checklists.find() dentro do clients.map()
+  // Index pra evitar O(n²) - antes era checklists.find() dentro do clients.map()
   const checklistByClient = new Map(checklists.map((cl) => [cl.client_id, cl]));
   return clients.map((c) => {
     const cl = checklistByClient.get(c.id);
@@ -392,7 +392,7 @@ function getMonthRangeBRT(mesReferencia: string): { startIso: string; endIso: st
  *                concluida/em_aprovacao/aprovada/agendado/postada no mês
  *   - postagem:  qualquer task com status=postada no mês (completed_at)
  *
- * MOB (mobile) fica de fora — o sistema não diferencia captura mobile vs
+ * MOB (mobile) fica de fora - o sistema não diferencia captura mobile vs
  * câmera profissional ainda. Marca manual pelo cell.
  */
 async function getDerivedDoneSet(
@@ -403,7 +403,7 @@ async function getDerivedDoneSet(
   if (clientIds.length === 0) return new Set();
 
   const { startIso, endIso } = getMonthRangeBRT(mesReferencia);
-  // data_captacao é DATE — usa formato YYYY-MM-DD
+  // data_captacao é DATE - usa formato YYYY-MM-DD
   const startDate = startIso.slice(0, 10);
   const endDate = endIso.slice(0, 10);
 
@@ -412,21 +412,21 @@ async function getDerivedDoneSet(
 
   // Roda em paralelo as 4 queries de detecção
   const [capturasRes, eventosRes, tasksEdicaoRes, tasksPostagemRes] = await Promise.all([
-    // CAM (camera) — qualquer captura entregue no mês
+    // CAM (camera) - qualquer captura entregue no mês
     sb
       .from("audiovisual_capturas")
       .select("client_id")
       .in("client_id", clientIds)
       .gte("data_captacao", startDate)
       .lt("data_captacao", endDate),
-    // Reunião — qualquer evento com client_id no mês
+    // Reunião - qualquer evento com client_id no mês
     sb
       .from("calendar_events")
       .select("client_id")
       .in("client_id", clientIds)
       .gte("inicio", startIso)
       .lt("inicio", endIso),
-    // Edição — tasks de video/arte que avançaram no mês
+    // Edição - tasks de video/arte que avançaram no mês
     sb
       .from("tasks")
       .select("client_id, status, updated_at")
@@ -435,7 +435,7 @@ async function getDerivedDoneSet(
       .in("status", ["concluida", "em_aprovacao", "aprovada", "agendado", "postada"])
       .gte("updated_at", startIso)
       .lt("updated_at", endIso),
-    // Postagem — tasks que foram postadas no mês
+    // Postagem - tasks que foram postadas no mês
     sb
       .from("tasks")
       .select("client_id, completed_at")

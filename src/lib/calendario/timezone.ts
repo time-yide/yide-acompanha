@@ -2,13 +2,13 @@
 //
 // Convenção: o input `datetime-local` do form representa wall-clock no fuso
 // da app (Cuiabá UTC-4, sem DST). Postgres armazena timestamptz em UTC.
-// Esses helpers fazem a conversão explícita nos boundaries — input/output
-// do banco — pra evitar que Postgres interprete strings sem TZ como UTC e
+// Esses helpers fazem a conversão explícita nos boundaries - input/output
+// do banco - pra evitar que Postgres interprete strings sem TZ como UTC e
 // gere desvio de 4h.
 //
 // Pra novo código, prefira importar diretamente de `@/lib/datetime/timezone`.
 // Este arquivo mantém os nomes históricos (`formatBrtDateTime`,
-// `formatBrtTime`, etc.) por compatibilidade — todos delegam pro módulo
+// `formatBrtTime`, etc.) por compatibilidade - todos delegam pro módulo
 // central com APP_TIMEZONE = "America/Cuiaba".
 
 import {

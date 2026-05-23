@@ -12,7 +12,7 @@ export default async function ImportarClientePage() {
   // Pega clientes ativos
   const clientes = await listClientes({ status: "ativo" });
 
-  // Filtra os que já têm lead vinculado (não-deletado) — service role pra
+  // Filtra os que já têm lead vinculado (não-deletado) - service role pra
   // ignorar RLS (listagem de elegíveis precisa ver todos os leads, mesmo
   // de outros comerciais).
   const sb = createServiceRoleClient();

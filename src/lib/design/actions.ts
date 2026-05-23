@@ -350,7 +350,7 @@ export async function uploadDesignMidiaAction(
     });
   if (uploadErr) return { error: uploadErr.message };
 
-  // Signed URL longa (7 dias) — pra exibir no UI
+  // Signed URL longa (7 dias) - pra exibir no UI
   const { data: signed } = await sb.storage
     .from("design-criativos")
     .createSignedUrl(path, 7 * 24 * 60 * 60);
@@ -360,7 +360,7 @@ export async function uploadDesignMidiaAction(
 }
 
 // ===========================================================================
-// Geração com IA — placeholder Fase 2
+// Geração com IA - placeholder Fase 2
 // ===========================================================================
 
 export async function generateArteAiAction(_formData: FormData): Promise<ActionResult> {

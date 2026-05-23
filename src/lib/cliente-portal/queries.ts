@@ -1,5 +1,5 @@
 // Queries específicas do painel do cliente (lado externo). Usa service-role
-// — clientId vem da sessão validada por requireClientPortalAuth(), nunca
+// - clientId vem da sessão validada por requireClientPortalAuth(), nunca
 // confiamos em valor do form.
 
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -32,7 +32,7 @@ export interface AgencyPerceptionRow {
 
 /**
  * Percepção da equipe sobre o cliente. Pega a última `satisfaction_synthesis`
- * gerada (cada uma cobre uma semana). Versão "sanitizada" — não devolve
+ * gerada (cada uma cobre uma semana). Versão "sanitizada" - não devolve
  * `resumo_ia` nem `acao_sugerida` (são internos), só o score e a cor.
  */
 export async function getLastAgencyPerception(
@@ -75,7 +75,7 @@ export async function getLastMeetingsForClient(
     .select("id, titulo, starts_at, duracao_segundos, resumo_preview, summary_ready, status")
     .eq("client_id", clientId)
     // "completed" = reunião finalizada com resumo pronto.
-    // "processing" = transcrição/AI rodando — mostra mesmo assim, com flag
+    // "processing" = transcrição/AI rodando - mostra mesmo assim, com flag
     // `summary_ready` o componente decide se renderiza o preview ou um placeholder.
     .in("status", ["completed", "processing"])
     .order("starts_at", { ascending: false })
@@ -119,22 +119,22 @@ export interface PortalTaskRow {
   status: PortalTaskStatus;
   /** Link de entrega (drive_link), só quando aprovada/publicada/agendada/concluída. */
   drive_link: string | null;
-  /** Timestamp da última transição relevante — usado pra ordenar + "há X dias". */
+  /** Timestamp da última transição relevante - usado pra ordenar + "há X dias". */
   ultima_atualizacao: string;
 }
 
 /**
- * Lista tarefas que o cliente vê no portal — com fields sanitizados (NÃO
+ * Lista tarefas que o cliente vê no portal - com fields sanitizados (NÃO
  * expõe prazo, prioridade, responsável, descrição, etc). Decisão da
  * Yasmin: cliente vê o que ESTÁ SENDO FEITO e o que FOI ENTREGUE, sem
  * info de gerenciamento interno.
  *
  * Status que NÃO mostra: aberta (ainda não começou), alteracao (problema
- * interno entre time e cliente — não polui o portal).
+ * interno entre time e cliente - não polui o portal).
  * Status concluida só mostra pra tipo geral (vídeo/arte concluida vira
- * em_aprovacao/aprovada/postada — não chega no portal).
+ * em_aprovacao/aprovada/postada - não chega no portal).
  *
- * Retorna até 50 tarefas — primeiro as em andamento, depois as concluídas
+ * Retorna até 50 tarefas - primeiro as em andamento, depois as concluídas
  * dos últimos 60 dias.
  */
 export async function getTarefasForPortal(clientId: string): Promise<PortalTaskRow[]> {
@@ -187,7 +187,7 @@ export async function getTarefasForPortal(clientId: string): Promise<PortalTaskR
       case "postada":
         return "publicada";
       case "concluida":
-        // Tarefas tipo "video" ou "arte" não param em concluida no portal —
+        // Tarefas tipo "video" ou "arte" não param em concluida no portal -
         // viram em_aprovacao/aprovada/postada. Concluida pro portal só faz
         // sentido pra tipo "geral".
         return tipo === "video" || tipo === "arte" ? null : "concluida";

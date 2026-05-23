@@ -38,7 +38,7 @@ export interface TaskRow {
   cliente?: { id: string; nome: string } | null;
   criado_por?: string;
   atribuido_a?: string;
-  /** Role do responsável — usado pelo TasksBoard pra decidir se abre modal
+  /** Role do responsável - usado pelo TasksBoard pra decidir se abre modal
    * de entrega ao mover pra "concluida". Vem do join em listTasks. */
   atribuido_a_role?: string | null;
   participantes_ids?: string[];
@@ -128,7 +128,7 @@ export interface TaskFilters {
 
 async function _listTasksImpl(filters?: TaskFilters): Promise<TaskRow[]> {
   // Service-role pra funcionar dentro de unstable_cache. RLS de SELECT em
-  // `tasks` é permissiva (`using (true)`) — resultado idêntico ao cookie-based.
+  // `tasks` é permissiva (`using (true)`) - resultado idêntico ao cookie-based.
   const supabase = createServiceRoleClient();
   let query = supabase
     .from("tasks")
@@ -175,7 +175,7 @@ async function _listTasksImpl(filters?: TaskFilters): Promise<TaskRow[]> {
 
   const { data, error } = await query;
   if (error) throw error;
-  // Cast via unknown — types ainda não regenerados c/ os campos novos.
+  // Cast via unknown - types ainda não regenerados c/ os campos novos.
   // Promove role do atribuido pra atribuido_a_role (campo top-level que o
   // TasksBoard consome pra decidir se abre modal de entrega).
   const rows = (data ?? []) as unknown as TaskRow[];
@@ -237,7 +237,7 @@ export async function listTaskComments(taskId: string): Promise<TaskComment[]> {
 
 export async function listTaskRevisoes(taskId: string): Promise<TaskRevisao[]> {
   const supabase = await createClient();
-  // task_revisoes ainda não está nos types gerados — cast via any.
+  // task_revisoes ainda não está nos types gerados - cast via any.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
   const { data, error } = await sb

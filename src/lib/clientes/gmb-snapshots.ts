@@ -13,7 +13,7 @@ export interface GmbSnapshot {
 
 /**
  * UPSERT snapshot do dia atual pra um cliente. Dedupe via unique index
- * em (client_id, day). 1 snapshot por dia por cliente — última atualização
+ * em (client_id, day). 1 snapshot por dia por cliente - última atualização
  * do dia ganha.
  *
  * Best-effort: erros são logados mas não derrubam o caller (a função
@@ -36,7 +36,7 @@ export async function recordGmbSnapshot(args: {
     captured_at: new Date().toISOString(),
     source: args.source,
   };
-  // Tenta UPDATE primeiro (mesmo dia) — se 0 rows afetadas, faz INSERT.
+  // Tenta UPDATE primeiro (mesmo dia) - se 0 rows afetadas, faz INSERT.
   // Mais eficiente que UPSERT cego porque a maioria dos dias só tem 1 entrada.
   const today = new Date();
   const cuiabaToday = new Date(today.getTime() - 4 * 60 * 60 * 1000).toISOString().slice(0, 10);

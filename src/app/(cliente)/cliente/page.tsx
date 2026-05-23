@@ -28,7 +28,7 @@ import { env } from "@/lib/env";
 export default async function ClientePainelPage() {
   const user = await requireClientPortalAuth();
 
-  // 8 queries em paralelo — todos os dados que o portal precisa.
+  // 8 queries em paralelo - todos os dados que o portal precisa.
   const [data, selfSat, agencyPerception, reunioes, unidades, gmbTimeSeries, requests, tarefas] = await Promise.all([
     getClientPortalData(user.clientId),
     getLastSelfSatisfaction(user.clientId),

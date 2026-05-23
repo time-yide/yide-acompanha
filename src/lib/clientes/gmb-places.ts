@@ -1,4 +1,4 @@
-// Integração com Google Places API (New) — https://places.googleapis.com/v1
+// Integração com Google Places API (New) - https://places.googleapis.com/v1
 //
 // A Yide fornece `GOOGLE_PLACES_API_KEY` no env. Pra cada cliente, assessor
 // cola um link do Google Maps na ficha do cliente. Esta lib resolve esse
@@ -30,9 +30,9 @@ export interface GmbPlaceData {
 }
 
 /**
- * Resolve uma URL do Google Maps (qualquer formato — long, short, place URL,
+ * Resolve uma URL do Google Maps (qualquer formato - long, short, place URL,
  * etc.) em dados do place. Funciona usando o text search da Places API New
- * passando a URL inteira como query — Google tem boa heurística pra resolver.
+ * passando a URL inteira como query - Google tem boa heurística pra resolver.
  *
  * Retorna null em:
  * - Falta de GOOGLE_PLACES_API_KEY (modo manual fallback)
@@ -85,7 +85,7 @@ export async function fetchGmbByUrl(url: string, apiKey: string): Promise<GmbPla
 
 /**
  * Refresh de dados de um place já conhecido (via place_id). Usado pelo cron
- * diário. Mais barato que searchText — endpoint direto de detail.
+ * diário. Mais barato que searchText - endpoint direto de detail.
  */
 export async function fetchGmbByPlaceId(placeId: string, apiKey: string): Promise<GmbPlaceData | null> {
   if (!apiKey || !placeId) return null;

@@ -8,14 +8,14 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
  *
  * Cron schedule: 0 4 * * * (4h UTC = 1h BRT, baixo tráfego)
  *
- * Autenticado por CRON_SECRET. Idempotente — pode rodar várias vezes.
+ * Autenticado por CRON_SECRET. Idempotente - pode rodar várias vezes.
  *
  * O que apaga:
  *  - Arquivo do Storage bucket meeting-recordings
  *  - Row em meeting_recordings
  *
  * O que MANTÉM:
- *  - public.meetings (titulo, datas, owner — histórico)
+ *  - public.meetings (titulo, datas, owner - histórico)
  *  - meeting_transcripts (texto da transcrição continua)
  *  - meeting_summaries, meeting_extracted_tasks
  *
@@ -68,13 +68,13 @@ export async function GET(request: NextRequest) {
 
   for (const row of rows) {
     try {
-      // 1. Apaga do Storage (idempotente — sem erro se já foi deletado)
+      // 1. Apaga do Storage (idempotente - sem erro se já foi deletado)
       const { error: storageError } = await supabase.storage
         .from(BUCKET)
         .remove([row.storage_path]);
 
       if (storageError) {
-        // Log mas não interrompe — pode ser que o arquivo já não existe
+        // Log mas não interrompe - pode ser que o arquivo já não existe
         console.warn(
           `[cleanup-old-recordings] storage delete falhou pra ${row.storage_path}:`,
           storageError.message,

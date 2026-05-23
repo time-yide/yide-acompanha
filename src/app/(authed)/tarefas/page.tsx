@@ -48,7 +48,7 @@ export default async function TarefasPage({ searchParams }: { searchParams: Prom
   if (params.client && params.client !== "qualquer") filters.clientId = params.client;
   if (params.q && params.q.trim()) filters.q = params.q.trim();
 
-  // Sem filtro de status — Quadro mostra todas as colunas; Lista agrupa concluídas em seção própria
+  // Sem filtro de status - Quadro mostra todas as colunas; Lista agrupa concluídas em seção própria
   if (aba === "minhas") filters.atribuidoA = user.id;
   else if (aba === "criadas") filters.criadoPor = user.id;
   else if (aba === "todas" && params.atribuido && params.atribuido !== "qualquer") {
@@ -91,7 +91,7 @@ export default async function TarefasPage({ searchParams }: { searchParams: Prom
     <div className="space-y-5">
       <Suspense fallback={null}><TaskToastFlash /></Suspense>
       {/* Re-renderiza a lista quando qualquer task muda (status, atribuição,
-          criação, conclusão) — quem tá com /tarefas aberto vê ao vivo. */}
+          criação, conclusão) - quem tá com /tarefas aberto vê ao vivo. */}
       <TasksRealtimeWatcher />
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -100,7 +100,7 @@ export default async function TarefasPage({ searchParams }: { searchParams: Prom
         </div>
         {/* <a> em vez de <Link> intencional: o intercepting route @modal/(.)[id]
             captura navegação client-side pra QUALQUER segmento-filho de
-            /tarefas — inclusive o literal "nova". O UUID guard no modal
+            /tarefas - inclusive o literal "nova". O UUID guard no modal
             retorna null, mas em alguns casos o roteamento paralelo do Next
             confunde os slots e a navegação não atualiza children pra
             mostrar /tarefas/nova/page.tsx. Hard navigation via <a> contorna

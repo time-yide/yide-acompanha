@@ -3,7 +3,7 @@ import Link from "next/link";
 import { requireAuth } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 
-// LGPD: detalhe do lead expõe telefone/email/valor — restringe a quem opera.
+// LGPD: detalhe do lead expõe telefone/email/valor - restringe a quem opera.
 const ROLES_PERMITIDOS = ["adm", "socio", "comercial", "assessor", "coordenador", "audiovisual_chefe"];
 import { getLeadById, listLeadHistory, listLeadAttempts } from "@/lib/leads/queries";
 import { updateLeadAction } from "@/lib/leads/actions";
@@ -43,7 +43,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
 
   const supabase = await createClient();
   const [{ data: profiles = [] }, history, attempts] = await Promise.all([
-    // Inclui adm/socio na lista — esses papéis também podem ser coord (Yasmin
+    // Inclui adm/socio na lista - esses papéis também podem ser coord (Yasmin
     // sócia operando direto, alguns ambientes têm legacy com role='adm').
     supabase.from("profiles").select("id, nome, role").eq("ativo", true).in("role", ["adm", "socio", "coordenador", "assessor"]).order("nome"),
     listLeadHistory(id),

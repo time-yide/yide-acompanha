@@ -50,7 +50,7 @@ export async function listClientesComCrm(filter: ListFilter = {}): Promise<Clien
   if (resp.error) {
     const msg = resp.error.message ?? "";
     if (msg.includes("crm_") || msg.includes("schema cache")) {
-      console.warn("[crm] colunas crm_* indisponíveis — usando fallback");
+      console.warn("[crm] colunas crm_* indisponíveis - usando fallback");
       resp = await buildQuery(SELECT_FALLBACK);
     }
   }

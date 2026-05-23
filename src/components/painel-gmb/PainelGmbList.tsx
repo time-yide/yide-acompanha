@@ -28,7 +28,7 @@ function compareByKey(a: GmbClienteRow, b: GmbClienteRow, key: SortKey): number 
 }
 
 function formatLastUpdate(iso: string | null): string {
-  if (!iso) return "—";
+  if (!iso) return "-";
   const date = new Date(iso);
   const diffDays = Math.floor((Date.now() - date.getTime()) / (24 * 60 * 60 * 1000));
   if (diffDays === 0) return "hoje";
@@ -131,14 +131,14 @@ export function PainelGmbList({ clientes }: Props) {
                       <span className="font-semibold">{c.gmb_rating.toFixed(1)}</span>
                     </span>
                   ) : (
-                    <span className="text-muted-foreground">—</span>
+                    <span className="text-muted-foreground">-</span>
                   )}
                 </td>
                 <td className="px-4 py-3 text-right tabular-nums">
                   {c.gmb_review_count !== null ? (
                     c.gmb_review_count.toLocaleString("pt-BR")
                   ) : (
-                    <span className="text-muted-foreground">—</span>
+                    <span className="text-muted-foreground">-</span>
                   )}
                 </td>
                 <td className="px-4 py-3 text-right">
@@ -204,7 +204,7 @@ function SortBtn({
 }
 
 function DeltaBadge({ value, suffix }: { value: number | null; suffix: string }) {
-  if (value === null) return <span className="text-muted-foreground">—</span>;
+  if (value === null) return <span className="text-muted-foreground">-</span>;
   if (value === 0) {
     return (
       <span className="inline-flex items-center gap-0.5 text-xs text-muted-foreground">

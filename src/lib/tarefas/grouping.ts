@@ -15,7 +15,7 @@ export function prazoUrgency(due_date: string | null, today: Date = new Date()):
 }
 
 export function formatPrazoLabel(due_date: string | null, today: Date = new Date()): string {
-  if (!due_date) return "—";
+  if (!due_date) return "-";
   const todayIso = localIsoDate(today);
   if (due_date === todayIso) return "Hoje";
   // Calcula diff em dias usando datas locais (sem TZ trickery)

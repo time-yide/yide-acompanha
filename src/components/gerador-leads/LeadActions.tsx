@@ -129,7 +129,7 @@ export function LeadActions({ lead, canManage }: Props) {
           <MapPin className="h-3 w-3" />
         </a>
       )}
-      {/* Email — se tiver, copiar */}
+      {/* Email - se tiver, copiar */}
       {lead.email && (
         <button
           type="button"

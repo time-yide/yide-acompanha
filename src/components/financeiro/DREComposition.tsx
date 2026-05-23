@@ -16,7 +16,7 @@ interface Slice {
 }
 
 const COLORS = {
-  lucro: "#10b981",      // emerald-500 — verde
+  lucro: "#10b981",      // emerald-500 - verde
   comissoes: "#ef4444",  // red-500
   salarios: "#f97316",   // orange-500
   trafego: "#eab308",    // yellow-500

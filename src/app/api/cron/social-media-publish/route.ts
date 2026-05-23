@@ -5,7 +5,7 @@ import { publishPostById } from "@/lib/social-media/publish-actions";
 export const dynamic = "force-dynamic";
 
 /**
- * Cron de publicação de posts agendados — IG/FB via Graph API.
+ * Cron de publicação de posts agendados - IG/FB via Graph API.
  *
  * Roda a cada 5 min via Vercel Cron (vercel.json). Varre
  * social_media_posts WHERE status='agendado' AND agendar_para <= NOW()

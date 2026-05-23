@@ -125,7 +125,7 @@ export function ImportClientForm({ clientes }: Props) {
           onChange={(e) => setBriefing(e.target.value)}
           rows={4}
           maxLength={4000}
-          placeholder="Notas pro time interno sobre esse cliente — o que falta concluir do onboarding, contexto, etc."
+          placeholder="Notas pro time interno sobre esse cliente - o que falta concluir do onboarding, contexto, etc."
           disabled={pending}
         />
       </div>
