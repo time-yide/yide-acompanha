@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpen, FolderOpen, ScrollText, Heart, Sparkles, Compass } from "lucide-react";
+import { BookOpen, FolderOpen, ScrollText, Heart, Sparkles, Compass, PlayCircle } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 
 interface Card {
@@ -10,6 +10,12 @@ interface Card {
 }
 
 const CARDS: Card[] = [
+  {
+    href: "/manual/passo-a-passo",
+    icon: PlayCircle,
+    titulo: "Passo a passo do sistema",
+    resumo: "Vídeos curtos ensinando cada setor a usar o sistema no dia a dia.",
+  },
   {
     href: "/manual/materiais",
     icon: FolderOpen,
