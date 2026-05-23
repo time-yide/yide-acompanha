@@ -38,8 +38,19 @@ export function ClientesAssignmentTable({
   coordenadores,
 }: Props) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [query, setQuery] = useState("");
 
-  const visibleIds = useMemo(() => rows.map((r) => r.id), [rows]);
+  const filteredRows = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter((r) => {
+      const nome = r.nome?.toLowerCase() ?? "";
+      const servico = r.servico_contratado?.toLowerCase() ?? "";
+      return nome.includes(q) || servico.includes(q);
+    });
+  }, [rows, query]);
+
+  const visibleIds = useMemo(() => filteredRows.map((r) => r.id), [filteredRows]);
   const allSelected =
     visibleIds.length > 0 && visibleIds.every((id) => selectedIds.has(id));
   const someSelected = visibleIds.some((id) => selectedIds.has(id));
@@ -74,6 +85,18 @@ export function ClientesAssignmentTable({
         coordenadores={coordenadores}
         onClearSelection={() => setSelectedIds(new Set())}
       />
+      <div className="flex flex-wrap items-center gap-2 border-b px-4 py-3">
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Buscar por cliente ou serviço…"
+          className="h-9 flex-1 min-w-[240px] rounded-md border bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+        />
+        <span className="text-xs text-muted-foreground">
+          {filteredRows.length} {filteredRows.length === 1 ? "cliente" : "clientes"}
+        </span>
+      </div>
       <Table>
         <TableHeader>
           <TableRow>
@@ -96,7 +119,17 @@ export function ClientesAssignmentTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {rows.map((r) => {
+          {filteredRows.length === 0 && (
+            <TableRow>
+              <TableCell
+                colSpan={canSeeMoney ? 7 : 6}
+                className="py-8 text-center text-sm text-muted-foreground"
+              >
+                Nenhum cliente encontrado.
+              </TableCell>
+            </TableRow>
+          )}
+          {filteredRows.map((r) => {
             const isSelected = selectedIds.has(r.id);
             return (
               <TableRow
