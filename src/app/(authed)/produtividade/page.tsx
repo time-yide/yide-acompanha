@@ -2,22 +2,40 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Activity, Info, AlertTriangle, ChevronRight } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
-import { getColaboradoresStatus, summarizeStatus, listRecentEvents } from "@/lib/produtividade/queries";
+import {
+  getColaboradoresStatus,
+  summarizeStatus,
+  listRecentEvents,
+  PERIODO_LABEL,
+  type PeriodoRange,
+} from "@/lib/produtividade/queries";
 import { ProdutividadeSummaryCards } from "@/components/produtividade/ProdutividadeSummaryCards";
 import { ColaboradoresTable } from "@/components/produtividade/ColaboradoresTable";
 import { RecentEventsFeed } from "@/components/produtividade/RecentEventsFeed";
 import { AutoRefresh } from "@/components/produtividade/AutoRefresh";
+import { PeriodoFilter } from "@/components/produtividade/PeriodoFilter";
 
 const ROLES_PERMITIDOS = ["adm", "socio", "coordenador", "audiovisual_chefe"];
 
 export const dynamic = "force-dynamic";
 
-export default async function ProdutividadePage() {
+const VALID_RANGES: PeriodoRange[] = ["dia", "semana", "mes"];
+
+export default async function ProdutividadePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ range?: string }>;
+}) {
   const user = await requireAuth();
   if (!ROLES_PERMITIDOS.includes(user.role)) redirect("/");
 
+  const { range: rangeParam } = await searchParams;
+  const range: PeriodoRange = VALID_RANGES.includes(rangeParam as PeriodoRange)
+    ? (rangeParam as PeriodoRange)
+    : "dia";
+
   const [rows, events] = await Promise.all([
-    getColaboradoresStatus(),
+    getColaboradoresStatus(range),
     listRecentEvents(30),
   ]);
   const summary = summarizeStatus(rows);
@@ -47,9 +65,10 @@ export default async function ProdutividadePage() {
             </p>
           </div>
         </div>
+        <PeriodoFilter current={range} />
       </header>
 
-      <ProdutividadeSummaryCards summary={summary} />
+      <ProdutividadeSummaryCards summary={summary} periodoLabel={PERIODO_LABEL[range]} />
 
       {comAtraso.length > 0 && (
         <section className="rounded-xl border border-rose-500/30 bg-rose-500/[0.04] p-4">
