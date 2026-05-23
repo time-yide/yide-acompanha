@@ -3,6 +3,8 @@ import type { ProdutividadeSummary } from "@/lib/produtividade/queries";
 
 interface Props {
   summary: ProdutividadeSummary;
+  /** Label do período ativo - ex.: "Hoje", "Últimos 7 dias". */
+  periodoLabel?: string;
 }
 
 function formatHours(seconds: number): string {
@@ -26,7 +28,7 @@ const CARDS = [
       `${s.ativos_agora} ativo${s.ativos_agora === 1 ? "" : "s"} agora`,
   },
   {
-    label: "Tempo ativo (total hoje)",
+    label: "Tempo ativo (período)",
     icon: Clock,
     tone: "blue",
     getValue: (s: ProdutividadeSummary) => formatHours(s.tempo_ativo_total_seg_hoje),
@@ -41,14 +43,14 @@ const CARDS = [
     },
   },
   {
-    label: "Eventos hoje",
+    label: "Eventos no período",
     icon: Activity,
     tone: "violet",
     getValue: (s: ProdutividadeSummary) => s.eventos_hoje.toLocaleString("pt-BR"),
     getHint: () => "ações no sistema",
   },
   {
-    label: "Atrasados",
+    label: "Atrasados (agora)",
     icon: AlertTriangle,
     tone: "rose",
     getValue: (s: ProdutividadeSummary) =>
@@ -66,7 +68,7 @@ const CARDS = [
     },
   },
   {
-    label: "Custo do dia",
+    label: "Custo do período",
     icon: DollarSign,
     tone: "amber",
     getValue: (s: ProdutividadeSummary) => formatBRL(s.custo_dia_total),
@@ -105,10 +107,19 @@ const TONE_CLASSES: Record<string, { bg: string; text: string; border: string }>
   },
 };
 
-export function ProdutividadeSummaryCards({ summary }: Props) {
+export function ProdutividadeSummaryCards({ summary, periodoLabel }: Props) {
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-      {CARDS.map((card) => {
+    <div className="space-y-2">
+      {periodoLabel && (
+        <p className="text-xs text-muted-foreground">
+          Mostrando dados de{" "}
+          <span className="font-medium text-foreground">{periodoLabel}</span>.{" "}
+          <span className="text-rose-600 dark:text-rose-400">Online</span> e{" "}
+          <span className="text-rose-600 dark:text-rose-400">Atrasados</span> sempre refletem o estado atual.
+        </p>
+      )}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        {CARDS.map((card) => {
         const Icon = card.icon;
         const tone = TONE_CLASSES[card.tone];
         return (
@@ -136,6 +147,7 @@ export function ProdutividadeSummaryCards({ summary }: Props) {
           </div>
         );
       })}
+      </div>
     </div>
   );
 }

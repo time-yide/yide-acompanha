@@ -88,20 +88,42 @@ function captureDeadline(inicioIso: string): Date {
   return deadline;
 }
 
-/** Retorna o status atual de cada colaborador ativo: online, tempo ativo
- *  hoje, eventos hoje, custo do dia, atrasados. Base do dashboard /produtividade. */
-export async function getColaboradoresStatus(): Promise<ColaboradorStatusRow[]> {
+export type PeriodoRange = "dia" | "semana" | "mes";
+
+export const PERIODO_LABEL: Record<PeriodoRange, string> = {
+  dia: "Hoje",
+  semana: "Últimos 7 dias",
+  mes: "Últimos 30 dias",
+};
+
+/** Quantos dias o range cobre (inclui o dia de hoje). */
+function rangeDays(range: PeriodoRange): number {
+  if (range === "semana") return 7;
+  if (range === "mes") return 30;
+  return 1;
+}
+
+/** Retorna o status de cada colaborador ativo no período pedido: tempo ativo,
+ *  eventos, custo. `online/ativo` e `atrasados` são sempre estado atual
+ *  (não dependem do range). */
+export async function getColaboradoresStatus(
+  range: PeriodoRange = "dia",
+): Promise<ColaboradorStatusRow[]> {
   const admin = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = admin as any;
   const now = Date.now();
-  // Data de hoje no fuso da app (Cuiabá). `event_date` é uma coluna `date`
-  // calculada server-side com `now() at time zone 'America/Cuiaba'`, então
-  // filtrar por igualdade resolve o boundary corretamente.
+  // `event_date` é uma coluna `date` calculada server-side com
+  // `now() at time zone 'America/Cuiaba'` - filtrar por igualdade (1 dia) ou
+  // gte (7/30 dias) resolve o boundary de timezone corretamente.
   const today = formatIsoDate(new Date());
-  // Início/fim do dia em UTC pra queries de calendar_events.
+  const days = rangeDays(range);
+  const sinceDate = new Date();
+  sinceDate.setDate(sinceDate.getDate() - (days - 1));
+  const since = formatIsoDate(sinceDate);
+  // Início/fim do range em UTC pra queries de calendar_events.
   const offsetHours = getAppTimezoneOffsetMs() / (60 * 60 * 1000);
-  const todayStartUtc = new Date(`${today}T${String(offsetHours).padStart(2, "0")}:00:00.000Z`).toISOString();
+  const sinceStartUtc = new Date(`${since}T${String(offsetHours).padStart(2, "0")}:00:00.000Z`).toISOString();
   const tomorrowDate = new Date(`${today}T00:00:00.000Z`);
   tomorrowDate.setUTCDate(tomorrowDate.getUTCDate() + 1);
   const tomorrow = formatIsoDate(tomorrowDate);
@@ -140,15 +162,16 @@ export async function getColaboradoresStatus(): Promise<ColaboradorStatusRow[]> 
     sb
       .from("activity_events")
       .select("user_id, created_at")
-      .eq("event_date", today)
+      .gte("event_date", since)
+      .lte("event_date", today)
       .order("created_at", { ascending: true }),
-    // Capturas externas de videomaker que aconteceram hoje (conta como tempo produtivo)
+    // Capturas externas de videomaker no período (conta como tempo produtivo)
     sb
       .from("calendar_events")
       .select("videomaker_assigned_id, inicio, fim, videomaker_status")
       .eq("sub_calendar", "videomakers")
       .in("videomaker_status", ["scheduled", "completed"])
-      .gte("inicio", todayStartUtc)
+      .gte("inicio", sinceStartUtc)
       .lt("inicio", tomorrowStartUtc)
       .not("videomaker_assigned_id", "is", null),
     // Tarefas atrasadas (não concluídas, due_date < hoje)
