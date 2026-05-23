@@ -6,12 +6,20 @@ import { requireAuth } from "@/lib/auth/session";
 import { logAudit } from "@/lib/audit/log";
 import { logActivityInternal } from "@/lib/produtividade/actions";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
+import { brtInputToUtcIso } from "@/lib/calendario/timezone";
 
 interface ActionResult { success?: boolean; error?: string }
 
 // Roles defs em coord-roles.ts (arquivo separado pra poder exportar
 // constants/funcs — "use server" só permite async exports aqui).
 import { ROLES_COORD_DELEGATE } from "./coord-roles";
+
+function revalidateAudiovisual() {
+  revalidatePath("/audiovisual/coordenacao");
+  revalidatePath("/audiovisual");
+  revalidatePath("/calendario");
+  revalidateTag("calendar", "default");
+}
 
 /**
  * Coord audiovisual delega uma captação pendente pra um videomaker
@@ -354,9 +362,292 @@ export async function updateDelegacaoAction(
     },
   });
 
-  revalidatePath("/audiovisual/coordenacao");
-  revalidatePath("/audiovisual");
-  revalidatePath("/calendario");
-  revalidateTag("calendar", "default");
+  revalidateAudiovisual();
+  return { success: true };
+}
+
+/**
+ * Marca uma captação pendente como "já gravada" — fecha sem precisar delegar.
+ * Útil quando a gravação aconteceu mas o coord esqueceu de delegar antes.
+ *
+ * - Apenas roles autorizados
+ * - Evento precisa estar em pending_delegation
+ * - Vira completed sem videomaker_assigned_id (sem rastreio de quem captou)
+ */
+export async function markCaptureAsRecordedAction(
+  formData: FormData,
+): Promise<ActionResult> {
+  const actor = await requireAuth();
+  if (!ROLES_COORD_DELEGATE.has(actor.role)) {
+    return { error: "Você não tem permissão pra fechar captação" };
+  }
+
+  const eventId = String(formData.get("event_id") ?? "");
+  if (!eventId) return { error: "Evento é obrigatório" };
+
+  const supabase = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+
+  const { data: event } = await sb
+    .from("calendar_events")
+    .select("id, titulo, sub_calendar, videomaker_status")
+    .eq("id", eventId)
+    .single();
+  if (!event) return { error: "Evento não encontrado" };
+  if (event.sub_calendar !== "videomakers") {
+    return { error: "Esse evento não é de videomaker" };
+  }
+  if (event.videomaker_status !== "pending_delegation") {
+    return { error: "Esse evento não está pendente" };
+  }
+
+  const { data: updated, error } = await sb
+    .from("calendar_events")
+    .update({ videomaker_status: "completed" })
+    .eq("id", eventId)
+    .select("id");
+  if (error) return { error: error.message };
+  if (!updated || updated.length === 0) {
+    return { error: "Não foi possível atualizar a captação. Recarregue e tente de novo." };
+  }
+
+  await logAudit({
+    entidade: "calendar_events",
+    entidade_id: eventId,
+    acao: "update",
+    dados_depois: { acao: "mark_recorded_without_delegation" } as Record<string, unknown>,
+    ator_id: actor.id,
+  });
+
+  await logActivityInternal(actor.id, "outro", {
+    entityType: "calendar_events",
+    entityId: eventId,
+    metadata: { acao: "mark_recorded_without_delegation", titulo: event.titulo },
+  });
+
+  revalidateAudiovisual();
+  return { success: true };
+}
+
+/**
+ * Exclui (hard delete) uma captação do calendário. Coord audiovisual + sócio/adm
+ * podem usar pra limpar solicitações duplicadas ou erradas.
+ *
+ * - Apenas roles autorizados
+ * - Capturas que referenciam o evento ficam com event_id=null (FK on delete set null)
+ */
+export async function deleteCaptureAction(
+  formData: FormData,
+): Promise<ActionResult> {
+  const actor = await requireAuth();
+  if (!ROLES_COORD_DELEGATE.has(actor.role)) {
+    return { error: "Você não tem permissão pra excluir captação" };
+  }
+
+  const eventId = String(formData.get("event_id") ?? "");
+  if (!eventId) return { error: "Evento é obrigatório" };
+
+  const supabase = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+
+  const { data: event } = await sb
+    .from("calendar_events")
+    .select("id, titulo, sub_calendar")
+    .eq("id", eventId)
+    .single();
+  if (!event) return { error: "Evento não encontrado" };
+  if (event.sub_calendar !== "videomakers") {
+    return { error: "Esse evento não é de videomaker" };
+  }
+
+  const { error } = await sb.from("calendar_events").delete().eq("id", eventId);
+  if (error) return { error: error.message };
+
+  await logAudit({
+    entidade: "calendar_events",
+    entidade_id: eventId,
+    acao: "delete",
+    dados_depois: { titulo: event.titulo } as Record<string, unknown>,
+    ator_id: actor.id,
+  });
+
+  revalidateAudiovisual();
+  return { success: true };
+}
+
+/**
+ * Cancela uma captação (delegada ou pendente). Libera o slot do videomaker
+ * (exclusion constraint só vale pra status=scheduled).
+ *
+ * - Apenas roles autorizados
+ * - Evento precisa estar em pending_delegation ou scheduled
+ * - Notifica o videomaker se já estava delegado
+ */
+export async function cancelCaptureAction(
+  formData: FormData,
+): Promise<ActionResult> {
+  const actor = await requireAuth();
+  if (!ROLES_COORD_DELEGATE.has(actor.role)) {
+    return { error: "Você não tem permissão pra cancelar captação" };
+  }
+
+  const eventId = String(formData.get("event_id") ?? "");
+  if (!eventId) return { error: "Evento é obrigatório" };
+
+  const supabase = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+
+  const { data: event } = await sb
+    .from("calendar_events")
+    .select("id, titulo, sub_calendar, videomaker_status, videomaker_assigned_id")
+    .eq("id", eventId)
+    .single();
+  if (!event) return { error: "Evento não encontrado" };
+  if (event.sub_calendar !== "videomakers") {
+    return { error: "Esse evento não é de videomaker" };
+  }
+  if (event.videomaker_status !== "pending_delegation" && event.videomaker_status !== "scheduled") {
+    return { error: "Esse evento não pode ser cancelado nesse estado" };
+  }
+
+  const { data: updated, error } = await sb
+    .from("calendar_events")
+    .update({ videomaker_status: "cancelled" })
+    .eq("id", eventId)
+    .select("id");
+  if (error) return { error: error.message };
+  if (!updated || updated.length === 0) {
+    return { error: "Não foi possível cancelar a captação. Recarregue e tente de novo." };
+  }
+
+  if (event.videomaker_assigned_id) {
+    await dispatchNotification({
+      evento_tipo: "task_assigned",
+      titulo: "Captação cancelada",
+      mensagem: `${actor.nome} cancelou "${event.titulo}"`,
+      link: `/calendario?event=${eventId}`,
+      user_ids_extras: [event.videomaker_assigned_id],
+      source_user_id: actor.id,
+    });
+  }
+
+  await logAudit({
+    entidade: "calendar_events",
+    entidade_id: eventId,
+    acao: "update",
+    dados_depois: { acao: "cancel_capture" } as Record<string, unknown>,
+    ator_id: actor.id,
+  });
+
+  await logActivityInternal(actor.id, "outro", {
+    entityType: "calendar_events",
+    entityId: eventId,
+    metadata: { acao: "cancel_capture", titulo: event.titulo },
+  });
+
+  revalidateAudiovisual();
+  return { success: true };
+}
+
+/**
+ * Reagenda uma captação: muda inicio/fim, limpa o videomaker e volta pra
+ * pending_delegation pra o coord re-delegar com a nova data.
+ *
+ * - Apenas roles autorizados
+ * - Evento precisa estar em scheduled ou pending_delegation
+ * - Inputs `inicio` e `fim` são wall-clock no fuso da app (datetime-local)
+ * - Se já estava delegado, notifica o videomaker antigo
+ */
+export async function rescheduleCaptureAction(
+  formData: FormData,
+): Promise<ActionResult> {
+  const actor = await requireAuth();
+  if (!ROLES_COORD_DELEGATE.has(actor.role)) {
+    return { error: "Você não tem permissão pra reagendar captação" };
+  }
+
+  const eventId = String(formData.get("event_id") ?? "");
+  const inicioInput = String(formData.get("inicio") ?? "");
+  const fimInput = String(formData.get("fim") ?? "");
+  if (!eventId) return { error: "Evento é obrigatório" };
+  if (!inicioInput || !fimInput) {
+    return { error: "Nova data e hora são obrigatórias" };
+  }
+
+  let inicio: string;
+  let fim: string;
+  try {
+    inicio = brtInputToUtcIso(inicioInput);
+    fim = brtInputToUtcIso(fimInput);
+  } catch {
+    return { error: "Formato de data/hora inválido" };
+  }
+  if (new Date(fim).getTime() <= new Date(inicio).getTime()) {
+    return { error: "Fim precisa ser depois do início" };
+  }
+
+  const supabase = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+
+  const { data: event } = await sb
+    .from("calendar_events")
+    .select("id, titulo, sub_calendar, videomaker_status, videomaker_assigned_id")
+    .eq("id", eventId)
+    .single();
+  if (!event) return { error: "Evento não encontrado" };
+  if (event.sub_calendar !== "videomakers") {
+    return { error: "Esse evento não é de videomaker" };
+  }
+  if (event.videomaker_status !== "pending_delegation" && event.videomaker_status !== "scheduled") {
+    return { error: "Esse evento não pode ser reagendado nesse estado" };
+  }
+
+  const { data: updated, error } = await sb
+    .from("calendar_events")
+    .update({
+      inicio,
+      fim,
+      videomaker_status: "pending_delegation",
+      videomaker_assigned_id: null,
+      videomaker_delegado_por: null,
+      videomaker_delegado_em: null,
+    })
+    .eq("id", eventId)
+    .select("id");
+  if (error) return { error: error.message };
+  if (!updated || updated.length === 0) {
+    return { error: "Não foi possível reagendar. Recarregue e tente de novo." };
+  }
+
+  if (event.videomaker_assigned_id) {
+    await dispatchNotification({
+      evento_tipo: "task_assigned",
+      titulo: "Captação reagendada",
+      mensagem: `${actor.nome} reagendou "${event.titulo}". Aguarde nova delegação.`,
+      link: `/calendario?event=${eventId}`,
+      user_ids_extras: [event.videomaker_assigned_id],
+      source_user_id: actor.id,
+    });
+  }
+
+  await logAudit({
+    entidade: "calendar_events",
+    entidade_id: eventId,
+    acao: "update",
+    dados_depois: { acao: "reschedule_capture", novo_inicio: inicio, novo_fim: fim } as Record<string, unknown>,
+    ator_id: actor.id,
+  });
+
+  await logActivityInternal(actor.id, "outro", {
+    entityType: "calendar_events",
+    entityId: eventId,
+    metadata: { acao: "reschedule_capture", titulo: event.titulo },
+  });
+
+  revalidateAudiovisual();
   return { success: true };
 }
