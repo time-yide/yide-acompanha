@@ -7,6 +7,7 @@ import {
   listScheduledFutureCaptures,
   listVideomakersAtivos,
   listScheduledByVideomaker,
+  listAudiovisualCoords,
 } from "@/lib/audiovisual/coord-queries";
 import { canRoleDelegateVideomaker, canRoleViewCoord } from "@/lib/audiovisual/coord-roles";
 import { AguardandoVideomakerAba } from "@/components/audiovisual/AguardandoVideomakerAba";
@@ -27,10 +28,11 @@ export default async function CoordenacaoAudiovisualPage({
 
   const unitClientIds = await getClientIdsForActiveUnit();
 
-  const [pending, scheduled, videomakers] = await Promise.all([
+  const [pending, scheduled, videomakers, coords] = await Promise.all([
     listPendingDelegations(unitClientIds),
     listScheduledFutureCaptures(unitClientIds),
     listVideomakersAtivos(),
+    listAudiovisualCoords(),
   ]);
 
   const scheduledMap = await listScheduledByVideomaker(
@@ -71,6 +73,7 @@ export default async function CoordenacaoAudiovisualPage({
         pending={pending}
         scheduled={scheduled}
         videomakers={videomakers}
+        coords={coords}
         scheduledByVideomaker={scheduledByVideomaker}
         canDelegate={canDelegate}
       />
