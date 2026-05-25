@@ -2709,6 +2709,7 @@ export type Database = {
         | "estrategia"
         | "audiovisual"
         | "yide_360"
+        | "ecommerce"
         | "site"
         | "ia"
         | "crm"
@@ -2949,6 +2950,7 @@ export const Constants = {
         "estrategia",
         "audiovisual",
         "yide_360",
+        "ecommerce",
         "site",
         "ia",
         "crm",
