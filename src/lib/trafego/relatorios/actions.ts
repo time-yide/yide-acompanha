@@ -12,7 +12,10 @@ import { logAudit } from "@/lib/audit/log";
 import {
   criarRelatorioSchema,
   excluirRelatorioSchema,
+  atualizarSlideSchema,
+  publicarRelatorioSchema,
 } from "./schema";
+import { isValidSlide } from "./tipos";
 import { fetchDadosMeta } from "./meta-fetch";
 import { SYSTEM_PROMPT, buildUserPrompt } from "./prompt";
 import { LineDelimitedSlideParser } from "./stream-parser";
@@ -244,4 +247,104 @@ export async function excluirRelatorioAction(formData: FormData): Promise<Action
   revalidateTag(RELATORIOS_TRAFEGO_LIST_TAG, "default");
   revalidatePath("/trafego/relatorios");
   return { success: true };
+}
+
+export async function atualizarSlideAction(formData: FormData): Promise<ActionErr | { success: true }> {
+  const actor = await requireAuth();
+  if (!canAccess(actor.role, "manage:trafego_relatorios")) {
+    return { error: "Sem permissão" };
+  }
+  const parsed = atualizarSlideSchema.safeParse({
+    id: formData.get("id"),
+    index: formData.get("index"),
+    slide: JSON.parse(String(formData.get("slide") ?? "null")),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  if (!isValidSlide(parsed.data.slide)) return { error: "Slide inválido" };
+
+  const supabase = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const { data: rel } = await sb
+    .from("trafego_relatorios")
+    .select("slides")
+    .eq("id", parsed.data.id)
+    .single();
+  if (!rel) return { error: "Não encontrado" };
+
+  const slides = ((rel as { slides: Slide[] }).slides ?? []).slice();
+  if (parsed.data.index < 0 || parsed.data.index >= slides.length) {
+    return { error: "Índice fora do range" };
+  }
+  slides[parsed.data.index] = parsed.data.slide;
+
+  const { error } = await sb
+    .from("trafego_relatorios")
+    .update({ slides })
+    .eq("id", parsed.data.id);
+  if (error) return { error: error.message };
+
+  revalidatePath(`/trafego/relatorios/${parsed.data.id}`);
+  return { success: true };
+}
+
+export async function publicarRelatorioAction(formData: FormData): Promise<ActionErr | { success: true }> {
+  const actor = await requireAuth();
+  if (!canAccess(actor.role, "manage:trafego_relatorios")) {
+    return { error: "Sem permissão" };
+  }
+  const parsed = publicarRelatorioSchema.safeParse({ id: formData.get("id") });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const supabase = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const { data: before } = await sb
+    .from("trafego_relatorios")
+    .select("cliente_id, status, pdf_storage_path")
+    .eq("id", parsed.data.id)
+    .single();
+  if (!before) return { error: "Não encontrado" };
+
+  const b = before as { cliente_id: string; status: string; pdf_storage_path: string | null };
+  if (b.status !== "pronta") return { error: "Gere os slides antes de publicar" };
+  if (!b.pdf_storage_path) return { error: "Gere o PDF antes de publicar" };
+
+  const { error } = await sb
+    .from("trafego_relatorios")
+    .update({ publicado_em: new Date().toISOString() })
+    .eq("id", parsed.data.id);
+  if (error) return { error: error.message };
+
+  await logAudit({
+    entidade: "trafego_relatorios",
+    entidade_id: parsed.data.id,
+    acao: "update",
+    dados_depois: { publicado: true },
+    ator_id: actor.id,
+  });
+
+  revalidateTag(`${RELATORIO_TRAFEGO_TAG_PREFIX}${b.cliente_id}`, "default");
+  revalidatePath(`/trafego/relatorios/${parsed.data.id}`);
+  return { success: true };
+}
+
+export async function baixarPdfAction(id: string): Promise<ActionErr | { url: string }> {
+  const actor = await requireAuth();
+  if (!canAccess(actor.role, "manage:trafego_relatorios")) return { error: "Sem permissão" };
+  const supabase = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const { data: rel } = await sb
+    .from("trafego_relatorios")
+    .select("pdf_storage_path")
+    .eq("id", id)
+    .single();
+  const path = (rel as { pdf_storage_path: string | null } | null)?.pdf_storage_path;
+  if (!path) return { error: "PDF ainda não gerado" };
+  const { data: signed } = await supabase.storage
+    .from("relatorios-trafego")
+    .createSignedUrl(path, 300);
+  if (!signed?.signedUrl) return { error: "Falha ao gerar link" };
+  return { url: signed.signedUrl };
 }
