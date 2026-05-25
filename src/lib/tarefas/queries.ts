@@ -112,6 +112,19 @@ export function filterTasksByPrazo<T extends { due_date: string | null }>(
   });
 }
 
+/**
+ * Dado "YYYY-MM", retorna intervalo half-open [start, end) em ISO date
+ * pra usar em queries de DATE. Trata virada de ano (Dezembro → Janeiro).
+ */
+export function monthRangeIso(mes: string): { start: string; end: string } {
+  const [y, m] = mes.split("-").map(Number);
+  const start = `${mes}-01`;
+  const nextMonth = m === 12 ? 1 : m + 1;
+  const nextYear = m === 12 ? y + 1 : y;
+  const end = `${nextYear}-${String(nextMonth).padStart(2, "0")}-01`;
+  return { start, end };
+}
+
 export interface TaskFilters {
   status?: TaskStatus[];
   atribuidoA?: string;
@@ -124,6 +137,11 @@ export interface TaskFilters {
    *  não-vazio, filtra tasks pra somente esses clients. Vazio = nenhum
    *  cliente na unidade (esconde tudo). null/undefined = sem filtro. */
   unitClientIds?: string[] | null;
+  /**
+   * Filtro por mês de vencimento (due_date), formato "YYYY-MM". Tarefas
+   * sem due_date ficam de fora quando este filtro está ativo.
+   */
+  mes?: string;
 }
 
 async function _listTasksImpl(filters?: TaskFilters): Promise<TaskRow[]> {
@@ -172,6 +190,13 @@ async function _listTasksImpl(filters?: TaskFilters): Promise<TaskRow[]> {
     const safe = filters.q.trim().replace(/[%_]/g, (m) => `\\${m}`);
     query = query.ilike("titulo", `%${safe}%`);
   }
+  if (filters?.mes && /^\d{4}-\d{2}$/.test(filters.mes)) {
+    // due_date é DATE no banco. Filtra pelo intervalo [YYYY-MM-01, YYYY-MM+1-01).
+    // Tarefas sem due_date ficam de fora — comportamento esperado quando o
+    // usuário pede "tarefas desse mês".
+    const { start, end } = monthRangeIso(filters.mes);
+    query = query.gte("due_date", start).lt("due_date", end);
+  }
 
   const { data, error } = await query;
   if (error) throw error;
@@ -192,7 +217,8 @@ export async function listTasks(filters?: TaskFilters): Promise<TaskRow[]> {
       return _listTasksImpl(f);
     },
     // v5: filtros ganharam unitClientIds (multi-tenant)
-    ["tarefas-list-v5"],
+    // v6: filtro de mês (due_date) adicionado
+    ["tarefas-list-v6"],
     { revalidate: 60, tags: ["tasks"] },
   );
   return cached(JSON.stringify(filters ?? null));

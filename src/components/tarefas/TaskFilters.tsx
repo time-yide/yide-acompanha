@@ -45,6 +45,24 @@ export function TaskFilters({ profiles, clientes, showAtribuido }: Props) {
   const prioridade = params.get("prioridade") ?? "qualquer";
   const clientId = params.get("client") ?? "qualquer";
   const atribuido = params.get("atribuido") ?? "qualquer";
+  const mes = params.get("mes") ?? "qualquer";
+
+  // Últimos 12 meses + próximos 3 (pra ver tarefas com prazo futuro).
+  // Gerado client-side mas o conteúdo é determinístico pelo mês corrente —
+  // hidrata sem mismatch porque o servidor renderiza com o mesmo `new Date()`.
+  const mesOptions = (() => {
+    const opts: { value: string; label: string }[] = [];
+    const now = new Date();
+    for (let i = 3; i >= -11; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const label = d.toLocaleDateString("pt-BR", { month: "short", year: "numeric" })
+        .replace(".", "")
+        .replace(/^./, (c) => c.toUpperCase());
+      opts.push({ value, label });
+    }
+    return opts;
+  })();
 
   return (
     <div className="flex flex-wrap items-end gap-3">
@@ -81,6 +99,19 @@ export function TaskFilters({ profiles, clientes, showAtribuido }: Props) {
             <SelectItem value="alta">Alta</SelectItem>
             <SelectItem value="media">Média</SelectItem>
             <SelectItem value="baixa">Baixa</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-1">
+        <Label className="text-[11px]">Mês (prazo)</Label>
+        <Select value={mes} onValueChange={(v) => setParam("mes", v)}>
+          <SelectTrigger className="h-8 w-36"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="qualquer">Qualquer</SelectItem>
+            {mesOptions.map((o) => (
+              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>

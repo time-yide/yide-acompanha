@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 // Stub server-side modules so env validation doesn't run at import time
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 
-import { sortTasks, filterTasksByPrazo } from "@/lib/tarefas/queries";
+import { sortTasks, filterTasksByPrazo, monthRangeIso } from "@/lib/tarefas/queries";
 
 const baseTask = {
   id: "t",
@@ -95,5 +95,28 @@ describe("filterTasksByPrazo", () => {
       { ...baseTask, id: "c", due_date: "2099-12-31" },
     ];
     expect(filterTasksByPrazo(tasks, "qualquer", today)).toHaveLength(3);
+  });
+});
+
+describe("monthRangeIso", () => {
+  it("retorna intervalo do dia 1 até o dia 1 do próximo mês", () => {
+    expect(monthRangeIso("2026-05")).toEqual({
+      start: "2026-05-01",
+      end: "2026-06-01",
+    });
+  });
+
+  it("trata virada de ano (Dez → Jan do próximo ano)", () => {
+    expect(monthRangeIso("2026-12")).toEqual({
+      start: "2026-12-01",
+      end: "2027-01-01",
+    });
+  });
+
+  it("padroniza zero-padding em mês de 1 dígito (Janeiro)", () => {
+    expect(monthRangeIso("2026-01")).toEqual({
+      start: "2026-01-01",
+      end: "2026-02-01",
+    });
   });
 });
