@@ -1,5 +1,6 @@
 // src/lib/instagram-snapshots/queries.ts
 import "server-only";
+import { unstable_noStore as noStore } from "next/cache";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import type { SnapshotRow, PostRecente } from "./tipos";
 import { PACOTES_ELEGIVEIS } from "./tipos";
@@ -23,6 +24,9 @@ export async function listClientesComUltimoSnapshot(opts: {
   unitId?: string | null;
   assessorId?: string | null;
 }): Promise<ClienteComSnapshot[]> {
+  // Sem cache: muda de tipo_pacote na ficha do cliente reflete na próxima
+  // renderização do dashboard sem precisar esperar revalidação automática.
+  noStore();
   const supabase = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;

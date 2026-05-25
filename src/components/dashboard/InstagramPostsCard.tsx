@@ -12,7 +12,6 @@ import { refreshSnapshotsAction } from "@/lib/instagram-snapshots/actions";
 import { computeCounts } from "@/lib/instagram-snapshots/counts";
 import type { ClienteComSnapshot } from "@/lib/instagram-snapshots/queries";
 import type { PostRecente, ScrapeStatus, CountsBucket } from "@/lib/instagram-snapshots/tipos";
-import { tipoPacoteBadge, type TipoPacote } from "@/lib/painel/pacote-matrix";
 
 function timeAgo(iso: string): string {
   const ms = Date.now() - new Date(iso).getTime();
@@ -235,7 +234,6 @@ export function InstagramPostsCard({
               <th className="px-4 py-2">
                 <SortHeader label="Cliente" k="nome" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort} />
               </th>
-              <th className="px-3 py-2">Pacote</th>
               {!esconderFiltroAssessor && <th className="px-4 py-2">Assessor</th>}
               <th className="px-3 py-2 text-right">
                 <SortHeader label="Hoje" k="hoje" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort} align="right" />
@@ -253,7 +251,7 @@ export function InstagramPostsCard({
           <tbody className="divide-y">
             {visiveis.length === 0 && (
               <tr>
-                <td colSpan={esconderFiltroAssessor ? 7 : 8} className="px-4 py-8 text-center text-xs text-muted-foreground">
+                <td colSpan={esconderFiltroAssessor ? 6 : 7} className="px-4 py-8 text-center text-xs text-muted-foreground">
                   Nenhum cliente bate com o filtro.
                 </td>
               </tr>
@@ -313,8 +311,7 @@ function ClienteRow({
   const mesCor = counts ? corPorVolumeMes(counts.mes) : "text-muted-foreground/40";
   const [expanded, setExpanded] = useState(false);
   const hasError = !counts && snap && c.status !== "no_url";
-  const colSpan = hideAssessor ? 7 : 8;
-  const badge = tipoPacoteBadge(c.tipo_pacote as TipoPacote);
+  const colSpan = hideAssessor ? 6 : 7;
 
   return (
     <>
@@ -340,12 +337,6 @@ function ClienteRow({
             </a>
           )}
         </div>
-      </td>
-
-      <td className="px-3 py-2">
-        <span className={`inline-block whitespace-nowrap rounded border px-1.5 py-0.5 text-[10px] font-medium ${badge.classes}`}>
-          {badge.label}
-        </span>
       </td>
 
       {!hideAssessor && (
