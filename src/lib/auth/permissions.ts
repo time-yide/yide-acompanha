@@ -49,6 +49,8 @@ export type Action =
   | "customize:notification_recipients"
   // Satisfação
   | "feed:satisfaction"
+  // Tráfego
+  | "manage:trafego_relatorios"
   // Sistema
   | "system:support";
 
@@ -63,6 +65,7 @@ const matrix: Record<Role, Action[]> = {
     "approve:monthly_closing",
     "create:tasks", "create:calendar_event", "customize:notification_recipients",
     "feed:satisfaction",
+    "manage:trafego_relatorios",
   ],
   adm: [
     "manage:users", "edit:colaboradores",
@@ -73,6 +76,7 @@ const matrix: Record<Role, Action[]> = {
     "kanban:move_contrato_to_marco_zero", "kanban:move_marco_zero_to_ativo",
     "create:tasks", "create:calendar_event", "customize:notification_recipients",
     "system:support",
+    "manage:trafego_relatorios",
   ],
   comercial: [
     "view:all_clients",
@@ -87,12 +91,14 @@ const matrix: Record<Role, Action[]> = {
     "kanban:move_marco_zero_to_ativo",
     "create:tasks", "create:calendar_event", "customize:notification_recipients",
     "feed:satisfaction",
+    "manage:trafego_relatorios",
   ],
   assessor: [
     "view:all_clients",
     "view:own_commission",
     "create:tasks", "create:calendar_event", "customize:notification_recipients",
     "feed:satisfaction",
+    "manage:trafego_relatorios",
   ],
   videomaker: [
     "view:all_clients",

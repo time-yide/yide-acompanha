@@ -193,6 +193,135 @@ export async function getCampaignInsights(
   return out;
 }
 
+// ─── Insights agregados (para relatórios mensais) ───────────────────────────
+
+export interface MetaAccountInsightsAggregate {
+  spend: number;
+  impressions?: number;
+  reach?: number;
+  clicks?: number;
+  ctr?: number;
+  cpc?: number;
+  /** Conversões (offsite_conversions e on-site combined). Não vem direto da API
+   * agregada, populada via `actions` quando disponível. */
+  conversions?: number;
+  cost_per_conversion?: number;
+  /** Leads (action_type = "lead"). */
+  leads?: number;
+  cost_per_lead?: number;
+}
+
+interface AggregateInsightsRow {
+  spend?: string;
+  impressions?: string;
+  reach?: string;
+  clicks?: string;
+  ctr?: string;
+  cpc?: string;
+  actions?: Array<{ action_type: string; value: string }>;
+  cost_per_action_type?: Array<{ action_type: string; value: string }>;
+}
+
+interface AggregateInsightsResponse {
+  data: AggregateInsightsRow[];
+}
+
+function pickAction(rows: Array<{ action_type: string; value: string }> | undefined, types: string[]): number | undefined {
+  if (!rows) return undefined;
+  let total = 0;
+  let any = false;
+  for (const r of rows) {
+    if (types.includes(r.action_type)) {
+      const n = Number(r.value);
+      if (Number.isFinite(n)) { total += n; any = true; }
+    }
+  }
+  return any ? total : undefined;
+}
+
+/** Insights agregados (única linha) da conta inteira pra um range de datas. */
+export async function getAccountInsights(
+  adAccountId: string,
+  sinceISO: string,
+  untilISO: string,
+): Promise<MetaAccountInsightsAggregate> {
+  const account = normalizeAdAccountId(adAccountId);
+  const fields = [
+    "spend", "impressions", "reach", "clicks", "ctr", "cpc",
+    "actions", "cost_per_action_type",
+  ].join(",");
+  const params: Record<string, string> = {
+    fields,
+    time_range: JSON.stringify({ since: sinceISO, until: untilISO }),
+    level: "account",
+    limit: "1",
+  };
+  const res: AggregateInsightsResponse = await metaFetch(`/${account}/insights`, params);
+  const row = res.data[0];
+  if (!row) return { spend: 0 };
+
+  const conversions = pickAction(row.actions, ["offsite_conversion", "purchase", "complete_registration"]);
+  const leads = pickAction(row.actions, ["lead", "leadgen.other"]);
+  const cost_per_conversion = pickAction(row.cost_per_action_type, ["offsite_conversion", "purchase", "complete_registration"]);
+  const cost_per_lead = pickAction(row.cost_per_action_type, ["lead", "leadgen.other"]);
+
+  return {
+    spend: row.spend ? Number(row.spend) : 0,
+    impressions: row.impressions ? Number(row.impressions) : undefined,
+    reach: row.reach ? Number(row.reach) : undefined,
+    clicks: row.clicks ? Number(row.clicks) : undefined,
+    ctr: row.ctr ? Number(row.ctr) : undefined,
+    cpc: row.cpc ? Number(row.cpc) : undefined,
+    conversions,
+    cost_per_conversion,
+    leads,
+    cost_per_lead,
+  };
+}
+
+export interface MetaTopCampaign {
+  name: string;
+  spend: number;
+  /** Resultados consolidados (conversions ou leads, o que tiver mais relevância). */
+  results?: number;
+}
+
+interface CampaignInsightsRow {
+  campaign_name?: string;
+  spend?: string;
+  actions?: Array<{ action_type: string; value: string }>;
+}
+
+interface CampaignInsightsResponse {
+  data: CampaignInsightsRow[];
+}
+
+/** Top campanhas por spend (limite default 5) no range. */
+export async function getTopCampaigns(
+  adAccountId: string,
+  sinceISO: string,
+  untilISO: string,
+  limit = 5,
+): Promise<MetaTopCampaign[]> {
+  const account = normalizeAdAccountId(adAccountId);
+  const fields = ["campaign_name", "spend", "actions"].join(",");
+  const params: Record<string, string> = {
+    fields,
+    time_range: JSON.stringify({ since: sinceISO, until: untilISO }),
+    level: "campaign",
+    sort: "spend_descending",
+    limit: String(Math.max(1, Math.min(limit, 25))),
+  };
+  const res: CampaignInsightsResponse = await metaFetch(`/${account}/insights`, params);
+  return res.data
+    .filter((r) => r.campaign_name)
+    .map((r) => ({
+      name: r.campaign_name!,
+      spend: r.spend ? Number(r.spend) : 0,
+      results: pickAction(r.actions, ["lead", "leadgen.other", "offsite_conversion", "purchase"]),
+    }));
+}
+
 /** Helper pra checar se a integração tá funcional (token + ad account válidos). */
 export async function pingAdAccount(adAccountId: string): Promise<{ ok: true; name: string } | { ok: false; error: string }> {
   try {
