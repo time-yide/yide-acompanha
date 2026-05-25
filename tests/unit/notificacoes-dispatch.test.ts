@@ -42,6 +42,11 @@ vi.mock("@/lib/env", () => ({
   getServerEnv: () => ({ NEXT_PUBLIC_APP_URL: "https://test.local" }),
 }));
 
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
+  revalidateTag: vi.fn(),
+}));
+
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 
 beforeEach(() => {

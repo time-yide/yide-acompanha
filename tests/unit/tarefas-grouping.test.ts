@@ -51,8 +51,8 @@ describe("prazoUrgency", () => {
 });
 
 describe("formatPrazoLabel", () => {
-  it("retorna '—' pra null", () => {
-    expect(formatPrazoLabel(null, TODAY)).toBe("—");
+  it("retorna '-' pra null", () => {
+    expect(formatPrazoLabel(null, TODAY)).toBe("-");
   });
   it("retorna 'Hoje' pra hoje", () => {
     expect(formatPrazoLabel(TODAY_ISO, TODAY)).toBe("Hoje");

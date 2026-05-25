@@ -64,14 +64,16 @@ describe("agendarReuniaoAction", () => {
     const fd = new FormData();
     fd.set("lead_id", "00000000-0000-0000-0000-000000000000");
     fd.set("tipo", "prospeccao_agendada");
-    fd.set("data_hora", "2026-05-01T10:00:00Z");
+    // `data_hora` chega no formato datetime-local (wall-clock Cuiabá UTC-4).
+    fd.set("data_hora", "2026-05-01T10:00");
     fd.set("descricao", "Apresentação inicial");
 
     const r = await agendarReuniaoAction(fd);
     expect(r).toEqual(expect.objectContaining({ success: true }));
     expect(insertEventoMock).toHaveBeenCalled();
+    // Action converte pra UTC interpretando no fuso da app (+4h).
     expect(updateMock).toHaveBeenCalledWith(
-      expect.objectContaining({ data_prospeccao_agendada: "2026-05-01T10:00:00Z" }),
+      expect.objectContaining({ data_prospeccao_agendada: "2026-05-01T14:00:00.000Z" }),
     );
   });
 
@@ -100,12 +102,13 @@ describe("agendarReuniaoAction", () => {
     const fd = new FormData();
     fd.set("lead_id", "00000000-0000-0000-0000-000000000000");
     fd.set("tipo", "marco_zero");
-    fd.set("data_hora", "2026-05-15T14:00:00Z");
+    // `data_hora` chega no formato datetime-local (wall-clock Cuiabá UTC-4).
+    fd.set("data_hora", "2026-05-15T14:00");
 
     const r = await agendarReuniaoAction(fd);
     expect(r).toEqual(expect.objectContaining({ success: true }));
     expect(updateMock).toHaveBeenCalledWith(
-      expect.objectContaining({ data_reuniao_marco_zero: "2026-05-15T14:00:00Z" }),
+      expect.objectContaining({ data_reuniao_marco_zero: "2026-05-15T18:00:00.000Z" }),
     );
   });
 });

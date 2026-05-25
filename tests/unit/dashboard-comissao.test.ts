@@ -6,6 +6,13 @@ vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({ from: fromMock }),
 }));
 
+// getComissaoPrevista usa service-role (colunas sensíveis REVOKEadas do
+// role authenticated). Aponta pro mesmo fromMock pra reuso dos mocks
+// por-tabela já definidos em cada teste.
+vi.mock("@/lib/supabase/service-role", () => ({
+  createServiceRoleClient: () => ({ from: fromMock }),
+}));
+
 import { getComissaoPrevista } from "@/lib/dashboard/comissao-prevista";
 
 beforeEach(() => {
@@ -30,11 +37,13 @@ describe("getComissaoPrevista", () => {
         return {
           select: () => ({
             eq: () => ({
-              eq: vi.fn().mockResolvedValue({
-                data: [
-                  { id: "c1", valor_mensal: 5000, data_entrada: "2025-01-01" },
-                  { id: "c2", valor_mensal: 4000, data_entrada: "2025-06-01" },
-                ],
+              is: () => ({
+                eq: vi.fn().mockResolvedValue({
+                  data: [
+                    { id: "c1", valor_mensal: 5000, data_entrada: "2025-01-01" },
+                    { id: "c2", valor_mensal: 4000, data_entrada: "2025-06-01" },
+                  ],
+                }),
               }),
             }),
           }),
@@ -68,11 +77,13 @@ describe("getComissaoPrevista", () => {
         return {
           select: () => ({
             eq: () => ({
-              eq: vi.fn().mockResolvedValue({
-                data: [
-                  { id: "c1", valor_mensal: 5000, data_entrada: "2026-04-15" },
-                  { id: "c2", valor_mensal: 4000, data_entrada: "2025-01-01" },
-                ],
+              is: () => ({
+                eq: vi.fn().mockResolvedValue({
+                  data: [
+                    { id: "c1", valor_mensal: 5000, data_entrada: "2026-04-15" },
+                    { id: "c2", valor_mensal: 4000, data_entrada: "2025-01-01" },
+                  ],
+                }),
               }),
             }),
           }),
@@ -89,10 +100,8 @@ describe("getComissaoPrevista", () => {
     expect(r.baseCalculo).toBe(9000);
   });
 
-  it("calcula para coordenador filtrando por coordenador_id", async () => {
-    const eqClientesByCoord = vi.fn().mockResolvedValue({
-      data: [{ id: "c1", valor_mensal: 5000, data_entrada: "2025-01-01" }],
-    });
+  it("coordenador retorna apenas fixo (cálculo variável é pulado)", async () => {
+    // Sócio/coordenador foram movidos pra "só fixo" — variável não conta.
     fromMock.mockImplementation((table) => {
       if (table === "profiles") {
         return {
@@ -105,16 +114,13 @@ describe("getComissaoPrevista", () => {
           }),
         };
       }
-      if (table === "clients") {
-        return {
-          select: () => ({ eq: () => ({ eq: eqClientesByCoord }) }),
-        };
-      }
       return {};
     });
 
     const r = await getComissaoPrevista("co1", "coordenador", new Date(Date.UTC(2026, 3, 28)));
-    expect(r.valor).toBe(5250); // 5000 × 5% + 5000 fixo
+    expect(r.valor).toBe(5000);
+    expect(r.baseCalculo).toBe(0);
+    expect(r.percentual).toBe(0);
   });
 
   it("calcula para comercial: soma valor_proposto de leads fechados no mês × percentual + fixo", async () => {
@@ -135,12 +141,14 @@ describe("getComissaoPrevista", () => {
           select: () => ({
             eq: () => ({
               eq: () => ({
-                gte: () => ({
-                  lte: vi.fn().mockResolvedValue({
-                    data: [
-                      { id: "l1", valor_proposto: 50000, data_fechamento: "2026-04-10" },
-                      { id: "l2", valor_proposto: 30000, data_fechamento: "2026-04-20" },
-                    ],
+                is: () => ({
+                  gte: () => ({
+                    lte: vi.fn().mockResolvedValue({
+                      data: [
+                        { id: "l1", valor_proposto: 50000, data_fechamento: "2026-04-10" },
+                        { id: "l2", valor_proposto: 30000, data_fechamento: "2026-04-20" },
+                      ],
+                    }),
                   }),
                 }),
               }),
@@ -172,14 +180,22 @@ describe("getComissaoPrevista", () => {
       }
       if (table === "clients") {
         return {
-          select: () => ({ eq: () => ({ eq: vi.fn().mockResolvedValue({ data: [] }) }) }),
+          select: () => ({
+            eq: () => ({
+              is: () => ({
+                eq: vi.fn().mockResolvedValue({ data: [] }),
+              }),
+            }),
+          }),
         };
       }
       if (table === "leads") {
         return {
           select: () => ({
             eq: () => ({
-              eq: () => ({ gte: () => ({ lte: vi.fn().mockResolvedValue({ data: [] }) }) }),
+              eq: () => ({
+                is: () => ({ gte: () => ({ lte: vi.fn().mockResolvedValue({ data: [] }) }) }),
+              }),
             }),
           }),
         };

@@ -30,6 +30,7 @@ vi.mock("@/lib/audit/log", () => ({
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
+  revalidateTag: vi.fn(),
 }));
 
 import { atualizarSlideAction, excluirSlideAction } from "@/lib/apresenta-yide/actions";
