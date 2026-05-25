@@ -309,8 +309,12 @@ function ClienteRow({
   const hasUrl = !!c.instagram_url;
   const counts = c.counts;
   const mesCor = counts ? corPorVolumeMes(counts.mes) : "text-muted-foreground/40";
+  const [expanded, setExpanded] = useState(false);
+  const hasError = !counts && snap && c.status !== "no_url";
+  const colSpan = hideAssessor ? 6 : 7;
 
   return (
+    <>
     <tr className="group hover:bg-muted/30">
       <td className="px-4 py-2">
         <div className="flex items-center gap-2">
@@ -369,10 +373,16 @@ function ClienteRow({
         </td>
       ) : (
         <td colSpan={3} className="px-3 py-2 text-right">
-          <span className="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="inline-flex cursor-pointer items-center gap-1 text-xs text-amber-600 underline decoration-dotted underline-offset-2 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
+            title={snap?.erro ?? STATUS_LABEL[c.status]}
+          >
             <AlertTriangle className="h-3 w-3" />
             {STATUS_LABEL[c.status]}
-          </span>
+            <span className="text-[10px] opacity-60">({expanded ? "ocultar" : "detalhes"})</span>
+          </button>
         </td>
       )}
 
@@ -400,5 +410,51 @@ function ClienteRow({
         )}
       </td>
     </tr>
+    {hasError && expanded && (
+      <tr className="bg-amber-500/5">
+        <td colSpan={colSpan} className="border-l-2 border-amber-500/50 px-4 py-3">
+          <div className="space-y-2 text-xs">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-semibold text-amber-700 dark:text-amber-300">
+                Status:
+              </span>
+              <span className="rounded bg-amber-500/15 px-1.5 py-0.5 font-mono text-[10px] text-amber-700 dark:text-amber-300">
+                {snap!.scrape_status}
+              </span>
+            </div>
+            {snap!.erro && (
+              <div>
+                <span className="font-semibold text-foreground">Mensagem do Apify:</span>
+                <pre className="mt-1 max-h-32 overflow-auto rounded border bg-muted/30 p-2 font-mono text-[11px] text-muted-foreground">
+{snap!.erro}
+                </pre>
+              </div>
+            )}
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <span>URL cadastrada:</span>
+              <code className="rounded border bg-muted/30 px-1.5 py-0.5 text-[11px]">
+                {c.instagram_url ?? "—"}
+              </code>
+              {c.instagram_url && (
+                <a
+                  href={instagramHref(c.instagram_url)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  abrir →
+                </a>
+              )}
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              Causas comuns: perfil privado, perfil renomeado, URL com erro de digitação,
+              ou Apify temporariamente bloqueado. Tente atualizar de novo em alguns minutos
+              ou conferir a URL cadastrada na ficha do cliente.
+            </p>
+          </div>
+        </td>
+      </tr>
+    )}
+    </>
   );
 }
