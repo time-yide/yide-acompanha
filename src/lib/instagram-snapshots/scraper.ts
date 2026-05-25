@@ -9,6 +9,11 @@ const APIFY_BASE = "https://api.apify.com/v2";
 // o profile-scraper retorna fixo ~30 posts em latestPosts, ficando curto
 // pra contas que postam 1+ por dia (mês fica subestimado).
 const ACTOR_ID = "apify~instagram-scraper";
+// Fallback: alguns perfis (ex.: nazcasushi) o instagram-scraper retorna
+// no_items consistentemente, mesmo com perfil público. O profile-scraper
+// usa caminho diferente do Instagram e costuma funcionar nesses casos —
+// limitado a ~30 posts em latestPosts mas suficiente pra >90% das contas.
+const FALLBACK_ACTOR_ID = "apify~instagram-profile-scraper";
 // Quanto puxar por scrape. 100 cobre folgado mês inteiro de qualquer conta
 // (raramente passa de 60 posts/mês). Mais que isso vira gasto Apify sem retorno.
 const POSTS_LIMIT = 100;
@@ -195,12 +200,118 @@ async function scrapeOnce(username: string, token: string): Promise<ProfileSnaps
 }
 
 /**
+ * Shape do item retornado pelo apify/instagram-profile-scraper (fallback).
+ * Diferente do principal: vem 1 item por perfil com `latestPosts` aninhado.
+ */
+interface ApifyProfileItem {
+  username?: string;
+  postsCount?: number;
+  latestPosts?: Array<{
+    url?: string;
+    shortCode?: string;
+    timestamp?: string;
+    type?: string;
+    productType?: string;
+  }>;
+  error?: string;
+}
+
+/**
+ * Fallback usando profile-scraper. Mesma interface de retorno, mas
+ * usa shape e endpoint diferentes do actor principal. Cap de ~30 posts.
+ */
+async function scrapeOnceFallback(username: string, token: string): Promise<ProfileSnapshotResult> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
+  try {
+    const url = `${APIFY_BASE}/acts/${FALLBACK_ACTOR_ID}/run-sync-get-dataset-items?token=${encodeURIComponent(token)}`;
+    const resp = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        usernames: [username],
+      }),
+      signal: controller.signal,
+    });
+
+    if (resp.status === 429) {
+      return { status: "rate_limit", totalPosts: null, recentPosts: [], erro: "Rate limit Apify (fallback)" };
+    }
+    if (!resp.ok) {
+      const text = await resp.text().catch(() => "");
+      return {
+        status: "error",
+        totalPosts: null,
+        recentPosts: [],
+        erro: `HTTP ${resp.status} (fallback): ${text.slice(0, 200)}`,
+      };
+    }
+
+    const items = (await resp.json()) as ApifyProfileItem[];
+    if (!Array.isArray(items) || items.length === 0) {
+      return { status: "profile_not_found", totalPosts: null, recentPosts: [], erro: "no_items (fallback)" };
+    }
+
+    const profile = items[0];
+    if (profile.error) {
+      return { status: "profile_not_found", totalPosts: null, recentPosts: [], erro: profile.error };
+    }
+
+    const posts = profile.latestPosts ?? [];
+    const recentPosts: PostRecente[] = posts
+      .filter((p) => p.timestamp)
+      .map((p) => {
+        const u = p.url ?? (p.shortCode ? `https://www.instagram.com/p/${p.shortCode}/` : null);
+        if (!u) return null;
+        const tipo: PostType =
+          p.productType === "clips" ? "reel" :
+          p.type === "Video" && (!p.productType || p.productType === "clips") ? "reel" :
+          "feed";
+        return { url: u, timestamp: p.timestamp!, type: tipo };
+      })
+      .filter((p): p is PostRecente => p !== null);
+
+    return {
+      status: "ok",
+      totalPosts: profile.postsCount ?? null,
+      recentPosts,
+    };
+  } catch (err) {
+    const isAbort =
+      err instanceof Error &&
+      (err.name === "AbortError" || /aborted/i.test(err.message));
+    if (isAbort) {
+      return {
+        status: "error",
+        totalPosts: null,
+        recentPosts: [],
+        erro: `Apify (fallback) demorou mais de ${FETCH_TIMEOUT_MS / 1000}s pra responder.`,
+      };
+    }
+    return {
+      status: "error",
+      totalPosts: null,
+      recentPosts: [],
+      erro: err instanceof Error ? `${err.message} (fallback)` : `${String(err)} (fallback)`,
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
  * Faz scraping de UM perfil. Não persiste — só retorna o resultado.
  * Persistência é responsabilidade do caller (actions / cron).
  *
- * Re-tenta 1× automaticamente quando o 1º try cai em erro transitório
- * (no_items, timeout, 5xx, rate_limit). Casos como `profile_not_found`
- * por username errado NÃO re-tentam — seria gastar quota à toa.
+ * Estratégia:
+ *   1. instagram-scraper (até 100 posts)
+ *   2. Se transitório → retry após 3s
+ *   3. Se ainda transitório → fallback pra instagram-profile-scraper (até 30 posts)
+ *
+ * O fallback custa +1 chamada Apify (só quando os 2 tries do principal falham).
+ * Aceitável porque pra perfis que falham consistentemente no principal
+ * (caso da Nazca), é a única forma de retornar dado.
  */
 export async function fetchProfileSnapshot(
   instagramUrlOrUser: string | null | undefined,
@@ -227,7 +338,9 @@ export async function fetchProfileSnapshot(
   // Segunda chance — espera 3s pra dar tempo do estado do Apify estabilizar.
   await sleep(RETRY_DELAY_MS);
   const second = await scrapeOnce(username, token);
-  // Se o retry também falhou transitório, devolve o erro do 2º try
-  // (geralmente é a mesma mensagem, mas o user vê que a gente já tentou).
-  return second;
+  if (!isErroTransitorio(second)) return second;
+
+  // Último recurso: actor diferente. Caso da Nazca — instagram-scraper
+  // falha consistentemente mas profile-scraper consegue.
+  return scrapeOnceFallback(username, token);
 }
