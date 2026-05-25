@@ -19,6 +19,18 @@ const nextConfig: NextConfig = {
   // (libnss3.so etc) e o launch falha com "error while loading shared
   // libraries". Marca como externo pra ficar no node_modules como native dep.
   serverExternalPackages: ["@sparticuz/chromium", "puppeteer-core"],
+  // Vercel não traça automaticamente os arquivos .so / .br do
+  // @sparticuz/chromium — força inclusão na função que roda Puppeteer
+  // (geração de PDF é triggada via server action chamada da página
+  // /social-media/apresenta-yide/[id]).
+  outputFileTracingIncludes: {
+    "/social-media/apresenta-yide/[id]": [
+      "./node_modules/@sparticuz/chromium/**/*",
+    ],
+    "/social-media/apresenta-yide": [
+      "./node_modules/@sparticuz/chromium/**/*",
+    ],
+  },
   experimental: {
     serverActions: {
       bodySizeLimit: "2mb",
