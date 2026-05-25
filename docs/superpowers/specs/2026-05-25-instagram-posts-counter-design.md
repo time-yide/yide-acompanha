@@ -11,6 +11,12 @@ Hoje, sócios e assessores não têm visibilidade de quantos posts cada cliente 
 
 Adicionar no dashboard do **sócio** e do **assessor** uma seção que mostra, por cliente da carteira, **quantos posts no Instagram foram publicados hoje, nesta semana e neste mês**, com atualização automática diária (00:00 BRT/Cuiabá) e botão "Atualizar agora" sob demanda.
 
+## Escopo de clientes
+
+Só clientes com `tipo_pacote` IN (`yide_360`, `estrategia`, `trafego_estrategia`) entram na contagem. Clientes de `trafego`, `audiovisual`, `site`, `ia`, `crm`, `crm_ia` **não** aparecem na seção — o pacote deles não inclui postagem orgânica regular, então a contagem não faria sentido.
+
+Cliente com pacote elegível e sem `instagram_url` cadastrado aparece com badge "Cadastrar perfil".
+
 ## Não-objetivo
 
 - Postar pelo sistema (módulo `social-media` já existe pra isso, fora de escopo)
@@ -19,6 +25,7 @@ Adicionar no dashboard do **sócio** e do **assessor** uma seção que mostra, p
 - Outros assessores que não o logado verem carteira alheia (sócio sim, assessor não)
 - Análise por IA — apenas contagem agregada
 - Histórico longo de evolução (será só "última semana × penúltima semana" no v2)
+- Pacotes que não fazem postagem orgânica (tráfego puro, audiovisual, site, IA, CRM)
 
 ## Arquitetura
 
@@ -140,7 +147,7 @@ comment on table public.client_instagram_snapshots is
 ### 1. Cron diário (00:00 Cuiabá = 04:00 UTC)
 
 `POST /api/cron/instagram-snapshots` (Vercel cron):
-1. Lista todos `clients` ativos com `instagram_url IS NOT NULL`
+1. Lista clients ativos com `tipo_pacote IN ('yide_360','estrategia','trafego_estrategia')` E `instagram_url IS NOT NULL`
 2. Pra cada um, chama `fetchProfileSnapshot(url)` em batch de 5 paralelos (rate limit)
 3. Insere linha em `client_instagram_snapshots` com `triggered_by='cron'`
 4. Se cliente já tem snapshot há < 6h, pula (idempotência se cron disparar 2x)
@@ -149,8 +156,8 @@ comment on table public.client_instagram_snapshots is
 ### 2. Atualização sob demanda
 
 Botão "Atualizar contagens" no dashboard chama `refreshSnapshotsAction(clientIds)`:
-- Sócio: passa todos os clientes da unidade ativa (até 108)
-- Assessor: passa só os onde `assessor_id = self`
+- Sócio: passa todos os clientes elegíveis (pacote yide_360/estrategia/trafego_estrategia) da unidade ativa
+- Assessor: passa só os elegíveis onde `assessor_id = self`
 - **Cache de 1h**: se já tem snapshot há < 1h pra um client, **pula** (não bate no Apify)
 - Retorna `{ refreshed: 8, cached: 100, errors: 0 }`
 
@@ -216,11 +223,13 @@ Mapeamento de `type` Apify → nosso `type`:
 
 Apify Instagram Profile Scraper: ~$2,30/1000 perfis raspados.
 
-- Cron: 108 clientes × 30 dias = 3.240 scrapes/mês
-- Manual com cache 1h: ~1.200 scrapes/mês
-- **Total: ~4.500/mês × $0,0023 = ~$10/mês ≈ R$ 60/mês**
+Estimativa de clientes elegíveis: ~40-50 (yide_360 + estrategia + trafego_estrategia, fora de 108 total).
 
-Free tier Apify: $5/mês. Estouro: R$ 30 reais pagos.
+- Cron: 50 clientes × 30 dias = 1.500 scrapes/mês
+- Manual com cache 1h: ~500 scrapes/mês
+- **Total: ~2.000/mês × $0,0023 = ~$4,60/mês ≈ R$ 26/mês**
+
+Free tier Apify: $5/mês. Provavelmente **cabe inteiro no free tier** com a restrição de escopo.
 
 ## Edge cases
 
@@ -258,4 +267,5 @@ PR único — feature isolada, sem flag. Migration manual no Supabase após merg
 - Granularidade: 3 cortes simultâneos (hoje/semana/mês)
 - Cache: 1h (refresh em massa), 5min (refresh individual)
 - Escopo por role: sócio vê todos da unidade, assessor vê os próprios
+- Escopo por pacote: só `yide_360`, `estrategia` e `trafego_estrategia` (clientes que têm postagem orgânica)
 - Sem IA, sem análise, só contagem
