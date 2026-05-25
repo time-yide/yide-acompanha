@@ -43,4 +43,13 @@ describe("inferTipoPacote", () => {
   it('classifica "Yide 360" como yide_360', () => {
     expect(inferTipoPacote("Yide 360")).toBe("yide_360");
   });
+  it('classifica "E-commerce" como ecommerce (com hífen)', () => {
+    expect(inferTipoPacote("E-commerce")).toBe("ecommerce");
+  });
+  it('classifica "Ecommerce" como ecommerce (sem hífen)', () => {
+    expect(inferTipoPacote("Ecommerce")).toBe("ecommerce");
+  });
+  it('classifica "E commerce" como ecommerce (com espaço)', () => {
+    expect(inferTipoPacote("E commerce")).toBe("ecommerce");
+  });
 });
