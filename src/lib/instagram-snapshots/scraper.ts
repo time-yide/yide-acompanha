@@ -5,7 +5,9 @@ import type { PostRecente, PostType, ScrapeStatus } from "./tipos";
 
 const APIFY_BASE = "https://api.apify.com/v2";
 const ACTOR_ID = "apify~instagram-profile-scraper";
-const FETCH_TIMEOUT_MS = 60_000;
+// Apify às vezes demora 60-90s (retries internos do actor). 120s dá margem
+// sem virar problema no serverless (Vercel free aceita 300s em route handlers).
+const FETCH_TIMEOUT_MS = 120_000;
 
 export interface ProfileSnapshotResult {
   status: ScrapeStatus;
@@ -140,6 +142,18 @@ export async function fetchProfileSnapshot(
 
     return { status: "ok", totalPosts, recentPosts };
   } catch (err) {
+    // AbortError = nosso timeout local. Mensagem amigável + sugestão de retry.
+    const isAbort =
+      err instanceof Error &&
+      (err.name === "AbortError" || /aborted/i.test(err.message));
+    if (isAbort) {
+      return {
+        status: "error",
+        totalPosts: null,
+        recentPosts: [],
+        erro: `Apify demorou mais de ${FETCH_TIMEOUT_MS / 1000}s pra responder. Tente atualizar de novo em 1-2 min.`,
+      };
+    }
     return {
       status: "error",
       totalPosts: null,
