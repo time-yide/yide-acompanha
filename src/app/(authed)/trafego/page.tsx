@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, Megaphone } from "lucide-react";
+import { ArrowRight, FileText, Megaphone } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
+import { canAccess } from "@/lib/auth/permissions";
 import { listClientesTrafego } from "@/lib/trafego/queries";
 import { getEffectiveUnitId } from "@/lib/units/session";
 import { Card } from "@/components/ui/card";
@@ -48,7 +49,16 @@ export default async function TrafegoListPage({
             Campanhas ativas por cliente. Clica em um cliente pra criar/editar campanhas e ver métricas.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          {canAccess(user.role, "manage:trafego_relatorios") && (
+            <Link
+              href="/trafego/relatorios"
+              className="inline-flex h-9 items-center gap-2 rounded-md border bg-card px-3 text-sm font-medium hover:bg-muted"
+            >
+              <FileText className="h-4 w-4" />
+              Relatórios
+            </Link>
+          )}
           <KpiTile label="Clientes" value={clientes.length} />
           <KpiTile label="Campanhas ativas" value={totalAtivas} accent="emerald" />
           <KpiTile label="Total de campanhas" value={totalCampanhas} />
