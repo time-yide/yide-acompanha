@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { refreshSnapshotsAction } from "@/lib/instagram-snapshots/actions";
-import { computeCounts } from "@/lib/instagram-snapshots/counts";
+import { computeCounts, countPostsInMonth, monthBoundsCuiaba } from "@/lib/instagram-snapshots/counts";
 import type { ClienteComSnapshot } from "@/lib/instagram-snapshots/queries";
 import type { PostRecente, ScrapeStatus, CountsBucket } from "@/lib/instagram-snapshots/tipos";
 
@@ -74,20 +74,59 @@ export function InstagramPostsCard({
   const [assessorFilter, setAssessorFilter] = useState<string>("__todos__");
   const [sortKey, setSortKey] = useState<SortKey>("mes");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  // "__corrente__" = mês atual (default). Outros valores: "2026-04" pra abril 2026, etc.
+  const [mesAlvo, setMesAlvo] = useState<string>("__corrente__");
 
-  // Enriquece todos os clientes (uma vez, derivado).
+  // Lista dos últimos 12 meses pra dropdown (formato "YYYY-MM" → label "Abril 2026").
+  const mesesDisponiveis = useMemo(() => {
+    const arr: Array<{ value: string; label: string }> = [];
+    const now = new Date();
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const ano = d.getFullYear();
+      const mes = d.getMonth() + 1;
+      const value = `${ano}-${String(mes).padStart(2, "0")}`;
+      const label = d.toLocaleString("pt-BR", { month: "long", year: "numeric" });
+      arr.push({ value, label: label.charAt(0).toUpperCase() + label.slice(1) });
+    }
+    return arr;
+  }, []);
+
+  // Resolve qual é o mês alvo. Se "__corrente__", usa o mês atual.
+  const mesAlvoResolvido = useMemo(() => {
+    if (mesAlvo === "__corrente__") {
+      const now = new Date();
+      return { year: now.getFullYear(), month: now.getMonth() + 1, ehCorrente: true };
+    }
+    const [y, m] = mesAlvo.split("-").map(Number);
+    return { year: y, month: m, ehCorrente: false };
+  }, [mesAlvo]);
+
+  const mesHeader = useMemo(() => {
+    if (mesAlvoResolvido.ehCorrente) return "Mês";
+    const d = new Date(mesAlvoResolvido.year, mesAlvoResolvido.month - 1, 1);
+    const label = d.toLocaleString("pt-BR", { month: "short" });
+    return `${label.charAt(0).toUpperCase() + label.slice(1)}/${String(mesAlvoResolvido.year).slice(2)}`;
+  }, [mesAlvoResolvido]);
+
+  // Enriquece todos os clientes (recalcula quando o mês alvo muda).
   const enriched: ClienteEnriched[] = useMemo(() => {
     return clientes.map((c) => {
       const snap = c.ultimo_snapshot;
       const hasUrl = !!c.instagram_url;
       const status: ScrapeStatus = snap?.scrape_status ?? (hasUrl ? "ok" : "no_url");
-      const counts: CountsBucket | null =
-        snap && snap.scrape_status === "ok"
-          ? computeCounts(snap.recent_posts as PostRecente[])
-          : null;
-      return { ...c, counts, status };
+      if (!snap || snap.scrape_status !== "ok") {
+        return { ...c, counts: null, status };
+      }
+      const posts = snap.recent_posts as PostRecente[];
+      const base = computeCounts(posts);
+      // Sobrescreve o "mes" com a contagem do mês selecionado quando não for o corrente.
+      const mes = mesAlvoResolvido.ehCorrente
+        ? base.mes
+        : countPostsInMonth(posts, mesAlvoResolvido.year, mesAlvoResolvido.month);
+      return { ...c, counts: { ...base, mes }, status };
     });
-  }, [clientes]);
+  }, [clientes, mesAlvoResolvido]);
 
   // Lista de assessores únicos (pra dropdown).
   const assessores = useMemo(() => {
@@ -224,6 +263,20 @@ export function InstagramPostsCard({
             <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           </div>
         )}
+
+        <div className="relative">
+          <select
+            value={mesAlvo}
+            onChange={(e) => setMesAlvo(e.target.value)}
+            className="h-8 appearance-none rounded-md border bg-card pl-3 pr-7 text-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
+          >
+            <option value="__corrente__">Mês corrente</option>
+            {mesesDisponiveis.map((m) => (
+              <option key={m.value} value={m.value}>{m.label}</option>
+            ))}
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+        </div>
       </div>
 
       {/* Tabela */}
@@ -242,7 +295,7 @@ export function InstagramPostsCard({
                 <SortHeader label="Semana" k="semana" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort} align="right" />
               </th>
               <th className="px-3 py-2 text-right">
-                <SortHeader label="Mês" k="mes" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort} align="right" />
+                <SortHeader label={mesHeader} k="mes" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort} align="right" />
               </th>
               <th className="px-3 py-2 text-xs">Atualizado</th>
               <th className="px-3 py-2 w-12"></th>
@@ -263,6 +316,7 @@ export function InstagramPostsCard({
                 hideAssessor={esconderFiltroAssessor}
                 isRefreshing={refreshingId === c.cliente_id || refreshingId === "__all__"}
                 onRefresh={() => refreshUm(c.cliente_id)}
+                mesAlvo={mesAlvoResolvido}
               />
             ))}
           </tbody>
@@ -298,12 +352,13 @@ function SortHeader({
 }
 
 function ClienteRow({
-  c, hideAssessor, isRefreshing, onRefresh,
+  c, hideAssessor, isRefreshing, onRefresh, mesAlvo,
 }: {
   c: ClienteEnriched;
   hideAssessor: boolean;
   isRefreshing: boolean;
   onRefresh: () => void;
+  mesAlvo: { year: number; month: number; ehCorrente: boolean };
 }) {
   const snap = c.ultimo_snapshot;
   const hasUrl = !!c.instagram_url;
@@ -468,7 +523,7 @@ function ClienteRow({
     {counts && expanded && snap && (
       <tr className="bg-muted/20">
         <td colSpan={colSpan} className="border-l-2 border-pink-500/50 px-4 py-3">
-          <PostsContadosDetalhe snap={snap} counts={counts} />
+          <PostsContadosDetalhe snap={snap} counts={counts} mesAlvo={mesAlvo} />
         </td>
       </tr>
     )}
@@ -477,24 +532,22 @@ function ClienteRow({
 }
 
 function PostsContadosDetalhe({
-  snap, counts,
+  snap, counts, mesAlvo,
 }: {
   snap: NonNullable<ClienteEnriched["ultimo_snapshot"]>;
   counts: CountsBucket;
+  mesAlvo: { year: number; month: number; ehCorrente: boolean };
 }) {
   const todosPosts = snap.recent_posts ?? [];
   const now = new Date();
 
-  // Pra cada post, classifica em qual janela ele entra (mês corrente do fuso Cuiabá).
-  // Tabelinha: precisamos do dia 1 do mês em Cuiabá pra comparar.
-  const mesAtual = now.toLocaleString("pt-BR", { month: "long", timeZone: "America/Cuiaba" });
-  const anoAtual = now.toLocaleString("pt-BR", { year: "numeric", timeZone: "America/Cuiaba" });
+  // Label do mês alvo (do seletor — pode ser corrente ou histórico).
+  const dMesAlvo = new Date(mesAlvo.year, mesAlvo.month - 1, 1);
+  const mesAtual = dMesAlvo.toLocaleString("pt-BR", { month: "long" });
+  const anoAtual = String(mesAlvo.year);
 
-  // Calcula limites pra destacar
-  const partesAgora = new Date().toLocaleDateString("pt-BR", { timeZone: "America/Cuiaba" }).split("/");
-  const ano = parseInt(partesAgora[2], 10);
-  const mes = parseInt(partesAgora[1], 10);
-  const inicioMesUtc = new Date(`${ano}-${String(mes).padStart(2, "0")}-01T04:00:00.000Z`).getTime();
+  // Limites do mês alvo pra destacar posts na lista.
+  const { startUtcMs: inicioMesUtc, endUtcMs: fimMesUtc } = monthBoundsCuiaba(mesAlvo.year, mesAlvo.month);
 
   // Ordena por timestamp desc pra ver os mais recentes primeiro
   const ordenados = [...todosPosts].sort(
@@ -538,7 +591,9 @@ function PostsContadosDetalhe({
             <tbody className="divide-y">
               {ordenados.map((p, i) => {
                 const t = new Date(p.timestamp).getTime();
-                const dentroDoMes = t >= inicioMesUtc && t <= now.getTime();
+                // Pra mês corrente, limite superior é "agora". Pra histórico, é fim do mês.
+                const limiteSuperior = mesAlvo.ehCorrente ? Math.min(fimMesUtc, now.getTime()) : fimMesUtc;
+                const dentroDoMes = t >= inicioMesUtc && t < limiteSuperior;
                 return (
                   <tr
                     key={p.url ?? i}
