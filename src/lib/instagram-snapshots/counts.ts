@@ -57,5 +57,38 @@ export function computeCounts(posts: PostRecente[], now: Date = new Date()): Cou
   return { hoje, semana, mes };
 }
 
+/**
+ * Conta posts de um mês específico (YYYY-MM) no fuso da app.
+ * Permite pesquisar contagem de qualquer mês — não só o corrente.
+ */
+export function countPostsInMonth(
+  posts: PostRecente[],
+  year: number,
+  month: number, // 1-12
+): number {
+  const start = new Date(`${year}-${String(month).padStart(2, "0")}-01T04:00:00.000Z`).getTime();
+  // Próximo mês primeiro dia 00:00 Cuiabá
+  const nextMonth = month === 12 ? 1 : month + 1;
+  const nextYear = month === 12 ? year + 1 : year;
+  const end = new Date(`${nextYear}-${String(nextMonth).padStart(2, "0")}-01T04:00:00.000Z`).getTime();
+
+  let count = 0;
+  for (const p of posts) {
+    const t = new Date(p.timestamp).getTime();
+    if (Number.isNaN(t)) continue;
+    if (t >= start && t < end) count++;
+  }
+  return count;
+}
+
+/** Limites em UTC do mês YYYY-MM no fuso Cuiabá. Usado pra destacar posts visualmente. */
+export function monthBoundsCuiaba(year: number, month: number): { startUtcMs: number; endUtcMs: number } {
+  const startUtcMs = new Date(`${year}-${String(month).padStart(2, "0")}-01T04:00:00.000Z`).getTime();
+  const nextMonth = month === 12 ? 1 : month + 1;
+  const nextYear = month === 12 ? year + 1 : year;
+  const endUtcMs = new Date(`${nextYear}-${String(nextMonth).padStart(2, "0")}-01T04:00:00.000Z`).getTime();
+  return { startUtcMs, endUtcMs };
+}
+
 // Re-exporta pra debug/uso externo se precisar
 export { startOfDayCuiaba, startOfWeekCuiaba, startOfMonthCuiaba, APP_TIMEZONE };
