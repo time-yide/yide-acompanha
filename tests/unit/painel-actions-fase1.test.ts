@@ -13,7 +13,7 @@ vi.mock("@/lib/supabase/server", () => ({
 vi.mock("@/lib/notificacoes/dispatch", () => ({
   dispatchNotification: dispatchMock,
 }));
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
 
 import {
   setGmnDataAction,

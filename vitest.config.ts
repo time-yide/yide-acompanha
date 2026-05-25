@@ -7,12 +7,15 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
-    setupFiles: [],
+    setupFiles: ["./tests/setup.ts"],
     exclude: ["node_modules", "dist", ".idea", ".git", ".cache", "tests/e2e"],
   },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // Shims pra pacotes server-only que não resolvem no ambiente jsdom.
+      "server-only": path.resolve(__dirname, "./tests/__mocks__/server-only.ts"),
+      "web-push": path.resolve(__dirname, "./tests/__mocks__/web-push.ts"),
     },
   },
 });

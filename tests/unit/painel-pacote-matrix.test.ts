@@ -16,11 +16,11 @@ describe("PACOTE_COLUMNS", () => {
     }
   });
 
-  it("trafego não tem GMN nem audiovisual nem postagem", () => {
-    expect(PACOTE_COLUMNS.trafego.gmn).toBe(0);
-    expect(PACOTE_COLUMNS.trafego.camera).toBe(0);
+  it("trafego não tem crono, design, mobile nem postagem", () => {
+    // GMN, câmera e edição passaram a fazer parte do pacote trafego.
+    expect(PACOTE_COLUMNS.trafego.crono).toBe(0);
+    expect(PACOTE_COLUMNS.trafego.design).toBe(0);
     expect(PACOTE_COLUMNS.trafego.mobile).toBe(0);
-    expect(PACOTE_COLUMNS.trafego.edicao).toBe(0);
     expect(PACOTE_COLUMNS.trafego.pacote_postados).toBe(0);
   });
 
@@ -69,7 +69,7 @@ describe("isApplicable", () => {
   });
   it("retorna false quando não se aplica", () => {
     expect(isApplicable("audiovisual", "design")).toBe(false);
-    expect(isApplicable("trafego", "gmn")).toBe(false);
+    expect(isApplicable("trafego", "design")).toBe(false);
   });
 });
 

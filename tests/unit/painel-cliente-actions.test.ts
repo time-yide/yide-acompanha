@@ -23,6 +23,7 @@ vi.mock("@/lib/audit/log", () => ({
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
+  revalidateTag: vi.fn(),
 }));
 
 vi.mock("@/lib/auth/password-generator", () => ({
