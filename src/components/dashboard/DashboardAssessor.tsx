@@ -16,7 +16,18 @@ import { PainelAudiovisualSection } from "./audiovisual/PainelAudiovisualSection
 import { AlertaOnboardingAtrasadoSection } from "./AlertaOnboardingAtrasado";
 import { Section } from "./Section";
 import { HiddenValuesProvider, HiddenValueToggle } from "./HiddenValuesContext";
+import { InstagramPostsSection } from "./sections";
 import { Suspense } from "react";
+
+function ListSkeleton({ rows = 5 }: { rows?: number }) {
+  return (
+    <div className="space-y-2">
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="h-10 animate-pulse rounded bg-muted/50" />
+      ))}
+    </div>
+  );
+}
 
 interface Props {
   userId: string;
@@ -61,6 +72,13 @@ export async function DashboardAssessor({ userId, nome }: Props) {
             <ChartEntradaChurn data={entradaChurn} />
           </Section>
         </div>
+
+        <Suspense fallback={<ListSkeleton rows={5} />}>
+          <InstagramPostsSection
+            assessorId={userId}
+            titulo="Suas postagens no Instagram"
+          />
+        </Suspense>
 
         <Section title="Satisfação dos meus clientes" subtitle="Top 10 mais e menos satisfeitos da semana" cta={{ href: "/satisfacao", label: "Ver completo →" }}>
           <RankingResumo top={ranking.top} bottom={ranking.bottom} />

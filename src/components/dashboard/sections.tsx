@@ -25,6 +25,8 @@ import { ProximosEventosList } from "./ProximosEventosList";
 import { AlertaAprovacao } from "./AlertaAprovacao";
 import { RemuneracaoCard } from "./RemuneracaoCard";
 import { Section } from "./Section";
+import { InstagramPostsCard } from "./InstagramPostsCard";
+import { listClientesComUltimoSnapshot } from "@/lib/instagram-snapshots/queries";
 
 // Charts são "use client" - Next code-splita automaticamente por rota.
 // Tentei usar next/dynamic com ssr:false pra tirar do bundle inicial,
@@ -148,4 +150,25 @@ export async function RemuneracaoSection({ userId }: { userId: string }) {
 
 export function RemuneracaoSkeleton() {
   return <Skel className="h-32 sm:h-28" />;
+}
+
+/**
+ * Contagem de posts do Instagram por cliente.
+ * - Sócio/adm/coord: passa `assessorId=null` (vê todos da unidade).
+ * - Assessor: passa o próprio `userId` (só carteira dele).
+ * - Só clientes com pacote yide_360/estrategia/trafego_estrategia entram.
+ */
+export async function InstagramPostsSection({
+  assessorId,
+  titulo,
+}: {
+  assessorId: string | null;
+  titulo?: string;
+}) {
+  const unitId = await getEffectiveUnitId();
+  const clientes = await listClientesComUltimoSnapshot({
+    unitId,
+    assessorId,
+  });
+  return <InstagramPostsCard clientes={clientes} titulo={titulo} />;
 }
