@@ -3,13 +3,12 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Camera, Loader2, RefreshCw, AlertTriangle, ExternalLink } from "lucide-react";
+import { Camera, Loader2, RefreshCw, AlertTriangle, ExternalLink, Plus } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { refreshSnapshotsAction } from "@/lib/instagram-snapshots/actions";
 import { computeCounts } from "@/lib/instagram-snapshots/counts";
 import type { ClienteComSnapshot } from "@/lib/instagram-snapshots/queries";
-import type { PostRecente, ScrapeStatus } from "@/lib/instagram-snapshots/tipos";
+import type { PostRecente, ScrapeStatus, CountsBucket } from "@/lib/instagram-snapshots/tipos";
 
 function timeAgo(iso: string): string {
   const ms = Date.now() - new Date(iso).getTime();
@@ -22,59 +21,78 @@ function timeAgo(iso: string): string {
   return `há ${d}d`;
 }
 
-const STATUS_LABEL: Record<ScrapeStatus, { label: string; cls: string }> = {
-  ok: { label: "OK", cls: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" },
-  profile_not_found: { label: "Perfil privado/não encontrado", cls: "bg-amber-500/15 text-amber-700 dark:text-amber-300" },
-  rate_limit: { label: "Tente em 5min", cls: "bg-amber-500/15 text-amber-700 dark:text-amber-300" },
-  error: { label: "Erro", cls: "bg-red-500/15 text-red-700 dark:text-red-300" },
-  no_url: { label: "Sem perfil cadastrado", cls: "bg-muted text-muted-foreground" },
+/** Classes de cor pro número do mês baseado em volume (meta aproximada ~12/mês). */
+function corPorVolumeMes(mes: number): { accent: string; bar: string } {
+  if (mes === 0) return { accent: "text-red-500", bar: "bg-red-500/60" };
+  if (mes <= 4) return { accent: "text-amber-500", bar: "bg-amber-500/60" };
+  if (mes <= 9) return { accent: "text-foreground", bar: "bg-foreground/30" };
+  return { accent: "text-emerald-500", bar: "bg-emerald-500/60" };
+}
+
+function instagramHref(raw: string): string {
+  if (raw.startsWith("http")) return raw;
+  return `https://instagram.com/${raw.replace(/^@/, "").replace(/\/$/, "")}`;
+}
+
+const STATUS_LABEL: Record<ScrapeStatus, string> = {
+  ok: "OK",
+  profile_not_found: "Perfil privado ou não encontrado",
+  rate_limit: "Tente em 5 min",
+  error: "Erro ao buscar",
+  no_url: "Sem perfil cadastrado",
 };
 
 interface Props {
   clientes: ClienteComSnapshot[];
-  /** Título customizável. Sócio vê "Postagens no Instagram (Geral)", assessor "Suas postagens". */
   titulo?: string;
 }
 
 export function InstagramPostsCard({ clientes, titulo = "Postagens no Instagram" }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [refreshingId, setRefreshingId] = useState<string | null>(null);
   const [lastRun, setLastRun] = useState<string | null>(null);
 
   function refreshTodos() {
     const ids = clientes.filter((c) => c.instagram_url).map((c) => c.cliente_id);
     if (ids.length === 0) return;
+    setRefreshingId("__all__");
     startTransition(async () => {
       const r = await refreshSnapshotsAction(ids);
+      setRefreshingId(null);
       if ("error" in r) {
         setLastRun(`Erro: ${r.error}`);
       } else {
-        setLastRun(`Atualizado: ${r.refreshed} · Cache: ${r.cached} · Erros: ${r.errors}`);
+        setLastRun(`${r.refreshed} atualizados · ${r.cached} do cache · ${r.errors} erros`);
       }
       router.refresh();
     });
   }
 
   function refreshUm(clienteId: string) {
+    setRefreshingId(clienteId);
     startTransition(async () => {
       await refreshSnapshotsAction([clienteId]);
+      setRefreshingId(null);
       router.refresh();
     });
   }
 
-  if (clientes.length === 0) {
-    return null; // sem clientes elegíveis → não renderiza
-  }
+  if (clientes.length === 0) return null;
 
   return (
     <Card className="overflow-hidden">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3">
-        <div className="flex items-center gap-2">
-          <Camera className="h-4 w-4 text-pink-500" />
-          <h2 className="text-sm font-semibold uppercase tracking-wider">{titulo}</h2>
-          <span className="text-xs text-muted-foreground">
-            ({clientes.length} {clientes.length === 1 ? "cliente" : "clientes"})
-          </span>
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b bg-gradient-to-r from-pink-500/5 via-card to-card px-4 py-3">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-pink-500/15 text-pink-500">
+            <Camera className="h-4 w-4" />
+          </div>
+          <div>
+            <h2 className="text-sm font-bold uppercase tracking-wider">{titulo}</h2>
+            <p className="text-xs text-muted-foreground">
+              {clientes.length} {clientes.length === 1 ? "cliente" : "clientes"}
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           {lastRun && <span className="text-xs text-muted-foreground">{lastRun}</span>}
@@ -82,90 +100,181 @@ export function InstagramPostsCard({ clientes, titulo = "Postagens no Instagram"
             type="button"
             onClick={refreshTodos}
             disabled={pending}
-            className="inline-flex h-8 items-center gap-1.5 rounded-md border bg-card px-3 text-xs font-medium hover:bg-muted disabled:opacity-50"
+            className="inline-flex h-9 items-center gap-1.5 rounded-md border bg-card px-3 text-xs font-medium shadow-sm hover:bg-muted disabled:opacity-50"
           >
-            {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-            Atualizar
+            {refreshingId === "__all__" ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <RefreshCw className="h-3.5 w-3.5" />
+            )}
+            Atualizar tudo
           </button>
         </div>
       </header>
 
-      <table className="w-full text-sm">
-        <thead className="bg-muted/30 text-left text-xs uppercase tracking-wider text-muted-foreground">
-          <tr>
-            <th className="px-4 py-2">Cliente</th>
-            <th className="px-4 py-2 text-center">Hoje</th>
-            <th className="px-4 py-2 text-center">Semana</th>
-            <th className="px-4 py-2 text-center">Mês</th>
-            <th className="px-4 py-2">Atualizado</th>
-            <th className="px-4 py-2"></th>
-          </tr>
-        </thead>
-        <tbody className="divide-y">
-          {clientes.map((c) => {
-            const snap = c.ultimo_snapshot;
-            const posts: PostRecente[] = snap?.recent_posts ?? [];
-            const status: ScrapeStatus = snap?.scrape_status ?? (c.instagram_url ? "ok" : "no_url");
-            const counts = status === "ok" ? computeCounts(posts) : null;
-            const statusInfo = STATUS_LABEL[status];
-
-            return (
-              <tr key={c.cliente_id} className="hover:bg-muted/30">
-                <td className="px-4 py-2">
-                  <Link href={`/clientes/${c.cliente_id}`} className="font-medium hover:underline">
-                    {c.cliente_nome}
-                  </Link>
-                  {c.instagram_url && (
-                    <a
-                      href={c.instagram_url.startsWith("http") ? c.instagram_url : `https://instagram.com/${c.instagram_url.replace(/^@/, "")}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="ml-2 inline-block text-muted-foreground hover:text-pink-500"
-                      aria-label="Abrir Instagram"
-                    >
-                      <ExternalLink className="inline h-3 w-3" />
-                    </a>
-                  )}
-                </td>
-                {counts ? (
-                  <>
-                    <td className="px-4 py-2 text-center font-medium tabular-nums">{counts.hoje}</td>
-                    <td className="px-4 py-2 text-center font-medium tabular-nums">{counts.semana}</td>
-                    <td className="px-4 py-2 text-center font-medium tabular-nums">{counts.mes}</td>
-                  </>
-                ) : (
-                  <td colSpan={3} className="px-4 py-2 text-center">
-                    <Badge variant="outline" className={statusInfo.cls}>
-                      {status !== "ok" && <AlertTriangle className="mr-1 inline h-3 w-3" />}
-                      {statusInfo.label}
-                    </Badge>
-                    {status === "no_url" && (
-                      <Link href={`/clientes/${c.cliente_id}`} className="ml-2 text-xs text-primary hover:underline">
-                        Cadastrar
-                      </Link>
-                    )}
-                  </td>
-                )}
-                <td className="px-4 py-2 text-xs text-muted-foreground">
-                  {snap ? timeAgo(snap.scraped_at) : "—"}
-                </td>
-                <td className="px-4 py-2 text-right">
-                  {c.instagram_url && (
-                    <button
-                      type="button"
-                      onClick={() => refreshUm(c.cliente_id)}
-                      disabled={pending}
-                      className="text-xs text-primary hover:underline disabled:opacity-50"
-                    >
-                      Atualizar
-                    </button>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      <div className="grid grid-cols-1 gap-3 p-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {clientes.map((c) => (
+          <ClienteCard
+            key={c.cliente_id}
+            cliente={c}
+            isRefreshing={refreshingId === c.cliente_id || refreshingId === "__all__"}
+            onRefresh={() => refreshUm(c.cliente_id)}
+          />
+        ))}
+      </div>
     </Card>
+  );
+}
+
+function ClienteCard({
+  cliente,
+  isRefreshing,
+  onRefresh,
+}: {
+  cliente: ClienteComSnapshot;
+  isRefreshing: boolean;
+  onRefresh: () => void;
+}) {
+  const snap = cliente.ultimo_snapshot;
+  const hasUrl = !!cliente.instagram_url;
+  const hasSnapshot = !!snap;
+  const status: ScrapeStatus = snap?.scrape_status ?? (hasUrl ? "ok" : "no_url");
+
+  // Só calcula contagens se temos snapshot OK. Se snap=null com url, fica "nunca atualizado".
+  const counts: CountsBucket | null =
+    snap && snap.scrape_status === "ok" ? computeCounts(snap.recent_posts as PostRecente[]) : null;
+
+  const color = counts ? corPorVolumeMes(counts.mes) : { accent: "text-muted-foreground", bar: "bg-muted" };
+
+  return (
+    <div className="group relative overflow-hidden rounded-lg border bg-card p-3 transition-colors hover:border-pink-500/40">
+      {/* Barra colorida lateral */}
+      <div className={`absolute inset-y-0 left-0 w-1 ${color.bar}`} />
+
+      <header className="mb-2 flex items-start justify-between gap-2 pl-2">
+        <Link
+          href={`/clientes/${cliente.cliente_id}`}
+          className="line-clamp-1 text-sm font-semibold hover:underline"
+          title={cliente.cliente_nome}
+        >
+          {cliente.cliente_nome}
+        </Link>
+        {hasUrl && (
+          <a
+            href={instagramHref(cliente.instagram_url!)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-muted-foreground transition-colors hover:text-pink-500"
+            aria-label="Abrir Instagram"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+        )}
+      </header>
+
+      <div className="pl-2">
+        {counts ? (
+          <CountsDisplay counts={counts} accent={color.accent} />
+        ) : status === "no_url" ? (
+          <SemPerfil clienteId={cliente.cliente_id} />
+        ) : !hasSnapshot ? (
+          <NuncaAtualizado isRefreshing={isRefreshing} onRefresh={onRefresh} />
+        ) : (
+          <StatusError status={status} />
+        )}
+      </div>
+
+      <footer className="mt-3 flex items-center justify-between pl-2 text-[10px] text-muted-foreground">
+        <span>{snap ? `Atualizado ${timeAgo(snap.scraped_at)}` : "Sem dados"}</span>
+        {hasUrl && (
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={isRefreshing}
+            className="inline-flex items-center gap-1 text-primary opacity-0 transition-opacity hover:underline group-hover:opacity-100 disabled:opacity-50"
+          >
+            {isRefreshing ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <RefreshCw className="h-3 w-3" />
+            )}
+            Atualizar
+          </button>
+        )}
+      </footer>
+    </div>
+  );
+}
+
+function CountsDisplay({ counts, accent }: { counts: CountsBucket; accent: string }) {
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-baseline gap-2">
+        <span className={`text-3xl font-bold tabular-nums leading-none ${accent}`}>
+          {counts.mes}
+        </span>
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+          posts no mês
+        </span>
+      </div>
+      <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+        <span>
+          <span className="font-semibold tabular-nums text-foreground">{counts.hoje}</span> hoje
+        </span>
+        <span className="text-muted-foreground/30">·</span>
+        <span>
+          <span className="font-semibold tabular-nums text-foreground">{counts.semana}</span> esta semana
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function NuncaAtualizado({ isRefreshing, onRefresh }: { isRefreshing: boolean; onRefresh: () => void }) {
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-baseline gap-2">
+        <span className="text-3xl font-bold tabular-nums leading-none text-muted-foreground/40">—</span>
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+          ainda não buscamos
+        </span>
+      </div>
+      <button
+        type="button"
+        onClick={onRefresh}
+        disabled={isRefreshing}
+        className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline disabled:opacity-50"
+      >
+        {isRefreshing ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+        Buscar agora
+      </button>
+    </div>
+  );
+}
+
+function SemPerfil({ clienteId }: { clienteId: string }) {
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-baseline gap-2">
+        <span className="text-2xl font-bold leading-none text-muted-foreground/40">—</span>
+      </div>
+      <Link
+        href={`/clientes/${clienteId}`}
+        className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+      >
+        <Plus className="h-3 w-3" />
+        Cadastrar perfil
+      </Link>
+    </div>
+  );
+}
+
+function StatusError({ status }: { status: ScrapeStatus }) {
+  return (
+    <div className="flex items-center gap-1.5 rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1.5 text-[11px] text-amber-700 dark:text-amber-300">
+      <AlertTriangle className="h-3 w-3 flex-shrink-0" />
+      <span className="line-clamp-2">{STATUS_LABEL[status]}</span>
+    </div>
   );
 }
