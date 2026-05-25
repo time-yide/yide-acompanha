@@ -132,17 +132,54 @@ describe("fetchProfileSnapshot — retry transitório", () => {
     expect(result.erro).toMatch(/403/);
   });
 
-  it("se as duas tentativas falharem com no_items, devolve no_items final (não trava em loop)", async () => {
+  it("aciona fallback (profile-scraper) quando os 2 tries do principal falham com no_items", async () => {
     fetchMock
+      // tries 1 e 2 do instagram-scraper → no_items
       .mockResolvedValueOnce({ ok: true, status: 200, json: async () => [], text: async () => "" })
-      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => [], text: async () => "" });
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => [], text: async () => "" })
+      // fallback: profile-scraper retorna perfil com latestPosts
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => [
+          {
+            username: "nazcasushi",
+            postsCount: 19,
+            latestPosts: [
+              { shortCode: "A1", timestamp: "2026-05-20T10:00:00Z", type: "Image" },
+              { shortCode: "A2", timestamp: "2026-05-21T10:00:00Z", type: "Video", productType: "clips" },
+            ],
+          },
+        ],
+        text: async () => "",
+      });
 
-    const promise = fetchProfileSnapshot("yidedigital");
+    const promise = fetchProfileSnapshot("nazcasushi");
     await vi.advanceTimersByTimeAsync(3500);
     const result = await promise;
 
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    // Última chamada deve ter sido pro fallback (profile-scraper)
+    const lastUrl = fetchMock.mock.calls[2][0] as string;
+    expect(lastUrl).toContain("instagram-profile-scraper");
+    expect(result.status).toBe("ok");
+    expect(result.totalPosts).toBe(19);
+    expect(result.recentPosts).toHaveLength(2);
+    expect(result.recentPosts[1].type).toBe("reel");
+  });
+
+  it("se fallback também falhar com no_items, devolve mensagem do fallback (não trava em loop)", async () => {
+    fetchMock
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => [], text: async () => "" })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => [], text: async () => "" })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => [], text: async () => "" });
+
+    const promise = fetchProfileSnapshot("perfil-bloqueado-em-todo-lugar");
+    await vi.advanceTimersByTimeAsync(3500);
+    const result = await promise;
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
     expect(result.status).toBe("profile_not_found");
-    expect(result.erro).toBe("no_items");
+    expect(result.erro).toMatch(/fallback/);
   });
 });
