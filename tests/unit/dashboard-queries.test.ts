@@ -345,11 +345,11 @@ describe("getCarteiraPorAssessor", () => {
       if (table === "clients") {
         return {
           select: () => makeChainableQuery([
-            { id: "c1", valor_mensal: 5000, assessor_id: "a1", assessor: { nome: "Ana" } },
-            { id: "c2", valor_mensal: 3000, assessor_id: "a1", assessor: { nome: "Ana" } },
-            { id: "c3", valor_mensal: 4000, assessor_id: "a2", assessor: { nome: "Bruno" } },
+            { id: "c1", valor_mensal: 5000, assessor_id: "a1", assessor: { nome: "Ana" }, tipo_relacao: "comum" },
+            { id: "c2", valor_mensal: 3000, assessor_id: "a1", assessor: { nome: "Ana" }, tipo_relacao: "comum" },
+            { id: "c3", valor_mensal: 4000, assessor_id: "a2", assessor: { nome: "Bruno" }, tipo_relacao: "comum" },
             // cliente sem assessor: ignorado
-            { id: "c4", valor_mensal: 1000, assessor_id: null, assessor: null },
+            { id: "c4", valor_mensal: 1000, assessor_id: null, assessor: null, tipo_relacao: "comum" },
           ]),
         };
       }
@@ -374,6 +374,37 @@ describe("getCarteiraPorAssessor", () => {
       qtdClientes: 1,
       valorTotal: 4000,
       pctDoTotal: expect.closeTo(33.33, 1),
+    });
+  });
+
+  it("conta parceria/permuta na qtd mas zero valor (continua sem inflar receita)", async () => {
+    fromMock.mockImplementation((table) => {
+      if (table === "clients") {
+        return {
+          select: () => makeChainableQuery([
+            { id: "c1", valor_mensal: 5000, assessor_id: "a1", assessor: { nome: "Ana" }, tipo_relacao: "comum" },
+            // Parceria e permuta: contam pra qtdClientes mas não entram no valor
+            { id: "c2", valor_mensal: 9999, assessor_id: "a1", assessor: { nome: "Ana" }, tipo_relacao: "parceria" },
+            { id: "c3", valor_mensal: 9999, assessor_id: "a1", assessor: { nome: "Ana" }, tipo_relacao: "permuta" },
+            { id: "c4", valor_mensal: 3000, assessor_id: "a2", assessor: { nome: "Bruno" }, tipo_relacao: "comum" },
+          ]),
+        };
+      }
+      return { select: () => makeChainableQuery([]) };
+    });
+
+    const list = await getCarteiraPorAssessor();
+    expect(list).toHaveLength(2);
+    // Ana: 3 clientes (1 comum + 1 parceria + 1 permuta), valor = só do comum
+    expect(list[0]).toMatchObject({
+      assessorId: "a1",
+      qtdClientes: 3,
+      valorTotal: 5000,
+    });
+    expect(list[1]).toMatchObject({
+      assessorId: "a2",
+      qtdClientes: 1,
+      valorTotal: 3000,
     });
   });
 
@@ -707,8 +738,8 @@ describe("getCarteiraPorAssessor with filter", () => {
   it("filtra clientes por coordenadorId quando passado (mostra só os assessores que ele coordena)", async () => {
     fromMock.mockImplementation(() => ({
       select: () => makeChainableQuery([
-        { id: "c1", valor_mensal: 5000, assessor_id: "a1", assessor: { nome: "Ana" }, coordenador_id: "co1" },
-        { id: "c2", valor_mensal: 3000, assessor_id: "a2", assessor: { nome: "Bruno" }, coordenador_id: "co1" },
+        { id: "c1", valor_mensal: 5000, assessor_id: "a1", assessor: { nome: "Ana" }, coordenador_id: "co1", tipo_relacao: "comum" },
+        { id: "c2", valor_mensal: 3000, assessor_id: "a2", assessor: { nome: "Bruno" }, coordenador_id: "co1", tipo_relacao: "comum" },
       ]),
     }));
 

@@ -417,12 +417,14 @@ export async function _getCarteiraPorAssessorImpl(filter?: ClientFilter): Promis
   const supabase = createServiceRoleClient();
   const monthRef = getCurrentMonthYM();
 
+  // Sem filtro de tipo_relacao aqui: parceria/permuta também são clientes
+  // que o assessor atende (consomem agenda/reunião). Quem não fatura entra
+  // só na contagem; o valor é tratado separadamente embaixo.
   let clientsQuery = supabase
     .from("clients")
     .select("id, valor_mensal, assessor_id, coordenador_id, tipo_relacao, assessor:profiles!clients_assessor_id_fkey(nome)")
     .eq("status", "ativo")
-    .is("deleted_at", null)
-    .eq("tipo_relacao", "comum");
+    .is("deleted_at", null);
   clientsQuery = buildClientFilterQuery(clientsQuery as never, filter) as never;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -440,6 +442,7 @@ export async function _getCarteiraPorAssessorImpl(filter?: ClientFilter): Promis
     valor_mensal: number;
     assessor_id: string | null;
     coordenador_id: string | null;
+    tipo_relacao: string | null;
     assessor: { nome: string } | null;
   }>;
   const ajusteByClient = new Map(
@@ -453,15 +456,19 @@ export async function _getCarteiraPorAssessorImpl(filter?: ClientFilter): Promis
     if (!c.assessor_id || !c.assessor) continue;
     const cur = groups.get(c.assessor_id) ?? { nome: c.assessor.nome, qtd: 0, valor: 0 };
     cur.qtd += 1;
-    // Valor efetivo do mês: considera bônus/desconto.
-    const a = ajusteByClient.get(c.id);
-    const valorBase = Number(c.valor_mensal);
-    const valorEfetivo =
-      !a ? valorBase :
-      a.tipo === "gratuidade_total" ? 0 :
-      a.tipo === "desconto_parcial" ? Math.max(0, valorBase - Number(a.valor_desconto ?? 0)) :
-      valorBase;
-    cur.valor += valorEfetivo;
+    // Só clientes 'comum' faturam. parceria/permuta entram na qtd mas
+    // não no R$ — manter assim mantém o gráfico de % por receita correto.
+    if (c.tipo_relacao === "comum") {
+      // Valor efetivo do mês: considera bônus/desconto.
+      const a = ajusteByClient.get(c.id);
+      const valorBase = Number(c.valor_mensal);
+      const valorEfetivo =
+        !a ? valorBase :
+        a.tipo === "gratuidade_total" ? 0 :
+        a.tipo === "desconto_parcial" ? Math.max(0, valorBase - Number(a.valor_desconto ?? 0)) :
+        valorBase;
+      cur.valor += valorEfetivo;
+    }
     groups.set(c.assessor_id, cur);
   }
 
@@ -487,7 +494,8 @@ export async function getCarteiraPorAssessor(filter?: ClientFilter): Promise<Ass
     },
     // v2: valor por assessor agora considera ajustes mensais
     // v3: filter ganhou unitId (multi-tenant)
-    ["dashboard-carteira-por-assessor-v3"],
+    // v4: qtdClientes inclui parceria/permuta (valorTotal segue só comum)
+    ["dashboard-carteira-por-assessor-v4"],
     { revalidate: 300, tags: ["dashboard"] },
   );
   return cached(JSON.stringify(filter ?? null));
