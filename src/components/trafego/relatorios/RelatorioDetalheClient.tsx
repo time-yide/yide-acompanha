@@ -16,7 +16,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SlidePreviewTrafego } from "./SlidePreviewTrafego";
 import { SlideEditorInline } from "./SlideEditorInline";
-import type { RelatorioRow, Slide } from "@/lib/trafego/relatorios/tipos";
+import type { RelatorioRow } from "@/lib/trafego/relatorios/tipos";
 
 function formatBR(iso: string): string {
   const [y, m, d] = iso.split("-");
@@ -28,9 +28,8 @@ interface Props {
   clienteNome: string;
 }
 
-export function RelatorioDetalheClient({ relatorio: initial, clienteNome }: Props) {
+export function RelatorioDetalheClient({ relatorio, clienteNome }: Props) {
   const router = useRouter();
-  const [relatorio, setRelatorio] = useState(initial);
   const [editandoIndex, setEditandoIndex] = useState<number | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -56,9 +55,6 @@ export function RelatorioDetalheClient({ relatorio: initial, clienteNome }: Prop
     const t = setInterval(() => router.refresh(), 2000);
     return () => clearInterval(t);
   }, [relatorio.status, router]);
-
-  // Sincroniza prop atualizada após refresh.
-  useEffect(() => { setRelatorio(initial); }, [initial]);
 
   async function handleGerarPdf() {
     setActionError(null);
@@ -115,12 +111,7 @@ export function RelatorioDetalheClient({ relatorio: initial, clienteNome }: Prop
     });
   }
 
-  function onSlideAtualizado(updated: Slide, index: number) {
-    setRelatorio((r) => {
-      const copy = { ...r, slides: r.slides.slice() };
-      copy.slides[index] = updated;
-      return copy;
-    });
+  function onSlideAtualizado() {
     setEditandoIndex(null);
     router.refresh();
   }
@@ -246,7 +237,7 @@ export function RelatorioDetalheClient({ relatorio: initial, clienteNome }: Prop
           index={editandoIndex}
           slide={relatorio.slides[editandoIndex]}
           onClose={() => setEditandoIndex(null)}
-          onSaved={(s) => onSlideAtualizado(s, editandoIndex)}
+          onSaved={onSlideAtualizado}
         />
       )}
     </div>

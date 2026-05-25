@@ -10,7 +10,7 @@ interface Props {
   index: number;
   slide: Slide;
   onClose: () => void;
-  onSaved: (s: Slide) => void;
+  onSaved: () => void;
 }
 
 // Editor genérico baseado em JSON cru. UI completa por template seria muito
@@ -47,7 +47,7 @@ export function SlideEditorInline({ relatorioId, index, slide, onClose, onSaved 
     startTransition(async () => {
       const r = await atualizarSlideAction(fd);
       if ("error" in r) setErro(r.error);
-      else onSaved(updated);
+      else onSaved();
     });
   }
 

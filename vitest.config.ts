@@ -16,6 +16,8 @@ export default defineConfig({
       // Shims pra pacotes server-only que não resolvem no ambiente jsdom.
       "server-only": path.resolve(__dirname, "./tests/__mocks__/server-only.ts"),
       "web-push": path.resolve(__dirname, "./tests/__mocks__/web-push.ts"),
+      "puppeteer-core": path.resolve(__dirname, "./tests/__mocks__/puppeteer-core.ts"),
+      "@sparticuz/chromium": path.resolve(__dirname, "./tests/__mocks__/sparticuz-chromium.ts"),
     },
   },
 });
