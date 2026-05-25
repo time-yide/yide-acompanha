@@ -1,6 +1,10 @@
 import { requireAuth } from "@/lib/auth/session";
 import { DashboardSocioAdm } from "@/components/dashboard/DashboardSocioAdm";
 import { DashboardAdm } from "@/components/dashboard/DashboardAdm";
+
+// Força a página a ser sempre dynamic — sem cache de fetch nem ISR.
+// Mudanças em clientes (tipo_pacote, etc) refletem no dashboard na hora.
+export const dynamic = "force-dynamic";
 import { DashboardCoord } from "@/components/dashboard/DashboardCoord";
 import { DashboardAssessor } from "@/components/dashboard/DashboardAssessor";
 import { DashboardComercial } from "@/components/dashboard/DashboardComercial";
