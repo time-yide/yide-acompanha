@@ -7,8 +7,10 @@ import { requireAuth } from "@/lib/auth/session";
 import { canAccess } from "@/lib/auth/permissions";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getEffectiveUnitId } from "@/lib/units/session";
-import { getServerEnv } from "@/lib/env";
+import { getServerEnv, env as publicEnv } from "@/lib/env";
 import { logAudit } from "@/lib/audit/log";
+import { signPdfToken } from "@/lib/apresenta-yide/pdf-token";
+import { generatePdfFromUrl } from "@/lib/apresenta-yide/pdf-generator";
 import {
   criarRelatorioSchema,
   excluirRelatorioSchema,
@@ -327,6 +329,73 @@ export async function publicarRelatorioAction(formData: FormData): Promise<Actio
   revalidateTag(`${RELATORIO_TRAFEGO_TAG_PREFIX}${b.cliente_id}`, "default");
   revalidatePath(`/trafego/relatorios/${parsed.data.id}`);
   return { success: true };
+}
+
+/**
+ * Gera o PDF via Puppeteer renderizando a rota interna /relatorio-trafego-pdf/[id]
+ * com HMAC token (5min TTL). Upload em Storage `relatorios-trafego/{orgId}/{id}.pdf`.
+ * Retorna signed URL imediata pra preview/download.
+ */
+export async function gerarPdfRelatorioAction(id: string): Promise<ActionErr | { signedUrl: string }> {
+  const actor = await requireAuth();
+  if (!canAccess(actor.role, "manage:trafego_relatorios")) return { error: "Sem permissão" };
+
+  const env = getServerEnv();
+  if (!env.APRESENTACAO_PDF_SECRET) {
+    return { error: "PDF não configurado no servidor (APRESENTACAO_PDF_SECRET)" };
+  }
+
+  const supabase = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const { data: rel } = await sb
+    .from("trafego_relatorios")
+    .select("status, organization_id")
+    .eq("id", id)
+    .single();
+  if (!rel) return { error: "Relatório não encontrado" };
+  if (rel.status !== "pronta") return { error: "Relatório ainda não está pronto" };
+
+  const token = signPdfToken(id, env.APRESENTACAO_PDF_SECRET);
+  const baseUrl = publicEnv.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+  const htmlUrl = `${baseUrl}/relatorio-trafego-pdf/${id}?token=${token}`;
+
+  let pdfBuffer: Buffer;
+  try {
+    pdfBuffer = await generatePdfFromUrl({ htmlUrl });
+  } catch (e) {
+    return { error: `Erro ao gerar PDF: ${(e as Error).message}` };
+  }
+
+  const storagePath = `${rel.organization_id}/${id}.pdf`;
+  const { error: uploadErr } = await supabase.storage
+    .from("relatorios-trafego")
+    .upload(storagePath, pdfBuffer, {
+      contentType: "application/pdf",
+      upsert: true,
+    });
+  if (uploadErr) return { error: `Falha no upload: ${uploadErr.message}` };
+
+  await sb
+    .from("trafego_relatorios")
+    .update({ pdf_storage_path: storagePath })
+    .eq("id", id);
+
+  const { data: signed } = await supabase.storage
+    .from("relatorios-trafego")
+    .createSignedUrl(storagePath, 60 * 60);
+  if (!signed?.signedUrl) return { error: "Falha ao gerar link" };
+
+  await logAudit({
+    entidade: "trafego_relatorios",
+    entidade_id: id,
+    acao: "update",
+    dados_depois: { pdf_gerado: true },
+    ator_id: actor.id,
+  });
+
+  revalidatePath(`/trafego/relatorios/${id}`);
+  return { signedUrl: signed.signedUrl };
 }
 
 export async function baixarPdfAction(id: string): Promise<ActionErr | { url: string }> {
