@@ -398,6 +398,40 @@ export async function gerarPdfRelatorioAction(id: string): Promise<ActionErr | {
   return { signedUrl: signed.signedUrl };
 }
 
+/**
+ * Versão pro portal do cliente: valida que o relatório pertence ao cliente
+ * logado e que está publicado. NUNCA serve PDF de relatório não publicado.
+ */
+export async function baixarPdfClienteAction(id: string): Promise<ActionErr | { url: string }> {
+  const { getClientPortalUser } = await import("@/lib/auth/client-portal-session");
+  const session = await getClientPortalUser();
+  if (!session) return { error: "Não autenticado" };
+
+  const supabase = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const { data: rel } = await sb
+    .from("trafego_relatorios")
+    .select("cliente_id, pdf_storage_path, publicado_em")
+    .eq("id", id)
+    .single();
+  const r = rel as {
+    cliente_id: string;
+    pdf_storage_path: string | null;
+    publicado_em: string | null;
+  } | null;
+  if (!r || !r.publicado_em || r.cliente_id !== session.clientId) {
+    return { error: "Relatório não encontrado" };
+  }
+  if (!r.pdf_storage_path) return { error: "PDF não disponível" };
+
+  const { data: signed } = await supabase.storage
+    .from("relatorios-trafego")
+    .createSignedUrl(r.pdf_storage_path, 300);
+  if (!signed?.signedUrl) return { error: "Falha ao gerar link" };
+  return { url: signed.signedUrl };
+}
+
 export async function baixarPdfAction(id: string): Promise<ActionErr | { url: string }> {
   const actor = await requireAuth();
   if (!canAccess(actor.role, "manage:trafego_relatorios")) return { error: "Sem permissão" };

@@ -66,7 +66,7 @@ export default async function ClientePainelPage() {
         <PastaSection driveUrl={data.cliente.drive_url} />
         <UnidadesSection unidades={unidades} />
         <TarefasPortalSection tarefas={tarefas} />
-        <RelatoriosSection />
+        <RelatoriosSection clientId={user.clientId} />
         <ReunioesSection reunioes={reunioes} />
         <TrafegoSection
           google={data.cliente.valor_trafego_google}
