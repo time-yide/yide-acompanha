@@ -27,6 +27,7 @@ interface SearchParams {
   client?: string;
   atribuido?: string;
   q?: string;
+  mes?: string;
   toast?: string;
 }
 
@@ -47,6 +48,7 @@ export default async function TarefasPage({ searchParams }: { searchParams: Prom
   }
   if (params.client && params.client !== "qualquer") filters.clientId = params.client;
   if (params.q && params.q.trim()) filters.q = params.q.trim();
+  if (params.mes && /^\d{4}-\d{2}$/.test(params.mes)) filters.mes = params.mes;
 
   // Sem filtro de status - Quadro mostra todas as colunas; Lista agrupa concluídas em seção própria
   if (aba === "minhas") filters.atribuidoA = user.id;
