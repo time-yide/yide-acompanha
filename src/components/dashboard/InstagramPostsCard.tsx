@@ -468,69 +468,126 @@ function ClienteRow({
     {counts && expanded && snap && (
       <tr className="bg-muted/20">
         <td colSpan={colSpan} className="border-l-2 border-pink-500/50 px-4 py-3">
-          <div className="space-y-2 text-xs">
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="font-semibold text-foreground">
-                Posts contados pelo sistema:
-              </span>
-              <span className="text-muted-foreground">
-                {(snap.recent_posts ?? []).length} posts retornados pelo Apify ·
-                snapshot {timeAgo(snap.scraped_at)}
-              </span>
-            </div>
-            {(snap.recent_posts ?? []).length === 0 ? (
-              <p className="text-muted-foreground">Apify não retornou nenhum post.</p>
-            ) : (
-              <div className="max-h-64 overflow-auto rounded border bg-card">
-                <table className="w-full text-[11px]">
-                  <thead className="sticky top-0 bg-muted/50 text-[10px] uppercase tracking-wider text-muted-foreground">
-                    <tr>
-                      <th className="px-2 py-1 text-left">#</th>
-                      <th className="px-2 py-1 text-left">Data/hora (UTC)</th>
-                      <th className="px-2 py-1 text-left">Tipo</th>
-                      <th className="px-2 py-1 text-left">Link</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {(snap.recent_posts ?? []).map((p, i) => (
-                      <tr key={p.url ?? i}>
-                        <td className="px-2 py-1 text-muted-foreground tabular-nums">{i + 1}</td>
-                        <td className="px-2 py-1 font-mono tabular-nums">
-                          {new Date(p.timestamp).toISOString().replace("T", " ").slice(0, 16)}
-                        </td>
-                        <td className="px-2 py-1">
-                          <span className={`rounded px-1.5 py-0.5 text-[9px] uppercase ${
-                            p.type === "reel"
-                              ? "bg-purple-500/15 text-purple-700 dark:text-purple-300"
-                              : "bg-blue-500/15 text-blue-700 dark:text-blue-300"
-                          }`}>
-                            {p.type}
-                          </span>
-                        </td>
-                        <td className="px-2 py-1">
-                          <a
-                            href={p.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="font-mono text-primary hover:underline"
-                          >
-                            {p.url.replace(/^https?:\/\/(www\.)?instagram\.com\//, "")}
-                          </a>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-            <p className="text-[10px] text-muted-foreground">
-              Se está faltando posts comparado ao perfil real: aperta &quot;Atualizar&quot; pra puxar
-              fresh do Apify. Se mesmo assim ficar curto, o limite de scrape pode ter sido atingido.
-            </p>
-          </div>
+          <PostsContadosDetalhe snap={snap} counts={counts} />
         </td>
       </tr>
     )}
     </>
+  );
+}
+
+function PostsContadosDetalhe({
+  snap, counts,
+}: {
+  snap: NonNullable<ClienteEnriched["ultimo_snapshot"]>;
+  counts: CountsBucket;
+}) {
+  const todosPosts = snap.recent_posts ?? [];
+  const now = new Date();
+
+  // Pra cada post, classifica em qual janela ele entra (mês corrente do fuso Cuiabá).
+  // Tabelinha: precisamos do dia 1 do mês em Cuiabá pra comparar.
+  const mesAtual = now.toLocaleString("pt-BR", { month: "long", timeZone: "America/Cuiaba" });
+  const anoAtual = now.toLocaleString("pt-BR", { year: "numeric", timeZone: "America/Cuiaba" });
+
+  // Calcula limites pra destacar
+  const partesAgora = new Date().toLocaleDateString("pt-BR", { timeZone: "America/Cuiaba" }).split("/");
+  const ano = parseInt(partesAgora[2], 10);
+  const mes = parseInt(partesAgora[1], 10);
+  const inicioMesUtc = new Date(`${ano}-${String(mes).padStart(2, "0")}-01T04:00:00.000Z`).getTime();
+
+  // Ordena por timestamp desc pra ver os mais recentes primeiro
+  const ordenados = [...todosPosts].sort(
+    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+  );
+
+  return (
+    <div className="space-y-3 text-xs">
+      {/* Resumo */}
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="font-semibold text-foreground">
+          Apify retornou {todosPosts.length} posts.
+        </span>
+        <span className="rounded bg-emerald-500/15 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
+          {counts.mes} de {mesAtual} {anoAtual}
+        </span>
+        <span className="text-muted-foreground">
+          ({counts.hoje} hoje · {counts.semana} esta semana · snapshot {timeAgo(snap.scraped_at)})
+        </span>
+      </div>
+
+      <p className="rounded-md border border-blue-500/30 bg-blue-500/5 px-3 py-2 text-[11px] text-blue-800 dark:text-blue-200">
+        💡 A lista abaixo tem TODOS os {todosPosts.length} posts que o Apify retornou — incluindo posts antigos.
+        Os <strong>{counts.mes} posts do mês corrente</strong> (em <strong>{mesAtual}</strong>) estão destacados em verde.
+      </p>
+
+      {todosPosts.length === 0 ? (
+        <p className="text-muted-foreground">Apify não retornou nenhum post.</p>
+      ) : (
+        <div className="max-h-80 overflow-auto rounded border bg-card">
+          <table className="w-full text-[11px]">
+            <thead className="sticky top-0 bg-muted/50 text-[10px] uppercase tracking-wider text-muted-foreground">
+              <tr>
+                <th className="px-2 py-1 text-left w-10">#</th>
+                <th className="px-2 py-1 text-left">Data/hora (UTC)</th>
+                <th className="px-2 py-1 text-left w-20">Conta no mês?</th>
+                <th className="px-2 py-1 text-left">Tipo</th>
+                <th className="px-2 py-1 text-left">Link</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {ordenados.map((p, i) => {
+                const t = new Date(p.timestamp).getTime();
+                const dentroDoMes = t >= inicioMesUtc && t <= now.getTime();
+                return (
+                  <tr
+                    key={p.url ?? i}
+                    className={dentroDoMes ? "bg-emerald-500/5" : "opacity-50"}
+                  >
+                    <td className="px-2 py-1 text-muted-foreground tabular-nums">{i + 1}</td>
+                    <td className="px-2 py-1 font-mono tabular-nums">
+                      {new Date(p.timestamp).toISOString().replace("T", " ").slice(0, 16)}
+                    </td>
+                    <td className="px-2 py-1">
+                      {dentroDoMes ? (
+                        <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-700 dark:text-emerald-300">
+                          ✓ SIM
+                        </span>
+                      ) : (
+                        <span className="text-[9px] text-muted-foreground">— não</span>
+                      )}
+                    </td>
+                    <td className="px-2 py-1">
+                      <span className={`rounded px-1.5 py-0.5 text-[9px] uppercase ${
+                        p.type === "reel"
+                          ? "bg-purple-500/15 text-purple-700 dark:text-purple-300"
+                          : "bg-blue-500/15 text-blue-700 dark:text-blue-300"
+                      }`}>
+                        {p.type}
+                      </span>
+                    </td>
+                    <td className="px-2 py-1">
+                      <a
+                        href={p.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-mono text-primary hover:underline"
+                      >
+                        {p.url.replace(/^https?:\/\/(www\.)?instagram\.com\//, "")}
+                      </a>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <p className="text-[10px] text-muted-foreground">
+        Se está faltando posts comparado ao perfil real: aperta &quot;Atualizar&quot; pra puxar
+        fresh do Apify. Se mesmo assim ficar curto, o limite de scrape pode ter sido atingido.
+      </p>
+    </div>
   );
 }
