@@ -386,14 +386,16 @@ function ClienteRow({
             type="button"
             onClick={onRefresh}
             disabled={isRefreshing}
-            className="inline-flex h-7 w-7 items-center justify-center rounded text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-foreground group-hover:opacity-100 disabled:opacity-50"
+            className="inline-flex h-7 items-center gap-1 rounded border bg-card px-2 text-[11px] text-muted-foreground transition-colors hover:border-pink-500/40 hover:bg-pink-500/10 hover:text-pink-600 dark:hover:text-pink-400 disabled:opacity-50"
+            title="Atualizar este cliente"
             aria-label="Atualizar este cliente"
           >
             {isRefreshing ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <Loader2 className="h-3 w-3 animate-spin" />
             ) : (
-              <RefreshCw className="h-3.5 w-3.5" />
+              <RefreshCw className="h-3 w-3" />
             )}
+            <span className="hidden sm:inline">Atualizar</span>
           </button>
         )}
       </td>
