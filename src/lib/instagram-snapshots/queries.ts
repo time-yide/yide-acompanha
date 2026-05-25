@@ -10,6 +10,7 @@ export interface ClienteComSnapshot {
   tipo_pacote: string;
   instagram_url: string | null;
   assessor_id: string | null;
+  assessor_nome: string | null;
   unit_id: string | null;
   ultimo_snapshot: SnapshotRow | null;
 }
@@ -65,12 +66,28 @@ export async function listClientesComUltimoSnapshot(opts: {
     }
   }
 
+  // Resolve nome dos assessores em UMA query.
+  const assessorIds = Array.from(
+    new Set(rows.map((r) => r.assessor_id).filter((id): id is string => !!id)),
+  );
+  const nomesAssessor = new Map<string, string>();
+  if (assessorIds.length > 0) {
+    const { data: profs } = await sb
+      .from("profiles")
+      .select("id, nome")
+      .in("id", assessorIds);
+    for (const p of ((profs ?? []) as Array<{ id: string; nome: string }>)) {
+      nomesAssessor.set(p.id, p.nome);
+    }
+  }
+
   return rows.map((c) => ({
     cliente_id: c.id,
     cliente_nome: c.nome,
     tipo_pacote: c.tipo_pacote,
     instagram_url: c.instagram_url,
     assessor_id: c.assessor_id,
+    assessor_nome: c.assessor_id ? (nomesAssessor.get(c.assessor_id) ?? null) : null,
     unit_id: c.unit_id,
     ultimo_snapshot: ultimoPorCliente.get(c.id) ?? null,
   }));

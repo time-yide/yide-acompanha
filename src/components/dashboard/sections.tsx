@@ -170,5 +170,13 @@ export async function InstagramPostsSection({
     unitId,
     assessorId,
   });
-  return <InstagramPostsCard clientes={clientes} titulo={titulo} />;
+  // Quando assessorId !== null, é o assessor logado vendo a própria carteira:
+  // o filtro de assessor não faz sentido (mostraria 1 opção só) — esconde.
+  return (
+    <InstagramPostsCard
+      clientes={clientes}
+      titulo={titulo}
+      esconderFiltroAssessor={assessorId !== null}
+    />
+  );
 }
