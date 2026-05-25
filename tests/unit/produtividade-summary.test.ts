@@ -18,40 +18,46 @@ function row(over: Partial<ColaboradorStatusRow> = {}): ColaboradorStatusRow {
     capturas_atrasadas: 0,
     custo_hora: null,
     custo_dia: null,
-    receita_atribuida_periodo: null,
+    horas_esperadas_periodo: 8,
     lucro_periodo: null,
     ...over,
   };
 }
 
-describe("summarizeStatus — receita/lucro do período", () => {
-  it("soma receita e lucro de cada linha pro total do summary", () => {
+describe("summarizeStatus — lucro do período", () => {
+  it("soma lucro de cada linha pro total do summary", () => {
     const rows = [
-      row({ user_id: "a", receita_atribuida_periodo: 1000, lucro_periodo: 200, custo_dia: 800 }),
-      row({ user_id: "b", receita_atribuida_periodo: 500, lucro_periodo: -100, custo_dia: 600 }),
-      row({ user_id: "c", receita_atribuida_periodo: 0, lucro_periodo: 0, custo_dia: 0 }),
+      row({ user_id: "a", lucro_periodo: 100 }),
+      row({ user_id: "b", lucro_periodo: -200 }),
+      row({ user_id: "c", lucro_periodo: 50 }),
     ];
     const s = summarizeStatus(rows);
-    expect(s.receita_periodo_total).toBe(1500);
-    expect(s.lucro_periodo_total).toBe(100);
+    expect(s.lucro_periodo_total).toBe(-50);
+    expect(s.horas_esperadas_periodo).toBe(8);
   });
 
   it("ignora nulos (sem dados de salário) sem quebrar a soma", () => {
     const rows = [
-      row({ user_id: "a", receita_atribuida_periodo: 500, lucro_periodo: 100 }),
-      row({ user_id: "b", receita_atribuida_periodo: null, lucro_periodo: null }),
+      row({ user_id: "a", lucro_periodo: 100 }),
+      row({ user_id: "b", lucro_periodo: null }),
     ];
     const s = summarizeStatus(rows);
-    expect(s.receita_periodo_total).toBe(500);
     expect(s.lucro_periodo_total).toBe(100);
   });
 
-  it("lucro_periodo_total negativo quando o time inteiro custa mais do que rende", () => {
+  it("expõe horas_esperadas pegando da 1ª row (vale pra todo time)", () => {
     const rows = [
-      row({ user_id: "a", receita_atribuida_periodo: 100, lucro_periodo: -200 }),
-      row({ user_id: "b", receita_atribuida_periodo: 100, lucro_periodo: -300 }),
+      row({ user_id: "a", horas_esperadas_periodo: 40, lucro_periodo: -500 }),
+      row({ user_id: "b", horas_esperadas_periodo: 40, lucro_periodo: 200 }),
     ];
     const s = summarizeStatus(rows);
-    expect(s.lucro_periodo_total).toBe(-500);
+    expect(s.horas_esperadas_periodo).toBe(40);
+    expect(s.lucro_periodo_total).toBe(-300);
+  });
+
+  it("horas_esperadas é 0 quando time está vazio", () => {
+    const s = summarizeStatus([]);
+    expect(s.horas_esperadas_periodo).toBe(0);
+    expect(s.lucro_periodo_total).toBe(0);
   });
 });

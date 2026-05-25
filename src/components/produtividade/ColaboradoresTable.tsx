@@ -199,8 +199,8 @@ export function ColaboradoresTable({ rows }: Props) {
                   <td className="px-4 py-3 text-right tabular-nums">
                     <LucroCell
                       lucro={r.lucro_periodo}
-                      receita={r.receita_atribuida_periodo}
-                      custo={r.custo_dia}
+                      horasReaisSeg={r.tempo_ativo_seg_hoje}
+                      horasEsperadas={r.horas_esperadas_periodo}
                     />
                   </td>
                 </tr>
@@ -241,31 +241,25 @@ function SortBtn({
 
 function LucroCell({
   lucro,
-  receita,
-  custo,
+  horasReaisSeg,
+  horasEsperadas,
 }: {
   lucro: number | null;
-  receita: number | null;
-  custo: number | null;
+  horasReaisSeg: number;
+  horasEsperadas: number;
 }) {
   if (lucro === null) {
     return <span className="text-muted-foreground/50">-</span>;
   }
-  // Quem não trabalhou no período: receita e custo são 0, lucro 0. Mostra
-  // "—" pra não passar a impressão de que é zero "real".
-  if (lucro === 0 && (receita ?? 0) === 0 && (custo ?? 0) === 0) {
-    return <span className="text-muted-foreground/50">-</span>;
-  }
-  const positivo = lucro > 0;
+  const horasReais = horasReaisSeg / 3600;
+  const diff = horasReais - horasEsperadas;
+  const positivo = lucro >= 0;
   const tone = positivo
     ? "text-emerald-600 dark:text-emerald-400"
     : "text-rose-600 dark:text-rose-400";
   const sinal = positivo ? "+" : "−";
   const valor = Math.abs(lucro);
-  const tooltip =
-    receita !== null && custo !== null
-      ? `Receita atribuída: ${formatBRL(receita)} · Custo: ${formatBRL(custo)}`
-      : undefined;
+  const tooltip = `Trabalhou ${horasReais.toFixed(1)}h · Esperado ${horasEsperadas}h · Diferença ${diff >= 0 ? "+" : ""}${diff.toFixed(1)}h`;
   return (
     <span className={`font-semibold ${tone}`} title={tooltip}>
       {sinal} {formatBRL(valor)}

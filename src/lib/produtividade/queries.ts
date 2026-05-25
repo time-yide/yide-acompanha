@@ -35,16 +35,15 @@ export interface ColaboradorStatusRow {
   /** Custo do dia: custo_hora × (tempo_ativo_seg_hoje / 3600). */
   custo_dia: number | null;
   /**
-   * Receita atribuída no período. Distribuída proporcionalmente ao tempo
-   * ativo (peso = horas_pessoa / horas_total_time). Quem não trabalhou
-   * no período tem 0. Null quando o time inteiro tem tempo zero (não dá
-   * pra dividir).
+   * Horas esperadas no período (8h × dias úteis decorridos). Base pra
+   * comparar com horas reais trabalhadas.
    */
-  receita_atribuida_periodo: number | null;
+  horas_esperadas_periodo: number;
   /**
-   * Lucro/prejuízo do período = receita_atribuida - custo_dia. Positivo
-   * = colaborador "rendeu" mais do que custou; negativo = "consumiu" mais
-   * do que rendeu. Null quando custo_dia é null (sem dados de salário).
+   * Diferença em R$ entre horas trabalhadas e esperadas, valorado pelo
+   * custo/hora: (horas_reais − horas_esperadas) × custo_hora.
+   * Positivo = trabalhou mais que esperado. Negativo = pagou por horas
+   * não entregues. Null quando custo_hora é null.
    */
   lucro_periodo: number | null;
 }
@@ -109,18 +108,27 @@ export const PERIODO_LABEL: Record<PeriodoRange, string> = {
   mes: "Este mês",
 };
 
-// Aproximação pra distribuir receita mensal no período. Mês útil ≈ 22 dias
-// (5 dias × ~4.4 semanas). Não tenta ser exato — é só pra escalar a receita
-// mensal pro tamanho do período sem precisar de calendário detalhado.
-const DIAS_UTEIS_MES = 22;
-const DIAS_UTEIS_SEMANA = 5;
+// Jornada esperada por dia útil (8h). Base do cálculo de lucro/prejuízo:
+// horas reais - horas esperadas × custo/hora. Negativo = pagamos por
+// horas que não foram entregues.
+const HORAS_POR_DIA_UTIL = 8;
 
-function fatorReceitaPeriodo(range: PeriodoRange): number {
-  switch (range) {
-    case "dia": return 1 / DIAS_UTEIS_MES;
-    case "semana": return DIAS_UTEIS_SEMANA / DIAS_UTEIS_MES;
-    case "mes": return 1;
+/**
+ * Conta dias úteis (segunda a sexta) entre `since` e `today` inclusive.
+ * Ambas as datas em formato YYYY-MM-DD no fuso da app.
+ */
+function diasUteisDecorridos(sinceIso: string, todayIso: string): number {
+  const [sy, sm, sd] = sinceIso.split("-").map(Number);
+  const [ty, tm, td] = todayIso.split("-").map(Number);
+  const start = Date.UTC(sy, sm - 1, sd);
+  const end = Date.UTC(ty, tm - 1, td);
+  if (end < start) return 0;
+  let count = 0;
+  for (let t = start; t <= end; t += 24 * 60 * 60 * 1000) {
+    const dow = new Date(t).getUTCDay(); // 0=dom..6=sab
+    if (dow >= 1 && dow <= 5) count++;
   }
+  return count;
 }
 
 /**
@@ -185,7 +193,6 @@ export async function getColaboradoresStatus(
     { data: overdueTasksData },
     { data: scheduledCapturesData },
     { data: capturesEntregasData },
-    { data: receitaClientesData },
   ] = await Promise.all([
     // O filtro antigo `.neq("role", "cliente")` quebrava a query inteira:
     // "cliente" não existe no enum `user_role`, então Postgres rejeitava com
@@ -240,15 +247,6 @@ export async function getColaboradoresStatus(
       .from("audiovisual_capturas")
       .select("event_id")
       .not("event_id", "is", null),
-    // Receita mensal da agência: soma de valor_mensal dos clientes ativos
-    // tipo_relacao=comum (parceria/permuta não geram receita). Base pra
-    // distribuir lucro/prejuízo proporcional ao tempo trabalhado.
-    sb
-      .from("clients")
-      .select("valor_mensal")
-      .eq("status", "ativo")
-      .eq("tipo_relacao", "comum")
-      .is("deleted_at", null),
   ]);
 
   if (profilesError) {
@@ -265,9 +263,12 @@ export async function getColaboradoresStatus(
       .map((c) => c.event_id)
       .filter((id): id is string => id !== null),
   );
-  const receitaMensalAgencia = ((receitaClientesData ?? []) as Array<{ valor_mensal: number | string | null }>)
-    .reduce((acc, c) => acc + Number(c.valor_mensal ?? 0), 0);
-  const receitaPeriodoTotal = receitaMensalAgencia * fatorReceitaPeriodo(range);
+
+  // Horas esperadas no período: 8h × dias úteis decorridos. Pra "dia"
+  // sempre dá 8 (1 dia útil = hoje). Pra "semana"/"mes" varia com o
+  // calendário (terça da semana = 2 dias úteis; dia 5 do mês = ~3-4).
+  const diasUteis = diasUteisDecorridos(since, today);
+  const horasEsperadasPeriodo = diasUteis * HORAS_POR_DIA_UTIL;
 
   // Agrega comissão por user_id (média dos últimos 3 meses)
   const commissionByUser = new Map<string, { soma: number; n: number }>();
@@ -382,27 +383,20 @@ export async function getColaboradoresStatus(
     };
   });
 
-  // 2º pass: distribui receita pelo peso do tempo ativo. Quem trabalhou
-  // mais leva proporcionalmente mais da receita do período.
-  const tempoTotalSegPeriodo = rowsBase.reduce((acc, r) => acc + r.tempo_ativo_seg_hoje, 0);
+  // 2º pass: calcula lucro/prejuízo comparando horas trabalhadas com
+  // horas esperadas (8h/dia útil), valorado em R$ pelo custo/hora da pessoa.
   return rowsBase.map((r) => {
-    let receita_atribuida_periodo: number | null = null;
     let lucro_periodo: number | null = null;
-
-    if (tempoTotalSegPeriodo > 0 && r.tempo_ativo_seg_hoje > 0) {
-      const peso = r.tempo_ativo_seg_hoje / tempoTotalSegPeriodo;
-      receita_atribuida_periodo = Number((receitaPeriodoTotal * peso).toFixed(2));
-      if (r.custo_dia !== null) {
-        lucro_periodo = Number((receita_atribuida_periodo - r.custo_dia).toFixed(2));
-      }
-    } else if (r.tempo_ativo_seg_hoje === 0 && r.custo_dia !== null) {
-      // Quem não trabalhou no período: receita 0 e custo 0 (custo_dia já é 0
-      // quando tempo=0). Lucro fica 0 — não é prejuízo, é "não esteve aqui".
-      receita_atribuida_periodo = 0;
-      lucro_periodo = 0;
+    if (r.custo_hora !== null) {
+      const horasReais = r.tempo_ativo_seg_hoje / 3600;
+      const diffHoras = horasReais - horasEsperadasPeriodo;
+      lucro_periodo = Number((diffHoras * r.custo_hora).toFixed(2));
     }
-
-    return { ...r, receita_atribuida_periodo, lucro_periodo };
+    return {
+      ...r,
+      horas_esperadas_periodo: horasEsperadasPeriodo,
+      lucro_periodo,
+    };
   });
 }
 
@@ -414,9 +408,12 @@ export interface ProdutividadeSummary {
   eventos_hoje: number;
   custo_dia_total: number;
   custo_hora_medio: number | null;
-  /** Receita do período (mensal × fator) distribuída pelo time. */
-  receita_periodo_total: number;
-  /** Lucro do período: receita_periodo - custo_periodo. Negativo = prejuízo. */
+  /** Horas esperadas do período (8h × dias úteis decorridos). */
+  horas_esperadas_periodo: number;
+  /**
+   * Soma do lucro/prejuízo de todos os colaboradores no período.
+   * Negativo = no agregado, time entregou menos horas do que custou.
+   */
   lucro_periodo_total: number;
   tarefas_atrasadas_total: number;
   capturas_atrasadas_total: number;
@@ -432,8 +429,9 @@ export function summarizeStatus(rows: ColaboradorStatusRow[]): ProdutividadeSumm
   );
   const eventos_hoje = rows.reduce((acc, r) => acc + r.eventos_hoje, 0);
   const custo_dia_total = rows.reduce((acc, r) => acc + (r.custo_dia ?? 0), 0);
-  const receita_periodo_total = rows.reduce((acc, r) => acc + (r.receita_atribuida_periodo ?? 0), 0);
   const lucro_periodo_total = rows.reduce((acc, r) => acc + (r.lucro_periodo ?? 0), 0);
+  // horas_esperadas_periodo é o mesmo pra todo mundo no mesmo run — pega da 1ª row.
+  const horas_esperadas_periodo = rows[0]?.horas_esperadas_periodo ?? 0;
   const tarefas_atrasadas_total = rows.reduce((acc, r) => acc + r.tarefas_atrasadas, 0);
   const capturas_atrasadas_total = rows.reduce((acc, r) => acc + r.capturas_atrasadas, 0);
   const colaboradores_com_atraso = rows.filter(
@@ -458,7 +456,7 @@ export function summarizeStatus(rows: ColaboradorStatusRow[]): ProdutividadeSumm
     eventos_hoje,
     custo_dia_total: Number(custo_dia_total.toFixed(2)),
     custo_hora_medio,
-    receita_periodo_total: Number(receita_periodo_total.toFixed(2)),
+    horas_esperadas_periodo,
     lucro_periodo_total: Number(lucro_periodo_total.toFixed(2)),
     tarefas_atrasadas_total,
     capturas_atrasadas_total,

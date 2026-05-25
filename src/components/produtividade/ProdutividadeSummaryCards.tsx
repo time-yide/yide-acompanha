@@ -87,7 +87,7 @@ const CARDS = [
       return `${sinal} ${formatBRL(Math.abs(s.lucro_periodo_total))}`;
     },
     getHint: (s: ProdutividadeSummary) =>
-      `Receita: ${formatBRL(s.receita_periodo_total)}`,
+      `Esperado: ${s.horas_esperadas_periodo}h por pessoa`,
   },
 ] as const;
 
