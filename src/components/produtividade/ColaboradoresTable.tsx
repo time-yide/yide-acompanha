@@ -9,7 +9,7 @@ interface Props {
   rows: ColaboradorStatusRow[];
 }
 
-type SortKey = "nome" | "ativo" | "tempo" | "eventos" | "custo_dia" | "custo_hora" | "atrasados";
+type SortKey = "nome" | "ativo" | "tempo" | "eventos" | "custo_dia" | "custo_hora" | "atrasados" | "lucro";
 type SortDir = "asc" | "desc";
 
 function StatusDot({ online, ativo }: { online: boolean; ativo: boolean }) {
@@ -73,6 +73,11 @@ export function ColaboradoresTable({ rows }: Props) {
             (b.tarefas_atrasadas + b.capturas_atrasadas) -
             (a.tarefas_atrasadas + a.capturas_atrasadas);
           break;
+        case "lucro":
+          // Nulos vão pro fundo independente da direção (ordena por
+          // valor real primeiro, depois nulos).
+          cmp = (b.lucro_periodo ?? -Infinity) - (a.lucro_periodo ?? -Infinity);
+          break;
       }
       return sortDir === "asc" ? -cmp : cmp;
     });
@@ -122,6 +127,12 @@ export function ColaboradoresTable({ rows }: Props) {
               </th>
               <th className="px-4 py-2.5 text-right">
                 <SortBtn label="Custo dia" k="custo_dia" sortKey={sortKey} sortDir={sortDir} toggle={toggleSort} />
+              </th>
+              <th
+                className="px-4 py-2.5 text-right"
+                title="Receita do período (mensal × fator do range) distribuída pelo tempo ativo de cada um, menos o custo dele. Positivo = rendeu mais do que custou."
+              >
+                <SortBtn label="Lucro" k="lucro" sortKey={sortKey} sortDir={sortDir} toggle={toggleSort} />
               </th>
             </tr>
           </thead>
@@ -185,6 +196,13 @@ export function ColaboradoresTable({ rows }: Props) {
                       ? formatBRL(r.custo_dia)
                       : <span className="text-muted-foreground/50">-</span>}
                   </td>
+                  <td className="px-4 py-3 text-right tabular-nums">
+                    <LucroCell
+                      lucro={r.lucro_periodo}
+                      horasReaisSeg={r.tempo_ativo_seg_hoje}
+                      horasEsperadas={r.horas_esperadas_periodo}
+                    />
+                  </td>
                 </tr>
               );
             })}
@@ -218,6 +236,34 @@ function SortBtn({
       {label}
       {active && (sortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}
     </button>
+  );
+}
+
+function LucroCell({
+  lucro,
+  horasReaisSeg,
+  horasEsperadas,
+}: {
+  lucro: number | null;
+  horasReaisSeg: number;
+  horasEsperadas: number;
+}) {
+  if (lucro === null) {
+    return <span className="text-muted-foreground/50">-</span>;
+  }
+  const horasReais = horasReaisSeg / 3600;
+  const diff = horasReais - horasEsperadas;
+  const positivo = lucro >= 0;
+  const tone = positivo
+    ? "text-emerald-600 dark:text-emerald-400"
+    : "text-rose-600 dark:text-rose-400";
+  const sinal = positivo ? "+" : "−";
+  const valor = Math.abs(lucro);
+  const tooltip = `Trabalhou ${horasReais.toFixed(1)}h · Esperado ${horasEsperadas}h · Diferença ${diff >= 0 ? "+" : ""}${diff.toFixed(1)}h`;
+  return (
+    <span className={`font-semibold ${tone}`} title={tooltip}>
+      {sinal} {formatBRL(valor)}
+    </span>
   );
 }
 

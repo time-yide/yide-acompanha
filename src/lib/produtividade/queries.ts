@@ -34,6 +34,18 @@ export interface ColaboradorStatusRow {
   custo_hora: number | null;
   /** Custo do dia: custo_hora × (tempo_ativo_seg_hoje / 3600). */
   custo_dia: number | null;
+  /**
+   * Horas esperadas no período (8h × dias úteis decorridos). Base pra
+   * comparar com horas reais trabalhadas.
+   */
+  horas_esperadas_periodo: number;
+  /**
+   * Diferença em R$ entre horas trabalhadas e esperadas, valorado pelo
+   * custo/hora: (horas_reais − horas_esperadas) × custo_hora.
+   * Positivo = trabalhou mais que esperado. Negativo = pagou por horas
+   * não entregues. Null quando custo_hora é null.
+   */
+  lucro_periodo: number | null;
 }
 
 interface ProfileRow {
@@ -95,6 +107,29 @@ export const PERIODO_LABEL: Record<PeriodoRange, string> = {
   semana: "Esta semana",
   mes: "Este mês",
 };
+
+// Jornada esperada por dia útil (8h). Base do cálculo de lucro/prejuízo:
+// horas reais - horas esperadas × custo/hora. Negativo = pagamos por
+// horas que não foram entregues.
+const HORAS_POR_DIA_UTIL = 8;
+
+/**
+ * Conta dias úteis (segunda a sexta) entre `since` e `today` inclusive.
+ * Ambas as datas em formato YYYY-MM-DD no fuso da app.
+ */
+function diasUteisDecorridos(sinceIso: string, todayIso: string): number {
+  const [sy, sm, sd] = sinceIso.split("-").map(Number);
+  const [ty, tm, td] = todayIso.split("-").map(Number);
+  const start = Date.UTC(sy, sm - 1, sd);
+  const end = Date.UTC(ty, tm - 1, td);
+  if (end < start) return 0;
+  let count = 0;
+  for (let t = start; t <= end; t += 24 * 60 * 60 * 1000) {
+    const dow = new Date(t).getUTCDay(); // 0=dom..6=sab
+    if (dow >= 1 && dow <= 5) count++;
+  }
+  return count;
+}
 
 /**
  * Calcula `since` (YYYY-MM-DD em Cuiabá) pro range pedido. Usa calendário:
@@ -229,6 +264,12 @@ export async function getColaboradoresStatus(
       .filter((id): id is string => id !== null),
   );
 
+  // Horas esperadas no período: 8h × dias úteis decorridos. Pra "dia"
+  // sempre dá 8 (1 dia útil = hoje). Pra "semana"/"mes" varia com o
+  // calendário (terça da semana = 2 dias úteis; dia 5 do mês = ~3-4).
+  const diasUteis = diasUteisDecorridos(since, today);
+  const horasEsperadasPeriodo = diasUteis * HORAS_POR_DIA_UTIL;
+
   // Agrega comissão por user_id (média dos últimos 3 meses)
   const commissionByUser = new Map<string, { soma: number; n: number }>();
   for (const c of commissions) {
@@ -299,7 +340,8 @@ export async function getColaboradoresStatus(
     return Math.floor(total / 1000);
   }
 
-  return profiles.map((p) => {
+  // 1º pass: monta tudo menos receita/lucro (que depende do tempo total do time)
+  const rowsBase = profiles.map((p) => {
     const lastSeen = p.last_seen_at ? new Date(p.last_seen_at).getTime() : 0;
     const lastActive = p.last_active_event_at
       ? new Date(p.last_active_event_at).getTime()
@@ -340,6 +382,22 @@ export async function getColaboradoresStatus(
       custo_dia,
     };
   });
+
+  // 2º pass: calcula lucro/prejuízo comparando horas trabalhadas com
+  // horas esperadas (8h/dia útil), valorado em R$ pelo custo/hora da pessoa.
+  return rowsBase.map((r) => {
+    let lucro_periodo: number | null = null;
+    if (r.custo_hora !== null) {
+      const horasReais = r.tempo_ativo_seg_hoje / 3600;
+      const diffHoras = horasReais - horasEsperadasPeriodo;
+      lucro_periodo = Number((diffHoras * r.custo_hora).toFixed(2));
+    }
+    return {
+      ...r,
+      horas_esperadas_periodo: horasEsperadasPeriodo,
+      lucro_periodo,
+    };
+  });
 }
 
 export interface ProdutividadeSummary {
@@ -350,6 +408,13 @@ export interface ProdutividadeSummary {
   eventos_hoje: number;
   custo_dia_total: number;
   custo_hora_medio: number | null;
+  /** Horas esperadas do período (8h × dias úteis decorridos). */
+  horas_esperadas_periodo: number;
+  /**
+   * Soma do lucro/prejuízo de todos os colaboradores no período.
+   * Negativo = no agregado, time entregou menos horas do que custou.
+   */
+  lucro_periodo_total: number;
   tarefas_atrasadas_total: number;
   capturas_atrasadas_total: number;
   colaboradores_com_atraso: number;
@@ -364,6 +429,9 @@ export function summarizeStatus(rows: ColaboradorStatusRow[]): ProdutividadeSumm
   );
   const eventos_hoje = rows.reduce((acc, r) => acc + r.eventos_hoje, 0);
   const custo_dia_total = rows.reduce((acc, r) => acc + (r.custo_dia ?? 0), 0);
+  const lucro_periodo_total = rows.reduce((acc, r) => acc + (r.lucro_periodo ?? 0), 0);
+  // horas_esperadas_periodo é o mesmo pra todo mundo no mesmo run — pega da 1ª row.
+  const horas_esperadas_periodo = rows[0]?.horas_esperadas_periodo ?? 0;
   const tarefas_atrasadas_total = rows.reduce((acc, r) => acc + r.tarefas_atrasadas, 0);
   const capturas_atrasadas_total = rows.reduce((acc, r) => acc + r.capturas_atrasadas, 0);
   const colaboradores_com_atraso = rows.filter(
@@ -388,6 +456,8 @@ export function summarizeStatus(rows: ColaboradorStatusRow[]): ProdutividadeSumm
     eventos_hoje,
     custo_dia_total: Number(custo_dia_total.toFixed(2)),
     custo_hora_medio,
+    horas_esperadas_periodo,
+    lucro_periodo_total: Number(lucro_periodo_total.toFixed(2)),
     tarefas_atrasadas_total,
     capturas_atrasadas_total,
     colaboradores_com_atraso,
