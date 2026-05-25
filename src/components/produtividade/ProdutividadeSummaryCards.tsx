@@ -77,6 +77,18 @@ const CARDS = [
         ? `R$ ${s.custo_hora_medio.toFixed(2)}/h médio`
         : "sem dados de custo",
   },
+  {
+    label: "Lucro do período",
+    icon: TrendingUp,
+    // Tone calculado no render: emerald se lucro >= 0, rose se prejuízo.
+    tone: "lucro",
+    getValue: (s: ProdutividadeSummary) => {
+      const sinal = s.lucro_periodo_total >= 0 ? "+" : "−";
+      return `${sinal} ${formatBRL(Math.abs(s.lucro_periodo_total))}`;
+    },
+    getHint: (s: ProdutividadeSummary) =>
+      `Receita: ${formatBRL(s.receita_periodo_total)}`,
+  },
 ] as const;
 
 const TONE_CLASSES: Record<string, { bg: string; text: string; border: string }> = {
@@ -118,10 +130,15 @@ export function ProdutividadeSummaryCards({ summary, periodoLabel }: Props) {
           <span className="text-rose-600 dark:text-rose-400">Atrasados</span> sempre refletem o estado atual.
         </p>
       )}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
         {CARDS.map((card) => {
         const Icon = card.icon;
-        const tone = TONE_CLASSES[card.tone];
+        // Card de lucro escolhe cor dinamicamente baseado no sinal.
+        const resolvedTone =
+          card.tone === "lucro"
+            ? summary.lucro_periodo_total >= 0 ? "emerald" : "rose"
+            : card.tone;
+        const tone = TONE_CLASSES[resolvedTone];
         return (
           <div
             key={card.label}

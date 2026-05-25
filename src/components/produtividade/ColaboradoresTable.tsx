@@ -9,7 +9,7 @@ interface Props {
   rows: ColaboradorStatusRow[];
 }
 
-type SortKey = "nome" | "ativo" | "tempo" | "eventos" | "custo_dia" | "custo_hora" | "atrasados";
+type SortKey = "nome" | "ativo" | "tempo" | "eventos" | "custo_dia" | "custo_hora" | "atrasados" | "lucro";
 type SortDir = "asc" | "desc";
 
 function StatusDot({ online, ativo }: { online: boolean; ativo: boolean }) {
@@ -73,6 +73,11 @@ export function ColaboradoresTable({ rows }: Props) {
             (b.tarefas_atrasadas + b.capturas_atrasadas) -
             (a.tarefas_atrasadas + a.capturas_atrasadas);
           break;
+        case "lucro":
+          // Nulos vão pro fundo independente da direção (ordena por
+          // valor real primeiro, depois nulos).
+          cmp = (b.lucro_periodo ?? -Infinity) - (a.lucro_periodo ?? -Infinity);
+          break;
       }
       return sortDir === "asc" ? -cmp : cmp;
     });
@@ -122,6 +127,12 @@ export function ColaboradoresTable({ rows }: Props) {
               </th>
               <th className="px-4 py-2.5 text-right">
                 <SortBtn label="Custo dia" k="custo_dia" sortKey={sortKey} sortDir={sortDir} toggle={toggleSort} />
+              </th>
+              <th
+                className="px-4 py-2.5 text-right"
+                title="Receita do período (mensal × fator do range) distribuída pelo tempo ativo de cada um, menos o custo dele. Positivo = rendeu mais do que custou."
+              >
+                <SortBtn label="Lucro" k="lucro" sortKey={sortKey} sortDir={sortDir} toggle={toggleSort} />
               </th>
             </tr>
           </thead>
@@ -185,6 +196,13 @@ export function ColaboradoresTable({ rows }: Props) {
                       ? formatBRL(r.custo_dia)
                       : <span className="text-muted-foreground/50">-</span>}
                   </td>
+                  <td className="px-4 py-3 text-right tabular-nums">
+                    <LucroCell
+                      lucro={r.lucro_periodo}
+                      receita={r.receita_atribuida_periodo}
+                      custo={r.custo_dia}
+                    />
+                  </td>
                 </tr>
               );
             })}
@@ -218,6 +236,40 @@ function SortBtn({
       {label}
       {active && (sortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}
     </button>
+  );
+}
+
+function LucroCell({
+  lucro,
+  receita,
+  custo,
+}: {
+  lucro: number | null;
+  receita: number | null;
+  custo: number | null;
+}) {
+  if (lucro === null) {
+    return <span className="text-muted-foreground/50">-</span>;
+  }
+  // Quem não trabalhou no período: receita e custo são 0, lucro 0. Mostra
+  // "—" pra não passar a impressão de que é zero "real".
+  if (lucro === 0 && (receita ?? 0) === 0 && (custo ?? 0) === 0) {
+    return <span className="text-muted-foreground/50">-</span>;
+  }
+  const positivo = lucro > 0;
+  const tone = positivo
+    ? "text-emerald-600 dark:text-emerald-400"
+    : "text-rose-600 dark:text-rose-400";
+  const sinal = positivo ? "+" : "−";
+  const valor = Math.abs(lucro);
+  const tooltip =
+    receita !== null && custo !== null
+      ? `Receita atribuída: ${formatBRL(receita)} · Custo: ${formatBRL(custo)}`
+      : undefined;
+  return (
+    <span className={`font-semibold ${tone}`} title={tooltip}>
+      {sinal} {formatBRL(valor)}
+    </span>
   );
 }
 
