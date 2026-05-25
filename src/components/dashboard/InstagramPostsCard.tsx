@@ -357,8 +357,18 @@ function ClienteRow({
               {counts.semana}
             </span>
           </td>
-          <td className={`px-3 py-2 text-right text-base font-bold tabular-nums ${mesCor}`}>
-            {counts.mes}
+          <td className="px-3 py-2 text-right">
+            <button
+              type="button"
+              onClick={() => setExpanded((v) => !v)}
+              className={`inline-flex items-center gap-1 text-base font-bold tabular-nums ${mesCor} hover:underline`}
+              title="Clique pra ver a lista de posts contados"
+            >
+              {counts.mes}
+              <span className="text-[9px] font-normal opacity-50">
+                ({expanded ? "ocultar" : "ver"})
+              </span>
+            </button>
           </td>
         </>
       ) : c.status === "no_url" ? (
@@ -450,6 +460,72 @@ function ClienteRow({
               Causas comuns: perfil privado, perfil renomeado, URL com erro de digitação,
               ou Apify temporariamente bloqueado. Tente atualizar de novo em alguns minutos
               ou conferir a URL cadastrada na ficha do cliente.
+            </p>
+          </div>
+        </td>
+      </tr>
+    )}
+    {counts && expanded && snap && (
+      <tr className="bg-muted/20">
+        <td colSpan={colSpan} className="border-l-2 border-pink-500/50 px-4 py-3">
+          <div className="space-y-2 text-xs">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="font-semibold text-foreground">
+                Posts contados pelo sistema:
+              </span>
+              <span className="text-muted-foreground">
+                {(snap.recent_posts ?? []).length} posts retornados pelo Apify ·
+                snapshot {timeAgo(snap.scraped_at)}
+              </span>
+            </div>
+            {(snap.recent_posts ?? []).length === 0 ? (
+              <p className="text-muted-foreground">Apify não retornou nenhum post.</p>
+            ) : (
+              <div className="max-h-64 overflow-auto rounded border bg-card">
+                <table className="w-full text-[11px]">
+                  <thead className="sticky top-0 bg-muted/50 text-[10px] uppercase tracking-wider text-muted-foreground">
+                    <tr>
+                      <th className="px-2 py-1 text-left">#</th>
+                      <th className="px-2 py-1 text-left">Data/hora (UTC)</th>
+                      <th className="px-2 py-1 text-left">Tipo</th>
+                      <th className="px-2 py-1 text-left">Link</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {(snap.recent_posts ?? []).map((p, i) => (
+                      <tr key={p.url ?? i}>
+                        <td className="px-2 py-1 text-muted-foreground tabular-nums">{i + 1}</td>
+                        <td className="px-2 py-1 font-mono tabular-nums">
+                          {new Date(p.timestamp).toISOString().replace("T", " ").slice(0, 16)}
+                        </td>
+                        <td className="px-2 py-1">
+                          <span className={`rounded px-1.5 py-0.5 text-[9px] uppercase ${
+                            p.type === "reel"
+                              ? "bg-purple-500/15 text-purple-700 dark:text-purple-300"
+                              : "bg-blue-500/15 text-blue-700 dark:text-blue-300"
+                          }`}>
+                            {p.type}
+                          </span>
+                        </td>
+                        <td className="px-2 py-1">
+                          <a
+                            href={p.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-mono text-primary hover:underline"
+                          >
+                            {p.url.replace(/^https?:\/\/(www\.)?instagram\.com\//, "")}
+                          </a>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <p className="text-[10px] text-muted-foreground">
+              Se está faltando posts comparado ao perfil real: aperta &quot;Atualizar&quot; pra puxar
+              fresh do Apify. Se mesmo assim ficar curto, o limite de scrape pode ter sido atingido.
             </p>
           </div>
         </td>
