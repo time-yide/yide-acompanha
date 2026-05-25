@@ -1,9 +1,21 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { FixoCard } from "./personal/FixoCard";
 import { MinhasTarefasPendentes } from "./personal/MinhasTarefasPendentes";
+import { InstagramPostsSection } from "./sections";
 import { getProximasGravacoes } from "@/lib/dashboard/personal";
 import { Video, MapPin } from "lucide-react";
 import { APP_TIMEZONE, getAppTimezoneOffsetMs, getDatePartsInAppTz } from "@/lib/datetime/timezone";
+
+function IgListSkeleton() {
+  return (
+    <div className="space-y-2">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="h-10 animate-pulse rounded bg-muted/50" />
+      ))}
+    </div>
+  );
+}
 
 interface Props {
   userId: string;
@@ -97,6 +109,10 @@ export async function DashboardVideomaker({ userId, nome }: Props) {
       </section>
 
       <MinhasTarefasPendentes userId={userId} />
+
+      <Suspense fallback={<IgListSkeleton />}>
+        <InstagramPostsSection assessorId={null} titulo="Postagens no Instagram" />
+      </Suspense>
     </div>
   );
 }
