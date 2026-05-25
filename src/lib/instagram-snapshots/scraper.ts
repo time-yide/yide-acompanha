@@ -15,6 +15,10 @@ const POSTS_LIMIT = 100;
 // Apify às vezes demora 60-90s (retries internos do actor). 120s dá margem
 // sem virar problema no serverless (Vercel free aceita 300s em route handlers).
 const FETCH_TIMEOUT_MS = 120_000;
+// Apify às vezes retorna no_items, dataset vazio ou timeout transitório no
+// 1º try. Re-tentando 1× depois de 3s resolve uns 70% dos casos sem deixar
+// a UI travada por muito tempo.
+const RETRY_DELAY_MS = 3_000;
 
 export interface ProfileSnapshotResult {
   status: ScrapeStatus;
@@ -71,28 +75,32 @@ function buildPostUrl(post: ApifyPostItem): string | null {
 }
 
 /**
- * Faz scraping de UM perfil. Não persiste — só retorna o resultado.
- * Persistência é responsabilidade do caller (actions / cron).
+ * Heurística pra decidir se vale re-tentar. Erros do Apify tipo `no_items`,
+ * timeouts e rate-limit costumam ser flaky — perfil existe mas o scrape
+ * falhou nesse run específico. Já 'profile_not_found' por username inválido
+ * é determinístico e re-tentar não muda nada.
  */
-export async function fetchProfileSnapshot(
-  instagramUrlOrUser: string | null | undefined,
-): Promise<ProfileSnapshotResult> {
-  const username = normalizeUsername(instagramUrlOrUser);
-  if (!username) {
-    return { status: "no_url", totalPosts: null, recentPosts: [] };
-  }
+function isErroTransitorio(result: ProfileSnapshotResult): boolean {
+  if (result.status === "ok") return false;
+  const msg = (result.erro ?? "").toLowerCase();
+  if (/no_items/.test(msg)) return true;
+  if (/timeout|aborted|demorou/.test(msg)) return true;
+  if (/rate.?limit/i.test(msg)) return true;
+  if (/temporar/i.test(msg)) return true;
+  // HTTP 5xx do Apify (servidor deles) também é transitório.
+  if (/HTTP 5\d\d/.test(result.erro ?? "")) return true;
+  return false;
+}
 
-  const env = getServerEnv();
-  const token = env.APIFY_API_TOKEN;
-  if (!token) {
-    return {
-      status: "error",
-      totalPosts: null,
-      recentPosts: [],
-      erro: "APIFY_API_TOKEN não configurado",
-    };
-  }
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
+/**
+ * Uma única tentativa de scrape. Toda lógica de fetch+parse mora aqui;
+ * a função pública embrulha em retry quando o erro for transitório.
+ */
+async function scrapeOnce(username: string, token: string): Promise<ProfileSnapshotResult> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
@@ -130,7 +138,8 @@ export async function fetchProfileSnapshot(
         status: "profile_not_found",
         totalPosts: null,
         recentPosts: [],
-        erro: "Perfil não encontrado ou privado",
+        // Mantém 'no_items' literal — isErroTransitorio detecta esse marker pra retry.
+        erro: "no_items",
       };
     }
 
@@ -183,4 +192,42 @@ export async function fetchProfileSnapshot(
   } finally {
     clearTimeout(timer);
   }
+}
+
+/**
+ * Faz scraping de UM perfil. Não persiste — só retorna o resultado.
+ * Persistência é responsabilidade do caller (actions / cron).
+ *
+ * Re-tenta 1× automaticamente quando o 1º try cai em erro transitório
+ * (no_items, timeout, 5xx, rate_limit). Casos como `profile_not_found`
+ * por username errado NÃO re-tentam — seria gastar quota à toa.
+ */
+export async function fetchProfileSnapshot(
+  instagramUrlOrUser: string | null | undefined,
+): Promise<ProfileSnapshotResult> {
+  const username = normalizeUsername(instagramUrlOrUser);
+  if (!username) {
+    return { status: "no_url", totalPosts: null, recentPosts: [] };
+  }
+
+  const env = getServerEnv();
+  const token = env.APIFY_API_TOKEN;
+  if (!token) {
+    return {
+      status: "error",
+      totalPosts: null,
+      recentPosts: [],
+      erro: "APIFY_API_TOKEN não configurado",
+    };
+  }
+
+  const first = await scrapeOnce(username, token);
+  if (!isErroTransitorio(first)) return first;
+
+  // Segunda chance — espera 3s pra dar tempo do estado do Apify estabilizar.
+  await sleep(RETRY_DELAY_MS);
+  const second = await scrapeOnce(username, token);
+  // Se o retry também falhou transitório, devolve o erro do 2º try
+  // (geralmente é a mesma mensagem, mas o user vê que a gente já tentou).
+  return second;
 }
