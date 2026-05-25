@@ -11,6 +11,11 @@ const HAS_IA = /\bia\b/i;
 export function inferTipoPacote(servico: string | null | undefined): TipoPacote {
   if (!servico) return "trafego_estrategia";
   const s = servico.toLowerCase();
+  // E-commerce vem ANTES dos outros checks porque "e-commerce" pode ter
+  // "comércio" que ainda contém "merc" — evita matchings esquisitos.
+  if (s.includes("e-commerce") || s.includes("ecommerce") || s.includes("e commerce")) {
+    return "ecommerce";
+  }
   if (
     (s.includes("trafego") || s.includes("tráfego") || s.includes("trafégo")) &&
     s.includes("estrat")
