@@ -18,6 +18,7 @@ vi.mock("@/lib/notificacoes/dispatch", () => ({
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
+  revalidateTag: vi.fn(),
 }));
 
 import { markStepProntoAction, updateChecklistFieldAction } from "@/lib/painel/actions";

@@ -30,29 +30,31 @@ describe("getDeadline", () => {
 });
 
 describe("isAtrasada", () => {
+  // O `dia do mês` é computado em Cuiabá (UTC-4) — referências usam 12:00 UTC
+  // (= 08:00 Cuiabá) pra garantir que o cálculo de dia em UTC e Cuiabá bate.
   it("retorna false se status é pronto, mesmo passou do prazo", () => {
-    const today = new Date(Date.UTC(2026, 4, 15));
+    const today = new Date(Date.UTC(2026, 4, 15, 12));
     expect(isAtrasada("cronograma", "pronto", today)).toBe(false);
   });
 
   it("retorna true se hoje > prazo e status != pronto", () => {
-    const today = new Date(Date.UTC(2026, 4, 15));
+    const today = new Date(Date.UTC(2026, 4, 15, 12));
     expect(isAtrasada("cronograma", "pendente", today)).toBe(true);
     expect(isAtrasada("cronograma", "em_andamento", today)).toBe(true);
   });
 
   it("retorna false se hoje <= prazo", () => {
-    const today = new Date(Date.UTC(2026, 4, 5));
+    const today = new Date(Date.UTC(2026, 4, 5, 12));
     expect(isAtrasada("cronograma", "pendente", today)).toBe(false);
   });
 
   it("postagem prazo dia 30 — dia 30 ainda não é atrasada", () => {
-    const today = new Date(Date.UTC(2026, 4, 30));
+    const today = new Date(Date.UTC(2026, 4, 30, 12));
     expect(isAtrasada("postagem", "pendente", today)).toBe(false);
   });
 
   it("postagem prazo dia 30 — dia 31 é atrasada", () => {
-    const today = new Date(Date.UTC(2026, 4, 31));
+    const today = new Date(Date.UTC(2026, 4, 31, 12));
     expect(isAtrasada("postagem", "pendente", today)).toBe(true);
   });
 });

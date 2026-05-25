@@ -6,6 +6,13 @@ vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({ from: fromMock }),
 }));
 
+// getMetaComercial usa service-role pra ler fixo_mensal/comissao_percent
+// (colunas REVOKEadas do role authenticated). Aponta pro mesmo fromMock
+// pra que os mocks por-tabela existentes continuem funcionando.
+vi.mock("@/lib/supabase/service-role", () => ({
+  createServiceRoleClient: () => ({ from: fromMock }),
+}));
+
 import {
   getLeadsKpis,
   getFunnelData,

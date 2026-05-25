@@ -292,25 +292,31 @@ describe("getEntradaChurn", () => {
       mes: "2026-02",
       entradas: 2,
       churns: 0,
+      avulsos: 0,
       entradas_clientes: [
         { id: "c1", nome: "Cliente Um" },
         { id: "c2", nome: "Cliente Dois" },
       ],
       churns_clientes: [],
+      avulsos_clientes: [],
     });
     expect(data[1]).toEqual({
       mes: "2026-03",
       entradas: 1,
       churns: 1,
+      avulsos: 0,
       entradas_clientes: [{ id: "c3", nome: "Cliente Três" }],
       churns_clientes: [{ id: "c4", nome: "Cliente Quatro" }],
+      avulsos_clientes: [],
     });
     expect(data[2]).toEqual({
       mes: "2026-04",
       entradas: 0,
       churns: 1,
+      avulsos: 0,
       entradas_clientes: [],
       churns_clientes: [{ id: "c5", nome: "Cliente Cinco" }],
+      avulsos_clientes: [],
     });
 
     vi.useRealTimers();
@@ -325,8 +331,8 @@ describe("getEntradaChurn", () => {
     }));
     const data = await _getEntradaChurnImpl(2);
     expect(data).toEqual([
-      { mes: "2026-03", entradas: 0, churns: 0, entradas_clientes: [], churns_clientes: [] },
-      { mes: "2026-04", entradas: 0, churns: 0, entradas_clientes: [], churns_clientes: [] },
+      { mes: "2026-03", entradas: 0, churns: 0, avulsos: 0, entradas_clientes: [], churns_clientes: [], avulsos_clientes: [] },
+      { mes: "2026-04", entradas: 0, churns: 0, avulsos: 0, entradas_clientes: [], churns_clientes: [], avulsos_clientes: [] },
     ]);
 
     vi.useRealTimers();

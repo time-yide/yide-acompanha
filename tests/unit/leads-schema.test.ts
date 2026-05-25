@@ -25,7 +25,7 @@ describe("moveStageSchema", () => {
   it("aceita stage válido", () => {
     expect(moveStageSchema.safeParse({
       id: "00000000-0000-0000-0000-000000000000",
-      to_stage: "comercial",
+      to_stage: "reuniao_comercial",
     }).success).toBe(true);
   });
   it("rejeita stage desconhecido", () => {
