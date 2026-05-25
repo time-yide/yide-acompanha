@@ -1,9 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Camera, Loader2, RefreshCw, AlertTriangle, ExternalLink, Plus } from "lucide-react";
+import {
+  Camera, Loader2, RefreshCw, AlertTriangle, ExternalLink,
+  Search, ChevronDown, ArrowDown, ArrowUp,
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { refreshSnapshotsAction } from "@/lib/instagram-snapshots/actions";
 import { computeCounts } from "@/lib/instagram-snapshots/counts";
@@ -14,19 +17,19 @@ function timeAgo(iso: string): string {
   const ms = Date.now() - new Date(iso).getTime();
   const min = Math.floor(ms / 60000);
   if (min < 1) return "agora";
-  if (min < 60) return `há ${min}min`;
+  if (min < 60) return `${min}min`;
   const h = Math.floor(min / 60);
-  if (h < 24) return `há ${h}h`;
+  if (h < 24) return `${h}h`;
   const d = Math.floor(h / 24);
-  return `há ${d}d`;
+  return `${d}d`;
 }
 
-/** Classes de cor pro número do mês baseado em volume (meta aproximada ~12/mês). */
-function corPorVolumeMes(mes: number): { accent: string; bar: string } {
-  if (mes === 0) return { accent: "text-red-500", bar: "bg-red-500/60" };
-  if (mes <= 4) return { accent: "text-amber-500", bar: "bg-amber-500/60" };
-  if (mes <= 9) return { accent: "text-foreground", bar: "bg-foreground/30" };
-  return { accent: "text-emerald-500", bar: "bg-emerald-500/60" };
+/** Cor do número do mês baseado em volume (meta aprox 12/mês). */
+function corPorVolumeMes(mes: number): string {
+  if (mes === 0) return "text-red-500";
+  if (mes <= 4) return "text-amber-500";
+  if (mes <= 9) return "text-foreground";
+  return "text-emerald-500";
 }
 
 function instagramHref(raw: string): string {
@@ -34,27 +37,107 @@ function instagramHref(raw: string): string {
   return `https://instagram.com/${raw.replace(/^@/, "").replace(/\/$/, "")}`;
 }
 
+type SortKey = "nome" | "mes" | "semana" | "hoje";
+type SortDir = "asc" | "desc";
+
 const STATUS_LABEL: Record<ScrapeStatus, string> = {
   ok: "OK",
-  profile_not_found: "Perfil privado ou não encontrado",
+  profile_not_found: "Privado/não encontrado",
   rate_limit: "Tente em 5 min",
-  error: "Erro ao buscar",
-  no_url: "Sem perfil cadastrado",
+  error: "Erro",
+  no_url: "Sem perfil",
 };
 
 interface Props {
   clientes: ClienteComSnapshot[];
   titulo?: string;
+  /** Se true, esconde o filtro de assessor (caso assessor logado, só vê os próprios). */
+  esconderFiltroAssessor?: boolean;
 }
 
-export function InstagramPostsCard({ clientes, titulo = "Postagens no Instagram" }: Props) {
+interface ClienteEnriched extends ClienteComSnapshot {
+  counts: CountsBucket | null;
+  status: ScrapeStatus;
+}
+
+export function InstagramPostsCard({
+  clientes,
+  titulo = "Postagens no Instagram",
+  esconderFiltroAssessor = false,
+}: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
   const [lastRun, setLastRun] = useState<string | null>(null);
 
+  const [query, setQuery] = useState("");
+  const [assessorFilter, setAssessorFilter] = useState<string>("__todos__");
+  const [sortKey, setSortKey] = useState<SortKey>("mes");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  // Enriquece todos os clientes (uma vez, derivado).
+  const enriched: ClienteEnriched[] = useMemo(() => {
+    return clientes.map((c) => {
+      const snap = c.ultimo_snapshot;
+      const hasUrl = !!c.instagram_url;
+      const status: ScrapeStatus = snap?.scrape_status ?? (hasUrl ? "ok" : "no_url");
+      const counts: CountsBucket | null =
+        snap && snap.scrape_status === "ok"
+          ? computeCounts(snap.recent_posts as PostRecente[])
+          : null;
+      return { ...c, counts, status };
+    });
+  }, [clientes]);
+
+  // Lista de assessores únicos (pra dropdown).
+  const assessores = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of clientes) {
+      if (c.assessor_id && c.assessor_nome) {
+        map.set(c.assessor_id, c.assessor_nome);
+      }
+    }
+    return Array.from(map.entries())
+      .map(([id, nome]) => ({ id, nome }))
+      .sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [clientes]);
+
+  // Aplica filtros + sort.
+  const visiveis = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    let arr = enriched.filter((c) => {
+      if (q && !c.cliente_nome.toLowerCase().includes(q)) return false;
+      if (assessorFilter === "__sem__" && c.assessor_id) return false;
+      if (assessorFilter !== "__todos__" && assessorFilter !== "__sem__"
+          && c.assessor_id !== assessorFilter) return false;
+      return true;
+    });
+
+    arr = [...arr].sort((a, b) => {
+      const dir = sortDir === "asc" ? 1 : -1;
+      if (sortKey === "nome") {
+        return a.cliente_nome.localeCompare(b.cliente_nome) * dir;
+      }
+      const av = a.counts?.[sortKey] ?? -1;
+      const bv = b.counts?.[sortKey] ?? -1;
+      if (av === bv) return a.cliente_nome.localeCompare(b.cliente_nome);
+      return (av - bv) * dir;
+    });
+
+    return arr;
+  }, [enriched, query, assessorFilter, sortKey, sortDir]);
+
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir(key === "nome" ? "asc" : "desc");
+    }
+  }
+
   function refreshTodos() {
-    const ids = clientes.filter((c) => c.instagram_url).map((c) => c.cliente_id);
+    const ids = visiveis.filter((c) => c.instagram_url).map((c) => c.cliente_id);
     if (ids.length === 0) return;
     setRefreshingId("__all__");
     startTransition(async () => {
@@ -90,12 +173,12 @@ export function InstagramPostsCard({ clientes, titulo = "Postagens no Instagram"
           <div>
             <h2 className="text-sm font-bold uppercase tracking-wider">{titulo}</h2>
             <p className="text-xs text-muted-foreground">
-              {clientes.length} {clientes.length === 1 ? "cliente" : "clientes"}
+              {visiveis.length} de {clientes.length} {clientes.length === 1 ? "cliente" : "clientes"}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          {lastRun && <span className="text-xs text-muted-foreground">{lastRun}</span>}
+        <div className="flex items-center gap-2">
+          {lastRun && <span className="hidden text-xs text-muted-foreground sm:inline">{lastRun}</span>}
           <button
             type="button"
             onClick={refreshTodos}
@@ -107,174 +190,213 @@ export function InstagramPostsCard({ clientes, titulo = "Postagens no Instagram"
             ) : (
               <RefreshCw className="h-3.5 w-3.5" />
             )}
-            Atualizar tudo
+            Atualizar visíveis
           </button>
         </div>
       </header>
 
-      <div className="grid grid-cols-1 gap-3 p-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {clientes.map((c) => (
-          <ClienteCard
-            key={c.cliente_id}
-            cliente={c}
-            isRefreshing={refreshingId === c.cliente_id || refreshingId === "__all__"}
-            onRefresh={() => refreshUm(c.cliente_id)}
+      {/* Filtros */}
+      <div className="flex flex-wrap items-center gap-2 border-b px-4 py-2">
+        <div className="relative min-w-[200px] flex-1">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar cliente..."
+            className="h-8 w-full rounded-md border bg-card pl-8 pr-3 text-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
           />
-        ))}
+        </div>
+
+        {!esconderFiltroAssessor && (
+          <div className="relative">
+            <select
+              value={assessorFilter}
+              onChange={(e) => setAssessorFilter(e.target.value)}
+              className="h-8 appearance-none rounded-md border bg-card pl-3 pr-7 text-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
+            >
+              <option value="__todos__">Todos os assessores</option>
+              <option value="__sem__">Sem assessor</option>
+              {assessores.map((a) => (
+                <option key={a.id} value={a.id}>{a.nome}</option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          </div>
+        )}
+      </div>
+
+      {/* Tabela */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/30 text-left text-[10px] uppercase tracking-wider text-muted-foreground">
+            <tr>
+              <th className="px-4 py-2">
+                <SortHeader label="Cliente" k="nome" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort} />
+              </th>
+              {!esconderFiltroAssessor && <th className="px-4 py-2">Assessor</th>}
+              <th className="px-3 py-2 text-right">
+                <SortHeader label="Hoje" k="hoje" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort} align="right" />
+              </th>
+              <th className="px-3 py-2 text-right">
+                <SortHeader label="Semana" k="semana" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort} align="right" />
+              </th>
+              <th className="px-3 py-2 text-right">
+                <SortHeader label="Mês" k="mes" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort} align="right" />
+              </th>
+              <th className="px-3 py-2 text-xs">Atualizado</th>
+              <th className="px-3 py-2 w-12"></th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {visiveis.length === 0 && (
+              <tr>
+                <td colSpan={esconderFiltroAssessor ? 6 : 7} className="px-4 py-8 text-center text-xs text-muted-foreground">
+                  Nenhum cliente bate com o filtro.
+                </td>
+              </tr>
+            )}
+            {visiveis.map((c) => (
+              <ClienteRow
+                key={c.cliente_id}
+                c={c}
+                hideAssessor={esconderFiltroAssessor}
+                isRefreshing={refreshingId === c.cliente_id || refreshingId === "__all__"}
+                onRefresh={() => refreshUm(c.cliente_id)}
+              />
+            ))}
+          </tbody>
+        </table>
       </div>
     </Card>
   );
 }
 
-function ClienteCard({
-  cliente,
-  isRefreshing,
-  onRefresh,
+function SortHeader({
+  label, k, sortKey, sortDir, onToggle, align = "left",
 }: {
-  cliente: ClienteComSnapshot;
+  label: string;
+  k: SortKey;
+  sortKey: SortKey;
+  sortDir: SortDir;
+  onToggle: (k: SortKey) => void;
+  align?: "left" | "right";
+}) {
+  const active = sortKey === k;
+  return (
+    <button
+      type="button"
+      onClick={() => onToggle(k)}
+      className={`inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-wider hover:text-foreground ${
+        active ? "text-foreground" : "text-muted-foreground"
+      } ${align === "right" ? "justify-end" : ""}`}
+    >
+      {label}
+      {active && (sortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}
+    </button>
+  );
+}
+
+function ClienteRow({
+  c, hideAssessor, isRefreshing, onRefresh,
+}: {
+  c: ClienteEnriched;
+  hideAssessor: boolean;
   isRefreshing: boolean;
   onRefresh: () => void;
 }) {
-  const snap = cliente.ultimo_snapshot;
-  const hasUrl = !!cliente.instagram_url;
-  const hasSnapshot = !!snap;
-  const status: ScrapeStatus = snap?.scrape_status ?? (hasUrl ? "ok" : "no_url");
-
-  // Só calcula contagens se temos snapshot OK. Se snap=null com url, fica "nunca atualizado".
-  const counts: CountsBucket | null =
-    snap && snap.scrape_status === "ok" ? computeCounts(snap.recent_posts as PostRecente[]) : null;
-
-  const color = counts ? corPorVolumeMes(counts.mes) : { accent: "text-muted-foreground", bar: "bg-muted" };
+  const snap = c.ultimo_snapshot;
+  const hasUrl = !!c.instagram_url;
+  const counts = c.counts;
+  const mesCor = counts ? corPorVolumeMes(counts.mes) : "text-muted-foreground/40";
 
   return (
-    <div className="group relative overflow-hidden rounded-lg border bg-card p-3 transition-colors hover:border-pink-500/40">
-      {/* Barra colorida lateral */}
-      <div className={`absolute inset-y-0 left-0 w-1 ${color.bar}`} />
-
-      <header className="mb-2 flex items-start justify-between gap-2 pl-2">
-        <Link
-          href={`/clientes/${cliente.cliente_id}`}
-          className="line-clamp-1 text-sm font-semibold hover:underline"
-          title={cliente.cliente_nome}
-        >
-          {cliente.cliente_nome}
-        </Link>
-        {hasUrl && (
-          <a
-            href={instagramHref(cliente.instagram_url!)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-muted-foreground transition-colors hover:text-pink-500"
-            aria-label="Abrir Instagram"
-            onClick={(e) => e.stopPropagation()}
+    <tr className="group hover:bg-muted/30">
+      <td className="px-4 py-2">
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/clientes/${c.cliente_id}`}
+            className="line-clamp-1 text-sm font-medium hover:underline"
+            title={c.cliente_nome}
           >
-            <ExternalLink className="h-3.5 w-3.5" />
-          </a>
-        )}
-      </header>
+            {c.cliente_nome}
+          </Link>
+          {hasUrl && (
+            <a
+              href={instagramHref(c.instagram_url!)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted-foreground transition-colors hover:text-pink-500"
+              aria-label="Abrir Instagram"
+            >
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          )}
+        </div>
+      </td>
 
-      <div className="pl-2">
-        {counts ? (
-          <CountsDisplay counts={counts} accent={color.accent} />
-        ) : status === "no_url" ? (
-          <SemPerfil clienteId={cliente.cliente_id} />
-        ) : !hasSnapshot ? (
-          <NuncaAtualizado isRefreshing={isRefreshing} onRefresh={onRefresh} />
-        ) : (
-          <StatusError status={status} />
-        )}
-      </div>
+      {!hideAssessor && (
+        <td className="px-4 py-2 text-xs text-muted-foreground">
+          {c.assessor_nome ?? <span className="italic opacity-60">sem assessor</span>}
+        </td>
+      )}
 
-      <footer className="mt-3 flex items-center justify-between pl-2 text-[10px] text-muted-foreground">
-        <span>{snap ? `Atualizado ${timeAgo(snap.scraped_at)}` : "Sem dados"}</span>
+      {counts ? (
+        <>
+          <td className="px-3 py-2 text-right text-sm tabular-nums">
+            <span className={counts.hoje > 0 ? "font-medium text-foreground" : "text-muted-foreground/60"}>
+              {counts.hoje}
+            </span>
+          </td>
+          <td className="px-3 py-2 text-right text-sm tabular-nums">
+            <span className={counts.semana > 0 ? "font-medium text-foreground" : "text-muted-foreground/60"}>
+              {counts.semana}
+            </span>
+          </td>
+          <td className={`px-3 py-2 text-right text-base font-bold tabular-nums ${mesCor}`}>
+            {counts.mes}
+          </td>
+        </>
+      ) : c.status === "no_url" ? (
+        <td colSpan={3} className="px-3 py-2 text-right text-xs">
+          <Link href={`/clientes/${c.cliente_id}`} className="text-primary hover:underline">
+            + Cadastrar perfil
+          </Link>
+        </td>
+      ) : !snap ? (
+        <td colSpan={3} className="px-3 py-2 text-right text-xs text-muted-foreground">
+          ainda não buscamos
+        </td>
+      ) : (
+        <td colSpan={3} className="px-3 py-2 text-right">
+          <span className="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
+            <AlertTriangle className="h-3 w-3" />
+            {STATUS_LABEL[c.status]}
+          </span>
+        </td>
+      )}
+
+      <td className="px-3 py-2 text-xs text-muted-foreground">
+        {snap ? timeAgo(snap.scraped_at) : "—"}
+      </td>
+
+      <td className="px-3 py-2 text-right">
         {hasUrl && (
           <button
             type="button"
             onClick={onRefresh}
             disabled={isRefreshing}
-            className="inline-flex items-center gap-1 text-primary opacity-0 transition-opacity hover:underline group-hover:opacity-100 disabled:opacity-50"
+            className="inline-flex h-7 w-7 items-center justify-center rounded text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-foreground group-hover:opacity-100 disabled:opacity-50"
+            aria-label="Atualizar este cliente"
           >
             {isRefreshing ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : (
-              <RefreshCw className="h-3 w-3" />
+              <RefreshCw className="h-3.5 w-3.5" />
             )}
-            Atualizar
           </button>
         )}
-      </footer>
-    </div>
-  );
-}
-
-function CountsDisplay({ counts, accent }: { counts: CountsBucket; accent: string }) {
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-baseline gap-2">
-        <span className={`text-3xl font-bold tabular-nums leading-none ${accent}`}>
-          {counts.mes}
-        </span>
-        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-          posts no mês
-        </span>
-      </div>
-      <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-        <span>
-          <span className="font-semibold tabular-nums text-foreground">{counts.hoje}</span> hoje
-        </span>
-        <span className="text-muted-foreground/30">·</span>
-        <span>
-          <span className="font-semibold tabular-nums text-foreground">{counts.semana}</span> esta semana
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function NuncaAtualizado({ isRefreshing, onRefresh }: { isRefreshing: boolean; onRefresh: () => void }) {
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-baseline gap-2">
-        <span className="text-3xl font-bold tabular-nums leading-none text-muted-foreground/40">—</span>
-        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-          ainda não buscamos
-        </span>
-      </div>
-      <button
-        type="button"
-        onClick={onRefresh}
-        disabled={isRefreshing}
-        className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline disabled:opacity-50"
-      >
-        {isRefreshing ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
-        Buscar agora
-      </button>
-    </div>
-  );
-}
-
-function SemPerfil({ clienteId }: { clienteId: string }) {
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-baseline gap-2">
-        <span className="text-2xl font-bold leading-none text-muted-foreground/40">—</span>
-      </div>
-      <Link
-        href={`/clientes/${clienteId}`}
-        className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-      >
-        <Plus className="h-3 w-3" />
-        Cadastrar perfil
-      </Link>
-    </div>
-  );
-}
-
-function StatusError({ status }: { status: ScrapeStatus }) {
-  return (
-    <div className="flex items-center gap-1.5 rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1.5 text-[11px] text-amber-700 dark:text-amber-300">
-      <AlertTriangle className="h-3 w-3 flex-shrink-0" />
-      <span className="line-clamp-2">{STATUS_LABEL[status]}</span>
-    </div>
+      </td>
+    </tr>
   );
 }
