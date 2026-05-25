@@ -41,6 +41,10 @@ describe("PACOTE_COLUMNS", () => {
     expect(PACOTE_COLUMNS.yide_360).toEqual(PACOTE_COLUMNS.trafego_estrategia);
   });
 
+  it("ecommerce tem tudo habilitado (loja virtual completa)", () => {
+    expect(PACOTE_COLUMNS.ecommerce).toEqual(PACOTE_COLUMNS.yide_360);
+  });
+
   it("pacotes do Painel Dev têm tudo zerado", () => {
     for (const p of ["site", "ia", "crm", "crm_ia"] as TipoPacote[]) {
       const cols = PACOTE_COLUMNS[p];
@@ -50,9 +54,9 @@ describe("PACOTE_COLUMNS", () => {
 });
 
 describe("PACOTES_NO_PAINEL_MENSAL", () => {
-  it("inclui exatamente os 5 pacotes do painel mensal", () => {
+  it("inclui exatamente os 6 pacotes do painel mensal", () => {
     expect([...PACOTES_NO_PAINEL_MENSAL].sort()).toEqual([
-      "audiovisual", "estrategia", "trafego", "trafego_estrategia", "yide_360",
+      "audiovisual", "ecommerce", "estrategia", "trafego", "trafego_estrategia", "yide_360",
     ]);
   });
 
@@ -86,9 +90,12 @@ describe("tipoPacoteBadge", () => {
   });
   it("retorna labels distintos pra cada pacote", () => {
     const labels = new Set();
-    for (const p of ["trafego_estrategia","trafego","estrategia","audiovisual","yide_360","site","ia","crm","crm_ia"] as TipoPacote[]) {
+    for (const p of [
+      "trafego_estrategia","trafego","estrategia","audiovisual","yide_360",
+      "ecommerce","site","ia","crm","crm_ia",
+    ] as TipoPacote[]) {
       labels.add(tipoPacoteBadge(p).label);
     }
-    expect(labels.size).toBe(9);
+    expect(labels.size).toBe(10);
   });
 });

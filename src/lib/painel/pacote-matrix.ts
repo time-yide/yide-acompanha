@@ -4,6 +4,7 @@ export const TIPOS_PACOTE = [
   "estrategia",
   "audiovisual",
   "yide_360",
+  "ecommerce",
   "site",
   "ia",
   "crm",
@@ -53,6 +54,12 @@ export const PACOTE_COLUMNS: Record<TipoPacote, ColumnFlags> = {
     crono: 1, design: 1, tpg: 1, tpm: 1, gmn: 1,
     camera: 1, mobile: 1, edicao: 1, reuniao: 1, pacote_postados: 1,
   },
+  // E-commerce: gestão completa de loja virtual + tráfego + conteúdo orgânico.
+  // Mesma cobertura do Yide 360 — todas as colunas habilitadas.
+  ecommerce: {
+    crono: 1, design: 1, tpg: 1, tpm: 1, gmn: 1,
+    camera: 1, mobile: 1, edicao: 1, reuniao: 1, pacote_postados: 1,
+  },
   site: { ...NOTHING },
   ia: { ...NOTHING },
   crm: { ...NOTHING },
@@ -65,6 +72,7 @@ export const PACOTES_NO_PAINEL_MENSAL: readonly TipoPacote[] = [
   "estrategia",
   "audiovisual",
   "yide_360",
+  "ecommerce",
 ];
 
 export function isApplicable(pacote: TipoPacote, coluna: ColumnKey): boolean {
@@ -89,6 +97,8 @@ export function tipoPacoteBadge(pacote: TipoPacote): BadgeMeta {
       return { label: "Audiovisual", classes: "bg-pink-500/15 text-pink-700 dark:text-pink-300 border-pink-500/30" };
     case "yide_360":
       return { label: "Yide 360°", classes: "bg-gradient-to-r from-amber-500 to-yellow-600 text-white border-amber-500/30" };
+    case "ecommerce":
+      return { label: "E-commerce", classes: "bg-fuchsia-500/15 text-fuchsia-700 dark:text-fuchsia-300 border-fuchsia-500/30" };
     case "site":
       return { label: "Site", classes: "bg-slate-500/15 text-slate-700 dark:text-slate-300 border-slate-500/30" };
     case "ia":

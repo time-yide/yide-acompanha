@@ -44,6 +44,7 @@ export const PACOTES_ELEGIVEIS = [
   "yide_360",
   "estrategia",
   "trafego_estrategia",
+  "ecommerce",
 ] as const;
 
 export type PacoteElegivel = (typeof PACOTES_ELEGIVEIS)[number];

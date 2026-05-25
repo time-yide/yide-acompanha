@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { isPacoteElegivel, PACOTES_ELEGIVEIS } from "@/lib/instagram-snapshots/tipos";
 
 describe("isPacoteElegivel", () => {
-  it("aceita yide_360, estrategia, trafego_estrategia", () => {
+  it("aceita pacotes com postagem orgânica regular (yide_360, estrategia, trafego_estrategia, ecommerce)", () => {
     for (const p of PACOTES_ELEGIVEIS) {
       expect(isPacoteElegivel(p)).toBe(true);
     }
