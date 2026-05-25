@@ -4,32 +4,40 @@ import { getServerEnv } from "@/lib/env";
 import type { PostRecente, PostType, ScrapeStatus } from "./tipos";
 
 const APIFY_BASE = "https://api.apify.com/v2";
-const ACTOR_ID = "apify~instagram-profile-scraper";
+// instagram-scraper (não o profile-scraper) — esse aceita resultsLimit
+// controlando quantos POSTS retornar, não só perfis. Trocamos pra ele porque
+// o profile-scraper retorna fixo ~30 posts em latestPosts, ficando curto
+// pra contas que postam 1+ por dia (mês fica subestimado).
+const ACTOR_ID = "apify~instagram-scraper";
+// Quanto puxar por scrape. 100 cobre folgado mês inteiro de qualquer conta
+// (raramente passa de 60 posts/mês). Mais que isso vira gasto Apify sem retorno.
+const POSTS_LIMIT = 100;
 // Apify às vezes demora 60-90s (retries internos do actor). 120s dá margem
 // sem virar problema no serverless (Vercel free aceita 300s em route handlers).
 const FETCH_TIMEOUT_MS = 120_000;
 
 export interface ProfileSnapshotResult {
   status: ScrapeStatus;
-  /** Total de posts do perfil. Null em erro. */
+  /** Total de posts do perfil. Pode ser null — instagram-scraper não retorna postsCount. */
   totalPosts: number | null;
-  /** Posts recentes processados (máx 50). Vazio em erro. */
+  /** Posts recentes processados (até POSTS_LIMIT). Vazio em erro. */
   recentPosts: PostRecente[];
   /** Mensagem de erro se status != 'ok'. */
   erro?: string;
 }
 
-interface ApifyLatestPost {
+/**
+ * Shape de cada item retornado pelo apify/instagram-scraper em modo "posts".
+ * Diferente do profile-scraper, aqui o array do dataset é diretamente posts.
+ */
+interface ApifyPostItem {
   url?: string;
   shortCode?: string;
   timestamp?: string;
   type?: string;          // "Image" | "Video" | "Sidecar"
   productType?: string;   // "clips" pra reel
-}
-
-interface ApifyProfile {
-  postsCount?: number;
-  latestPosts?: ApifyLatestPost[];
+  /** Quando o scrape falha em achar o perfil, vem `error: 'no_items'` ou similar. */
+  error?: string;
 }
 
 /**
@@ -47,7 +55,7 @@ export function normalizeUsername(raw: string | null | undefined): string | null
   return user.length > 0 ? user : null;
 }
 
-function mapPostType(post: ApifyLatestPost): PostType {
+function mapPostType(post: ApifyPostItem): PostType {
   if (post.productType === "clips") return "reel";
   if (post.type === "Video" && (!post.productType || post.productType === "clips")) {
     return "reel";
@@ -56,7 +64,7 @@ function mapPostType(post: ApifyLatestPost): PostType {
   return "feed";
 }
 
-function buildPostUrl(post: ApifyLatestPost): string | null {
+function buildPostUrl(post: ApifyPostItem): string | null {
   if (post.url) return post.url;
   if (post.shortCode) return `https://www.instagram.com/p/${post.shortCode}/`;
   return null;
@@ -94,10 +102,10 @@ export async function fetchProfileSnapshot(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        usernames: [username],
-        resultsLimit: 1,
-        // resultsType controla o que vem. "details" inclui latestPosts.
-        resultsType: "details",
+        directUrls: [`https://www.instagram.com/${username}/`],
+        resultsType: "posts",
+        resultsLimit: POSTS_LIMIT,
+        // Sem dados do perfil — só posts. Mais barato e suficiente.
         addParentData: false,
       }),
       signal: controller.signal,
@@ -116,7 +124,7 @@ export async function fetchProfileSnapshot(
       };
     }
 
-    const items = (await resp.json()) as ApifyProfile[];
+    const items = (await resp.json()) as ApifyPostItem[];
     if (!Array.isArray(items) || items.length === 0) {
       return {
         status: "profile_not_found",
@@ -126,12 +134,18 @@ export async function fetchProfileSnapshot(
       };
     }
 
-    const profile = items[0];
-    const totalPosts = typeof profile.postsCount === "number" ? profile.postsCount : null;
+    // Quando o perfil não existe, o scraper retorna 1 item com `error`.
+    if (items.length === 1 && items[0].error) {
+      return {
+        status: "profile_not_found",
+        totalPosts: null,
+        recentPosts: [],
+        erro: items[0].error,
+      };
+    }
 
-    const recentPosts: PostRecente[] = (profile.latestPosts ?? [])
-      .filter((p) => p.timestamp)
-      .slice(0, 50)
+    const recentPosts: PostRecente[] = items
+      .filter((p) => p.timestamp && !p.error)
       .map((p) => {
         const url = buildPostUrl(p);
         return url
@@ -140,7 +154,13 @@ export async function fetchProfileSnapshot(
       })
       .filter((p): p is PostRecente => p !== null);
 
-    return { status: "ok", totalPosts, recentPosts };
+    return {
+      status: "ok",
+      // instagram-scraper não retorna postsCount do perfil. Deixa null —
+      // não é usado pra contagem (que é derivada dos timestamps).
+      totalPosts: null,
+      recentPosts,
+    };
   } catch (err) {
     // AbortError = nosso timeout local. Mensagem amigável + sugestão de retry.
     const isAbort =
