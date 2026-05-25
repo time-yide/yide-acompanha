@@ -15,6 +15,7 @@ import {
   KpiRowSkeleton,
   ChartSkeleton,
   ListSkeleton,
+  InstagramPostsSection,
 } from "./sections";
 
 interface Props {
@@ -68,6 +69,13 @@ export function DashboardSocioAdm({ userId, nome }: Props) {
 
         <Suspense fallback={<ListSkeleton rows={6} />}>
           <CarteiraPorAssessorSection />
+        </Suspense>
+
+        <Suspense fallback={<ListSkeleton rows={5} />}>
+          <InstagramPostsSection
+            assessorId={null}
+            titulo="Postagens no Instagram (Geral)"
+          />
         </Suspense>
 
         <Suspense fallback={<ListSkeleton rows={5} />}>
