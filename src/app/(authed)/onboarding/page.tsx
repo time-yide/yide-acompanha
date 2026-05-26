@@ -7,6 +7,7 @@ import { listColaboradores } from "@/lib/colaboradores/queries";
 import { KanbanBoard } from "@/components/onboarding/KanbanBoard";
 import { OnboardingRealtimeWatcher } from "@/components/onboarding/OnboardingRealtimeWatcher";
 import { TabsOnboarding } from "@/components/onboarding/TabsOnboarding";
+import { TabsOnboardingProspeccao } from "@/components/onboarding/TabsOnboardingProspeccao";
 import { buttonVariants } from "@/components/ui/button";
 import { Plus, Download } from "lucide-react";
 
@@ -38,6 +39,7 @@ export default async function OnboardingPage() {
     <div className="space-y-5">
       {/* Kanban atualiza ao vivo quando qualquer um move/cria/marca lead. */}
       <OnboardingRealtimeWatcher />
+      <TabsOnboardingProspeccao active="onboarding" />
       <TabsOnboarding active="kanban" />
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>

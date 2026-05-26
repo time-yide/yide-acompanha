@@ -7,6 +7,7 @@ import {
   type PeriodKey,
 } from "@/lib/onboarding-relatorios/queries";
 import { TabsOnboarding } from "@/components/onboarding/TabsOnboarding";
+import { TabsOnboardingProspeccao } from "@/components/onboarding/TabsOnboardingProspeccao";
 import { PeriodSelector } from "@/components/onboarding-relatorios/PeriodSelector";
 import { FunilConversao } from "@/components/onboarding-relatorios/FunilConversao";
 import { MetricCards } from "@/components/onboarding-relatorios/MetricCards";
@@ -28,6 +29,7 @@ export default async function RelatoriosPage({
 
   return (
     <div className="space-y-6">
+      <TabsOnboardingProspeccao active="onboarding" />
       <TabsOnboarding active="relatorios" />
 
       <header className="flex flex-wrap items-end justify-between gap-3">
