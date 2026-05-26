@@ -33,7 +33,7 @@ const STATUS_LABEL: Record<string, string> = {
   alteracao: "Alteração",
   aprovada: "Aprovado",
   agendado: "Agendado",
-  postada: "Postado",
+  postada: "Postado/Entregue",
 };
 
 function formatDateBR(iso: string | null | undefined): string {

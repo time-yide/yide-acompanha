@@ -23,7 +23,7 @@ const COLUMN_LABEL: Record<Status, string> = {
   alteracao: "Alteração",
   aprovada: "Aprovado",
   agendado: "Agendado",
-  postada: "Postado",
+  postada: "Postado/Entregue",
 };
 
 interface Props {
