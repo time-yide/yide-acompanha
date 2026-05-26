@@ -138,8 +138,9 @@ export interface TaskFilters {
    *  cliente na unidade (esconde tudo). null/undefined = sem filtro. */
   unitClientIds?: string[] | null;
   /**
-   * Filtro por mês de vencimento (due_date), formato "YYYY-MM". Tarefas
-   * sem due_date ficam de fora quando este filtro está ativo.
+   * Filtro por mês de criação (created_at) no fuso da app (Cuiabá UTC-4),
+   * formato "YYYY-MM". created_at é NOT NULL — todas as tasks entram em
+   * algum mês.
    */
   mes?: string;
 }
@@ -191,11 +192,12 @@ async function _listTasksImpl(filters?: TaskFilters): Promise<TaskRow[]> {
     query = query.ilike("titulo", `%${safe}%`);
   }
   if (filters?.mes && /^\d{4}-\d{2}$/.test(filters.mes)) {
-    // due_date é DATE no banco. Filtra pelo intervalo [YYYY-MM-01, YYYY-MM+1-01).
-    // Tarefas sem due_date ficam de fora — comportamento esperado quando o
-    // usuário pede "tarefas desse mês".
+    // created_at é timestamptz. Filtra pelo intervalo do mês em Cuiabá
+    // (UTC-4, sem DST), traduzido pra UTC: dia 1 00:00 Cuiabá = dia 1 04:00 UTC.
     const { start, end } = monthRangeIso(filters.mes);
-    query = query.gte("due_date", start).lt("due_date", end);
+    query = query
+      .gte("created_at", `${start}T04:00:00.000Z`)
+      .lt("created_at", `${end}T04:00:00.000Z`);
   }
 
   const { data, error } = await query;
@@ -217,8 +219,9 @@ export async function listTasks(filters?: TaskFilters): Promise<TaskRow[]> {
       return _listTasksImpl(f);
     },
     // v5: filtros ganharam unitClientIds (multi-tenant)
-    // v6: filtro de mês (due_date) adicionado
-    ["tarefas-list-v6"],
+    // v6: filtro de mês adicionado
+    // v7: filtro de mês passou de due_date pra created_at
+    ["tarefas-list-v7"],
     { revalidate: 60, tags: ["tasks"] },
   );
   return cached(JSON.stringify(filters ?? null));
