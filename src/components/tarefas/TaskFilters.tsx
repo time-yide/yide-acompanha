@@ -45,7 +45,10 @@ export function TaskFilters({ profiles, clientes, showAtribuido }: Props) {
   // Mês precisa preservar "qualquer" no URL pra desativar o default
   // do server (mês atual). Sem isso, escolher "qualquer" cairia de volta
   // no mês atual no próximo render.
-  function setMesParam(value: string) {
+  // Tipo aceita null pra bater com a assinatura do Radix Select onValueChange.
+  // Na prática value sempre vem string (deselecionar Select Item não dispara).
+  function setMesParam(value: string | null) {
+    if (value === null) return;
     const sp = new URLSearchParams(params.toString());
     sp.set("mes", value);
     router.push(`/tarefas?${sp.toString()}`);
