@@ -2,85 +2,109 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { ChevronDown } from "lucide-react";
+
+/**
+ * Página estilo HQ — painéis com borda preta grossa, balões de fala,
+ * caixas de narração, SFX coloridos (POW! BAM!) e textura halftone.
+ * Cada painel entra com leve fade-in + scale-in via IntersectionObserver.
+ */
+
+interface SFX {
+  text: string;
+  /** Posição relativa ao painel: top/left/right/bottom em CSS válido. */
+  pos: { top?: string; right?: string; bottom?: string; left?: string };
+  /** Rotação visual do SFX em graus. */
+  rotate: number;
+  /** Cor de fundo do badge (cores fortes estilo HQ). */
+  tone: "yellow" | "red" | "blue" | "pink";
+}
 
 interface Cena {
   numero: string;
   capitulo: string;
-  /** Bloco de linhas curtas, renderizadas em sequência com stagger. */
-  blocos: ReadonlyArray<string>;
-  /** Quando true, último bloco vira citação destacada. */
-  quote?: boolean;
-  /** Lista vertical animada — pra cena da montagem de funções. */
+  /** Textos narrativos — viram caixinhas amarelas no topo do painel. */
+  narracao: ReadonlyArray<string>;
+  /** Balão de fala opcional. */
+  fala?: { texto: string; por: string };
+  /** SFXs (POW!, ZAP!, etc) decorativos. */
+  sfx?: ReadonlyArray<SFX>;
+  /** Lista vertical com bullets — pra cena de funções. */
   lista?: ReadonlyArray<string>;
-  /** Visual hint do roteiro original — descritivo, exibido como legenda muted. */
-  visual?: string;
+  /** Rotação leve do painel inteiro pra dar dinamismo. */
+  rotation: number;
 }
 
 const CENAS: ReadonlyArray<Cena> = [
   {
     numero: "01",
     capitulo: "O começo",
-    blocos: [
+    narracao: [
       "Tudo começou em 2020.",
       "Dois jovens de 19/20 anos.",
-      "Sem estrutura.",
-      "Sem escritório.",
-      "Sem ideia do que estavam construindo.",
+      "SEM estrutura. SEM escritório. SEM ideia.",
       "E o mais louco: eles nem se conheciam.",
     ],
-    visual: "Tela dividida — Lucas e Yasmin trabalhando separados em espaços improvisados.",
+    sfx: [
+      { text: "2020", pos: { top: "-20px", right: "-12px" }, rotate: 8, tone: "yellow" },
+    ],
+    rotation: -1,
   },
   {
     numero: "02",
     capitulo: "A indicação mais aleatória possível",
-    blocos: [
+    narracao: [
       "Lucas estava procurando um gestor de tráfego.",
-      "Até que uma indicação inesperada apareceu.",
-      "Não veio de empresário.",
-      "Não veio de agência.",
-      "Nem de networking sofisticado.",
+      "Aí uma indicação inesperada apareceu.",
+      "Não veio de empresário. Não veio de agência.",
       "Veio de um dono de barraca de lanche.",
     ],
-    visual: "Barraca simples de lanche. Clima nostálgico e cinematográfico.",
+    sfx: [
+      { text: "PLOT!", pos: { top: "-24px", left: "-20px" }, rotate: -12, tone: "red" },
+    ],
+    rotation: 1,
   },
   {
     numero: "03",
     capitulo: "A call de 5 horas",
-    blocos: [
-      "A ideia era simples: “Vou contratar ela.”",
-      "Mas a call que era pra durar alguns minutos…",
-      "durou mais de 5 horas.",
+    narracao: [
+      "A ideia era simples: contratar.",
+      "A call que era pra ser minutos…",
+      "DUROU MAIS DE 5 HORAS.",
       "Sem nunca terem se visto pessoalmente.",
-      "E em algum momento daquela conversa, deixou de parecer uma entrevista.",
-      "Parecia que os dois já se conheciam há anos.",
     ],
-    visual: "Tela de call, relógio acelerando, energia intensa.",
+    fala: {
+      texto: "Cara… parece que a gente já se conhece há anos.",
+      por: "em algum momento daquela call",
+    },
+    sfx: [
+      { text: "TIC-TAC", pos: { top: "-18px", right: "-12px" }, rotate: 6, tone: "blue" },
+    ],
+    rotation: -0.5,
   },
   {
     numero: "04",
     capitulo: "O primeiro encontro",
-    blocos: [
+    narracao: [
       "Depois daquela call, decidiram se encontrar.",
-      "O lugar? Uma cafeteria no Shopping Pantanal.",
-      "Um encontro simples.",
-      "Sem imaginar o tamanho da história que começaria ali.",
-      "Até hoje, toda vez que passam naquele lugar…",
-      "lembram exatamente de como tudo começou.",
-      "Porque naquela mesa não nasceu só uma parceria.",
-      "Nasceu algo que mudaria completamente suas vidas.",
+      "O lugar? Cafeteria no Shopping Pantanal.",
+      "Um encontro simples — sem imaginar o tamanho disso.",
+      "Naquela mesa não nasceu só uma parceria.",
+      "Nasceu algo que mudaria suas vidas.",
     ],
-    visual: "Cafeteria do shopping com clima cinematográfico e emocional.",
+    sfx: [
+      { text: "☕", pos: { top: "-30px", left: "-10px" }, rotate: -8, tone: "yellow" },
+    ],
+    rotation: 0.8,
   },
   {
     numero: "05",
     capitulo: "O começo da dupla",
-    blocos: [
-      "A parceria virou amizade.",
-      "A amizade virou sociedade.",
-      "E a sociedade virou uma construção diária.",
-      "Sem glamour. Sem caminho pronto. Só vontade de crescer.",
-      "Lucas e Yasmin já foram tudo que você pode imaginar.",
+    narracao: [
+      "Parceria virou amizade.",
+      "Amizade virou sociedade.",
+      "Sociedade virou construção diária.",
+      "Sem glamour. Sem caminho pronto. Só vontade.",
+      "Lucas e Yasmin já foram TUDO:",
     ],
     lista: [
       "Designer",
@@ -91,158 +115,194 @@ const CENAS: ReadonlyArray<Cena> = [
       "Modelo",
       "Atendimento",
       "Vendedor",
-      "Realmente… tudo.",
     ],
-    visual: "Montagem dinâmica mostrando eles fazendo várias funções.",
+    sfx: [
+      { text: "TUDO!", pos: { bottom: "-20px", right: "-16px" }, rotate: 14, tone: "pink" },
+    ],
+    rotation: -1.2,
   },
   {
     numero: "06",
     capitulo: "O caos",
-    blocos: [
+    narracao: [
       "Nem tudo foi bonito.",
-      "Teve medo.",
-      "Medo de quebrar. Medo de arriscar. Medo de dar errado.",
-      "Teve estrada longa pra captar cliente em outras cidades.",
-      "Teve madrugada trabalhando.",
-      "Teve fase onde o sonho parecia grande demais.",
+      "Teve MEDO de quebrar, de arriscar, de dar errado.",
+      "Estrada longa pra captar cliente em outras cidades.",
+      "Madrugada trabalhando.",
+      "Fase onde o sonho parecia grande demais.",
     ],
-    visual: "Estradas, madrugada, notebooks ligados, cansaço, chuva, tensão.",
+    sfx: [
+      { text: "BAM!", pos: { top: "-24px", right: "-18px" }, rotate: -10, tone: "red" },
+    ],
+    rotation: 1.5,
   },
   {
     numero: "07",
     capitulo: "A evolução",
-    blocos: [
-      "Mas eles entenderam uma coisa cedo:",
+    narracao: [
+      "Mas entenderam algo cedo:",
       "Não dava pra vencer sendo iguais.",
-      "Então pegaram os pontos fortes um do outro…",
-      "e potencializaram ao máximo.",
-      "Enquanto muitos desistiam, eles evoluíam.",
+      "Pegaram os pontos fortes um do outro…",
+      "e potencializaram ao MÁXIMO.",
       "Errando. Aprendendo. Tentando de novo.",
     ],
-    visual: "Clima de evolução e crescimento.",
+    sfx: [
+      { text: "ZAP!", pos: { top: "-22px", left: "-18px" }, rotate: 10, tone: "yellow" },
+    ],
+    rotation: -0.8,
   },
   {
     numero: "08",
     capitulo: "O primeiro “escritório”",
-    blocos: [
+    narracao: [
       "O primeiro espaço da Yide?",
-      "Uma pequena sala no fundo da padaria dos pais do Lucas.",
+      "Uma sala pequena no fundo da padaria dos pais do Lucas.",
       "Mal cabiam 5 pessoas.",
-      "Mas sonho grande nunca precisou de espaço grande pra começar.",
+      "Sonho grande nunca precisou de espaço grande pra começar.",
     ],
-    visual: "Sala apertada, computadores, clima humilde e real.",
+    sfx: [
+      { text: "🍞", pos: { top: "-30px", right: "-8px" }, rotate: 8, tone: "yellow" },
+    ],
+    rotation: 0.5,
   },
   {
     numero: "09",
     capitulo: "O primeiro passo grande",
-    blocos: [
-      "Depois veio mais um risco.",
-      "Uma sala comercial dos pais de um grande amigo: Túlio.",
-      "Pegaram duas salas.",
-      "E em menos de um mês…",
-      "já parecia pequeno demais pros sonhos que tinham.",
+    narracao: [
+      "Mais um risco.",
+      "Sala comercial dos pais do amigo Túlio.",
+      "Pegaram DUAS salas.",
+      "Em menos de um mês…",
+      "já parecia pequeno demais pros sonhos.",
     ],
-    visual: "Equipe crescendo rapidamente.",
+    sfx: [
+      { text: "BOOM!", pos: { bottom: "-18px", right: "-20px" }, rotate: -12, tone: "blue" },
+    ],
+    rotation: -1,
   },
   {
     numero: "10",
     capitulo: "A casa",
-    blocos: [
-      "Então, numa noite completamente aleatória…",
-      "decidiram procurar uma casa.",
+    narracao: [
+      "Uma noite completamente aleatória.",
+      "Decidiram procurar uma casa.",
       "Rodaram. Rodaram. Rodaram.",
       "E antes mesmo de entrar…",
-      "Yasmin falou: “É essa.”",
-      "Como se já soubesse.",
-      "E realmente era.",
     ],
-    visual: "Noite, carro rodando pela cidade, sensação de destino.",
+    fala: {
+      texto: "É essa.",
+      por: "Yasmin, antes de pisar dentro",
+    },
+    sfx: [
+      { text: "★", pos: { top: "-26px", left: "-12px" }, rotate: 0, tone: "yellow" },
+    ],
+    rotation: 1,
   },
   {
     numero: "11",
     capitulo: "A Yide de hoje",
-    blocos: [
-      "Hoje, a Yide tem:",
+    narracao: [
+      "Hoje a Yide tem:",
       "+15 colaboradores presenciais.",
       "+5 pessoas no time online.",
-      "Muita gente passou por aqui.",
-      "Poucas continuaram.",
+      "Muita gente passou. Poucas continuaram.",
       "Mas todas deixaram marcas.",
     ],
-    visual: "Equipe trabalhando, clima forte de time e construção.",
+    sfx: [
+      { text: "TIME!", pos: { top: "-22px", right: "-14px" }, rotate: -8, tone: "pink" },
+    ],
+    rotation: -0.6,
   },
   {
     numero: "12",
     capitulo: "O que a Yide realmente é",
-    blocos: [
+    narracao: [
       "A Yide nunca foi só uma agência.",
-      "Foi construída na coragem. Na tentativa. No risco.",
-      "Na velocidade. Na vontade absurda de crescer.",
-      "E principalmente…",
-      "na ideia de que o medo não serve pra parar alguém.",
-      "Serve pra empurrar mais longe.",
+      "Foi construída na CORAGEM.",
+      "Na tentativa. No risco. Na velocidade.",
+      "Na vontade absurda de crescer.",
+      "Medo não serve pra parar. Serve pra empurrar mais longe.",
     ],
-    visual: "Lucas e Yasmin olhando o time trabalhando.",
+    sfx: [
+      { text: "POW!", pos: { bottom: "-22px", left: "-22px" }, rotate: -14, tone: "red" },
+    ],
+    rotation: 0.9,
   },
 ];
 
 export function HistoriaStory() {
   return (
-    <div className="relative -mx-3 overflow-hidden rounded-2xl bg-zinc-950 text-zinc-100 md:-mx-6">
-      {/* Glow ambiente — pontos de luz suaves de fundo */}
+    <div className="relative -mx-3 overflow-hidden rounded-2xl border-4 border-black bg-amber-50 text-zinc-900 md:-mx-6">
+      {/* Textura halftone — pontinhos pretos sobre o fundo amarelo. Pattern
+          tradicional de quadrinho dos anos 60-70. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 [background:radial-gradient(ellipse_at_top,theme(colors.primary.DEFAULT)/0.18,transparent_60%),radial-gradient(ellipse_at_bottom,theme(colors.violet.500)/0.10,transparent_60%)]"
+        className="pointer-events-none absolute inset-0 opacity-20"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle, #000 1px, transparent 1px)",
+          backgroundSize: "14px 14px",
+        }}
       />
 
-      <HeroIntro />
+      <CoverPanel />
 
-      {CENAS.map((cena) => (
-        <Scene key={cena.numero} cena={cena} />
-      ))}
+      <div className="relative space-y-12 px-4 py-12 sm:px-8 sm:py-16">
+        {CENAS.map((cena, i) => (
+          <Panel key={cena.numero} cena={cena} index={i} />
+        ))}
+      </div>
 
-      <FinalScene />
+      <FinalPanel />
     </div>
   );
 }
 
-/**
- * Hero de abertura — primeira tela que aparece, ainda sem precisar do
- * scroll. Setup do clima "filme começando".
- */
-function HeroIntro() {
+/** Capa estilo HQ: título grande + balão + selo. */
+function CoverPanel() {
   return (
-    <section className="relative flex min-h-[80vh] flex-col items-center justify-center px-6 py-24 text-center">
-      <span className="text-[10px] uppercase tracking-[0.4em] text-zinc-500">
-        A história
-      </span>
-      <h1 className="mt-6 text-5xl font-bold leading-none tracking-tight sm:text-7xl md:text-8xl">
-        <span className="block bg-gradient-to-br from-white via-zinc-200 to-zinc-500 bg-clip-text text-transparent">
-          Yide
+    <section className="relative flex min-h-[60vh] flex-col items-center justify-center px-6 py-16 text-center">
+      <div className="relative">
+        <span className="absolute -top-12 left-1/2 inline-block -translate-x-1/2 rotate-[-6deg] border-2 border-black bg-red-500 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white shadow-[3px_3px_0_#000]">
+          Edição especial — Vol. 01
         </span>
-      </h1>
-      <p className="mt-8 max-w-md text-base text-zinc-400">
+        <h1 className="text-7xl font-black uppercase leading-none tracking-tight sm:text-9xl">
+          <span
+            className="block"
+            style={{
+              WebkitTextStroke: "2px black",
+              color: "#fef3c7",
+              textShadow: "6px 6px 0 #000",
+            }}
+          >
+            Yide
+          </span>
+        </h1>
+        <p className="mt-6 text-lg font-bold uppercase tracking-wide">
+          A história em quadrinhos
+        </p>
+      </div>
+
+      <SpeechBubble className="mt-10 max-w-md">
         Antes de ser empresa, foi escolha. Antes de ser equipe, foi coragem.
-        Essa é a história de como a Yide nasceu.
-      </p>
-      <div className="mt-16 flex flex-col items-center gap-2 text-[10px] uppercase tracking-[0.3em] text-zinc-600">
-        <ChevronDown className="h-4 w-4 animate-bounce" />
-        Role pra começar
+      </SpeechBubble>
+
+      <div className="mt-12 flex flex-col items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-zinc-600">
+        <ArrowDown />
+        Vire a página
       </div>
     </section>
   );
 }
 
-/** Cena individual — fade-in + slide-up via IntersectionObserver. */
-function Scene({ cena }: { cena: Cena }) {
-  const ref = useRef<HTMLElement>(null);
+/** Painel individual de cena. */
+function Panel({ cena, index }: { cena: Cena; index: number }) {
+  const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    // useEffect só roda no client — IntersectionObserver sempre disponível
-    // em browsers modernos. Sem fallback necessário.
     const obs = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -256,85 +316,110 @@ function Scene({ cena }: { cena: Cena }) {
     return () => obs.disconnect();
   }, []);
 
-  const blocos = cena.blocos;
-
   return (
-    <section
+    <div
       ref={ref}
-      className="relative flex min-h-[85vh] flex-col justify-center border-t border-zinc-800/60 px-6 py-24 sm:px-12"
+      className="transition-all duration-700"
+      style={{
+        opacity: visible ? 1 : 0,
+        transform: visible
+          ? `rotate(${cena.rotation}deg) scale(1)`
+          : `rotate(${cena.rotation}deg) scale(0.96)`,
+      }}
     >
-      <div className="mx-auto w-full max-w-2xl">
-        <div
-          className={`mb-10 flex items-baseline gap-4 transition-all duration-1000 ${
-            visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-          }`}
-        >
-          <span className="text-5xl font-bold tracking-tight text-primary/80 tabular-nums sm:text-6xl">
-            {cena.numero}
-          </span>
-          <span className="text-[10px] uppercase tracking-[0.4em] text-zinc-500">
-            {cena.capitulo}
-          </span>
-        </div>
+      <article className="relative mx-auto max-w-2xl border-4 border-black bg-white p-6 shadow-[8px_8px_0_#000] sm:p-8">
+        {/* Número do painel — selo redondo no canto */}
+        <span className="absolute -left-3 -top-3 inline-flex h-10 w-10 items-center justify-center rounded-full border-4 border-black bg-amber-300 font-black tabular-nums shadow-[3px_3px_0_#000]">
+          {cena.numero}
+        </span>
 
-        <div className="space-y-5 text-2xl font-medium leading-snug sm:text-3xl md:text-4xl">
-          {blocos.map((b, i) => (
-            <p
+        {/* Título do capítulo */}
+        <h2 className="mb-5 ml-9 text-xs font-black uppercase tracking-[0.2em] text-zinc-700">
+          {cena.capitulo}
+        </h2>
+
+        {/* Caixas de narração (estilo "MEANWHILE..." dos quadrinhos) */}
+        <div className="space-y-3">
+          {cena.narracao.map((linha, i) => (
+            <div
               key={i}
-              className="transition-all duration-700"
+              className="relative border-2 border-black bg-amber-100 px-3 py-2 transition-all duration-500"
               style={{
                 opacity: visible ? 1 : 0,
-                transform: visible ? "translateY(0)" : "translateY(16px)",
-                transitionDelay: visible ? `${150 + i * 120}ms` : "0ms",
+                transform: visible ? "translateY(0)" : "translateY(8px)",
+                transitionDelay: visible ? `${250 + i * 100}ms` : "0ms",
               }}
             >
-              {b}
-            </p>
+              <p className="font-bold leading-snug">{linha}</p>
+            </div>
           ))}
         </div>
 
+        {/* Lista (quando tem) — bullets pretos */}
         {cena.lista && (
-          <ul className="mt-8 space-y-2 text-lg font-semibold text-zinc-300 sm:text-xl">
-            {cena.lista.map((item, i) => (
+          <ul
+            className="mt-5 grid grid-cols-2 gap-2 transition-opacity duration-700"
+            style={{
+              opacity: visible ? 1 : 0,
+              transitionDelay: visible ? `${250 + cena.narracao.length * 100}ms` : "0ms",
+            }}
+          >
+            {cena.lista.map((item) => (
               <li
                 key={item}
-                className="flex items-center gap-3 transition-all duration-700"
-                style={{
-                  opacity: visible ? 1 : 0,
-                  transform: visible ? "translateX(0)" : "translateX(-12px)",
-                  transitionDelay: visible
-                    ? `${150 + (blocos.length + i) * 100}ms`
-                    : "0ms",
-                }}
+                className="flex items-center gap-2 border-2 border-black bg-white px-2 py-1 text-sm font-bold"
               >
-                <span className="h-px w-6 bg-primary/60" />
+                <span className="inline-block h-2 w-2 bg-black" />
                 {item}
               </li>
             ))}
           </ul>
         )}
 
-        {cena.visual && (
-          <p
-            className="mt-12 max-w-md text-[11px] uppercase tracking-[0.2em] text-zinc-600 transition-opacity duration-700"
+        {/* Balão de fala */}
+        {cena.fala && (
+          <div
+            className="mt-6 text-center transition-all duration-700"
             style={{
               opacity: visible ? 1 : 0,
-              transitionDelay: visible
-                ? `${300 + (blocos.length + (cena.lista?.length ?? 0)) * 100}ms`
-                : "0ms",
+              transform: visible ? "translateY(0)" : "translateY(8px)",
+              transitionDelay: visible ? `${400 + cena.narracao.length * 100}ms` : "0ms",
             }}
           >
-            <span className="text-zinc-500">Cena —</span> {cena.visual}
-          </p>
+            <SpeechBubble pointing={index % 2 === 0 ? "left" : "right"}>
+              {cena.fala.texto}
+            </SpeechBubble>
+            <p className="mt-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+              — {cena.fala.por}
+            </p>
+          </div>
         )}
-      </div>
-    </section>
+
+        {/* SFX flutuantes ao redor do painel — overflow visível pra eles
+            "saírem" da borda do painel, estilo gibi mesmo. */}
+        {cena.sfx?.map((sfx, i) => (
+          <span
+            key={i}
+            aria-hidden
+            className={`pointer-events-none absolute z-10 inline-block whitespace-nowrap border-4 border-black px-3 py-1 text-xs font-black uppercase tracking-wider shadow-[3px_3px_0_#000] transition-all duration-700 sm:text-sm ${sfxToneClass(sfx.tone)}`}
+            style={{
+              ...sfx.pos,
+              transform: `rotate(${sfx.rotate}deg) scale(${visible ? 1 : 0.5})`,
+              opacity: visible ? 1 : 0,
+              transitionDelay: visible ? `${500 + cena.narracao.length * 100}ms` : "0ms",
+            }}
+          >
+            {sfx.text}
+          </span>
+        ))}
+      </article>
+    </div>
   );
 }
 
-/** Cena final — fechamento com logo + frase. */
-function FinalScene() {
-  const ref = useRef<HTMLElement>(null);
+/** Painel final — última página com fechamento. */
+function FinalPanel() {
+  const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -356,12 +441,14 @@ function FinalScene() {
   return (
     <section
       ref={ref}
-      className="relative flex min-h-[90vh] flex-col items-center justify-center border-t border-zinc-800/60 px-6 py-24 text-center"
+      className="relative flex min-h-[70vh] flex-col items-center justify-center px-6 py-16 text-center"
     >
       <div
-        className={`transition-all duration-[1200ms] ${
-          visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
-        }`}
+        className="relative border-4 border-black bg-white p-8 shadow-[10px_10px_0_#000] transition-all duration-1000"
+        style={{
+          opacity: visible ? 1 : 0,
+          transform: visible ? "scale(1)" : "scale(0.92)",
+        }}
       >
         <Image
           src="/brand/logo-yide.png"
@@ -371,39 +458,86 @@ function FinalScene() {
           sizes="180px"
           className="mx-auto h-auto w-32 sm:w-40"
         />
+        <p className="mt-6 text-2xl font-black uppercase leading-tight tracking-tight sm:text-3xl">
+          Essa ainda não é
+          <br />
+          a nossa chegada.
+        </p>
+        <p className="mt-3 text-base font-bold sm:text-lg">
+          É só o começo da história.
+        </p>
       </div>
 
-      <p
-        className="mt-12 text-3xl font-medium tracking-tight sm:text-5xl transition-all duration-1000"
-        style={{
-          opacity: visible ? 1 : 0,
-          transform: visible ? "translateY(0)" : "translateY(16px)",
-          transitionDelay: visible ? "400ms" : "0ms",
-        }}
-      >
-        Essa ainda não é a nossa chegada.
-      </p>
-
-      <p
-        className="mt-3 text-lg text-zinc-400 sm:text-xl transition-all duration-1000"
-        style={{
-          opacity: visible ? 1 : 0,
-          transform: visible ? "translateY(0)" : "translateY(16px)",
-          transitionDelay: visible ? "700ms" : "0ms",
-        }}
-      >
-        É só o começo da história.
-      </p>
-
       <span
-        className="mt-16 text-[10px] uppercase tracking-[0.4em] text-zinc-600 transition-opacity duration-1000"
+        className="mt-10 rotate-[-3deg] border-4 border-black bg-red-500 px-4 py-1.5 text-sm font-black uppercase tracking-widest text-white shadow-[4px_4px_0_#000] transition-all duration-1000"
         style={{
           opacity: visible ? 1 : 0,
-          transitionDelay: visible ? "1100ms" : "0ms",
+          transitionDelay: visible ? "500ms" : "0ms",
         }}
       >
-        — fim do capítulo um —
+        Continua…
       </span>
     </section>
   );
+}
+
+/** Balão de fala estilo HQ — retângulo com cantos arredondados + cauda. */
+function SpeechBubble({
+  children,
+  className = "",
+  pointing = "down",
+}: {
+  children: React.ReactNode;
+  className?: string;
+  pointing?: "left" | "right" | "down";
+}) {
+  // Cauda dupla (preto atrás, branco na frente) pra parecer outline real.
+  const tail =
+    pointing === "left"
+      ? "before:left-6 before:-bottom-3 before:border-t-[12px] before:border-r-[12px] before:border-r-transparent before:border-t-white after:left-5 after:-bottom-4 after:border-t-[14px] after:border-r-[14px] after:border-r-transparent after:border-t-black"
+      : pointing === "right"
+        ? "before:right-6 before:-bottom-3 before:border-t-[12px] before:border-l-[12px] before:border-l-transparent before:border-t-white after:right-5 after:-bottom-4 after:border-t-[14px] after:border-l-[14px] after:border-l-transparent after:border-t-black"
+        : "before:left-1/2 before:-bottom-3 before:-translate-x-1/2 before:border-t-[12px] before:border-x-[8px] before:border-x-transparent before:border-t-white after:left-1/2 after:-bottom-4 after:-translate-x-1/2 after:border-t-[14px] after:border-x-[10px] after:border-x-transparent after:border-t-black";
+
+  return (
+    <div
+      className={`relative inline-block rounded-2xl border-4 border-black bg-white px-5 py-3 text-base font-bold shadow-[4px_4px_0_#000] before:absolute before:h-0 before:w-0 after:absolute after:-z-[1] after:h-0 after:w-0 ${tail} ${className}`}
+    >
+      {children}
+    </div>
+  );
+}
+
+function ArrowDown() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 20 20"
+      fill="none"
+      className="animate-bounce"
+      aria-hidden
+    >
+      <path
+        d="M10 3v12m0 0l-5-5m5 5l5-5"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function sfxToneClass(tone: SFX["tone"]): string {
+  switch (tone) {
+    case "yellow":
+      return "bg-amber-300 text-black";
+    case "red":
+      return "bg-red-500 text-white";
+    case "blue":
+      return "bg-sky-400 text-black";
+    case "pink":
+      return "bg-pink-400 text-black";
+  }
 }
