@@ -7,6 +7,7 @@ import { listClientesTrafego } from "@/lib/trafego/queries";
 import { getEffectiveUnitId } from "@/lib/units/session";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { TabsTrafego } from "@/components/trafego/TabsTrafego";
 
 const ALLOWED_ROLES = ["adm", "socio", "coordenador", "assessor", "comercial"];
 const PRIVILEGED_ROLES = ["adm", "socio", "coordenador"];
@@ -40,6 +41,7 @@ export default async function TrafegoListPage({
 
   return (
     <div className="space-y-5">
+      <TabsTrafego active="trafego" />
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">

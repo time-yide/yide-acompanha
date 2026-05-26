@@ -5,6 +5,7 @@ import { listClientesGmb, listClientesSemGmb } from "@/lib/painel-gmb/queries";
 import { PainelGmbSummaryCards } from "@/components/painel-gmb/PainelGmbSummary";
 import { PainelGmbList } from "@/components/painel-gmb/PainelGmbList";
 import { AdicionarGmbDialog } from "@/components/painel-gmb/AdicionarGmbDialog";
+import { TabsTrafego } from "@/components/trafego/TabsTrafego";
 
 const ROLES_PERMITIDOS = ["adm", "socio", "coordenador", "assessor", "audiovisual_chefe"];
 
@@ -20,6 +21,7 @@ export default async function PainelGmbPage() {
 
   return (
     <div className="space-y-6">
+      <TabsTrafego active="gmb" />
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
