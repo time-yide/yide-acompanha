@@ -80,7 +80,13 @@ export async function ClientPortalView({ clientId, nomeContato, previewMode = fa
         clientNome={data.cliente.nome}
         previewMode={previewMode}
       />
-      <main className="mx-auto max-w-4xl space-y-6 px-4 py-6 sm:py-8">
+      {/* div em vez de <main> porque a página de preview vive dentro do
+          (authed)/layout.tsx que JÁ tem um <main> wrappeando o children.
+          <main> dentro de <main> é HTML inválido e a hidratação React quebra
+          no client → erro "client-side exception". Pro modo cliente real
+          (rota /cliente sem layout admin) também fica OK — o root layout
+          não tem <main>, então é só um div semanticamente neutro. */}
+      <div className="mx-auto max-w-4xl space-y-6 px-4 py-6 sm:py-8">
         <HeroSection nomeContato={nomeContato} clientNome={data.cliente.nome} />
         {!previewMode && (
           <NotificacoesSection vapidPublicKey={env.NEXT_PUBLIC_VAPID_PUBLIC_KEY} />
@@ -105,7 +111,7 @@ export async function ClientPortalView({ clientId, nomeContato, previewMode = fa
         <CRMPlaceholderSection />
         <SatisfacaoSection selfLast={selfSat} agencyLast={agencyPerception} previewMode={previewMode} />
         <ContratoSection cliente={data.cliente} assessor={data.assessor} />
-      </main>
+      </div>
     </>
   );
 }
