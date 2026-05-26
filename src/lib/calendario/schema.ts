@@ -66,4 +66,6 @@ export interface CalendarEvent {
   videomaker_status?: "pending_delegation" | "scheduled" | "completed" | "cancelled" | null;
   /** Videomaker designado pelo coord (null enquanto pending). */
   videomaker_assigned_id?: string | null;
+  /** Nome do videomaker designado, resolvido em listEventsForWeek pra exibir no card. */
+  videomaker_assigned_nome?: string | null;
 }

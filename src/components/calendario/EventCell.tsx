@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Video } from "lucide-react";
+import { Video, User, UserPlus } from "lucide-react";
 import type { CalendarEvent } from "@/lib/calendario/schema";
 import { formatBrtTime } from "@/lib/calendario/timezone";
 
@@ -16,6 +16,9 @@ const subClass: Record<string, string> = {
 
 export function EventCell({ event }: { event: CalendarEvent }) {
   const isVm = event.sub_calendar === "videomakers";
+  const assignedNome = event.videomaker_assigned_nome;
+  const isPending =
+    isVm && (event.videomaker_status === "pending_delegation" || !event.videomaker_assigned_id);
   const content = (
     // Mobile: padding e fonte maiores (full-width comporta). Desktop: compacto como antes.
     <div className={`rounded-md p-2 ${subClass[event.sub_calendar] ?? subClass.agencia} text-xs leading-tight sm:p-1.5 sm:text-[11px]`}>
@@ -24,6 +27,21 @@ export function EventCell({ event }: { event: CalendarEvent }) {
         <span className="truncate">{event.titulo}</span>
       </div>
       <div className="opacity-70">{formatBrtTime(event.inicio)}</div>
+      {isVm && (
+        <div className="mt-0.5 flex items-center gap-1 truncate font-medium opacity-90">
+          {isPending ? (
+            <>
+              <UserPlus className="h-3 w-3 flex-shrink-0" />
+              <span className="truncate italic">Aguardando designação</span>
+            </>
+          ) : (
+            <>
+              <User className="h-3 w-3 flex-shrink-0" />
+              <span className="truncate">{assignedNome ?? "Videomaker"}</span>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
   return event.link ? <Link href={event.link}>{content}</Link> : content;
