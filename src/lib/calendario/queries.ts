@@ -148,7 +148,29 @@ async function _listEventsForWeekImpl(
   }
 
   const manual = manualResult.data ?? [];
+
+  // Resolve nome do videomaker designado em batch (1 query pra todos os
+  // eventos da semana) pra exibir no card do calendário sem N+1.
+  const assignedIds: string[] = Array.from(
+    new Set(
+      (manual as Array<{ videomaker_assigned_id?: string | null }>)
+        .map((m) => m.videomaker_assigned_id)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  );
+  const assignedNomeMap = new Map<string, string>();
+  if (assignedIds.length > 0) {
+    const { data: vmProfiles = [] } = await supabase
+      .from("profiles")
+      .select("id, nome")
+      .in("id", assignedIds);
+    for (const p of vmProfiles ?? []) {
+      assignedNomeMap.set(p.id, p.nome);
+    }
+  }
+
   for (const m of manual) {
+    const assignedId = m.videomaker_assigned_id ?? null;
     events.push({
       id: m.id,
       origem: "manual",
@@ -165,7 +187,8 @@ async function _listEventsForWeekImpl(
       link_roteiro: m.link_roteiro,
       observacoes_gravacao: m.observacoes_gravacao,
       videomaker_status: m.videomaker_status ?? null,
-      videomaker_assigned_id: m.videomaker_assigned_id ?? null,
+      videomaker_assigned_id: assignedId,
+      videomaker_assigned_nome: assignedId ? assignedNomeMap.get(assignedId) ?? null : null,
     });
   }
 
@@ -369,8 +392,8 @@ export async function listEventsForWeek(
       };
       return _listEventsForWeekImpl(from, to, uc, up);
     },
-    // v3: shape ganhou unitClientIds + unitProfileIds (multi-tenant)
-    ["calendario-week-events-v3"],
+    // v4: shape ganhou videomaker_assigned_nome (resolve nome do videomaker designado)
+    ["calendario-week-events-v4"],
     { revalidate: 60, tags: ["calendar"] },
   );
   return cached(
