@@ -14,6 +14,9 @@ import { SolicitacaoDetailDialog } from "./SolicitacaoDetailDialog";
 
 interface Props {
   requests: RequestRow[];
+  /** Em preview, esconde botões/dialogs interativos (chamam server actions
+   *  que exigem auth do client portal — quebrariam pro colab interno). */
+  previewMode?: boolean;
 }
 
 const STATUS_ICON: Record<Status, React.ReactNode> = {
@@ -39,7 +42,7 @@ function formatBRshort(iso: string): string {
   });
 }
 
-export function SolicitacoesSection({ requests }: Props) {
+export function SolicitacoesSection({ requests, previewMode = false }: Props) {
   const [novaOpen, setNovaOpen] = useState(false);
   const [detalhe, setDetalhe] = useState<RequestRow | null>(null);
 
@@ -62,10 +65,12 @@ export function SolicitacoesSection({ requests }: Props) {
                 </p>
               </div>
             </div>
-            <Button size="sm" onClick={() => setNovaOpen(true)}>
-              <Plus className="mr-1 h-3.5 w-3.5" />
-              Nova
-            </Button>
+            {!previewMode && (
+              <Button size="sm" onClick={() => setNovaOpen(true)}>
+                <Plus className="mr-1 h-3.5 w-3.5" />
+                Nova
+              </Button>
+            )}
           </header>
 
           {requests.length === 0 ? (
@@ -83,7 +88,7 @@ export function SolicitacoesSection({ requests }: Props) {
                   titulo="Em aberto"
                   count={abertas.length}
                   items={abertas}
-                  onSelect={setDetalhe}
+                  onSelect={previewMode ? () => {} : setDetalhe}
                 />
               )}
               {resolvidas.length > 0 && (
@@ -91,7 +96,7 @@ export function SolicitacoesSection({ requests }: Props) {
                   titulo="Histórico"
                   count={resolvidas.length}
                   items={resolvidas}
-                  onSelect={setDetalhe}
+                  onSelect={previewMode ? () => {} : setDetalhe}
                   muted
                 />
               )}
@@ -100,13 +105,17 @@ export function SolicitacoesSection({ requests }: Props) {
         </div>
       </section>
 
-      <NovaSolicitacaoDialog open={novaOpen} onOpenChange={setNovaOpen} />
-      {detalhe && (
-        <SolicitacaoDetailDialog
-          request={detalhe}
-          open={!!detalhe}
-          onOpenChange={(o) => !o && setDetalhe(null)}
-        />
+      {!previewMode && (
+        <>
+          <NovaSolicitacaoDialog open={novaOpen} onOpenChange={setNovaOpen} />
+          {detalhe && (
+            <SolicitacaoDetailDialog
+              request={detalhe}
+              open={!!detalhe}
+              onOpenChange={(o) => !o && setDetalhe(null)}
+            />
+          )}
+        </>
       )}
     </>
   );

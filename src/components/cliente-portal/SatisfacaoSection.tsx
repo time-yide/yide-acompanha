@@ -8,6 +8,9 @@ import type {
 interface Props {
   selfLast: SelfSatisfactionRow | null;
   agencyLast: AgencyPerceptionRow | null;
+  /** Em preview, esconde o form de auto-avaliação (server action exige
+   *  auth do client portal). */
+  previewMode?: boolean;
 }
 
 function formatDate(iso: string): string {
@@ -19,7 +22,7 @@ function formatDate(iso: string): string {
   });
 }
 
-export function SatisfacaoSection({ selfLast, agencyLast }: Props) {
+export function SatisfacaoSection({ selfLast, agencyLast, previewMode = false }: Props) {
   return (
     <section className="overflow-hidden rounded-2xl border bg-card">
       <div className="bg-gradient-to-br from-primary/10 via-card to-card p-6 sm:p-8">
@@ -46,7 +49,13 @@ export function SatisfacaoSection({ selfLast, agencyLast }: Props) {
             {selfLast && <SelfLastDisplay data={selfLast} />}
 
             <div className="mt-4">
-              <SelfSatisfactionForm hasPrevious={selfLast !== null} />
+              {previewMode ? (
+                <p className="rounded-md border border-dashed bg-muted/30 p-3 text-xs text-muted-foreground">
+                  Formulário de avaliação indisponível no modo preview.
+                </p>
+              ) : (
+                <SelfSatisfactionForm hasPrevious={selfLast !== null} />
+              )}
             </div>
           </div>
 
