@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getMonthlyChecklists, type ChecklistFilter } from "@/lib/painel/queries";
 import { getClientIdsForActiveUnit } from "@/lib/units/filter-helpers";
 import { PainelHeader } from "@/components/painel/PainelHeader";
+import { TabsSocialMedia } from "@/components/social-media/TabsSocialMedia";
 import { PainelTable } from "@/components/painel/PainelTable";
 import { PainelCardsList } from "@/components/painel/PainelCardsList";
 import { PainelKpis } from "@/components/painel/PainelKpis";
@@ -97,6 +98,7 @@ export default async function PainelPage({
 
   return (
     <div className="space-y-5">
+      <TabsSocialMedia active="painel" />
       <PainelHeader
         mesAtual={mesAtual}
         mesesDisponiveis={mesesDisponiveis}
