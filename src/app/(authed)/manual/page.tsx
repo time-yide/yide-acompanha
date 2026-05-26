@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpen, FolderOpen, ScrollText, Heart, Sparkles, Compass, PlayCircle } from "lucide-react";
+import { BookOpen, FolderOpen, ScrollText, Heart, Compass, PlayCircle } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 
 interface Card {
@@ -39,12 +39,6 @@ const CARDS: Card[] = [
     icon: Heart,
     titulo: "Cultura",
     resumo: "Como nos comportamos, como damos feedback, o que valorizamos.",
-  },
-  {
-    href: "/manual/missao-valores",
-    icon: Sparkles,
-    titulo: "Missão & valores",
-    resumo: "Pra que a gente existe e os princípios que nos guiam.",
   },
 ];
 
