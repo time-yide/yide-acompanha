@@ -119,6 +119,47 @@ describe("toggleTaskCompletionAction — roles que entregam (designer/editor/vid
   });
 });
 
+describe("toggleTaskCompletionAction — semântica de Postado/Entregue", () => {
+  // Toggle de "checar" agora vai direto pra "postada" (Postado/Entregue),
+  // não mais "concluida". Re-abertura aceita ambos os estados terminais.
+  it("role que NÃO entrega fechando vai pra status=postada (não concluida)", async () => {
+    requireAuthMock.mockResolvedValue({ id: "user-1", role: "adm", nome: "Adm Teste" });
+    const { update } = setupMocks(mockTaskRow({ status: "aberta" }), { assigneeRole: "adm" });
+
+    await toggleTaskCompletionAction("task-1");
+
+    expect(update).toHaveBeenCalled();
+    const updateArg = update.mock.calls[0][0];
+    expect(updateArg.status).toBe("postada");
+    expect(updateArg.completed_at).toBeTruthy();
+  });
+
+  it("reabrir task que está em 'postada' volta pra 'aberta'", async () => {
+    requireAuthMock.mockResolvedValue({ id: "user-1", role: "adm", nome: "Adm Teste" });
+    const { update } = setupMocks(mockTaskRow({ status: "postada" }), { assigneeRole: "adm" });
+
+    await toggleTaskCompletionAction("task-1");
+
+    expect(update).toHaveBeenCalled();
+    const updateArg = update.mock.calls[0][0];
+    expect(updateArg.status).toBe("aberta");
+    expect(updateArg.completed_at).toBeNull();
+  });
+
+  it("reabrir task que está em 'concluida' (operacional antigo) também volta pra 'aberta'", async () => {
+    // Backwards compat: tasks que ficaram em 'concluida' antes da mudança
+    // semântica ainda podem ser reabertas pelo toggle.
+    requireAuthMock.mockResolvedValue({ id: "user-1", role: "adm", nome: "Adm Teste" });
+    const { update } = setupMocks(mockTaskRow({ status: "concluida" }), { assigneeRole: "adm" });
+
+    await toggleTaskCompletionAction("task-1");
+
+    expect(update).toHaveBeenCalled();
+    const updateArg = update.mock.calls[0][0];
+    expect(updateArg.status).toBe("aberta");
+  });
+});
+
 describe("toggleTaskCompletionAction — assessor/coord também entregam", () => {
   // ROLES_QUE_ENTREGAM agora inclui assessor e coordenador, então o guard
   // de "use o modal de entrega" se aplica a eles também.

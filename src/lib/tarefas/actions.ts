@@ -339,7 +339,10 @@ export async function toggleTaskCompletionAction(taskId: string) {
   // Bloqueia conclusão simples pra roles que devem usar o modal de entrega
   // (editor/videomaker/designer/audiovisual_chefe). Defense in depth - UI
   // dispara concludeOperationalAction via modal.
-  if (t.status !== "concluida") {
+  // Agora "concluído de verdade" = postada (Postado/Entregue). Toggle pula
+  // o operacional e vai direto pro final pra simplificar workflow do sócio.
+  const isDoneState = (s: string) => s === "postada" || s === "concluida";
+  if (!isDoneState(t.status)) {
     const { data: assignee } = await supabase
       .from("profiles")
       .select("role")
@@ -350,13 +353,15 @@ export async function toggleTaskCompletionAction(taskId: string) {
     }
   }
 
-  const novoStatus = t.status === "concluida" ? "aberta" : "concluida";
-  const isClosing = novoStatus === "concluida";
+  // Estado terminal único agora é "postada" — checkbox marca como Postado/Entregue.
+  // Re-abrir (de concluida operacional OU postada) volta pra aberta.
+  const novoStatus = isDoneState(t.status) ? "aberta" : "postada";
+  const isClosing = novoStatus === "postada";
 
   const completed_at = isClosing ? new Date().toISOString() : null;
 
-  type TaskPatch = { status: "aberta" | "concluida"; completed_at: string | null };
-  const updatePayload: TaskPatch = { status: novoStatus as "aberta" | "concluida", completed_at };
+  type TaskPatch = { status: "aberta" | "postada"; completed_at: string | null };
+  const updatePayload: TaskPatch = { status: novoStatus, completed_at };
 
   const { error } = await supabase
     .from("tasks")
@@ -370,7 +375,7 @@ export async function toggleTaskCompletionAction(taskId: string) {
   await logAudit({
     entidade: "tasks",
     entidade_id: taskId,
-    acao: novoStatus === "concluida" ? "complete" : "reopen",
+    acao: novoStatus === "postada" ? "complete" : "reopen",
     dados_antes: {
       status: t.status,
       completed_at: t.completed_at,
@@ -380,7 +385,7 @@ export async function toggleTaskCompletionAction(taskId: string) {
     ator_id: actor.id,
   });
 
-  if (novoStatus === "concluida") {
+  if (novoStatus === "postada") {
     await dispatchNotification({
       evento_tipo: "task_completed",
       titulo: "Tarefa concluída",
@@ -393,7 +398,7 @@ export async function toggleTaskCompletionAction(taskId: string) {
 
   await logActivityInternal(
     actor.id,
-    novoStatus === "concluida" ? "tarefa_concluida" : "tarefa_status_alterado",
+    novoStatus === "postada" ? "tarefa_concluida" : "tarefa_status_alterado",
     {
       entityType: "tasks",
       entityId: taskId,
@@ -409,7 +414,7 @@ export async function toggleTaskCompletionAction(taskId: string) {
   if (t.client_id) revalidatePath(`/clientes/${t.client_id}/tarefas`);
   revalidateTag("dashboard", "default");
   revalidateTag("tasks", "default");
-  return { success: novoStatus === "concluida" ? "Tarefa concluída" : "Tarefa reaberta" };
+  return { success: novoStatus === "postada" ? "Tarefa concluída" : "Tarefa reaberta" };
 }
 
 /**

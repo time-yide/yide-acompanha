@@ -226,11 +226,13 @@ export async function getColaboradoresStatus(
       .gte("inicio", sinceStartUtc)
       .lt("inicio", tomorrowStartUtc)
       .not("videomaker_assigned_id", "is", null),
-    // Tarefas atrasadas (não concluídas, due_date < hoje)
+    // Tarefas atrasadas: due_date < hoje e ainda não está em estado terminal.
+    // Estado terminal agora é "postada" (Postado/Entregue) — task em "concluida"
+    // operacional mas sem postar ainda conta como atrasada se prazo passou.
     sb
       .from("tasks")
       .select("atribuido_a")
-      .neq("status", "concluida")
+      .neq("status", "postada")
       .lt("due_date", today)
       .not("due_date", "is", null),
     // Capturas potencialmente atrasadas: scheduled, no passado, deadline pode ter passado

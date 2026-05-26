@@ -20,8 +20,11 @@ export default async function ClienteTarefasPage({ params }: { params: Promise<{
   if (!client) notFound();
 
   const tasks = await listTasksForClient(id);
-  const abertas = tasks.filter((t) => t.status !== "concluida");
-  const concluidas = tasks.filter((t) => t.status === "concluida");
+  // "Concluída" do ponto de vista do cliente = Postado/Entregue (status "postada").
+  // status "concluida" é só conclusão operacional interna — o cliente ainda vê
+  // como em andamento porque ainda precisa ser aprovada/postada.
+  const abertas = tasks.filter((t) => t.status !== "postada");
+  const concluidas = tasks.filter((t) => t.status === "postada");
 
   return (
     <div className="space-y-5">
