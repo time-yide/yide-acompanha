@@ -1,18 +1,19 @@
 import Link from "next/link";
-import { Share2, Presentation, ClipboardList } from "lucide-react";
+import { Share2, Presentation, ClipboardList, Palette } from "lucide-react";
 
-export type TabKey = "agendamento" | "apresenta-yide" | "painel";
+export type TabKey = "agendamento" | "apresenta-yide" | "painel" | "design";
 
 interface Props {
   active: TabKey;
 }
 
 // Ordem: Painel Mensal primeiro (default ao clicar em "Social Media" no menu
-// — /social-media redirect pro /painel), depois Agendamento de Post (feed
-// antigo movido pra /social-media/agendamento), depois Apresenta Yide.
+// — /social-media redirect pro /painel), depois Agendamento de Post, depois
+// Design (criação de artes), depois Apresenta Yide.
 const TABS: Array<{ key: TabKey; label: string; href: string; Icon: typeof Share2 }> = [
   { key: "painel", label: "Painel Mensal", href: "/painel", Icon: ClipboardList },
   { key: "agendamento", label: "Agendamento de Post", href: "/social-media/agendamento", Icon: Share2 },
+  { key: "design", label: "Design", href: "/design", Icon: Palette },
   { key: "apresenta-yide", label: "Apresenta Yide", href: "/social-media/apresenta-yide", Icon: Presentation },
 ];
 

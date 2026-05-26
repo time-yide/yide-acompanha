@@ -1,7 +1,7 @@
 import {
   LayoutGrid, Users, Briefcase, KanbanSquare, ListChecks,
   DollarSign, Smile, Calendar, UserCog, MessageSquare,
-  TrendingUp, Video, Trash2, MessagesSquare, GraduationCap, Megaphone, Share2, Database, Palette, Radar, MessageCircle, Phone, Mic,
+  TrendingUp, Video, Trash2, MessagesSquare, GraduationCap, Megaphone, Share2, Database, Radar, MessageCircle, Phone, Mic,
   IdCard, Rocket, BookOpen, Star, Inbox, Activity, Layers,
   type LucideIcon,
 } from "lucide-react";
@@ -67,8 +67,7 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
       { type: "link", href: "/trafego", icon: Megaphone, label: "Tráfego", roles: ["adm", "socio", "coordenador", "assessor", "comercial"], badgeKey: null },
       { type: "link", href: "/social-media", icon: Share2, label: "Social Media", roles: ["adm", "socio", "coordenador", "assessor", "designer", "videomaker", "editor", "audiovisual_chefe"], badgeKey: null },
       { type: "link", href: "/crm", icon: Database, label: "CRM", roles: ["adm", "socio", "coordenador", "assessor", "comercial"], badgeKey: null },
-      { type: "link", href: "/design", icon: Palette, label: "Design", roles: ["adm", "socio", "coordenador", "assessor", "designer", "videomaker", "editor", "audiovisual_chefe"], badgeKey: null },
-      // "Painel mensal" saiu do menu — agora aparece como aba dentro de Social Media (/social-media). URL /painel preservada.
+      // "Design" e "Painel mensal" saíram do menu — aparecem como abas dentro de Social Media. URLs /design e /painel preservadas.
       { type: "link", href: "/painel-cliente", icon: IdCard, label: "Painel do cliente", roles: ["adm", "socio"], badgeKey: null },
       { type: "link", href: "/painel-gmb", icon: Star, label: "Painel GMB", roles: ["adm", "socio", "coordenador", "assessor", "audiovisual_chefe"], badgeKey: null },
       { type: "link", href: "/solicitacoes", icon: Inbox, label: "Solicitações", roles: ["adm", "socio", "coordenador", "assessor", "audiovisual_chefe"], badgeKey: null },
