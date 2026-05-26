@@ -139,13 +139,34 @@ const CENAS: ReadonlyArray<Cena> = [
   },
   {
     numero: "07",
+    capitulo: "O Ícaro",
+    narracao: [
+      "Aí veio um amigo doido dos dois.",
+      "Ele gostava de acompanhar as viagens só por acompanhar.",
+      "Nome: Ícaro.",
+      "Reparou que Lucas e Yasmin sozinhos não estavam dando conta.",
+    ],
+    fala: {
+      texto: "Cara… e se eu começar a gravar?",
+      por: "Ícaro, com a ideia que mudaria tudo",
+    },
+    sfx: [
+      { text: "click!", pos: { top: "-18px", right: "-12px" }, rotate: 8, tone: "primary" },
+    ],
+    rotation: 0.7,
+  },
+  {
+    numero: "08",
     capitulo: "A evolução",
     narracao: [
-      "Mas entenderam algo cedo:",
+      "Foi assim que veio o primeiro colaborador.",
+      "Que a gente ama e odeia ao mesmo tempo kkk (brincadeira).",
+      "Mas marcou a Yide pra sempre.",
+      "Entenderam algo cedo:",
       "Não dava pra vencer sendo iguais.",
       "Pegaram os pontos fortes um do outro…",
       "e potencializaram ao MÁXIMO.",
-      "Errando. Aprendendo. Tentando de novo.",
+      "Sozinhos a gente não chegaria onde queria.",
     ],
     sfx: [
       { text: "level up!", pos: { top: "-18px", left: "-16px" }, rotate: 8, tone: "primary" },
@@ -153,7 +174,7 @@ const CENAS: ReadonlyArray<Cena> = [
     rotation: -0.6,
   },
   {
-    numero: "08",
+    numero: "09",
     capitulo: "O primeiro “escritório”",
     narracao: [
       "O primeiro espaço da Yide?",
@@ -167,7 +188,7 @@ const CENAS: ReadonlyArray<Cena> = [
     rotation: 0.4,
   },
   {
-    numero: "09",
+    numero: "10",
     capitulo: "O primeiro passo grande",
     narracao: [
       "Mais um risco.",
@@ -182,7 +203,7 @@ const CENAS: ReadonlyArray<Cena> = [
     rotation: -0.8,
   },
   {
-    numero: "10",
+    numero: "11",
     capitulo: "A casa",
     narracao: [
       "Uma noite completamente aleatória.",
@@ -200,7 +221,7 @@ const CENAS: ReadonlyArray<Cena> = [
     rotation: 0.8,
   },
   {
-    numero: "11",
+    numero: "12",
     capitulo: "A Yide de hoje",
     narracao: [
       "Hoje a Yide tem:",
@@ -215,7 +236,7 @@ const CENAS: ReadonlyArray<Cena> = [
     rotation: -0.5,
   },
   {
-    numero: "12",
+    numero: "13",
     capitulo: "O que a Yide realmente é",
     narracao: [
       "A Yide nunca foi só uma agência.",

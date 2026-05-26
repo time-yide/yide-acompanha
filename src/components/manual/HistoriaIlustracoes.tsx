@@ -54,59 +54,165 @@ function Frame({ children, className = "" }: { children: ReactNode; className?: 
   );
 }
 
-/** Boneco Lucas (cabeça + corpo). x,y é o centro da cabeça. */
+// Cores extras pra modernizar (sombras, blush, highlights)
+const BLUSH = "#fda4af";
+const CALCA = "#1e293b";
+const SAPATO = "#334155";
+
+/** Boneco Lucas modernizado — cabeça grande, blush, olhos brilhantes,
+ *  braços visíveis. Centro = origem (cabeça em y=0). */
 function Lucas({ x, y, scale = 1, flip = false }: { x: number; y: number; scale?: number; flip?: boolean }) {
   return (
     <g transform={`translate(${x},${y}) scale(${flip ? -scale : scale},${scale})`}>
-      {/* Cabelo */}
-      <path d={`M -10 -8 Q -10 -16 0 -16 Q 10 -16 10 -8 L 10 -4 Q 5 -8 0 -7 Q -5 -8 -10 -4 Z`} fill={CABELO_LUCAS} stroke={STROKE} strokeWidth={STROKE_W} strokeLinejoin="round" />
-      {/* Cabeça */}
-      <circle cx="0" cy="0" r="9" fill={PELE} stroke={STROKE} strokeWidth={STROKE_W} />
-      {/* Olhos */}
-      <circle cx="-3" cy="-1" r="1.2" fill={STROKE} />
-      <circle cx="3" cy="-1" r="1.2" fill={STROKE} />
+      {/* Cabelo - silhueta arredondada moderna */}
+      <path d="M -11 -3 Q -12 -14 -2 -16 Q 11 -17 12 -6 L 12 -2 Q 8 -5 4 -4 Q 0 -6 -4 -4 Q -8 -5 -11 -2 Z" fill={CABELO_LUCAS} stroke={STROKE} strokeWidth={STROKE_W} strokeLinejoin="round" />
+      {/* Cabeça - mais redonda */}
+      <circle cx="0" cy="0" r="10" fill={PELE} stroke={STROKE} strokeWidth={STROKE_W} />
+      {/* Orelhas */}
+      <ellipse cx="-10" cy="1" rx="1.5" ry="2.5" fill={PELE} stroke={STROKE} strokeWidth="1.5" />
+      <ellipse cx="10" cy="1" rx="1.5" ry="2.5" fill={PELE} stroke={STROKE} strokeWidth="1.5" />
+      {/* Bochechas (blush) */}
+      <ellipse cx="-5" cy="3" rx="2" ry="1.2" fill={BLUSH} opacity="0.6" />
+      <ellipse cx="5" cy="3" rx="2" ry="1.2" fill={BLUSH} opacity="0.6" />
+      {/* Olhos com brilho */}
+      <circle cx="-3.5" cy="-1" r="1.6" fill={STROKE} />
+      <circle cx="-3" cy="-1.5" r="0.5" fill="#fff" />
+      <circle cx="3.5" cy="-1" r="1.6" fill={STROKE} />
+      <circle cx="4" cy="-1.5" r="0.5" fill="#fff" />
       {/* Sorriso */}
-      <path d="M -3 3 Q 0 5 3 3" stroke={STROKE} strokeWidth="1.5" fill="none" strokeLinecap="round" />
-      {/* Corpo */}
-      <path d="M -7 9 L -8 22 L 8 22 L 7 9 Z" fill={CAMISA_LUCAS} stroke={STROKE} strokeWidth={STROKE_W} strokeLinejoin="round" />
-      {/* Pernas */}
-      <line x1="-4" y1="22" x2="-4" y2="30" stroke={STROKE} strokeWidth={STROKE_W} strokeLinecap="round" />
-      <line x1="4" y1="22" x2="4" y2="30" stroke={STROKE} strokeWidth={STROKE_W} strokeLinecap="round" />
+      <path d="M -3 4 Q 0 6.5 3 4" stroke={STROKE} strokeWidth="1.5" fill="none" strokeLinecap="round" />
+      {/* Pescoço */}
+      <rect x="-2" y="9" width="4" height="3" fill={PELE} stroke={STROKE} strokeWidth="1.5" />
+      {/* Corpo (camiseta) com gola */}
+      <path d="M -8 12 Q -9 14 -9 17 L -9 24 L 9 24 L 9 17 Q 9 14 8 12 Q 4 14 0 14 Q -4 14 -8 12 Z" fill={CAMISA_LUCAS} stroke={STROKE} strokeWidth={STROKE_W} strokeLinejoin="round" />
+      {/* Braços */}
+      <path d="M -9 13 Q -13 18 -12 23" stroke={STROKE} strokeWidth={STROKE_W} fill="none" strokeLinecap="round" />
+      <path d="M 9 13 Q 13 18 12 23" stroke={STROKE} strokeWidth={STROKE_W} fill="none" strokeLinecap="round" />
+      {/* Mãos */}
+      <circle cx="-12" cy="23" r="1.8" fill={PELE} stroke={STROKE} strokeWidth="1.5" />
+      <circle cx="12" cy="23" r="1.8" fill={PELE} stroke={STROKE} strokeWidth="1.5" />
+      {/* Calça */}
+      <rect x="-7" y="24" width="14" height="7" fill={CALCA} stroke={STROKE} strokeWidth={STROKE_W} />
+      {/* Pernas + sapato */}
+      <line x1="-4" y1="31" x2="-4" y2="35" stroke={CALCA} strokeWidth="4" strokeLinecap="round" />
+      <line x1="4" y1="31" x2="4" y2="35" stroke={CALCA} strokeWidth="4" strokeLinecap="round" />
+      <ellipse cx="-4" cy="36" rx="2.5" ry="1.5" fill={SAPATO} stroke={STROKE} strokeWidth="1.5" />
+      <ellipse cx="4" cy="36" rx="2.5" ry="1.5" fill={SAPATO} stroke={STROKE} strokeWidth="1.5" />
     </g>
   );
 }
 
-/** Boneca Yasmin. */
+/** Boneca Yasmin modernizada. */
 function Yasmin({ x, y, scale = 1, flip = false }: { x: number; y: number; scale?: number; flip?: boolean }) {
   return (
     <g transform={`translate(${x},${y}) scale(${flip ? -scale : scale},${scale})`}>
-      {/* Cabelo longo atrás */}
-      <path d="M -11 -4 Q -13 8 -9 14 L 9 14 Q 13 8 11 -4 Z" fill={CABELO_YASMIN} stroke={STROKE} strokeWidth={STROKE_W} strokeLinejoin="round" />
+      {/* Cabelo longo atrás (envolve a cabeça e desce até os ombros) */}
+      <path d="M -12 -3 Q -14 8 -11 16 L 11 16 Q 14 8 12 -3 Q 11 -16 0 -17 Q -11 -16 -12 -3 Z" fill={CABELO_YASMIN} stroke={STROKE} strokeWidth={STROKE_W} strokeLinejoin="round" />
+      {/* Brilho/highlight no cabelo */}
+      <path d="M -8 -10 Q -3 -14 3 -13" stroke="#4a3128" strokeWidth="1.2" fill="none" strokeLinecap="round" opacity="0.7" />
       {/* Cabeça */}
-      <circle cx="0" cy="0" r="9" fill={PELE} stroke={STROKE} strokeWidth={STROKE_W} />
-      {/* Franja */}
-      <path d="M -9 -5 Q -6 -10 0 -9 Q 6 -10 9 -5 L 8 -2 Q 4 -5 0 -4 Q -4 -5 -8 -2 Z" fill={CABELO_YASMIN} stroke={STROKE} strokeWidth={STROKE_W} strokeLinejoin="round" />
-      {/* Olhos */}
-      <circle cx="-3" cy="0" r="1.4" fill={STROKE} />
-      <circle cx="3" cy="0" r="1.4" fill={STROKE} />
+      <circle cx="0" cy="0" r="10" fill={PELE} stroke={STROKE} strokeWidth={STROKE_W} />
+      {/* Franja arredondada */}
+      <path d="M -10 -4 Q -8 -11 0 -11 Q 8 -11 10 -4 L 8 -1 Q 4 -4 0 -3 Q -4 -4 -8 -1 Z" fill={CABELO_YASMIN} stroke={STROKE} strokeWidth={STROKE_W} strokeLinejoin="round" />
+      {/* Orelhas (com brinquinhos) */}
+      <ellipse cx="-10" cy="2" rx="1.3" ry="2.2" fill={PELE} stroke={STROKE} strokeWidth="1.2" />
+      <ellipse cx="10" cy="2" rx="1.3" ry="2.2" fill={PELE} stroke={STROKE} strokeWidth="1.2" />
+      <circle cx="-10" cy="4.5" r="1" fill={ACCENT_AMBER} stroke={STROKE} strokeWidth="1" />
+      <circle cx="10" cy="4.5" r="1" fill={ACCENT_AMBER} stroke={STROKE} strokeWidth="1" />
+      {/* Bochechas */}
+      <ellipse cx="-5" cy="3" rx="2" ry="1.2" fill={BLUSH} opacity="0.7" />
+      <ellipse cx="5" cy="3" rx="2" ry="1.2" fill={BLUSH} opacity="0.7" />
+      {/* Olhos com brilho e cílios */}
+      <circle cx="-3.5" cy="0" r="1.8" fill={STROKE} />
+      <circle cx="-3" cy="-0.5" r="0.5" fill="#fff" />
+      <line x1="-5" y1="-1.5" x2="-5.5" y2="-2.5" stroke={STROKE} strokeWidth="1" strokeLinecap="round" />
+      <circle cx="3.5" cy="0" r="1.8" fill={STROKE} />
+      <circle cx="4" cy="-0.5" r="0.5" fill="#fff" />
+      <line x1="5" y1="-1.5" x2="5.5" y2="-2.5" stroke={STROKE} strokeWidth="1" strokeLinecap="round" />
       {/* Sorriso */}
-      <path d="M -3 4 Q 0 6 3 4" stroke={STROKE} strokeWidth="1.5" fill="none" strokeLinecap="round" />
-      {/* Corpo */}
-      <path d="M -7 9 L -8 22 L 8 22 L 7 9 Z" fill={CAMISA_YASMIN} stroke={STROKE} strokeWidth={STROKE_W} strokeLinejoin="round" />
-      {/* Pernas */}
-      <line x1="-4" y1="22" x2="-4" y2="30" stroke={STROKE} strokeWidth={STROKE_W} strokeLinecap="round" />
-      <line x1="4" y1="22" x2="4" y2="30" stroke={STROKE} strokeWidth={STROKE_W} strokeLinecap="round" />
+      <path d="M -3 5 Q 0 7 3 5" stroke={STROKE} strokeWidth="1.5" fill="none" strokeLinecap="round" />
+      {/* Pescoço */}
+      <rect x="-2" y="9" width="4" height="3" fill={PELE} stroke={STROKE} strokeWidth="1.5" />
+      {/* Corpo (camiseta) */}
+      <path d="M -8 12 Q -9 14 -9 17 L -9 24 L 9 24 L 9 17 Q 9 14 8 12 Q 4 14 0 14 Q -4 14 -8 12 Z" fill={CAMISA_YASMIN} stroke={STROKE} strokeWidth={STROKE_W} strokeLinejoin="round" />
+      {/* Braços */}
+      <path d="M -9 13 Q -13 18 -12 23" stroke={STROKE} strokeWidth={STROKE_W} fill="none" strokeLinecap="round" />
+      <path d="M 9 13 Q 13 18 12 23" stroke={STROKE} strokeWidth={STROKE_W} fill="none" strokeLinecap="round" />
+      <circle cx="-12" cy="23" r="1.8" fill={PELE} stroke={STROKE} strokeWidth="1.5" />
+      <circle cx="12" cy="23" r="1.8" fill={PELE} stroke={STROKE} strokeWidth="1.5" />
+      {/* Calça */}
+      <rect x="-7" y="24" width="14" height="7" fill={CALCA} stroke={STROKE} strokeWidth={STROKE_W} />
+      {/* Pernas + sapato */}
+      <line x1="-4" y1="31" x2="-4" y2="35" stroke={CALCA} strokeWidth="4" strokeLinecap="round" />
+      <line x1="4" y1="31" x2="4" y2="35" stroke={CALCA} strokeWidth="4" strokeLinecap="round" />
+      <ellipse cx="-4" cy="36" rx="2.5" ry="1.5" fill={SAPATO} stroke={STROKE} strokeWidth="1.5" />
+      <ellipse cx="4" cy="36" rx="2.5" ry="1.5" fill={SAPATO} stroke={STROKE} strokeWidth="1.5" />
     </g>
   );
 }
 
-/** Laptop simples. */
+/** Ícaro — primeiro colaborador. Usa boné e segura câmera. */
+function Icaro({ x, y, scale = 1 }: { x: number; y: number; scale?: number }) {
+  return (
+    <g transform={`translate(${x},${y}) scale(${scale})`}>
+      {/* Cabelo escuro curto */}
+      <path d="M -10 -4 Q -11 -14 0 -16 Q 11 -14 10 -4 L 9 -2 Q 5 -5 0 -4 Q -5 -5 -9 -2 Z" fill="#1a0f08" stroke={STROKE} strokeWidth={STROKE_W} strokeLinejoin="round" />
+      {/* Cabeça */}
+      <circle cx="0" cy="0" r="10" fill={PELE} stroke={STROKE} strokeWidth={STROKE_W} />
+      {/* Boné/bandana */}
+      <path d="M -11 -7 Q -3 -12 8 -10 L 13 -8 Q 12 -3 7 -3 L -10 -3 Q -12 -5 -11 -7 Z" fill={ACCENT_AMBER} stroke={STROKE} strokeWidth={STROKE_W} strokeLinejoin="round" />
+      <ellipse cx="-1" cy="-7" rx="2.5" ry="1" fill={STROKE} opacity="0.3" />
+      {/* Orelhas */}
+      <ellipse cx="-10" cy="1" rx="1.3" ry="2.2" fill={PELE} stroke={STROKE} strokeWidth="1.2" />
+      <ellipse cx="10" cy="1" rx="1.3" ry="2.2" fill={PELE} stroke={STROKE} strokeWidth="1.2" />
+      {/* Bochechas */}
+      <ellipse cx="-5" cy="3" rx="2" ry="1.2" fill={BLUSH} opacity="0.6" />
+      <ellipse cx="5" cy="3" rx="2" ry="1.2" fill={BLUSH} opacity="0.6" />
+      {/* Olhos */}
+      <circle cx="-3.5" cy="0" r="1.6" fill={STROKE} />
+      <circle cx="-3" cy="-0.5" r="0.5" fill="#fff" />
+      <circle cx="3.5" cy="0" r="1.6" fill={STROKE} />
+      <circle cx="4" cy="-0.5" r="0.5" fill="#fff" />
+      {/* Sorriso bem aberto, ele é o doido alegre */}
+      <path d="M -4 4 Q 0 8 4 4" stroke={STROKE} strokeWidth="1.5" fill="none" strokeLinecap="round" />
+      {/* Pescoço */}
+      <rect x="-2" y="9" width="4" height="3" fill={PELE} stroke={STROKE} strokeWidth="1.5" />
+      {/* Corpo */}
+      <path d="M -8 12 Q -9 14 -9 17 L -9 24 L 9 24 L 9 17 Q 9 14 8 12 Q 4 14 0 14 Q -4 14 -8 12 Z" fill="#10b981" stroke={STROKE} strokeWidth={STROKE_W} strokeLinejoin="round" />
+      {/* Braços segurando câmera na frente */}
+      <path d="M -9 14 Q -8 20 -4 22" stroke={STROKE} strokeWidth={STROKE_W} fill="none" strokeLinecap="round" />
+      <path d="M 9 14 Q 8 20 4 22" stroke={STROKE} strokeWidth={STROKE_W} fill="none" strokeLinecap="round" />
+      {/* Câmera nas mãos */}
+      <rect x="-6" y="20" width="12" height="8" rx="1" fill="#1e293b" stroke={STROKE} strokeWidth={STROKE_W} />
+      <circle cx="0" cy="24" r="3" fill="#475569" stroke={STROKE} strokeWidth="1.5" />
+      <circle cx="0" cy="24" r="1.5" fill={ACCENT_TEAL} />
+      <rect x="-3" y="18.5" width="3" height="2" fill="#1e293b" stroke={STROKE} strokeWidth="1.2" />
+      {/* Calça */}
+      <rect x="-7" y="28" width="14" height="3" fill={CALCA} stroke={STROKE} strokeWidth={STROKE_W} />
+      {/* Pernas */}
+      <line x1="-4" y1="31" x2="-4" y2="35" stroke={CALCA} strokeWidth="4" strokeLinecap="round" />
+      <line x1="4" y1="31" x2="4" y2="35" stroke={CALCA} strokeWidth="4" strokeLinecap="round" />
+      <ellipse cx="-4" cy="36" rx="2.5" ry="1.5" fill={SAPATO} stroke={STROKE} strokeWidth="1.5" />
+      <ellipse cx="4" cy="36" rx="2.5" ry="1.5" fill={SAPATO} stroke={STROKE} strokeWidth="1.5" />
+    </g>
+  );
+}
+
+/** Laptop moderno — bezel fino, tela teal claro, base arredondada. */
 function Laptop({ x, y, scale = 1 }: { x: number; y: number; scale?: number }) {
   return (
     <g transform={`translate(${x},${y}) scale(${scale})`}>
-      <rect x="-10" y="-7" width="20" height="13" rx="1" fill="#94a3b8" stroke={STROKE} strokeWidth="2" />
-      <rect x="-8" y="-5" width="16" height="9" fill="#1e293b" />
-      <path d="M -12 7 L 12 7 L 11 9 L -11 9 Z" fill="#64748b" stroke={STROKE} strokeWidth="2" strokeLinejoin="round" />
+      {/* Tela (outer) */}
+      <rect x="-11" y="-8" width="22" height="14" rx="1.5" fill="#0f172a" stroke={STROKE} strokeWidth="2" />
+      {/* Tela inner (display teal claro) */}
+      <rect x="-9" y="-6" width="18" height="10" rx="0.5" fill={ACCENT_TEAL} opacity="0.85" />
+      {/* Linhas de código fake */}
+      <line x1="-7" y1="-3" x2="-2" y2="-3" stroke="#0f172a" strokeWidth="0.8" opacity="0.4" />
+      <line x1="-7" y1="-1" x2="4" y2="-1" stroke="#0f172a" strokeWidth="0.8" opacity="0.4" />
+      <line x1="-7" y1="1" x2="1" y2="1" stroke="#0f172a" strokeWidth="0.8" opacity="0.4" />
+      {/* Base */}
+      <path d="M -13 6 L 13 6 Q 14 6 14 7 L 12 9 Q 11 10 10 10 L -10 10 Q -11 10 -12 9 L -14 7 Q -14 6 -13 6 Z" fill="#cbd5e1" stroke={STROKE} strokeWidth="2" strokeLinejoin="round" />
+      <line x1="-3" y1="8" x2="3" y2="8" stroke={STROKE} strokeWidth="1" strokeLinecap="round" />
     </g>
   );
 }
@@ -628,7 +734,53 @@ export function CenaCoragem({ className }: IlustracaoProps) {
   );
 }
 
-/** Mapeia número da cena (01-12) para o componente de ilustração. */
+export function CenaIcaro({ className }: IlustracaoProps) {
+  // Cena nova — Ícaro chega com câmera, a estrada de fundo conecta com
+  // a cena anterior (caos / viagens).
+  return (
+    <Frame className={className}>
+      {/* Céu (dia, depois da noite) */}
+      <rect x="0" y="0" width="200" height="80" fill={BG_SOFT_TEAL} />
+      {/* Sol */}
+      <circle cx="170" cy="22" r="11" fill={ACCENT_AMBER} stroke={STROKE} strokeWidth="2" />
+      <line x1="170" y1="6" x2="170" y2="3" stroke={STROKE} strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="186" y1="22" x2="190" y2="22" stroke={STROKE} strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="154" y1="22" x2="150" y2="22" stroke={STROKE} strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="159" y1="33" x2="156" y2="36" stroke={STROKE} strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="181" y1="33" x2="184" y2="36" stroke={STROKE} strokeWidth="1.5" strokeLinecap="round" />
+      {/* Nuvens */}
+      <ellipse cx="35" cy="20" rx="14" ry="6" fill="#fff" stroke={STROKE} strokeWidth="2" />
+      <ellipse cx="90" cy="15" rx="12" ry="5" fill="#fff" stroke={STROKE} strokeWidth="2" />
+
+      {/* Estrada (chão) */}
+      <rect x="0" y="80" width="200" height="60" fill="#475569" />
+      <line x1="0" y1="80" x2="200" y2="80" stroke={STROKE} strokeWidth="2.5" />
+      {/* Linhas tracejadas */}
+      <line x1="20" y1="130" x2="40" y2="130" stroke={ACCENT_AMBER} strokeWidth="2.5" strokeLinecap="round" />
+      <line x1="65" y1="130" x2="85" y2="130" stroke={ACCENT_AMBER} strokeWidth="2.5" strokeLinecap="round" />
+      <line x1="115" y1="130" x2="135" y2="130" stroke={ACCENT_AMBER} strokeWidth="2.5" strokeLinecap="round" />
+      <line x1="160" y1="130" x2="180" y2="130" stroke={ACCENT_AMBER} strokeWidth="2.5" strokeLinecap="round" />
+
+      {/* Personagens */}
+      <Yasmin x={40} y={90} scale={0.78} />
+      <Lucas x={75} y={90} scale={0.78} />
+      <Icaro x={130} y={90} scale={0.85} />
+
+      {/* Onda "click" da câmera saindo */}
+      <g transform="translate(135, 80)">
+        <path d="M 0 0 Q 6 -5 12 -3" stroke={ACCENT_CORAL} strokeWidth="2" fill="none" strokeLinecap="round" strokeDasharray="3 2" />
+      </g>
+
+      {/* Selo "+1" no canto */}
+      <g transform="translate(180, 50) rotate(8)">
+        <rect x="-12" y="-8" width="24" height="16" rx="8" fill={ACCENT_TEAL} stroke={STROKE} strokeWidth="2" />
+        <text x="0" y="4" textAnchor="middle" fontSize="11" fontWeight="900" fill={STROKE} fontFamily="system-ui">+1</text>
+      </g>
+    </Frame>
+  );
+}
+
+/** Mapeia número da cena (01-13) para o componente de ilustração. */
 export const ILUSTRACAO_POR_CENA: Record<string, (props: IlustracaoProps) => ReactNode> = {
   "01": CenaCeu,
   "02": CenaBarraca,
@@ -636,10 +788,11 @@ export const ILUSTRACAO_POR_CENA: Record<string, (props: IlustracaoProps) => Rea
   "04": CenaCafe,
   "05": CenaDupla,
   "06": CenaCaos,
-  "07": CenaEvolucao,
-  "08": CenaPadaria,
-  "09": CenaSala,
-  "10": CenaCasa,
-  "11": CenaTime,
-  "12": CenaCoragem,
+  "07": CenaIcaro,
+  "08": CenaEvolucao,
+  "09": CenaPadaria,
+  "10": CenaSala,
+  "11": CenaCasa,
+  "12": CenaTime,
+  "13": CenaCoragem,
 };
