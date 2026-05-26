@@ -4,6 +4,7 @@ import { listClientesComAcessoPortal } from "@/lib/painel-cliente/queries";
 import { getClientIdsForActiveUnit } from "@/lib/units/filter-helpers";
 import { PainelClienteTable } from "@/components/painel-cliente/PainelClienteTable";
 import { CopyLinkButton } from "@/components/painel-cliente/CopyLinkButton";
+import { TabsPainelCliente } from "@/components/painel-cliente/TabsPainelCliente";
 import { env } from "@/lib/env";
 
 export default async function PainelClientePage() {
@@ -29,6 +30,7 @@ export default async function PainelClientePage() {
 
   return (
     <div className="space-y-6">
+      <TabsPainelCliente active="painel" />
       <header>
         <h1 className="text-2xl font-bold tracking-tight">Painel do cliente</h1>
         <p className="text-sm text-muted-foreground">
