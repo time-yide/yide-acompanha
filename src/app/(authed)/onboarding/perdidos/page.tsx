@@ -7,6 +7,7 @@ import { canInteractWithStage, type Stage } from "@/lib/leads/schema";
 import { RestoreLeadButton } from "@/components/onboarding/RestoreLeadButton";
 import { OnboardingRealtimeWatcher } from "@/components/onboarding/OnboardingRealtimeWatcher";
 import { TabsOnboarding } from "@/components/onboarding/TabsOnboarding";
+import { TabsOnboardingProspeccao } from "@/components/onboarding/TabsOnboardingProspeccao";
 import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 const ROLES_PERMITIDOS = ["adm", "socio", "comercial", "assessor", "coordenador", "audiovisual_chefe"];
@@ -41,6 +42,7 @@ export default async function PerdidosPage() {
     <div className="space-y-5">
       {/* Atualiza ao vivo quando alguém marca/restaura um perdido. */}
       <OnboardingRealtimeWatcher />
+      <TabsOnboardingProspeccao active="onboarding" />
       <TabsOnboarding active="perdidos" />
 
       <header className="flex flex-wrap items-end justify-between gap-3">
