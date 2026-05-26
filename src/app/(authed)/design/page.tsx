@@ -6,6 +6,7 @@ import { listClientesDesign } from "@/lib/design/queries";
 import { getEffectiveUnitId } from "@/lib/units/session";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { TabsSocialMedia } from "@/components/social-media/TabsSocialMedia";
 
 const ALLOWED_ROLES = [
   "adm", "socio", "coordenador", "assessor",
@@ -49,6 +50,7 @@ export default async function DesignListPage({
 
   return (
     <div className="space-y-5">
+      <TabsSocialMedia active="design" />
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
