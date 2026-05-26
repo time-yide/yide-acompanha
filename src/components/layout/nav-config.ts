@@ -57,7 +57,7 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
     id: "comercial",
     label: "Comercial",
     items: [
-      { type: "link", href: "/clientes", icon: Users, label: "Clientes", roles: "all", badgeKey: null },
+      // "Clientes" foi pra Operação (decisão Yasmin: ela já é o "núcleo" da operação, não do comercial).
       { type: "link", href: "/gerador-leads", icon: Radar, label: "Gerador de Leads", roles: ["adm", "socio", "comercial", "coordenador", "assessor"], badgeKey: null },
       { type: "link", href: "/conversas", icon: MessageCircle, label: "Conversas", roles: ["adm", "socio", "comercial", "coordenador", "assessor"], badgeKey: null },
       { type: "link", href: "/ligacoes", icon: Phone, label: "Ligações", roles: ["adm", "socio", "comercial", "coordenador", "assessor"], badgeKey: null },
@@ -75,8 +75,9 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
     id: "operacao",
     label: "Operação",
     items: [
-      // D0 → D30 fica em primeiro - é o fluxo de entrada/onboarding do cliente
-      // (decisão Yasmin: o que faz mais sentido ver ao abrir Operação).
+      // Clientes no topo da Operação (decisão Yasmin: é o coração do dia-a-dia operacional).
+      { type: "link", href: "/clientes", icon: Users, label: "Clientes", roles: "all", badgeKey: null },
+      // D0 → D30 vem depois - é o fluxo de entrada/onboarding do cliente.
       { type: "link", href: "/d0-d30", icon: Rocket, label: "D0 → D30", roles: ["adm", "socio", "coordenador", "assessor", "comercial"], badgeKey: null },
       { type: "link", href: "/tarefas", icon: ListChecks, label: "Tarefas", roles: "all", badgeKey: null },
       { type: "link", href: "/audiovisual", icon: Video, label: "Audiovisual", roles: ["adm", "socio", "coordenador", "assessor", "videomaker", "audiovisual_chefe"], badgeKey: null },
