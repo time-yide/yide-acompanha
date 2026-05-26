@@ -5,9 +5,9 @@ import Image from "next/image";
 import { ILUSTRACAO_POR_CENA } from "./HistoriaIlustracoes";
 
 /**
- * Página estilo HQ — painéis com borda preta grossa, balões de fala,
- * caixas de narração, SFX coloridos (POW! BAM!) e textura halftone.
- * Cada painel entra com leve fade-in + scale-in via IntersectionObserver.
+ * Página estilo quadrinho moderno — painéis arredondados com borda preta
+ * fina, sombra na cor primary da Yide (teal #3DC4BC), tipografia limpa
+ * e ilustrações SVG cartoon. Fade-in + scale-in via IntersectionObserver.
  */
 
 interface SFX {
@@ -16,22 +16,22 @@ interface SFX {
   pos: { top?: string; right?: string; bottom?: string; left?: string };
   /** Rotação visual do SFX em graus. */
   rotate: number;
-  /** Cor de fundo do badge (cores fortes estilo HQ). */
-  tone: "yellow" | "red" | "blue" | "pink";
+  /** Cor de fundo do badge — tons mais modernos e harmoniosos. */
+  tone: "primary" | "coral" | "violet" | "sunny";
 }
 
 interface Cena {
   numero: string;
   capitulo: string;
-  /** Textos narrativos — viram caixinhas amarelas no topo do painel. */
+  /** Textos narrativos — viram caixinhas com fundo claro no painel. */
   narracao: ReadonlyArray<string>;
   /** Balão de fala opcional. */
   fala?: { texto: string; por: string };
-  /** SFXs (POW!, ZAP!, etc) decorativos. */
+  /** SFXs decorativos. */
   sfx?: ReadonlyArray<SFX>;
-  /** Lista vertical com bullets — pra cena de funções. */
+  /** Lista — pra cena de funções. */
   lista?: ReadonlyArray<string>;
-  /** Rotação leve do painel inteiro pra dar dinamismo. */
+  /** Rotação leve do painel. */
   rotation: number;
 }
 
@@ -46,9 +46,9 @@ const CENAS: ReadonlyArray<Cena> = [
       "E o mais louco: eles nem se conheciam.",
     ],
     sfx: [
-      { text: "2020", pos: { top: "-20px", right: "-12px" }, rotate: 8, tone: "yellow" },
+      { text: "2020", pos: { top: "-18px", right: "-12px" }, rotate: 6, tone: "sunny" },
     ],
-    rotation: -1,
+    rotation: -0.8,
   },
   {
     numero: "02",
@@ -60,9 +60,9 @@ const CENAS: ReadonlyArray<Cena> = [
       "Veio de um dono de barraca de lanche.",
     ],
     sfx: [
-      { text: "PLOT!", pos: { top: "-24px", left: "-20px" }, rotate: -12, tone: "red" },
+      { text: "Plot twist!", pos: { top: "-20px", left: "-16px" }, rotate: -8, tone: "coral" },
     ],
-    rotation: 1,
+    rotation: 0.8,
   },
   {
     numero: "03",
@@ -78,9 +78,9 @@ const CENAS: ReadonlyArray<Cena> = [
       por: "em algum momento daquela call",
     },
     sfx: [
-      { text: "TIC-TAC", pos: { top: "-18px", right: "-12px" }, rotate: 6, tone: "blue" },
+      { text: "tic-tac…", pos: { top: "-16px", right: "-12px" }, rotate: 4, tone: "primary" },
     ],
-    rotation: -0.5,
+    rotation: -0.4,
   },
   {
     numero: "04",
@@ -93,9 +93,9 @@ const CENAS: ReadonlyArray<Cena> = [
       "Nasceu algo que mudaria suas vidas.",
     ],
     sfx: [
-      { text: "☕", pos: { top: "-30px", left: "-10px" }, rotate: -8, tone: "yellow" },
+      { text: "☕", pos: { top: "-22px", left: "-10px" }, rotate: -6, tone: "sunny" },
     ],
-    rotation: 0.8,
+    rotation: 0.6,
   },
   {
     numero: "05",
@@ -118,9 +118,9 @@ const CENAS: ReadonlyArray<Cena> = [
       "Vendedor",
     ],
     sfx: [
-      { text: "TUDO!", pos: { bottom: "-20px", right: "-16px" }, rotate: 14, tone: "pink" },
+      { text: "tudo!", pos: { bottom: "-18px", right: "-14px" }, rotate: 10, tone: "violet" },
     ],
-    rotation: -1.2,
+    rotation: -1,
   },
   {
     numero: "06",
@@ -133,9 +133,9 @@ const CENAS: ReadonlyArray<Cena> = [
       "Fase onde o sonho parecia grande demais.",
     ],
     sfx: [
-      { text: "BAM!", pos: { top: "-24px", right: "-18px" }, rotate: -10, tone: "red" },
+      { text: "uff…", pos: { top: "-20px", right: "-16px" }, rotate: -6, tone: "coral" },
     ],
-    rotation: 1.5,
+    rotation: 1.2,
   },
   {
     numero: "07",
@@ -148,9 +148,9 @@ const CENAS: ReadonlyArray<Cena> = [
       "Errando. Aprendendo. Tentando de novo.",
     ],
     sfx: [
-      { text: "ZAP!", pos: { top: "-22px", left: "-18px" }, rotate: 10, tone: "yellow" },
+      { text: "level up!", pos: { top: "-18px", left: "-16px" }, rotate: 8, tone: "primary" },
     ],
-    rotation: -0.8,
+    rotation: -0.6,
   },
   {
     numero: "08",
@@ -162,9 +162,9 @@ const CENAS: ReadonlyArray<Cena> = [
       "Sonho grande nunca precisou de espaço grande pra começar.",
     ],
     sfx: [
-      { text: "🍞", pos: { top: "-30px", right: "-8px" }, rotate: 8, tone: "yellow" },
+      { text: "🥖", pos: { top: "-22px", right: "-8px" }, rotate: 6, tone: "sunny" },
     ],
-    rotation: 0.5,
+    rotation: 0.4,
   },
   {
     numero: "09",
@@ -177,9 +177,9 @@ const CENAS: ReadonlyArray<Cena> = [
       "já parecia pequeno demais pros sonhos.",
     ],
     sfx: [
-      { text: "BOOM!", pos: { bottom: "-18px", right: "-20px" }, rotate: -12, tone: "blue" },
+      { text: "2x", pos: { bottom: "-16px", right: "-16px" }, rotate: -8, tone: "violet" },
     ],
-    rotation: -1,
+    rotation: -0.8,
   },
   {
     numero: "10",
@@ -195,9 +195,9 @@ const CENAS: ReadonlyArray<Cena> = [
       por: "Yasmin, antes de pisar dentro",
     },
     sfx: [
-      { text: "★", pos: { top: "-26px", left: "-12px" }, rotate: 0, tone: "yellow" },
+      { text: "★", pos: { top: "-22px", left: "-10px" }, rotate: 0, tone: "sunny" },
     ],
-    rotation: 1,
+    rotation: 0.8,
   },
   {
     numero: "11",
@@ -210,9 +210,9 @@ const CENAS: ReadonlyArray<Cena> = [
       "Mas todas deixaram marcas.",
     ],
     sfx: [
-      { text: "TIME!", pos: { top: "-22px", right: "-14px" }, rotate: -8, tone: "pink" },
+      { text: "time!", pos: { top: "-20px", right: "-12px" }, rotate: -6, tone: "primary" },
     ],
-    rotation: -0.6,
+    rotation: -0.5,
   },
   {
     numero: "12",
@@ -225,30 +225,38 @@ const CENAS: ReadonlyArray<Cena> = [
       "Medo não serve pra parar. Serve pra empurrar mais longe.",
     ],
     sfx: [
-      { text: "POW!", pos: { bottom: "-22px", left: "-22px" }, rotate: -14, tone: "red" },
+      { text: "coragem!", pos: { bottom: "-20px", left: "-18px" }, rotate: -10, tone: "coral" },
     ],
-    rotation: 0.9,
+    rotation: 0.7,
   },
 ];
 
 export function HistoriaStory() {
   return (
-    <div className="relative -mx-3 overflow-hidden rounded-2xl border-4 border-black bg-amber-50 text-zinc-900 md:-mx-6">
-      {/* Textura halftone — pontinhos pretos sobre o fundo amarelo. Pattern
-          tradicional de quadrinho dos anos 60-70. */}
+    <div className="relative -mx-3 overflow-hidden rounded-3xl bg-gradient-to-br from-slate-50 via-white to-teal-50 text-slate-900 md:-mx-6">
+      {/* Grade sutil de pontos teal — versão clean do halftone clássico */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-20"
+        className="pointer-events-none absolute inset-0 opacity-[0.18]"
         style={{
           backgroundImage:
-            "radial-gradient(circle, #000 1px, transparent 1px)",
-          backgroundSize: "14px 14px",
+            "radial-gradient(circle, #3DC4BC 1px, transparent 1px)",
+          backgroundSize: "22px 22px",
         }}
+      />
+      {/* Glow ambiente teal nos cantos */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -left-32 -top-32 h-80 w-80 rounded-full bg-teal-300/30 blur-3xl"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-32 bottom-1/3 h-80 w-80 rounded-full bg-violet-300/20 blur-3xl"
       />
 
       <CoverPanel />
 
-      <div className="relative space-y-12 px-4 py-12 sm:px-8 sm:py-16">
+      <div className="relative space-y-14 px-4 py-12 sm:px-8 sm:py-16">
         {CENAS.map((cena, i) => (
           <Panel key={cena.numero} cena={cena} index={i} />
         ))}
@@ -259,38 +267,33 @@ export function HistoriaStory() {
   );
 }
 
-/** Capa estilo HQ: título grande + balão + selo. */
+/** Capa moderna: tipografia gigante com gradient teal + selo arredondado. */
 function CoverPanel() {
   return (
     <section className="relative flex min-h-[60vh] flex-col items-center justify-center px-6 py-16 text-center">
-      <div className="relative">
-        <span className="absolute -top-12 left-1/2 inline-block -translate-x-1/2 rotate-[-6deg] border-2 border-black bg-red-500 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white shadow-[3px_3px_0_#000]">
-          Edição especial — Vol. 01
+      <span className="inline-block rounded-full border border-slate-900/10 bg-white/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-teal-700 shadow-sm backdrop-blur">
+        Edição especial — Vol. 01
+      </span>
+
+      <h1 className="mt-8 text-7xl font-black leading-none tracking-tight sm:text-9xl">
+        <span
+          className="block bg-gradient-to-br from-teal-400 via-teal-500 to-teal-700 bg-clip-text text-transparent"
+          style={{ paintOrder: "stroke fill" }}
+        >
+          Yide
         </span>
-        <h1 className="text-7xl font-black uppercase leading-none tracking-tight sm:text-9xl">
-          <span
-            className="block"
-            style={{
-              WebkitTextStroke: "2px black",
-              color: "#fef3c7",
-              textShadow: "6px 6px 0 #000",
-            }}
-          >
-            Yide
-          </span>
-        </h1>
-        <p className="mt-6 text-lg font-bold uppercase tracking-wide">
-          A história em quadrinhos
-        </p>
-      </div>
+      </h1>
+      <p className="mt-6 text-base font-semibold uppercase tracking-[0.2em] text-slate-600 sm:text-lg">
+        a história
+      </p>
 
       <SpeechBubble className="mt-10 max-w-md">
         Antes de ser empresa, foi escolha. Antes de ser equipe, foi coragem.
       </SpeechBubble>
 
-      <div className="mt-12 flex flex-col items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-zinc-600">
+      <div className="mt-12 flex flex-col items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.3em] text-teal-700">
         <ArrowDown />
-        Vire a página
+        role pra começar
       </div>
     </section>
   );
@@ -328,38 +331,38 @@ function Panel({ cena, index }: { cena: Cena; index: number }) {
           : `rotate(${cena.rotation}deg) scale(0.96)`,
       }}
     >
-      <article className="relative mx-auto max-w-2xl border-4 border-black bg-white p-6 shadow-[8px_8px_0_#000] sm:p-8">
-        {/* Número do painel — selo redondo no canto */}
-        <span className="absolute -left-3 -top-3 inline-flex h-10 w-10 items-center justify-center rounded-full border-4 border-black bg-amber-300 font-black tabular-nums shadow-[3px_3px_0_#000]">
+      <article className="relative mx-auto max-w-2xl overflow-visible rounded-2xl border-2 border-slate-900 bg-white p-6 shadow-[10px_10px_0_rgba(61,196,188,0.55)] sm:p-8">
+        {/* Selo numerado no canto */}
+        <span className="absolute -left-3 -top-3 inline-flex h-11 w-11 items-center justify-center rounded-full border-2 border-slate-900 bg-teal-400 text-sm font-black tabular-nums text-slate-900 shadow-[2px_2px_0_rgba(15,23,42,1)]">
           {cena.numero}
         </span>
 
-        {/* Ilustração SVG da cena — desenho estilo cartoon */}
+        {/* Ilustração SVG da cena */}
         <CenaIlustracao numero={cena.numero} />
 
         {/* Título do capítulo */}
-        <h2 className="mb-5 ml-9 text-xs font-black uppercase tracking-[0.2em] text-zinc-700">
+        <h2 className="mb-5 text-[11px] font-bold uppercase tracking-[0.25em] text-teal-700">
           {cena.capitulo}
         </h2>
 
-        {/* Caixas de narração (estilo "MEANWHILE..." dos quadrinhos) */}
+        {/* Caixas de narração — fundo claro neutro com borda teal */}
         <div className="space-y-3">
           {cena.narracao.map((linha, i) => (
             <div
               key={i}
-              className="relative border-2 border-black bg-amber-100 px-3 py-2 transition-all duration-500"
+              className="relative rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 transition-all duration-500"
               style={{
                 opacity: visible ? 1 : 0,
                 transform: visible ? "translateY(0)" : "translateY(8px)",
                 transitionDelay: visible ? `${250 + i * 100}ms` : "0ms",
               }}
             >
-              <p className="font-bold leading-snug">{linha}</p>
+              <p className="text-[15px] font-semibold leading-snug text-slate-800">{linha}</p>
             </div>
           ))}
         </div>
 
-        {/* Lista (quando tem) — bullets pretos */}
+        {/* Lista — chips modernos com fundo teal claro */}
         {cena.lista && (
           <ul
             className="mt-5 grid grid-cols-2 gap-2 transition-opacity duration-700"
@@ -371,9 +374,9 @@ function Panel({ cena, index }: { cena: Cena; index: number }) {
             {cena.lista.map((item) => (
               <li
                 key={item}
-                className="flex items-center gap-2 border-2 border-black bg-white px-2 py-1 text-sm font-bold"
+                className="flex items-center gap-2 rounded-full border border-teal-300 bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-900"
               >
-                <span className="inline-block h-2 w-2 bg-black" />
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-teal-500" />
                 {item}
               </li>
             ))}
@@ -393,19 +396,18 @@ function Panel({ cena, index }: { cena: Cena; index: number }) {
             <SpeechBubble pointing={index % 2 === 0 ? "left" : "right"}>
               {cena.fala.texto}
             </SpeechBubble>
-            <p className="mt-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+            <p className="mt-3 text-[10px] font-semibold uppercase tracking-[0.25em] text-slate-500">
               — {cena.fala.por}
             </p>
           </div>
         )}
 
-        {/* SFX flutuantes ao redor do painel — overflow visível pra eles
-            "saírem" da borda do painel, estilo gibi mesmo. */}
+        {/* SFX flutuantes */}
         {cena.sfx?.map((sfx, i) => (
           <span
             key={i}
             aria-hidden
-            className={`pointer-events-none absolute z-10 inline-block whitespace-nowrap border-4 border-black px-3 py-1 text-xs font-black uppercase tracking-wider shadow-[3px_3px_0_#000] transition-all duration-700 sm:text-sm ${sfxToneClass(sfx.tone)}`}
+            className={`pointer-events-none absolute z-10 inline-block whitespace-nowrap rounded-full border-2 border-slate-900 px-3 py-1 text-xs font-black uppercase tracking-wider shadow-[3px_3px_0_rgba(15,23,42,1)] transition-all duration-700 sm:text-sm ${sfxToneClass(sfx.tone)}`}
             style={{
               ...sfx.pos,
               transform: `rotate(${sfx.rotate}deg) scale(${visible ? 1 : 0.5})`,
@@ -421,7 +423,7 @@ function Panel({ cena, index }: { cena: Cena; index: number }) {
   );
 }
 
-/** Painel final — última página com fechamento. */
+/** Painel final — fechamento com logo + frase + selo continua. */
 function FinalPanel() {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -448,7 +450,7 @@ function FinalPanel() {
       className="relative flex min-h-[70vh] flex-col items-center justify-center px-6 py-16 text-center"
     >
       <div
-        className="relative border-4 border-black bg-white p-8 shadow-[10px_10px_0_#000] transition-all duration-1000"
+        className="relative rounded-3xl border-2 border-slate-900 bg-white p-10 shadow-[12px_12px_0_rgba(61,196,188,0.55)] transition-all duration-1000"
         style={{
           opacity: visible ? 1 : 0,
           transform: visible ? "scale(1)" : "scale(0.92)",
@@ -462,30 +464,30 @@ function FinalPanel() {
           sizes="180px"
           className="mx-auto h-auto w-32 sm:w-40"
         />
-        <p className="mt-6 text-2xl font-black uppercase leading-tight tracking-tight sm:text-3xl">
+        <p className="mt-8 text-2xl font-black leading-tight tracking-tight text-slate-900 sm:text-3xl">
           Essa ainda não é
           <br />
           a nossa chegada.
         </p>
-        <p className="mt-3 text-base font-bold sm:text-lg">
-          É só o começo da história.
+        <p className="mt-3 bg-gradient-to-r from-teal-500 to-teal-700 bg-clip-text text-base font-bold text-transparent sm:text-lg">
+          é só o começo da história.
         </p>
       </div>
 
       <span
-        className="mt-10 rotate-[-3deg] border-4 border-black bg-red-500 px-4 py-1.5 text-sm font-black uppercase tracking-widest text-white shadow-[4px_4px_0_#000] transition-all duration-1000"
+        className="mt-10 rounded-full border-2 border-slate-900 bg-teal-400 px-5 py-1.5 text-xs font-black uppercase tracking-[0.25em] text-slate-900 shadow-[3px_3px_0_rgba(15,23,42,1)] transition-all duration-1000"
         style={{
           opacity: visible ? 1 : 0,
           transitionDelay: visible ? "500ms" : "0ms",
         }}
       >
-        Continua…
+        continua…
       </span>
     </section>
   );
 }
 
-/** Balão de fala estilo HQ — retângulo com cantos arredondados + cauda. */
+/** Balão de fala moderno — cantos arredondados, borda fina, cauda discreta. */
 function SpeechBubble({
   children,
   className = "",
@@ -495,17 +497,17 @@ function SpeechBubble({
   className?: string;
   pointing?: "left" | "right" | "down";
 }) {
-  // Cauda dupla (preto atrás, branco na frente) pra parecer outline real.
+  // Cauda dupla (slate-900 atrás, branco na frente) — fica fina e elegante
   const tail =
     pointing === "left"
-      ? "before:left-6 before:-bottom-3 before:border-t-[12px] before:border-r-[12px] before:border-r-transparent before:border-t-white after:left-5 after:-bottom-4 after:border-t-[14px] after:border-r-[14px] after:border-r-transparent after:border-t-black"
+      ? "before:left-6 before:-bottom-[7px] before:border-t-[10px] before:border-r-[10px] before:border-r-transparent before:border-t-white after:left-5 after:-bottom-[9px] after:border-t-[12px] after:border-r-[12px] after:border-r-transparent after:border-t-slate-900"
       : pointing === "right"
-        ? "before:right-6 before:-bottom-3 before:border-t-[12px] before:border-l-[12px] before:border-l-transparent before:border-t-white after:right-5 after:-bottom-4 after:border-t-[14px] after:border-l-[14px] after:border-l-transparent after:border-t-black"
-        : "before:left-1/2 before:-bottom-3 before:-translate-x-1/2 before:border-t-[12px] before:border-x-[8px] before:border-x-transparent before:border-t-white after:left-1/2 after:-bottom-4 after:-translate-x-1/2 after:border-t-[14px] after:border-x-[10px] after:border-x-transparent after:border-t-black";
+        ? "before:right-6 before:-bottom-[7px] before:border-t-[10px] before:border-l-[10px] before:border-l-transparent before:border-t-white after:right-5 after:-bottom-[9px] after:border-t-[12px] after:border-l-[12px] after:border-l-transparent after:border-t-slate-900"
+        : "before:left-1/2 before:-bottom-[7px] before:-translate-x-1/2 before:border-t-[10px] before:border-x-[7px] before:border-x-transparent before:border-t-white after:left-1/2 after:-bottom-[9px] after:-translate-x-1/2 after:border-t-[12px] after:border-x-[9px] after:border-x-transparent after:border-t-slate-900";
 
   return (
     <div
-      className={`relative inline-block rounded-2xl border-4 border-black bg-white px-5 py-3 text-base font-bold shadow-[4px_4px_0_#000] before:absolute before:h-0 before:w-0 after:absolute after:-z-[1] after:h-0 after:w-0 ${tail} ${className}`}
+      className={`relative inline-block rounded-2xl border-2 border-slate-900 bg-white px-5 py-3 text-base font-semibold text-slate-900 shadow-[4px_4px_0_rgba(15,23,42,0.85)] before:absolute before:h-0 before:w-0 after:absolute after:-z-[1] after:h-0 after:w-0 ${tail} ${className}`}
     >
       {children}
     </div>
@@ -535,23 +537,23 @@ function ArrowDown() {
 
 function sfxToneClass(tone: SFX["tone"]): string {
   switch (tone) {
-    case "yellow":
-      return "bg-amber-300 text-black";
-    case "red":
-      return "bg-red-500 text-white";
-    case "blue":
-      return "bg-sky-400 text-black";
-    case "pink":
-      return "bg-pink-400 text-black";
+    case "primary":
+      return "bg-teal-400 text-slate-900";
+    case "coral":
+      return "bg-rose-400 text-white";
+    case "violet":
+      return "bg-violet-400 text-white";
+    case "sunny":
+      return "bg-amber-300 text-slate-900";
   }
 }
 
-/** Renderiza a ilustração SVG da cena dentro de uma "moldura" preta. */
+/** Renderiza a ilustração SVG da cena dentro de uma moldura arredondada. */
 function CenaIlustracao({ numero }: { numero: string }) {
   const Ilustracao = ILUSTRACAO_POR_CENA[numero];
   if (!Ilustracao) return null;
   return (
-    <div className="mb-5 overflow-hidden border-4 border-black bg-white">
+    <div className="mb-6 overflow-hidden rounded-xl border-2 border-slate-900 bg-white">
       <Ilustracao />
     </div>
   );
