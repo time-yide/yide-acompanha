@@ -6,6 +6,7 @@ import { listClientesComCrm } from "@/lib/crm/queries";
 import { getEffectiveUnitId } from "@/lib/units/session";
 import { CRM_BY_VALUE, CRM_DEFS, buildCrmOpenUrl } from "@/lib/crm/tipos";
 import { Card } from "@/components/ui/card";
+import { TabsTrafego } from "@/components/trafego/TabsTrafego";
 
 const ALLOWED_ROLES = ["adm", "socio", "coordenador", "assessor", "comercial"];
 
@@ -32,6 +33,7 @@ export default async function CrmListPage({
 
   return (
     <div className="space-y-5">
+      <TabsTrafego active="crm" />
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">

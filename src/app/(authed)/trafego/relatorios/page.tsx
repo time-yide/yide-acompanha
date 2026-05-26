@@ -8,6 +8,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { listarRelatorios } from "@/lib/trafego/relatorios/queries";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { TabsTrafego } from "@/components/trafego/TabsTrafego";
 
 const STATUS_BADGE: Record<string, { label: string; class: string }> = {
   rascunho: { label: "Rascunho", class: "bg-muted text-muted-foreground" },
@@ -44,6 +45,7 @@ export default async function Page({
 
   return (
     <div className="space-y-5">
+      <TabsTrafego active="relatorios" />
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
