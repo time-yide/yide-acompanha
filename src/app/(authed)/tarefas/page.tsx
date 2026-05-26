@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { requireAuth } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { listTasks, type TaskFilters as TaskFiltersData } from "@/lib/tarefas/queries";
+import { getCurrentMonthYM } from "@/lib/datetime/timezone";
 import { getClientIdsForActiveUnit } from "@/lib/units/filter-helpers";
 import { TasksBoard } from "@/components/tarefas/TasksBoard";
 import { TasksGroupedList, type GroupBy } from "@/components/tarefas/TasksGroupedList";
@@ -48,7 +49,17 @@ export default async function TarefasPage({ searchParams }: { searchParams: Prom
   }
   if (params.client && params.client !== "qualquer") filters.clientId = params.client;
   if (params.q && params.q.trim()) filters.q = params.q.trim();
-  if (params.mes && /^\d{4}-\d{2}$/.test(params.mes)) filters.mes = params.mes;
+  // Filtro de mês (criação): default é o mês atual em Cuiabá. Usuário pode
+  // escolher "qualquer" pra desativar, ou outro mês. "qualquer" no URL =
+  // sem filtro de mês.
+  const mesAtual = getCurrentMonthYM();
+  const mesEscolhido =
+    params.mes === "qualquer"
+      ? null
+      : params.mes && /^\d{4}-\d{2}$/.test(params.mes)
+        ? params.mes
+        : mesAtual;
+  if (mesEscolhido) filters.mes = mesEscolhido;
 
   // Sem filtro de status - Quadro mostra todas as colunas; Lista agrupa concluídas em seção própria
   if (aba === "minhas") filters.atribuidoA = user.id;
