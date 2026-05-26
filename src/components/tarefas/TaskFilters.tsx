@@ -42,18 +42,35 @@ export function TaskFilters({ profiles, clientes, showAtribuido }: Props) {
     router.push(`/tarefas?${sp.toString()}`);
   }
 
+  // Mês precisa preservar "qualquer" no URL pra desativar o default
+  // do server (mês atual). Sem isso, escolher "qualquer" cairia de volta
+  // no mês atual no próximo render.
+  function setMesParam(value: string) {
+    const sp = new URLSearchParams(params.toString());
+    sp.set("mes", value);
+    router.push(`/tarefas?${sp.toString()}`);
+  }
+
   const prioridade = params.get("prioridade") ?? "qualquer";
   const clientId = params.get("client") ?? "qualquer";
   const atribuido = params.get("atribuido") ?? "qualquer";
-  const mes = params.get("mes") ?? "qualquer";
 
-  // Últimos 12 meses + próximos 3 (pra ver tarefas com prazo futuro).
-  // Gerado client-side mas o conteúdo é determinístico pelo mês corrente —
-  // hidrata sem mismatch porque o servidor renderiza com o mesmo `new Date()`.
+  // Mês de criação: server aplica default = mês atual quando URL não tem `mes`.
+  // Aqui no client, se o param está ausente, mostramos o mês atual como
+  // selecionado (mesmo cálculo do servidor). "qualquer" no URL é explícito.
+  const mesAtual = (() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  })();
+  const mesParam = params.get("mes");
+  const mes = mesParam ?? mesAtual;
+
+  // Últimos 12 meses (sem futuros, faz menos sentido pra "mês de criação").
+  // Gerado client-side determinístico pelo mês corrente.
   const mesOptions = (() => {
     const opts: { value: string; label: string }[] = [];
     const now = new Date();
-    for (let i = 3; i >= -11; i--) {
+    for (let i = 0; i < 12; i++) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       const label = d.toLocaleDateString("pt-BR", { month: "short", year: "numeric" })
@@ -104,14 +121,14 @@ export function TaskFilters({ profiles, clientes, showAtribuido }: Props) {
       </div>
 
       <div className="space-y-1">
-        <Label className="text-[11px]">Mês (prazo)</Label>
-        <Select value={mes} onValueChange={(v) => setParam("mes", v)}>
+        <Label className="text-[11px]">Mês (criação)</Label>
+        <Select value={mes} onValueChange={setMesParam}>
           <SelectTrigger className="h-8 w-36"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="qualquer">Qualquer</SelectItem>
             {mesOptions.map((o) => (
               <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
             ))}
+            <SelectItem value="qualquer">Qualquer (todos)</SelectItem>
           </SelectContent>
         </Select>
       </div>
