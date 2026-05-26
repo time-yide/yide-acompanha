@@ -1,19 +1,20 @@
 import Link from "next/link";
-import { KanbanSquare, Briefcase } from "lucide-react";
+import { KanbanSquare, Briefcase, Mic } from "lucide-react";
 
-export type TabKey = "onboarding" | "prospeccao";
+export type TabKey = "onboarding" | "prospeccao" | "reunioes";
 
 interface Props {
   active: TabKey;
 }
 
-// Prospecção saiu do menu lateral e virou aba dentro de Onboarding —
-// fluxo comercial faz mais sentido agrupado. Esse componente fica
-// ACIMA do TabsOnboarding (abas internas do onboarding: kanban,
-// perdidos, relatorios) e do TabsNav (abas internas do prospeccao).
+// Prospecção e Reuniões saíram do menu lateral e viraram abas dentro de
+// Onboarding — fluxo comercial faz mais sentido agrupado. Esse componente
+// fica ACIMA do TabsOnboarding (abas internas do onboarding) e do TabsNav
+// (abas internas do prospeccao).
 const TABS: Array<{ key: TabKey; label: string; href: string; Icon: typeof KanbanSquare }> = [
   { key: "onboarding", label: "Onboarding", href: "/onboarding", Icon: KanbanSquare },
   { key: "prospeccao", label: "Prospecção", href: "/prospeccao", Icon: Briefcase },
+  { key: "reunioes", label: "Reuniões", href: "/reunioes", Icon: Mic },
 ];
 
 export function TabsOnboardingProspeccao({ active }: Props) {
