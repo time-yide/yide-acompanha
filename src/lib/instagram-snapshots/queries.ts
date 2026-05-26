@@ -13,6 +13,8 @@ export interface ClienteComSnapshot {
   assessor_id: string | null;
   assessor_nome: string | null;
   unit_id: string | null;
+  /** Meta mensal de posts. NULL = sem meta (não mostra alerta). */
+  meta_posts_mes: number | null;
   ultimo_snapshot: SnapshotRow | null;
 }
 
@@ -33,7 +35,7 @@ export async function listClientesComUltimoSnapshot(opts: {
 
   let q = sb
     .from("clients")
-    .select("id, nome, tipo_pacote, instagram_url, assessor_id, unit_id")
+    .select("id, nome, tipo_pacote, instagram_url, assessor_id, unit_id, pacote_post_padrao")
     .eq("status", "ativo")
     .in("tipo_pacote", PACOTES_ELEGIVEIS as readonly string[])
     .is("deleted_at", null);
@@ -49,6 +51,7 @@ export async function listClientesComUltimoSnapshot(opts: {
     instagram_url: string | null;
     assessor_id: string | null;
     unit_id: string | null;
+    pacote_post_padrao: number | null;
   }>;
 
   if (rows.length === 0) return [];
@@ -93,6 +96,7 @@ export async function listClientesComUltimoSnapshot(opts: {
     assessor_id: c.assessor_id,
     assessor_nome: c.assessor_id ? (nomesAssessor.get(c.assessor_id) ?? null) : null,
     unit_id: c.unit_id,
+    meta_posts_mes: c.pacote_post_padrao,
     ultimo_snapshot: ultimoPorCliente.get(c.id) ?? null,
   }));
 }

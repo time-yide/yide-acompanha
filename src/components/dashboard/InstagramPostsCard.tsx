@@ -10,6 +10,7 @@ import {
 import { Card } from "@/components/ui/card";
 import { refreshSnapshotsAction } from "@/lib/instagram-snapshots/actions";
 import { computeCounts, countPostsInMonth, monthBoundsCuiaba } from "@/lib/instagram-snapshots/counts";
+import { evaluateMeta, diasNoMes, type MetaEval } from "@/lib/instagram-snapshots/meta-alerta";
 import type { ClienteComSnapshot } from "@/lib/instagram-snapshots/queries";
 import type { PostRecente, ScrapeStatus, CountsBucket } from "@/lib/instagram-snapshots/tipos";
 
@@ -58,6 +59,8 @@ interface Props {
 interface ClienteEnriched extends ClienteComSnapshot {
   counts: CountsBucket | null;
   status: ScrapeStatus;
+  /** Avaliação da meta. Só preenchida quando vendo o mês corrente. */
+  meta: MetaEval | null;
 }
 
 export function InstagramPostsCard({
@@ -111,20 +114,31 @@ export function InstagramPostsCard({
 
   // Enriquece todos os clientes (recalcula quando o mês alvo muda).
   const enriched: ClienteEnriched[] = useMemo(() => {
+    const now = new Date();
+    const diaAtual = now.getDate();
+    const total = diasNoMes(now.getFullYear(), now.getMonth() + 1);
     return clientes.map((c) => {
       const snap = c.ultimo_snapshot;
       const hasUrl = !!c.instagram_url;
       const status: ScrapeStatus = snap?.scrape_status ?? (hasUrl ? "ok" : "no_url");
       if (!snap || snap.scrape_status !== "ok") {
-        return { ...c, counts: null, status };
+        return { ...c, counts: null, status, meta: null };
       }
       const posts = snap.recent_posts as PostRecente[];
       const base = computeCounts(posts);
-      // Sobrescreve o "mes" com a contagem do mês selecionado quando não for o corrente.
       const mes = mesAlvoResolvido.ehCorrente
         ? base.mes
         : countPostsInMonth(posts, mesAlvoResolvido.year, mesAlvoResolvido.month);
-      return { ...c, counts: { ...base, mes }, status };
+      // Só avalia meta no mês corrente — projetar mês passado não faz sentido.
+      const meta = mesAlvoResolvido.ehCorrente
+        ? evaluateMeta({
+            metaMes: c.meta_posts_mes,
+            postsMes: mes,
+            diaAtual,
+            diasNoMes: total,
+          })
+        : null;
+      return { ...c, counts: { ...base, mes }, status, meta };
     });
   }, [clientes, mesAlvoResolvido]);
 
@@ -413,17 +427,20 @@ function ClienteRow({
             </span>
           </td>
           <td className="px-3 py-2 text-right">
-            <button
-              type="button"
-              onClick={() => setExpanded((v) => !v)}
-              className={`inline-flex items-center gap-1 text-base font-bold tabular-nums ${mesCor} hover:underline`}
-              title="Clique pra ver a lista de posts contados"
-            >
-              {counts.mes}
-              <span className="text-[9px] font-normal opacity-50">
-                ({expanded ? "ocultar" : "ver"})
-              </span>
-            </button>
+            <div className="inline-flex items-center gap-1.5">
+              <MetaBadge meta={c.meta} />
+              <button
+                type="button"
+                onClick={() => setExpanded((v) => !v)}
+                className={`inline-flex items-center gap-1 text-base font-bold tabular-nums ${mesCor} hover:underline`}
+                title="Clique pra ver a lista de posts contados"
+              >
+                {counts.mes}
+                <span className="text-[9px] font-normal opacity-50">
+                  ({expanded ? "ocultar" : "ver"})
+                </span>
+              </button>
+            </div>
           </td>
         </>
       ) : c.status === "no_url" ? (
@@ -644,5 +661,38 @@ function PostsContadosDetalhe({
         fresh do Apify. Se mesmo assim ficar curto, o limite de scrape pode ter sido atingido.
       </p>
     </div>
+  );
+}
+
+/**
+ * Badge de alerta da meta. Só aparece quando:
+ * - Há meta configurada no cliente (meta_posts_mes)
+ * - Está vendo o mês corrente (não passado)
+ * - Projeção indica atenção ou crítico
+ *
+ * Tooltip explica a projeção e quantos posts faltam.
+ */
+function MetaBadge({ meta }: { meta: MetaEval | null }) {
+  if (!meta || meta.status === "ok" || meta.status === "sem_meta") return null;
+
+  const critico = meta.status === "critico";
+  const tone = critico
+    ? "border-rose-500/40 bg-rose-500/10 text-rose-600 dark:text-rose-400"
+    : "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400";
+
+  const tooltip = [
+    `Meta do mês: ${meta.faltam !== null ? `faltam ${meta.faltam}` : "?"}`,
+    meta.projecao !== null ? `Projeção: ${meta.projecao} posts no mês` : null,
+    critico ? "No ritmo atual NÃO bate a meta" : "No ritmo atual fica perto mas não bate",
+  ].filter(Boolean).join(" · ");
+
+  return (
+    <span
+      className={`inline-flex items-center justify-center rounded-full border px-1.5 py-0.5 ${tone}`}
+      title={tooltip}
+      aria-label={tooltip}
+    >
+      <AlertTriangle className="h-3 w-3" />
+    </span>
   );
 }
