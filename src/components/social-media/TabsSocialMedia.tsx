@@ -1,18 +1,18 @@
 import Link from "next/link";
 import { Share2, Presentation, ClipboardList } from "lucide-react";
 
-type TabKey = "feed" | "apresenta-yide" | "painel";
+export type TabKey = "agendamento" | "apresenta-yide" | "painel";
 
 interface Props {
   active: TabKey;
 }
 
-// "Painel Mensal" mora em /painel (URL preservada pra não quebrar
-// revalidatePath + notificações), mas no menu visual aparece como aba
-// dentro do Social Media — saiu do menu principal por decisão de UX.
+// Ordem: Painel Mensal primeiro (default ao clicar em "Social Media" no menu
+// — /social-media redirect pro /painel), depois Agendamento de Post (feed
+// antigo movido pra /social-media/agendamento), depois Apresenta Yide.
 const TABS: Array<{ key: TabKey; label: string; href: string; Icon: typeof Share2 }> = [
-  { key: "feed", label: "Social Media", href: "/social-media", Icon: Share2 },
   { key: "painel", label: "Painel Mensal", href: "/painel", Icon: ClipboardList },
+  { key: "agendamento", label: "Agendamento de Post", href: "/social-media/agendamento", Icon: Share2 },
   { key: "apresenta-yide", label: "Apresenta Yide", href: "/social-media/apresenta-yide", Icon: Presentation },
 ];
 
