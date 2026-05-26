@@ -2,20 +2,36 @@
 
 import { useTransition } from "react";
 import Image from "next/image";
-import { LogOut } from "lucide-react";
+import { LogOut, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { clientPortalSignoutAction } from "@/lib/auth/client-portal-actions";
 
 interface Props {
   nomeContato: string | null;
   clientNome: string;
+  /**
+   * Quando true: substitui "Sair" por "Fechar preview" — chama signout
+   * iria tentar deslogar o colab interno do auth do cliente (que nem
+   * existe pra essa sessão) e quebraria a sessão real dele.
+   */
+  previewMode?: boolean;
 }
 
-export function ClientPortalHeader({ nomeContato, clientNome }: Props) {
+export function ClientPortalHeader({ nomeContato, clientNome, previewMode = false }: Props) {
   const [pending, startTransition] = useTransition();
 
   function handleSignout() {
     startTransition(() => clientPortalSignoutAction());
+  }
+
+  function handleClosePreview() {
+    if (typeof window === "undefined") return;
+    window.close();
+    // Se window.close() não funciona (aba não foi aberta via window.open),
+    // navega de volta pro painel admin como fallback.
+    setTimeout(() => {
+      window.location.href = "/painel-cliente";
+    }, 100);
   }
 
   return (
@@ -42,16 +58,28 @@ export function ClientPortalHeader({ nomeContato, clientNome }: Props) {
               {nomeContato}
             </span>
           )}
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={handleSignout}
-            disabled={pending}
-          >
-            <LogOut className="mr-1.5 h-3.5 w-3.5" />
-            {pending ? "Saindo..." : "Sair"}
-          </Button>
+          {previewMode ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleClosePreview}
+            >
+              <X className="mr-1.5 h-3.5 w-3.5" />
+              Fechar preview
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleSignout}
+              disabled={pending}
+            >
+              <LogOut className="mr-1.5 h-3.5 w-3.5" />
+              {pending ? "Saindo..." : "Sair"}
+            </Button>
+          )}
         </div>
       </div>
     </header>

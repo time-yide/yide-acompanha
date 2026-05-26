@@ -75,13 +75,17 @@ export async function ClientPortalView({ clientId, nomeContato, previewMode = fa
           a conta dele.
         </div>
       )}
-      <ClientPortalHeader nomeContato={nomeContato} clientNome={data.cliente.nome} />
+      <ClientPortalHeader
+        nomeContato={nomeContato}
+        clientNome={data.cliente.nome}
+        previewMode={previewMode}
+      />
       <main className="mx-auto max-w-4xl space-y-6 px-4 py-6 sm:py-8">
         <HeroSection nomeContato={nomeContato} clientNome={data.cliente.nome} />
         {!previewMode && (
           <NotificacoesSection vapidPublicKey={env.NEXT_PUBLIC_VAPID_PUBLIC_KEY} />
         )}
-        <SolicitacoesSection requests={requests} />
+        <SolicitacoesSection requests={requests} previewMode={previewMode} />
         <PastaSection driveUrl={data.cliente.drive_url} />
         <UnidadesSection unidades={unidades} />
         <TarefasPortalSection tarefas={tarefas} />
@@ -99,7 +103,7 @@ export async function ClientPortalView({ clientId, nomeContato, previewMode = fa
           timeSeries={gmbTimeSeries}
         />
         <CRMPlaceholderSection />
-        <SatisfacaoSection selfLast={selfSat} agencyLast={agencyPerception} />
+        <SatisfacaoSection selfLast={selfSat} agencyLast={agencyPerception} previewMode={previewMode} />
         <ContratoSection cliente={data.cliente} assessor={data.assessor} />
       </main>
     </>
