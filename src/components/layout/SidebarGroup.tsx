@@ -13,6 +13,8 @@ interface Props {
   label: string;
   items: NavLink[];
   badges?: Partial<Record<NavBadgeKey, number>>;
+  /** Quando true, grupo nunca colapsa — sem botão de toggle. */
+  alwaysExpanded?: boolean;
 }
 
 /**
@@ -25,7 +27,7 @@ interface Props {
  * Persistência via setTimeout dentro do effect pra não violar
  * react-hooks/set-state-in-effect (mesmo padrão do SidebarToggle).
  */
-export function SidebarGroup({ groupId, label, items, badges }: Props) {
+export function SidebarGroup({ groupId, label, items, badges, alwaysExpanded = false }: Props) {
   const pathname = usePathname();
   const containsActive = items.some(
     (i) => pathname === i.href || pathname.startsWith(i.href + "/"),
@@ -33,8 +35,9 @@ export function SidebarGroup({ groupId, label, items, badges }: Props) {
 
   // explicit: preferência do usuário em localStorage; null = nunca tocou.
   // open final = explicit ?? containsActive - auto-abre quando dentro.
+  // Quando alwaysExpanded, ignora preferência e força aberto.
   const [explicit, setExplicit] = useState<boolean | null>(null);
-  const open = explicit ?? containsActive;
+  const open = alwaysExpanded ? true : (explicit ?? containsActive);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -64,19 +67,26 @@ export function SidebarGroup({ groupId, label, items, badges }: Props) {
 
   return (
     <div>
-      <button
-        type="button"
-        onClick={toggle}
-        aria-expanded={open}
-        className="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70 transition-colors hover:text-foreground"
-      >
-        <span>{label}</span>
-        {open ? (
-          <ChevronDown className="h-3.5 w-3.5" />
-        ) : (
-          <ChevronRight className="h-3.5 w-3.5" />
-        )}
-      </button>
+      {alwaysExpanded ? (
+        // Sem botão: label estático e sempre aberto.
+        <div className="flex w-full items-center px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+          <span>{label}</span>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={toggle}
+          aria-expanded={open}
+          className="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70 transition-colors hover:text-foreground"
+        >
+          <span>{label}</span>
+          {open ? (
+            <ChevronDown className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronRight className="h-3.5 w-3.5" />
+          )}
+        </button>
+      )}
       {open && (
         <div className="mt-0.5 space-y-1">
           {items.map((item) => (

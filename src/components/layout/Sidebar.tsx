@@ -46,6 +46,7 @@ export function Sidebar({ role, nome, badges }: { role: Role; nome: string; badg
               label={entry.label}
               items={entry.items}
               badges={badges}
+              alwaysExpanded={entry.alwaysExpanded}
             />
           ),
         )}
