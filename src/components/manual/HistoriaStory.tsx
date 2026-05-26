@@ -175,6 +175,29 @@ const CENAS: ReadonlyArray<Cena> = [
   },
   {
     numero: "09",
+    capitulo: "O Rafael",
+    narracao: [
+      "Pegaram os pontos fortes um do outro e viram:",
+      "precisava de MAIS gente.",
+      "Como tudo na vida deles, foi aleatório.",
+      "Um amigo da Yasmin: Rafael.",
+      "Ela só encontrava ele em festas e bebidas.",
+      "Yasmin propôs: “Ahh, tem Gestor de Tráfego. Topa?”",
+      "“Pagamos R$ 50,00 por conta + um refri kkkk.”",
+      "E ele topou. Largou tudo.",
+      "Hoje ainda tá aqui com a gente.",
+    ],
+    fala: {
+      texto: "Cara, quero trabalhar de casa. O que vc tem pra mim aí?",
+      por: "Rafael, numa festa qualquer",
+    },
+    sfx: [
+      { text: "topou!", pos: { bottom: "-18px", left: "-20px" }, rotate: -10, tone: "violet" },
+    ],
+    rotation: 0.6,
+  },
+  {
+    numero: "10",
     capitulo: "O primeiro “escritório”",
     narracao: [
       "O primeiro espaço da Yide?",
@@ -188,7 +211,7 @@ const CENAS: ReadonlyArray<Cena> = [
     rotation: 0.4,
   },
   {
-    numero: "10",
+    numero: "11",
     capitulo: "O primeiro passo grande",
     narracao: [
       "Mais um risco.",
@@ -203,7 +226,7 @@ const CENAS: ReadonlyArray<Cena> = [
     rotation: -0.8,
   },
   {
-    numero: "11",
+    numero: "12",
     capitulo: "A casa",
     narracao: [
       "Uma noite completamente aleatória.",
@@ -221,7 +244,7 @@ const CENAS: ReadonlyArray<Cena> = [
     rotation: 0.8,
   },
   {
-    numero: "12",
+    numero: "13",
     capitulo: "A Yide de hoje",
     narracao: [
       "Hoje a Yide tem:",
@@ -236,7 +259,7 @@ const CENAS: ReadonlyArray<Cena> = [
     rotation: -0.5,
   },
   {
-    numero: "13",
+    numero: "14",
     capitulo: "O que a Yide realmente é",
     narracao: [
       "A Yide nunca foi só uma agência.",
@@ -244,6 +267,8 @@ const CENAS: ReadonlyArray<Cena> = [
       "Na tentativa. No risco. Na velocidade.",
       "Na vontade absurda de crescer.",
       "Medo não serve pra parar. Serve pra empurrar mais longe.",
+      "Ícaro e Rafael ficam pra sempre registrados aqui.",
+      "Esperamos que VOCÊ que está lendo seja o próximo…",
     ],
     sfx: [
       { text: "coragem!", pos: { bottom: "-20px", left: "-18px" }, rotate: -10, tone: "coral" },

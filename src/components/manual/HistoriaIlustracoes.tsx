@@ -734,6 +734,107 @@ export function CenaCoragem({ className }: IlustracaoProps) {
   );
 }
 
+/** Rafael — segundo colaborador. Cabelo encaracolado, camisa roxa. */
+function Rafael({ x, y, scale = 1 }: { x: number; y: number; scale?: number }) {
+  return (
+    <g transform={`translate(${x},${y}) scale(${scale})`}>
+      {/* Cabelo crespo/encaracolado (silhueta texturizada) */}
+      <path d="M -12 -3 Q -14 -10 -10 -14 Q -3 -18 4 -16 Q 13 -15 13 -7 Q 14 -2 12 0 L 10 -3 Q 7 -5 4 -4 Q 0 -7 -4 -5 Q -8 -7 -11 -4 Z" fill="#2a1810" stroke={STROKE} strokeWidth={STROKE_W} strokeLinejoin="round" />
+      {/* Cachinhos extras */}
+      <circle cx="-9" cy="-12" r="2.5" fill="#2a1810" stroke={STROKE} strokeWidth="1.5" />
+      <circle cx="-4" cy="-15" r="2.5" fill="#2a1810" stroke={STROKE} strokeWidth="1.5" />
+      <circle cx="3" cy="-15" r="2.5" fill="#2a1810" stroke={STROKE} strokeWidth="1.5" />
+      <circle cx="9" cy="-12" r="2.5" fill="#2a1810" stroke={STROKE} strokeWidth="1.5" />
+      {/* Cabeça */}
+      <circle cx="0" cy="0" r="10" fill={PELE} stroke={STROKE} strokeWidth={STROKE_W} />
+      {/* Orelhas */}
+      <ellipse cx="-10" cy="1" rx="1.3" ry="2.2" fill={PELE} stroke={STROKE} strokeWidth="1.2" />
+      <ellipse cx="10" cy="1" rx="1.3" ry="2.2" fill={PELE} stroke={STROKE} strokeWidth="1.2" />
+      {/* Bochechas */}
+      <ellipse cx="-5" cy="3" rx="2" ry="1.2" fill={BLUSH} opacity="0.6" />
+      <ellipse cx="5" cy="3" rx="2" ry="1.2" fill={BLUSH} opacity="0.6" />
+      {/* Olhos */}
+      <circle cx="-3.5" cy="0" r="1.6" fill={STROKE} />
+      <circle cx="-3" cy="-0.5" r="0.5" fill="#fff" />
+      <circle cx="3.5" cy="0" r="1.6" fill={STROKE} />
+      <circle cx="4" cy="-0.5" r="0.5" fill="#fff" />
+      {/* Sorriso */}
+      <path d="M -3 4 Q 0 6.5 3 4" stroke={STROKE} strokeWidth="1.5" fill="none" strokeLinecap="round" />
+      {/* Pescoço */}
+      <rect x="-2" y="9" width="4" height="3" fill={PELE} stroke={STROKE} strokeWidth="1.5" />
+      {/* Corpo (camisa roxa) */}
+      <path d="M -8 12 Q -9 14 -9 17 L -9 24 L 9 24 L 9 17 Q 9 14 8 12 Q 4 14 0 14 Q -4 14 -8 12 Z" fill={ACCENT_VIOLET} stroke={STROKE} strokeWidth={STROKE_W} strokeLinejoin="round" />
+      {/* Braços */}
+      <path d="M -9 13 Q -13 18 -12 23" stroke={STROKE} strokeWidth={STROKE_W} fill="none" strokeLinecap="round" />
+      <path d="M 9 13 Q 13 18 12 23" stroke={STROKE} strokeWidth={STROKE_W} fill="none" strokeLinecap="round" />
+      <circle cx="-12" cy="23" r="1.8" fill={PELE} stroke={STROKE} strokeWidth="1.5" />
+      <circle cx="12" cy="23" r="1.8" fill={PELE} stroke={STROKE} strokeWidth="1.5" />
+      {/* Calça */}
+      <rect x="-7" y="24" width="14" height="7" fill={CALCA} stroke={STROKE} strokeWidth={STROKE_W} />
+      <line x1="-4" y1="31" x2="-4" y2="35" stroke={CALCA} strokeWidth="4" strokeLinecap="round" />
+      <line x1="4" y1="31" x2="4" y2="35" stroke={CALCA} strokeWidth="4" strokeLinecap="round" />
+      <ellipse cx="-4" cy="36" rx="2.5" ry="1.5" fill={SAPATO} stroke={STROKE} strokeWidth="1.5" />
+      <ellipse cx="4" cy="36" rx="2.5" ry="1.5" fill={SAPATO} stroke={STROKE} strokeWidth="1.5" />
+    </g>
+  );
+}
+
+export function CenaRafael({ className }: IlustracaoProps) {
+  // Cena do Rafael — festa/balada onde a Yasmin encontrou ele.
+  // Yasmin segurando copo, Rafael chegando, vibe noturna mas casual.
+  return (
+    <Frame className={className}>
+      {/* Céu noite */}
+      <rect x="0" y="0" width="200" height="100" fill={BG_NIGHT} />
+      {/* Bola de luz/disco ball */}
+      <circle cx="100" cy="20" r="8" fill="#fff" stroke={STROKE} strokeWidth="2" opacity="0.9" />
+      <line x1="92" y1="20" x2="108" y2="20" stroke={STROKE} strokeWidth="0.8" opacity="0.5" />
+      <line x1="100" y1="12" x2="100" y2="28" stroke={STROKE} strokeWidth="0.8" opacity="0.5" />
+      <line x1="94" y1="14" x2="106" y2="26" stroke={STROKE} strokeWidth="0.8" opacity="0.5" />
+      <line x1="106" y1="14" x2="94" y2="26" stroke={STROKE} strokeWidth="0.8" opacity="0.5" />
+      {/* Raios de luz da disco ball */}
+      <line x1="100" y1="28" x2="60" y2="65" stroke={ACCENT_AMBER} strokeWidth="1.5" opacity="0.5" />
+      <line x1="100" y1="28" x2="140" y2="65" stroke={ACCENT_CORAL} strokeWidth="1.5" opacity="0.5" />
+      <line x1="100" y1="28" x2="100" y2="80" stroke={ACCENT_VIOLET} strokeWidth="1.5" opacity="0.5" />
+
+      {/* Luzes piscantes no fundo */}
+      <circle cx="25" cy="30" r="2" fill={ACCENT_CORAL} />
+      <circle cx="175" cy="40" r="2" fill={ACCENT_AMBER} />
+      <circle cx="40" cy="55" r="1.5" fill={ACCENT_TEAL} />
+      <circle cx="160" cy="60" r="1.5" fill={ACCENT_VIOLET} />
+
+      {/* Chão de balada */}
+      <rect x="0" y="100" width="200" height="40" fill="#1e293b" />
+      <line x1="0" y1="100" x2="200" y2="100" stroke={STROKE} strokeWidth="2.5" />
+      {/* Quadrados de pista de dança */}
+      <rect x="10" y="110" width="20" height="20" fill={ACCENT_CORAL} opacity="0.4" />
+      <rect x="30" y="110" width="20" height="20" fill={ACCENT_AMBER} opacity="0.4" />
+      <rect x="150" y="110" width="20" height="20" fill={ACCENT_TEAL} opacity="0.4" />
+      <rect x="170" y="110" width="20" height="20" fill={ACCENT_VIOLET} opacity="0.4" />
+
+      {/* Yasmin e Rafael conversando */}
+      <Yasmin x={70} y={80} scale={0.85} />
+      <Rafael x={130} y={80} scale={0.85} />
+
+      {/* Copos nas mãos */}
+      <g transform="translate(58, 100)">
+        <path d="M -3 0 L -2.5 6 L 2.5 6 L 3 0 Z" fill={ACCENT_AMBER} opacity="0.8" stroke={STROKE} strokeWidth="1.5" strokeLinejoin="round" />
+        <ellipse cx="0" cy="0" rx="3" ry="0.8" fill={ACCENT_AMBER} stroke={STROKE} strokeWidth="1.5" />
+      </g>
+      <g transform="translate(142, 100)">
+        <path d="M -3 0 L -2.5 6 L 2.5 6 L 3 0 Z" fill={ACCENT_CORAL} opacity="0.8" stroke={STROKE} strokeWidth="1.5" strokeLinejoin="round" />
+        <ellipse cx="0" cy="0" rx="3" ry="0.8" fill={ACCENT_CORAL} stroke={STROKE} strokeWidth="1.5" />
+      </g>
+
+      {/* Selo "R$50 + 1 refri" */}
+      <g transform="translate(100, 50) rotate(-4)">
+        <rect x="-32" y="-9" width="64" height="18" rx="9" fill={ACCENT_TEAL} stroke={STROKE} strokeWidth="2" />
+        <text x="0" y="4" textAnchor="middle" fontSize="9" fontWeight="900" fill={STROKE} fontFamily="system-ui">R$50 + refri 🥤</text>
+      </g>
+    </Frame>
+  );
+}
+
 export function CenaIcaro({ className }: IlustracaoProps) {
   // Cena nova — Ícaro chega com câmera, a estrada de fundo conecta com
   // a cena anterior (caos / viagens).
@@ -780,7 +881,7 @@ export function CenaIcaro({ className }: IlustracaoProps) {
   );
 }
 
-/** Mapeia número da cena (01-13) para o componente de ilustração. */
+/** Mapeia número da cena (01-14) para o componente de ilustração. */
 export const ILUSTRACAO_POR_CENA: Record<string, (props: IlustracaoProps) => ReactNode> = {
   "01": CenaCeu,
   "02": CenaBarraca,
@@ -790,9 +891,10 @@ export const ILUSTRACAO_POR_CENA: Record<string, (props: IlustracaoProps) => Rea
   "06": CenaCaos,
   "07": CenaIcaro,
   "08": CenaEvolucao,
-  "09": CenaPadaria,
-  "10": CenaSala,
-  "11": CenaCasa,
-  "12": CenaTime,
-  "13": CenaCoragem,
+  "09": CenaRafael,
+  "10": CenaPadaria,
+  "11": CenaSala,
+  "12": CenaCasa,
+  "13": CenaTime,
+  "14": CenaCoragem, // Esta vira a última narrativa antes do FinalPanel
 };
