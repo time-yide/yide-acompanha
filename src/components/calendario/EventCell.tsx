@@ -3,15 +3,17 @@ import { Video, User, UserPlus } from "lucide-react";
 import type { CalendarEvent } from "@/lib/calendario/schema";
 import { formatBrtTime } from "@/lib/calendario/timezone";
 
+// Light mode usa cor sólida 100/200 + texto 900/950 pra contraste forte.
+// Dark mode mantém overlay /15-/25 que já funciona bem no fundo escuro.
 const subClass: Record<string, string> = {
-  agencia: "bg-violet-500/15 text-violet-700 dark:text-violet-300 border-l-2 border-violet-500",
-  onboarding: "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-l-2 border-blue-500",
-  aniversarios: "bg-pink-500/15 text-pink-700 dark:text-pink-300 border-l-2 border-pink-500",
+  agencia: "bg-violet-100 text-violet-950 dark:bg-violet-500/15 dark:text-violet-300 border-l-2 border-violet-500",
+  onboarding: "bg-blue-100 text-blue-950 dark:bg-blue-500/15 dark:text-blue-300 border-l-2 border-blue-500",
+  aniversarios: "bg-pink-100 text-pink-950 dark:bg-pink-500/15 dark:text-pink-300 border-l-2 border-pink-500",
   // Videomakers: cor mais forte + borda mais grossa pra destacar.
   videomakers:
-    "bg-fuchsia-500/25 text-fuchsia-900 dark:text-fuchsia-100 border-l-4 border-fuchsia-500 ring-1 ring-fuchsia-500/40 shadow-sm",
-  assessores: "bg-amber-500/15 text-amber-800 dark:text-amber-200 border-l-2 border-amber-500",
-  coordenadores: "bg-orange-500/15 text-orange-800 dark:text-orange-200 border-l-2 border-orange-500",
+    "bg-fuchsia-200 text-fuchsia-950 dark:bg-fuchsia-500/25 dark:text-fuchsia-100 border-l-4 border-fuchsia-500 ring-1 ring-fuchsia-500/40 shadow-sm",
+  assessores: "bg-amber-100 text-amber-950 dark:bg-amber-500/15 dark:text-amber-200 border-l-2 border-amber-500",
+  coordenadores: "bg-orange-100 text-orange-950 dark:bg-orange-500/15 dark:text-orange-200 border-l-2 border-orange-500",
 };
 
 export function EventCell({ event }: { event: CalendarEvent }) {
