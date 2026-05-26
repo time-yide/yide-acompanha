@@ -170,6 +170,36 @@ export default async function TarefaModalPage({
           </div>
         )}
 
+        {/* Links adicionais (referência) — mesmos cadastrados no formulário.
+            Aparecem aqui pra evitar abrir a página completa só pra ver os links. */}
+        {(task.links?.length ?? 0) > 0 && (
+          <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Links de referência
+            </p>
+            <ul className="space-y-1.5 text-sm">
+              {task.links?.map((l, i) => (
+                <li key={i} className="flex items-start gap-1.5">
+                  <ExternalLink className="mt-0.5 h-3 w-3 flex-shrink-0 text-muted-foreground" />
+                  <div className="min-w-0 flex-1">
+                    <a
+                      href={l.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="break-all text-primary underline underline-offset-2 hover:text-primary/80"
+                    >
+                      {l.label || l.url}
+                    </a>
+                    {l.label && (
+                      <p className="break-all text-[11px] text-muted-foreground">{l.url}</p>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {/* Revisions */}
         {isApprovalTask && revisoes.length > 0 && <RevisionsTimeline revisoes={revisoes} />}
 
