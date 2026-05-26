@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import { ILUSTRACAO_POR_CENA } from "./HistoriaIlustracoes";
 
 /**
  * Página estilo HQ — painéis com borda preta grossa, balões de fala,
@@ -333,6 +334,9 @@ function Panel({ cena, index }: { cena: Cena; index: number }) {
           {cena.numero}
         </span>
 
+        {/* Ilustração SVG da cena — desenho estilo cartoon */}
+        <CenaIlustracao numero={cena.numero} />
+
         {/* Título do capítulo */}
         <h2 className="mb-5 ml-9 text-xs font-black uppercase tracking-[0.2em] text-zinc-700">
           {cena.capitulo}
@@ -540,4 +544,15 @@ function sfxToneClass(tone: SFX["tone"]): string {
     case "pink":
       return "bg-pink-400 text-black";
   }
+}
+
+/** Renderiza a ilustração SVG da cena dentro de uma "moldura" preta. */
+function CenaIlustracao({ numero }: { numero: string }) {
+  const Ilustracao = ILUSTRACAO_POR_CENA[numero];
+  if (!Ilustracao) return null;
+  return (
+    <div className="mb-5 overflow-hidden border-4 border-black bg-white">
+      <Ilustracao />
+    </div>
+  );
 }
