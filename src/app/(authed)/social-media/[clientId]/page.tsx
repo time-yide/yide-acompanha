@@ -49,7 +49,7 @@ export default async function SocialMediaClientePage({
     <div className="space-y-5">
       <div className="space-y-2">
         <Link
-          href="/social-media"
+          href="/social-media/agendamento"
           className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-3 w-3" /> Voltar pra lista
