@@ -1,7 +1,7 @@
 import {
   LayoutGrid, Users, KanbanSquare, ListChecks,
   DollarSign, Smile, Calendar, UserCog, MessageSquare,
-  TrendingUp, Video, Trash2, MessagesSquare, GraduationCap, Megaphone, Share2, Radar, MessageCircle, Phone, Mic,
+  TrendingUp, Video, Trash2, MessagesSquare, GraduationCap, Megaphone, Share2, Radar, MessageCircle, Phone,
   IdCard, Rocket, BookOpen, Inbox, Activity, Layers,
   type LucideIcon,
 } from "lucide-react";
@@ -61,7 +61,7 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
       { type: "link", href: "/gerador-leads", icon: Radar, label: "Gerador de Leads", roles: ["adm", "socio", "comercial", "coordenador", "assessor"], badgeKey: null },
       { type: "link", href: "/conversas", icon: MessageCircle, label: "Conversas", roles: ["adm", "socio", "comercial", "coordenador", "assessor"], badgeKey: null },
       { type: "link", href: "/ligacoes", icon: Phone, label: "Ligações", roles: ["adm", "socio", "comercial", "coordenador", "assessor"], badgeKey: null },
-      { type: "link", href: "/reunioes", icon: Mic, label: "Reuniões", roles: ["adm", "socio", "comercial", "coordenador", "assessor", "audiovisual_chefe"], badgeKey: null },
+      // "Reuniões" saiu do menu — agora aparece como aba dentro de Onboarding. URL /reunioes preservada.
       // LGPD: dados de prospects/leads (telefone, email, valor) só pra quem
       // precisa operar - comercial cria/contata, assessor/coord acompanham,
       // audiovisual_chefe é coord audiovisual. Designer/videomaker/editor não veem.

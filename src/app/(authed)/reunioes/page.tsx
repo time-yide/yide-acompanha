@@ -9,11 +9,11 @@ import { MEETING_STATUS_LABEL, type MeetingStatus } from "@/lib/reunioes/tipos";
 import { MeetingCard } from "@/components/reunioes/MeetingCard";
 import { ConnectGoogleBanner } from "@/components/reunioes/ConnectGoogleBanner";
 import { buttonVariants } from "@/components/ui/button";
+import { TabsOnboardingProspeccao } from "@/components/onboarding/TabsOnboardingProspeccao";
 
-const ALLOWED_ROLES = [
-  "adm", "socio", "comercial", "coordenador", "assessor",
-  "audiovisual_chefe",
-];
+// Reuniões agora é exclusiva do setor Comercial — pra reuniões online
+// de prospecção/onboarding. Outros roles não veem.
+const ALLOWED_ROLES = ["adm", "socio", "comercial"];
 
 type Filtro = MeetingStatus | "todos";
 
@@ -51,12 +51,13 @@ export default async function ReunioesPage({
 
   return (
     <div className="space-y-6">
+      <TabsOnboardingProspeccao active="reunioes" />
       {/* Header */}
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div className="space-y-1">
           <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-primary">
             <Sparkles className="h-3 w-3" />
-            Inteligência de reuniões
+            Inteligência de reuniões — setor Comercial
           </div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
             <Mic className="h-6 w-6 text-primary" />
