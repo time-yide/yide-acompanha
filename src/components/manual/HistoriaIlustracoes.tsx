@@ -13,13 +13,28 @@
 
 import type { ReactNode } from "react";
 
-const STROKE = "#000";
-const STROKE_W = 3;
-const PELE = "#f5d6b3";
-const CABELO_LUCAS = "#5a3a22";
-const CABELO_YASMIN = "#2a1810";
-const CAMISA_LUCAS = "#3b82f6";
-const CAMISA_YASMIN = "#ec4899";
+// Paleta moderna alinhada com a identidade Yide.
+// Stroke: slate-900 (mais suave que preto puro).
+// Lucas: camisa teal (cor primary da Yide).
+// Yasmin: camisa coral (acento moderno harmonioso com teal).
+const STROKE = "#0f172a";
+const STROKE_W = 2.5;
+const PELE = "#fde2c6";
+const CABELO_LUCAS = "#4a3220";
+const CABELO_YASMIN = "#1f1610";
+const CAMISA_LUCAS = "#3DC4BC";
+const CAMISA_YASMIN = "#fb7185";
+
+// Cores de cenário modernas (paleta clean)
+const BG_SOFT_TEAL = "#ccfbf1";
+const BG_SOFT_CORAL = "#ffe4e6";
+const BG_SOFT_VIOLET = "#ede9fe";
+const BG_SOFT_AMBER = "#fef3c7";
+const BG_NIGHT = "#1e293b";
+const ACCENT_TEAL = "#3DC4BC";
+const ACCENT_CORAL = "#fb7185";
+const ACCENT_AMBER = "#fbbf24";
+const ACCENT_VIOLET = "#a78bfa";
 
 interface IlustracaoProps {
   className?: string;
@@ -104,37 +119,37 @@ export function CenaCeu({ className }: IlustracaoProps) {
   // Cena 1 — Tela dividida: Lucas no quarto + Yasmin no quarto separados
   return (
     <Frame className={className}>
-      <rect x="0" y="0" width="200" height="140" fill="#fff8e1" />
+      <rect x="0" y="0" width="200" height="140" fill="#f8fafc" />
       {/* Divisória central */}
-      <line x1="100" y1="0" x2="100" y2="140" stroke={STROKE} strokeWidth="4" />
+      <line x1="100" y1="0" x2="100" y2="140" stroke={STROKE} strokeWidth="2.5" strokeDasharray="6 4" />
       {/* Lado Lucas */}
-      <rect x="0" y="0" width="100" height="140" fill="#dbeafe" />
+      <rect x="0" y="0" width="100" height="140" fill={BG_SOFT_TEAL} />
       {/* Janela */}
-      <rect x="15" y="20" width="30" height="30" fill="#7dd3fc" stroke={STROKE} strokeWidth="2.5" />
-      <line x1="30" y1="20" x2="30" y2="50" stroke={STROKE} strokeWidth="2" />
-      <line x1="15" y1="35" x2="45" y2="35" stroke={STROKE} strokeWidth="2" />
+      <rect x="15" y="20" width="30" height="30" rx="2" fill="#7dd3fc" stroke={STROKE} strokeWidth="2" />
+      <line x1="30" y1="20" x2="30" y2="50" stroke={STROKE} strokeWidth="1.5" />
+      <line x1="15" y1="35" x2="45" y2="35" stroke={STROKE} strokeWidth="1.5" />
       {/* Mesa */}
-      <rect x="55" y="85" width="40" height="4" fill="#a16207" stroke={STROKE} strokeWidth="2" />
-      <line x1="60" y1="89" x2="60" y2="120" stroke={STROKE} strokeWidth="2.5" strokeLinecap="round" />
-      <line x1="90" y1="89" x2="90" y2="120" stroke={STROKE} strokeWidth="2.5" strokeLinecap="round" />
+      <rect x="55" y="85" width="40" height="4" rx="1" fill="#92400e" stroke={STROKE} strokeWidth="1.5" />
+      <line x1="60" y1="89" x2="60" y2="120" stroke={STROKE} strokeWidth="2" strokeLinecap="round" />
+      <line x1="90" y1="89" x2="90" y2="120" stroke={STROKE} strokeWidth="2" strokeLinecap="round" />
       <Laptop x={75} y={82} scale={0.7} />
       <Lucas x={75} y={65} scale={0.9} />
 
       {/* Lado Yasmin */}
-      <rect x="100" y="0" width="100" height="140" fill="#fce7f3" />
-      {/* Quadrinho na parede */}
-      <rect x="135" y="20" width="25" height="20" fill="#fbbf24" stroke={STROKE} strokeWidth="2.5" />
+      <rect x="100" y="0" width="100" height="140" fill={BG_SOFT_CORAL} />
+      {/* Quadrinho moderno na parede */}
+      <rect x="135" y="20" width="25" height="20" rx="2" fill={ACCENT_VIOLET} stroke={STROKE} strokeWidth="2" />
       <path d="M 140 28 L 145 23 L 150 28 L 155 25" stroke={STROKE} strokeWidth="1.5" fill="none" />
       {/* Mesa */}
-      <rect x="115" y="85" width="40" height="4" fill="#a16207" stroke={STROKE} strokeWidth="2" />
-      <line x1="120" y1="89" x2="120" y2="120" stroke={STROKE} strokeWidth="2.5" strokeLinecap="round" />
-      <line x1="150" y1="89" x2="150" y2="120" stroke={STROKE} strokeWidth="2.5" strokeLinecap="round" />
+      <rect x="115" y="85" width="40" height="4" rx="1" fill="#92400e" stroke={STROKE} strokeWidth="1.5" />
+      <line x1="120" y1="89" x2="120" y2="120" stroke={STROKE} strokeWidth="2" strokeLinecap="round" />
+      <line x1="150" y1="89" x2="150" y2="120" stroke={STROKE} strokeWidth="2" strokeLinecap="round" />
       <Laptop x={135} y={82} scale={0.7} />
       <Yasmin x={135} y={65} scale={0.9} />
 
-      {/* Selo "2020" */}
-      <g transform="translate(100, 12) rotate(-4)">
-        <rect x="-22" y="-8" width="44" height="16" fill="#fbbf24" stroke={STROKE} strokeWidth="2.5" />
+      {/* Selo "2020" pill moderno */}
+      <g transform="translate(100, 14) rotate(-3)">
+        <rect x="-24" y="-9" width="48" height="18" rx="9" fill={ACCENT_TEAL} stroke={STROKE} strokeWidth="2" />
         <text x="0" y="4" textAnchor="middle" fontSize="11" fontWeight="900" fill={STROKE} fontFamily="system-ui">2020</text>
       </g>
     </Frame>
@@ -145,35 +160,35 @@ export function CenaBarraca({ className }: IlustracaoProps) {
   // Cena 2 — Barraca de lanche
   return (
     <Frame className={className}>
-      <rect x="0" y="0" width="200" height="140" fill="#fde68a" />
+      <rect x="0" y="0" width="200" height="140" fill={BG_SOFT_AMBER} />
       {/* Chão */}
-      <rect x="0" y="110" width="200" height="30" fill="#a16207" />
-      <line x1="0" y1="110" x2="200" y2="110" stroke={STROKE} strokeWidth="3" />
+      <rect x="0" y="110" width="200" height="30" fill="#92400e" />
+      <line x1="0" y1="110" x2="200" y2="110" stroke={STROKE} strokeWidth="2.5" />
 
       {/* Barraca */}
-      <rect x="50" y="55" width="100" height="55" fill="#ef4444" stroke={STROKE} strokeWidth="3" />
+      <rect x="50" y="55" width="100" height="55" rx="2" fill={ACCENT_CORAL} stroke={STROKE} strokeWidth="2.5" />
       {/* Toldo listrado */}
-      <path d="M 40 55 L 160 55 L 155 40 L 45 40 Z" fill="#fff" stroke={STROKE} strokeWidth="3" strokeLinejoin="round" />
-      <path d="M 60 40 L 55 55" stroke="#ef4444" strokeWidth="6" />
-      <path d="M 80 40 L 75 55" stroke="#ef4444" strokeWidth="6" />
-      <path d="M 100 40 L 95 55" stroke="#ef4444" strokeWidth="6" />
-      <path d="M 120 40 L 115 55" stroke="#ef4444" strokeWidth="6" />
-      <path d="M 140 40 L 135 55" stroke="#ef4444" strokeWidth="6" />
+      <path d="M 40 55 L 160 55 L 155 40 L 45 40 Z" fill="#fff" stroke={STROKE} strokeWidth="2.5" strokeLinejoin="round" />
+      <path d="M 60 40 L 55 55" stroke={ACCENT_CORAL} strokeWidth="6" />
+      <path d="M 80 40 L 75 55" stroke={ACCENT_CORAL} strokeWidth="6" />
+      <path d="M 100 40 L 95 55" stroke={ACCENT_CORAL} strokeWidth="6" />
+      <path d="M 120 40 L 115 55" stroke={ACCENT_CORAL} strokeWidth="6" />
+      <path d="M 140 40 L 135 55" stroke={ACCENT_CORAL} strokeWidth="6" />
       {/* Balcão */}
-      <rect x="50" y="80" width="100" height="6" fill="#fbbf24" stroke={STROKE} strokeWidth="2" />
-      {/* Placa "LANCHES" */}
-      <rect x="70" y="62" width="60" height="14" fill="#fff" stroke={STROKE} strokeWidth="2.5" />
+      <rect x="50" y="80" width="100" height="6" rx="1" fill={ACCENT_AMBER} stroke={STROKE} strokeWidth="2" />
+      {/* Placa "LANCHES" pill moderno */}
+      <rect x="70" y="62" width="60" height="14" rx="7" fill="#fff" stroke={STROKE} strokeWidth="2" />
       <text x="100" y="73" textAnchor="middle" fontSize="9" fontWeight="900" fill={STROKE} fontFamily="system-ui">LANCHES</text>
 
       {/* Dono atrás do balcão */}
       <Lucas x={100} y={95} scale={0.7} />
 
-      {/* Lua sol no canto */}
-      <circle cx="170" cy="25" r="12" fill="#fbbf24" stroke={STROKE} strokeWidth="2.5" />
-      <line x1="170" y1="8" x2="170" y2="3" stroke={STROKE} strokeWidth="2" strokeLinecap="round" />
-      <line x1="170" y1="42" x2="170" y2="47" stroke={STROKE} strokeWidth="2" strokeLinecap="round" />
-      <line x1="153" y1="25" x2="148" y2="25" stroke={STROKE} strokeWidth="2" strokeLinecap="round" />
-      <line x1="187" y1="25" x2="192" y2="25" stroke={STROKE} strokeWidth="2" strokeLinecap="round" />
+      {/* Sol moderno no canto */}
+      <circle cx="170" cy="25" r="12" fill={ACCENT_AMBER} stroke={STROKE} strokeWidth="2" />
+      <line x1="170" y1="8" x2="170" y2="3" stroke={STROKE} strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="170" y1="42" x2="170" y2="47" stroke={STROKE} strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="153" y1="25" x2="148" y2="25" stroke={STROKE} strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="187" y1="25" x2="192" y2="25" stroke={STROKE} strokeWidth="1.5" strokeLinecap="round" />
     </Frame>
   );
 }
@@ -182,26 +197,26 @@ export function CenaCall({ className }: IlustracaoProps) {
   // Cena 3 — Call de 5h: duas telas de computador conectadas
   return (
     <Frame className={className}>
-      <rect x="0" y="0" width="200" height="140" fill="#e0e7ff" />
+      <rect x="0" y="0" width="200" height="140" fill={BG_SOFT_VIOLET} />
       {/* Tela do Lucas */}
       <g transform="translate(50, 70)">
-        <rect x="-25" y="-22" width="50" height="35" rx="2" fill="#fff" stroke={STROKE} strokeWidth="3" />
+        <rect x="-25" y="-22" width="50" height="35" rx="2" fill="#fff" stroke={STROKE} strokeWidth="2.5" />
         <rect x="-22" y="-19" width="44" height="29" fill="#dbeafe" />
         <Lucas x={0} y={-5} scale={0.5} />
       </g>
       {/* Tela da Yasmin */}
       <g transform="translate(150, 70)">
-        <rect x="-25" y="-22" width="50" height="35" rx="2" fill="#fff" stroke={STROKE} strokeWidth="3" />
+        <rect x="-25" y="-22" width="50" height="35" rx="2" fill="#fff" stroke={STROKE} strokeWidth="2.5" />
         <rect x="-22" y="-19" width="44" height="29" fill="#fce7f3" />
         <Yasmin x={0} y={-5} scale={0.5} />
       </g>
       {/* Onda de sinal entre as telas */}
-      <path d="M 80 75 Q 100 60 120 75" stroke="#3b82f6" strokeWidth="2.5" fill="none" strokeDasharray="4 3" />
-      <path d="M 80 80 Q 100 95 120 80" stroke="#ec4899" strokeWidth="2.5" fill="none" strokeDasharray="4 3" />
+      <path d="M 80 75 Q 100 60 120 75" stroke={ACCENT_TEAL} strokeWidth="2.5" fill="none" strokeDasharray="4 3" />
+      <path d="M 80 80 Q 100 95 120 80" stroke={ACCENT_CORAL} strokeWidth="2.5" fill="none" strokeDasharray="4 3" />
 
       {/* Relógio */}
       <g transform="translate(100, 22)">
-        <circle cx="0" cy="0" r="14" fill="#fff" stroke={STROKE} strokeWidth="3" />
+        <circle cx="0" cy="0" r="14" fill="#fff" stroke={STROKE} strokeWidth="2.5" />
         <circle cx="0" cy="0" r="1.5" fill={STROKE} />
         <line x1="0" y1="0" x2="0" y2="-9" stroke={STROKE} strokeWidth="2.5" strokeLinecap="round" />
         <line x1="0" y1="0" x2="7" y2="2" stroke={STROKE} strokeWidth="2" strokeLinecap="round" />
@@ -214,13 +229,13 @@ export function CenaCall({ className }: IlustracaoProps) {
 
       {/* "5h" no canto */}
       <g transform="translate(170, 22) rotate(8)">
-        <rect x="-12" y="-7" width="24" height="14" fill="#ef4444" stroke={STROKE} strokeWidth="2.5" />
+        <rect x="-12" y="-7" width="24" height="14" fill={ACCENT_CORAL} stroke={STROKE} strokeWidth="2.5" />
         <text x="0" y="4" textAnchor="middle" fontSize="9" fontWeight="900" fill="#fff" fontFamily="system-ui">5h!</text>
       </g>
 
       {/* Mesa embaixo */}
-      <rect x="0" y="110" width="200" height="30" fill="#fbbf24" />
-      <line x1="0" y1="110" x2="200" y2="110" stroke={STROKE} strokeWidth="3" />
+      <rect x="0" y="110" width="200" height="30" fill={ACCENT_AMBER} />
+      <line x1="0" y1="110" x2="200" y2="110" stroke={STROKE} strokeWidth="2.5" />
     </Frame>
   );
 }
@@ -229,19 +244,19 @@ export function CenaCafe({ className }: IlustracaoProps) {
   // Cena 4 — Cafeteria: dois personagens em mesa redonda
   return (
     <Frame className={className}>
-      <rect x="0" y="0" width="200" height="140" fill="#fef3c7" />
+      <rect x="0" y="0" width="200" height="140" fill={BG_SOFT_AMBER} />
       {/* Chão */}
       <rect x="0" y="105" width="200" height="35" fill="#a16207" />
-      <line x1="0" y1="105" x2="200" y2="105" stroke={STROKE} strokeWidth="3" />
+      <line x1="0" y1="105" x2="200" y2="105" stroke={STROKE} strokeWidth="2.5" />
       {/* Janela atrás */}
-      <rect x="20" y="15" width="160" height="40" fill="#bfdbfe" stroke={STROKE} strokeWidth="3" />
+      <rect x="20" y="15" width="160" height="40" fill={BG_SOFT_TEAL} stroke={STROKE} strokeWidth="2.5" />
       <line x1="100" y1="15" x2="100" y2="55" stroke={STROKE} strokeWidth="2" />
       {/* Plantinha decorativa */}
-      <circle cx="35" cy="40" r="8" fill="#22c55e" stroke={STROKE} strokeWidth="2" />
+      <circle cx="35" cy="40" r="8" fill={ACCENT_TEAL} stroke={STROKE} strokeWidth="2" />
       <circle cx="42" cy="33" r="7" fill="#16a34a" stroke={STROKE} strokeWidth="2" />
 
       {/* Mesa redonda (visão lateral elíptica) */}
-      <ellipse cx="100" cy="100" rx="55" ry="10" fill="#92400e" stroke={STROKE} strokeWidth="3" />
+      <ellipse cx="100" cy="100" rx="55" ry="10" fill="#92400e" stroke={STROKE} strokeWidth="2.5" />
       <ellipse cx="100" cy="98" rx="55" ry="9" fill="#a16207" stroke={STROKE} strokeWidth="2.5" />
       {/* Pé da mesa */}
       <line x1="100" y1="105" x2="100" y2="130" stroke={STROKE} strokeWidth="4" strokeLinecap="round" />
@@ -268,7 +283,7 @@ export function CenaCafe({ className }: IlustracaoProps) {
 
       {/* Coração entre eles */}
       <g transform="translate(100, 60)">
-        <path d="M 0 4 Q -5 -2 -5 -5 Q -5 -8 -2 -8 Q 0 -8 0 -6 Q 0 -8 2 -8 Q 5 -8 5 -5 Q 5 -2 0 4 Z" fill="#ef4444" stroke={STROKE} strokeWidth="2" strokeLinejoin="round" />
+        <path d="M 0 4 Q -5 -2 -5 -5 Q -5 -8 -2 -8 Q 0 -8 0 -6 Q 0 -8 2 -8 Q 5 -8 5 -5 Q 5 -2 0 4 Z" fill={ACCENT_CORAL} stroke={STROKE} strokeWidth="2" strokeLinejoin="round" />
       </g>
     </Frame>
   );
@@ -278,10 +293,10 @@ export function CenaDupla({ className }: IlustracaoProps) {
   // Cena 5 — Dupla: Lucas e Yasmin lado a lado com várias ferramentas/funções flutuando
   return (
     <Frame className={className}>
-      <rect x="0" y="0" width="200" height="140" fill="#fde68a" />
+      <rect x="0" y="0" width="200" height="140" fill={BG_SOFT_AMBER} />
       {/* Chão */}
       <rect x="0" y="115" width="200" height="25" fill="#a16207" />
-      <line x1="0" y1="115" x2="200" y2="115" stroke={STROKE} strokeWidth="3" />
+      <line x1="0" y1="115" x2="200" y2="115" stroke={STROKE} strokeWidth="2.5" />
 
       {/* Personagens */}
       <Lucas x={75} y={80} scale={1.1} />
@@ -291,7 +306,7 @@ export function CenaDupla({ className }: IlustracaoProps) {
       {/* Pincel (designer) */}
       <g transform="translate(30, 30) rotate(-15)">
         <rect x="-2" y="-12" width="4" height="14" fill="#a16207" stroke={STROKE} strokeWidth="2" />
-        <ellipse cx="0" cy="-15" rx="3" ry="5" fill="#ef4444" stroke={STROKE} strokeWidth="2" />
+        <ellipse cx="0" cy="-15" rx="3" ry="5" fill={ACCENT_CORAL} stroke={STROKE} strokeWidth="2" />
       </g>
       {/* Câmera (videomaker) */}
       <g transform="translate(170, 30)">
@@ -302,7 +317,7 @@ export function CenaDupla({ className }: IlustracaoProps) {
       </g>
       {/* Megafone (social media) */}
       <g transform="translate(25, 70) rotate(-20)">
-        <path d="M -8 -5 L 8 -8 L 8 8 L -8 5 Z" fill="#fbbf24" stroke={STROKE} strokeWidth="2" strokeLinejoin="round" />
+        <path d="M -8 -5 L 8 -8 L 8 8 L -8 5 Z" fill={ACCENT_AMBER} stroke={STROKE} strokeWidth="2" strokeLinejoin="round" />
         <rect x="-12" y="-3" width="4" height="6" fill="#a16207" stroke={STROKE} strokeWidth="2" />
         <line x1="11" y1="-10" x2="13" y2="-13" stroke={STROKE} strokeWidth="1.5" strokeLinecap="round" />
         <line x1="13" y1="0" x2="16" y2="0" stroke={STROKE} strokeWidth="1.5" strokeLinecap="round" />
@@ -310,12 +325,12 @@ export function CenaDupla({ className }: IlustracaoProps) {
       </g>
       {/* $ (vendedor) */}
       <g transform="translate(175, 70) rotate(10)">
-        <circle cx="0" cy="0" r="10" fill="#22c55e" stroke={STROKE} strokeWidth="2.5" />
+        <circle cx="0" cy="0" r="10" fill={ACCENT_TEAL} stroke={STROKE} strokeWidth="2.5" />
         <text x="0" y="4" textAnchor="middle" fontSize="13" fontWeight="900" fill="#fff" fontFamily="system-ui">$</text>
       </g>
       {/* Tela/play (editor) */}
       <g transform="translate(100, 25) rotate(5)">
-        <rect x="-10" y="-7" width="20" height="14" rx="1" fill="#3b82f6" stroke={STROKE} strokeWidth="2.5" />
+        <rect x="-10" y="-7" width="20" height="14" rx="1" fill={ACCENT_TEAL} stroke={STROKE} strokeWidth="2.5" />
         <path d="M -2 -3 L 4 0 L -2 3 Z" fill="#fff" stroke={STROKE} strokeWidth="1.5" strokeLinejoin="round" />
       </g>
     </Frame>
@@ -326,7 +341,7 @@ export function CenaCaos({ className }: IlustracaoProps) {
   // Cena 6 — Caos: noite, estrada, personagem cansado dirigindo
   return (
     <Frame className={className}>
-      <rect x="0" y="0" width="200" height="140" fill="#1e1b4b" />
+      <rect x="0" y="0" width="200" height="140" fill={BG_NIGHT} />
       {/* Estrelas */}
       <circle cx="30" cy="20" r="1.5" fill="#fff" />
       <circle cx="60" cy="35" r="1" fill="#fff" />
@@ -335,22 +350,22 @@ export function CenaCaos({ className }: IlustracaoProps) {
       <circle cx="140" cy="50" r="1" fill="#fff" />
 
       {/* Lua */}
-      <circle cx="160" cy="30" r="14" fill="#fef3c7" stroke={STROKE} strokeWidth="2.5" />
-      <circle cx="156" cy="27" r="2" fill="#fbbf24" opacity="0.5" />
-      <circle cx="164" cy="33" r="1.5" fill="#fbbf24" opacity="0.5" />
+      <circle cx="160" cy="30" r="14" fill={BG_SOFT_AMBER} stroke={STROKE} strokeWidth="2.5" />
+      <circle cx="156" cy="27" r="2" fill={ACCENT_AMBER} opacity="0.5" />
+      <circle cx="164" cy="33" r="1.5" fill={ACCENT_AMBER} opacity="0.5" />
 
       {/* Chão/estrada */}
       <path d="M 0 100 L 200 100 L 200 140 L 0 140 Z" fill="#374151" />
-      <line x1="0" y1="100" x2="200" y2="100" stroke={STROKE} strokeWidth="3" />
+      <line x1="0" y1="100" x2="200" y2="100" stroke={STROKE} strokeWidth="2.5" />
       {/* Linhas tracejadas da estrada */}
-      <line x1="30" y1="120" x2="50" y2="120" stroke="#fbbf24" strokeWidth="3" strokeLinecap="round" />
-      <line x1="80" y1="120" x2="100" y2="120" stroke="#fbbf24" strokeWidth="3" strokeLinecap="round" />
-      <line x1="130" y1="120" x2="150" y2="120" stroke="#fbbf24" strokeWidth="3" strokeLinecap="round" />
-      <line x1="180" y1="120" x2="200" y2="120" stroke="#fbbf24" strokeWidth="3" strokeLinecap="round" />
+      <line x1="30" y1="120" x2="50" y2="120" stroke="#fbbf24" strokeWidth="2.5" strokeLinecap="round" />
+      <line x1="80" y1="120" x2="100" y2="120" stroke="#fbbf24" strokeWidth="2.5" strokeLinecap="round" />
+      <line x1="130" y1="120" x2="150" y2="120" stroke="#fbbf24" strokeWidth="2.5" strokeLinecap="round" />
+      <line x1="180" y1="120" x2="200" y2="120" stroke="#fbbf24" strokeWidth="2.5" strokeLinecap="round" />
 
       {/* Carro vindo de frente — visão simples */}
       <g transform="translate(100, 95)">
-        <path d="M -30 5 L -30 -2 Q -25 -10 -15 -12 L 15 -12 Q 25 -10 30 -2 L 30 5 Z" fill="#ef4444" stroke={STROKE} strokeWidth="3" strokeLinejoin="round" />
+        <path d="M -30 5 L -30 -2 Q -25 -10 -15 -12 L 15 -12 Q 25 -10 30 -2 L 30 5 Z" fill={ACCENT_CORAL} stroke={STROKE} strokeWidth="2.5" strokeLinejoin="round" />
         {/* Janelas */}
         <path d="M -22 -2 L -18 -10 L 18 -10 L 22 -2 Z" fill="#0ea5e9" stroke={STROKE} strokeWidth="2.5" strokeLinejoin="round" />
         <line x1="0" y1="-10" x2="0" y2="-2" stroke={STROKE} strokeWidth="2" />
@@ -360,8 +375,8 @@ export function CenaCaos({ className }: IlustracaoProps) {
         <circle cx="18" cy="6" r="5" fill={STROKE} />
         <circle cx="18" cy="6" r="2" fill="#fff" />
         {/* Faróis acessos */}
-        <circle cx="-25" cy="0" r="3" fill="#fef3c7" />
-        <circle cx="25" cy="0" r="3" fill="#fef3c7" />
+        <circle cx="-25" cy="0" r="3" fill={BG_SOFT_AMBER} />
+        <circle cx="25" cy="0" r="3" fill={BG_SOFT_AMBER} />
       </g>
 
       {/* Nuvem de cansaço com Zzz */}
@@ -376,20 +391,20 @@ export function CenaEvolucao({ className }: IlustracaoProps) {
   // Cena 7 — Evolução: seta crescente com personagens em diferentes alturas
   return (
     <Frame className={className}>
-      <rect x="0" y="0" width="200" height="140" fill="#dcfce7" />
+      <rect x="0" y="0" width="200" height="140" fill={BG_SOFT_TEAL} />
       {/* Chão */}
       <rect x="0" y="120" width="200" height="20" fill="#16a34a" />
-      <line x1="0" y1="120" x2="200" y2="120" stroke={STROKE} strokeWidth="3" />
+      <line x1="0" y1="120" x2="200" y2="120" stroke={STROKE} strokeWidth="2.5" />
 
       {/* Linha de crescimento */}
-      <path d="M 20 110 L 70 90 L 120 60 L 170 30" stroke="#1d4ed8" strokeWidth="4" fill="none" strokeLinecap="round" />
+      <path d="M 20 110 L 70 90 L 120 60 L 170 30" stroke={ACCENT_TEAL} strokeWidth="4" fill="none" strokeLinecap="round" />
       {/* Pontos */}
-      <circle cx="20" cy="110" r="5" fill="#fbbf24" stroke={STROKE} strokeWidth="2.5" />
-      <circle cx="70" cy="90" r="5" fill="#fbbf24" stroke={STROKE} strokeWidth="2.5" />
-      <circle cx="120" cy="60" r="5" fill="#fbbf24" stroke={STROKE} strokeWidth="2.5" />
+      <circle cx="20" cy="110" r="5" fill={ACCENT_AMBER} stroke={STROKE} strokeWidth="2.5" />
+      <circle cx="70" cy="90" r="5" fill={ACCENT_AMBER} stroke={STROKE} strokeWidth="2.5" />
+      <circle cx="120" cy="60" r="5" fill={ACCENT_AMBER} stroke={STROKE} strokeWidth="2.5" />
       {/* Seta no topo */}
       <g transform="translate(170, 30) rotate(-30)">
-        <path d="M 0 0 L 10 0 L 10 -5 L 18 3 L 10 11 L 10 6 L 0 6 Z" fill="#22c55e" stroke={STROKE} strokeWidth="2.5" strokeLinejoin="round" />
+        <path d="M 0 0 L 10 0 L 10 -5 L 18 3 L 10 11 L 10 6 L 0 6 Z" fill={ACCENT_TEAL} stroke={STROKE} strokeWidth="2.5" strokeLinejoin="round" />
       </g>
 
       {/* Personagens no topo (vitoriosos) */}
@@ -398,10 +413,10 @@ export function CenaEvolucao({ className }: IlustracaoProps) {
 
       {/* Estrelas decorativas */}
       <g transform="translate(40, 30)">
-        <path d="M 0 -7 L 2 -2 L 7 -2 L 3 1 L 5 6 L 0 3 L -5 6 L -3 1 L -7 -2 L -2 -2 Z" fill="#fbbf24" stroke={STROKE} strokeWidth="2" strokeLinejoin="round" />
+        <path d="M 0 -7 L 2 -2 L 7 -2 L 3 1 L 5 6 L 0 3 L -5 6 L -3 1 L -7 -2 L -2 -2 Z" fill={ACCENT_AMBER} stroke={STROKE} strokeWidth="2" strokeLinejoin="round" />
       </g>
       <g transform="translate(180, 80)">
-        <path d="M 0 -5 L 1.5 -1.5 L 5 -1.5 L 2 1 L 3.5 5 L 0 2.5 L -3.5 5 L -2 1 L -5 -1.5 L -1.5 -1.5 Z" fill="#fbbf24" stroke={STROKE} strokeWidth="1.5" strokeLinejoin="round" />
+        <path d="M 0 -5 L 1.5 -1.5 L 5 -1.5 L 2 1 L 3.5 5 L 0 2.5 L -3.5 5 L -2 1 L -5 -1.5 L -1.5 -1.5 Z" fill={ACCENT_AMBER} stroke={STROKE} strokeWidth="1.5" strokeLinejoin="round" />
       </g>
     </Frame>
   );
@@ -411,38 +426,38 @@ export function CenaPadaria({ className }: IlustracaoProps) {
   // Cena 8 — Padaria com salinha no fundo
   return (
     <Frame className={className}>
-      <rect x="0" y="0" width="200" height="140" fill="#fef3c7" />
+      <rect x="0" y="0" width="200" height="140" fill={BG_SOFT_AMBER} />
       {/* Chão */}
       <rect x="0" y="110" width="200" height="30" fill="#a16207" />
-      <line x1="0" y1="110" x2="200" y2="110" stroke={STROKE} strokeWidth="3" />
+      <line x1="0" y1="110" x2="200" y2="110" stroke={STROKE} strokeWidth="2.5" />
 
       {/* Padaria — fachada */}
-      <rect x="20" y="30" width="160" height="80" fill="#fbbf24" stroke={STROKE} strokeWidth="3" />
+      <rect x="20" y="30" width="160" height="80" fill={ACCENT_AMBER} stroke={STROKE} strokeWidth="2.5" />
       {/* Telhado */}
-      <path d="M 15 30 L 100 8 L 185 30 Z" fill="#92400e" stroke={STROKE} strokeWidth="3" strokeLinejoin="round" />
+      <path d="M 15 30 L 100 8 L 185 30 Z" fill="#92400e" stroke={STROKE} strokeWidth="2.5" strokeLinejoin="round" />
       {/* Letreiro */}
       <rect x="50" y="38" width="100" height="16" fill="#fff" stroke={STROKE} strokeWidth="2.5" />
       <text x="100" y="50" textAnchor="middle" fontSize="11" fontWeight="900" fill={STROKE} fontFamily="system-ui">PADARIA</text>
 
       {/* Porta principal */}
-      <rect x="85" y="75" width="30" height="35" fill="#92400e" stroke={STROKE} strokeWidth="3" />
-      <circle cx="108" cy="92" r="1.5" fill="#fbbf24" />
+      <rect x="85" y="75" width="30" height="35" fill="#92400e" stroke={STROKE} strokeWidth="2.5" />
+      <circle cx="108" cy="92" r="1.5" fill={ACCENT_AMBER} />
 
       {/* Janela com pãezinhos */}
-      <rect x="35" y="65" width="35" height="35" fill="#bfdbfe" stroke={STROKE} strokeWidth="2.5" />
+      <rect x="35" y="65" width="35" height="35" fill={BG_SOFT_TEAL} stroke={STROKE} strokeWidth="2.5" />
       <ellipse cx="45" cy="85" rx="4" ry="3" fill="#a16207" stroke={STROKE} strokeWidth="1.5" />
       <ellipse cx="55" cy="85" rx="4" ry="3" fill="#a16207" stroke={STROKE} strokeWidth="1.5" />
       <ellipse cx="50" cy="92" rx="4" ry="3" fill="#a16207" stroke={STROKE} strokeWidth="1.5" />
 
       {/* Indicação fundo — seta apontando pra trás */}
       <g transform="translate(150, 80)">
-        <rect x="-15" y="-12" width="30" height="24" fill="#bfdbfe" stroke={STROKE} strokeWidth="2.5" />
+        <rect x="-15" y="-12" width="30" height="24" fill={BG_SOFT_TEAL} stroke={STROKE} strokeWidth="2.5" />
         {/* Janelinha do "escritório" no fundo da padaria */}
         <line x1="-15" y1="0" x2="15" y2="0" stroke={STROKE} strokeWidth="2" />
         <line x1="0" y1="-12" x2="0" y2="12" stroke={STROKE} strokeWidth="2" />
       </g>
       <g transform="translate(150, 100)">
-        <path d="M 0 5 L -8 -5 L -4 -5 L -4 -10 L 4 -10 L 4 -5 L 8 -5 Z" fill="#ef4444" stroke={STROKE} strokeWidth="2" strokeLinejoin="round" />
+        <path d="M 0 5 L -8 -5 L -4 -5 L -4 -10 L 4 -10 L 4 -5 L 8 -5 Z" fill={ACCENT_CORAL} stroke={STROKE} strokeWidth="2" strokeLinejoin="round" />
       </g>
 
       {/* Texto YIDE pequeninho */}
@@ -455,37 +470,37 @@ export function CenaSala({ className }: IlustracaoProps) {
   // Cena 9 — Sala comercial / prédio crescendo
   return (
     <Frame className={className}>
-      <rect x="0" y="0" width="200" height="140" fill="#bfdbfe" />
+      <rect x="0" y="0" width="200" height="140" fill={BG_SOFT_TEAL} />
       {/* Nuvens */}
       <ellipse cx="40" cy="25" rx="14" ry="6" fill="#fff" stroke={STROKE} strokeWidth="2" />
       <ellipse cx="170" cy="18" rx="16" ry="7" fill="#fff" stroke={STROKE} strokeWidth="2" />
       {/* Chão */}
       <rect x="0" y="120" width="200" height="20" fill="#16a34a" />
-      <line x1="0" y1="120" x2="200" y2="120" stroke={STROKE} strokeWidth="3" />
+      <line x1="0" y1="120" x2="200" y2="120" stroke={STROKE} strokeWidth="2.5" />
 
       {/* Prédio comercial — 2 salas (lado a lado) */}
-      <rect x="50" y="50" width="100" height="70" fill="#fff" stroke={STROKE} strokeWidth="3" />
-      <line x1="100" y1="50" x2="100" y2="120" stroke={STROKE} strokeWidth="3" />
+      <rect x="50" y="50" width="100" height="70" fill="#fff" stroke={STROKE} strokeWidth="2.5" />
+      <line x1="100" y1="50" x2="100" y2="120" stroke={STROKE} strokeWidth="2.5" />
 
       {/* Janelas sala 1 */}
-      <rect x="60" y="60" width="14" height="14" fill="#fbbf24" stroke={STROKE} strokeWidth="2" />
-      <rect x="78" y="60" width="14" height="14" fill="#fbbf24" stroke={STROKE} strokeWidth="2" />
-      <rect x="60" y="80" width="14" height="14" fill="#fbbf24" stroke={STROKE} strokeWidth="2" />
-      <rect x="78" y="80" width="14" height="14" fill="#fbbf24" stroke={STROKE} strokeWidth="2" />
+      <rect x="60" y="60" width="14" height="14" fill={ACCENT_AMBER} stroke={STROKE} strokeWidth="2" />
+      <rect x="78" y="60" width="14" height="14" fill={ACCENT_AMBER} stroke={STROKE} strokeWidth="2" />
+      <rect x="60" y="80" width="14" height="14" fill={ACCENT_AMBER} stroke={STROKE} strokeWidth="2" />
+      <rect x="78" y="80" width="14" height="14" fill={ACCENT_AMBER} stroke={STROKE} strokeWidth="2" />
 
       {/* Janelas sala 2 */}
-      <rect x="108" y="60" width="14" height="14" fill="#fbbf24" stroke={STROKE} strokeWidth="2" />
-      <rect x="126" y="60" width="14" height="14" fill="#fbbf24" stroke={STROKE} strokeWidth="2" />
-      <rect x="108" y="80" width="14" height="14" fill="#fbbf24" stroke={STROKE} strokeWidth="2" />
-      <rect x="126" y="80" width="14" height="14" fill="#fbbf24" stroke={STROKE} strokeWidth="2" />
+      <rect x="108" y="60" width="14" height="14" fill={ACCENT_AMBER} stroke={STROKE} strokeWidth="2" />
+      <rect x="126" y="60" width="14" height="14" fill={ACCENT_AMBER} stroke={STROKE} strokeWidth="2" />
+      <rect x="108" y="80" width="14" height="14" fill={ACCENT_AMBER} stroke={STROKE} strokeWidth="2" />
+      <rect x="126" y="80" width="14" height="14" fill={ACCENT_AMBER} stroke={STROKE} strokeWidth="2" />
 
       {/* Porta */}
       <rect x="92" y="100" width="16" height="20" fill="#92400e" stroke={STROKE} strokeWidth="2.5" />
-      <circle cx="103" cy="111" r="1.5" fill="#fbbf24" />
+      <circle cx="103" cy="111" r="1.5" fill={ACCENT_AMBER} />
 
       {/* Seta "2x" */}
       <g transform="translate(170, 70)">
-        <circle cx="0" cy="0" r="14" fill="#fbbf24" stroke={STROKE} strokeWidth="3" />
+        <circle cx="0" cy="0" r="14" fill={ACCENT_AMBER} stroke={STROKE} strokeWidth="2.5" />
         <text x="0" y="5" textAnchor="middle" fontSize="13" fontWeight="900" fill={STROKE} fontFamily="system-ui">2×</text>
       </g>
     </Frame>
@@ -496,36 +511,36 @@ export function CenaCasa({ className }: IlustracaoProps) {
   // Cena 10 — Casa à noite
   return (
     <Frame className={className}>
-      <rect x="0" y="0" width="200" height="140" fill="#312e81" />
+      <rect x="0" y="0" width="200" height="140" fill={BG_NIGHT} />
       {/* Estrelas */}
       <circle cx="30" cy="20" r="1.5" fill="#fff" />
       <circle cx="80" cy="25" r="1" fill="#fff" />
       <circle cx="160" cy="20" r="1.5" fill="#fff" />
       <circle cx="180" cy="35" r="1" fill="#fff" />
       {/* Lua */}
-      <circle cx="170" cy="30" r="10" fill="#fef3c7" stroke={STROKE} strokeWidth="2.5" />
+      <circle cx="170" cy="30" r="10" fill={BG_SOFT_AMBER} stroke={STROKE} strokeWidth="2.5" />
 
       {/* Chão/grama */}
       <rect x="0" y="115" width="200" height="25" fill="#15803d" />
-      <line x1="0" y1="115" x2="200" y2="115" stroke={STROKE} strokeWidth="3" />
+      <line x1="0" y1="115" x2="200" y2="115" stroke={STROKE} strokeWidth="2.5" />
 
       {/* Casa */}
-      <rect x="55" y="65" width="90" height="55" fill="#fef3c7" stroke={STROKE} strokeWidth="3" />
+      <rect x="55" y="65" width="90" height="55" fill={BG_SOFT_AMBER} stroke={STROKE} strokeWidth="2.5" />
       {/* Telhado */}
-      <path d="M 48 65 L 100 35 L 152 65 Z" fill="#dc2626" stroke={STROKE} strokeWidth="3" strokeLinejoin="round" />
+      <path d="M 48 65 L 100 35 L 152 65 Z" fill={ACCENT_CORAL} stroke={STROKE} strokeWidth="2.5" strokeLinejoin="round" />
       {/* Chaminé */}
       <rect x="125" y="40" width="10" height="18" fill="#a16207" stroke={STROKE} strokeWidth="2" />
 
       {/* Porta */}
-      <rect x="88" y="85" width="24" height="35" fill="#92400e" stroke={STROKE} strokeWidth="3" />
-      <circle cx="105" cy="102" r="1.5" fill="#fbbf24" />
+      <rect x="88" y="85" width="24" height="35" fill="#92400e" stroke={STROKE} strokeWidth="2.5" />
+      <circle cx="105" cy="102" r="1.5" fill={ACCENT_AMBER} />
 
       {/* Janelas iluminadas */}
-      <rect x="65" y="75" width="18" height="18" fill="#fbbf24" stroke={STROKE} strokeWidth="2.5" />
+      <rect x="65" y="75" width="18" height="18" fill={ACCENT_AMBER} stroke={STROKE} strokeWidth="2.5" />
       <line x1="74" y1="75" x2="74" y2="93" stroke={STROKE} strokeWidth="1.5" />
       <line x1="65" y1="84" x2="83" y2="84" stroke={STROKE} strokeWidth="1.5" />
 
-      <rect x="117" y="75" width="18" height="18" fill="#fbbf24" stroke={STROKE} strokeWidth="2.5" />
+      <rect x="117" y="75" width="18" height="18" fill={ACCENT_AMBER} stroke={STROKE} strokeWidth="2.5" />
       <line x1="126" y1="75" x2="126" y2="93" stroke={STROKE} strokeWidth="1.5" />
       <line x1="117" y1="84" x2="135" y2="84" stroke={STROKE} strokeWidth="1.5" />
 
@@ -539,18 +554,18 @@ export function CenaTime({ className }: IlustracaoProps) {
   // Cena 11 — Time: vários personagens em fileira
   return (
     <Frame className={className}>
-      <rect x="0" y="0" width="200" height="140" fill="#fde68a" />
+      <rect x="0" y="0" width="200" height="140" fill={BG_SOFT_AMBER} />
       {/* Chão */}
       <rect x="0" y="115" width="200" height="25" fill="#a16207" />
-      <line x1="0" y1="115" x2="200" y2="115" stroke={STROKE} strokeWidth="3" />
+      <line x1="0" y1="115" x2="200" y2="115" stroke={STROKE} strokeWidth="2.5" />
 
       {/* Linha de personagens — variando cores e tamanhos */}
       <g>
         <circle cx="25" cy="65" r="8" fill={PELE} stroke={STROKE} strokeWidth="2.5" />
         <circle cx="25" cy="63" r="1" fill={STROKE} /><circle cx="29" cy="63" r="1" fill={STROKE} />
         <path d="M 23 67 Q 25 69 28 67" stroke={STROKE} strokeWidth="1.5" fill="none" />
-        <path d="M 18 -6 Q 16 -2 17 2 L 33 2 Q 34 -2 32 -6 Z" transform="translate(25, 65)" fill="#22c55e" stroke={STROKE} strokeWidth="2.5" />
-        <path d="M 18 70 L 18 90 L 32 90 L 32 70 Z" fill="#22c55e" stroke={STROKE} strokeWidth="2.5" />
+        <path d="M 18 -6 Q 16 -2 17 2 L 33 2 Q 34 -2 32 -6 Z" transform="translate(25, 65)" fill={ACCENT_TEAL} stroke={STROKE} strokeWidth="2.5" />
+        <path d="M 18 70 L 18 90 L 32 90 L 32 70 Z" fill={ACCENT_TEAL} stroke={STROKE} strokeWidth="2.5" />
         <line x1="22" y1="90" x2="22" y2="105" stroke={STROKE} strokeWidth="2.5" strokeLinecap="round" />
         <line x1="28" y1="90" x2="28" y2="105" stroke={STROKE} strokeWidth="2.5" strokeLinecap="round" />
       </g>
@@ -578,7 +593,7 @@ export function CenaTime({ className }: IlustracaoProps) {
 
       {/* Coração no topo */}
       <g transform="translate(100, 25)">
-        <path d="M 0 12 Q -14 0 -14 -8 Q -14 -16 -7 -16 Q 0 -16 0 -10 Q 0 -16 7 -16 Q 14 -16 14 -8 Q 14 0 0 12 Z" fill="#ef4444" stroke={STROKE} strokeWidth="3" strokeLinejoin="round" />
+        <path d="M 0 12 Q -14 0 -14 -8 Q -14 -16 -7 -16 Q 0 -16 0 -10 Q 0 -16 7 -16 Q 14 -16 14 -8 Q 14 0 0 12 Z" fill={ACCENT_CORAL} stroke={STROKE} strokeWidth="2.5" strokeLinejoin="round" />
       </g>
     </Frame>
   );
@@ -589,9 +604,9 @@ export function CenaCoragem({ className }: IlustracaoProps) {
   return (
     <Frame className={className}>
       <rect x="0" y="0" width="200" height="80" fill="#fb923c" />
-      <rect x="0" y="80" width="200" height="60" fill="#fbbf24" />
+      <rect x="0" y="80" width="200" height="60" fill={ACCENT_AMBER} />
       {/* Sol nascendo */}
-      <circle cx="100" cy="80" r="35" fill="#fde047" stroke={STROKE} strokeWidth="3" />
+      <circle cx="100" cy="80" r="35" fill={ACCENT_AMBER} stroke={STROKE} strokeWidth="2.5" />
       <line x1="100" y1="30" x2="100" y2="22" stroke={STROKE} strokeWidth="2.5" strokeLinecap="round" />
       <line x1="60" y1="55" x2="55" y2="50" stroke={STROKE} strokeWidth="2.5" strokeLinecap="round" />
       <line x1="140" y1="55" x2="145" y2="50" stroke={STROKE} strokeWidth="2.5" strokeLinecap="round" />
@@ -600,7 +615,7 @@ export function CenaCoragem({ className }: IlustracaoProps) {
 
       {/* Chão */}
       <rect x="0" y="115" width="200" height="25" fill="#15803d" />
-      <line x1="0" y1="115" x2="200" y2="115" stroke={STROKE} strokeWidth="3" />
+      <line x1="0" y1="115" x2="200" y2="115" stroke={STROKE} strokeWidth="2.5" />
 
       {/* Lucas e Yasmin de costas, olhando o sol */}
       <Lucas x={80} y={90} scale={0.9} />
