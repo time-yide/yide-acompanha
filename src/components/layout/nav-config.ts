@@ -96,8 +96,10 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
 
   {
     type: "group",
+    // id continua "equipe" pra preservar a preferência de aberto/fechado
+    // que o usuário já tem salva em localStorage. Só o label muda.
     id: "equipe",
-    label: "Equipe",
+    label: "Interno",
     items: [
       { type: "link", href: "/manual", icon: BookOpen, label: "Manual da Yide", roles: "all", badgeKey: null },
       { type: "link", href: "/academy", icon: GraduationCap, label: "Yide Academy", roles: "all", badgeKey: null },
