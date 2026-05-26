@@ -88,7 +88,7 @@ const CENAS: ReadonlyArray<Cena> = [
     narracao: [
       "Depois daquela call, decidiram se encontrar.",
       "O lugar? Cafeteria no Shopping Pantanal.",
-      "Um encontro simples — sem imaginar o tamanho disso.",
+      "Um encontro simples, sem imaginar o tamanho disso.",
       "Naquela mesa não nasceu só uma parceria.",
       "Nasceu algo que mudaria suas vidas.",
     ],
@@ -142,13 +142,13 @@ const CENAS: ReadonlyArray<Cena> = [
     capitulo: "O Eduardo",
     narracao: [
       "Antes da virada, teve um anjo no caminho.",
-      "Lucas já trabalhava com o Eduardo — dentista bem conhecido na época.",
+      "Lucas já trabalhava com o Eduardo, dentista bem conhecido na época.",
       "Ele ajudou MUITO na trajetória.",
       "Tanto que no início a Yide focou bastante em odontologia.",
       "Primeiros aprendizados. Erros, acertos.",
       "E o primeiro dindin empresarial veio dali.",
       "Valor que hoje não paga nem um salgado kkk (brincadeira… mas real).",
-      "Eduardo é como um anjo na vida dos dois — principalmente do Lucas.",
+      "Eduardo é como um anjo na vida dos dois, principalmente do Lucas.",
       "Um grande parceiro.",
     ],
     sfx: [
@@ -337,7 +337,7 @@ function CoverPanel() {
   return (
     <section className="relative flex min-h-[60vh] flex-col items-center justify-center px-6 py-16 text-center">
       <span className="inline-block rounded-full border border-slate-900/10 bg-white/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-teal-700 shadow-sm backdrop-blur">
-        Edição especial — Vol. 01
+        Edição especial · Vol. 01
       </span>
 
       <h1 className="mt-8 text-7xl font-black leading-none tracking-tight sm:text-9xl">
@@ -462,7 +462,7 @@ function Panel({ cena, index }: { cena: Cena; index: number }) {
               {cena.fala.texto}
             </SpeechBubble>
             <p className="mt-3 text-[10px] font-semibold uppercase tracking-[0.25em] text-slate-500">
-              — {cena.fala.por}
+              {cena.fala.por}
             </p>
           </div>
         )}
