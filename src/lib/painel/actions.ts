@@ -3,13 +3,12 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { requireAuth } from "@/lib/auth/session";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
-import { resolveNextStep, isParallelStep, getResponsavelFor, type ClienteRefs } from "./chain";
+import { resolveNextStep, isParallelStep, type ClienteRefs } from "./chain";
 import { PAINEL_CACHE_TAG } from "./queries";
+import { ensureMonthlyChecklistsImpl } from "./ensure-checklists";
 import type { StepKey } from "./deadlines";
-import { PACOTES_NO_PAINEL_MENSAL, PACOTE_COLUMNS, type ColumnKey, type TipoPacote } from "./pacote-matrix";
 
 interface ActionOk { success: true }
 interface ActionErr { error: string }
@@ -335,20 +334,6 @@ export async function delegarDesignAction(formData: FormData): Promise<ActionRes
 // Ensure monthly checklists - botão "Atualizar painel"
 // =============================================
 
-/** Mapeia coluna do painel pro step_key correspondente. */
-const COLUMN_TO_STEP: Record<ColumnKey, StepKey> = {
-  crono: "cronograma",
-  design: "design",
-  tpg: "tpg",
-  tpm: "tpm",
-  gmn: "gmn_post",
-  camera: "camera",
-  mobile: "mobile",
-  edicao: "edicao",
-  reuniao: "reuniao",
-  pacote_postados: "postagem",
-};
-
 const ROLES_QUE_ATUALIZAM_PAINEL = ["adm", "socio", "coordenador"];
 
 const ensureMonthlyChecklistsSchema = z.object({
@@ -363,12 +348,8 @@ interface EnsureResult {
 }
 
 /**
- * Garante que existe um client_monthly_checklist + checklist_steps pra cada
- * cliente ativo elegível (tipo_pacote no painel) pro mês especificado.
- * Idempotente - se já existe, não duplica.
- *
- * Usa service-role pq a RLS policy bloqueia INSERT/DELETE pra qualquer role
- * autenticado (só service-role pode inserir).
+ * Server action do botão "Atualizar painel". Valida permissão e delega
+ * pra `ensureMonthlyChecklistsImpl` que tem a lógica de fato.
  *
  * Acesso: adm, sócio, coordenador.
  */
@@ -383,108 +364,12 @@ export async function ensureMonthlyChecklistsAction(formData: FormData): Promise
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  const mes = parsed.data.mes_referencia;
-  const supabase = createServiceRoleClient();
-
-  // 1) Lista clientes ativos elegíveis
-  const { data: clientsData, error: clientsErr } = await supabase
-    .from("clients")
-    .select("id, organization_id, tipo_pacote, assessor_id, coordenador_id, designer_id, videomaker_id, editor_id")
-    .eq("status", "ativo")
-    .in("tipo_pacote", [...PACOTES_NO_PAINEL_MENSAL]);
-  if (clientsErr) return { error: clientsErr.message };
-  const clients = (clientsData ?? []) as Array<{
-    id: string;
-    organization_id: string;
-    tipo_pacote: TipoPacote;
-    assessor_id: string | null;
-    coordenador_id: string | null;
-    designer_id: string | null;
-    videomaker_id: string | null;
-    editor_id: string | null;
-  }>;
-  if (clients.length === 0) return { success: true, checklistsCriados: 0, stepsCriados: 0 };
-
-  const clientIds = clients.map((c) => c.id);
-
-  // 2) Lista checklists existentes pro mês
-  const { data: existingData } = await supabase
-    .from("client_monthly_checklist")
-    .select("id, client_id")
-    .eq("mes_referencia", mes)
-    .in("client_id", clientIds);
-  const existing = (existingData ?? []) as Array<{ id: string; client_id: string }>;
-  const existingByClient = new Map(existing.map((e) => [e.client_id, e.id]));
-
-  // 3) INSERT checklists faltantes
-  const toInsertChecklists = clients
-    .filter((c) => !existingByClient.has(c.id))
-    .map((c) => ({
-      client_id: c.id,
-      organization_id: c.organization_id,
-      mes_referencia: mes,
-    }));
-
-  let checklistsCriados = 0;
-  if (toInsertChecklists.length > 0) {
-    const { data: inserted, error: insErr } = await supabase
-      .from("client_monthly_checklist")
-      .insert(toInsertChecklists)
-      .select("id, client_id");
-    if (insErr) return { error: insErr.message };
-    checklistsCriados = inserted?.length ?? 0;
-    for (const row of (inserted ?? []) as Array<{ id: string; client_id: string }>) {
-      existingByClient.set(row.client_id, row.id);
-    }
+  try {
+    const result = await ensureMonthlyChecklistsImpl(parsed.data.mes_referencia);
+    revalidatePath("/painel");
+    revalidateTag(PAINEL_CACHE_TAG, "default");
+    return { success: true, ...result };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : String(err) };
   }
-
-  // 4) Pra cada checklist (novo ou existente), garante os step rows aplicáveis
-  // ao tipo_pacote do cliente. Usa upsert com onConflict pra ficar idempotente.
-  const stepRowsToUpsert: Array<{
-    checklist_id: string;
-    step_key: StepKey;
-    status: "pendente";
-    responsavel_id: string | null;
-  }> = [];
-
-  for (const client of clients) {
-    const checklistId = existingByClient.get(client.id);
-    if (!checklistId) continue;
-    const columns = PACOTE_COLUMNS[client.tipo_pacote];
-    for (const col of Object.keys(columns) as ColumnKey[]) {
-      if (columns[col] !== 1) continue;
-      const stepKey = COLUMN_TO_STEP[col];
-      stepRowsToUpsert.push({
-        checklist_id: checklistId,
-        step_key: stepKey,
-        status: "pendente",
-        responsavel_id: getResponsavelFor(stepKey, {
-          id: client.id,
-          assessor_id: client.assessor_id,
-          coordenador_id: client.coordenador_id,
-          designer_id: client.designer_id,
-          videomaker_id: client.videomaker_id,
-          editor_id: client.editor_id,
-        }),
-      });
-    }
-  }
-
-  let stepsCriados = 0;
-  if (stepRowsToUpsert.length > 0) {
-    // onConflict: (checklist_id, step_key) é a unique constraint da tabela
-    const { data: upserted, error: stepsErr } = await supabase
-      .from("checklist_step")
-      .upsert(stepRowsToUpsert, {
-        onConflict: "checklist_id,step_key",
-        ignoreDuplicates: true,
-      })
-      .select("id");
-    if (stepsErr) return { error: stepsErr.message };
-    stepsCriados = upserted?.length ?? 0;
-  }
-
-  revalidatePath("/painel");
-  revalidateTag(PAINEL_CACHE_TAG, "default");
-  return { success: true, checklistsCriados, stepsCriados };
 }

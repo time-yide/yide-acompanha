@@ -15,6 +15,7 @@ import { ViewToggle } from "@/components/painel/ViewToggle";
 import { PACOTES_NO_PAINEL_MENSAL, type TipoPacote } from "@/lib/painel/pacote-matrix";
 import { parseArea, matchesArea } from "@/lib/painel/area-filter";
 import { getCurrentMonthYM } from "@/lib/datetime/timezone";
+import { ensureMonthlyChecklistsImpl } from "@/lib/painel/ensure-checklists";
 
 const ALLOWED_ROLES = ["adm", "socio", "coordenador", "assessor", "designer", "videomaker", "editor", "audiovisual_chefe"];
 const PRIVILEGED_ROLES = ["adm", "socio", "coordenador"];
@@ -29,6 +30,16 @@ function previousMonthRef(monthRef: string): string {
   if (m === 1) return `${y - 1}-12`;
   return `${y}-${String(m - 1).padStart(2, "0")}`;
 }
+
+function nextMonthRef(monthRef: string): string {
+  const [y, m] = monthRef.split("-").map(Number);
+  if (m === 12) return `${y + 1}-01`;
+  return `${y}-${String(m + 1).padStart(2, "0")}`;
+}
+
+// Painel só ganhou estrutura de checklist a partir de mai/2026 — antes
+// disso não tinha registros, então não vale a pena mostrar no dropdown.
+const PAINEL_PRIMEIRO_MES = "2026-05";
 
 export default async function PainelPage({
   searchParams,
@@ -89,11 +100,31 @@ export default async function PainelPage({
     .filter((c) => matchesArea(c.client_tipo_pacote as TipoPacote, areaFiltro))
     .filter((c) => searchQuery === "" || c.client_nome.toLowerCase().includes(searchQuery));
 
+  // Lista de meses: próximo mês primeiro (sempre disponível pra planejamento),
+  // depois mês corrente, e os anteriores até PAINEL_PRIMEIRO_MES (mai/2026).
+  // Anteriores a mai/26 não aparecem — não tinha estrutura de checklist.
   const mesesDisponiveis: string[] = [];
-  let cursor = currentMonthRef();
-  for (let i = 0; i < 12; i++) {
+  const mesAtualRef = currentMonthRef();
+  const proximoMes = nextMonthRef(mesAtualRef);
+  mesesDisponiveis.push(proximoMes);
+  let cursor = mesAtualRef;
+  while (cursor >= PAINEL_PRIMEIRO_MES) {
     mesesDisponiveis.push(cursor);
     cursor = previousMonthRef(cursor);
+  }
+
+  // Cria proativamente os checklists do próximo mês (idempotente). Garante
+  // que ao selecionar o próximo mês, o painel já tem dados. Custo: 1 SELECT
+  // se já existem; 1 INSERT só na primeira vez do mês.
+  // Roda só pra roles privilegiados (assessor/designer não disparam — eles
+  // só consomem os checklists).
+  if (PRIVILEGED_ROLES.includes(user.role)) {
+    try {
+      await ensureMonthlyChecklistsImpl(proximoMes);
+    } catch {
+      // Falha silenciosa: não bloqueia o render. Cron noturno (ou botão
+      // "Atualizar painel") cobre se algo der errado aqui.
+    }
   }
 
   return (
