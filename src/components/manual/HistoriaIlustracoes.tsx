@@ -835,6 +835,120 @@ export function CenaRafael({ className }: IlustracaoProps) {
   );
 }
 
+/** Eduardo — dentista, primeiro cliente. Jaleco branco, óculos, simpático. */
+function Eduardo({ x, y, scale = 1 }: { x: number; y: number; scale?: number }) {
+  return (
+    <g transform={`translate(${x},${y}) scale(${scale})`}>
+      {/* Cabelo curto grisalho */}
+      <path d="M -11 -3 Q -12 -14 -2 -16 Q 11 -17 12 -6 L 12 -2 Q 8 -5 4 -4 Q 0 -6 -4 -4 Q -8 -5 -11 -2 Z" fill="#64748b" stroke={STROKE} strokeWidth={STROKE_W} strokeLinejoin="round" />
+      {/* Cabeça */}
+      <circle cx="0" cy="0" r="10" fill={PELE} stroke={STROKE} strokeWidth={STROKE_W} />
+      {/* Orelhas */}
+      <ellipse cx="-10" cy="1" rx="1.5" ry="2.5" fill={PELE} stroke={STROKE} strokeWidth="1.5" />
+      <ellipse cx="10" cy="1" rx="1.5" ry="2.5" fill={PELE} stroke={STROKE} strokeWidth="1.5" />
+      {/* Bochechas */}
+      <ellipse cx="-5" cy="3" rx="2" ry="1.2" fill={BLUSH} opacity="0.6" />
+      <ellipse cx="5" cy="3" rx="2" ry="1.2" fill={BLUSH} opacity="0.6" />
+      {/* Óculos — lentes redondas conectadas */}
+      <circle cx="-3.5" cy="-0.5" r="3" fill="none" stroke={STROKE} strokeWidth="1.8" />
+      <circle cx="3.5" cy="-0.5" r="3" fill="none" stroke={STROKE} strokeWidth="1.8" />
+      <line x1="-0.5" y1="-0.5" x2="0.5" y2="-0.5" stroke={STROKE} strokeWidth="1.8" />
+      {/* Olhos atrás dos óculos */}
+      <circle cx="-3.5" cy="-0.5" r="1.2" fill={STROKE} />
+      <circle cx="-3" cy="-1" r="0.4" fill="#fff" />
+      <circle cx="3.5" cy="-0.5" r="1.2" fill={STROKE} />
+      <circle cx="4" cy="-1" r="0.4" fill="#fff" />
+      {/* Sorriso amigável (dentes — afinal é dentista) */}
+      <path d="M -4 4 Q 0 7 4 4" stroke={STROKE} strokeWidth="1.5" fill="#fff" strokeLinejoin="round" />
+      <line x1="-1.5" y1="4.5" x2="-1.5" y2="6.5" stroke={STROKE} strokeWidth="0.6" />
+      <line x1="1.5" y1="4.5" x2="1.5" y2="6.5" stroke={STROKE} strokeWidth="0.6" />
+      {/* Pescoço */}
+      <rect x="-2" y="9" width="4" height="3" fill={PELE} stroke={STROKE} strokeWidth="1.5" />
+      {/* Jaleco branco */}
+      <path d="M -9 12 Q -10 14 -10 17 L -10 26 L 10 26 L 10 17 Q 10 14 9 12 Q 5 14 0 14 Q -5 14 -9 12 Z" fill="#fff" stroke={STROKE} strokeWidth={STROKE_W} strokeLinejoin="round" />
+      {/* Detalhe gola V do jaleco */}
+      <path d="M -3 14 L 0 18 L 3 14" stroke={STROKE} strokeWidth="1.5" fill="none" />
+      {/* Bolsinho do jaleco com caneta */}
+      <rect x="3" y="19" width="5" height="5" fill="none" stroke={STROKE} strokeWidth="1.2" />
+      <line x1="5.5" y1="17" x2="5.5" y2="22" stroke={ACCENT_TEAL} strokeWidth="1.5" strokeLinecap="round" />
+      {/* Braços */}
+      <path d="M -10 14 Q -14 19 -13 24" stroke={STROKE} strokeWidth={STROKE_W} fill="none" strokeLinecap="round" />
+      <path d="M 10 14 Q 14 19 13 24" stroke={STROKE} strokeWidth={STROKE_W} fill="none" strokeLinecap="round" />
+      <circle cx="-13" cy="24" r="1.8" fill={PELE} stroke={STROKE} strokeWidth="1.5" />
+      <circle cx="13" cy="24" r="1.8" fill={PELE} stroke={STROKE} strokeWidth="1.5" />
+      {/* Calça */}
+      <rect x="-7" y="26" width="14" height="5" fill={CALCA} stroke={STROKE} strokeWidth={STROKE_W} />
+      <line x1="-4" y1="31" x2="-4" y2="35" stroke={CALCA} strokeWidth="4" strokeLinecap="round" />
+      <line x1="4" y1="31" x2="4" y2="35" stroke={CALCA} strokeWidth="4" strokeLinecap="round" />
+      <ellipse cx="-4" cy="36" rx="2.5" ry="1.5" fill={SAPATO} stroke={STROKE} strokeWidth="1.5" />
+      <ellipse cx="4" cy="36" rx="2.5" ry="1.5" fill={SAPATO} stroke={STROKE} strokeWidth="1.5" />
+    </g>
+  );
+}
+
+export function CenaEduardo({ className }: IlustracaoProps) {
+  // Cena do Eduardo — consultório odontológico. Lucas conversando com
+  // Eduardo (dentista), com elementos do consultório no fundo.
+  return (
+    <Frame className={className}>
+      {/* Parede do consultório */}
+      <rect x="0" y="0" width="200" height="100" fill={BG_SOFT_TEAL} />
+      {/* Chão azulejo */}
+      <rect x="0" y="100" width="200" height="40" fill="#cbd5e1" />
+      <line x1="0" y1="100" x2="200" y2="100" stroke={STROKE} strokeWidth="2.5" />
+      <line x1="50" y1="100" x2="50" y2="140" stroke={STROKE} strokeWidth="1" opacity="0.4" />
+      <line x1="100" y1="100" x2="100" y2="140" stroke={STROKE} strokeWidth="1" opacity="0.4" />
+      <line x1="150" y1="100" x2="150" y2="140" stroke={STROKE} strokeWidth="1" opacity="0.4" />
+      <line x1="0" y1="120" x2="200" y2="120" stroke={STROKE} strokeWidth="1" opacity="0.4" />
+
+      {/* Cadeira de dentista estilizada à direita */}
+      <g transform="translate(160, 70)">
+        {/* Base */}
+        <rect x="-5" y="20" width="10" height="6" rx="1" fill="#475569" stroke={STROKE} strokeWidth="2" />
+        {/* Haste vertical */}
+        <rect x="-2" y="-5" width="4" height="25" fill="#94a3b8" stroke={STROKE} strokeWidth="2" />
+        {/* Encosto */}
+        <rect x="-10" y="-10" width="20" height="18" rx="3" fill={ACCENT_TEAL} stroke={STROKE} strokeWidth="2" />
+        {/* Apoio cabeça */}
+        <ellipse cx="0" cy="-13" rx="6" ry="4" fill={ACCENT_TEAL} stroke={STROKE} strokeWidth="2" />
+        {/* Luminária */}
+        <line x1="0" y1="-13" x2="-12" y2="-24" stroke={STROKE} strokeWidth="2" />
+        <circle cx="-15" cy="-26" r="4" fill={ACCENT_AMBER} stroke={STROKE} strokeWidth="2" />
+      </g>
+
+      {/* Quadro decorativo na parede esquerda — dente sorrindo */}
+      <g transform="translate(30, 30)">
+        <rect x="-12" y="-10" width="24" height="20" rx="2" fill="#fff" stroke={STROKE} strokeWidth="2" />
+        {/* Dente */}
+        <path d="M -5 -4 Q -6 4 -3 6 L 3 6 Q 6 4 5 -4 Q 3 -6 0 -5 Q -3 -6 -5 -4 Z" fill="#fff" stroke={STROKE} strokeWidth="1.8" strokeLinejoin="round" />
+        {/* Olhinhos */}
+        <circle cx="-2" cy="-1" r="0.7" fill={STROKE} />
+        <circle cx="2" cy="-1" r="0.7" fill={STROKE} />
+        {/* Sorriso */}
+        <path d="M -1.5 2 Q 0 3 1.5 2" stroke={STROKE} strokeWidth="0.8" fill="none" />
+      </g>
+
+      {/* Lucas conversando com Eduardo no centro/esquerda */}
+      <Lucas x={75} y={80} scale={0.82} />
+      <Eduardo x={115} y={80} scale={0.82} />
+
+      {/* Aperto de mãos / linha sutil de conexão */}
+      <path d="M 87 102 Q 100 100 103 102" stroke={STROKE} strokeWidth="1.5" fill="none" opacity="0.5" strokeDasharray="2 2" />
+
+      {/* Selo "primeiro $" */}
+      <g transform="translate(100, 25) rotate(-3)">
+        <rect x="-30" y="-9" width="60" height="18" rx="9" fill={ACCENT_AMBER} stroke={STROKE} strokeWidth="2" />
+        <text x="0" y="4" textAnchor="middle" fontSize="10" fontWeight="900" fill={STROKE} fontFamily="system-ui">1º dindin 💰</text>
+      </g>
+
+      {/* Coração entre Lucas e Eduardo (gratidão) */}
+      <g transform="translate(95, 58)">
+        <path d="M 0 5 Q -6 -1 -6 -5 Q -6 -8 -3 -8 Q 0 -8 0 -6 Q 0 -8 3 -8 Q 6 -8 6 -5 Q 6 -1 0 5 Z" fill={ACCENT_CORAL} stroke={STROKE} strokeWidth="1.5" strokeLinejoin="round" />
+      </g>
+    </Frame>
+  );
+}
+
 export function CenaIcaro({ className }: IlustracaoProps) {
   // Cena nova — Ícaro chega com câmera, a estrada de fundo conecta com
   // a cena anterior (caos / viagens).
@@ -881,7 +995,7 @@ export function CenaIcaro({ className }: IlustracaoProps) {
   );
 }
 
-/** Mapeia número da cena (01-14) para o componente de ilustração. */
+/** Mapeia número da cena (01-15) para o componente de ilustração. */
 export const ILUSTRACAO_POR_CENA: Record<string, (props: IlustracaoProps) => ReactNode> = {
   "01": CenaCeu,
   "02": CenaBarraca,
@@ -889,12 +1003,13 @@ export const ILUSTRACAO_POR_CENA: Record<string, (props: IlustracaoProps) => Rea
   "04": CenaCafe,
   "05": CenaDupla,
   "06": CenaCaos,
-  "07": CenaIcaro,
-  "08": CenaEvolucao,
-  "09": CenaRafael,
-  "10": CenaPadaria,
-  "11": CenaSala,
-  "12": CenaCasa,
-  "13": CenaTime,
-  "14": CenaCoragem, // Esta vira a última narrativa antes do FinalPanel
+  "07": CenaEduardo,
+  "08": CenaIcaro,
+  "09": CenaEvolucao,
+  "10": CenaRafael,
+  "11": CenaPadaria,
+  "12": CenaSala,
+  "13": CenaCasa,
+  "14": CenaTime,
+  "15": CenaCoragem,
 };
