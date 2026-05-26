@@ -24,6 +24,8 @@ export interface NavGroup {
   id: string;
   label: string;
   items: NavLink[];
+  /** Quando true, o grupo não pode ser minimizado — sem botão de toggle. */
+  alwaysExpanded?: boolean;
 }
 
 export type NavEntry = NavLink | NavGroup;
@@ -35,6 +37,20 @@ export type NavEntry = NavLink | NavGroup;
  */
 export const NAV_STRUCTURE: readonly NavEntry[] = [
   { type: "link", href: "/", icon: LayoutGrid, label: "Dashboard", roles: "all", badgeKey: null },
+
+  // Comunicação fica direto embaixo do Dashboard e não pode ser minimizada —
+  // decisão da Yasmin: recados e escritório precisam estar sempre visíveis
+  // pra não atrapalhar a comunicação interna do time.
+  {
+    type: "group",
+    id: "comunicacao",
+    label: "Comunicação",
+    alwaysExpanded: true,
+    items: [
+      { type: "link", href: "/recados", icon: MessageSquare, label: "Recados", roles: "all", badgeKey: "recados" },
+      { type: "link", href: "/escritorio", icon: MessagesSquare, label: "Escritório Virtual", roles: ["adm", "socio", "coordenador", "assessor", "designer", "videomaker", "editor", "audiovisual_chefe"], badgeKey: "escritorio" },
+    ],
+  },
 
   {
     type: "group",
@@ -71,16 +87,6 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
       { type: "link", href: "/painel-cliente", icon: IdCard, label: "Painel do cliente", roles: ["adm", "socio"], badgeKey: null },
       { type: "link", href: "/solicitacoes", icon: Inbox, label: "Solicitações", roles: ["adm", "socio", "coordenador", "assessor", "audiovisual_chefe"], badgeKey: null },
       { type: "link", href: "/calendario", icon: Calendar, label: "Calendário Interno", roles: "all", badgeKey: null },
-    ],
-  },
-
-  {
-    type: "group",
-    id: "comunicacao",
-    label: "Comunicação",
-    items: [
-      { type: "link", href: "/recados", icon: MessageSquare, label: "Recados", roles: "all", badgeKey: "recados" },
-      { type: "link", href: "/escritorio", icon: MessagesSquare, label: "Escritório Virtual", roles: ["adm", "socio", "coordenador", "assessor", "designer", "videomaker", "editor", "audiovisual_chefe"], badgeKey: "escritorio" },
     ],
   },
 

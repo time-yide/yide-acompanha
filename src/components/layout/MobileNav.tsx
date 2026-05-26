@@ -103,6 +103,7 @@ export function MobileNav({ role, nome, badges }: Props) {
                     label={entry.label}
                     items={entry.items}
                     badges={badges}
+                    alwaysExpanded={entry.alwaysExpanded}
                   />
                 ),
               )}
