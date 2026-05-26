@@ -45,7 +45,7 @@ export async function ensureMonthlyChecklistsImpl(
 
   const { data: clientsData, error: clientsErr } = await supabase
     .from("clients")
-    .select("id, organization_id, tipo_pacote, assessor_id, coordenador_id, designer_id, videomaker_id, editor_id")
+    .select("id, organization_id, tipo_pacote, assessor_id, coordenador_id, designer_id, videomaker_id, editor_id, pacote_post_padrao")
     .eq("status", "ativo")
     .in("tipo_pacote", [...PACOTES_NO_PAINEL_MENSAL]);
   if (clientsErr) throw new Error(clientsErr.message);
@@ -59,26 +59,53 @@ export async function ensureMonthlyChecklistsImpl(
     designer_id: string | null;
     videomaker_id: string | null;
     editor_id: string | null;
+    pacote_post_padrao: number | null;
   }>;
   if (clients.length === 0) return { checklistsCriados: 0, stepsCriados: 0 };
 
   const clientIds = clients.map((c) => c.id);
 
+  // Puxa também pacote_post existente pra detectar checklists antigos
+  // com NULL — vamos preencher retroativamente com pacote_post_padrao.
   const { data: existingData } = await supabase
     .from("client_monthly_checklist")
-    .select("id, client_id")
+    .select("id, client_id, pacote_post")
     .eq("mes_referencia", mesRef)
     .in("client_id", clientIds);
-  const existing = (existingData ?? []) as Array<{ id: string; client_id: string }>;
-  const existingByClient = new Map(existing.map((e) => [e.client_id, e.id]));
+  const existing = (existingData ?? []) as Array<{ id: string; client_id: string; pacote_post: number | null }>;
+  const existingByClient = new Map(existing.map((e) => [e.client_id, { id: e.id, pacote_post: e.pacote_post }]));
 
+  // INSERT novos já com pacote_post pré-preenchido a partir do cliente.
   const toInsertChecklists = clients
     .filter((c) => !existingByClient.has(c.id))
     .map((c) => ({
       client_id: c.id,
       organization_id: c.organization_id,
       mes_referencia: mesRef,
+      pacote_post: c.pacote_post_padrao,
     }));
+
+  // UPDATE retroativo: checklists já criados antes dessa lógica ficaram com
+  // pacote_post=null. Quando o cliente tem pacote_post_padrao definido,
+  // preenchemos pra UI não mostrar 0/0.
+  const toBackfill = clients.filter((c) => {
+    if (c.pacote_post_padrao === null) return false;
+    const ex = existingByClient.get(c.id);
+    return ex !== undefined && ex.pacote_post === null;
+  });
+  if (toBackfill.length > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = supabase as any;
+    await Promise.all(
+      toBackfill.map((c) =>
+        sb
+          .from("client_monthly_checklist")
+          .update({ pacote_post: c.pacote_post_padrao })
+          .eq("mes_referencia", mesRef)
+          .eq("client_id", c.id),
+      ),
+    );
+  }
 
   let checklistsCriados = 0;
   if (toInsertChecklists.length > 0) {
@@ -89,7 +116,7 @@ export async function ensureMonthlyChecklistsImpl(
     if (insErr) throw new Error(insErr.message);
     checklistsCriados = inserted?.length ?? 0;
     for (const row of (inserted ?? []) as Array<{ id: string; client_id: string }>) {
-      existingByClient.set(row.client_id, row.id);
+      existingByClient.set(row.client_id, { id: row.id, pacote_post: null });
     }
   }
 
@@ -101,8 +128,9 @@ export async function ensureMonthlyChecklistsImpl(
   }> = [];
 
   for (const client of clients) {
-    const checklistId = existingByClient.get(client.id);
-    if (!checklistId) continue;
+    const ex = existingByClient.get(client.id);
+    if (!ex) continue;
+    const checklistId = ex.id;
     const columns = PACOTE_COLUMNS[client.tipo_pacote];
     for (const col of Object.keys(columns) as ColumnKey[]) {
       if (columns[col] !== 1) continue;
