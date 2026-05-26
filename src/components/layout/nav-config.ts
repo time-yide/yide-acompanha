@@ -1,6 +1,6 @@
 import {
   LayoutGrid, Users, KanbanSquare, ListChecks,
-  DollarSign, Smile, Calendar, UserCog, MessageSquare,
+  DollarSign, Calendar, UserCog, MessageSquare,
   TrendingUp, Video, Trash2, MessagesSquare, GraduationCap, Megaphone, Share2, Radar, MessageCircle, Phone,
   IdCard, Rocket, BookOpen, Inbox, Activity, Layers,
   type LucideIcon,
@@ -88,7 +88,7 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
       // "CRM" e "Painel GMB" saíram do menu — aparecem como abas dentro de Tráfego. URLs preservadas.
       // "Design" e "Painel mensal" saíram do menu — aparecem como abas dentro de Social Media. URLs /design e /painel preservadas.
       { type: "link", href: "/painel-cliente", icon: IdCard, label: "Painel do cliente", roles: ["adm", "socio"], badgeKey: null },
-      { type: "link", href: "/satisfacao", icon: Smile, label: "Satisfação", roles: "all", badgeKey: null },
+      // "Satisfação" saiu do menu — agora aparece como aba dentro de Painel do cliente. URL /satisfacao preservada.
       { type: "link", href: "/solicitacoes", icon: Inbox, label: "Solicitações", roles: ["adm", "socio", "coordenador", "assessor", "audiovisual_chefe"], badgeKey: null },
       { type: "link", href: "/calendario", icon: Calendar, label: "Calendário Interno", roles: "all", badgeKey: null },
     ],
