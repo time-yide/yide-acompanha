@@ -82,7 +82,9 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
       { type: "link", href: "/tarefas", icon: ListChecks, label: "Tarefas", roles: "all", badgeKey: null },
       { type: "link", href: "/audiovisual", icon: Video, label: "Audiovisual", roles: ["adm", "socio", "coordenador", "assessor", "videomaker", "audiovisual_chefe"], badgeKey: null },
       { type: "link", href: "/trafego", icon: Megaphone, label: "Tráfego", roles: ["adm", "socio", "coordenador", "assessor", "comercial"], badgeKey: null },
-      { type: "link", href: "/social-media", icon: Share2, label: "Social Media", roles: ["adm", "socio", "coordenador", "assessor", "designer", "videomaker", "editor", "audiovisual_chefe"], badgeKey: null },
+      // Label "Estratégia" — engloba Painel Mensal + Agendamento de Post + Design + Apresenta Yide.
+      // URL /social-media preservada (redirect pro /painel).
+      { type: "link", href: "/social-media", icon: Share2, label: "Estratégia", roles: ["adm", "socio", "coordenador", "assessor", "designer", "videomaker", "editor", "audiovisual_chefe"], badgeKey: null },
       // "CRM" e "Painel GMB" saíram do menu — aparecem como abas dentro de Tráfego. URLs preservadas.
       // "Design" e "Painel mensal" saíram do menu — aparecem como abas dentro de Social Media. URLs /design e /painel preservadas.
       { type: "link", href: "/painel-cliente", icon: IdCard, label: "Painel do cliente", roles: ["adm", "socio"], badgeKey: null },
