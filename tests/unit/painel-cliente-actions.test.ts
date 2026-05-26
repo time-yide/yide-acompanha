@@ -174,15 +174,17 @@ describe("createClientPortalAccessAction — limite de 5 acessos ativos", () => 
     expect(r).toEqual({ success: true, password: "GeneratedPass!123" });
   });
 
-  it("rejeita ator sem permissão (assessor)", async () => {
+  it("rejeita ator sem permissão (designer)", async () => {
+    // adm/sócio/coord/assessor/audiovisual_chefe podem conceder acesso.
+    // Designer/videomaker/editor/comercial não.
     requireAuthMock.mockResolvedValueOnce({
       id: ACTOR_UUID,
-      role: "assessor",
+      role: "designer",
       nome: "Maria",
       email: "m@x.com",
       ativo: true,
     });
     const r = await createClientPortalAccessAction(makeFormData());
-    expect(r).toEqual({ error: expect.stringContaining("Apenas ADM/Sócio") });
+    expect(r).toEqual({ error: expect.stringContaining("Sem permissão") });
   });
 });

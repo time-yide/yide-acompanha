@@ -87,7 +87,7 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
       { type: "link", href: "/social-media", icon: Share2, label: "Estratégia", roles: ["adm", "socio", "coordenador", "assessor", "designer", "videomaker", "editor", "audiovisual_chefe"], badgeKey: null },
       // "CRM" e "Painel GMB" saíram do menu — aparecem como abas dentro de Tráfego. URLs preservadas.
       // "Design" e "Painel mensal" saíram do menu — aparecem como abas dentro de Social Media. URLs /design e /painel preservadas.
-      { type: "link", href: "/painel-cliente", icon: IdCard, label: "Painel do cliente", roles: ["adm", "socio"], badgeKey: null },
+      { type: "link", href: "/painel-cliente", icon: IdCard, label: "Painel do cliente", roles: ["adm", "socio", "coordenador", "assessor", "audiovisual_chefe"], badgeKey: null },
       // "Satisfação" saiu do menu — agora aparece como aba dentro de Painel do cliente. URL /satisfacao preservada.
       { type: "link", href: "/solicitacoes", icon: Inbox, label: "Solicitações", roles: ["adm", "socio", "coordenador", "assessor", "audiovisual_chefe"], badgeKey: null },
       { type: "link", href: "/calendario", icon: Calendar, label: "Calendário Interno", roles: "all", badgeKey: null },
