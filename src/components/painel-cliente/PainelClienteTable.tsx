@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronRight } from "lucide-react";
+import Link from "next/link";
+import { ChevronRight, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConcederAcessoDialog } from "./ConcederAcessoDialog";
 import { ResetPasswordDialog } from "./ResetPasswordDialog";
@@ -260,17 +261,30 @@ function ClienteRowGroup({
         <td className="px-4 py-3 text-muted-foreground">{describePortals(r.portals)}</td>
         <td className="px-4 py-3 text-muted-foreground">{formatDate(maxLastLogin)}</td>
         <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-          {status === "sem_acesso" ? (
-            <Button size="sm" onClick={onConceder}>
-              Conceder acesso
-            </Button>
-          ) : status === "revogado" ? (
-            <Button size="sm" onClick={onConceder}>
-              Conceder novo
-            </Button>
-          ) : (
-            <CopyLinkButton loginUrl={loginUrl} />
-          )}
+          <div className="flex flex-wrap justify-end gap-1.5">
+            <Link
+              href={`/painel-cliente/preview/${r.client_id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Ver o portal exatamente como o cliente está vendo (abre em nova aba)"
+            >
+              <Button size="sm" variant="outline">
+                <Eye className="h-3.5 w-3.5 mr-1" />
+                Ver como cliente
+              </Button>
+            </Link>
+            {status === "sem_acesso" ? (
+              <Button size="sm" onClick={onConceder}>
+                Conceder acesso
+              </Button>
+            ) : status === "revogado" ? (
+              <Button size="sm" onClick={onConceder}>
+                Conceder novo
+              </Button>
+            ) : (
+              <CopyLinkButton loginUrl={loginUrl} />
+            )}
+          </div>
         </td>
       </tr>
 

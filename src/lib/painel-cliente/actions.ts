@@ -31,8 +31,8 @@ export async function createClientPortalAccessAction(
   formData: FormData,
 ): Promise<CreateResult> {
   const actor = await requireAuth();
-  if (!["adm", "socio"].includes(actor.role)) {
-    return { error: "Apenas ADM/Sócio podem conceder acesso ao portal do cliente" };
+  if (!["adm", "socio", "coordenador", "assessor", "audiovisual_chefe"].includes(actor.role)) {
+    return { error: "Sem permissão pra conceder acesso ao portal do cliente" };
   }
 
   const parsed = createAccessSchema.safeParse({
@@ -137,7 +137,7 @@ export async function resetClientPortalPasswordAction(
   formData: FormData,
 ): Promise<ResetResult> {
   const actor = await requireAuth();
-  if (!["adm", "socio"].includes(actor.role)) {
+  if (!["adm", "socio", "coordenador", "assessor", "audiovisual_chefe"].includes(actor.role)) {
     return { error: "Sem permissão" };
   }
 
@@ -188,7 +188,7 @@ export async function revokeClientPortalAccessAction(
   formData: FormData,
 ): Promise<{ success: true } | { error: string }> {
   const actor = await requireAuth();
-  if (!["adm", "socio"].includes(actor.role)) {
+  if (!["adm", "socio", "coordenador", "assessor", "audiovisual_chefe"].includes(actor.role)) {
     return { error: "Sem permissão" };
   }
 
@@ -231,7 +231,7 @@ export async function deleteClientPortalAccessAction(
   formData: FormData,
 ): Promise<{ success: true } | { error: string }> {
   const actor = await requireAuth();
-  if (!["adm", "socio"].includes(actor.role)) {
+  if (!["adm", "socio", "coordenador", "assessor", "audiovisual_chefe"].includes(actor.role)) {
     return { error: "Sem permissão" };
   }
 

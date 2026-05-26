@@ -7,9 +7,11 @@ import { CopyLinkButton } from "@/components/painel-cliente/CopyLinkButton";
 import { TabsPainelCliente } from "@/components/painel-cliente/TabsPainelCliente";
 import { env } from "@/lib/env";
 
+const ALLOWED_ROLES = ["adm", "socio", "coordenador", "assessor", "audiovisual_chefe"];
+
 export default async function PainelClientePage() {
   const user = await requireAuth();
-  if (!["adm", "socio"].includes(user.role)) notFound();
+  if (!ALLOWED_ROLES.includes(user.role)) notFound();
 
   // Multi-tenant: filtra clientes pela unidade ativa
   const unitClientIds = await getClientIdsForActiveUnit();

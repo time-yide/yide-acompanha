@@ -51,7 +51,7 @@ export default async function SatisfacaoPage({
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      <TabsPainelCliente active="satisfacao" canSeePainel={["adm", "socio"].includes(user.role)} />
+      <TabsPainelCliente active="satisfacao" canSeePainel={["adm", "socio", "coordenador", "assessor", "audiovisual_chefe"].includes(user.role)} />
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Satisfação</h1>
