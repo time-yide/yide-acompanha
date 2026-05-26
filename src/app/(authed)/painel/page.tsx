@@ -56,7 +56,10 @@ export default async function PainelPage({
       ? (params.tipo as TipoPacote)
       : "todos";
   const areaFiltro = parseArea(params.area);
-  const view: "cards" | "tabela" = params.view === "tabela" ? "tabela" : "cards";
+  // Default: tabela (decisão Yasmin — densidade maior, mais útil pra
+  // visualizar muitos clientes de uma vez). Cards continuam disponíveis
+  // via ?view=cards no URL.
+  const view: "cards" | "tabela" = params.view === "cards" ? "cards" : "tabela";
   const searchQuery = (params.q ?? "").trim().toLowerCase();
 
   const canFilterAssessor = PRIVILEGED_ROLES.includes(user.role);
