@@ -88,6 +88,7 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
       // "CRM" e "Painel GMB" saíram do menu — aparecem como abas dentro de Tráfego. URLs preservadas.
       // "Design" e "Painel mensal" saíram do menu — aparecem como abas dentro de Social Media. URLs /design e /painel preservadas.
       { type: "link", href: "/painel-cliente", icon: IdCard, label: "Painel do cliente", roles: ["adm", "socio"], badgeKey: null },
+      { type: "link", href: "/satisfacao", icon: Smile, label: "Satisfação", roles: "all", badgeKey: null },
       { type: "link", href: "/solicitacoes", icon: Inbox, label: "Solicitações", roles: ["adm", "socio", "coordenador", "assessor", "audiovisual_chefe"], badgeKey: null },
       { type: "link", href: "/calendario", icon: Calendar, label: "Calendário Interno", roles: "all", badgeKey: null },
     ],
@@ -103,7 +104,6 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
       { type: "link", href: "/colaboradores", icon: UserCog, label: "Colaboradores", roles: "all", badgeKey: null },
       { type: "link", href: "/produtividade", icon: Activity, label: "Produtividade", roles: ["adm", "socio", "coordenador", "audiovisual_chefe"], badgeKey: null },
       { type: "link", href: "/unidades", icon: Layers, label: "Unidades", roles: ["adm", "socio"], badgeKey: null },
-      { type: "link", href: "/satisfacao", icon: Smile, label: "Satisfação", roles: "all", badgeKey: null },
     ],
   },
 
