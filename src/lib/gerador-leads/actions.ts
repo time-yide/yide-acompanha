@@ -265,6 +265,8 @@ export async function updateLeadAction(formData: FormData): Promise<ActionResult
     decisor_nome: fd(formData, "decisor_nome"),
     decisor_cargo: fd(formData, "decisor_cargo"),
     decisor_email: fd(formData, "decisor_email"),
+    decisor_whatsapp: fd(formData, "decisor_whatsapp"),
+    decisor_instagram: fd(formData, "decisor_instagram"),
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
