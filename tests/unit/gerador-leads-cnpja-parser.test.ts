@@ -5,20 +5,22 @@ describe("parseCnpjaResponse", () => {
   it("extrai CNPJ e sócios do response esperado", () => {
     const raw = {
       taxId: "12345678000190",
-      company: { name: "EMPRESA EXEMPLO LTDA" },
+      company: {
+        name: "EMPRESA EXEMPLO LTDA",
+        members: [
+          {
+            person: { name: "JOÃO DA SILVA" },
+            role: { text: "Sócio-Administrador" },
+            since: "2020-03-15",
+          },
+          {
+            person: { name: "MARIA SANTOS" },
+            role: { text: "Sócio" },
+            since: "2022-01-10",
+          },
+        ],
+      },
       alias: "Empresa Exemplo",
-      members: [
-        {
-          person: { name: "JOÃO DA SILVA" },
-          role: { text: "Sócio-Administrador" },
-          since: "2020-03-15",
-        },
-        {
-          person: { name: "MARIA SANTOS" },
-          role: { text: "Sócio" },
-          since: "2022-01-10",
-        },
-      ],
     };
     const result = parseCnpjaResponse(raw, false);
     expect(result.ok).toBe(true);
@@ -35,7 +37,7 @@ describe("parseCnpjaResponse", () => {
   });
 
   it("marca multiplos_resultados=true quando passado", () => {
-    const raw = { taxId: "12345678000190", company: { name: "X" }, members: [] };
+    const raw = { taxId: "12345678000190", company: { name: "X", members: [] } };
     const result = parseCnpjaResponse(raw, true);
     expect(result.multiplos_resultados).toBe(true);
   });

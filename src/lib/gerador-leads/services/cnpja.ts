@@ -1,9 +1,10 @@
-// SERVER ONLY - CNPJá API client (Office Search)
+// SERVER ONLY - CNPJá API client (Pesquisa CNPJ / Office Search)
 //
 // Docs: https://cnpja.com/dev
 //
-// Endpoint: /office?query.search=...&query.city=... (busca por razão social)
-// Retorna CNPJ + razão social + sócios em 1 call no plano Basic.
+// Endpoint: GET /office com filtros names.in / address.state.in /
+// address.country.id.in / status.id.in. Retorna lista paginada em
+// `{ records: [...] }`. Custa 1 crédito por 10 registros.
 //
 // Free tier: 100 consultas/mês. Sem CNPJA_API_KEY → retorna { skipped: true }.
 
@@ -34,15 +35,18 @@ export interface CnpjLookupResult {
 /**
  * Parser puro do response da CNPJá. Exportado pra ser testável sem fetch.
  *
- * Estrutura esperada do CNPJá `/office`:
+ * Estrutura esperada do CNPJá `/office` (Pesquisa CNPJ):
  * ```
  * {
  *   taxId: "12345678000190",
- *   company: { name: "EMPRESA EXEMPLO LTDA" },
+ *   company: {
+ *     name: "EMPRESA EXEMPLO LTDA",
+ *     members: [
+ *       { person: { name: "..." }, role: { text: "..." }, since: "YYYY-MM-DD" }
+ *     ]
+ *   },
  *   alias: "Empresa Exemplo",  // nome fantasia
- *   members: [
- *     { person: { name: "..." }, role: { text: "..." }, since: "YYYY-MM-DD" }
- *   ]
+ *   address: {...}
  * }
  * ```
  */
@@ -64,8 +68,11 @@ export function parseCnpjaResponse(
     };
   }
 
+  // Sócios estão em raw.company.members no response real da Pesquisa CNPJ
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const members: any[] = Array.isArray(raw.members) ? raw.members : [];
+  const members: any[] = Array.isArray(raw?.company?.members)
+    ? raw.company.members
+    : [];
   const socios: CnpjaSocio[] = members
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .map((m: any) => ({
@@ -118,9 +125,16 @@ export async function searchCnpjByName(
   }
 
   const url = new URL(`${CNPJA_BASE}/office`);
-  url.searchParams.set("query.search", empresa);
-  url.searchParams.set("query.city", cidade);
-  if (estado) url.searchParams.set("query.state", estado);
+  // names.in: termos separados por espaço = AND no mesmo estabelecimento
+  url.searchParams.set("names.in", empresa);
+  // Filtra por UF (CNPJá não tem filtro por nome de cidade, só por UF ou município IBGE)
+  if (estado) url.searchParams.set("address.state.in", estado);
+  // Força Brasil (M49 country code = 76) pra evitar matches em empresas estrangeiras
+  url.searchParams.set("address.country.id.in", "76");
+  // Só empresas ativas (status.id 2 = Ativa)
+  url.searchParams.set("status.id.in", "2");
+  // Limita a 5 resultados (custo: 1 crédito por 10 registros, então 5 = 1 crédito)
+  url.searchParams.set("limit", "5");
 
   try {
     const controller = new AbortController();
