@@ -18,6 +18,10 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.1",
     "@base-ui/react": "^1.4.1",
+    "@remotion/bundler": "^4.0.468",
+    "@remotion/cli": "^4.0.468",
+    "@remotion/google-fonts": "^4.0.468",
+    "@remotion/lambda": "^4.0.468",
     "@sentry/nextjs": "^10.51.0",
     "@sparticuz/chromium": "^121.0.0",
     "@supabase/ssr": "^0.10.2",
@@ -35,6 +39,7 @@
     "react-colorful": "^5.7.0",
     "react-dom": "19.2.4",
     "recharts": "^3.8.1",
+    "remotion": "^4.0.468",
     "resend": "^6.12.2",
     "shadcn": "^4.5.0",
     "sonner": "^2.0.7",
