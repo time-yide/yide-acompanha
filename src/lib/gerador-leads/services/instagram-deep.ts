@@ -79,7 +79,11 @@ export async function findOwnerInstagram(
       }),
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
-    if (!postsResp.ok) return EMPTY;
+    if (!postsResp.ok) {
+      const body = await postsResp.text().catch(() => "");
+      console.warn(`[instagram-deep] posts HTTP ${postsResp.status}: ${body.slice(0, 200)}`);
+      return EMPTY;
+    }
 
     const items = (await postsResp.json()) as Array<Record<string, unknown>>;
     if (!Array.isArray(items) || items.length === 0) return EMPTY;
@@ -127,7 +131,11 @@ export async function findOwnerInstagram(
         }),
         signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
       });
-      if (!profileResp.ok) continue;
+      if (!profileResp.ok) {
+        const body = await profileResp.text().catch(() => "");
+        console.warn(`[instagram-deep] profile HTTP ${profileResp.status}: ${body.slice(0, 200)}`);
+        continue;
+      }
 
       const profileData = (await profileResp.json()) as Array<Record<string, unknown>>;
       const profile = profileData?.[0];
@@ -168,7 +176,8 @@ export async function findOwnerInstagram(
       link_no_bio,
       confidence,
     };
-  } catch {
+  } catch (err) {
+    console.warn("[instagram-deep] falhou:", err instanceof Error ? err.message : err);
     return EMPTY;
   }
 }
