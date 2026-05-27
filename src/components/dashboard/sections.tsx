@@ -17,8 +17,8 @@ import { getEffectiveUnitId } from "@/lib/units/session";
 import { getClientIdsForActiveUnit } from "@/lib/units/filter-helpers";
 import { getComissaoPrevista } from "@/lib/dashboard/comissao-prevista";
 import { KpiRow } from "./KpiRow";
-import { ChartCarteiraTimeline } from "./ChartCarteiraTimeline";
-import { ChartEntradaChurn } from "./ChartEntradaChurn";
+import { ChartCarteiraTimelineLazy } from "./ChartCarteiraTimelineLazy";
+import { ChartEntradaChurnLazy } from "./ChartEntradaChurnLazy";
 import { CarteiraPorAssessorList } from "./CarteiraPorAssessorList";
 import { RankingResumo } from "./RankingResumo";
 import { ProximosEventosList } from "./ProximosEventosList";
@@ -28,12 +28,11 @@ import { Section } from "./Section";
 import { InstagramPostsCard } from "./InstagramPostsCard";
 import { listClientesComUltimoSnapshot } from "@/lib/instagram-snapshots/queries";
 
-// Charts são "use client" - Next code-splita automaticamente por rota.
-// Tentei usar next/dynamic com ssr:false pra tirar do bundle inicial,
-// mas Next 16 proíbe ssr:false em Server Components (e essa file é
-// Server). O auto-split do "use client" já dá uma melhora menor mas
-// não bloqueia o deploy. Pra reintroduzir lazy de verdade depois,
-// criar wrappers client-only que façam o dynamic ali dentro.
+// Charts via wrappers *Lazy (ChartCarteiraTimelineLazy / ChartEntradaChurnLazy).
+// Cada wrapper é "use client" e usa next/dynamic({ ssr: false }), tirando o
+// recharts (~110KB gzipped) do bundle inicial. O fallback do dynamic mostra
+// um skeleton enquanto o chunk baixa — em mobile 4G a diferença no first
+// paint é bem perceptível.
 
 // ----- Skeletons (base genérica, baixo custo de DOM) -----
 
@@ -89,7 +88,7 @@ export async function CarteiraTimelineSection() {
   const data = await getCarteiraTimeline(12, { unitId });
   return (
     <Section title="Evolução da carteira" subtitle="Últimos 12 meses">
-      <ChartCarteiraTimeline data={data} />
+      <ChartCarteiraTimelineLazy data={data} />
     </Section>
   );
 }
@@ -99,7 +98,7 @@ export async function EntradaChurnSection() {
   const data = await getEntradaChurn(6, { unitId });
   return (
     <Section title="Entrada vs Churn" subtitle="Últimos 6 meses">
-      <ChartEntradaChurn data={data} />
+      <ChartEntradaChurnLazy data={data} />
     </Section>
   );
 }

@@ -7,7 +7,7 @@ import {
 import { getComissaoPrevista } from "@/lib/dashboard/comissao-prevista";
 import { KpiRowComercial } from "./KpiRowComercial";
 import { RemuneracaoCard } from "./RemuneracaoCard";
-import { ChartFunil } from "./ChartFunil";
+import { ChartFunilLazy } from "./ChartFunilLazy";
 import { MetaTracker } from "./MetaTracker";
 import { ProximasReunioesList } from "./ProximasReunioesList";
 import { Section } from "./Section";
@@ -55,7 +55,7 @@ export async function DashboardComercial({ userId, nome }: Props) {
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Section title="Funil de conversão" subtitle="5 estágios atuais">
-            <ChartFunil data={funnel} />
+            <ChartFunilLazy data={funnel} />
           </Section>
           <MetaTracker meta={meta} />
         </div>
