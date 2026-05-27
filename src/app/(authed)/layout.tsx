@@ -11,6 +11,8 @@ import { countChannelsWithUnread } from "@/lib/escritorio/queries";
 import { HeartbeatProvider } from "@/components/produtividade/HeartbeatProvider";
 import { getEffectiveUnitId, getUnitContext } from "@/lib/units/session";
 import { getProfileIdsForActiveUnit } from "@/lib/units/filter-helpers";
+import { countUndownloadedJobs } from "@/lib/yori/queries";
+import { isYoriEnabled } from "@/lib/yori/feature-flag";
 
 export default async function AuthedLayout({ children }: { children: React.ReactNode }) {
   const user = await requireAuth();
@@ -20,12 +22,13 @@ export default async function AuthedLayout({ children }: { children: React.React
     getProfileIdsForActiveUnit(),
     getEffectiveUnitId(),
   ]);
-  const [recadosNaoLidos, lockState, audiovisualPendentes, escritorioUnread, unitContext] = await Promise.all([
+  const [recadosNaoLidos, lockState, audiovisualPendentes, escritorioUnread, unitContext, yoriProntos] = await Promise.all([
     countRecadosNaoLidos(user.id, unitProfileIds),
     checkSatisfactionLock(user.id, user.role),
     isVideomaker ? listPendenteParaVideomaker(user.id) : Promise.resolve([]),
     countChannelsWithUnread(user.id, user.role, unitId).catch(() => 0),
     getUnitContext().catch(() => null),
+    isYoriEnabled() ? countUndownloadedJobs(user.id).catch(() => 0) : Promise.resolve(0),
   ]);
   const audiovisualOverdue = audiovisualPendentes.filter((p) => p.isOverdue);
 
@@ -44,7 +47,7 @@ export default async function AuthedLayout({ children }: { children: React.React
 
   return (
     <div className="flex min-h-screen">
-      <Sidebar role={user.role} nome={user.nome} badges={{ recados: recadosNaoLidos, escritorio: escritorioUnread }} />
+      <Sidebar role={user.role} nome={user.nome} badges={{ recados: recadosNaoLidos, escritorio: escritorioUnread, yoriProntos }} />
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar
           userId={user.id}
@@ -52,7 +55,7 @@ export default async function AuthedLayout({ children }: { children: React.React
           email={user.email}
           avatarUrl={user.avatarUrl}
           role={user.role}
-          badges={{ recados: recadosNaoLidos, escritorio: escritorioUnread }}
+          badges={{ recados: recadosNaoLidos, escritorio: escritorioUnread, yoriProntos }}
           unitContext={unitContext}
         />
         <main
