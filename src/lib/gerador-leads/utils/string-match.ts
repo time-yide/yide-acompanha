@@ -10,7 +10,7 @@ export function normalizeName(input: string | null | undefined): string {
   if (!input) return "";
   return input
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "") // remove combining marks (acentos)
+    .replace(/[\u0300-\u036F]/g, "") // remove combining marks (acentos)
     .toLowerCase()
     .trim()
     .replace(/\s+/g, " ");
