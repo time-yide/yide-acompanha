@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LeadActions } from "@/components/gerador-leads/LeadActions";
 import { LeadEditCard } from "@/components/gerador-leads/LeadEditCard";
+import { IdentificacaoOficialCard } from "@/components/gerador-leads/IdentificacaoOficialCard";
 import { STATUS_LEAD_DEFS, POTENCIAL_DEFS } from "@/lib/gerador-leads/tipos";
 import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
@@ -70,6 +71,13 @@ export default async function LeadDetalhePage({
             <h2 className="font-semibold text-sm">Ações rápidas</h2>
             <LeadActions lead={lead} canManage={canEdit} />
           </Card>
+
+          {/* Identificação oficial (CNPJ + sócios da Receita) */}
+          <IdentificacaoOficialCard
+            cnpj={lead.cnpj}
+            socios={lead.socios ?? []}
+            multiplos_resultados={false}
+          />
 
           {/* Form editável */}
           {/* key força remount quando lead atualiza - useState do form reinicializa com novos valores */}
