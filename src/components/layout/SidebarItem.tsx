@@ -19,6 +19,11 @@ export function SidebarItem({ href, icon: Icon, label, badge }: Props) {
   return (
     <Link
       href={href}
+      // prefetch={false}: o nav lateral tem 14+ itens — sem isso, cada
+      // renderização do menu (especialmente o drawer mobile) dispara
+      // prefetch de TODAS as rotas. Em 4G, 14 RSC payloads em paralelo
+      // estrangulam a banda e travam a navegação real.
+      prefetch={false}
       className={cn(
         "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
         active

@@ -8,8 +8,8 @@ import {
 import { getComissaoPrevista } from "@/lib/dashboard/comissao-prevista";
 import { KpiRowAssessor } from "./KpiRowAssessor";
 import { RemuneracaoCard } from "./RemuneracaoCard";
-import { ChartCarteiraTimeline } from "./ChartCarteiraTimeline";
-import { ChartEntradaChurn } from "./ChartEntradaChurn";
+import { ChartCarteiraTimelineLazy } from "./ChartCarteiraTimelineLazy";
+import { ChartEntradaChurnLazy } from "./ChartEntradaChurnLazy";
 import { RankingResumo } from "./RankingResumo";
 import { ProximosEventosList } from "./ProximosEventosList";
 import { PainelAudiovisualSection } from "./audiovisual/PainelAudiovisualSection";
@@ -66,10 +66,10 @@ export async function DashboardAssessor({ userId, nome }: Props) {
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Section title="Evolução da minha carteira" subtitle="Últimos 12 meses">
-            <ChartCarteiraTimeline data={carteiraTimeline} />
+            <ChartCarteiraTimelineLazy data={carteiraTimeline} />
           </Section>
           <Section title="Entrada vs Churn" subtitle="Últimos 6 meses">
-            <ChartEntradaChurn data={entradaChurn} />
+            <ChartEntradaChurnLazy data={entradaChurn} />
           </Section>
         </div>
 
