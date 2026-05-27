@@ -19,6 +19,8 @@ import { listPendingDelegations, listScheduledFutureCaptures, listVideomakersAti
 import { canRoleDelegateVideomaker, canRoleViewCoord } from "@/lib/audiovisual/coord-roles";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { YoriEntryButton } from "@/components/yori/YoriEntryButton";
+import { isYoriEnabled, canUseYori } from "@/lib/yori/feature-flag";
 
 const ROLES_QUE_VEEM = ["videomaker", "audiovisual_chefe", "coordenador", "assessor", "adm", "socio"];
 const ROLES_QUE_DELEGAM = ["audiovisual_chefe", "adm", "socio"];
@@ -194,11 +196,14 @@ export default async function AudiovisualPage({
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <header>
-        <h1 className="text-2xl font-bold tracking-tight">Audiovisual</h1>
-        <p className="text-sm text-muted-foreground">
-          Entregas de captação, gravações pendentes e fila de delegação.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Audiovisual</h1>
+          <p className="text-sm text-muted-foreground">
+            Entregas de captação, gravações pendentes e fila de delegação.
+          </p>
+        </div>
+        {isYoriEnabled() && canUseYori(user.role) && <YoriEntryButton />}
       </header>
 
       {overdueForBanner.length > 0 && (
