@@ -287,11 +287,13 @@ Sem essa variável definida → CNPJá service retorna `{ skipped: true }` e flu
 
 | Serviço | Plano | Custo |
 |---|---|---|
-| CNPJá | Basic (15k consultas/mês) | R$99 |
+| CNPJá | Inicial (1k consultas/mês) | R$ 24,90 |
 | Hunter | Free (mantém 25/mês) | R$0 |
 | Apify Instagram | Já assinado | R$0 marginal |
 
-**Total adicional:** R$99/mês
+**Total adicional:** R$ 24,90/mês
+
+**Capacidade:** 1.000 consultas/mês cobre **~2 pesquisas grandes (500 leads cada)** ou **~33 leads/dia** se distribuir uniformemente. Se virar gargalo, upgrade pro Basic é R$99/mês = 15k consultas (15× mais). Conservar consultas: o lookup só roda no enriquecimento de cada lead — não rodar enrich em leads já marcados como "descartado" ou "cliente" ajuda economizar.
 
 ## Métricas de sucesso
 

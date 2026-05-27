@@ -1584,7 +1584,7 @@ A IA não tenta mais adivinhar quem é o dono — usa o sócio-administrador da 
 
 ## Custo novo
 
-R$99/mês (CNPJá Basic, 15k consultas/mês). Hunter mantém free tier por enquanto.
+R$ 24,90/mês (CNPJá **Inicial**, 1k consultas/mês). Hunter mantém free tier por enquanto. Se 1k não der vazão, upgrade pro Basic R$99 = 15k.
 
 ## Migration
 

@@ -27,7 +27,8 @@ const serverSchema = z.object({
   HUNTER_API_KEY: z.string().optional(),
   // CNPJá - consulta CNPJ + sócios oficiais da Receita Federal.
   // Sem essa key, lookup é skip e enriquecimento usa só site scraping + Hunter + IA.
-  // Free tier: 100 consultas/mês. Plano Basic R$99/mês = 15k consultas.
+  // Free tier: 100 consultas/mês. Plano Inicial R$24,90/mês = 1k consultas.
+  // Upgrade pro Basic R$99/mês = 15k se a cota apertar.
   // Cadastro em https://cnpja.com → Dashboard → API Keys.
   CNPJA_API_KEY: z.string().optional(),
   // Apify - usado pra scraping de perfis de Instagram (pega bio, contato, etc).
