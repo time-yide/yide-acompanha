@@ -21,6 +21,11 @@ export interface LeadGeradoRow {
   decisor_nome: string | null;
   decisor_cargo: string | null;
   decisor_email: string | null;
+  decisor_whatsapp: string | null;
+  decisor_instagram: string | null;
+  cnpj: string | null;
+  socios: Array<{ nome: string; qualificacao: string; data_entrada: string | null }>;
+  socio_principal_qualificacao: string | null;
   score: number | null;
   qualificado: boolean | null;
   potencial_comercial: string | null;
@@ -83,7 +88,7 @@ export async function listLeadsGerados(
   let q = sb
     .from("leads_gerados")
     .select(
-      "id, empresa, telefone, whatsapp, email, website, dominio, instagram, endereco, cidade, estado, categoria, google_rating, google_reviews_count, google_maps_url, decisor_nome, decisor_cargo, decisor_email, score, qualificado, potencial_comercial, observacoes_ia, diagnostico, status, tags, observacoes, responsavel_id, fonte, created_at, updated_at, responsavel:profiles!leads_gerados_responsavel_id_fkey(nome)",
+      "id, empresa, telefone, whatsapp, email, website, dominio, instagram, endereco, cidade, estado, categoria, google_rating, google_reviews_count, google_maps_url, decisor_nome, decisor_cargo, decisor_email, decisor_whatsapp, decisor_instagram, cnpj, socios, socio_principal_qualificacao, score, qualificado, potencial_comercial, observacoes_ia, diagnostico, status, tags, observacoes, responsavel_id, fonte, created_at, updated_at, responsavel:profiles!leads_gerados_responsavel_id_fkey(nome)",
       { count: "exact" },
     )
     .eq("organization_id", organizationId)
@@ -154,6 +159,13 @@ export async function listLeadsGerados(
     decisor_nome: (row.decisor_nome as string | null) ?? null,
     decisor_cargo: (row.decisor_cargo as string | null) ?? null,
     decisor_email: (row.decisor_email as string | null) ?? null,
+    decisor_whatsapp: (row.decisor_whatsapp as string | null) ?? null,
+    decisor_instagram: (row.decisor_instagram as string | null) ?? null,
+    cnpj: (row.cnpj as string | null) ?? null,
+    socios: Array.isArray(row.socios)
+      ? (row.socios as Array<{ nome: string; qualificacao: string; data_entrada: string | null }>)
+      : [],
+    socio_principal_qualificacao: (row.socio_principal_qualificacao as string | null) ?? null,
     score: (row.score as number | null) ?? null,
     qualificado: (row.qualificado as boolean | null) ?? null,
     potencial_comercial: (row.potencial_comercial as string | null) ?? null,
@@ -182,7 +194,7 @@ export async function getLeadGerado(id: string): Promise<LeadGeradoRow | null> {
   const { data, error } = await sb
     .from("leads_gerados")
     .select(
-      "id, empresa, telefone, whatsapp, email, website, dominio, instagram, endereco, cidade, estado, categoria, google_rating, google_reviews_count, google_maps_url, decisor_nome, decisor_cargo, decisor_email, score, qualificado, potencial_comercial, observacoes_ia, diagnostico, status, tags, observacoes, responsavel_id, fonte, created_at, updated_at, responsavel:profiles!leads_gerados_responsavel_id_fkey(nome)",
+      "id, empresa, telefone, whatsapp, email, website, dominio, instagram, endereco, cidade, estado, categoria, google_rating, google_reviews_count, google_maps_url, decisor_nome, decisor_cargo, decisor_email, decisor_whatsapp, decisor_instagram, cnpj, socios, socio_principal_qualificacao, score, qualificado, potencial_comercial, observacoes_ia, diagnostico, status, tags, observacoes, responsavel_id, fonte, created_at, updated_at, responsavel:profiles!leads_gerados_responsavel_id_fkey(nome)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -208,6 +220,13 @@ export async function getLeadGerado(id: string): Promise<LeadGeradoRow | null> {
     decisor_nome: (row.decisor_nome as string | null) ?? null,
     decisor_cargo: (row.decisor_cargo as string | null) ?? null,
     decisor_email: (row.decisor_email as string | null) ?? null,
+    decisor_whatsapp: (row.decisor_whatsapp as string | null) ?? null,
+    decisor_instagram: (row.decisor_instagram as string | null) ?? null,
+    cnpj: (row.cnpj as string | null) ?? null,
+    socios: Array.isArray(row.socios)
+      ? (row.socios as Array<{ nome: string; qualificacao: string; data_entrada: string | null }>)
+      : [],
+    socio_principal_qualificacao: (row.socio_principal_qualificacao as string | null) ?? null,
     score: (row.score as number | null) ?? null,
     qualificado: (row.qualificado as boolean | null) ?? null,
     potencial_comercial: (row.potencial_comercial as string | null) ?? null,
