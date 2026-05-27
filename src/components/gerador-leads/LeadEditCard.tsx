@@ -261,18 +261,23 @@ export function LeadEditCard({ lead, canEdit }: Props) {
       </div>
 
       <div className="flex flex-wrap gap-2 border-t pt-2">
-        <a
-          href={lead.telefone ? `tel:${lead.telefone}` : undefined}
-          aria-disabled={!lead.telefone}
-          tabIndex={lead.telefone ? 0 : -1}
-          className={`inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[11px] font-medium ${
-            lead.telefone
-              ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/20"
-              : "pointer-events-none border-muted bg-muted/30 text-muted-foreground opacity-50"
-          }`}
-        >
-          📞 Ligar
-        </a>
+        {(() => {
+          const telLigar = lead.decisor_telefone ?? lead.telefone;
+          return (
+            <a
+              href={telLigar ? `tel:${telLigar}` : undefined}
+              aria-disabled={!telLigar}
+              tabIndex={telLigar ? 0 : -1}
+              className={`inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[11px] font-medium ${
+                telLigar
+                  ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/20"
+                  : "pointer-events-none border-muted bg-muted/30 text-muted-foreground opacity-50"
+              }`}
+            >
+              📞 Ligar
+            </a>
+          );
+        })()}
         <a
           href={
             decisorWhatsapp
