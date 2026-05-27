@@ -8,7 +8,19 @@ import { requireAuth } from "@/lib/auth/session";
 import { scrapeSiteEmpresa } from "./services/site-scraper";
 import { hunterDomainSearch } from "./services/hunter";
 import { scrapeInstagramProfile } from "./services/apify-instagram";
+import { searchCnpjByName } from "./services/cnpja";
+import { findOwnerInstagram } from "./services/instagram-deep";
 import { analisarLeadComIA } from "./services/ia-enrichment";
+
+/**
+ * Normaliza string vazia (após trim) pra null. Usado em campos editáveis
+ * de decisor (telefone, whatsapp, instagram, email) pra evitar gravar "".
+ */
+function normalizeEmptyToNull(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  return trimmed === "" ? null : trimmed;
+}
 
 // Nota: Next.js 16 não permite exportar constantes não-async de arquivos
 // "use server". Pra configurar maxDuration, usar vercel.json ou exportar
@@ -65,7 +77,7 @@ export async function enriquecerLeadAction(formData: FormData): Promise<ActionRe
 
   const { data: leadData, error: leadErr } = await sb
     .from("leads_gerados")
-    .select("id, empresa, categoria, cidade, telefone, whatsapp, website, dominio, instagram, google_rating, google_reviews_count, endereco")
+    .select("id, empresa, categoria, cidade, estado, telefone, whatsapp, website, dominio, instagram, google_rating, google_reviews_count, endereco")
     .eq("id", leadId)
     .single();
 
@@ -79,6 +91,7 @@ export async function enriquecerLeadAction(formData: FormData): Promise<ActionRe
     empresa: string;
     categoria: string | null;
     cidade: string | null;
+    estado: string | null;
     telefone: string | null;
     whatsapp: string | null;
     website: string | null;
@@ -117,6 +130,7 @@ async function processarEnrichment(lead: {
   empresa: string;
   categoria: string | null;
   cidade: string | null;
+  estado: string | null;
   telefone: string | null;
   whatsapp: string | null;
   website: string | null;
@@ -137,6 +151,21 @@ async function processarEnrichment(lead: {
   log("iniciando", { website: lead.website, instagram: lead.instagram, dominio: lead.dominio });
 
   try {
+    // Lookup oficial CNPJá - precisa rodar antes pra alimentar a IA com sócios
+    log("buscando CNPJ na CNPJá");
+    const cnpjaResult = await searchCnpjByName(
+      lead.empresa,
+      lead.cidade ?? "",
+      lead.estado ?? undefined,
+    );
+    log("CNPJá concluído", {
+      ok: cnpjaResult.ok,
+      skipped: cnpjaResult.skipped,
+      cnpj: cnpjaResult.cnpj,
+      socios: cnpjaResult.socios.length,
+      multiplos: cnpjaResult.multiplos_resultados,
+    });
+
     // Roda em paralelo
     log("disparando site/hunter/instagram em paralelo");
     const [siteResult, hunterResult, instagramResult] = await Promise.all([
@@ -166,6 +195,24 @@ async function processarEnrichment(lead: {
       instagram: instagramResult ? `ok=${instagramResult.ok}, skipped=${instagramResult.skipped}, followers=${instagramResult.followersCount}` : "skip",
     });
 
+    // Tenta achar IG pessoal do dono, usando nome do sócio principal da Receita
+    const socioPrincipal = cnpjaResult.socios.find(
+      (s) => s.qualificacao.toLowerCase().includes("administrador"),
+    ) ?? cnpjaResult.socios[0] ?? null;
+
+    log("buscando IG pessoal do dono", {
+      empresa_username: lead.instagram,
+      socio: socioPrincipal?.nome ?? null,
+    });
+    const ownerInstagramResult = await findOwnerInstagram(
+      lead.instagram,
+      socioPrincipal?.nome ?? null,
+    );
+    log("IG-deep concluído", {
+      username: ownerInstagramResult.username,
+      confidence: ownerInstagramResult.confidence,
+    });
+
     // IA cruza tudo
     log("chamando IA Claude");
     const iaResult = await analisarLeadComIA({
@@ -182,6 +229,8 @@ async function processarEnrichment(lead: {
       site: siteResult,
       hunter: hunterResult,
       instagram_data: instagramResult,
+      cnpja: cnpjaResult,
+      owner_instagram: ownerInstagramResult,
     });
 
     log("IA concluída", { ok: iaResult.ok, skipped: !iaResult.ok && iaResult.skipped, score: iaResult.ok ? iaResult.score : null });
@@ -189,10 +238,20 @@ async function processarEnrichment(lead: {
     // Constrói update
     const update: Record<string, unknown> = {};
 
+    // Persist CNPJá fields independente da IA ter rodado
+    if (cnpjaResult.ok) {
+      update.cnpj = cnpjaResult.cnpj;
+      update.socios = cnpjaResult.socios;
+      update.socio_principal_qualificacao = socioPrincipal?.qualificacao ?? null;
+    }
+
     if (iaResult.ok) {
       update.decisor_nome = iaResult.decisor_nome;
       update.decisor_cargo = iaResult.decisor_cargo;
-      update.decisor_email = iaResult.decisor_email;
+      update.decisor_email = normalizeEmptyToNull(iaResult.decisor_email);
+      update.decisor_telefone = normalizeEmptyToNull(iaResult.decisor_telefone);
+      update.decisor_whatsapp = normalizeEmptyToNull(iaResult.decisor_whatsapp);
+      update.decisor_instagram = normalizeEmptyToNull(iaResult.decisor_instagram);
       update.outros_decisores = iaResult.outros_decisores;
       update.score = iaResult.score;
       update.qualificado = iaResult.qualificado;
@@ -203,6 +262,9 @@ async function processarEnrichment(lead: {
         _enriquecido_em: new Date().toISOString(),
         _duracao_ms: Date.now() - startedAt,
         _ia: "ok",
+        _cnpja_ok: cnpjaResult.ok,
+        _cnpja_multiplos: cnpjaResult.multiplos_resultados,
+        _owner_ig_confidence: ownerInstagramResult.confidence,
       };
     } else {
       // IA não rodou (skipped) ou falhou - preenche o que conseguiu de outras fontes

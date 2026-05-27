@@ -28,6 +28,10 @@ export const updateLeadSchema = z.object({
   decisor_nome: z.string().trim().max(200).optional().nullable(),
   decisor_cargo: z.string().trim().max(120).optional().nullable(),
   decisor_email: z.string().trim().max(200).email().or(z.literal("")).optional().nullable(),
+  // === Novos campos (PR decisor CNPJ + IG-deep) ===
+  cnpj: z.string().trim().max(20).optional().nullable(),
+  decisor_whatsapp: z.string().trim().max(40).optional().nullable(),
+  decisor_instagram: z.string().trim().max(80).optional().nullable(),
 });
 
 export const archiveLeadSchema = z.object({ id: uuidLike });

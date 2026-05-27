@@ -12,6 +12,8 @@ import { getServerEnv } from "@/lib/env";
 import type { SiteScrapingResult, PersonHit } from "./site-scraper";
 import type { HunterDomainSearchResult, HunterEmailFinding } from "./hunter";
 import type { InstagramProfileResult } from "./apify-instagram";
+import type { CnpjLookupResult } from "./cnpja";
+import type { OwnerInstagramResult } from "./instagram-deep";
 
 export interface IaAnalysisInput {
   empresa: string;
@@ -28,6 +30,9 @@ export interface IaAnalysisInput {
   site: SiteScrapingResult | null;
   hunter: HunterDomainSearchResult | null;
   instagram_data: InstagramProfileResult | null;
+  // === Novos (PR decisor CNPJ + IG-deep) ===
+  cnpja: CnpjLookupResult | null;
+  owner_instagram: OwnerInstagramResult | null;
 }
 
 export interface IaAnalysisOk {
@@ -35,6 +40,9 @@ export interface IaAnalysisOk {
   decisor_nome: string | null;
   decisor_cargo: string | null;
   decisor_email: string | null;
+  decisor_telefone: string | null;
+  decisor_whatsapp: string | null;
+  decisor_instagram: string | null;
   outros_decisores: Array<{ nome: string; cargo: string | null; email: string | null }>;
   score: number;          // 0-100
   qualificado: boolean;
@@ -72,6 +80,33 @@ function buildPrompt(input: IaAnalysisInput): string {
   const hunterEmails = input.hunter?.emails?.slice(0, 10).map((e: HunterEmailFinding) =>
     `${e.value} [${e.first_name ?? "?"} ${e.last_name ?? ""} - ${e.position ?? "?"} - confidence ${e.confidence ?? "?"}]`,
   ).join("; ") ?? "-";
+
+  const sociosBlock = input.cnpja?.ok && input.cnpja.socios.length > 0
+    ? `\nDADOS OFICIAIS DA RECEITA FEDERAL (CNPJá):
+CNPJ: ${input.cnpja.cnpj}
+Razão social: ${input.cnpja.razao_social ?? "—"}
+Sócios oficiais:
+${input.cnpja.socios.map((s, i) => `  ${i + 1}. ${s.nome} — ${s.qualificacao}${s.data_entrada ? ` (desde ${s.data_entrada})` : ""}`).join("\n")}
+
+REGRA: Se houver sócios listados acima, o \`decisor_nome\` DEVE ser o
+sócio-administrador (ou primeiro sócio se não houver administrador
+explícito). Use os outros sinais (site, Hunter, Instagram) APENAS pra
+encontrar o CONTATO dessa pessoa específica (email, telefone, WhatsApp,
+Instagram pessoal) — não pra adivinhar quem é o decisor.
+`
+    : "";
+
+  const ownerInstagramBlock = input.owner_instagram?.username
+    ? `\nPOSSÍVEL INSTAGRAM PESSOAL DO DECISOR:
+Username: @${input.owner_instagram.username}
+Bio: ${input.owner_instagram.bio ?? "—"}
+Confidence: ${input.owner_instagram.confidence}
+${input.owner_instagram.telefone_no_bio ? `Telefone no bio: ${input.owner_instagram.telefone_no_bio}` : ""}
+
+Se confidence é "alta", use o username como \`decisor_instagram\` e o
+telefone do bio como \`decisor_whatsapp\` (se existir).
+`
+    : "";
 
   return `Você é um analista comercial sênior de uma agência de marketing digital brasileira (Yide).
 
@@ -122,7 +157,7 @@ Email na bio: ${input.instagram_data.emailNaBio ?? "-"}
 WhatsApp na bio: ${input.instagram_data.whatsappNaBio ?? "-"}
 Nome detectado na bio: ${input.instagram_data.nomeNaBio ?? "-"}
 ` : input.instagram_data?.skipped ? "Apify não configurado" : `Falhou: ${input.instagram_data?.error ?? "-"}`}
-
+${sociosBlock}${ownerInstagramBlock}
 ## Sua resposta
 
 Responda APENAS com um JSON válido (sem markdown, sem texto antes ou depois) no formato exato:
@@ -132,6 +167,9 @@ Responda APENAS com um JSON válido (sem markdown, sem texto antes ou depois) no
   "decisor_nome": "string ou null",
   "decisor_cargo": "string ou null",
   "decisor_email": "string ou null",
+  "decisor_telefone": "string ou null (telefone direto do decisor se identificado)",
+  "decisor_whatsapp": "string ou null (WhatsApp pessoal do decisor)",
+  "decisor_instagram": "string ou null (@ pessoal do Instagram do decisor)",
   "outros_decisores": [{"nome": "...", "cargo": "...", "email": "..."}],
   "score": 0-100,
   "qualificado": true|false,
@@ -221,6 +259,9 @@ export async function analisarLeadComIA(input: IaAnalysisInput): Promise<IaAnaly
       decisor_nome: p.decisor_nome ?? null,
       decisor_cargo: p.decisor_cargo ?? null,
       decisor_email: p.decisor_email ?? null,
+      decisor_telefone: typeof p.decisor_telefone === "string" ? p.decisor_telefone : null,
+      decisor_whatsapp: typeof p.decisor_whatsapp === "string" ? p.decisor_whatsapp : null,
+      decisor_instagram: typeof p.decisor_instagram === "string" ? p.decisor_instagram : null,
       outros_decisores: Array.isArray(p.outros_decisores) ? p.outros_decisores : [],
       score: Math.max(0, Math.min(100, Math.round(p.score))),
       qualificado: !!p.qualificado,
