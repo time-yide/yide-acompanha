@@ -182,6 +182,9 @@ async function processarEnrichment(lead: {
       site: siteResult,
       hunter: hunterResult,
       instagram_data: instagramResult,
+      // Wired up nas tasks seguintes do PR decisor CNPJ + IG-deep
+      cnpja: null,
+      owner_instagram: null,
     });
 
     log("IA concluída", { ok: iaResult.ok, skipped: !iaResult.ok && iaResult.skipped, score: iaResult.ok ? iaResult.score : null });
