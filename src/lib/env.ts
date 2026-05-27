@@ -49,6 +49,16 @@ const serverSchema = z.object({
   // pro modo manual (assessor digita os dados). Gerar em Google Cloud →
   // APIs & Services → Credentials → Create API key. Ativar "Places API (New)".
   GOOGLE_PLACES_API_KEY: z.string().min(20).optional(),
+  // Yori — editor de vídeo com IA. Sem essas vars, /audiovisual/yori
+  // redireciona pra /audiovisual com mensagem "Yori indisponível".
+  // Setup do AWS Lambda: ver docs/yori-aws-lambda-setup.md.
+  YORI_ENABLED: z.string().optional(),
+  GROQ_API_KEY: z.string().optional(),
+  AWS_ACCESS_KEY_ID: z.string().optional(),
+  AWS_SECRET_ACCESS_KEY: z.string().optional(),
+  AWS_REGION: z.string().optional(),
+  REMOTION_LAMBDA_FUNCTION_NAME: z.string().optional(),
+  REMOTION_LAMBDA_SITE_NAME: z.string().optional(),
 });
 
 const clientSchema = z.object({
