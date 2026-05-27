@@ -73,11 +73,16 @@ export default async function LeadDetalhePage({
           </Card>
 
           {/* Identificação oficial (CNPJ + sócios da Receita) */}
-          <IdentificacaoOficialCard
-            cnpj={lead.cnpj}
-            socios={lead.socios ?? []}
-            multiplos_resultados={false}
-          />
+          {(() => {
+            const diagFlags = (lead.diagnostico ?? {}) as Record<string, unknown>;
+            return (
+              <IdentificacaoOficialCard
+                cnpj={lead.cnpj}
+                socios={lead.socios ?? []}
+                multiplos_resultados={diagFlags._cnpja_multiplos === true}
+              />
+            );
+          })()}
 
           {/* Form editável */}
           {/* key força remount quando lead atualiza - useState do form reinicializa com novos valores */}

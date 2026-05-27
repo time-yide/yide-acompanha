@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { updateLeadAction } from "@/lib/gerador-leads/actions";
 import type { LeadGeradoRow } from "@/lib/gerador-leads/queries";
-import { normalizeName } from "@/lib/gerador-leads/utils/string-match";
+import { similarity } from "@/lib/gerador-leads/utils/string-match";
 
 interface Props {
   lead: LeadGeradoRow;
@@ -28,8 +28,7 @@ function deriveDecisorConfidence(
   socios: SocioMin[],
 ): ConfidenceLevel {
   if (!decisorNome) return "nao_identificado";
-  const normDecisor = normalizeName(decisorNome);
-  const matched = socios.find((s) => normalizeName(s.nome) === normDecisor);
+  const matched = socios.find((s) => similarity(s.nome, decisorNome) >= 0.8);
   return matched ? "alta" : "media";
 }
 
@@ -181,7 +180,7 @@ export function LeadEditCard({ lead, canEdit }: Props) {
         const conf = deriveDecisorConfidence(lead.decisor_nome, lead.socios ?? []);
         if (conf === "alta") {
           const socioMatch = (lead.socios ?? []).find(
-            (s) => normalizeName(s.nome) === normalizeName(lead.decisor_nome ?? ""),
+            (s: SocioMin) => similarity(s.nome, lead.decisor_nome ?? "") >= 0.8,
           );
           return (
             <div className="flex items-center gap-2 rounded-md border border-emerald-500/40 bg-emerald-500/10 p-2 text-xs text-emerald-700 dark:text-emerald-300">
