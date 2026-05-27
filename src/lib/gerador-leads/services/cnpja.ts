@@ -135,7 +135,8 @@ export async function searchCnpjByName(
     }).finally(() => clearTimeout(timer));
 
     if (!resp.ok) {
-      return { ...empty, error: `HTTP ${resp.status}: ${resp.statusText}` };
+      const body = await resp.text().catch(() => "");
+      return { ...empty, error: `HTTP ${resp.status}: ${body.slice(0, 200) || resp.statusText}` };
     }
 
     const data = await resp.json();
