@@ -29,9 +29,16 @@ export function NovaOportunidadeButton() {
           <form action={submit} onClick={(e) => e.stopPropagation()} className="w-full max-w-md space-y-3 rounded-xl border bg-card p-5">
             <h2 className="font-semibold">Nova oportunidade</h2>
             <div className="space-y-1.5"><Label htmlFor="titulo">Título</Label><Input id="titulo" name="titulo" required maxLength={160} /></div>
+            <div className="space-y-1.5">
+              <Label htmlFor="tipo">Tipo</Label>
+              <select id="tipo" name="tipo" defaultValue="captacao" className="h-9 w-full rounded-md border bg-card px-2 text-sm">
+                <option value="captacao">Captação</option>
+                <option value="modelo">Modelo</option>
+              </select>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5"><Label htmlFor="cliente_nome">Cliente</Label><Input id="cliente_nome" name="cliente_nome" /></div>
-              <div className="space-y-1.5"><Label htmlFor="valor_comissao">Comissão (R$)</Label><Input id="valor_comissao" name="valor_comissao" type="number" min={0} step="50" required /></div>
+              <div className="space-y-1.5"><Label htmlFor="valor_comissao">Valor (R$)</Label><Input id="valor_comissao" name="valor_comissao" type="number" min={0} step="50" required /></div>
             </div>
             <div className="space-y-1.5"><Label htmlFor="contato">Contato</Label><Input id="contato" name="contato" placeholder="telefone, @, e-mail..." /></div>
             <div className="space-y-1.5"><Label htmlFor="descricao">Descrição</Label><Textarea id="descricao" name="descricao" rows={3} /></div>

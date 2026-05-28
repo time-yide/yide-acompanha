@@ -1,7 +1,7 @@
 // SERVER ONLY
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { calcularPontos } from "./pontos";
-import type { StatusOp } from "./tipos";
+import type { StatusOp, TipoOp } from "./tipos";
 
 export interface OportunidadeRow {
   id: string;
@@ -11,6 +11,7 @@ export interface OportunidadeRow {
   contato: string | null;
   valor_comissao: number;
   status: StatusOp;
+  tipo: TipoOp;
   pego_por: string | null;
   pego_por_nome: string | null;
   pego_em: string | null;
@@ -47,7 +48,7 @@ export interface FreelaStats {
 }
 
 const SELECT =
-  "id, titulo, descricao, cliente_nome, contato, valor_comissao, status, pego_por, pego_em, negociacao_em, fechada_em, created_at, responsavel:profiles!freela_oportunidades_pego_por_fkey(nome)";
+  "id, titulo, descricao, cliente_nome, contato, valor_comissao, status, tipo, pego_por, pego_em, negociacao_em, fechada_em, created_at, responsavel:profiles!freela_oportunidades_pego_por_fkey(nome)";
 
 function mapRow(row: Record<string, unknown>): OportunidadeRow {
   const status = row.status as StatusOp;
@@ -60,6 +61,7 @@ function mapRow(row: Record<string, unknown>): OportunidadeRow {
     contato: (row.contato as string | null) ?? null,
     valor_comissao,
     status,
+    tipo: (row.tipo as TipoOp) ?? "captacao",
     pego_por: (row.pego_por as string | null) ?? null,
     pego_por_nome: ((row.responsavel as { nome?: string } | null) ?? null)?.nome ?? null,
     pego_em: (row.pego_em as string | null) ?? null,

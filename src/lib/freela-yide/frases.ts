@@ -1,10 +1,10 @@
 const FRASES = [
   "Cada oportunidade pega é dinheiro na mesa. Vai buscar.",
   "Quem corre atrás, fecha. Quem espera, assiste.",
-  "Seu próximo contrato tá num card aí em cima.",
+  "Sua próxima oportunidade tá num card aí em cima.",
   "Performance não é sorte, é repetição.",
   "O ranking não mente: bora subir.",
-  "Comissão boa é a que você fechou hoje.",
+  "Oportunidade boa é a que você fecha hoje.",
   "Time que capta junto, cresce junto.",
   "Não existe lead pequeno pra quem pensa grande.",
 ];

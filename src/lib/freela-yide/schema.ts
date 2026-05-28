@@ -9,6 +9,7 @@ export const criarOportunidadeSchema = z.object({
   cliente_nome: z.string().trim().max(160).optional().nullable(),
   contato: z.string().trim().max(160).optional().nullable(),
   valor_comissao: z.coerce.number().min(0).max(1_000_000),
+  tipo: z.enum(["captacao", "modelo"]).default("captacao"),
 });
 
 export const moverStatusSchema = z.object({

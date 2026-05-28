@@ -2,7 +2,7 @@
 import { useTransition } from "react";
 import { Coins, Flame, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { STATUS_OP_DEFS } from "@/lib/freela-yide/tipos";
+import { STATUS_OP_DEFS, TIPO_OP_DEFS } from "@/lib/freela-yide/tipos";
 import { pegarOportunidadeAction } from "@/lib/freela-yide/actions";
 import type { OportunidadeRow } from "@/lib/freela-yide/queries";
 import { useRouter } from "next/navigation";
@@ -11,6 +11,7 @@ export function OportunidadeCard({ op }: { op: OportunidadeRow }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const def = STATUS_OP_DEFS[op.status];
+  const tipoDef = TIPO_OP_DEFS[op.tipo];
   function pegar() {
     start(async () => {
       const r = await pegarOportunidadeAction(op.id);
@@ -25,7 +26,10 @@ export function OportunidadeCard({ op }: { op: OportunidadeRow }) {
           <p className="truncate font-semibold">{op.titulo}</p>
           {op.cliente_nome && <p className="truncate text-xs text-muted-foreground">{op.cliente_nome}</p>}
         </div>
-        <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium ${def.color}`}>{def.label}</span>
+        <div className="flex shrink-0 items-center gap-1">
+          <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${tipoDef.color}`}>{tipoDef.label}</span>
+          <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${def.color}`}>{def.label}</span>
+        </div>
       </div>
       {op.descricao && <p className="line-clamp-2 text-xs text-muted-foreground">{op.descricao}</p>}
       <div className="flex items-center justify-between">
