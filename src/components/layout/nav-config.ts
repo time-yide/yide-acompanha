@@ -2,7 +2,7 @@ import {
   LayoutGrid, Users, KanbanSquare, ListChecks,
   DollarSign, Calendar, UserCog, MessageSquare,
   TrendingUp, Video, Trash2, MessagesSquare, GraduationCap, Megaphone, Share2, Radar, MessageCircle, Phone,
-  IdCard, Rocket, BookOpen, Inbox, Activity, Layers, Sparkles,
+  IdCard, Rocket, BookOpen, Inbox, Activity, Layers, Sparkles, Zap,
   type LucideIcon,
 } from "lucide-react";
 import type { Role } from "@/lib/auth/permissions";
@@ -82,6 +82,7 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
       { type: "link", href: "/tarefas", icon: ListChecks, label: "Tarefas", roles: "all", badgeKey: null },
       { type: "link", href: "/audiovisual", icon: Video, label: "Audiovisual", roles: ["adm", "socio", "coordenador", "assessor", "videomaker", "audiovisual_chefe"], badgeKey: null },
       { type: "link", href: "/audiovisual/yori", icon: Sparkles, label: "Yori", roles: ["videomaker", "editor", "audiovisual_chefe", "assessor", "socio", "adm"], badgeKey: "yoriProntos" },
+      { type: "link", href: "/freela-yide", icon: Zap, label: "FreelaYide", roles: ["adm", "socio", "comercial", "coordenador", "assessor", "designer", "videomaker", "editor", "audiovisual_chefe"], badgeKey: null },
       { type: "link", href: "/trafego", icon: Megaphone, label: "Tráfego", roles: ["adm", "socio", "coordenador", "assessor", "comercial"], badgeKey: null },
       // Label "Estratégia" — engloba Painel Mensal + Agendamento de Post + Design + Apresenta Yide.
       // URL /social-media preservada (redirect pro /painel).
