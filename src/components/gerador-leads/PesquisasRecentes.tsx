@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, CheckCircle2, AlertCircle, Clock } from "lucide-react";
+import { Loader2, AlertCircle, MapPin } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { STATUS_PESQUISA_DEFS } from "@/lib/gerador-leads/tipos";
 import type { PesquisaRow } from "@/lib/gerador-leads/queries";
@@ -36,48 +36,97 @@ export function PesquisasRecentes({ pesquisas }: Props) {
   }
 
   return (
-    <div className="space-y-2">
-      {pesquisas.map((p) => {
-        const statusDef = STATUS_PESQUISA_DEFS[p.status];
-        const Icon = p.status === "pendente" ? Clock
-          : p.status === "processando" ? Loader2
-          : p.status === "erro" ? AlertCircle
-          : CheckCircle2;
-        return (
-          <Card key={p.id} className="p-3 flex items-center gap-3">
-            <Icon
-              className={`h-4 w-4 ${p.status === "processando" ? "animate-spin text-amber-600" : p.status === "erro" ? "text-destructive" : p.status === "concluido" ? "text-emerald-600" : "text-muted-foreground"}`}
-            />
-            <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-center gap-1.5">
-                <p className="font-medium text-sm">
-                  {p.nicho} <span className="text-muted-foreground">em</span> {p.cidade}
-                </p>
-                {statusDef && (
-                  <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${statusDef.color}`}>
-                    {statusDef.label}
-                  </span>
-                )}
-              </div>
-              <p className="text-[11px] text-muted-foreground">
-                {p.criado_por_nome ?? "Alguém"} · {new Date(p.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
-                {p.status === "concluido" && (
-                  <>
-                    {" · "}
-                    <strong className="text-emerald-700 dark:text-emerald-400">{p.total_resultados}</strong> resultado(s)
-                    {p.total_novos < p.total_resultados && (
-                      <span className="text-muted-foreground"> ({p.total_novos} novos, {p.total_resultados - p.total_novos} duplicados)</span>
-                    )}
-                  </>
-                )}
-              </p>
-              {p.erro_mensagem && (
-                <p className="text-[11px] text-destructive mt-1">{p.erro_mensagem}</p>
-              )}
-            </div>
-          </Card>
-        );
-      })}
+    <div className="grid gap-2 sm:grid-cols-2">
+      {pesquisas.map((p) => (
+        <PesquisaItem key={p.id} p={p} />
+      ))}
+    </div>
+  );
+}
+
+function PesquisaItem({ p }: { p: PesquisaRow }) {
+  const statusDef = STATUS_PESQUISA_DEFS[p.status];
+  const rodando = p.status === "pendente" || p.status === "processando";
+  const concluido = p.status === "concluido";
+  const erro = p.status === "erro";
+
+  const dataFmt = new Date(p.created_at).toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  return (
+    <div className="group flex items-center gap-3 rounded-xl bg-card px-3.5 py-3 ring-1 ring-foreground/10 transition-colors hover:ring-foreground/25">
+      {/* Marcador de status à esquerda */}
+      <span
+        className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${
+          erro
+            ? "bg-destructive/10 text-destructive"
+            : concluido
+              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+              : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+        }`}
+      >
+        {rodando ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : erro ? (
+          <AlertCircle className="h-4 w-4" />
+        ) : (
+          <MapPin className="h-4 w-4" />
+        )}
+      </span>
+
+      {/* Conteúdo */}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5">
+          <p className="truncate text-sm font-semibold capitalize">
+            {p.nicho}
+            <span className="font-normal text-muted-foreground"> em </span>
+            {p.cidade}
+          </p>
+          {/* Badge só quando NÃO concluído (concluído já é dito pelo número) */}
+          {!concluido && statusDef && (
+            <span
+              className={`inline-flex shrink-0 items-center rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${statusDef.color}`}
+            >
+              {rodando ? "Em fila" : statusDef.label}
+            </span>
+          )}
+        </div>
+        <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+          {p.criado_por_nome ?? "Alguém"} · {dataFmt}
+        </p>
+        {erro && p.erro_mensagem && (
+          <p className="mt-0.5 line-clamp-1 text-[11px] text-destructive" title={p.erro_mensagem}>
+            {p.erro_mensagem}
+          </p>
+        )}
+      </div>
+
+      {/* Contagem de resultados à direita */}
+      {concluido && (
+        <div className="shrink-0 text-right">
+          <p className="text-lg font-bold leading-none tabular-nums text-emerald-600 dark:text-emerald-400">
+            {p.total_resultados}
+          </p>
+          <p className="mt-0.5 text-[9px] uppercase tracking-wider text-muted-foreground">
+            {p.total_resultados === 1 ? "lead" : "leads"}
+          </p>
+          {p.total_novos < p.total_resultados && (
+            <p className="text-[9px] text-muted-foreground">
+              {p.total_novos} novos
+            </p>
+          )}
+        </div>
+      )}
+
+      {rodando && (
+        <span className="shrink-0 text-[10px] font-medium uppercase tracking-wider text-amber-600 dark:text-amber-400">
+          Buscando…
+        </span>
+      )}
     </div>
   );
 }
