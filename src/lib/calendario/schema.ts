@@ -35,6 +35,8 @@ const baseEventFields = {
   localizacao_endereco: z.string().optional().nullable(),
   localizacao_maps_url: z.string().optional().nullable(),
   link_roteiro: z.string().optional().nullable(),
+  roteiro_tipo: z.enum(["link", "pdf"]).optional().nullable(),
+  roteiro_pdf_path: z.string().optional().nullable(),
   observacoes_gravacao: z.string().optional().nullable(),
 };
 
@@ -59,6 +61,8 @@ export interface CalendarEvent {
   localizacao_endereco?: string | null;
   localizacao_maps_url?: string | null;
   link_roteiro?: string | null;
+  roteiro_tipo?: "link" | "pdf" | null;
+  roteiro_pdf_path?: string | null;
   observacoes_gravacao?: string | null;
   criado_por?: string;
   participantes_ids?: string[];
@@ -68,4 +72,8 @@ export interface CalendarEvent {
   videomaker_assigned_id?: string | null;
   /** Nome do videomaker designado, resolvido em listEventsForWeek pra exibir no card. */
   videomaker_assigned_nome?: string | null;
+  /** Quando o videomaker marcou que leu o roteiro. */
+  videomaker_leu_em?: string | null;
+  /** Quando o videomaker marcou que imprimiu o roteiro. */
+  videomaker_imprimiu_em?: string | null;
 }
