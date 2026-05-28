@@ -110,7 +110,7 @@ async function _listEventsForWeekImpl(
   // 1) Manual events
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabaseAny = supabase as any;
-  const fullSelect = `id, titulo, descricao, inicio, fim, sub_calendar, client_id, lead_id, criado_por, participantes_ids, localizacao_endereco, localizacao_maps_url, link_roteiro, observacoes_gravacao, videomaker_status, videomaker_assigned_id`;
+  const fullSelect = `id, titulo, descricao, inicio, fim, sub_calendar, client_id, lead_id, criado_por, participantes_ids, localizacao_endereco, localizacao_maps_url, link_roteiro, observacoes_gravacao, videomaker_status, videomaker_assigned_id, roteiro_tipo, videomaker_leu_em, videomaker_imprimiu_em`;
   const legacySelect = `id, titulo, descricao, inicio, fim, sub_calendar, client_id, lead_id, criado_por, participantes_ids, localizacao_endereco, localizacao_maps_url, link_roteiro, observacoes_gravacao`;
 
   const buildManualQuery = (selectStr: string) => {
@@ -189,6 +189,9 @@ async function _listEventsForWeekImpl(
       videomaker_status: m.videomaker_status ?? null,
       videomaker_assigned_id: assignedId,
       videomaker_assigned_nome: assignedId ? assignedNomeMap.get(assignedId) ?? null : null,
+      roteiro_tipo: m.roteiro_tipo ?? null,
+      videomaker_leu_em: m.videomaker_leu_em ?? null,
+      videomaker_imprimiu_em: m.videomaker_imprimiu_em ?? null,
     });
   }
 
@@ -392,8 +395,8 @@ export async function listEventsForWeek(
       };
       return _listEventsForWeekImpl(from, to, uc, up);
     },
-    // v4: shape ganhou videomaker_assigned_nome (resolve nome do videomaker designado)
-    ["calendario-week-events-v4"],
+    // v5: shape ganhou roteiro_tipo, videomaker_leu_em, videomaker_imprimiu_em (badge de status no card)
+    ["calendario-week-events-v5"],
     { revalidate: 60, tags: ["calendar"] },
   );
   return cached(

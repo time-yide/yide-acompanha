@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Video, User, UserPlus } from "lucide-react";
 import type { CalendarEvent } from "@/lib/calendario/schema";
 import { formatBrtTime } from "@/lib/calendario/timezone";
+import { computaStatus } from "@/lib/briefing-gravacao/status";
 
 // Light mode usa cor sólida 100/200 + texto 900/950 pra contraste forte.
 // Dark mode mantém overlay /15-/25 que já funciona bem no fundo escuro.
@@ -26,6 +27,24 @@ export function EventCell({ event }: { event: CalendarEvent }) {
     <div className={`rounded-md p-2 ${subClass[event.sub_calendar] ?? subClass.agencia} text-xs leading-tight sm:p-1.5 sm:text-[11px]`}>
       <div className="flex items-center gap-1 font-semibold truncate">
         {isVm && <Video className="h-3.5 w-3.5 flex-shrink-0 sm:h-3 sm:w-3" />}
+        {isVm && (() => {
+          const status = computaStatus({
+            roteiro_tipo: event.roteiro_tipo ?? null,
+            videomaker_leu_em: event.videomaker_leu_em ?? null,
+            videomaker_imprimiu_em: event.videomaker_imprimiu_em ?? null,
+          });
+          const meta = {
+            sem_roteiro: { bg: "bg-red-500", title: "Sem roteiro" },
+            pendente: { bg: "bg-amber-500", title: "Briefing pendente" },
+            pronto: { bg: "bg-emerald-500", title: "Pronto pra gravar" },
+          }[status];
+          return (
+            <span
+              className={`mr-1 inline-block h-2 w-2 rounded-full flex-shrink-0 ${meta.bg}`}
+              title={meta.title}
+            />
+          );
+        })()}
         <span className="truncate">{event.titulo}</span>
       </div>
       <div className="opacity-70">{formatBrtTime(event.inicio)}</div>
