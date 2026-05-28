@@ -39,7 +39,9 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
   const isVideomaker = event.sub_calendar === "videomakers";
 
   let roteiroUrl = "#";
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if (!canEdit && isVideomaker && (event as any).roteiro_tipo) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     roteiroUrl = await resolveRoteiroUrl(event as any);
   }
 

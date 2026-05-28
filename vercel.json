@@ -13,6 +13,7 @@
     { "path": "/api/cron/instagram-snapshots", "schedule": "30 4 * * *" },
     { "path": "/api/cron/instagram-meta-alerts", "schedule": "0 12 * * *" },
     { "path": "/api/cron/yori-worker", "schedule": "*/1 * * * *" },
-    { "path": "/api/cron/yori-cleanup", "schedule": "0 3 * * *" }
+    { "path": "/api/cron/yori-cleanup", "schedule": "0 3 * * *" },
+    { "path": "/api/cron/gravacoes-pendentes", "schedule": "*/5 * * * *" }
   ]
 }
