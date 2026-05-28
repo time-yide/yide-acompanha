@@ -36,6 +36,7 @@ export async function criarOportunidadeAction(formData: FormData): Promise<Resul
     cliente_nome: fd(formData, "cliente_nome"),
     contato: fd(formData, "contato"),
     valor_comissao: fd(formData, "valor_comissao") ?? 0,
+    tipo: fd(formData, "tipo") ?? "captacao",
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
@@ -52,6 +53,7 @@ export async function criarOportunidadeAction(formData: FormData): Promise<Resul
     cliente_nome: parsed.data.cliente_nome,
     contato: parsed.data.contato,
     valor_comissao: parsed.data.valor_comissao,
+    tipo: parsed.data.tipo,
     status: "disponivel",
   });
   if (error) return { error: error.message };

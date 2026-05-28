@@ -2,13 +2,13 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
-import { STATUS_OP_DEFS } from "@/lib/freela-yide/tipos";
+import { STATUS_OP_DEFS, TIPO_OP_DEFS } from "@/lib/freela-yide/tipos";
 import { moverStatusAction } from "@/lib/freela-yide/actions";
 import type { OportunidadeRow } from "@/lib/freela-yide/queries";
 
 const PROXIMOS: Record<string, { status: string; label: string }[]> = {
-  pega: [{ status: "em_negociacao", label: "Negociando" }, { status: "fechada", label: "Fechei!" }, { status: "perdida", label: "Perdi" }, { status: "disponivel", label: "Devolver" }],
-  em_negociacao: [{ status: "fechada", label: "Fechei!" }, { status: "perdida", label: "Perdi" }],
+  pega: [{ status: "em_negociacao", label: "Em andamento" }, { status: "fechada", label: "Concluí" }, { status: "perdida", label: "Cancelar" }, { status: "disponivel", label: "Devolver" }],
+  em_negociacao: [{ status: "fechada", label: "Concluí" }, { status: "perdida", label: "Cancelar" }],
 };
 
 export function MinhasOportunidades({ ops }: { ops: OportunidadeRow[] }) {
@@ -27,7 +27,10 @@ export function MinhasOportunidades({ ops }: { ops: OportunidadeRow[] }) {
         return (
           <Card key={op.id} className="flex flex-wrap items-center gap-3 p-3">
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">{op.titulo}</p>
+              <div className="flex items-center gap-1.5">
+                <p className="truncate text-sm font-medium">{op.titulo}</p>
+                <span className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${TIPO_OP_DEFS[op.tipo].color}`}>{TIPO_OP_DEFS[op.tipo].label}</span>
+              </div>
               <p className="text-xs text-muted-foreground">{def.label} · <span className="text-fuchsia-400 font-semibold">R$ {op.valor_comissao.toLocaleString("pt-BR")}</span> · +{op.pontos} pts</p>
             </div>
             <div className="flex flex-wrap gap-1">

@@ -27,7 +27,7 @@ export function DefinirMetaButton() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5"><Label htmlFor="tipo_alvo">Tipo</Label>
                 <select id="tipo_alvo" name="tipo_alvo" className="h-9 w-full rounded-md border bg-card px-2 text-sm">
-                  <option value="fechamentos">Fechamentos</option><option value="pontos">Pontos</option><option value="comissao">R$ comissão</option>
+                  <option value="fechamentos">Fechamentos</option><option value="pontos">Pontos</option><option value="comissao">R$ valor</option>
                 </select></div>
               <div className="space-y-1.5"><Label htmlFor="alvo">Alvo</Label><Input id="alvo" name="alvo" type="number" min={0} required /></div>
             </div>
