@@ -35,7 +35,7 @@ beforeEach(() => {
   dispatchNotificationMock.mockReset();
 });
 
-function mockTaskRow(overrides: Partial<{ status: string; criado_por: string; atribuido_a: string; completed_at: string | null; artes_entregues: number | null; titulo: string; client_id: string | null }>) {
+function mockTaskRow(overrides: Partial<{ status: string; criado_por: string; atribuido_a: string; completed_at: string | null; artes_entregues: number | null; titulo: string; client_id: string | null; tipo: string }>) {
   return {
     id: "task-1",
     titulo: "Tarefa de teste",
@@ -45,6 +45,8 @@ function mockTaskRow(overrides: Partial<{ status: string; criado_por: string; at
     completed_at: null,
     artes_entregues: null,
     client_id: null,
+    // Default "geral": NÃO exige modal de entrega (só video/arte exigem).
+    tipo: "geral",
     ...overrides,
   };
 }
@@ -84,7 +86,7 @@ function setupMocks(
 describe("toggleTaskCompletionAction — roles que entregam (designer/editor/videomaker/audiovisual_chefe)", () => {
   it("designer fechando recebe erro pedindo uso do modal de entrega", async () => {
     requireAuthMock.mockResolvedValue({ id: "user-1", role: "designer", nome: "Designer Teste" });
-    const { update } = setupMocks(mockTaskRow({ status: "aberta" }), { assigneeRole: "designer" });
+    const { update } = setupMocks(mockTaskRow({ status: "aberta", tipo: "video" }), { assigneeRole: "designer" });
 
     const result = await toggleTaskCompletionAction("task-1");
 
@@ -95,7 +97,7 @@ describe("toggleTaskCompletionAction — roles que entregam (designer/editor/vid
 
   it("editor fechando recebe erro pedindo uso do modal de entrega", async () => {
     requireAuthMock.mockResolvedValue({ id: "user-1", role: "editor", nome: "Editor Teste" });
-    const { update } = setupMocks(mockTaskRow({ status: "aberta" }), { assigneeRole: "editor" });
+    const { update } = setupMocks(mockTaskRow({ status: "aberta", tipo: "video" }), { assigneeRole: "editor" });
 
     const result = await toggleTaskCompletionAction("task-1");
 
@@ -163,13 +165,26 @@ describe("toggleTaskCompletionAction — semântica de Postado/Entregue", () => 
 describe("toggleTaskCompletionAction — assessor/coord também entregam", () => {
   // ROLES_QUE_ENTREGAM agora inclui assessor e coordenador, então o guard
   // de "use o modal de entrega" se aplica a eles também.
-  it("assessor fechando recebe erro pedindo uso do modal de entrega", async () => {
+  it("assessor fechando tarefa de entrega (video/arte) recebe erro pedindo modal", async () => {
     requireAuthMock.mockResolvedValue({ id: "user-1", role: "assessor", nome: "Assessor Teste" });
-    const { update } = setupMocks(mockTaskRow({ status: "aberta" }), { assigneeRole: "assessor" });
+    const { update } = setupMocks(mockTaskRow({ status: "aberta", tipo: "video" }), { assigneeRole: "assessor" });
 
     const result = await toggleTaskCompletionAction("task-1");
 
     expect(result?.error).toBeTruthy();
     expect(update).not.toHaveBeenCalled();
+  });
+
+  it("assessor fechando tarefa GERAL (sem entrega) conclui direto, sem modal", async () => {
+    // PR #463: tarefas "geral" (reunião/follow-up) não têm drive_link nem
+    // quantidade pra preencher, então assessor/coord concluem pelo checkbox.
+    requireAuthMock.mockResolvedValue({ id: "user-1", role: "assessor", nome: "Assessor Teste" });
+    const { update } = setupMocks(mockTaskRow({ status: "aberta", tipo: "geral" }), { assigneeRole: "assessor" });
+
+    const result = await toggleTaskCompletionAction("task-1");
+
+    expect(result?.error).toBeUndefined();
+    expect(update).toHaveBeenCalled();
+    expect(update.mock.calls[0][0].status).toBe("postada");
   });
 });
