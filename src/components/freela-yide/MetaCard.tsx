@@ -15,7 +15,7 @@ export function MetaCard({ meta, ranking }: { meta: MetaRow | null; ranking: Ran
     <Card className="space-y-3 p-4">
       <div className="flex items-center justify-between">
         <h2 className="flex items-center gap-2 text-sm font-semibold"><Gift className="h-4 w-4 text-fuchsia-400" /> Meta do mês</h2>
-        {meta.bonus_descricao && <span className="rounded-full bg-fuchsia-500/10 px-2 py-0.5 text-[11px] font-medium text-fuchsia-400">🎁 {meta.bonus_descricao}</span>}
+        {meta.bonus_descricao && <span className="rounded-full bg-fuchsia-500/10 px-2 py-0.5 text-[11px] font-medium text-fuchsia-400">{meta.bonus_descricao}</span>}
       </div>
       <p className="text-sm">{meta.descricao}</p>
       <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
