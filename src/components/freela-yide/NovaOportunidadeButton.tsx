@@ -41,7 +41,10 @@ export function NovaOportunidadeButton() {
               <div className="space-y-1.5"><Label htmlFor="valor_comissao">Valor (R$)</Label><Input id="valor_comissao" name="valor_comissao" type="number" min={0} step="50" required /></div>
             </div>
             <div className="space-y-1.5"><Label htmlFor="contato">Contato</Label><Input id="contato" name="contato" placeholder="telefone, @, e-mail..." /></div>
-            <div className="space-y-1.5"><Label htmlFor="horario">Horário</Label><Input id="horario" name="horario" placeholder="Ex: 20/06 às 14h" /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5"><Label htmlFor="data">Data</Label><Input id="data" name="data" type="date" /></div>
+              <div className="space-y-1.5"><Label htmlFor="horario">Horário</Label><Input id="horario" name="horario" placeholder="Ex: 14h" /></div>
+            </div>
             <div className="space-y-1.5"><Label htmlFor="descricao">Descrição</Label><Textarea id="descricao" name="descricao" rows={3} /></div>
             {error && <p className="text-sm text-destructive">{error}</p>}
             <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button><Button type="submit" disabled={pending}>{pending ? "Salvando..." : "Publicar"}</Button></div>

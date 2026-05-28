@@ -8,6 +8,7 @@ export const criarOportunidadeSchema = z.object({
   descricao: z.string().trim().max(2000).optional().nullable(),
   cliente_nome: z.string().trim().max(160).optional().nullable(),
   contato: z.string().trim().max(160).optional().nullable(),
+  data: z.string().trim().optional().nullable(),
   horario: z.string().trim().max(120).optional().nullable(),
   valor_comissao: z.coerce.number().min(0).max(1_000_000),
   tipo: z.enum(["captacao", "modelo"]).default("captacao"),

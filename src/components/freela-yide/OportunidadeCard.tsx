@@ -7,6 +7,12 @@ import { pegarOportunidadeAction } from "@/lib/freela-yide/actions";
 import type { OportunidadeRow } from "@/lib/freela-yide/queries";
 import { useRouter } from "next/navigation";
 
+function fmtData(d: string | null): string | null {
+  if (!d) return null;
+  const m = d.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : d;
+}
+
 export function OportunidadeCard({ op }: { op: OportunidadeRow }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -25,7 +31,7 @@ export function OportunidadeCard({ op }: { op: OportunidadeRow }) {
         <div className="min-w-0">
           <p className="truncate font-semibold">{op.titulo}</p>
           {op.cliente_nome && <p className="truncate text-xs text-muted-foreground">{op.cliente_nome}</p>}
-          {op.horario && <p className="flex items-center gap-1 truncate text-xs text-muted-foreground"><Clock className="h-3 w-3 shrink-0" />{op.horario}</p>}
+          {(op.data || op.horario) && <p className="flex items-center gap-1 truncate text-xs text-muted-foreground"><Clock className="h-3 w-3 shrink-0" />{[fmtData(op.data), op.horario].filter(Boolean).join(" · ")}</p>}
         </div>
         <div className="flex shrink-0 items-center gap-1">
           <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${tipoDef.color}`}>{tipoDef.label}</span>
