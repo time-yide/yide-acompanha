@@ -26,6 +26,8 @@ export interface LeadGeradoRow {
   decisor_telefone: string | null;
   decisor_linkedin: string | null;
   cnpj: string | null;
+  telefone_receita: string | null;
+  email_receita: string | null;
   socios: Array<{ nome: string; qualificacao: string; data_entrada: string | null }>;
   socio_principal_qualificacao: string | null;
   score: number | null;
@@ -90,7 +92,7 @@ export async function listLeadsGerados(
   let q = sb
     .from("leads_gerados")
     .select(
-      "id, empresa, telefone, whatsapp, email, website, dominio, instagram, endereco, cidade, estado, categoria, google_rating, google_reviews_count, google_maps_url, decisor_nome, decisor_cargo, decisor_email, decisor_whatsapp, decisor_instagram, decisor_telefone, decisor_linkedin, cnpj, socios, socio_principal_qualificacao, score, qualificado, potencial_comercial, observacoes_ia, diagnostico, status, tags, observacoes, responsavel_id, fonte, created_at, updated_at, responsavel:profiles!leads_gerados_responsavel_id_fkey(nome)",
+      "id, empresa, telefone, whatsapp, email, website, dominio, instagram, endereco, cidade, estado, categoria, google_rating, google_reviews_count, google_maps_url, decisor_nome, decisor_cargo, decisor_email, decisor_whatsapp, decisor_instagram, decisor_telefone, decisor_linkedin, cnpj, telefone_receita, email_receita, socios, socio_principal_qualificacao, score, qualificado, potencial_comercial, observacoes_ia, diagnostico, status, tags, observacoes, responsavel_id, fonte, created_at, updated_at, responsavel:profiles!leads_gerados_responsavel_id_fkey(nome)",
       { count: "exact" },
     )
     .eq("organization_id", organizationId)
@@ -166,6 +168,8 @@ export async function listLeadsGerados(
     decisor_telefone: (row.decisor_telefone as string | null) ?? null,
     decisor_linkedin: (row.decisor_linkedin as string | null) ?? null,
     cnpj: (row.cnpj as string | null) ?? null,
+    telefone_receita: (row.telefone_receita as string | null) ?? null,
+    email_receita: (row.email_receita as string | null) ?? null,
     socios: Array.isArray(row.socios)
       ? (row.socios as Array<{ nome: string; qualificacao: string; data_entrada: string | null }>)
       : [],
@@ -198,7 +202,7 @@ export async function getLeadGerado(id: string): Promise<LeadGeradoRow | null> {
   const { data, error } = await sb
     .from("leads_gerados")
     .select(
-      "id, empresa, telefone, whatsapp, email, website, dominio, instagram, endereco, cidade, estado, categoria, google_rating, google_reviews_count, google_maps_url, decisor_nome, decisor_cargo, decisor_email, decisor_whatsapp, decisor_instagram, decisor_telefone, decisor_linkedin, cnpj, socios, socio_principal_qualificacao, score, qualificado, potencial_comercial, observacoes_ia, diagnostico, status, tags, observacoes, responsavel_id, fonte, created_at, updated_at, responsavel:profiles!leads_gerados_responsavel_id_fkey(nome)",
+      "id, empresa, telefone, whatsapp, email, website, dominio, instagram, endereco, cidade, estado, categoria, google_rating, google_reviews_count, google_maps_url, decisor_nome, decisor_cargo, decisor_email, decisor_whatsapp, decisor_instagram, decisor_telefone, decisor_linkedin, cnpj, telefone_receita, email_receita, socios, socio_principal_qualificacao, score, qualificado, potencial_comercial, observacoes_ia, diagnostico, status, tags, observacoes, responsavel_id, fonte, created_at, updated_at, responsavel:profiles!leads_gerados_responsavel_id_fkey(nome)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -229,6 +233,8 @@ export async function getLeadGerado(id: string): Promise<LeadGeradoRow | null> {
     decisor_telefone: (row.decisor_telefone as string | null) ?? null,
     decisor_linkedin: (row.decisor_linkedin as string | null) ?? null,
     cnpj: (row.cnpj as string | null) ?? null,
+    telefone_receita: (row.telefone_receita as string | null) ?? null,
+    email_receita: (row.email_receita as string | null) ?? null,
     socios: Array.isArray(row.socios)
       ? (row.socios as Array<{ nome: string; qualificacao: string; data_entrada: string | null }>)
       : [],

@@ -26,9 +26,49 @@ export interface CnpjLookupResult {
   cnpj: string | null;
   razao_social: string | null;
   nome_fantasia: string | null;
+  /** Telefone oficial cadastrado na Receita (pode ser antigo/do contador). */
+  telefone: string | null;
+  /** Email oficial cadastrado na Receita. */
+  email: string | null;
   socios: CnpjaSocio[];
   /** True quando o endpoint retornou >1 resultado pro nome+cidade. */
   multiplos_resultados: boolean;
+}
+
+/**
+ * Extrai o primeiro telefone do response da CNPJá. A Receita devolve
+ * `phones: [{ area, number }]`. Defensivo: aceita também telefone como
+ * string crua, e retorna null se nada utilizável.
+ */
+function parsePhone(raw: unknown): string | null {
+  if (!Array.isArray(raw) || raw.length === 0) return null;
+  const first = raw[0];
+  if (typeof first === "string") {
+    const digits = first.replace(/\D/g, "");
+    return digits || null;
+  }
+  if (first && typeof first === "object") {
+    const o = first as { area?: unknown; number?: unknown };
+    const area = String(o.area ?? "").replace(/\D/g, "");
+    const number = String(o.number ?? "").replace(/\D/g, "");
+    const joined = `${area}${number}`;
+    return joined || null;
+  }
+  return null;
+}
+
+/**
+ * Extrai o primeiro email do response da CNPJá (`emails: [{ address }]`).
+ */
+function parseEmail(raw: unknown): string | null {
+  if (!Array.isArray(raw) || raw.length === 0) return null;
+  const first = raw[0];
+  if (typeof first === "string") return first.trim() || null;
+  if (first && typeof first === "object") {
+    const addr = String((first as { address?: unknown }).address ?? "").trim();
+    return addr || null;
+  }
+  return null;
 }
 
 /**
@@ -40,6 +80,8 @@ export interface CnpjLookupResult {
  *   taxId: "12345678000190",
  *   company: { name: "EMPRESA EXEMPLO LTDA" },
  *   alias: "Empresa Exemplo",  // nome fantasia
+ *   phones: [{ area: "65", number: "999999999" }],
+ *   emails: [{ address: "contato@empresa.com" }],
  *   members: [
  *     { person: { name: "..." }, role: { text: "..." }, since: "YYYY-MM-DD" }
  *   ]
@@ -59,6 +101,8 @@ export function parseCnpjaResponse(
       cnpj: null,
       razao_social: null,
       nome_fantasia: null,
+      telefone: null,
+      email: null,
       socios: [],
       multiplos_resultados: multiplosResultados,
     };
@@ -82,6 +126,8 @@ export function parseCnpjaResponse(
     cnpj: String(raw.taxId),
     razao_social: raw.company?.name ?? null,
     nome_fantasia: raw.alias ?? null,
+    telefone: parsePhone(raw.phones),
+    email: parseEmail(raw.emails),
     socios,
     multiplos_resultados: multiplosResultados,
   };
@@ -103,6 +149,8 @@ export async function searchCnpjByName(
     cnpj: null,
     razao_social: null,
     nome_fantasia: null,
+    telefone: null,
+    email: null,
     socios: [],
     multiplos_resultados: false,
   };

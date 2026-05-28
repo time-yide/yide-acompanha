@@ -9,27 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { updateLeadAction } from "@/lib/gerador-leads/actions";
 import type { LeadGeradoRow } from "@/lib/gerador-leads/queries";
-import { similarity } from "@/lib/gerador-leads/utils/string-match";
 
 interface Props {
   lead: LeadGeradoRow;
   canEdit: boolean;
-}
-
-type ConfidenceLevel = "alta" | "media" | "nao_identificado";
-
-interface SocioMin {
-  nome: string;
-  qualificacao: string;
-}
-
-function deriveDecisorConfidence(
-  decisorNome: string | null | undefined,
-  socios: SocioMin[],
-): ConfidenceLevel {
-  if (!decisorNome) return "nao_identificado";
-  const matched = socios.find((s) => similarity(s.nome, decisorNome) >= 0.8);
-  return matched ? "alta" : "media";
 }
 
 export function LeadEditCard({ lead, canEdit }: Props) {
@@ -39,11 +22,6 @@ export function LeadEditCard({ lead, canEdit }: Props) {
   const [email, setEmail] = useState(lead.email ?? "");
   const [website, setWebsite] = useState(lead.website ?? "");
   const [instagram, setInstagram] = useState(lead.instagram ?? "");
-  const [decisorNome, setDecisorNome] = useState(lead.decisor_nome ?? "");
-  const [decisorCargo, setDecisorCargo] = useState(lead.decisor_cargo ?? "");
-  const [decisorEmail, setDecisorEmail] = useState(lead.decisor_email ?? "");
-  const [decisorWhatsapp, setDecisorWhatsapp] = useState(lead.decisor_whatsapp ?? "");
-  const [decisorInstagram, setDecisorInstagram] = useState(lead.decisor_instagram ?? "");
   const [observacoes, setObservacoes] = useState(lead.observacoes ?? "");
   const [tags, setTags] = useState<string[]>(lead.tags);
   const [tagInput, setTagInput] = useState("");
@@ -74,11 +52,6 @@ export function LeadEditCard({ lead, canEdit }: Props) {
     fd.set("email", email);
     fd.set("website", website);
     fd.set("instagram", instagram);
-    fd.set("decisor_nome", decisorNome);
-    fd.set("decisor_cargo", decisorCargo);
-    fd.set("decisor_email", decisorEmail);
-    fd.set("decisor_whatsapp", decisorWhatsapp);
-    fd.set("decisor_instagram", decisorInstagram);
     fd.set("observacoes", observacoes);
     fd.set("tags", JSON.stringify(tags));
     startTransition(async () => {
@@ -166,153 +139,6 @@ export function LeadEditCard({ lead, canEdit }: Props) {
           disabled={!canEdit}
           placeholder="https://empresa.com.br"
         />
-      </div>
-
-      <div className="space-y-1.5 border-t pt-4">
-        <h3 className="text-sm font-semibold">👤 Decisor</h3>
-        <p className="text-[11px] text-muted-foreground">
-          Preenche manualmente ou usa o botão <strong>&quot;Buscar dono&quot;</strong> na lista
-          (roda site scraping + Hunter + Instagram + IA pra identificar automaticamente).
-        </p>
-      </div>
-
-      {(() => {
-        const conf = deriveDecisorConfidence(lead.decisor_nome, lead.socios ?? []);
-        if (conf === "alta") {
-          const socioMatch = (lead.socios ?? []).find(
-            (s: SocioMin) => similarity(s.nome, lead.decisor_nome ?? "") >= 0.8,
-          );
-          return (
-            <div className="flex items-center gap-2 rounded-md border border-emerald-500/40 bg-emerald-500/10 p-2 text-xs text-emerald-700 dark:text-emerald-300">
-              <span className="font-semibold">✓ Identificado via Receita Federal:</span>
-              <span>
-                {socioMatch?.nome} ({socioMatch?.qualificacao})
-              </span>
-            </div>
-          );
-        }
-        if (conf === "media") {
-          return (
-            <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-700 dark:text-amber-300">
-              <span className="font-semibold">⚠ Inferido por IA</span>
-              <span className="ml-2">— nome não bate com sócios oficiais</span>
-            </div>
-          );
-        }
-        return (
-          <div className="rounded-md border bg-muted/30 p-2 text-xs text-muted-foreground">
-            Decisor não identificado
-          </div>
-        );
-      })()}
-
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div className="space-y-1.5">
-          <Label htmlFor="decisor_nome">Nome</Label>
-          <Input
-            id="decisor_nome"
-            value={decisorNome}
-            onChange={(e) => setDecisorNome(e.target.value)}
-            disabled={!canEdit}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="decisor_cargo">Cargo</Label>
-          <Input
-            id="decisor_cargo"
-            value={decisorCargo}
-            onChange={(e) => setDecisorCargo(e.target.value)}
-            disabled={!canEdit}
-            placeholder="Sócio, CEO, Gerente de Marketing..."
-          />
-        </div>
-        <div className="space-y-1.5 sm:col-span-2">
-          <Label htmlFor="decisor_email">Email do decisor</Label>
-          <Input
-            id="decisor_email"
-            type="email"
-            value={decisorEmail}
-            onChange={(e) => setDecisorEmail(e.target.value)}
-            disabled={!canEdit}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="decisor_whatsapp">WhatsApp do decisor</Label>
-          <Input
-            id="decisor_whatsapp"
-            type="tel"
-            value={decisorWhatsapp}
-            onChange={(e) => setDecisorWhatsapp(e.target.value)}
-            disabled={!canEdit}
-            placeholder="+5565999999999"
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="decisor_instagram">Instagram pessoal</Label>
-          <Input
-            id="decisor_instagram"
-            value={decisorInstagram}
-            onChange={(e) => setDecisorInstagram(e.target.value)}
-            disabled={!canEdit}
-            placeholder="@joaosilva_oficial"
-          />
-        </div>
-      </div>
-
-      <div className="flex flex-wrap gap-2 border-t pt-2">
-        {(() => {
-          const telLigar = lead.decisor_telefone ?? lead.telefone;
-          return (
-            <a
-              href={telLigar ? `tel:${telLigar}` : undefined}
-              aria-disabled={!telLigar}
-              tabIndex={telLigar ? 0 : -1}
-              className={`inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[11px] font-medium ${
-                telLigar
-                  ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/20"
-                  : "pointer-events-none border-muted bg-muted/30 text-muted-foreground opacity-50"
-              }`}
-            >
-              📞 Ligar
-            </a>
-          );
-        })()}
-        <a
-          href={
-            decisorWhatsapp
-              ? `https://wa.me/${decisorWhatsapp.replace(/[^\d]/g, "")}`
-              : undefined
-          }
-          aria-disabled={!decisorWhatsapp}
-          tabIndex={decisorWhatsapp ? 0 : -1}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={`inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[11px] font-medium ${
-            decisorWhatsapp
-              ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-300"
-              : "pointer-events-none border-muted bg-muted/30 text-muted-foreground opacity-50"
-          }`}
-        >
-          💬 WhatsApp
-        </a>
-        <a
-          href={
-            decisorInstagram
-              ? `https://instagram.com/${decisorInstagram.replace(/^@/, "")}`
-              : undefined
-          }
-          aria-disabled={!decisorInstagram}
-          tabIndex={decisorInstagram ? 0 : -1}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={`inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[11px] font-medium ${
-            decisorInstagram
-              ? "border-violet-500/40 bg-violet-500/10 text-violet-700 hover:bg-violet-500/20 dark:text-violet-300"
-              : "pointer-events-none border-muted bg-muted/30 text-muted-foreground opacity-50"
-          }`}
-        >
-          📷 Instagram
-        </a>
       </div>
 
       <div className="space-y-1.5 border-t pt-4">

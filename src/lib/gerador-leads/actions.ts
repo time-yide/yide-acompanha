@@ -15,6 +15,7 @@ import {
   searchGoogleMaps,
   normalizeOutscraperPlace,
 } from "./services/outscraper";
+import { searchCnpjByName } from "./services/cnpja";
 
 interface ActionOk { success: true }
 interface ActionErr { error: string }
@@ -149,6 +150,7 @@ async function processarPesquisa(args: {
     }
 
     let totalNovos = 0;
+    const novosLeads: NovoLeadParaReceita[] = [];
 
     for (const raw of result.results) {
       const norm = normalizeOutscraperPlace(raw);
@@ -175,34 +177,51 @@ async function processarPesquisa(args: {
         continue;
       }
 
-      const { error: insErr } = await sb.from("leads_gerados").insert({
-        organization_id: args.organizationId,
-        pesquisa_id: args.pesquisaId,
-        empresa: norm.empresa,
-        telefone: norm.telefone,
-        whatsapp: norm.whatsapp,
-        email: norm.email,
-        website: norm.website,
-        dominio: norm.dominio,
-        instagram: norm.instagram,
-        endereco: norm.endereco,
-        cidade: norm.cidade ?? args.cidade,
-        estado: norm.estado,
-        pais: norm.pais,
-        categoria: norm.categoria,
-        horario_funcionamento: norm.horario_funcionamento,
-        google_rating: norm.google_rating,
-        google_reviews_count: norm.google_reviews_count,
-        google_place_id: norm.google_place_id,
-        google_maps_url: norm.google_maps_url,
-        latitude: norm.latitude,
-        longitude: norm.longitude,
-        raw_data: norm.raw_data,
-        fonte: "outscraper",
-        status: "novo",
-      });
-      if (!insErr) totalNovos++;
+      const cidadeLead = norm.cidade ?? args.cidade;
+      const { data: insData, error: insErr } = await sb
+        .from("leads_gerados")
+        .insert({
+          organization_id: args.organizationId,
+          pesquisa_id: args.pesquisaId,
+          empresa: norm.empresa,
+          telefone: norm.telefone,
+          whatsapp: norm.whatsapp,
+          email: norm.email,
+          website: norm.website,
+          dominio: norm.dominio,
+          instagram: norm.instagram,
+          endereco: norm.endereco,
+          cidade: cidadeLead,
+          estado: norm.estado,
+          pais: norm.pais,
+          categoria: norm.categoria,
+          horario_funcionamento: norm.horario_funcionamento,
+          google_rating: norm.google_rating,
+          google_reviews_count: norm.google_reviews_count,
+          google_place_id: norm.google_place_id,
+          google_maps_url: norm.google_maps_url,
+          latitude: norm.latitude,
+          longitude: norm.longitude,
+          raw_data: norm.raw_data,
+          fonte: "outscraper",
+          status: "novo",
+        })
+        .select("id")
+        .single();
+      if (!insErr && insData) {
+        totalNovos++;
+        novosLeads.push({
+          id: (insData as { id: string }).id,
+          empresa: norm.empresa,
+          cidade: cidadeLead,
+          estado: norm.estado ?? undefined,
+        });
+      }
     }
+
+    // Enriquece cada lead novo com dados oficiais da Receita (CNPJá).
+    // Roda depois de inserir todos, em lotes, com parada se a cota estourar.
+    await enriquecerComReceita(sb, novosLeads);
 
     await sb
       .from("leads_gerados_pesquisas")
@@ -225,6 +244,93 @@ async function processarPesquisa(args: {
         concluido_em: new Date().toISOString(),
       })
       .eq("id", args.pesquisaId);
+  }
+}
+
+interface NovoLeadParaReceita {
+  id: string;
+  empresa: string;
+  cidade: string;
+  estado?: string;
+}
+
+const RECEITA_BATCH_SIZE = 5;
+
+/**
+ * Detecta erro de cota/limite da CNPJá pra parar de gastar consultas à toa.
+ */
+function isQuotaError(error: string | null): boolean {
+  if (!error) return false;
+  const e = error.toLowerCase();
+  return (
+    e.includes("429") ||
+    e.includes("quota") ||
+    e.includes("limite") ||
+    e.includes("limit") ||
+    e.includes("exceeded")
+  );
+}
+
+/**
+ * Enriquece os leads novos com os dados oficiais da Receita (CNPJá): CNPJ,
+ * sócios, qualificação do sócio principal e telefone/email oficiais.
+ *
+ * - Sem CNPJA_API_KEY (skipped) → não faz nada (early return).
+ * - Cota estourada (HTTP 429 / limite) → para o restante da rodada.
+ * - Roda em lotes pra não estourar o tempo da função na Vercel.
+ *
+ * Não sobrescreve o telefone/whatsapp do Google Maps - grava em colunas
+ * separadas (telefone_receita / email_receita).
+ */
+async function enriquecerComReceita(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  sb: any,
+  leads: NovoLeadParaReceita[],
+): Promise<void> {
+  if (leads.length === 0) return;
+
+  let cotaEsgotada = false;
+
+  for (let i = 0; i < leads.length; i += RECEITA_BATCH_SIZE) {
+    if (cotaEsgotada) break;
+    const batch = leads.slice(i, i + RECEITA_BATCH_SIZE);
+
+    const resultados = await Promise.all(
+      batch.map(async (lead) => {
+        const r = await searchCnpjByName(lead.empresa, lead.cidade, lead.estado);
+        return { lead, r };
+      }),
+    );
+
+    for (const { lead, r } of resultados) {
+      // Sem key configurada: não adianta continuar pro resto da pesquisa.
+      if (r.skipped) {
+        console.warn("[gerador-leads] CNPJA_API_KEY ausente - pulando Receita");
+        return;
+      }
+      if (isQuotaError(r.error)) {
+        console.warn("[gerador-leads] cota CNPJá esgotada - parando enriquecimento");
+        cotaEsgotada = true;
+        break;
+      }
+      if (!r.ok || !r.cnpj) continue;
+
+      const socioPrincipal =
+        r.socios.find((s) => s.qualificacao.toLowerCase().includes("administrador")) ??
+        r.socios[0] ??
+        null;
+
+      await sb
+        .from("leads_gerados")
+        .update({
+          cnpj: r.cnpj,
+          socios: r.socios,
+          socio_principal_qualificacao: socioPrincipal?.qualificacao ?? null,
+          telefone_receita: r.telefone,
+          email_receita: r.email,
+        })
+        .eq("id", lead.id);
+    }
   }
 }
 
