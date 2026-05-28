@@ -1,6 +1,7 @@
 "use client";
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Clock } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { STATUS_OP_DEFS, TIPO_OP_DEFS } from "@/lib/freela-yide/tipos";
 import { moverStatusAction } from "@/lib/freela-yide/actions";
@@ -31,7 +32,7 @@ export function MinhasOportunidades({ ops }: { ops: OportunidadeRow[] }) {
                 <p className="truncate text-sm font-medium">{op.titulo}</p>
                 <span className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${TIPO_OP_DEFS[op.tipo].color}`}>{TIPO_OP_DEFS[op.tipo].label}</span>
               </div>
-              <p className="text-xs text-muted-foreground">{def.label} · <span className="text-fuchsia-400 font-semibold">R$ {op.valor_comissao.toLocaleString("pt-BR")}</span> · +{op.pontos} pts</p>
+              <p className="text-xs text-muted-foreground">{def.label} · <span className="text-fuchsia-400 font-semibold">R$ {op.valor_comissao.toLocaleString("pt-BR")}</span> · +{op.pontos} pts{op.horario && <><span> · </span><Clock className="inline h-3 w-3 align-middle" /><span> {op.horario}</span></>}</p>
             </div>
             <div className="flex flex-wrap gap-1">
               {acoes.map((a) => (
