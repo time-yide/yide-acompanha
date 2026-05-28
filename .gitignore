@@ -39,6 +39,7 @@ next-env.d.ts
 .superpowers/
 .serena/
 .vercel
+.claude/worktrees/
 
 # Supabase
 supabase/.branches
