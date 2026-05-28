@@ -17,13 +17,16 @@ import {
 } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { AvatarUpload } from "@/components/colaboradores/AvatarUpload";
+import { NotificacoesGravacaoToggle } from "@/components/configuracoes/NotificacoesGravacaoToggle";
 
 export default async function ConfiguracoesPage() {
   const user = await requireAuth();
   const supabase = await createClient();
-  const { data: profile } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const { data: profile } = await sb
     .from("profiles")
-    .select("nome, telefone, tema_preferido, avatar_url")
+    .select("nome, telefone, tema_preferido, avatar_url, notif_alerta_gravacao_pendente")
     .eq("id", user.id)
     .single();
 
@@ -108,6 +111,12 @@ export default async function ConfiguracoesPage() {
           <Bell className="h-4 w-4" />
           Gerenciar tipos de notificação →
         </Link>
+        {(user.role === "adm" || user.role === "socio") && (
+          <NotificacoesGravacaoToggle
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            defaultAtivo={(profile as any)?.notif_alerta_gravacao_pendente ?? true}
+          />
+        )}
       </Card>
 
       {(user.role === "socio" || user.role === "adm") && (
