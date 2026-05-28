@@ -35,6 +35,7 @@ export async function criarOportunidadeAction(formData: FormData): Promise<Resul
     descricao: fd(formData, "descricao"),
     cliente_nome: fd(formData, "cliente_nome"),
     contato: fd(formData, "contato"),
+    horario: fd(formData, "horario"),
     valor_comissao: fd(formData, "valor_comissao") ?? 0,
     tipo: fd(formData, "tipo") ?? "captacao",
   });
@@ -52,6 +53,7 @@ export async function criarOportunidadeAction(formData: FormData): Promise<Resul
     descricao: parsed.data.descricao,
     cliente_nome: parsed.data.cliente_nome,
     contato: parsed.data.contato,
+    horario: parsed.data.horario,
     valor_comissao: parsed.data.valor_comissao,
     tipo: parsed.data.tipo,
     status: "disponivel",

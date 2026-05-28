@@ -1,6 +1,6 @@
 "use client";
 import { useTransition } from "react";
-import { Coins, Flame, Loader2 } from "lucide-react";
+import { Clock, Coins, Flame, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { STATUS_OP_DEFS, TIPO_OP_DEFS } from "@/lib/freela-yide/tipos";
 import { pegarOportunidadeAction } from "@/lib/freela-yide/actions";
@@ -25,6 +25,7 @@ export function OportunidadeCard({ op }: { op: OportunidadeRow }) {
         <div className="min-w-0">
           <p className="truncate font-semibold">{op.titulo}</p>
           {op.cliente_nome && <p className="truncate text-xs text-muted-foreground">{op.cliente_nome}</p>}
+          {op.horario && <p className="flex items-center gap-1 truncate text-xs text-muted-foreground"><Clock className="h-3 w-3 shrink-0" />{op.horario}</p>}
         </div>
         <div className="flex shrink-0 items-center gap-1">
           <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${tipoDef.color}`}>{tipoDef.label}</span>
