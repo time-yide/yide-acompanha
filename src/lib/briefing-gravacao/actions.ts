@@ -31,15 +31,12 @@ export async function marcarLeuAction(eventoId: string): Promise<Result> {
   }
 
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("calendar_events")
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .update({
-      videomaker_leu_em: new Date().toISOString(),
-      confirmacao_marcada_por: user.id,
-    } as any)
-    .eq("id", eventoId)
-    .is("videomaker_leu_em", null);
+  const leuPayload: Record<string, unknown> = {
+    videomaker_leu_em: new Date().toISOString(),
+    confirmacao_marcada_por: user.id,
+  };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await supabase.from("calendar_events").update(leuPayload as any).eq("id", eventoId).is("videomaker_leu_em", null);
 
   if (error) return { error: error.message };
 
@@ -68,15 +65,12 @@ export async function marcarImprimiuAction(eventoId: string): Promise<Result> {
   }
 
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("calendar_events")
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .update({
-      videomaker_imprimiu_em: new Date().toISOString(),
-      confirmacao_marcada_por: user.id,
-    } as any)
-    .eq("id", eventoId)
-    .is("videomaker_imprimiu_em", null);
+  const imprimiuPayload: Record<string, unknown> = {
+    videomaker_imprimiu_em: new Date().toISOString(),
+    confirmacao_marcada_por: user.id,
+  };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await supabase.from("calendar_events").update(imprimiuPayload as any).eq("id", eventoId).is("videomaker_imprimiu_em", null);
 
   if (error) return { error: error.message };
 

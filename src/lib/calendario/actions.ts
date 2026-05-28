@@ -98,6 +98,8 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
     localizacao_endereco: fd(formData, "localizacao_endereco"),
     localizacao_maps_url: fd(formData, "localizacao_maps_url"),
     link_roteiro: fd(formData, "link_roteiro"),
+    roteiro_tipo: (fd(formData, "roteiro_tipo") as "link" | "pdf" | undefined) ?? null,
+    roteiro_pdf_path: fd(formData, "roteiro_pdf_path"),
     observacoes_gravacao: fd(formData, "observacoes_gravacao"),
   });
 
@@ -134,6 +136,8 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
     localizacao_endereco: parsed.data.localizacao_endereco?.trim() || null,
     localizacao_maps_url: parsed.data.localizacao_maps_url?.trim() || null,
     link_roteiro: parsed.data.link_roteiro?.trim() || null,
+    roteiro_tipo: parsed.data.roteiro_tipo ?? null,
+    roteiro_pdf_path: parsed.data.roteiro_pdf_path ?? null,
     observacoes_gravacao: parsed.data.observacoes_gravacao?.trim() || null,
   };
   const insertPayload = isVideomaker
@@ -223,6 +227,8 @@ export async function updateEventAction(_prevState: ActionResult, formData: Form
     localizacao_endereco: fd(formData, "localizacao_endereco"),
     localizacao_maps_url: fd(formData, "localizacao_maps_url"),
     link_roteiro: fd(formData, "link_roteiro"),
+    roteiro_tipo: (fd(formData, "roteiro_tipo") as "link" | "pdf" | undefined) ?? null,
+    roteiro_pdf_path: fd(formData, "roteiro_pdf_path"),
     observacoes_gravacao: fd(formData, "observacoes_gravacao"),
   });
 
@@ -246,8 +252,21 @@ export async function updateEventAction(_prevState: ActionResult, formData: Form
     localizacao_endereco: parsed.data.localizacao_endereco?.trim() || null,
     localizacao_maps_url: parsed.data.localizacao_maps_url?.trim() || null,
     link_roteiro: parsed.data.link_roteiro?.trim() || null,
+    roteiro_tipo: parsed.data.roteiro_tipo ?? null,
+    roteiro_pdf_path: parsed.data.roteiro_pdf_path ?? null,
     observacoes_gravacao: parsed.data.observacoes_gravacao?.trim() || null,
   };
+
+  // Se o PDF do roteiro foi trocado/removido, apaga o arquivo antigo do storage.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const beforeAny = before as any;
+  const pdfAntigo: string | null = beforeAny?.roteiro_pdf_path ?? null;
+  const trocouTipo = before && beforeAny.roteiro_tipo !== parsed.data.roteiro_tipo;
+  const trocouPdf = before && beforeAny.roteiro_pdf_path !== parsed.data.roteiro_pdf_path;
+  if (pdfAntigo && (trocouTipo || trocouPdf)) {
+    const { deleteRoteiroPdf } = await import("@/lib/briefing-gravacao/storage");
+    after(deleteRoteiroPdf(pdfAntigo));
+  }
 
   // Se o início mudou, zera o reminder pra re-disparar o cron de 30-min antes
   // pro novo horário. Sem isso, eventos remarcados pra mais tarde não recebem
@@ -256,7 +275,8 @@ export async function updateEventAction(_prevState: ActionResult, formData: Form
     (updatePayload as { reminded_30min_at?: string | null }).reminded_30min_at = null;
   }
 
-  const { error } = await supabase.from("calendar_events").update(updatePayload).eq("id", id);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await supabase.from("calendar_events").update(updatePayload as any).eq("id", id);
   if (error) return { error: error.message };
 
   await logAudit({
