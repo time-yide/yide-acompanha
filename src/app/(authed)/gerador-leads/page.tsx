@@ -54,7 +54,7 @@ export default async function GeradorLeadsPage({
 
   const [{ leads, total, page, totalPages }, pesquisas] = await Promise.all([
     listLeadsGerados(orgId, filter),
-    listPesquisas(orgId, 5),
+    listPesquisas(orgId, 50),
   ]);
 
   const canManage = ROLES_QUE_GERENCIAM.includes(user.role);

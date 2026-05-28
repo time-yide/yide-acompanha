@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, AlertCircle, MapPin } from "lucide-react";
+import { Loader2, AlertCircle, MapPin, ChevronDown, ChevronUp } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { STATUS_PESQUISA_DEFS } from "@/lib/gerador-leads/tipos";
 import type { PesquisaRow } from "@/lib/gerador-leads/queries";
@@ -11,12 +11,16 @@ interface Props {
   pesquisas: PesquisaRow[];
 }
 
+/** Quantas pesquisas mostrar antes de pedir "Ver todas". */
+const LIMITE_VISIVEL = 4;
+
 /**
  * Mostra histórico recente de pesquisas. Faz polling a cada 5s quando tem
  * alguma rodando (status=pendente/processando) pra atualizar resultado.
  */
 export function PesquisasRecentes({ pesquisas }: Props) {
   const router = useRouter();
+  const [expandido, setExpandido] = useState(false);
   const temRodando = pesquisas.some((p) => p.status === "pendente" || p.status === "processando");
 
   useEffect(() => {
@@ -35,11 +39,34 @@ export function PesquisasRecentes({ pesquisas }: Props) {
     );
   }
 
+  const temMais = pesquisas.length > LIMITE_VISIVEL;
+  const visiveis = expandido ? pesquisas : pesquisas.slice(0, LIMITE_VISIVEL);
+
   return (
-    <div className="grid gap-2 sm:grid-cols-2">
-      {pesquisas.map((p) => (
-        <PesquisaItem key={p.id} p={p} />
-      ))}
+    <div className="space-y-2">
+      <div className="grid gap-2 sm:grid-cols-2">
+        {visiveis.map((p) => (
+          <PesquisaItem key={p.id} p={p} />
+        ))}
+      </div>
+
+      {temMais && (
+        <button
+          type="button"
+          onClick={() => setExpandido((v) => !v)}
+          className="inline-flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-foreground/15 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+        >
+          {expandido ? (
+            <>
+              <ChevronUp className="h-3.5 w-3.5" /> Ver menos
+            </>
+          ) : (
+            <>
+              <ChevronDown className="h-3.5 w-3.5" /> Ver todas ({pesquisas.length})
+            </>
+          )}
+        </button>
+      )}
     </div>
   );
 }
