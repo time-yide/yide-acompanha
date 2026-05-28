@@ -341,8 +341,15 @@ export async function toggleTaskCompletionAction(taskId: string) {
   // dispara concludeOperationalAction via modal.
   // Agora "concluído de verdade" = postada (Postado/Entregue). Toggle pula
   // o operacional e vai direto pro final pra simplificar workflow do sócio.
+  //
+  // Modal só faz sentido pra tarefas com entrega real (video/arte) — tarefas
+  // "geral" (reunião, follow-up, acompanhamento) não têm drive_link nem
+  // quantidade pra preencher, então assessor/coord concluem direto.
   const isDoneState = (s: string) => s === "postada" || s === "concluida";
-  if (!isDoneState(t.status)) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tTipo = (t as any).tipo as string | null | undefined;
+  const requiresDelivery = tTipo === "video" || tTipo === "arte";
+  if (!isDoneState(t.status) && requiresDelivery) {
     const { data: assignee } = await supabase
       .from("profiles")
       .select("role")
@@ -455,12 +462,18 @@ export async function moveTaskStatusAction(formData: FormData) {
   // "concluida" ou "em_aprovacao" - os 2 destinos exigem drive_link.
   // Defense in depth caso o client burle o trigger do modal.
   //
-  // Exceção: se a tarefa JÁ tem drive_link salvo (caso de re-conclusão depois
-  // de alteração), bypass do modal - o link de entrega só precisa ser pedido
-  // uma vez por tarefa.
+  // Exceção 1: tarefas "geral" (não vídeo/arte) não têm entrega — assessor/
+  // coord movem direto sem modal.
+  // Exceção 2: se a tarefa JÁ tem drive_link salvo (caso de re-conclusão
+  // depois de alteração), bypass do modal - o link de entrega só precisa
+  // ser pedido uma vez por tarefa.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const beforeDriveLink = (before as any).drive_link as string | null | undefined;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const beforeTipo = (before as any).tipo as string | null | undefined;
+  const requiresDelivery = beforeTipo === "video" || beforeTipo === "arte";
   if (
+    requiresDelivery &&
     (parsed.data.to_status === "concluida" || parsed.data.to_status === "em_aprovacao") &&
     !beforeDriveLink
   ) {
