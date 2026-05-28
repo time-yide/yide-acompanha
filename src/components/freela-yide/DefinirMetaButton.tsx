@@ -22,7 +22,7 @@ export function DefinirMetaButton() {
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setOpen(false)}>
           <form action={submit} onClick={(e) => e.stopPropagation()} className="w-full max-w-md space-y-3 rounded-xl border bg-card p-5">
-            <h2 className="font-semibold">Meta do mês 🎯</h2>
+            <h2 className="font-semibold">Meta do mês</h2>
             <div className="space-y-1.5"><Label htmlFor="descricao">Descrição</Label><Input id="descricao" name="descricao" required placeholder="Fechar 10 captações" /></div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5"><Label htmlFor="tipo_alvo">Tipo</Label>

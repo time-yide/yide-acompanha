@@ -35,21 +35,21 @@ export default async function FreelaYidePage() {
         <div className="space-y-6">
           <section className="space-y-2">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">🎯 Oportunidades disponíveis</h2>
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Oportunidades disponíveis</h2>
               {gestao && <NovaOportunidadeButton />}
             </div>
             <OportunidadesGrid ops={todas} />
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">🙋 Minhas oportunidades</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Minhas oportunidades</h2>
             <MinhasOportunidades ops={minhas} />
           </section>
         </div>
 
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">🏆 Ranking do mês</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Ranking do mês</h2>
             {gestao && <DefinirMetaButton />}
           </div>
           <MetaCard meta={meta} ranking={ranking} />

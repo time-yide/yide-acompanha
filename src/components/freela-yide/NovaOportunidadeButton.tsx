@@ -27,7 +27,7 @@ export function NovaOportunidadeButton() {
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setOpen(false)}>
           <form action={submit} onClick={(e) => e.stopPropagation()} className="w-full max-w-md space-y-3 rounded-xl border bg-card p-5">
-            <h2 className="font-semibold">Nova oportunidade ⚡</h2>
+            <h2 className="font-semibold">Nova oportunidade</h2>
             <div className="space-y-1.5"><Label htmlFor="titulo">Título</Label><Input id="titulo" name="titulo" required maxLength={160} /></div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5"><Label htmlFor="cliente_nome">Cliente</Label><Input id="cliente_nome" name="cliente_nome" /></div>

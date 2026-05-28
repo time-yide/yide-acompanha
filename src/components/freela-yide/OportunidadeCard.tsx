@@ -25,7 +25,7 @@ export function OportunidadeCard({ op }: { op: OportunidadeRow }) {
           <p className="truncate font-semibold">{op.titulo}</p>
           {op.cliente_nome && <p className="truncate text-xs text-muted-foreground">{op.cliente_nome}</p>}
         </div>
-        <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium ${def.color}`}>{def.emoji} {def.label}</span>
+        <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium ${def.color}`}>{def.label}</span>
       </div>
       {op.descricao && <p className="line-clamp-2 text-xs text-muted-foreground">{op.descricao}</p>}
       <div className="flex items-center justify-between">
