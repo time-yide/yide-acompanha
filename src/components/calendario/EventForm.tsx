@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { Video, MapPin, Link as LinkIcon, FileText, Users as UsersIcon } from "lucide-react";
+import { Video, MapPin, Link as LinkIcon, Users as UsersIcon } from "lucide-react";
+import { RoteiroToggle } from "./RoteiroToggle";
 import { SELECTABLE_SUBS, type SelectableSub } from "@/lib/calendario/schema";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +30,8 @@ interface Props {
     localizacao_endereco: string | null;
     localizacao_maps_url: string | null;
     link_roteiro: string | null;
+    roteiro_tipo: "link" | "pdf" | null;
+    roteiro_pdf_path: string | null;
     observacoes_gravacao: string | null;
   }>;
   profiles: ProfileOption[];
@@ -170,18 +173,12 @@ export function EventForm({ action, defaults = {}, profiles, clientes, canCreate
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="link_roteiro" className="flex items-center gap-1.5">
-              <FileText className="h-3.5 w-3.5" /> Link do roteiro <span className="text-xs text-muted-foreground">(opcional)</span>
-            </Label>
-            <Input
-              id="link_roteiro"
-              name="link_roteiro"
-              type="url"
-              defaultValue={defaults.link_roteiro ?? ""}
-              placeholder="https://docs.google.com/... ou Notion, etc."
-            />
-          </div>
+          <RoteiroToggle
+            eventoId={defaults.id ?? null}
+            defaultTipo={defaults.roteiro_tipo ?? null}
+            defaultLink={defaults.link_roteiro ?? null}
+            defaultPdfPath={defaults.roteiro_pdf_path ?? null}
+          />
 
           <div className="space-y-2">
             <Label htmlFor="observacoes_gravacao">Observações da gravação (opcional)</Label>
