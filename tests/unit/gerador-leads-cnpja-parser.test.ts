@@ -52,4 +52,23 @@ describe("parseCnpjaResponse", () => {
     expect(result.ok).toBe(true);
     expect(result.socios).toEqual([]);
   });
+
+  it("extrai telefone e email oficiais da Receita", () => {
+    const raw = {
+      taxId: "12345678000190",
+      company: { name: "X" },
+      phones: [{ area: "65", number: "999998888" }],
+      emails: [{ address: "contato@empresa.com" }],
+    };
+    const result = parseCnpjaResponse(raw, false);
+    expect(result.telefone).toBe("65999998888");
+    expect(result.email).toBe("contato@empresa.com");
+  });
+
+  it("retorna telefone/email null quando ausentes", () => {
+    const raw = { taxId: "12345678000190", company: { name: "X" } };
+    const result = parseCnpjaResponse(raw, false);
+    expect(result.telefone).toBeNull();
+    expect(result.email).toBeNull();
+  });
 });

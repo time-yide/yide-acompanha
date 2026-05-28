@@ -1,4 +1,4 @@
-import { Building2, AlertTriangle, ExternalLink } from "lucide-react";
+import { Building2, AlertTriangle, ExternalLink, Phone, Mail } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCnpj } from "@/lib/gerador-leads/utils/cnpj";
@@ -12,6 +12,8 @@ interface Socio {
 interface Props {
   cnpj: string | null;
   socios: Socio[];
+  telefone?: string | null;
+  email?: string | null;
   multiplos_resultados?: boolean;
 }
 
@@ -26,10 +28,11 @@ function formatDate(iso: string | null): string {
   return `${m[3]}/${m[2]}/${m[1]}`;
 }
 
-export function IdentificacaoOficialCard({ cnpj, socios, multiplos_resultados }: Props) {
+export function IdentificacaoOficialCard({ cnpj, socios, telefone, email, multiplos_resultados }: Props) {
   if (!cnpj) return null;
 
   const cnpjFormatted = formatCnpj(cnpj);
+  const telLink = telefone ? telefone.replace(/\D/g, "") : null;
 
   return (
     <Card className="p-4 space-y-3">
@@ -53,6 +56,29 @@ export function IdentificacaoOficialCard({ cnpj, socios, multiplos_resultados }:
           <ExternalLink className="h-3 w-3" />
         </a>
       </div>
+
+      {(telefone || email) && (
+        <div className="flex flex-wrap gap-2">
+          {telefone && (
+            <a
+              href={`tel:${telLink}`}
+              className="inline-flex h-7 items-center gap-1 rounded-md border bg-card px-2 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground"
+              title="Telefone cadastrado na Receita (pode estar desatualizado)"
+            >
+              <Phone className="h-3 w-3" /> {telefone}
+            </a>
+          )}
+          {email && (
+            <a
+              href={`mailto:${email}`}
+              className="inline-flex h-7 items-center gap-1 rounded-md border bg-card px-2 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground"
+              title="Email cadastrado na Receita"
+            >
+              <Mail className="h-3 w-3" /> {email}
+            </a>
+          )}
+        </div>
+      )}
 
       {multiplos_resultados && (
         <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-700 dark:text-amber-300">

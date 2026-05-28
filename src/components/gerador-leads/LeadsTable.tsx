@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Star, MapPin, Award } from "lucide-react";
+import { Star, MapPin } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LeadActions } from "./LeadActions";
-import { STATUS_LEAD_DEFS, POTENCIAL_DEFS } from "@/lib/gerador-leads/tipos";
+import { STATUS_LEAD_DEFS } from "@/lib/gerador-leads/tipos";
 import type { LeadGeradoRow } from "@/lib/gerador-leads/queries";
 
 interface Props {
@@ -33,7 +33,6 @@ export function LeadsTable({ leads, canManage }: Props) {
 
 function LeadRow({ lead, canManage }: { lead: LeadGeradoRow; canManage: boolean }) {
   const statusDef = STATUS_LEAD_DEFS[lead.status as keyof typeof STATUS_LEAD_DEFS];
-  const potencialDef = lead.potencial_comercial ? POTENCIAL_DEFS[lead.potencial_comercial] : null;
 
   return (
     <Card className="p-3 flex flex-wrap gap-3">
@@ -50,22 +49,6 @@ function LeadRow({ lead, canManage }: { lead: LeadGeradoRow; canManage: boolean 
             <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${statusDef.color}`}>
               {statusDef.label}
             </span>
-          )}
-          {lead.score !== null && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
-              <Award className="h-2.5 w-2.5" />
-              {lead.score}
-            </span>
-          )}
-          {potencialDef && (
-            <Badge variant="outline" className={`text-[10px] ${potencialDef.color}`}>
-              {potencialDef.label}
-            </Badge>
-          )}
-          {lead.qualificado && (
-            <Badge variant="outline" className="text-[10px] border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
-              ✓ Qualificado
-            </Badge>
           )}
         </div>
 
@@ -94,10 +77,9 @@ function LeadRow({ lead, canManage }: { lead: LeadGeradoRow; canManage: boolean 
           )}
         </div>
 
-        {lead.decisor_nome && (
-          <p className="text-[11px] text-foreground/80">
-            <strong>{lead.decisor_nome}</strong>
-            {lead.decisor_cargo && <span className="text-muted-foreground"> · {lead.decisor_cargo}</span>}
+        {lead.cnpj && (
+          <p className="text-[11px] text-muted-foreground">
+            CNPJ {lead.cnpj}
           </p>
         )}
 

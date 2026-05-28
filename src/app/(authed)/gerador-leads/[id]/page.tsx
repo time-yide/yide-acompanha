@@ -1,15 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Star, MapPin, Globe, Award, Sparkles } from "lucide-react";
+import { ArrowLeft, Star, MapPin, Globe } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import { getLeadGerado } from "@/lib/gerador-leads/queries";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { LeadActions } from "@/components/gerador-leads/LeadActions";
 import { LeadEditCard } from "@/components/gerador-leads/LeadEditCard";
 import { IdentificacaoOficialCard } from "@/components/gerador-leads/IdentificacaoOficialCard";
-import { STATUS_LEAD_DEFS, POTENCIAL_DEFS } from "@/lib/gerador-leads/tipos";
-import { APP_TIMEZONE } from "@/lib/datetime/timezone";
+import { STATUS_LEAD_DEFS } from "@/lib/gerador-leads/tipos";
 
 const ALLOWED_ROLES = ["adm", "socio", "comercial", "coordenador", "assessor"];
 const ROLES_QUE_GERENCIAM = ["adm", "socio", "comercial", "coordenador", "assessor"];
@@ -28,7 +26,6 @@ export default async function LeadDetalhePage({
 
   const canEdit = ROLES_QUE_GERENCIAM.includes(user.role);
   const statusDef = STATUS_LEAD_DEFS[lead.status as keyof typeof STATUS_LEAD_DEFS];
-  const potencialDef = lead.potencial_comercial ? POTENCIAL_DEFS[lead.potencial_comercial] : null;
 
   return (
     <div className="mx-auto max-w-5xl space-y-5">
@@ -46,21 +43,6 @@ export default async function LeadDetalhePage({
               {statusDef.label}
             </span>
           )}
-          {lead.score !== null && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 font-semibold text-primary">
-              <Award className="h-3 w-3" /> Score {lead.score}
-            </span>
-          )}
-          {potencialDef && (
-            <Badge variant="outline" className={potencialDef.color}>
-              Potencial {potencialDef.label}
-            </Badge>
-          )}
-          {lead.qualificado && (
-            <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
-              ✓ Qualificado
-            </Badge>
-          )}
         </div>
       </div>
 
@@ -72,17 +54,13 @@ export default async function LeadDetalhePage({
             <LeadActions lead={lead} canManage={canEdit} />
           </Card>
 
-          {/* Identificação oficial (CNPJ + sócios da Receita) */}
-          {(() => {
-            const diagFlags = (lead.diagnostico ?? {}) as Record<string, unknown>;
-            return (
-              <IdentificacaoOficialCard
-                cnpj={lead.cnpj}
-                socios={lead.socios ?? []}
-                multiplos_resultados={diagFlags._cnpja_multiplos === true}
-              />
-            );
-          })()}
+          {/* Identificação oficial (CNPJ + sócios + contato da Receita) */}
+          <IdentificacaoOficialCard
+            cnpj={lead.cnpj}
+            socios={lead.socios ?? []}
+            telefone={lead.telefone_receita}
+            email={lead.email_receita}
+          />
 
           {/* Form editável */}
           {/* key força remount quando lead atualiza - useState do form reinicializa com novos valores */}
@@ -139,79 +117,6 @@ export default async function LeadDetalhePage({
               </a>
             )}
           </Card>
-
-          {/* Análise IA - quando rodou ou falhou */}
-          {(() => {
-            const diag = (lead.diagnostico ?? {}) as Record<string, unknown>;
-            const enriquecendo = !!diag._enriquecendo;
-            const erro = (diag._enriquecimento_erro as string | undefined) ?? (diag._ia_error as string | undefined);
-            const enriquecidoEm = diag._enriquecido_em as string | undefined;
-
-            if (enriquecendo) {
-              return (
-                <Card className="p-4 space-y-2 border-amber-500/30 bg-amber-500/5">
-                  <h2 className="font-semibold text-sm flex items-center gap-1">
-                    <Sparkles className="h-4 w-4 text-amber-600 animate-pulse" /> Buscando dono...
-                  </h2>
-                  <p className="text-[11px] text-muted-foreground">
-                    Site scraping + Hunter + Instagram + IA Claude rodando em paralelo.
-                    Pode demorar até 2 minutos. A página atualiza sozinha.
-                  </p>
-                </Card>
-              );
-            }
-
-            if (erro) {
-              return (
-                <Card className="p-4 space-y-2 border-destructive/30 bg-destructive/5">
-                  <h2 className="font-semibold text-sm flex items-center gap-1">
-                    <Sparkles className="h-4 w-4 text-destructive" /> Erro ao buscar dono
-                  </h2>
-                  <p className="text-[11px] text-destructive">{erro}</p>
-                  {enriquecidoEm && (
-                    <p className="text-[10px] text-muted-foreground">
-                      Tentado em {new Date(enriquecidoEm).toLocaleString("pt-BR", { timeZone: APP_TIMEZONE })}
-                    </p>
-                  )}
-                  <p className="text-[11px] text-muted-foreground pt-2 border-t">
-                    Tenta de novo clicando &quot;Buscar dono&quot; na lista. Se persistir, verifica
-                    se as envs estão configuradas no Vercel: <code>ANTHROPIC_API_KEY</code>,
-                    {" "}<code>HUNTER_API_KEY</code>, <code>APIFY_API_TOKEN</code>.
-                  </p>
-                </Card>
-              );
-            }
-
-            if (lead.observacoes_ia) {
-              return (
-                <Card className="p-4 space-y-2 border-primary/30 bg-primary/5">
-                  <h2 className="font-semibold text-sm flex items-center gap-1">
-                    <Sparkles className="h-4 w-4 text-primary" /> Análise IA
-                  </h2>
-                  <p className="text-xs whitespace-pre-wrap text-foreground/90">
-                    {lead.observacoes_ia}
-                  </p>
-                  {enriquecidoEm && (
-                    <p className="text-[10px] text-muted-foreground pt-1 border-t">
-                      Enriquecido em {new Date(enriquecidoEm).toLocaleString("pt-BR", { timeZone: APP_TIMEZONE })}
-                    </p>
-                  )}
-                </Card>
-              );
-            }
-
-            return (
-              <Card className="p-4 space-y-2 border-amber-500/30 bg-amber-500/5">
-                <h2 className="font-semibold text-sm flex items-center gap-1">
-                  <Sparkles className="h-4 w-4 text-amber-600" /> Análise IA pendente
-                </h2>
-                <p className="text-[11px] text-muted-foreground">
-                  Clica em <strong>&quot;🔍 Buscar dono&quot;</strong> na lista pra
-                  identificar o decisor + score + diagnóstico de marketing.
-                </p>
-              </Card>
-            );
-          })()}
         </div>
       </div>
     </div>

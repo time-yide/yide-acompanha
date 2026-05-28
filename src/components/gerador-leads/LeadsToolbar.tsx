@@ -16,7 +16,6 @@ interface Props {
 
 const ORDER_LABELS: Record<string, string> = {
   recentes: "Mais recentes",
-  score: "Maior score",
   rating: "Maior avaliação",
   empresa: "Nome A-Z",
 };
@@ -33,8 +32,7 @@ export function LeadsToolbar({ total, leadsAtuais, canManage }: Props) {
       "empresa", "telefone", "whatsapp", "email", "website", "instagram",
       "endereco", "cidade", "estado", "categoria",
       "google_rating", "google_reviews_count",
-      "decisor_nome", "decisor_cargo", "decisor_email",
-      "score", "potencial", "qualificado",
+      "cnpj", "telefone_receita", "email_receita",
       "status", "tags", "observacoes",
       "google_maps_url",
     ];
@@ -59,12 +57,9 @@ export function LeadsToolbar({ total, leadsAtuais, canManage }: Props) {
       l.categoria ?? "",
       l.google_rating ?? "",
       l.google_reviews_count ?? "",
-      l.decisor_nome ?? "",
-      l.decisor_cargo ?? "",
-      l.decisor_email ?? "",
-      l.score ?? "",
-      l.potencial_comercial ?? "",
-      l.qualificado === true ? "sim" : l.qualificado === false ? "não" : "",
+      l.cnpj ?? "",
+      l.telefone_receita ?? "",
+      l.email_receita ?? "",
       l.status,
       l.tags.join("|"),
       l.observacoes ?? "",
@@ -98,12 +93,6 @@ export function LeadsToolbar({ total, leadsAtuais, canManage }: Props) {
           {STATUS_LEAD_VALORES.map((s) => (
             <option key={s} value={s}>{STATUS_LEAD_DEFS[s].label}</option>
           ))}
-        </select>
-        <select name="potencial" className="h-9 rounded-md border bg-card px-2 text-xs">
-          <option value="">Todo potencial</option>
-          <option value="alto">Alto</option>
-          <option value="medio">Médio</option>
-          <option value="baixo">Baixo</option>
         </select>
         <select name="ordem" className="h-9 rounded-md border bg-card px-2 text-xs">
           {Object.entries(ORDER_LABELS).map(([v, l]) => (

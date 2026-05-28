@@ -23,7 +23,6 @@ export default async function GeradorLeadsPage({
   searchParams: Promise<{
     q?: string;
     status?: string;
-    potencial?: string;
     ordem?: string;
     page?: string;
     comWhatsapp?: string;
@@ -45,7 +44,6 @@ export default async function GeradorLeadsPage({
   const filter: ListLeadsFilter = {
     searchQuery: params.q,
     status,
-    potencial: params.potencial || undefined,
     orderBy: (params.ordem as ListLeadsFilter["orderBy"]) ?? "recentes",
     page: params.page ? parseInt(params.page, 10) : 1,
     pageSize: 50,
