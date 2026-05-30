@@ -7,6 +7,12 @@ import { pegarOportunidadeAction } from "@/lib/freela-yide/actions";
 import type { OportunidadeRow } from "@/lib/freela-yide/queries";
 import { useRouter } from "next/navigation";
 
+function fmtPrazo(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
 export function OportunidadeCard({ op }: { op: OportunidadeRow }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -26,8 +32,18 @@ export function OportunidadeCard({ op }: { op: OportunidadeRow }) {
           <p className="truncate font-semibold">{op.titulo}</p>
           {op.cliente_nome && <p className="truncate text-xs text-muted-foreground">{op.cliente_nome}</p>}
           {op.horario && <p className="flex items-center gap-1 truncate text-xs text-muted-foreground"><Clock className="h-3 w-3 shrink-0" />{op.horario}</p>}
+          {op.prazo_entrega && (
+            <p className={`flex items-center gap-1 truncate text-xs ${op.entrega_urgente ? "font-semibold text-red-600 dark:text-red-400" : "text-muted-foreground"}`}>
+              <Clock className="h-3 w-3 shrink-0" />Prazo: {fmtPrazo(op.prazo_entrega)}
+            </p>
+          )}
         </div>
         <div className="flex shrink-0 items-center gap-1">
+          {op.entrega_urgente && (
+            <span className="flex items-center gap-0.5 rounded-full border border-red-500/50 bg-red-500/15 px-2 py-0.5 text-[10px] font-bold text-red-600 dark:text-red-400">
+              <Flame className="h-3 w-3" /> Urgente
+            </span>
+          )}
           <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${tipoDef.color}`}>{tipoDef.label}</span>
           <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${def.color}`}>{def.label}</span>
         </div>

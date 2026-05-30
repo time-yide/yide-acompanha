@@ -13,6 +13,8 @@ export interface OportunidadeRow {
   valor_comissao: number;
   status: StatusOp;
   tipo: TipoOp;
+  entrega_urgente: boolean;
+  prazo_entrega: string | null;
   pego_por: string | null;
   pego_por_nome: string | null;
   pego_em: string | null;
@@ -49,7 +51,7 @@ export interface FreelaStats {
 }
 
 const SELECT =
-  "id, titulo, descricao, cliente_nome, contato, horario, valor_comissao, status, tipo, pego_por, pego_em, negociacao_em, fechada_em, created_at, responsavel:profiles!freela_oportunidades_pego_por_fkey(nome)";
+  "id, titulo, descricao, cliente_nome, contato, horario, valor_comissao, status, tipo, entrega_urgente, prazo_entrega, pego_por, pego_em, negociacao_em, fechada_em, created_at, responsavel:profiles!freela_oportunidades_pego_por_fkey(nome)";
 
 function mapRow(row: Record<string, unknown>): OportunidadeRow {
   const status = row.status as StatusOp;
@@ -64,6 +66,8 @@ function mapRow(row: Record<string, unknown>): OportunidadeRow {
     valor_comissao,
     status,
     tipo: (row.tipo as TipoOp) ?? "captacao",
+    entrega_urgente: Boolean(row.entrega_urgente ?? false),
+    prazo_entrega: (row.prazo_entrega as string | null) ?? null,
     pego_por: (row.pego_por as string | null) ?? null,
     pego_por_nome: ((row.responsavel as { nome?: string } | null) ?? null)?.nome ?? null,
     pego_em: (row.pego_em as string | null) ?? null,
