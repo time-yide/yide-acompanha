@@ -16,6 +16,7 @@ interface DispatchArgs {
   link?: string;
   user_ids_extras?: string[];
   source_user_id?: string;
+  prioridade?: "normal" | "urgente";
 }
 
 interface Rule {
@@ -77,6 +78,7 @@ export async function dispatchNotification(args: DispatchArgs): Promise<void> {
         titulo: args.titulo,
         mensagem: args.mensagem,
         link: args.link ?? null,
+        prioridade: args.prioridade ?? "normal",
       });
       if (error) console.error("[dispatch] in-app insert failed:", error.message);
 
@@ -89,6 +91,7 @@ export async function dispatchNotification(args: DispatchArgs): Promise<void> {
           body: args.mensagem,
           url: args.link ?? "/",
           tag: args.evento_tipo,
+          urgent: args.prioridade === "urgente",
         });
       } catch (e) {
         console.error("[dispatch] web push failed:", e);

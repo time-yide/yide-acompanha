@@ -1863,6 +1863,7 @@ export type Database = {
           lida: boolean
           link: string | null
           mensagem: string
+          prioridade: string
           tipo: string
           titulo: string
           user_id: string
@@ -1873,6 +1874,7 @@ export type Database = {
           lida?: boolean
           link?: string | null
           mensagem: string
+          prioridade?: string
           tipo: string
           titulo: string
           user_id: string
@@ -1883,6 +1885,7 @@ export type Database = {
           lida?: boolean
           link?: string | null
           mensagem?: string
+          prioridade?: string
           tipo?: string
           titulo?: string
           user_id?: string
