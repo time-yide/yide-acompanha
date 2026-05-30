@@ -2680,6 +2680,7 @@ export type Database = {
         | "evento_calendario_30min"
         | "chat_mensagem"
         | "task_alteracao_solicitada"
+        | "freela_nova_oportunidade"
       satisfaction_color: "verde" | "amarelo" | "vermelho"
       snapshot_item_tipo:
         | "fixo"
@@ -2923,6 +2924,7 @@ export const Constants = {
         "evento_calendario_30min",
         "chat_mensagem",
         "task_alteracao_solicitada",
+        "freela_nova_oportunidade",
       ],
       satisfaction_color: ["verde", "amarelo", "vermelho"],
       snapshot_item_tipo: [
