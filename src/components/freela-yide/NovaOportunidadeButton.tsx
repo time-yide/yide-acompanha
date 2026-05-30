@@ -34,6 +34,7 @@ export function NovaOportunidadeButton() {
               <select id="tipo" name="tipo" defaultValue="captacao" className="h-9 w-full rounded-md border bg-card px-2 text-sm">
                 <option value="captacao">Captação</option>
                 <option value="modelo">Modelo</option>
+                <option value="edicao">Edição</option>
               </select>
             </div>
             <div className="grid grid-cols-2 gap-3">

@@ -15,9 +15,10 @@ export const TIPO_ALVO_DEFS: Record<string, string> = {
   comissao: "R$ em valor",
 };
 
-export const TIPO_OP = ["captacao", "modelo"] as const;
+export const TIPO_OP = ["captacao", "modelo", "edicao"] as const;
 export type TipoOp = (typeof TIPO_OP)[number];
 export const TIPO_OP_DEFS: Record<TipoOp, { label: string; color: string }> = {
   captacao: { label: "Captação", color: "border-violet-500/40 bg-violet-500/10 text-violet-600 dark:text-violet-300" },
   modelo:   { label: "Modelo",   color: "border-cyan-500/40 bg-cyan-500/10 text-cyan-600 dark:text-cyan-300" },
+  edicao:   { label: "Edição",   color: "border-orange-500/40 bg-orange-500/10 text-orange-600 dark:text-orange-300" },
 };
