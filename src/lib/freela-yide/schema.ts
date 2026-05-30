@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { STATUS_OP } from "./tipos";
+import { STATUS_OP, TIPO_OP } from "./tipos";
 
 const uuid = z.string().uuid();
 
@@ -10,7 +10,7 @@ export const criarOportunidadeSchema = z.object({
   contato: z.string().trim().max(160).optional().nullable(),
   horario: z.string().trim().max(120).optional().nullable(),
   valor_comissao: z.coerce.number().min(0).max(1_000_000),
-  tipo: z.enum(["captacao", "modelo", "edicao"]).default("captacao"),
+  tipo: z.enum(TIPO_OP).default("captacao"),
 });
 
 export const moverStatusSchema = z.object({
