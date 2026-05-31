@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { STATUS_OP } from "./tipos";
+import { STATUS_OP, TIPO_OP } from "./tipos";
 
 const uuid = z.string().uuid();
 
@@ -10,7 +10,14 @@ export const criarOportunidadeSchema = z.object({
   contato: z.string().trim().max(160).optional().nullable(),
   horario: z.string().trim().max(120).optional().nullable(),
   valor_comissao: z.coerce.number().min(0).max(1_000_000),
-  tipo: z.enum(["captacao", "modelo"]).default("captacao"),
+  tipo: z.enum(TIPO_OP).default("captacao"),
+  entrega_urgente: z.coerce.boolean().default(false),
+  prazo_entrega: z
+    .string()
+    .trim()
+    .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/, "Prazo inválido")
+    .optional()
+    .nullable(),
 });
 
 export const moverStatusSchema = z.object({
@@ -24,5 +31,21 @@ export const definirMetaSchema = z.object({
   alvo: z.coerce.number().min(0).max(10_000_000),
   bonus_descricao: z.string().trim().max(300).optional().nullable(),
 });
+
+/**
+ * Urgência só vale para o tipo "edicao". Para qualquer outro tipo, zera
+ * `entrega_urgente` e `prazo_entrega` no servidor (não confiar só no front).
+ */
+export function normalizeUrgencia(
+  tipo: string,
+  entrega_urgente: boolean,
+  prazo_entrega: string | null,
+): { entrega_urgente: boolean; prazo_entrega: string | null } {
+  if (tipo !== "edicao") return { entrega_urgente: false, prazo_entrega: null };
+  return {
+    entrega_urgente: !!entrega_urgente,
+    prazo_entrega: entrega_urgente ? (prazo_entrega ?? null) : null,
+  };
+}
 
 export type CriarOportunidadeInput = z.infer<typeof criarOportunidadeSchema>;

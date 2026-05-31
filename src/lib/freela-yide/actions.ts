@@ -5,7 +5,9 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/auth/session";
 import { transicaoValida } from "./pontos";
 import type { StatusOp } from "./tipos";
-import { criarOportunidadeSchema, moverStatusSchema, definirMetaSchema } from "./schema";
+import { criarOportunidadeSchema, moverStatusSchema, definirMetaSchema, normalizeUrgencia } from "./schema";
+import { dispatchNotification } from "@/lib/notificacoes/dispatch";
+import { brtInputToUtcIso } from "@/lib/calendario/timezone";
 
 interface Ok { success: true }
 interface Err { error: string }
@@ -38,12 +40,16 @@ export async function criarOportunidadeAction(formData: FormData): Promise<Resul
     horario: fd(formData, "horario"),
     valor_comissao: fd(formData, "valor_comissao") ?? 0,
     tipo: fd(formData, "tipo") ?? "captacao",
+    entrega_urgente: formData.get("entrega_urgente") === "on",
+    prazo_entrega: fd(formData, "prazo_entrega"),
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
   const supabase = await createClient();
   const orgId = await orgIdDo(actor.id, supabase);
   if (!orgId) return { error: "Organização não encontrada" };
+
+  const urg = normalizeUrgencia(parsed.data.tipo, parsed.data.entrega_urgente, parsed.data.prazo_entrega ?? null);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase as any).from("freela_oportunidades").insert({
@@ -56,9 +62,30 @@ export async function criarOportunidadeAction(formData: FormData): Promise<Resul
     horario: parsed.data.horario,
     valor_comissao: parsed.data.valor_comissao,
     tipo: parsed.data.tipo,
+    entrega_urgente: urg.entrega_urgente,
+    prazo_entrega: urg.prazo_entrega ? brtInputToUtcIso(urg.prazo_entrega) : null,
     status: "disponivel",
   });
   if (error) return { error: error.message };
+
+  // Notifica quem pode pegar a oportunidade. Best-effort: falha de
+  // notificação não invalida a criação. Urgente vai com prioridade alta (cor/som).
+  // Texto sem emoji e sem en-dash (convenção do projeto).
+  const tipoLabel = parsed.data.tipo === "edicao" ? "Edição" : parsed.data.tipo === "modelo" ? "Modelo" : "Captação";
+  const clienteSuffix = parsed.data.cliente_nome ? ` (${parsed.data.cliente_nome})` : "";
+  try {
+    await dispatchNotification({
+      evento_tipo: "freela_nova_oportunidade",
+      titulo: urg.entrega_urgente ? `URGENTE - ${tipoLabel}: ${parsed.data.titulo}` : `Nova oportunidade (${tipoLabel}): ${parsed.data.titulo}`,
+      mensagem: `${tipoLabel}${clienteSuffix}. R$ ${parsed.data.valor_comissao.toLocaleString("pt-BR")}. Abra o Freelayide para pegar.`,
+      link: "/freela-yide",
+      source_user_id: actor.id,
+      prioridade: urg.entrega_urgente ? "urgente" : "normal",
+    });
+  } catch (e) {
+    console.error("[freelayide] dispatch nova oportunidade falhou:", e);
+  }
+
   revalidatePath("/freela-yide");
   return { success: true };
 }

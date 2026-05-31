@@ -30,6 +30,7 @@ export interface PushPayload {
   body: string;
   url?: string;
   tag?: string;
+  urgent?: boolean;
 }
 
 /**

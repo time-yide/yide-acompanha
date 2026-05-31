@@ -2,7 +2,7 @@
 // Recebe Web Push e mostra notificação nativa do SO. Click leva pra rota
 // da notificação (ou pra home se sem link).
 
-const SW_VERSION = "v1.2.0";
+const SW_VERSION = "v1.3.0";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
@@ -28,13 +28,15 @@ self.addEventListener("push", (event) => {
   }
 
   const title = payload.title || "Yide";
+  const urgent = payload.urgent === true;
   const options = {
     body: payload.body || "",
     icon: "/brand/logo-yide.png",
     badge: "/brand/logo-yide.png",
     tag: payload.tag || undefined,
     data: { url: payload.url || "/" },
-    requireInteraction: false,
+    requireInteraction: urgent,
+    ...(urgent && { vibrate: [200, 100, 200, 100, 200] }),
   };
 
   event.waitUntil(self.registration.showNotification(title, options));
