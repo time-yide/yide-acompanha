@@ -32,7 +32,7 @@ function fd(f: FormData, k: string): string | null {
 
 export async function criarVisitaAction(formData: FormData): Promise<Result> {
   const actor = await requireAuth();
-  if (!canManage(actor.role)) return { error: "Sem permissao" };
+  if (!canManage(actor.role)) return { error: "Sem permissão" };
   const parsed = criarVisitaSchema.safeParse({
     data: fd(formData, "data"),
     titulo: fd(formData, "titulo"),
@@ -61,7 +61,7 @@ export async function criarVisitaAction(formData: FormData): Promise<Result> {
 
 export async function updateVisitaAction(formData: FormData): Promise<Result> {
   const actor = await requireAuth();
-  if (!canManage(actor.role)) return { error: "Sem permissao" };
+  if (!canManage(actor.role)) return { error: "Sem permissão" };
   const parsed = updateVisitaSchema.safeParse({
     id: fd(formData, "id"),
     data: fd(formData, "data"),
@@ -94,7 +94,7 @@ export async function updateVisitaAction(formData: FormData): Promise<Result> {
 
 export async function arquivarVisitaAction(formData: FormData): Promise<Result> {
   const actor = await requireAuth();
-  if (!canManage(actor.role)) return { error: "Sem permissao" };
+  if (!canManage(actor.role)) return { error: "Sem permissão" };
   const parsed = arquivarVisitaSchema.safeParse({ id: fd(formData, "id") });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const orgId = await getOrganizationId(actor.id);
@@ -115,7 +115,7 @@ export async function adicionarLeadVisitaAction(
   formData: FormData,
 ): Promise<Result> {
   const actor = await requireAuth();
-  if (!canManage(actor.role)) return { error: "Sem permissao" };
+  if (!canManage(actor.role)) return { error: "Sem permissão" };
   const parsed = adicionarLeadVisitaSchema.safeParse({
     visita_id: fd(formData, "visita_id"),
     empresa: fd(formData, "empresa"),
@@ -151,6 +151,8 @@ export async function adicionarLeadVisitaAction(
     responsavel_id: actor.id,
   });
   if (error) return { error: error.message };
+  revalidatePath("/visitas");
   revalidatePath(`/visitas/${parsed.data.visita_id}`);
+  revalidatePath("/gerador-leads");
   return { success: true };
 }
