@@ -57,6 +57,41 @@ function playOnContext(ctx: AudioContext) {
   osc.stop(now + 0.4);
 }
 
+// Som de alarme urgente: 3 beeps curtos em frequência mais grave/insistente,
+// distinto do "ding" suave do playNotificationSound. Reusa o mesmo ctx.
+function playUrgentOnContext(ctx: AudioContext) {
+  const now = ctx.currentTime;
+  const beeps = [0, 0.22, 0.44];
+  for (const offset of beeps) {
+    const t = now + offset;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "square";
+    osc.frequency.setValueAtTime(620, t);
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.22, t + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.18);
+  }
+}
+
+export function playUrgentSound(): void {
+  ensureUnlockBinding();
+  const ctx = getCtx();
+  if (!ctx) return;
+  try {
+    if (ctx.state === "suspended") {
+      ctx.resume().then(() => playUrgentOnContext(ctx)).catch(() => {});
+      return;
+    }
+    playUrgentOnContext(ctx);
+  } catch {
+    // silencia falhas isoladas
+  }
+}
+
 export function playNotificationSound(): void {
   ensureUnlockBinding();
   const ctx = getCtx();

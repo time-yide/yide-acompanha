@@ -7,7 +7,7 @@ async function _listMyNotificationsImpl(userId: string, limit: number): Promise<
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from("notifications")
-    .select("id, user_id, tipo, titulo, mensagem, link, lida, created_at")
+    .select("id, user_id, tipo, titulo, mensagem, link, lida, created_at, prioridade")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -22,7 +22,7 @@ export async function listMyNotifications(limit: number = 50): Promise<Notificat
       const { uid, l } = JSON.parse(paramsJson) as { uid: string; l: number };
       return _listMyNotificationsImpl(uid, l);
     },
-    ["notifications-list"],
+    ["notifications-list-v2"],
     { revalidate: 30, tags: ["notifications"] },
   );
   return cached(JSON.stringify({ uid: actor.id, l: limit }));

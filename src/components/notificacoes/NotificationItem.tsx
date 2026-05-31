@@ -10,6 +10,7 @@ interface Props {
   link: string | null;
   lida: boolean;
   created_at: string;
+  prioridade?: "normal" | "urgente";
 }
 
 function timeAgo(iso: string): string {
@@ -22,7 +23,7 @@ function timeAgo(iso: string): string {
   return `${Math.floor(h / 24)}d`;
 }
 
-export function NotificationItem({ id, titulo, mensagem, link, lida, created_at }: Props) {
+export function NotificationItem({ id, titulo, mensagem, link, lida, created_at, prioridade }: Props) {
   async function markRead() {
     if (lida) return;
     const fd = new FormData();
@@ -30,10 +31,11 @@ export function NotificationItem({ id, titulo, mensagem, link, lida, created_at 
     await markNotificationReadAction(fd);
   }
 
+  const urgente = prioridade === "urgente";
   const content = (
-    <div className={`flex items-start gap-2 rounded-md p-2 ${lida ? "" : "bg-primary/5"}`}>
+    <div className={`flex items-start gap-2 rounded-md border p-2 ${urgente ? "border-red-500/50 bg-red-500/10" : "border-transparent"} ${lida ? "" : urgente ? "" : "bg-primary/5"}`}>
       <div className="flex-1 min-w-0">
-        <div className="text-xs font-medium truncate">{titulo}</div>
+        <div className={`text-xs font-medium truncate ${urgente ? "text-red-600 dark:text-red-400" : ""}`}>{titulo}</div>
         <div className="text-[11px] text-muted-foreground line-clamp-2">{mensagem}</div>
       </div>
       <span className="text-[10px] text-muted-foreground whitespace-nowrap">{timeAgo(created_at)}</span>

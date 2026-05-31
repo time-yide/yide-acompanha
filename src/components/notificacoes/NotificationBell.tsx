@@ -8,6 +8,7 @@ import { NotificationItem } from "./NotificationItem";
 import { getMyNotificationsAction, markAllNotificationsReadAction } from "@/lib/notificacoes/actions";
 import { createClient } from "@/lib/supabase/client";
 import { authenticateRealtime } from "@/lib/supabase/realtime-auth";
+import { playUrgentSound } from "@/lib/escritorio/notification-sound";
 
 interface Item {
   id: string;
@@ -16,6 +17,7 @@ interface Item {
   link: string | null;
   lida: boolean;
   created_at: string;
+  prioridade: "normal" | "urgente";
 }
 
 interface Props {
@@ -29,6 +31,7 @@ export function NotificationBell({ userId }: Props) {
   const [items, setItems] = useState<Item[]>([]);
   const [markingAll, setMarkingAll] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const lastUrgentSoundId = useRef<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -80,7 +83,19 @@ export function NotificationBell({ userId }: Props) {
             table: "notifications",
             filter: `user_id=eq.${userId}`,
           },
-          () => {
+          (payload) => {
+            // Som de alarme só pra INSERT urgente, e só uma vez por id
+            // (Realtime pode re-emitir eventos bufferizados ao reconectar).
+            const novo = payload.new as { id?: string; prioridade?: string } | null;
+            if (
+              payload.eventType === "INSERT" &&
+              novo?.prioridade === "urgente" &&
+              novo.id &&
+              novo.id !== lastUrgentSoundId.current
+            ) {
+              lastUrgentSoundId.current = novo.id;
+              playUrgentSound();
+            }
             void fetchData();
           },
         )

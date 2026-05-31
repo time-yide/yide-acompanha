@@ -23,5 +23,6 @@ export interface Notification {
   mensagem: string;
   link: string | null;
   lida: boolean;
+  prioridade: "normal" | "urgente";
   created_at: string;
 }
