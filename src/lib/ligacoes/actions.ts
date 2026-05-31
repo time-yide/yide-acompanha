@@ -11,6 +11,8 @@ import {
   archiveLigacaoSchema,
   popularMockSchema,
   iniciarLigacaoSchema,
+  registrarLigacaoLeadSchema,
+  resultadoLigacaoSchema,
 } from "./schema";
 import { iniciarChamada, getWebphoneUrl } from "./zenvia";
 
@@ -365,4 +367,85 @@ export async function getWebphoneUrlAction(): Promise<{ url: string | null; rama
   if (!ramal) return { url: null, ramal: null };
   const url = await getWebphoneUrl(ramal);
   return { url, ramal };
+}
+
+// ===========================================================================
+// Ligação manual a partir de um lead do Gerador de Leads (disca via tel: no
+// front; aqui só registramos pra contabilizar/metrificar). Sem Zenvia.
+// ===========================================================================
+
+interface RegistrarOk { success: true; id: string }
+type RegistrarResult = RegistrarOk | ActionErr;
+
+export async function registrarLigacaoLeadAction(formData: FormData): Promise<RegistrarResult> {
+  const actor = await requireAuth();
+  if (!canManage(actor.role)) return { error: "Sem permissão" };
+
+  const parsed = registrarLigacaoLeadSchema.safeParse({
+    numero: fd(formData, "numero"),
+    lead_gerado_id: fd(formData, "lead_gerado_id"),
+    contato_nome: fd(formData, "contato_nome"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const supabase = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+
+  const { data: profile } = await sb
+    .from("profiles")
+    .select("organization_id")
+    .eq("id", actor.id)
+    .single();
+  if (!profile) return { error: "Perfil não encontrado" };
+  const orgId = (profile as { organization_id: string }).organization_id;
+
+  const { data: lig, error } = await sb
+    .from("ligacoes")
+    .insert({
+      organization_id: orgId,
+      tipo: "telefone",
+      direcao: "saida",
+      colaborador_id: actor.id,
+      numero: parsed.data.numero,
+      contato_nome: parsed.data.contato_nome,
+      lead_gerado_id: parsed.data.lead_gerado_id,
+      status: "em_andamento",
+      iniciada_em: new Date().toISOString(),
+      origem: "manual",
+    })
+    .select("id")
+    .single();
+  if (error || !lig) return { error: error?.message ?? "Erro ao registrar ligação" };
+
+  revalidatePath("/ligacoes");
+  return { success: true, id: (lig as { id: string }).id };
+}
+
+export async function registrarResultadoLigacaoAction(formData: FormData): Promise<ActionResult> {
+  const actor = await requireAuth();
+  if (!canManage(actor.role)) return { error: "Sem permissão" };
+
+  const parsed = resultadoLigacaoSchema.safeParse({
+    id: fd(formData, "id"),
+    status: fd(formData, "status"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const supabase = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+
+  // Só atualiza a própria ligação (registrada pelo ator).
+  const { data: upd, error } = await sb
+    .from("ligacoes")
+    .update({ status: parsed.data.status, finalizada_em: new Date().toISOString() })
+    .eq("id", parsed.data.id)
+    .eq("colaborador_id", actor.id)
+    .select("id");
+  if (error) return { error: error.message };
+  if (!upd || upd.length === 0) return { error: "Ligação não encontrada" };
+
+  revalidatePath("/ligacoes");
+  return { success: true };
 }

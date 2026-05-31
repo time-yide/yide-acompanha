@@ -46,5 +46,19 @@ export const iniciarLigacaoSchema = z.object({
 });
 export type IniciarLigacaoInput = z.infer<typeof iniciarLigacaoSchema>;
 
+// Registrar ligação manual feita a partir de um lead do Gerador de Leads.
+export const registrarLigacaoLeadSchema = z.object({
+  numero: z.string().trim().min(8).max(40),
+  lead_gerado_id: uuidLike,
+  contato_nome: z.string().trim().max(200).optional().nullable(),
+});
+
+// Definir o resultado (status) de uma ligação já registrada.
+export const resultadoLigacaoSchema = z.object({
+  id: uuidLike,
+  status: z.enum(STATUS_LIGACAO),
+});
+
 export type UpdateLigacaoInput = z.infer<typeof updateLigacaoSchema>;
 export type CreateLigacaoInput = z.infer<typeof createLigacaoSchema>;
+export type RegistrarLigacaoLeadInput = z.infer<typeof registrarLigacaoLeadSchema>;
