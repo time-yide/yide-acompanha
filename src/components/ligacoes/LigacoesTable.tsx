@@ -143,10 +143,17 @@ export function LigacoesTable({ ligacoes, canManage }: Props) {
                       >
                         <MessageCircle className="h-3 w-3" />
                       </a>
-                      {canManage && (
+                      <a
+                        href={`tel:${lig.numero.replace(/[^\d+]/g, "")}`}
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-md border bg-card text-blue-500 hover:bg-muted"
+                        title="Ligar (discador do aparelho)"
+                      >
+                        <Phone className="h-3 w-3" />
+                      </a>
+                      {canManage && lig.instancia_id && (
                         <LigarButton
                           numero={lig.numero}
-                          instanciaId={lig.instancia_id ?? null}
+                          instanciaId={lig.instancia_id}
                           contatoNome={lig.contato_nome}
                           size="icon"
                         />
