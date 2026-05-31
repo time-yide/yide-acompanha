@@ -161,7 +161,7 @@ export async function listLigacoes(
       const f = JSON.parse(filterJson) as ListLigacoesFilter;
       return _listLigacoesImpl(orgId, f);
     },
-    ["ligacoes-list"],
+    ["ligacoes-list-v2"],
     { revalidate: LIGACOES_REVALIDATE_SECONDS, tags: [LIGACOES_TAG] },
   );
   return cached(organizationId, JSON.stringify(filter));

@@ -143,12 +143,14 @@ export function LigacoesTable({ ligacoes, canManage }: Props) {
                       >
                         <MessageCircle className="h-3 w-3" />
                       </a>
-                      <LigarButton
-                        numero={lig.numero}
-                        instanciaId={lig.instancia_id ?? null}
-                        contatoNome={lig.contato_nome}
-                        size="icon"
-                      />
+                      {canManage && (
+                        <LigarButton
+                          numero={lig.numero}
+                          instanciaId={lig.instancia_id ?? null}
+                          contatoNome={lig.contato_nome}
+                          size="icon"
+                        />
+                      )}
                       <button
                         type="button"
                         onClick={() => setSelecionada(lig)}

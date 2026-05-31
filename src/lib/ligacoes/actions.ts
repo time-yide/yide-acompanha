@@ -298,50 +298,53 @@ export async function iniciarLigacaoAction(formData: FormData): Promise<ActionRe
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
 
+  const { data: profile } = await sb
+    .from("profiles")
+    .select("organization_id")
+    .eq("id", actor.id)
+    .single();
+  if (!profile) return { error: "Perfil não encontrado" };
+  const orgId = (profile as { organization_id: string }).organization_id;
+
   const { data: inst } = await sb
     .from("ligacoes_instancias")
     .select("id, organization_id, ramal, provedor")
     .eq("id", parsed.data.instancia_id)
+    .eq("organization_id", orgId)
     .is("arquivado_em", null)
     .maybeSingle();
   if (!inst) return { error: "Instância não encontrada" };
   if (inst.provedor !== "totalvoice") return { error: "Essa instância não é Zenvia" };
   if (!inst.ramal) return { error: "Instância sem ramal configurado" };
 
-  const { data: lig, error: insErr } = await sb
-    .from("ligacoes")
-    .insert({
-      organization_id: inst.organization_id,
-      tipo: "telefone",
-      direcao: "saida",
-      colaborador_id: actor.id,
-      instancia_id: inst.id,
-      numero: parsed.data.numero,
-      contato_nome: parsed.data.contato_nome,
-      lead_id: parsed.data.lead_id,
-      lead_gerado_id: parsed.data.lead_gerado_id,
-      client_id: parsed.data.client_id,
-      status: "em_andamento",
-      iniciada_em: new Date().toISOString(),
-      origem: "totalvoice",
-    })
-    .select("id")
-    .single();
-  if (insErr || !lig) return { error: insErr?.message ?? "Erro ao criar ligação" };
-  const ligacaoId = (lig as { id: string }).id;
-
+  // Chama a Zenvia ANTES de inserir, pra evitar corrida com o webhook
+  // (o webhook casa por external_id; sem ele a linha viraria órfã).
   const r = await iniciarChamada({
     numeroOrigem: inst.ramal as string,
     numeroDestino: parsed.data.numero,
     gravar: parsed.data.gravar,
-    tags: ligacaoId,
+    tags: parsed.data.numero,
   });
-  if (!r.ok) {
-    await sb.from("ligacoes").update({ status: "cancelada", observacoes: r.error }).eq("id", ligacaoId);
-    return { error: r.error ?? "Falha ao iniciar ligação" };
-  }
+  if (!r.ok) return { error: r.error ?? "Falha ao iniciar ligação" };
 
-  await sb.from("ligacoes").update({ external_id: r.externalId ?? null }).eq("id", ligacaoId);
+  const { error: insErr } = await sb.from("ligacoes").insert({
+    organization_id: orgId,
+    tipo: "telefone",
+    direcao: "saida",
+    colaborador_id: actor.id,
+    instancia_id: inst.id,
+    numero: parsed.data.numero,
+    contato_nome: parsed.data.contato_nome,
+    lead_id: parsed.data.lead_id,
+    lead_gerado_id: parsed.data.lead_gerado_id,
+    client_id: parsed.data.client_id,
+    status: "em_andamento",
+    iniciada_em: new Date().toISOString(),
+    origem: "totalvoice",
+    external_id: r.externalId ?? null,
+  });
+  if (insErr) return { error: insErr.message };
+
   revalidatePath("/ligacoes");
   return { success: true };
 }
