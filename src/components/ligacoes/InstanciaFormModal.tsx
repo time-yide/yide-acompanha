@@ -9,24 +9,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createInstanciaAction, updateInstanciaAction, type InstanciaRow } from "@/lib/ligacoes/instancia-actions";
+import { env } from "@/lib/env";
 
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   instancia?: InstanciaRow | null;
   colaboradores: Array<{ id: string; nome: string }>;
-}
-
-/**
- * Provedor padrão por tipo. Decidido na arquitetura - UI não mostra essa info,
- * só quem desenvolve precisa saber.
- *
- * - whatsapp → evolution (Evolution API, escolha do projeto)
- * - telefone → manual (até decidir o PABX)
- */
-function provedorPadrao(tipo: string): string {
-  if (tipo === "whatsapp") return "evolution";
-  return "manual";
 }
 
 export function InstanciaFormModal({ open, onOpenChange, instancia, colaboradores }: Props) {
@@ -39,8 +28,10 @@ export function InstanciaFormModal({ open, onOpenChange, instancia, colaboradore
   const [colaboradorId, setColaboradorId] = useState(instancia?.colaborador_id ?? "");
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-
-  const provedor = isEdit ? (instancia?.provedor ?? provedorPadrao(tipo)) : provedorPadrao(tipo);
+  const [provedor, setProvedor] = useState<string>(
+    instancia?.provedor ?? (tipo === "whatsapp" ? "evolution" : "manual"),
+  );
+  const appUrl = env.NEXT_PUBLIC_APP_URL;
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -95,7 +86,11 @@ export function InstanciaFormModal({ open, onOpenChange, instancia, colaboradore
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="tipo">Tipo</Label>
-              <Select value={tipo} onValueChange={(v) => setTipo(v ?? "whatsapp")}>
+              <Select value={tipo} onValueChange={(v) => {
+                const novo = v ?? "whatsapp";
+                setTipo(novo);
+                setProvedor(novo === "whatsapp" ? "evolution" : "manual");
+              }}>
                 <SelectTrigger id="tipo"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="whatsapp">
@@ -150,6 +145,19 @@ export function InstanciaFormModal({ open, onOpenChange, instancia, colaboradore
             )}
           </div>
 
+          {tipo === "telefone" && (
+            <div className="space-y-1.5">
+              <Label htmlFor="provedor">Como vai ligar</Label>
+              <Select value={provedor} onValueChange={(v) => setProvedor(v ?? "manual")}>
+                <SelectTrigger id="provedor"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="manual">Registro manual (sem integração)</SelectItem>
+                  <SelectItem value="totalvoice">Zenvia (ligar pelo sistema)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           {/* Conexão - só pra WhatsApp, mostra placeholder de QR code */}
           {tipo === "whatsapp" && (
             <div className="rounded-md border bg-muted/20 p-4 text-center space-y-2">
@@ -159,6 +167,19 @@ export function InstanciaFormModal({ open, onOpenChange, instancia, colaboradore
                 Cadastra o número primeiro. Depois aparece o QR Code aqui pra você
                 escanear com o celular do colaborador (ainda em construção, disponível
                 quando o servidor de WhatsApp estiver no ar).
+              </p>
+            </div>
+          )}
+
+          {tipo === "telefone" && provedor === "totalvoice" && isEdit && instancia?.webhook_secret && (
+            <div className="rounded-md border bg-muted/20 p-3 space-y-1.5">
+              <p className="text-sm font-medium">URL do webhook (cole no painel da Zenvia)</p>
+              <code className="block break-all rounded bg-background px-2 py-1 text-[11px]">
+                {`${appUrl}/api/webhooks/ligacoes/zenvia?secret=${instancia.webhook_secret}`}
+              </code>
+              <p className="text-[11px] text-muted-foreground">
+                Zenvia → Desenvolvedores → Webhooks. Informe tambem o ramal acima. O token
+                da conta vai na variavel ZENVIA_VOICE_TOKEN (configurada pela equipe).
               </p>
             </div>
           )}
