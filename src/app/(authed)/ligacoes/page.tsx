@@ -21,6 +21,7 @@ import { HeatmapHorarios } from "@/components/ligacoes/HeatmapHorarios";
 import { RankingColaboradores } from "@/components/ligacoes/RankingColaboradores";
 import { LigacoesTable } from "@/components/ligacoes/LigacoesTable";
 import { LigacoesToolbar } from "@/components/ligacoes/LigacoesToolbar";
+import { Discador } from "@/components/ligacoes/Discador";
 import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 const ALLOWED_ROLES = ["adm", "socio", "comercial", "coordenador", "assessor"];
@@ -133,6 +134,11 @@ export default async function LigacoesPage({
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         <HeatmapHorarios cells={heatmap} />
         <RankingColaboradores ranking={ranking} />
+      </div>
+
+      {/* Discador embutido */}
+      <div className="mb-4">
+        <Discador />
       </div>
 
       {/* Toolbar + tabela */}

@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { LigacaoDetalheModal } from "./LigacaoDetalheModal";
+import { LigarButton } from "./LigarButton";
 import { STATUS_DEFS, formatDuracao, formatNumeroBR } from "@/lib/ligacoes/tipos";
 import type { LigacaoRow } from "@/lib/ligacoes/queries";
 import { formatDateBR, formatTimeBR } from "@/lib/datetime/timezone";
@@ -124,7 +125,7 @@ export function LigacoesTable({ ligacoes, canManage }: Props) {
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="inline-flex gap-1">
+                    <div className="inline-flex gap-1 items-center">
                       <button
                         type="button"
                         onClick={() => copy(lig.numero, lig.id)}
@@ -142,6 +143,12 @@ export function LigacoesTable({ ligacoes, canManage }: Props) {
                       >
                         <MessageCircle className="h-3 w-3" />
                       </a>
+                      <LigarButton
+                        numero={lig.numero}
+                        instanciaId={lig.instancia_id ?? null}
+                        contatoNome={lig.contato_nome}
+                        size="icon"
+                      />
                       <button
                         type="button"
                         onClick={() => setSelecionada(lig)}

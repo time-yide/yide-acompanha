@@ -19,6 +19,7 @@ export interface LigacaoRow {
   contato_nome: string | null;
   colaborador_id: string | null;
   colaborador_nome: string | null;
+  instancia_id: string | null;
   iniciada_em: string;
   finalizada_em: string | null;
   duracao_segundos: number;
@@ -73,7 +74,7 @@ async function _listLigacoesImpl(
   let q = sb
     .from("ligacoes")
     .select(
-      `id, tipo, direcao, status, numero, contato_nome, colaborador_id, iniciada_em, finalizada_em,
+      `id, tipo, direcao, status, numero, contato_nome, colaborador_id, instancia_id, iniciada_em, finalizada_em,
        duracao_segundos, observacoes, gravacao_url, transcricao, resumo_ia, origem, tags,
        lead_id, lead_gerado_id, client_id,
        colaborador:profiles!ligacoes_colaborador_id_fkey(nome),
@@ -131,6 +132,7 @@ async function _listLigacoesImpl(
     contato_nome: (row.contato_nome as string | null) ?? null,
     colaborador_id: (row.colaborador_id as string | null) ?? null,
     colaborador_nome: ((row.colaborador as { nome?: string } | null) ?? null)?.nome ?? null,
+    instancia_id: (row.instancia_id as string | null) ?? null,
     iniciada_em: row.iniciada_em as string,
     finalizada_em: (row.finalizada_em as string | null) ?? null,
     duracao_segundos: (row.duracao_segundos as number) ?? 0,
