@@ -82,3 +82,27 @@ export async function getWebphoneUrl(ramal: string): Promise<string | null> {
     return null;
   }
 }
+
+export interface EventoWebhookParsed {
+  externalId: string;
+  statusInterno: StatusLigacao;
+  duracaoSegundos: number;
+  gravacaoUrl: string | null;
+  raw: Record<string, unknown>;
+}
+
+/** Extrai e normaliza um evento de fim/atualização de chamada da Zenvia. */
+export function parseEventoWebhook(payload: Record<string, unknown>): EventoWebhookParsed {
+  const externalId = String(payload.id ?? payload.chamada_id ?? "");
+  const statusZenvia = String(payload.status ?? "");
+  const duracaoSegundos = Number(payload.duracao_segundos ?? 0) || 0;
+  const duracaoFalada = Number(payload.duracao_falada_segundos ?? duracaoSegundos) || 0;
+  const gravacaoUrl = (payload.url_gravacao as string | undefined) ?? null;
+  return {
+    externalId,
+    statusInterno: mapStatusZenvia(statusZenvia, duracaoFalada),
+    duracaoSegundos,
+    gravacaoUrl: typeof gravacaoUrl === "string" ? gravacaoUrl : null,
+    raw: payload,
+  };
+}
