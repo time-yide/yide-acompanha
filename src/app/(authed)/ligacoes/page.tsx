@@ -22,6 +22,7 @@ import { RankingColaboradores } from "@/components/ligacoes/RankingColaboradores
 import { LigacoesTable } from "@/components/ligacoes/LigacoesTable";
 import { LigacoesToolbar } from "@/components/ligacoes/LigacoesToolbar";
 import { Discador } from "@/components/ligacoes/Discador";
+import { DiscadorRapido } from "@/components/ligacoes/DiscadorRapido";
 import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 const ALLOWED_ROLES = ["adm", "socio", "comercial", "coordenador", "assessor"];
@@ -136,8 +137,9 @@ export default async function LigacoesPage({
         <RankingColaboradores ranking={ranking} />
       </div>
 
-      {/* Discador embutido */}
-      <div className="mb-4">
+      {/* Discador rápido (tel/WhatsApp, sem provedor) + webphone Zenvia quando ativo */}
+      <div className="mb-4 space-y-3">
+        <DiscadorRapido />
         <Discador />
       </div>
 

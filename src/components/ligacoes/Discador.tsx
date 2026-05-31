@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Phone, PhoneOff } from "lucide-react";
+import { Phone } from "lucide-react";
 import { getWebphoneUrlAction } from "@/lib/ligacoes/actions";
 
 export function Discador() {
@@ -19,17 +19,10 @@ export function Discador() {
     return () => { alive = false; };
   }, []);
 
-  if (state.loading) {
-    return <div className="rounded-lg border p-3 text-xs text-muted-foreground">Carregando discador...</div>;
-  }
-
-  if (!state.ramal || !state.url) {
-    return (
-      <div className="rounded-lg border bg-muted/20 p-3 text-xs text-muted-foreground flex items-center gap-2">
-        <PhoneOff className="h-4 w-4 shrink-0" />
-        Discador indisponivel. {state.ramal ? "Zenvia nao configurada (token)." : "Voce nao tem um ramal Zenvia atribuido."}
-      </div>
-    );
+  // Sem ramal/url configurado: não polui a tela (o DiscadorRapido já cobre a
+  // discagem). O webphone Zenvia só aparece quando a conta estiver ativa.
+  if (state.loading || !state.ramal || !state.url) {
+    return null;
   }
 
   return (
