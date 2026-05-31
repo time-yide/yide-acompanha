@@ -32,5 +32,19 @@ export const createLigacaoSchema = z.object({
   client_id: z.string().uuid().optional().nullable(),
 });
 
+export const iniciarLigacaoSchema = z.object({
+  numero: z.string().trim().min(8).max(40),
+  instancia_id: z.string().regex(
+    /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/,
+    "Instância inválida",
+  ),
+  contato_nome: z.string().trim().max(200).optional().nullable(),
+  lead_id: z.string().uuid().optional().nullable(),
+  lead_gerado_id: z.string().uuid().optional().nullable(),
+  client_id: z.string().uuid().optional().nullable(),
+  gravar: z.coerce.boolean().default(false),
+});
+export type IniciarLigacaoInput = z.infer<typeof iniciarLigacaoSchema>;
+
 export type UpdateLigacaoInput = z.infer<typeof updateLigacaoSchema>;
 export type CreateLigacaoInput = z.infer<typeof createLigacaoSchema>;

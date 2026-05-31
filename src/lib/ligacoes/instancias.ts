@@ -69,13 +69,11 @@ export const PROVEDOR_DEFS: ProvedorDef[] = [
   },
   {
     value: "totalvoice",
-    label: "TotalVoice",
+    label: "Zenvia (ex-TotalVoice)",
     tipo: "telefone",
-    status: "em_construcao",
-    webhookHint: "Cole essa URL no TotalVoice → Webhooks",
-    campos: [
-      { key: "access_token", label: "Access Token", type: "password", obrigatorio: true },
-    ],
+    status: "pronto",
+    webhookHint: "Cole essa URL no painel da Zenvia → Desenvolvedores → Webhooks (eventos de chamada)",
+    campos: [],
   },
   {
     value: "vonage",

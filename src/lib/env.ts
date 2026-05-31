@@ -59,6 +59,10 @@ const serverSchema = z.object({
   AWS_REGION: z.string().optional(),
   REMOTION_LAMBDA_FUNCTION_NAME: z.string().optional(),
   REMOTION_LAMBDA_SITE_NAME: z.string().optional(),
+  // Zenvia Voz (ex-TotalVoice) - token de API pra ligações de voz no módulo
+  // /ligacoes. Sem isso, o cliente Zenvia é no-op (discar retorna erro
+  // amigável). Pegar em painel Zenvia → Desenvolvedores → API.
+  ZENVIA_VOICE_TOKEN: z.string().optional(),
 });
 
 const clientSchema = z.object({
