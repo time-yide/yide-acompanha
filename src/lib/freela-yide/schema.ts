@@ -12,7 +12,12 @@ export const criarOportunidadeSchema = z.object({
   valor_comissao: z.coerce.number().min(0).max(1_000_000),
   tipo: z.enum(TIPO_OP).default("captacao"),
   entrega_urgente: z.coerce.boolean().default(false),
-  prazo_entrega: z.string().trim().max(40).optional().nullable(),
+  prazo_entrega: z
+    .string()
+    .trim()
+    .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/, "Prazo inválido")
+    .optional()
+    .nullable(),
 });
 
 export const moverStatusSchema = z.object({
