@@ -63,3 +63,19 @@ describe("parseEventoWebhook", () => {
     expect(r.statusInterno).toBe("ocupada");
   });
 });
+
+import { iniciarLigacaoSchema } from "@/lib/ligacoes/schema";
+
+describe("iniciarLigacaoSchema", () => {
+  it("aceita número + instancia válidos", () => {
+    const r = iniciarLigacaoSchema.safeParse({
+      numero: "+5511999998888",
+      instancia_id: "11111111-1111-1111-1111-111111111111",
+    });
+    expect(r.success).toBe(true);
+  });
+  it("rejeita número curto", () => {
+    const r = iniciarLigacaoSchema.safeParse({ numero: "123", instancia_id: "11111111-1111-1111-1111-111111111111" });
+    expect(r.success).toBe(false);
+  });
+});

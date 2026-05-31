@@ -10,7 +10,9 @@ import {
   updateLigacaoSchema,
   archiveLigacaoSchema,
   popularMockSchema,
+  iniciarLigacaoSchema,
 } from "./schema";
+import { iniciarChamada, getWebphoneUrl } from "./zenvia";
 
 interface ActionOk { success: true }
 interface ActionErr { error: string }
@@ -271,4 +273,93 @@ export async function limparMockLigacoesAction(): Promise<ActionResult> {
 
   revalidatePath("/ligacoes");
   return { success: true };
+}
+
+// ===========================================================================
+// Discagem real via Zenvia
+// ===========================================================================
+
+export async function iniciarLigacaoAction(formData: FormData): Promise<ActionResult> {
+  const actor = await requireAuth();
+  if (!canManage(actor.role)) return { error: "Sem permissão" };
+
+  const parsed = iniciarLigacaoSchema.safeParse({
+    numero: fd(formData, "numero"),
+    instancia_id: fd(formData, "instancia_id"),
+    contato_nome: fd(formData, "contato_nome"),
+    lead_id: fd(formData, "lead_id"),
+    lead_gerado_id: fd(formData, "lead_gerado_id"),
+    client_id: fd(formData, "client_id"),
+    gravar: formData.get("gravar") === "on",
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const supabase = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+
+  const { data: inst } = await sb
+    .from("ligacoes_instancias")
+    .select("id, organization_id, ramal, provedor")
+    .eq("id", parsed.data.instancia_id)
+    .is("arquivado_em", null)
+    .maybeSingle();
+  if (!inst) return { error: "Instância não encontrada" };
+  if (inst.provedor !== "totalvoice") return { error: "Essa instância não é Zenvia" };
+  if (!inst.ramal) return { error: "Instância sem ramal configurado" };
+
+  const { data: lig, error: insErr } = await sb
+    .from("ligacoes")
+    .insert({
+      organization_id: inst.organization_id,
+      tipo: "telefone",
+      direcao: "saida",
+      colaborador_id: actor.id,
+      instancia_id: inst.id,
+      numero: parsed.data.numero,
+      contato_nome: parsed.data.contato_nome,
+      lead_id: parsed.data.lead_id,
+      lead_gerado_id: parsed.data.lead_gerado_id,
+      client_id: parsed.data.client_id,
+      status: "em_andamento",
+      iniciada_em: new Date().toISOString(),
+      origem: "totalvoice",
+    })
+    .select("id")
+    .single();
+  if (insErr || !lig) return { error: insErr?.message ?? "Erro ao criar ligação" };
+  const ligacaoId = (lig as { id: string }).id;
+
+  const r = await iniciarChamada({
+    numeroOrigem: inst.ramal as string,
+    numeroDestino: parsed.data.numero,
+    gravar: parsed.data.gravar,
+    tags: ligacaoId,
+  });
+  if (!r.ok) {
+    await sb.from("ligacoes").update({ status: "cancelada", observacoes: r.error }).eq("id", ligacaoId);
+    return { error: r.error ?? "Falha ao iniciar ligação" };
+  }
+
+  await sb.from("ligacoes").update({ external_id: r.externalId ?? null }).eq("id", ligacaoId);
+  revalidatePath("/ligacoes");
+  return { success: true };
+}
+
+export async function getWebphoneUrlAction(): Promise<{ url: string | null; ramal: string | null }> {
+  const actor = await requireAuth();
+  const supabase = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const { data: inst } = await sb
+    .from("ligacoes_instancias")
+    .select("ramal, provedor")
+    .eq("colaborador_id", actor.id)
+    .eq("provedor", "totalvoice")
+    .is("arquivado_em", null)
+    .maybeSingle();
+  const ramal = (inst?.ramal as string | null) ?? null;
+  if (!ramal) return { url: null, ramal: null };
+  const url = await getWebphoneUrl(ramal);
+  return { url, ramal };
 }
