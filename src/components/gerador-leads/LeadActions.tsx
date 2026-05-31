@@ -8,6 +8,7 @@ import {
 import { archiveLeadAction, changeLeadStatusAction } from "@/lib/gerador-leads/actions";
 import { STATUS_LEAD_VALORES, STATUS_LEAD_DEFS } from "@/lib/gerador-leads/tipos";
 import type { LeadGeradoRow } from "@/lib/gerador-leads/queries";
+import { LigarLeadButton } from "./LigarLeadButton";
 
 interface Props {
   lead: LeadGeradoRow;
@@ -55,6 +56,14 @@ export function LeadActions({ lead, canManage }: Props) {
 
   return (
     <div className="flex flex-wrap gap-1">
+      {/* Ligar (disca + registra + pergunta resultado) */}
+      {canManage && (lead.telefone || lead.whatsapp) && (
+        <LigarLeadButton
+          leadGeradoId={lead.id}
+          numero={(lead.telefone ?? lead.whatsapp) as string}
+          contatoNome={lead.empresa}
+        />
+      )}
       {/* WhatsApp */}
       {waUrl && (
         <a
