@@ -10,6 +10,7 @@ import { YoriUploadForm } from "@/components/yori/YoriUploadForm";
 export const dynamic = "force-dynamic";
 
 export default async function NovoYoriJobPage() {
+  redirect("/audiovisual/editor-ia/novo");
   const user = await requireAuth();
   if (!canUseYori(user.role)) redirect("/audiovisual");
   if (!isYoriEnabled()) redirect("/audiovisual");

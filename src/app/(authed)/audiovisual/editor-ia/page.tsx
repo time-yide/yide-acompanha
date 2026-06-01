@@ -14,7 +14,7 @@ export default async function EditorIaPage() {
     <div className="space-y-4 max-w-4xl">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Editor de vídeo IA</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Yori</h1>
           <p className="text-sm text-muted-foreground">
             Sobe um vídeo, descreva o que quer, receba MP4 editado com legenda e transcrição.
           </p>
