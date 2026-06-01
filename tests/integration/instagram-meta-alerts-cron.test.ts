@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const listClientesComUltimoSnapshotMock = vi.hoisted(() => vi.fn());
 const dispatchNotificationMock = vi.hoisted(() => vi.fn());
@@ -13,8 +13,17 @@ vi.mock("@/lib/notificacoes/dispatch", () => ({
 import { GET } from "@/app/api/cron/instagram-meta-alerts/route";
 
 beforeEach(() => {
+  // Fixa a data no meio do mês pra o cálculo de "posts esperados até hoje"
+  // (proporcional ao dia do mês) ser determinístico. Sem isso, no dia 1º o
+  // esperado é ~0 e ninguém fica "crítico" — o teste quebrava todo dia 1.
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date(2026, 5, 20, 12, 0, 0));
   listClientesComUltimoSnapshotMock.mockReset();
   dispatchNotificationMock.mockReset();
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 function makeReq(authHeader?: string): Request {
