@@ -74,6 +74,7 @@ export async function createLeadAction(formData: FormData) {
     info_briefing: fd(formData, "info_briefing"),
     prioridade: fd(formData, "prioridade") || "media",
     data_prospeccao_agendada: fd(formData, "data_prospeccao_agendada"),
+    canal: fd(formData, "canal") || "ligacao",
   });
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
@@ -96,6 +97,7 @@ export async function createLeadAction(formData: FormData) {
     info_briefing: parsed.data.info_briefing || null,
     prioridade: parsed.data.prioridade,
     data_prospeccao_agendada: datetimeLocalToUtcOrNull(parsed.data.data_prospeccao_agendada),
+    canal: parsed.data.canal,
     stage: "leads_potencial" as const,
     comercial_id: actor.id,
   };

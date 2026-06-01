@@ -17,6 +17,7 @@ export interface LeadRow {
   link_proposta: string | null;
   prioridade: "alta" | "media" | "baixa";
   stage: Stage;
+  canal: string;
   data_prospeccao_agendada: string | null;
   data_reuniao_marco_zero: string | null;
   data_fechamento: string | null;
@@ -28,7 +29,7 @@ export interface LeadRow {
   assessor_nome?: string | null;
 }
 
-async function _listLeadsByStageImpl(unitProfileIds: string[] | null): Promise<Record<Stage, LeadRow[]>> {
+async function _listLeadsByStageImpl(unitProfileIds: string[] | null, canal?: "ligacao" | "rua"): Promise<Record<Stage, LeadRow[]>> {
   // Service-role: RLS de SELECT em leads é permissiva (`using (true)` pra
   // authenticated), resultado é idêntico ao cookie client. Necessário pra
   // funcionar dentro de unstable_cache (sem request context).
@@ -37,7 +38,7 @@ async function _listLeadsByStageImpl(unitProfileIds: string[] | null): Promise<R
   let q: any = supabase
     .from("leads")
     .select(`
-      id, nome_prospect, site, telefone, valor_proposto, duracao_meses, servico_proposto, link_proposta, prioridade, stage,
+      id, nome_prospect, site, telefone, valor_proposto, duracao_meses, servico_proposto, link_proposta, prioridade, stage, canal,
       data_prospeccao_agendada, data_reuniao_marco_zero, data_fechamento,
       comercial_id, coord_alocado_id, assessor_alocado_id,
       comercial:profiles!leads_comercial_id_fkey(nome),
@@ -47,6 +48,10 @@ async function _listLeadsByStageImpl(unitProfileIds: string[] | null): Promise<R
     .is("deleted_at", null)
     .is("motivo_perdido", null)
     .order("created_at", { ascending: false });
+
+  if (canal !== undefined) {
+    q = q.eq("canal", canal);
+  }
 
   // Multi-tenant: filtra leads onde comercial/coord/assessor pertencem à
   // unidade ativa. null = sem filtro. [] = nenhum lead pra unidade nova.
@@ -129,19 +134,20 @@ async function _listLeadsByStageImpl(unitProfileIds: string[] | null): Promise<R
 
 export async function listLeadsByStage(
   unitProfileIds: string[] | null = null,
+  canal?: "ligacao" | "rua",
 ): Promise<Record<Stage, LeadRow[]>> {
   const cached = unstable_cache(
-    async (idsJson: string) => {
-      const ids = idsJson === "null" ? null : (JSON.parse(idsJson) as string[]);
-      return _listLeadsByStageImpl(ids);
+    async (argJson: string) => {
+      const { ids, canal: canalArg } = JSON.parse(argJson) as { ids: string[] | null; canal: "ligacao" | "rua" | null };
+      return _listLeadsByStageImpl(ids, canalArg ?? undefined);
     },
-    // v2: filtro por unitProfileIds (multi-tenant)
-    ["leads-by-stage-v2"],
+    // v3: arg inclui canal (shape do argumento mudou — bump obrigatório)
+    ["leads-by-stage-v3"],
     // TTL longo: o realtime watcher + revalidateTag das actions garantem
     // frescor. 5min é fallback pra cache não viver pra sempre.
     { revalidate: 300, tags: [LEADS_CACHE_TAG] },
   );
-  return cached(unitProfileIds === null ? "null" : JSON.stringify(unitProfileIds));
+  return cached(JSON.stringify({ ids: unitProfileIds, canal: canal ?? null }));
 }
 
 export interface LeadPerdidoRow extends LeadRow {
