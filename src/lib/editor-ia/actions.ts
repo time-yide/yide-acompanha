@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { requireAuth } from "@/lib/auth/session";
-import { criarJobSchema } from "./schema";
+import { criarJobSchema, salvarPlanoSchema } from "./schema";
 import { isEditorIaEnabled, canUseEditorIa } from "./feature-flag";
 import { uploadVideo } from "./storage";
 
@@ -82,4 +82,31 @@ export async function criarJobAction(
 
   revalidatePath("/audiovisual/editor-ia");
   return { success: true, data: { jobId: job.id as string } };
+}
+
+export async function salvarPlanoAction(formData: FormData): Promise<ActionResult> {
+  const user = await requireEditorIaAccess();
+  let edit_plan: unknown = null;
+  const raw = formData.get("edit_plan");
+  if (typeof raw === "string") { try { edit_plan = JSON.parse(raw); } catch { /* ignore */ } }
+
+  const parsed = salvarPlanoSchema.safeParse({ id: formData.get("id"), edit_plan });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = createServiceRoleClient() as any;
+  const { data: profile } = await sb.from("profiles").select("organization_id").eq("id", user.id).maybeSingle();
+  if (!profile?.organization_id) return { error: "Organização não encontrada" };
+
+  // Só salva no próprio job da org
+  const { data: upd, error } = await sb.from("editor_ia_jobs")
+    .update({ edit_plan: parsed.data.edit_plan })
+    .eq("id", parsed.data.id)
+    .eq("organization_id", profile.organization_id)
+    .select("id");
+  if (error) return { error: error.message };
+  if (!upd || upd.length === 0) return { error: "Job não encontrado" };
+
+  revalidatePath(`/audiovisual/editor-ia/${parsed.data.id}`);
+  return { success: true };
 }
