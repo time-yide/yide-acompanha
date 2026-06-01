@@ -21,8 +21,14 @@ export function TimelineRevisao({ jobId, videoUrl, editPlan }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isRenderPending, startRenderTransition] = useTransition();
-  const [segments, setSegments] = useState<EditSegment[]>(editPlan.segments);
-  const [captions, setCaptions] = useState<CaptionLine[]>(editPlan.captions);
+  // Defensivo: se o edit_plan vier malformado (sem os arrays), cai pra vazio
+  // em vez de quebrar no client ("Cannot read properties of undefined").
+  const [segments, setSegments] = useState<EditSegment[]>(
+    Array.isArray(editPlan?.segments) ? editPlan.segments : []
+  );
+  const [captions, setCaptions] = useState<CaptionLine[]>(
+    Array.isArray(editPlan?.captions) ? editPlan.captions : []
+  );
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [renderError, setRenderError] = useState<string | null>(null);
