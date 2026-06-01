@@ -2,7 +2,7 @@ import {
   LayoutGrid, Users, KanbanSquare, ListChecks,
   DollarSign, Calendar, UserCog, MessageSquare,
   TrendingUp, Video, Trash2, MessagesSquare, GraduationCap, Megaphone, Share2, Radar, MessageCircle, Phone,
-  IdCard, Rocket, BookOpen, Inbox, Activity, Layers, Sparkles, Zap,
+  IdCard, Rocket, BookOpen, Inbox, Activity, Layers, Sparkles, Zap, MapPin,
   type LucideIcon,
 } from "lucide-react";
 import type { Role } from "@/lib/auth/permissions";
@@ -54,19 +54,21 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
 
   {
     type: "group",
-    id: "comercial",
-    label: "Comercial",
+    id: "comercial-ligacao",
+    label: "Comercial Ligação",
     items: [
-      // "Clientes" foi pra Operação (decisão Yasmin: ela já é o "núcleo" da operação, não do comercial).
+      { type: "link", href: "/ligacoes", icon: Phone, label: "Ligações", roles: ["adm", "socio", "comercial", "coordenador", "assessor"], badgeKey: null },
+      { type: "link", href: "/onboarding", icon: KanbanSquare, label: "Onboarding", roles: ["adm", "socio", "comercial", "assessor", "coordenador", "audiovisual_chefe"], badgeKey: null },
       { type: "link", href: "/gerador-leads", icon: Radar, label: "Gerador de Leads", roles: ["adm", "socio", "comercial", "coordenador", "assessor"], badgeKey: null },
       { type: "link", href: "/conversas", icon: MessageCircle, label: "Conversas", roles: ["adm", "socio", "comercial", "coordenador", "assessor"], badgeKey: null },
-      { type: "link", href: "/ligacoes", icon: Phone, label: "Ligações", roles: ["adm", "socio", "comercial", "coordenador", "assessor"], badgeKey: null },
-      // "Reuniões" saiu do menu — agora aparece como aba dentro de Onboarding. URL /reunioes preservada.
-      // LGPD: dados de prospects/leads (telefone, email, valor) só pra quem
-      // precisa operar - comercial cria/contata, assessor/coord acompanham,
-      // audiovisual_chefe é coord audiovisual. Designer/videomaker/editor não veem.
-      { type: "link", href: "/onboarding", icon: KanbanSquare, label: "Onboarding", roles: ["adm", "socio", "comercial", "assessor", "coordenador", "audiovisual_chefe"], badgeKey: null },
-      // "Prospecção" saiu do menu — agora aparece como aba dentro de Onboarding. URL /prospeccao preservada.
+    ],
+  },
+  {
+    type: "group",
+    id: "comercial-rua",
+    label: "Comercial Rua",
+    items: [
+      { type: "link", href: "/visitas", icon: MapPin, label: "Visitas", roles: ["adm", "socio", "comercial", "coordenador", "assessor"], badgeKey: null },
     ],
   },
 
