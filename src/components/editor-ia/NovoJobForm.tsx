@@ -3,7 +3,8 @@
 import { useState, useTransition, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Upload, Loader2 } from "lucide-react";
-import { criarJobAction } from "@/lib/editor-ia/actions";
+import { iniciarUploadAction, confirmarUploadAction } from "@/lib/editor-ia/actions";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -40,6 +41,7 @@ export function NovoJobForm() {
   const [videoState, setVideoState] = useState<VideoState>({ status: "idle" });
   const [instrucao, setInstrucao] = useState("");
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [pending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -59,25 +61,51 @@ export function NovoJobForm() {
     if (videoState.status !== "ready") return;
 
     setSubmitError(null);
-    const fd = new FormData();
-    fd.set("video", videoState.file);
-    fd.set("instrucao", instrucao);
-    fd.set("video_duracao_segundos", String(videoState.durationSeconds));
+    const file = videoState.file;
+    const durationSeconds = videoState.durationSeconds;
 
     startTransition(async () => {
-      const r = await criarJobAction(fd);
+      // Step 1: create job + get signed upload URL
+      const fd = new FormData();
+      fd.set("instrucao", instrucao);
+      fd.set("video_duracao_segundos", String(durationSeconds));
+      fd.set("filename", file.name);
+      const r = await iniciarUploadAction(fd);
       if ("error" in r) {
         setSubmitError(r.error);
         return;
       }
-      if (r.success) {
-        router.push("/audiovisual/editor-ia");
+      if (!r.data) {
+        setSubmitError("Resposta inesperada do servidor");
+        return;
       }
+
+      // Step 2: upload file directly to Storage (bypasses Vercel limit)
+      setUploading(true);
+      const supabase = createClient();
+      const { error: upErr } = await supabase.storage.from("editor-ia").uploadToSignedUrl(r.data.path, r.data.token, file);
+      setUploading(false);
+      if (upErr) {
+        setSubmitError("Falha no upload: " + upErr.message);
+        return;
+      }
+
+      // Step 3: confirm upload + advance status
+      const fd2 = new FormData();
+      fd2.set("jobId", r.data.jobId);
+      const c = await confirmarUploadAction(fd2);
+      if ("error" in c) {
+        setSubmitError(c.error);
+        return;
+      }
+
+      router.push("/audiovisual/editor-ia");
     });
   }
 
   const isReading = videoState.status === "reading";
   const isReady = videoState.status === "ready" && instrucao.trim().length > 0;
+  const isBusy = pending || uploading;
 
   return (
     <div className="space-y-4">
@@ -133,7 +161,7 @@ export function NovoJobForm() {
           onChange={(e) => setInstrucao(e.target.value)}
           placeholder="Ex.: corta os silencios e partes paradas, deixa dinamico, poe legenda"
           rows={4}
-          disabled={pending}
+          disabled={isBusy}
         />
       </div>
 
@@ -145,14 +173,19 @@ export function NovoJobForm() {
 
       <Button
         type="button"
-        disabled={!isReady || isReading || pending}
+        disabled={!isReady || isReading || isBusy}
         onClick={handleSubmit}
         size="lg"
       >
-        {pending ? (
+        {uploading ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />
-            Enviando...
+            Enviando video...
+          </>
+        ) : pending ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Processando...
           </>
         ) : (
           <>

@@ -6,7 +6,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { requireAuth } from "@/lib/auth/session";
 import { criarJobSchema, salvarPlanoSchema } from "./schema";
 import { isEditorIaEnabled, canUseEditorIa } from "./feature-flag";
-import { uploadVideo } from "./storage";
+import { createSignedUpload } from "./storage";
 
 type ActionOk<T = void> = { success: true; data?: T };
 type ActionErr = { error: string };
@@ -19,69 +19,51 @@ export async function requireEditorIaAccess() {
   return user;
 }
 
-export async function criarJobAction(
+export async function iniciarUploadAction(
   formData: FormData,
-): Promise<ActionResult<{ jobId: string }>> {
+): Promise<ActionResult<{ jobId: string; path: string; token: string }>> {
   const user = await requireEditorIaAccess();
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const raw: any = Object.fromEntries(formData);
-  const parsed = criarJobSchema.safeParse(raw);
+  const parsed = criarJobSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const filename = String(formData.get("filename") ?? "").trim();
+  if (!filename) return { error: "Nome do arquivo ausente" };
 
-  const file = formData.get("video") as File | null;
-  if (!file || file.size === 0) return { error: "Video nao enviado" };
-  if (file.size > 500 * 1024 * 1024) return { error: "Vídeo maior que 500MB" };
-
-  const supabase = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sb = supabase as any;
-
-  const { data: profile } = await sb
-    .from("profiles")
-    .select("organization_id")
-    .eq("id", user.id)
-    .maybeSingle();
+  const sb = createServiceRoleClient() as any;
+  const { data: profile } = await sb.from("profiles").select("organization_id").eq("id", user.id).maybeSingle();
   if (!profile?.organization_id) return { error: "Organizacao nao encontrada" };
 
-  const { data: job, error: insertError } = await sb
-    .from("editor_ia_jobs")
-    .insert({
-      organization_id: profile.organization_id,
-      user_id: user.id,
-      instrucao: parsed.data.instrucao,
-      video_duracao_segundos: parsed.data.video_duracao_segundos,
-      status: "enviando",
-    })
-    .select("id")
-    .single();
-  if (insertError || !job) return { error: insertError?.message ?? "Erro ao criar job" };
+  const { data: job, error: insErr } = await sb.from("editor_ia_jobs").insert({
+    organization_id: profile.organization_id,
+    user_id: user.id,
+    instrucao: parsed.data.instrucao,
+    video_duracao_segundos: parsed.data.video_duracao_segundos,
+    status: "enviando",
+  }).select("id").single();
+  if (insErr || !job) return { error: insErr?.message ?? "Erro ao criar job" };
 
-  const buffer = await file.arrayBuffer();
-  const uploadResult = await uploadVideo(
-    profile.organization_id,
-    user.id,
-    job.id as string,
-    file.name,
-    buffer,
-    file.type || "video/mp4",
-  );
-
-  if (!uploadResult.ok) {
-    await sb
-      .from("editor_ia_jobs")
-      .update({ status: "erro", erro: `Upload falhou: ${uploadResult.error}` })
-      .eq("id", job.id);
-    return { error: uploadResult.error };
+  const signed = await createSignedUpload(profile.organization_id, user.id, job.id as string, filename);
+  if (!signed.ok) {
+    await sb.from("editor_ia_jobs").update({ status: "erro", erro: signed.error }).eq("id", job.id);
+    return { error: signed.error };
   }
+  await sb.from("editor_ia_jobs").update({ video_url: signed.path }).eq("id", job.id);
+  return { success: true, data: { jobId: job.id as string, path: signed.path, token: signed.token } };
+}
 
-  await sb
-    .from("editor_ia_jobs")
-    .update({ video_url: uploadResult.path, status: "transcrevendo" })
-    .eq("id", job.id);
-
+export async function confirmarUploadAction(formData: FormData): Promise<ActionResult> {
+  const user = await requireEditorIaAccess();
+  const jobId = String(formData.get("jobId") ?? "");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = createServiceRoleClient() as any;
+  const { data: upd, error } = await sb.from("editor_ia_jobs")
+    .update({ status: "transcrevendo" })
+    .eq("id", jobId).eq("user_id", user.id).eq("status", "enviando")
+    .select("id");
+  if (error) return { error: error.message };
+  if (!upd || upd.length === 0) return { error: "Job nao encontrado" };
   revalidatePath("/audiovisual/editor-ia");
-  return { success: true, data: { jobId: job.id as string } };
+  return { success: true };
 }
 
 export async function renderizarAction(formData: FormData): Promise<ActionResult> {
