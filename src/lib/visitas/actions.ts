@@ -149,6 +149,10 @@ export async function adicionarLeadVisitaAction(
     fonte: "visita",
     visita_id: parsed.data.visita_id,
     responsavel_id: actor.id,
+    // leads_gerados tem `unique nulls not distinct (organization_id, google_place_id)`,
+    // entao dois leads com place_id NULL colidem. Leads de visita nao vem do Google Maps,
+    // entao geramos um id sintetico unico so pra satisfazer a constraint (nao tem uso na UI).
+    google_place_id: `visita:${crypto.randomUUID()}`,
   });
   if (error) return { error: error.message };
   revalidatePath("/visitas");

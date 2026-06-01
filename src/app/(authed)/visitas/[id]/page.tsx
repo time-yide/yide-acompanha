@@ -6,6 +6,7 @@ import { getOrganizationId, listLeadsGerados } from "@/lib/gerador-leads/queries
 import { getVisita } from "@/lib/visitas/queries";
 import { LeadsTable } from "@/components/gerador-leads/LeadsTable";
 import { AdicionarLeadVisitaButton } from "@/components/visitas/AdicionarLeadVisitaButton";
+import { EditarVisitaButton } from "@/components/visitas/EditarVisitaButton";
 
 const ALLOWED_ROLES = ["adm", "socio", "comercial", "coordenador", "assessor"];
 
@@ -41,7 +42,21 @@ export default async function VisitaDetalhePage({
         >
           <ArrowLeft className="h-3 w-3" /> Voltar para visitas
         </Link>
-        <h1 className="text-2xl font-bold tracking-tight">{visita.titulo}</h1>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h1 className="text-2xl font-bold tracking-tight">{visita.titulo}</h1>
+          {canManage && (
+            <EditarVisitaButton
+              visita={{
+                id: visita.id,
+                data: visita.data,
+                titulo: visita.titulo,
+                bairro: visita.bairro,
+                cidade: visita.cidade,
+                observacoes: visita.observacoes,
+              }}
+            />
+          )}
+        </div>
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <span>{dataFormatada}</span>
           {(visita.bairro || visita.cidade) && (
