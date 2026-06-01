@@ -41,6 +41,19 @@ export async function getSignedUrl(path: string, expiresInSeconds = 3600): Promi
   return data.signedUrl;
 }
 
+export async function createSignedUpload(
+  orgId: string,
+  userId: string,
+  jobId: string,
+  filename: string,
+): Promise<{ ok: true; path: string; token: string } | { ok: false; error: string }> {
+  const sb = createServiceRoleClient();
+  const path = videoPath(orgId, userId, jobId, filename);
+  const { data, error } = await sb.storage.from(BUCKET).createSignedUploadUrl(path);
+  if (error || !data) return { ok: false, error: error?.message ?? "Falha ao gerar upload" };
+  return { ok: true, path, token: data.token };
+}
+
 export async function uploadOutput(
   path: string,
   content: string | ArrayBuffer,
