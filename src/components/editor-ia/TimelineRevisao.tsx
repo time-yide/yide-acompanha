@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { salvarPlanoAction } from "@/lib/editor-ia/actions";
+import { salvarPlanoAction, renderizarAction } from "@/lib/editor-ia/actions";
 import type { EditPlan, EditSegment, CaptionLine } from "@/lib/editor-ia/tipos";
 
 function fmt(s: number): string {
@@ -20,10 +20,12 @@ interface Props {
 export function TimelineRevisao({ jobId, videoUrl, editPlan }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [isRenderPending, startRenderTransition] = useTransition();
   const [segments, setSegments] = useState<EditSegment[]>(editPlan.segments);
   const [captions, setCaptions] = useState<CaptionLine[]>(editPlan.captions);
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [renderError, setRenderError] = useState<string | null>(null);
 
   function toggleSegment(index: number) {
     setSegments((prev) =>
@@ -37,6 +39,20 @@ export function TimelineRevisao({ jobId, videoUrl, editPlan }: Props) {
       prev.map((cap, i) => (i === index ? { ...cap, text } : cap))
     );
     setSaved(false);
+  }
+
+  function handleRenderizar() {
+    setRenderError(null);
+    const fd = new FormData();
+    fd.set("id", jobId);
+    startRenderTransition(async () => {
+      const result = await renderizarAction(fd);
+      if ("error" in result) {
+        setRenderError(result.error);
+      } else {
+        router.refresh();
+      }
+    });
   }
 
   function handleSave() {
@@ -120,29 +136,35 @@ export function TimelineRevisao({ jobId, videoUrl, editPlan }: Props) {
         </ul>
       </section>
 
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={isPending}
-          className="rounded-md bg-primary px-4 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-        >
-          {isPending ? "Salvando..." : "Salvar"}
-        </button>
-        <button
-          type="button"
-          disabled
-          title="Disponível quando a conta Shotstack estiver configurada"
-          className="rounded-md border px-4 py-2 text-xs font-medium text-muted-foreground opacity-50 cursor-not-allowed"
-        >
-          Renderizar
-        </button>
-        {saved && (
-          <span className="text-xs text-green-600 dark:text-green-400">Salvo</span>
+      <div className="space-y-2">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={isPending || isRenderPending}
+            className="rounded-md bg-primary px-4 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          >
+            {isPending ? "Salvando..." : "Salvar"}
+          </button>
+          <button
+            type="button"
+            onClick={handleRenderizar}
+            disabled={isPending || isRenderPending}
+            className="rounded-md border border-input bg-background px-4 py-2 text-xs font-medium hover:bg-accent hover:text-accent-foreground disabled:opacity-50"
+          >
+            {isRenderPending ? "Enviando..." : "Renderizar"}
+          </button>
+          {saved && (
+            <span className="text-xs text-green-600 dark:text-green-400">Salvo</span>
+          )}
+          {saveError && (
+            <span className="text-xs text-destructive">{saveError}</span>
+          )}
+        </div>
+        {renderError && (
+          <p className="text-xs text-destructive">{renderError}</p>
         )}
-        {saveError && (
-          <span className="text-xs text-destructive">{saveError}</span>
-        )}
+        <p className="text-xs text-muted-foreground">O render pode levar alguns minutos.</p>
       </div>
     </div>
   );

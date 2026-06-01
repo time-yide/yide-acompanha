@@ -25,13 +25,19 @@ export default async function EditorIaJobDetailPage({
   if (job.user_id !== user.id) redirect("/audiovisual/editor-ia");
 
   const videoUrl = job.video_url ? await getSignedUrl(job.video_url) : null;
+  const outputUrl =
+    job.status === "pronto" && job.output_url
+      ? await getSignedUrl(job.output_url)
+      : null;
 
   let stateMessage: string | null = null;
   if (job.status === "enviando") stateMessage = "Enviando vídeo...";
   else if (job.status === "transcrevendo") stateMessage = "Transcrevendo áudio...";
   else if (job.status === "planejando") stateMessage = "Planejando edição (IA)...";
-  else if (job.status === "renderizando") stateMessage = "Renderizando vídeo final...";
-  else if (job.status === "pronto") stateMessage = "Pronto. O download estará disponível em breve.";
+  else if (job.status === "renderizando")
+    stateMessage = "Renderizando... isso atualiza sozinho (recarregue em instantes).";
+  else if (job.status === "pronto" && !outputUrl)
+    stateMessage = "Pronto. O download estará disponível em breve.";
   else if (job.status === "erro") stateMessage = `Erro: ${job.erro ?? "falha desconhecida"}`;
 
   const showTimeline =
@@ -60,15 +66,25 @@ export default async function EditorIaJobDetailPage({
         </p>
       </div>
 
+      {outputUrl && (
+        <a
+          href={outputUrl}
+          download
+          className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90"
+        >
+          Baixar vídeo
+        </a>
+      )}
+
       {showTimeline ? (
         <TimelineRevisao
           jobId={job.id}
           videoUrl={videoUrl}
           editPlan={job.edit_plan as EditPlan}
         />
-      ) : (
+      ) : stateMessage ? (
         <p className="text-sm text-muted-foreground">{stateMessage}</p>
-      )}
+      ) : null}
     </div>
   );
 }
