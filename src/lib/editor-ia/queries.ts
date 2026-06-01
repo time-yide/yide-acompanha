@@ -35,15 +35,17 @@ export async function listMeusJobs(userId: string, limit = 50): Promise<EditorIa
   return (data ?? []) as EditorIaJobRow[];
 }
 
-export async function getJob(id: string): Promise<EditorIaJobRow | null> {
+export async function getJob(
+  id: string,
+): Promise<(EditorIaJobRow & { user_id: string; organization_id: string }) | null> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
   const { data } = await sb
     .from("editor_ia_jobs")
-    .select(COLS)
+    .select(`${COLS}, user_id, organization_id`)
     .eq("id", id)
     .maybeSingle();
-  return (data as EditorIaJobRow | null) ?? null;
+  return (data as (EditorIaJobRow & { user_id: string; organization_id: string }) | null) ?? null;
 }
 
 /** Jobs que o worker deve avancar (transcrevendo/planejando). */
