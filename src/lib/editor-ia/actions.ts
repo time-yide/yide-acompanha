@@ -31,6 +31,7 @@ export async function criarJobAction(
 
   const file = formData.get("video") as File | null;
   if (!file || file.size === 0) return { error: "Video nao enviado" };
+  if (file.size > 500 * 1024 * 1024) return { error: "Vídeo maior que 500MB" };
 
   const supabase = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

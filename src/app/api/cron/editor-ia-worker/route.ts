@@ -13,6 +13,7 @@ import { transcribeAudio } from "@/lib/yori/services/groq-whisper";
 import type { EditorIaJobRow } from "@/lib/editor-ia/queries";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 300;
 
 type JobWithMeta = EditorIaJobRow & { user_id: string; organization_id: string };
 
@@ -56,6 +57,10 @@ async function processTranscrevendo(job: JobWithMeta): Promise<string> {
   const filename = job.video_url.split("/").pop() ?? "video.mp4";
 
   const result = await transcribeAudio(buffer, filename);
+  if (result.skipped) {
+    // GROQ_API_KEY não configurado — não envenena o job; próxima run vai tentar de novo.
+    return "skip:groq-nao-configurado";
+  }
   if (!result.ok || !result.transcription) {
     throw new Error(result.error ?? "Whisper falhou");
   }
