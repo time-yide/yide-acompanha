@@ -10,6 +10,7 @@ import { getServerEnv } from "@/lib/env";
 import { listJobsToProcess } from "@/lib/editor-ia/queries";
 import { downloadFile } from "@/lib/editor-ia/storage";
 import { transcribeAudio } from "@/lib/yori/services/groq-whisper";
+import { gerarPlanoBase, parametrosDaInstrucao } from "@/lib/editor-ia/services/ia-plano";
 import type { EditorIaJobRow } from "@/lib/editor-ia/queries";
 
 export const dynamic = "force-dynamic";
@@ -43,7 +44,7 @@ export async function GET(req: Request) {
 
 async function processJob(job: JobWithMeta): Promise<string> {
   if (job.status === "transcrevendo") return processTranscrevendo(job);
-  if (job.status === "planejando") return "noop:aguardando-PR3";
+  if (job.status === "planejando") return processPlanejando(job);
   return `noop:${job.status}`;
 }
 
@@ -77,6 +78,22 @@ async function processTranscrevendo(job: JobWithMeta): Promise<string> {
     .eq("id", job.id);
 
   return "advanced:transcrevendo->planejando";
+}
+
+async function processPlanejando(job: JobWithMeta): Promise<string> {
+  const transc = job.transcricao as { words?: import("@/lib/yori/tipos").WhisperWord[] } | null;
+  const words = transc?.words ?? [];
+  if (words.length === 0) throw new Error("transcrição sem palavras");
+
+  const plano = gerarPlanoBase(words, parametrosDaInstrucao(job.instrucao ?? ""));
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = createServiceRoleClient() as any;
+  await sb.from("editor_ia_jobs").update({
+    edit_plan: plano,
+    status: "aguardando_revisao",
+  }).eq("id", job.id);
+  return "advanced:planejando→aguardando_revisao";
 }
 
 async function markJobError(jobId: string, message: string): Promise<void> {
