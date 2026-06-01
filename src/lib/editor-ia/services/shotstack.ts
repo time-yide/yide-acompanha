@@ -49,7 +49,7 @@ export function buildShotstackEdit(plan: EditPlan, videoUrl: string): any {
       const outEnd = remapTime(Math.max(c.start, c.end - 0.001), mapped);
       const length = outEnd !== null ? Math.max(0.3, outEnd - outStart) : 1;
       return {
-        asset: { type: "caption", text: c.text },
+        asset: { type: "title", text: c.text, style: "minimal" },
         start: outStart,
         length,
       };

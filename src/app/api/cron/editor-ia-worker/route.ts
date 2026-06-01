@@ -106,14 +106,15 @@ async function processRenderizando(job: JobWithMeta): Promise<string> {
   if (!job.shotstack_render_id) {
     // Primeira passagem: submeter o render ao Shotstack
     if (!job.video_url) throw new Error("video_url ausente");
-    const signed = await getSignedUrl(job.video_url);
+    const signed = await getSignedUrl(job.video_url, 4 * 3600);
     if (!signed) throw new Error("falha ao gerar signed URL do vídeo");
 
     const edit = buildShotstackEdit(job.edit_plan as EditPlan, signed);
     const r = await submitRender(edit);
     if (!r.ok) throw new Error(r.error ?? "submitRender falhou");
 
-    await sb.from("editor_ia_jobs").update({ shotstack_render_id: r.renderId }).eq("id", job.id);
+    const { error: ridErr } = await sb.from("editor_ia_jobs").update({ shotstack_render_id: r.renderId }).eq("id", job.id);
+    if (ridErr) throw new Error(`Falha ao salvar render_id: ${ridErr.message}`);
     return "render:submetido";
   } else {
     // Passagens seguintes: polling do status
@@ -122,7 +123,8 @@ async function processRenderizando(job: JobWithMeta): Promise<string> {
     if (st.status === "done" && st.url) {
       const buf = await (await fetch(st.url)).arrayBuffer();
       const path = outputPath(job.organization_id, job.user_id, job.id);
-      await uploadOutput(path, buf, "video/mp4");
+      const up = await uploadOutput(path, buf, "video/mp4");
+      if (!up.ok) throw new Error(`Upload do resultado falhou: ${up.error}`);
       await sb.from("editor_ia_jobs").update({ output_url: path, status: "pronto" }).eq("id", job.id);
       return "render:pronto";
     }
