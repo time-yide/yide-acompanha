@@ -25,6 +25,7 @@ interface Props {
     servico_proposto: string | null;
     info_briefing: string | null;
     prioridade: string;
+    canal: string;
     data_prospeccao_agendada: string | null;
     data_reuniao_marco_zero: string | null;
     coord_alocado_id: string | null;
@@ -218,6 +219,20 @@ export function LeadForm({ action, defaults = {}, coordenadores = [], assessores
             <Label htmlFor="info_briefing">Info coletada na prospecção</Label>
             <Textarea id="info_briefing" name="info_briefing" rows={4} defaultValue={defaults.info_briefing ?? ""} />
           </div>
+        </div>
+      )}
+
+      {/* Canal: visível apenas na criação (em edição, o canal não muda). */}
+      {!isEdit && (
+        <div className="space-y-2">
+          <Label htmlFor="canal">Canal</Label>
+          <Select name="canal" defaultValue={defaults.canal ?? "ligacao"}>
+            <SelectTrigger id="canal"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ligacao">Ligação</SelectItem>
+              <SelectItem value="rua">Rua</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       )}
 

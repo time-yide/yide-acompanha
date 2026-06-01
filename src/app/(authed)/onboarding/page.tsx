@@ -14,13 +14,17 @@ import { Plus, Download } from "lucide-react";
 // LGPD: só roles que precisam operar com dados de prospect têm acesso.
 const ROLES_PERMITIDOS = ["adm", "socio", "comercial", "assessor", "coordenador", "audiovisual_chefe"];
 
-export default async function OnboardingPage() {
+export default async function OnboardingPage({ searchParams }: { searchParams: Promise<{ canal?: string }> }) {
   const user = await requireAuth();
   if (!ROLES_PERMITIDOS.includes(user.role)) redirect("/");
+
+  const { canal: canalRaw } = await searchParams;
+  const canal = canalRaw === "rua" || canalRaw === "ligacao" ? canalRaw : undefined;
+
   // Multi-tenant: filtra leads pelos profiles da unidade ativa
   const unitProfileIds = await getProfileIdsForActiveUnit();
   const [groups, coordenadoresRaw, assessoresRaw] = await Promise.all([
-    listLeadsByStage(unitProfileIds),
+    listLeadsByStage(unitProfileIds, canal),
     // "Coordenador" no UI cobre adm/socio/coordenador - Yasmin opera como
     // sócia, mas alguns profiles antigos podem estar como adm.
     listColaboradores({ ativo: true, roles: ["adm", "socio", "coordenador"] }),
@@ -35,6 +39,9 @@ export default async function OnboardingPage() {
 
   const canCreate = ["adm", "socio", "comercial"].includes(user.role);
 
+  const canalLabel = canal === "rua" ? "Rua" : canal === "ligacao" ? "Ligação" : "Todos";
+  const novoHref = canal ? `/onboarding/novo?canal=${canal}` : "/onboarding/novo";
+
   return (
     <div className="space-y-5">
       {/* Kanban atualiza ao vivo quando qualquer um move/cria/marca lead. */}
@@ -45,7 +52,7 @@ export default async function OnboardingPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Onboarding</h1>
           <p className="text-sm text-muted-foreground">
-            Pipeline de novos clientes · {total} lead{total !== 1 ? "s" : ""} ativo{total !== 1 ? "s" : ""}
+            Pipeline de novos clientes · Canal: {canalLabel} · {total} lead{total !== 1 ? "s" : ""} ativo{total !== 1 ? "s" : ""}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -59,7 +66,7 @@ export default async function OnboardingPage() {
                 <Download className="mr-2 h-4 w-4" />
                 Importar cliente
               </Link>
-              <Link href="/onboarding/novo" className={buttonVariants()}>
+              <Link href={novoHref} className={buttonVariants()}>
                 <Plus className="mr-2 h-4 w-4" />Novo prospect
               </Link>
             </>
