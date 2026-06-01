@@ -4,9 +4,12 @@ import { createLeadAction } from "@/lib/leads/actions";
 import { LeadForm } from "@/components/onboarding/LeadForm";
 import { Card } from "@/components/ui/card";
 
-export default async function NovoLeadPage() {
+export default async function NovoLeadPage({ searchParams }: { searchParams: Promise<{ canal?: string }> }) {
   const user = await requireAuth();
   if (!["adm", "socio", "comercial"].includes(user.role)) redirect("/onboarding");
+
+  const { canal: canalRaw } = await searchParams;
+  const canal = canalRaw === "rua" || canalRaw === "ligacao" ? canalRaw : "ligacao";
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -17,7 +20,7 @@ export default async function NovoLeadPage() {
         </p>
       </header>
       <Card className="p-6">
-        <LeadForm action={createLeadAction} submitLabel="Criar prospect" />
+        <LeadForm action={createLeadAction} submitLabel="Criar prospect" defaults={{ canal }} />
       </Card>
     </div>
   );
