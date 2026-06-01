@@ -58,7 +58,7 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
     label: "Comercial Ligação",
     items: [
       { type: "link", href: "/ligacoes", icon: Phone, label: "Ligações", roles: ["adm", "socio", "comercial", "coordenador", "assessor"], badgeKey: null },
-      { type: "link", href: "/onboarding?canal=ligacao", icon: KanbanSquare, label: "Onboarding Ligação", roles: ["adm", "socio", "comercial", "assessor", "coordenador", "audiovisual_chefe"], badgeKey: null },
+      { type: "link", href: "/onboarding", icon: KanbanSquare, label: "Onboarding", roles: ["adm", "socio", "comercial", "assessor", "coordenador", "audiovisual_chefe"], badgeKey: null },
       { type: "link", href: "/gerador-leads", icon: Radar, label: "Gerador de Leads", roles: ["adm", "socio", "comercial", "coordenador", "assessor"], badgeKey: null },
       { type: "link", href: "/conversas", icon: MessageCircle, label: "Conversas", roles: ["adm", "socio", "comercial", "coordenador", "assessor"], badgeKey: null },
     ],
@@ -69,7 +69,6 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
     label: "Comercial Rua",
     items: [
       { type: "link", href: "/visitas", icon: MapPin, label: "Visitas", roles: ["adm", "socio", "comercial", "coordenador", "assessor"], badgeKey: null },
-      { type: "link", href: "/onboarding?canal=rua", icon: KanbanSquare, label: "Onboarding Rua", roles: ["adm", "socio", "comercial", "assessor", "coordenador", "audiovisual_chefe"], badgeKey: null },
     ],
   },
 
