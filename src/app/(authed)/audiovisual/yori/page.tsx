@@ -11,6 +11,7 @@ import { YoriQuotaIndicator } from "@/components/yori/YoriQuotaIndicator";
 export const dynamic = "force-dynamic";
 
 export default async function YoriPage() {
+  redirect("/audiovisual/editor-ia");
   const user = await requireAuth();
   if (!canUseYori(user.role)) redirect("/audiovisual");
   if (!isYoriEnabled()) redirect("/audiovisual");

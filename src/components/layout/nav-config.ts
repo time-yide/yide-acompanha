@@ -83,7 +83,7 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
       { type: "link", href: "/d0-d30", icon: Rocket, label: "D0 → D30", roles: ["adm", "socio", "coordenador", "assessor", "comercial"], badgeKey: null },
       { type: "link", href: "/tarefas", icon: ListChecks, label: "Tarefas", roles: "all", badgeKey: null },
       { type: "link", href: "/audiovisual", icon: Video, label: "Audiovisual", roles: ["adm", "socio", "coordenador", "assessor", "videomaker", "audiovisual_chefe"], badgeKey: null },
-      { type: "link", href: "/audiovisual/yori", icon: Sparkles, label: "Yori", roles: ["videomaker", "editor", "audiovisual_chefe", "assessor", "socio", "adm"], badgeKey: "yoriProntos" },
+      { type: "link", href: "/audiovisual/editor-ia", icon: Sparkles, label: "Yori", roles: ["videomaker", "editor", "audiovisual_chefe", "assessor", "socio", "adm"], badgeKey: null },
       { type: "link", href: "/freela-yide", icon: Zap, label: "FreelaYide", roles: ["adm", "socio", "comercial", "coordenador", "assessor", "designer", "videomaker", "editor", "audiovisual_chefe"], badgeKey: null },
       { type: "link", href: "/trafego", icon: Megaphone, label: "Tráfego", roles: ["adm", "socio", "coordenador", "assessor", "comercial"], badgeKey: null },
       // Label "Estratégia" — engloba Painel Mensal + Agendamento de Post + Design + Apresenta Yide.
