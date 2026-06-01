@@ -21,6 +21,8 @@ import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { YoriEntryButton } from "@/components/yori/YoriEntryButton";
 import { isYoriEnabled, canUseYori } from "@/lib/yori/feature-flag";
+import { EditorIaEntryButton } from "@/components/editor-ia/EditorIaEntryButton";
+import { isEditorIaEnabled, canUseEditorIa } from "@/lib/editor-ia/feature-flag";
 
 const ROLES_QUE_VEEM = ["videomaker", "audiovisual_chefe", "coordenador", "assessor", "adm", "socio"];
 const ROLES_QUE_DELEGAM = ["audiovisual_chefe", "adm", "socio"];
@@ -203,7 +205,10 @@ export default async function AudiovisualPage({
             Entregas de captação, gravações pendentes e fila de delegação.
           </p>
         </div>
-        {isYoriEnabled() && canUseYori(user.role) && <YoriEntryButton />}
+        <div className="flex flex-wrap items-center gap-2">
+          {isYoriEnabled() && canUseYori(user.role) && <YoriEntryButton />}
+          {isEditorIaEnabled() && canUseEditorIa(user.role) && <EditorIaEntryButton />}
+        </div>
       </header>
 
       {overdueForBanner.length > 0 && (

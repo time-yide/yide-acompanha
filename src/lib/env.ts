@@ -62,6 +62,8 @@ const serverSchema = z.object({
   // Editor de vídeo IA (Shotstack). Sem essa key (+ GROQ_API_KEY) o módulo
   // fica desligado. Cadastro em https://shotstack.io.
   SHOTSTACK_API_KEY: z.string().optional(),
+  // Ambiente Shotstack: sandbox (watermark) ou production. Default: sandbox.
+  SHOTSTACK_ENV: z.enum(["sandbox", "production"]).optional(),
   // Zenvia Voz (ex-TotalVoice) - token de API pra ligações de voz no módulo
   // /ligacoes. Sem isso, o cliente Zenvia é no-op (discar retorna erro
   // amigável). Pegar em painel Zenvia → Desenvolvedores → API.

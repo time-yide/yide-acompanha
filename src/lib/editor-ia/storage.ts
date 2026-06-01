@@ -8,6 +8,10 @@ export function videoPath(orgId: string, userId: string, jobId: string, filename
   return `${orgId}/${userId}/${jobId}/${safe}`;
 }
 
+export function outputPath(orgId: string, userId: string, jobId: string): string {
+  return `${orgId}/${userId}/${jobId}/output.mp4`;
+}
+
 export async function uploadVideo(
   orgId: string,
   userId: string,
