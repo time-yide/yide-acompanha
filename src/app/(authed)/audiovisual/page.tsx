@@ -19,8 +19,6 @@ import { listPendingDelegations, listScheduledFutureCaptures, listVideomakersAti
 import { canRoleDelegateVideomaker, canRoleViewCoord } from "@/lib/audiovisual/coord-roles";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { YoriEntryButton } from "@/components/yori/YoriEntryButton";
-import { isYoriEnabled, canUseYori } from "@/lib/yori/feature-flag";
 import { EditorIaEntryButton } from "@/components/editor-ia/EditorIaEntryButton";
 import { isEditorIaEnabled, canUseEditorIa } from "@/lib/editor-ia/feature-flag";
 
@@ -206,7 +204,6 @@ export default async function AudiovisualPage({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {isYoriEnabled() && canUseYori(user.role) && <YoriEntryButton />}
           {isEditorIaEnabled() && canUseEditorIa(user.role) && <EditorIaEntryButton />}
         </div>
       </header>
