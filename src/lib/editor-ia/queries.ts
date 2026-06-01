@@ -12,12 +12,13 @@ export interface EditorIaJobRow {
   edit_plan: unknown | null;
   output_url: string | null;
   srt_url: string | null;
+  shotstack_render_id: string | null;
   erro: string | null;
   created_at: string;
 }
 
 const COLS =
-  "id, status, instrucao, video_url, video_duracao_segundos, transcricao, edit_plan, output_url, srt_url, erro, created_at";
+  "id, status, instrucao, video_url, video_duracao_segundos, transcricao, edit_plan, output_url, srt_url, shotstack_render_id, erro, created_at";
 
 export async function listMeusJobs(userId: string, limit = 50): Promise<EditorIaJobRow[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -48,7 +49,7 @@ export async function getJob(
   return (data as (EditorIaJobRow & { user_id: string; organization_id: string }) | null) ?? null;
 }
 
-/** Jobs que o worker deve avancar (transcrevendo/planejando). */
+/** Jobs que o worker deve avancar (transcrevendo/planejando/renderizando). */
 export async function listJobsToProcess(
   limit = 5,
 ): Promise<Array<EditorIaJobRow & { user_id: string; organization_id: string }>> {
@@ -57,7 +58,7 @@ export async function listJobsToProcess(
   const { data } = await sb
     .from("editor_ia_jobs")
     .select(`${COLS}, user_id, organization_id`)
-    .in("status", ["transcrevendo", "planejando"])
+    .in("status", ["transcrevendo", "planejando", "renderizando"])
     .order("created_at", { ascending: true })
     .limit(limit);
   return (data ?? []) as Array<EditorIaJobRow & { user_id: string; organization_id: string }>;

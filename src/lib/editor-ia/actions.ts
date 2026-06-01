@@ -84,6 +84,38 @@ export async function criarJobAction(
   return { success: true, data: { jobId: job.id as string } };
 }
 
+export async function renderizarAction(formData: FormData): Promise<ActionResult> {
+  const user = await requireEditorIaAccess();
+  const id = formData.get("id");
+  if (typeof id !== "string" || !id) return { error: "ID ausente" };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = createServiceRoleClient() as any;
+  const { data: profile } = await sb.from("profiles").select("organization_id").eq("id", user.id).maybeSingle();
+  if (!profile?.organization_id) return { error: "Organização não encontrada" };
+
+  const { data: job, error: fetchErr } = await sb
+    .from("editor_ia_jobs")
+    .select("id, status, edit_plan")
+    .eq("id", id)
+    .eq("organization_id", profile.organization_id)
+    .maybeSingle();
+  if (fetchErr) return { error: fetchErr.message };
+  if (!job) return { error: "Job não encontrado" };
+  if (job.status !== "aguardando_revisao") return { error: "Job não está em aguardando_revisao" };
+  if (!job.edit_plan) return { error: "edit_plan ausente — salve o plano antes de renderizar" };
+
+  const { error: updErr } = await sb
+    .from("editor_ia_jobs")
+    .update({ status: "renderizando" })
+    .eq("id", id)
+    .eq("organization_id", profile.organization_id);
+  if (updErr) return { error: updErr.message };
+
+  revalidatePath(`/audiovisual/editor-ia/${id}`);
+  return { success: true };
+}
+
 export async function salvarPlanoAction(formData: FormData): Promise<ActionResult> {
   const user = await requireEditorIaAccess();
   let edit_plan: unknown = null;
