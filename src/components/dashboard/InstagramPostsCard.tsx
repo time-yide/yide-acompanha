@@ -49,6 +49,17 @@ const STATUS_LABEL: Record<ScrapeStatus, string> = {
   no_url: "Sem perfil",
 };
 
+/**
+ * Detecta o erro "limite mensal do Apify estourado" (HTTP 403 /
+ * platform-feature-disabled / "Monthly usage hard limit exceeded"). Quando é
+ * isso, NÃO é problema do perfil nem da URL — todos os clientes ficam assim ao
+ * mesmo tempo, e o conserto é no painel do Apify (ou esperar o ciclo resetar).
+ */
+function ehLimiteApify(erro: string | null | undefined): boolean {
+  if (!erro) return false;
+  return /hard limit|platform-feature-disabled|monthly usage/i.test(erro);
+}
+
 interface Props {
   clientes: ClienteComSnapshot[];
   titulo?: string;
@@ -341,6 +352,7 @@ function ClienteRow({
   const mesCor = counts ? corPorVolumeMes(counts.mes) : "text-muted-foreground/40";
   const [expanded, setExpanded] = useState(false);
   const hasError = !counts && snap && c.status !== "no_url";
+  const limiteApify = c.status === "error" && ehLimiteApify(snap?.erro);
   const colSpan = hideAssessor ? 6 : 7;
 
   return (
@@ -420,10 +432,10 @@ function ClienteRow({
             type="button"
             onClick={() => setExpanded((v) => !v)}
             className="inline-flex cursor-pointer items-center gap-1 text-xs text-amber-600 underline decoration-dotted underline-offset-2 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
-            title={snap?.erro ?? STATUS_LABEL[c.status]}
+            title={limiteApify ? "Limite mensal do Apify atingido — não é problema do perfil" : (snap?.erro ?? STATUS_LABEL[c.status])}
           >
             <AlertTriangle className="h-3 w-3" />
-            {STATUS_LABEL[c.status]}
+            {limiteApify ? "Limite Apify" : STATUS_LABEL[c.status]}
             <span className="text-[10px] opacity-60">({expanded ? "ocultar" : "detalhes"})</span>
           </button>
         </td>
@@ -489,11 +501,29 @@ function ClienteRow({
                 </a>
               )}
             </div>
-            <p className="text-[10px] text-muted-foreground">
-              Causas comuns: perfil privado, perfil renomeado, URL com erro de digitação,
-              ou Apify temporariamente bloqueado. Tente atualizar de novo em alguns minutos
-              ou conferir a URL cadastrada na ficha do cliente.
-            </p>
+            {limiteApify ? (
+              <p className="rounded-md border border-rose-500/30 bg-rose-500/5 px-3 py-2 text-[11px] text-rose-800 dark:text-rose-200">
+                <strong>Limite mensal do Apify atingido.</strong> Não é problema deste perfil
+                nem da URL — quando isso acontece, <strong>todos</strong> os clientes ficam com
+                esse erro ao mesmo tempo. Atualizar de novo não resolve: o conserto é aumentar
+                o limite em{" "}
+                <a
+                  href="https://console.apify.com/billing"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-primary hover:underline"
+                >
+                  console.apify.com/billing
+                </a>{" "}
+                (ou esperar o ciclo mensal resetar). Avise o admin.
+              </p>
+            ) : (
+              <p className="text-[10px] text-muted-foreground">
+                Causas comuns: perfil privado, perfil renomeado, URL com erro de digitação,
+                ou Apify temporariamente bloqueado. Tente atualizar de novo em alguns minutos
+                ou conferir a URL cadastrada na ficha do cliente.
+              </p>
+            )}
           </div>
         </td>
       </tr>
