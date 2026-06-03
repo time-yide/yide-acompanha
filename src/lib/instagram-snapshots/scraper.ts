@@ -14,9 +14,14 @@ const ACTOR_ID = "apify~instagram-scraper";
 // usa caminho diferente do Instagram e costuma funcionar nesses casos —
 // limitado a ~30 posts em latestPosts mas suficiente pra >90% das contas.
 const FALLBACK_ACTOR_ID = "apify~instagram-profile-scraper";
-// Quanto puxar por scrape. 100 cobre folgado mês inteiro de qualquer conta
-// (raramente passa de 60 posts/mês). Mais que isso vira gasto Apify sem retorno.
+// Teto de segurança de posts por scrape. Com o filtro de data (onlyPostsNewerThan)
+// o Apify já para cedo na maioria das contas, então isso raramente bate — fica só
+// pra proteger conta que posta MUITO. Não baixar: truncaria o mês de quem posta 3+/dia.
 const POSTS_LIMIT = 100;
+// Folga (em dias) pra trás do início do mês. A coluna "Semana" conta desde a
+// segunda-feira, que no começo do mês cai no mês anterior — sem essa folga a
+// semana ficaria subestimada nos primeiros dias. 8 dias cobre o pior caso.
+const FOLGA_SEMANA_DIAS = 8;
 // Apify às vezes demora 60-90s (retries internos do actor). 120s dá margem
 // sem virar problema no serverless (Vercel free aceita 300s em route handlers).
 const FETCH_TIMEOUT_MS = 120_000;
@@ -62,6 +67,24 @@ export function normalizeUsername(raw: string | null | undefined): string | null
   if (m) user = m[1];
   user = user.replace(/\/$/, "");
   return user.length > 0 ? user : null;
+}
+
+/**
+ * Calcula a data (YYYY-MM-DD UTC) pra passar no `onlyPostsNewerThan` do Apify.
+ * O actor para de baixar ao chegar num post mais antigo que essa data — então
+ * em vez de puxar 100 posts (a maioria de meses passados, que não conta pra nada),
+ * ele puxa só o que importa pras colunas Hoje/Semana/Mês. É daqui que vem a
+ * economia de custo do Apify.
+ *
+ * A data = a MAIS ANTIGA entre (dia 1 do mês corrente) e (hoje − FOLGA_SEMANA_DIAS).
+ * Usa início do mês em UTC (00:00), que é ~4h mais cedo que 00:00 Cuiabá — ou seja,
+ * generoso de propósito: nunca corta um post que deveria contar.
+ */
+export function onlyPostsNewerThan(now: Date = new Date()): string {
+  const inicioMesUtcMs = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1);
+  const folgaSemanaMs = now.getTime() - FOLGA_SEMANA_DIAS * 24 * 60 * 60 * 1000;
+  const maisAntigo = Math.min(inicioMesUtcMs, folgaSemanaMs);
+  return new Date(maisAntigo).toISOString().slice(0, 10);
 }
 
 function mapPostType(post: ApifyPostItem): PostType {
@@ -118,6 +141,9 @@ async function scrapeOnce(username: string, token: string): Promise<ProfileSnaps
         directUrls: [`https://www.instagram.com/${username}/`],
         resultsType: "posts",
         resultsLimit: POSTS_LIMIT,
+        // Só posts recentes o bastante pra cobrir Hoje/Semana/Mês. O Apify para
+        // de baixar ao passar dessa data → corta gasto com post velho inútil.
+        onlyPostsNewerThan: onlyPostsNewerThan(),
         // Sem dados do perfil — só posts. Mais barato e suficiente.
         addParentData: false,
       }),
