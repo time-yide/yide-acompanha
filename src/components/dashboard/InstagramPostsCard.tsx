@@ -77,40 +77,15 @@ export function InstagramPostsCard({
   const [assessorFilter, setAssessorFilter] = useState<string>("__todos__");
   const [sortKey, setSortKey] = useState<SortKey>("mes");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
-  // "__corrente__" = mês atual (default). Outros valores: "2026-04" pra abril 2026, etc.
-  const [mesAlvo, setMesAlvo] = useState<string>("__corrente__");
-
-  // Lista dos últimos 12 meses pra dropdown (formato "YYYY-MM" → label "Abril 2026").
-  const mesesDisponiveis = useMemo(() => {
-    const arr: Array<{ value: string; label: string }> = [];
+  // Sempre mês corrente. O scraper agora só guarda posts do mês atual (corte de
+  // custo do Apify), então ver meses passados mostraria 0 — por isso o seletor
+  // de mês foi removido.
+  const mesAlvoResolvido = useMemo(() => {
     const now = new Date();
-    for (let i = 0; i < 12; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const ano = d.getFullYear();
-      const mes = d.getMonth() + 1;
-      const value = `${ano}-${String(mes).padStart(2, "0")}`;
-      const label = d.toLocaleString("pt-BR", { month: "long", year: "numeric" });
-      arr.push({ value, label: label.charAt(0).toUpperCase() + label.slice(1) });
-    }
-    return arr;
+    return { year: now.getFullYear(), month: now.getMonth() + 1, ehCorrente: true };
   }, []);
 
-  // Resolve qual é o mês alvo. Se "__corrente__", usa o mês atual.
-  const mesAlvoResolvido = useMemo(() => {
-    if (mesAlvo === "__corrente__") {
-      const now = new Date();
-      return { year: now.getFullYear(), month: now.getMonth() + 1, ehCorrente: true };
-    }
-    const [y, m] = mesAlvo.split("-").map(Number);
-    return { year: y, month: m, ehCorrente: false };
-  }, [mesAlvo]);
-
-  const mesHeader = useMemo(() => {
-    if (mesAlvoResolvido.ehCorrente) return "Mês";
-    const d = new Date(mesAlvoResolvido.year, mesAlvoResolvido.month - 1, 1);
-    const label = d.toLocaleString("pt-BR", { month: "short" });
-    return `${label.charAt(0).toUpperCase() + label.slice(1)}/${String(mesAlvoResolvido.year).slice(2)}`;
-  }, [mesAlvoResolvido]);
+  const mesHeader = "Mês";
 
   // Enriquece todos os clientes (recalcula quando o mês alvo muda).
   const enriched: ClienteEnriched[] = useMemo(() => {
@@ -277,20 +252,6 @@ export function InstagramPostsCard({
             <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           </div>
         )}
-
-        <div className="relative">
-          <select
-            value={mesAlvo}
-            onChange={(e) => setMesAlvo(e.target.value)}
-            className="h-8 appearance-none rounded-md border bg-card pl-3 pr-7 text-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
-          >
-            <option value="__corrente__">Mês corrente</option>
-            {mesesDisponiveis.map((m) => (
-              <option key={m.value} value={m.value}>{m.label}</option>
-            ))}
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-        </div>
       </div>
 
       {/* Tabela */}
