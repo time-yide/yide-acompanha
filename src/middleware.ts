@@ -64,6 +64,10 @@ export const config = {
   // corromper o Content-Type (manifest e service worker precisam ser
   // servidos limpos, sem cookies de auth/redirect).
   matcher: [
-    "/((?!_next/static|_next/image|favicon|public|manifest\\.webmanifest|sw\\.js|.*\\.svg|.*\\.png).*)",
+    // Os ícones do app (apple-icon, icon0/1/2) são rotas dinâmicas geradas
+    // por next/og — NÃO terminam em .png, então precisam ser excluídos
+    // explicitamente, senão o auth redireciona pro /login e o ícone não
+    // carrega (manifest é público mas apontava pra ícone gated).
+    "/((?!_next/static|_next/image|favicon|public|manifest\\.webmanifest|sw\\.js|apple-icon|icon0|icon1|icon2|.*\\.svg|.*\\.png).*)",
   ],
 };
