@@ -1,5 +1,6 @@
 // tests/unit/dashboard-timeline-mes.test.ts
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { it, expect, vi, beforeEach } from "vitest";
+/* eslint-disable @typescript-eslint/no-explicit-any -- mocks de query encadeada do supabase */
 const fromMock = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/supabase/service-role", () => ({ createServiceRoleClient: () => ({ from: fromMock }) }));
 import { _getCarteiraTimelineImpl } from "@/lib/dashboard/queries";

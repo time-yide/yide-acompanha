@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { it, expect, vi, beforeEach } from "vitest";
 
 const fromMock = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/supabase/service-role", () => ({

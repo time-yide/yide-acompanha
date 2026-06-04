@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { it, expect, vi, beforeEach } from "vitest";
+/* eslint-disable @typescript-eslint/no-explicit-any -- mocks de query encadeada do supabase */
 
 const getComissaoPrevistaMock = vi.hoisted(() => vi.fn());
 const getSnapshotForUserMonthMock = vi.hoisted(() => vi.fn());
