@@ -19,105 +19,115 @@ beforeEach(() => {
   fromMock.mockReset();
 });
 
+/** Mock que suporta N chamadas encadeadas de .eq()/.is() antes de resolver. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function makeChainableEqMock(data: unknown[]): any {
+  const resolved = Promise.resolve({ data });
+  const chainable = {
+    eq: vi.fn(),
+    is: vi.fn(),
+    then: resolved.then.bind(resolved),
+    catch: resolved.catch.bind(resolved),
+    finally: resolved.finally.bind(resolved),
+  };
+  chainable.eq.mockReturnValue(chainable);
+  chainable.is.mockReturnValue(chainable);
+  return chainable;
+}
+
+/** Mock de profiles: select().eq().single() → profile. */
+function mockProfile(profile: {
+  fixo_mensal: number;
+  comissao_percent: number;
+  comissao_primeiro_mes_percent: number;
+}) {
+  return {
+    select: () => ({
+      eq: () => ({ single: vi.fn().mockResolvedValue({ data: profile }) }),
+    }),
+  };
+}
+
+/** Mock de clientes do assessor: select().eq(status).eq(tipo_relacao).is(deleted_at).eq(assessor_id). */
+function mockClientsQuery(
+  rows: Array<{ id: string; valor_mensal: number; tipo_relacao: string; data_entrada?: string }>,
+) {
+  return { select: () => makeChainableEqMock(rows) };
+}
+
+/** Mock de ajustes mensais: select().in().eq() → data. */
+function mockAdjustments(rows: unknown[]) {
+  return {
+    select: () => ({
+      in: () => ({ eq: vi.fn().mockResolvedValue({ data: rows }) }),
+    }),
+  };
+}
+
+const ABRIL_2026 = new Date(Date.UTC(2026, 3, 28));
+
 describe("getComissaoPrevista", () => {
-  it("calcula para assessor: soma carteira × percentual + fixo", async () => {
+  it("assessor: usa a comissao_percent FIXA da carteira, sem bônus de primeiro mês", async () => {
     fromMock.mockImplementation((table) => {
       if (table === "profiles") {
-        return {
-          select: () => ({
-            eq: () => ({
-              single: vi.fn().mockResolvedValue({
-                data: { fixo_mensal: 3000, comissao_percent: 10, comissao_primeiro_mes_percent: 5 },
-              }),
-            }),
-          }),
-        };
+        return mockProfile({ fixo_mensal: 3000, comissao_percent: 5, comissao_primeiro_mes_percent: 20 });
       }
       if (table === "clients") {
-        return {
-          select: () => ({
-            eq: () => ({
-              is: () => ({
-                eq: vi.fn().mockResolvedValue({
-                  data: [
-                    { id: "c1", valor_mensal: 5000, data_entrada: "2025-01-01" },
-                    { id: "c2", valor_mensal: 4000, data_entrada: "2025-06-01" },
-                  ],
-                }),
-              }),
-            }),
-          }),
-        };
+        return mockClientsQuery([
+          // entrou no mês corrente — NÃO deve ganhar bônus de 1º mês
+          { id: "c1", valor_mensal: 6000, tipo_relacao: "comum", data_entrada: "2026-04-10" },
+          { id: "c2", valor_mensal: 4000, tipo_relacao: "comum", data_entrada: "2025-01-01" },
+        ]);
       }
+      if (table === "client_monthly_adjustments") return mockAdjustments([]);
       return {};
     });
 
-    const r = await getComissaoPrevista("u1", "assessor", new Date(Date.UTC(2026, 3, 28)));
-    // Base: (5000 + 4000) × 10% = 900; + fixo 3000 = 3900
-    expect(r.baseCalculo).toBe(9000);
-    expect(r.fixo).toBe(3000);
-    expect(r.percentual).toBe(10);
-    expect(r.valor).toBe(3900);
+    const r = await getComissaoPrevista("u1", "assessor", ABRIL_2026);
+    // base = 10000; 5% fixo = 500; + fixo 3000 = 3500
+    expect(r.baseCalculo).toBe(10000);
+    expect(r.percentual).toBe(5);
+    expect(r.valorVariavel).toBe(500);
+    expect(r.valor).toBe(3500);
   });
 
-  it("aplica comissao_primeiro_mes_percent em clientes que entraram no mês corrente", async () => {
+  it("assessor: exclui parceria/permuta e aplica gratuidade/desconto na base", async () => {
     fromMock.mockImplementation((table) => {
       if (table === "profiles") {
-        return {
-          select: () => ({
-            eq: () => ({
-              single: vi.fn().mockResolvedValue({
-                data: { fixo_mensal: 1000, comissao_percent: 10, comissao_primeiro_mes_percent: 20 },
-              }),
-            }),
-          }),
-        };
+        return mockProfile({ fixo_mensal: 0, comissao_percent: 10, comissao_primeiro_mes_percent: 0 });
       }
       if (table === "clients") {
-        return {
-          select: () => ({
-            eq: () => ({
-              is: () => ({
-                eq: vi.fn().mockResolvedValue({
-                  data: [
-                    { id: "c1", valor_mensal: 5000, data_entrada: "2026-04-15" },
-                    { id: "c2", valor_mensal: 4000, data_entrada: "2025-01-01" },
-                  ],
-                }),
-              }),
-            }),
-          }),
-        };
+        return mockClientsQuery([
+          { id: "c1", valor_mensal: 5000, tipo_relacao: "comum" }, // conta cheio
+          { id: "c2", valor_mensal: 9999, tipo_relacao: "parceria" }, // vale 0
+          { id: "c3", valor_mensal: 5000, tipo_relacao: "comum" }, // gratuidade → 0
+        ]);
+      }
+      if (table === "client_monthly_adjustments") {
+        return mockAdjustments([
+          { id: "a1", client_id: "c3", mes_referencia: "2026-04", tipo: "gratuidade_total", valor_desconto: null },
+        ]);
       }
       return {};
     });
 
-    const r = await getComissaoPrevista("u1", "assessor", new Date(Date.UTC(2026, 3, 28)));
-    // c1 (primeiro mês): 5000 × 20% = 1000
-    // c2 (normal): 4000 × 10% = 400
-    // total comissão variável: 1400; + fixo 1000 = 2400
-    expect(r.valor).toBe(2400);
-    expect(r.baseCalculo).toBe(9000);
+    const r = await getComissaoPrevista("u1", "assessor", ABRIL_2026);
+    // base efetiva = só c1 = 5000; 10% = 500
+    expect(r.baseCalculo).toBe(5000);
+    expect(r.valorVariavel).toBe(500);
+    expect(r.valor).toBe(500);
   });
 
   it("coordenador retorna apenas fixo (cálculo variável é pulado)", async () => {
     // Sócio/coordenador foram movidos pra "só fixo" — variável não conta.
     fromMock.mockImplementation((table) => {
       if (table === "profiles") {
-        return {
-          select: () => ({
-            eq: () => ({
-              single: vi.fn().mockResolvedValue({
-                data: { fixo_mensal: 5000, comissao_percent: 5, comissao_primeiro_mes_percent: 5 },
-              }),
-            }),
-          }),
-        };
+        return mockProfile({ fixo_mensal: 5000, comissao_percent: 5, comissao_primeiro_mes_percent: 5 });
       }
       return {};
     });
 
-    const r = await getComissaoPrevista("co1", "coordenador", new Date(Date.UTC(2026, 3, 28)));
+    const r = await getComissaoPrevista("co1", "coordenador", ABRIL_2026);
     expect(r.valor).toBe(5000);
     expect(r.baseCalculo).toBe(0);
     expect(r.percentual).toBe(0);
@@ -126,15 +136,7 @@ describe("getComissaoPrevista", () => {
   it("calcula para comercial: soma valor_proposto de leads fechados no mês × percentual + fixo", async () => {
     fromMock.mockImplementation((table) => {
       if (table === "profiles") {
-        return {
-          select: () => ({
-            eq: () => ({
-              single: vi.fn().mockResolvedValue({
-                data: { fixo_mensal: 2000, comissao_percent: 10, comissao_primeiro_mes_percent: 10 },
-              }),
-            }),
-          }),
-        };
+        return mockProfile({ fixo_mensal: 2000, comissao_percent: 10, comissao_primeiro_mes_percent: 10 });
       }
       if (table === "leads") {
         return {
@@ -159,7 +161,7 @@ describe("getComissaoPrevista", () => {
       return {};
     });
 
-    const r = await getComissaoPrevista("u1", "comercial", new Date(Date.UTC(2026, 3, 28)));
+    const r = await getComissaoPrevista("u1", "comercial", ABRIL_2026);
     // (50000 + 30000) × 10% = 8000; + fixo 2000 = 10000
     expect(r.valor).toBe(10000);
     expect(r.baseCalculo).toBe(80000);
@@ -168,42 +170,14 @@ describe("getComissaoPrevista", () => {
   it("retorna fixo apenas quando user não tem nada (sem clientes/leads)", async () => {
     fromMock.mockImplementation((table) => {
       if (table === "profiles") {
-        return {
-          select: () => ({
-            eq: () => ({
-              single: vi.fn().mockResolvedValue({
-                data: { fixo_mensal: 2500, comissao_percent: 10, comissao_primeiro_mes_percent: 10 },
-              }),
-            }),
-          }),
-        };
+        return mockProfile({ fixo_mensal: 2500, comissao_percent: 10, comissao_primeiro_mes_percent: 10 });
       }
-      if (table === "clients") {
-        return {
-          select: () => ({
-            eq: () => ({
-              is: () => ({
-                eq: vi.fn().mockResolvedValue({ data: [] }),
-              }),
-            }),
-          }),
-        };
-      }
-      if (table === "leads") {
-        return {
-          select: () => ({
-            eq: () => ({
-              eq: () => ({
-                is: () => ({ gte: () => ({ lte: vi.fn().mockResolvedValue({ data: [] }) }) }),
-              }),
-            }),
-          }),
-        };
-      }
+      if (table === "clients") return mockClientsQuery([]);
+      if (table === "client_monthly_adjustments") return mockAdjustments([]);
       return {};
     });
 
-    const rA = await getComissaoPrevista("u1", "assessor", new Date(Date.UTC(2026, 3, 28)));
+    const rA = await getComissaoPrevista("u1", "assessor", ABRIL_2026);
     expect(rA.valor).toBe(2500);
     expect(rA.baseCalculo).toBe(0);
   });
