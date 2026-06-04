@@ -13,6 +13,7 @@ import { ProximasReunioesList } from "./ProximasReunioesList";
 import { Section } from "./Section";
 import { HiddenValuesProvider, HiddenValueToggle } from "./HiddenValuesContext";
 import { InstagramPostsSection } from "./sections";
+import { MesSelector } from "./MesSelector";
 import { Suspense } from "react";
 
 function IgListSkeleton() {
@@ -28,9 +29,12 @@ function IgListSkeleton() {
 interface Props {
   userId: string;
   nome: string;
+  mes: string;
+  mesAtual: string;
+  meses: string[];
 }
 
-export async function DashboardComercial({ userId, nome }: Props) {
+export async function DashboardComercial({ userId, nome, mes, mesAtual, meses }: Props) {
   const [leadsKpis, funnel, reunioes, meta, comissao] = await Promise.all([
     getLeadsKpis(userId),
     getFunnelData(userId),
@@ -47,7 +51,10 @@ export async function DashboardComercial({ userId, nome }: Props) {
             <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Olá, {nome.split(" ")[0]}</h1>
             <p className="text-sm text-muted-foreground">Sua prospecção</p>
           </div>
-          <HiddenValueToggle />
+          <div className="flex flex-col items-end gap-2">
+            <MesSelector mes={mes} meses={meses} mesAtual={mesAtual} />
+            <HiddenValueToggle />
+          </div>
         </header>
 
         <KpiRowComercial leadsKpis={leadsKpis} />

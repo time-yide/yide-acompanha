@@ -17,6 +17,7 @@ import { AlertaOnboardingAtrasadoSection } from "./AlertaOnboardingAtrasado";
 import { Section } from "./Section";
 import { HiddenValuesProvider, HiddenValueToggle } from "./HiddenValuesContext";
 import { InstagramPostsSection } from "./sections";
+import { MesSelector } from "./MesSelector";
 import { Suspense } from "react";
 
 function ListSkeleton({ rows = 5 }: { rows?: number }) {
@@ -32,9 +33,12 @@ function ListSkeleton({ rows = 5 }: { rows?: number }) {
 interface Props {
   userId: string;
   nome: string;
+  mes: string;
+  mesAtual: string;
+  meses: string[];
 }
 
-export async function DashboardAssessor({ userId, nome }: Props) {
+export async function DashboardAssessor({ userId, nome, mes, mesAtual, meses }: Props) {
   const filter = { assessorId: userId };
 
   const [kpis, carteiraTimeline, entradaChurn, ranking, eventos, comissao] = await Promise.all([
@@ -54,7 +58,10 @@ export async function DashboardAssessor({ userId, nome }: Props) {
             <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Olá, {nome.split(" ")[0]}</h1>
             <p className="text-sm text-muted-foreground">Sua carteira</p>
           </div>
-          <HiddenValueToggle />
+          <div className="flex flex-col items-end gap-2">
+            <MesSelector mes={mes} meses={meses} mesAtual={mesAtual} />
+            <HiddenValueToggle />
+          </div>
         </header>
 
         <Suspense fallback={null}>
