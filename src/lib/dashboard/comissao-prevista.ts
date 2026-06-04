@@ -1,6 +1,7 @@
 // SERVER ONLY: do not import from client components
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getCurrentMonthYM } from "@/lib/datetime/timezone";
+import { getSnapshotForUserMonth } from "@/lib/comissoes/queries";
 import { lastDayOfMonth } from "./date-utils";
 import { valorEfetivoCliente } from "@/lib/clientes/ajustes";
 import type { MonthlyAdjustment, TipoRelacao } from "@/lib/clientes/ajustes";
@@ -119,4 +120,44 @@ export async function getComissaoPrevista(
     fixo,
     percentual,
   };
+}
+
+export type StatusComissao = "em_curso" | "fechado" | "estimado";
+
+export interface ComissaoDoMes extends ComissaoPrevista {
+  status: StatusComissao;
+}
+
+/**
+ * Comissão pra um mês qualquer no dashboard.
+ * - Mês atual: preview ao vivo (em_curso).
+ * - Mês fechado com snapshot: valor real do snapshot (fechado).
+ * - Mês fechado sem snapshot: recálculo ao vivo daquele mês (estimado).
+ */
+export async function getComissaoDoMes(
+  userId: string,
+  role: Role,
+  mes: string,
+  isMesAtual: boolean,
+): Promise<ComissaoDoMes> {
+  if (isMesAtual) {
+    const c = await getComissaoPrevista(userId, role);
+    return { ...c, status: "em_curso" };
+  }
+
+  const snap = await getSnapshotForUserMonth(userId, mes);
+  if (snap) {
+    return {
+      valor: Number(snap.valor_total),
+      valorVariavel: Number(snap.valor_variavel),
+      baseCalculo: Number(snap.base_calculo),
+      fixo: Number(snap.fixo),
+      percentual: Number(snap.percentual_aplicado),
+      status: "fechado",
+    };
+  }
+
+  const dataNoMes = new Date(`${lastDayOfMonth(mes)}T12:00:00Z`);
+  const c = await getComissaoPrevista(userId, role, dataNoMes);
+  return { ...c, status: "estimado" };
 }

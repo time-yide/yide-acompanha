@@ -6,7 +6,7 @@ import {
   getRankingSatisfacao,
   getProximosEventos,
 } from "@/lib/dashboard/queries";
-import { getComissaoPrevista } from "@/lib/dashboard/comissao-prevista";
+import { getComissaoDoMes } from "@/lib/dashboard/comissao-prevista";
 import { KpiRowCoord } from "./KpiRowCoord";
 import { RemuneracaoCard } from "./RemuneracaoCard";
 import { ChartCarteiraTimelineLazy } from "./ChartCarteiraTimelineLazy";
@@ -19,6 +19,7 @@ import { AlertaOnboardingAtrasadoSection } from "./AlertaOnboardingAtrasado";
 import { Section } from "./Section";
 import { HiddenValuesProvider, HiddenValueToggle } from "./HiddenValuesContext";
 import { InstagramPostsSection } from "./sections";
+import { MesSelector } from "./MesSelector";
 import { Suspense } from "react";
 
 function IgListSkeleton() {
@@ -34,20 +35,24 @@ function IgListSkeleton() {
 interface Props {
   userId: string;
   nome: string;
+  mes: string;
+  mesAtual: string;
+  meses: string[];
 }
 
-export async function DashboardCoord({ userId, nome }: Props) {
+export async function DashboardCoord({ userId, nome, mes, mesAtual, meses }: Props) {
   const filter = { coordenadorId: userId };
+  const isMesAtual = mes === mesAtual;
 
   const [kpis, carteiraTimeline, entradaChurn, carteiraPorAssessor, ranking, eventos, comissao] =
     await Promise.all([
-      getKpis(filter),
-      getCarteiraTimeline(12, filter),
-      getEntradaChurn(6, filter),
-      getCarteiraPorAssessor(filter),
-      getRankingSatisfacao(filter),
-      getProximosEventos(30, 10, { userId }),
-      getComissaoPrevista(userId, "coordenador"),
+      getKpis(filter, mes),
+      getCarteiraTimeline(12, filter, mes),
+      getEntradaChurn(6, filter, mes),
+      getCarteiraPorAssessor(filter, mes),
+      isMesAtual ? getRankingSatisfacao(filter) : Promise.resolve({ top: [], bottom: [] }),
+      isMesAtual ? getProximosEventos(30, 10, { userId }) : Promise.resolve([]),
+      getComissaoDoMes(userId, "coordenador", mes, isMesAtual),
     ]);
 
   return (
@@ -58,12 +63,17 @@ export async function DashboardCoord({ userId, nome }: Props) {
             <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Olá, {nome.split(" ")[0]}</h1>
             <p className="text-sm text-muted-foreground">Visão da sua coordenação</p>
           </div>
-          <HiddenValueToggle />
+          <div className="flex flex-col items-end gap-2">
+            <MesSelector mes={mes} meses={meses} mesAtual={mesAtual} />
+            <HiddenValueToggle />
+          </div>
         </header>
 
-        <Suspense fallback={null}>
-          <AlertaOnboardingAtrasadoSection userId={userId} role="coordenador" />
-        </Suspense>
+        {isMesAtual && (
+          <Suspense fallback={null}>
+            <AlertaOnboardingAtrasadoSection userId={userId} role="coordenador" />
+          </Suspense>
+        )}
 
         <KpiRowCoord kpis={kpis} />
         <RemuneracaoCard comissao={comissao} />
@@ -81,19 +91,25 @@ export async function DashboardCoord({ userId, nome }: Props) {
           <CarteiraPorAssessorList items={carteiraPorAssessor} />
         </Section>
 
-        <Suspense fallback={<IgListSkeleton />}>
-          <InstagramPostsSection assessorId={null} titulo="Postagens no Instagram" />
-        </Suspense>
+        {isMesAtual && (
+          <Suspense fallback={<IgListSkeleton />}>
+            <InstagramPostsSection assessorId={null} titulo="Postagens no Instagram" />
+          </Suspense>
+        )}
 
-        <Section title="Satisfação dos meus clientes" subtitle="Top 10 mais e menos satisfeitos da semana" cta={{ href: "/satisfacao", label: "Ver completo →" }}>
-          <RankingResumo top={ranking.top} bottom={ranking.bottom} />
-        </Section>
+        {isMesAtual && (
+          <Section title="Satisfação dos meus clientes" subtitle="Top 10 mais e menos satisfeitos da semana" cta={{ href: "/satisfacao", label: "Ver completo →" }}>
+            <RankingResumo top={ranking.top} bottom={ranking.bottom} />
+          </Section>
+        )}
 
-        <Section title="Próximos eventos meus" cta={{ href: "/calendario", label: "Ver agenda →" }}>
-          <ProximosEventosList eventos={eventos} />
-        </Section>
+        {isMesAtual && (
+          <Section title="Próximos eventos meus" cta={{ href: "/calendario", label: "Ver agenda →" }}>
+            <ProximosEventosList eventos={eventos} />
+          </Section>
+        )}
 
-        <PainelAudiovisualSection />
+        {isMesAtual && <PainelAudiovisualSection />}
       </div>
     </HiddenValuesProvider>
   );

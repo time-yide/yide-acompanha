@@ -35,3 +35,22 @@ export function isInMonth(isoDate: string | null | undefined, yyyymm: string): b
   if (!isoDate) return false;
   return isoDate.slice(0, 7) === yyyymm;
 }
+
+/** Últimos `count` meses 'YYYY-MM', do mais recente pro mais antigo. */
+export function mesesRecentes(count: number, from: Date = new Date()): string[] {
+  return monthRange(count, from).slice().reverse();
+}
+
+/** Mês anterior a um 'YYYY-MM'. */
+export function previousMonthYM(yyyymm: string): string {
+  const [y, m] = yyyymm.split("-").map(Number);
+  const d = new Date(Date.UTC(y, m - 2, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+/** Valida `?mes=`: precisa estar nos últimos 12 meses (inclui atual), senão cai no atual. */
+export function parseMes(raw: string | undefined, from: Date = new Date()): string {
+  const validos = new Set(mesesRecentes(12, from));
+  if (raw && /^\d{4}-\d{2}$/.test(raw) && validos.has(raw)) return raw;
+  return mesesRecentes(1, from)[0];
+}

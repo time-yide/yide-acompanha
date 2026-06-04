@@ -18,6 +18,8 @@ import { UnitDashboardBanner } from "@/components/units/UnitDashboardBanner";
 import { listColaboradores, getColaboradorById } from "@/lib/colaboradores/queries";
 import { getUnitContext } from "@/lib/units/session";
 import type { Periodo } from "@/lib/dashboard/personal";
+import { parseMes, mesesRecentes } from "@/lib/dashboard/date-utils";
+import { getCurrentMonthYM } from "@/lib/datetime/timezone";
 
 interface TargetUser {
   id: string;
@@ -32,7 +34,11 @@ function parsePeriodo(raw: string | undefined): Periodo {
   return "mes_atual";
 }
 
-function renderDashboardForRole(target: TargetUser, periodo: Periodo) {
+function renderDashboardForRole(
+  target: TargetUser,
+  periodo: Periodo,
+  mesCtx: { mes: string; mesAtual: string; meses: string[] },
+) {
   if (target.role === "socio") {
     return <DashboardSocioAdm userId={target.id} nome={target.nome} />;
   }
@@ -40,13 +46,13 @@ function renderDashboardForRole(target: TargetUser, periodo: Periodo) {
     return <DashboardAdm userId={target.id} nome={target.nome} />;
   }
   if (target.role === "coordenador") {
-    return <DashboardCoord userId={target.id} nome={target.nome} />;
+    return <DashboardCoord userId={target.id} nome={target.nome} {...mesCtx} />;
   }
   if (target.role === "assessor") {
-    return <DashboardAssessor userId={target.id} nome={target.nome} />;
+    return <DashboardAssessor userId={target.id} nome={target.nome} {...mesCtx} />;
   }
   if (target.role === "comercial") {
-    return <DashboardComercial userId={target.id} nome={target.nome} />;
+    return <DashboardComercial userId={target.id} nome={target.nome} {...mesCtx} />;
   }
   if (target.role === "videomaker") {
     return <DashboardVideomaker userId={target.id} nome={target.nome} />;
@@ -66,11 +72,18 @@ function renderDashboardForRole(target: TargetUser, periodo: Periodo) {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ as?: string; periodo?: string }>;
+  searchParams: Promise<{ as?: string; periodo?: string; mes?: string }>;
 }) {
   const params = await searchParams;
   const user = await requireAuth();
   const periodo = parsePeriodo(params.periodo);
+  const mesAtual = getCurrentMonthYM(new Date());
+  // Âncora no meio do mês atual em UTC: mesesRecentes/parseMes operam em UTC,
+  // mas mesAtual vem do fuso da app (Cuiabá). Sem isso, na virada de mês o mês
+  // corrente seria tratado como "histórico" por algumas horas.
+  const refMes = new Date(`${mesAtual}-15T12:00:00Z`);
+  const mes = parseMes(params.mes, refMes);
+  const meses = mesesRecentes(12, refMes);
 
   const canImpersonate = user.role === "socio" || user.role === "adm";
 
@@ -120,7 +133,7 @@ export default async function DashboardPage({
           isImpersonating={isImpersonating}
         />
       )}
-      {renderDashboardForRole(target, periodo)}
+      {renderDashboardForRole(target, periodo, { mes, mesAtual, meses })}
     </div>
   );
 }

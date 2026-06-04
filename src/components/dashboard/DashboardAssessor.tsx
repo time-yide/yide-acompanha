@@ -5,7 +5,7 @@ import {
   getRankingSatisfacao,
   getProximosEventos,
 } from "@/lib/dashboard/queries";
-import { getComissaoPrevista } from "@/lib/dashboard/comissao-prevista";
+import { getComissaoDoMes } from "@/lib/dashboard/comissao-prevista";
 import { KpiRowAssessor } from "./KpiRowAssessor";
 import { RemuneracaoCard } from "./RemuneracaoCard";
 import { ChartCarteiraTimelineLazy } from "./ChartCarteiraTimelineLazy";
@@ -17,6 +17,7 @@ import { AlertaOnboardingAtrasadoSection } from "./AlertaOnboardingAtrasado";
 import { Section } from "./Section";
 import { HiddenValuesProvider, HiddenValueToggle } from "./HiddenValuesContext";
 import { InstagramPostsSection } from "./sections";
+import { MesSelector } from "./MesSelector";
 import { Suspense } from "react";
 
 function ListSkeleton({ rows = 5 }: { rows?: number }) {
@@ -32,18 +33,22 @@ function ListSkeleton({ rows = 5 }: { rows?: number }) {
 interface Props {
   userId: string;
   nome: string;
+  mes: string;
+  mesAtual: string;
+  meses: string[];
 }
 
-export async function DashboardAssessor({ userId, nome }: Props) {
+export async function DashboardAssessor({ userId, nome, mes, mesAtual, meses }: Props) {
   const filter = { assessorId: userId };
+  const isMesAtual = mes === mesAtual;
 
   const [kpis, carteiraTimeline, entradaChurn, ranking, eventos, comissao] = await Promise.all([
-    getKpis(filter),
-    getCarteiraTimeline(12, filter),
-    getEntradaChurn(6, filter),
+    getKpis(filter, mes),
+    getCarteiraTimeline(12, filter, mes),
+    getEntradaChurn(6, filter, mes),
     getRankingSatisfacao(filter),
-    getProximosEventos(30, 10, { userId }),
-    getComissaoPrevista(userId, "assessor"),
+    isMesAtual ? getProximosEventos(30, 10, { userId }) : Promise.resolve([]),
+    getComissaoDoMes(userId, "assessor", mes, isMesAtual),
   ]);
 
   return (
@@ -54,7 +59,10 @@ export async function DashboardAssessor({ userId, nome }: Props) {
             <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Olá, {nome.split(" ")[0]}</h1>
             <p className="text-sm text-muted-foreground">Sua carteira</p>
           </div>
-          <HiddenValueToggle />
+          <div className="flex flex-col items-end gap-2">
+            <MesSelector mes={mes} meses={meses} mesAtual={mesAtual} />
+            <HiddenValueToggle />
+          </div>
         </header>
 
         <Suspense fallback={null}>
@@ -80,13 +88,17 @@ export async function DashboardAssessor({ userId, nome }: Props) {
           />
         </Suspense>
 
-        <Section title="Satisfação dos meus clientes" subtitle="Top 10 mais e menos satisfeitos da semana" cta={{ href: "/satisfacao", label: "Ver completo →" }}>
-          <RankingResumo top={ranking.top} bottom={ranking.bottom} />
-        </Section>
+        {isMesAtual && (
+          <Section title="Satisfação dos meus clientes" subtitle="Top 10 mais e menos satisfeitos da semana" cta={{ href: "/satisfacao", label: "Ver completo →" }}>
+            <RankingResumo top={ranking.top} bottom={ranking.bottom} />
+          </Section>
+        )}
 
-        <Section title="Próximos eventos meus" cta={{ href: "/calendario", label: "Ver agenda →" }}>
-          <ProximosEventosList eventos={eventos} />
-        </Section>
+        {isMesAtual && (
+          <Section title="Próximos eventos meus" cta={{ href: "/calendario", label: "Ver agenda →" }}>
+            <ProximosEventosList eventos={eventos} />
+          </Section>
+        )}
 
         <PainelAudiovisualSection />
       </div>

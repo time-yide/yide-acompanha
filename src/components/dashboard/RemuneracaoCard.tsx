@@ -1,12 +1,30 @@
 import { Coins } from "lucide-react";
 import { Money } from "./HiddenValuesContext";
-import type { ComissaoPrevista } from "@/lib/dashboard/comissao-prevista";
+import type { ComissaoDoMes } from "@/lib/dashboard/comissao-prevista";
 
-export function RemuneracaoCard({ comissao }: { comissao: ComissaoPrevista }) {
+const BADGE: Record<ComissaoDoMes["status"], { txt: string; live: boolean }> = {
+  em_curso: { txt: "Em curso · não fechado ainda", live: true },
+  fechado: { txt: "Fechado", live: false },
+  estimado: { txt: "Estimado (sem snapshot)", live: false },
+};
+
+export function RemuneracaoCard({ comissao }: { comissao: ComissaoDoMes }) {
   const temBase = comissao.baseCalculo > 0;
   // Cargos sem parte variável (ex.: coordenador no novo modelo) - esconde
   // a coluna do meio pra não ficar mostrando "R$ 0 - sem base no mês".
   const soFixo = comissao.percentual === 0 && comissao.baseCalculo === 0 && comissao.valorVariavel === 0;
+  // Mês corrente só-fixo (prolábore do sócio / coordenador) mantém o texto
+  // antigo; meses fechados/estimados mostram o status normalmente.
+  const badge =
+    soFixo && comissao.status === "em_curso"
+      ? { txt: "Salário fixo do mês", live: false }
+      : BADGE[comissao.status];
+  const totalLabel =
+    comissao.status !== "em_curso"
+      ? "valor do mês"
+      : soFixo
+        ? "valor fixo do mês"
+        : "pode variar até o fechamento";
 
   return (
     <div className="rounded-xl border bg-card p-4 space-y-3">
@@ -18,8 +36,8 @@ export function RemuneracaoCard({ comissao }: { comissao: ComissaoPrevista }) {
           </span>
         </div>
         <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-500/40 bg-sky-500/10 px-2 py-0.5 text-[11px] text-sky-600 dark:text-sky-400">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-sky-500" />
-          {soFixo ? "Salário fixo do mês" : "Em curso · não fechado ainda"}
+          {badge.live && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-sky-500" />}
+          {badge.txt}
         </span>
       </div>
 
@@ -43,9 +61,7 @@ export function RemuneracaoCard({ comissao }: { comissao: ComissaoPrevista }) {
         <div className="space-y-0.5 sm:border-l sm:pl-3">
           <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Total previsto</div>
           <div className="text-xl font-bold tabular-nums"><Money value={comissao.valor} /></div>
-          <div className="text-[11px] text-muted-foreground">
-            {soFixo ? "valor fixo do mês" : "pode variar até o fechamento"}
-          </div>
+          <div className="text-[11px] text-muted-foreground">{totalLabel}</div>
         </div>
       </div>
     </div>
