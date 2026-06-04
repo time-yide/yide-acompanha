@@ -1,7 +1,9 @@
 // SERVER ONLY: do not import from client components
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getCurrentMonthYM } from "@/lib/datetime/timezone";
-import { isInMonth, lastDayOfMonth } from "./date-utils";
+import { lastDayOfMonth } from "./date-utils";
+import { valorEfetivoCliente } from "@/lib/clientes/ajustes";
+import type { MonthlyAdjustment, TipoRelacao } from "@/lib/clientes/ajustes";
 
 export interface ComissaoPrevista {
   valor: number;
@@ -48,22 +50,40 @@ export async function getComissaoPrevista(
   if (role === "socio" || role === "coordenador") {
     // intencional: pula cálculo variável
   } else if (role === "assessor") {
+    // Só carteira "comum" entra na comissão (parceria/permuta = R$ 0).
     const { data: clientsData } = await supabase
       .from("clients")
-      .select("id, valor_mensal, data_entrada")
+      .select("id, valor_mensal, tipo_relacao")
       .eq("status", "ativo")
+      .eq("tipo_relacao", "comum")
       .is("deleted_at", null)
       .eq("assessor_id", userId);
 
-    const clients = (clientsData ?? []) as Array<{ id: string; valor_mensal: number; data_entrada: string }>;
+    const clients = (clientsData ?? []) as Array<{ id: string; valor_mensal: number; tipo_relacao: string }>;
 
-    for (const c of clients) {
-      const isPrimeiroMes = isInMonth(c.data_entrada, monthRef);
-      const pct = isPrimeiroMes ? profile.comissao_primeiro_mes_percent : profile.comissao_percent;
-      const valor = Number(c.valor_mensal);
-      baseCalculo += valor;
-      valorComissao += valor * (pct / 100);
+    // Ajustes do mês (desconto parcial / gratuidade) reduzem a base efetiva.
+    const ajustesByClient = new Map<string, MonthlyAdjustment>();
+    if (clients.length > 0) {
+      const { data: ajustesData } = await supabase
+        .from("client_monthly_adjustments")
+        .select("*")
+        .in("client_id", clients.map((c) => c.id))
+        .eq("mes_referencia", monthRef);
+      for (const a of (ajustesData ?? []) as MonthlyAdjustment[]) {
+        ajustesByClient.set(a.client_id, a);
+      }
     }
+
+    // Mesma regra dos snapshots efetivamente pagos (calculator.ts): % FIXA
+    // da carteira sobre o valor efetivo de cada cliente. SEM bônus de 1º mês
+    // — esse bônus é só do comercial que fechou o deal.
+    for (const c of clients) {
+      baseCalculo += valorEfetivoCliente(
+        { tipo_relacao: c.tipo_relacao as TipoRelacao, valor_mensal: c.valor_mensal },
+        ajustesByClient.get(c.id) ?? null,
+      );
+    }
+    valorComissao = baseCalculo * (profile.comissao_percent / 100);
   } else if (role === "comercial") {
     const inicioMes = `${monthRef}-01`;
     const fimMes = lastDayOfMonth(monthRef);
