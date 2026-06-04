@@ -249,10 +249,11 @@ export interface TimelinePoint {
 export async function _getCarteiraTimelineImpl(
   months: number,
   filter?: ClientFilter,
+  ateMes?: string,
 ): Promise<TimelinePoint[]> {
   const supabase = createServiceRoleClient();
-  const now = new Date();
-  const meses = monthRange(months, now);
+  const ancora = ateMes ? new Date(`${lastDayOfMonth(ateMes)}T12:00:00Z`) : new Date();
+  const meses = monthRange(months, ancora);
 
   let clientsQuery = supabase
     .from("clients")
@@ -284,17 +285,17 @@ export async function _getCarteiraTimelineImpl(
   });
 }
 
-export async function getCarteiraTimeline(months = 12, filter?: ClientFilter): Promise<TimelinePoint[]> {
+export async function getCarteiraTimeline(months = 12, filter?: ClientFilter, ateMes?: string): Promise<TimelinePoint[]> {
   const cached = unstable_cache(
     async (paramsJson: string) => {
-      const { months: m, filter: f } = JSON.parse(paramsJson) as { months: number; filter: ClientFilter | null };
-      return _getCarteiraTimelineImpl(m, f ?? undefined);
+      const { months: m, filter: f, ateMes: a } = JSON.parse(paramsJson) as { months: number; filter: ClientFilter | null; ateMes: string | null };
+      return _getCarteiraTimelineImpl(m, f ?? undefined, a ?? undefined);
     },
     // v2: filter ganhou unitId (multi-tenant)
     ["dashboard-carteira-timeline-v2"],
     { revalidate: 300, tags: ["dashboard"] },
   );
-  return cached(JSON.stringify({ months, filter: filter ?? null }));
+  return cached(JSON.stringify({ months, filter: filter ?? null, ateMes: ateMes ?? null }));
 }
 
 // ─── getEntradaChurn ─────────────────────────────────────────────────────────
@@ -323,10 +324,11 @@ export interface EntradaChurnPoint {
 export async function _getEntradaChurnImpl(
   months: number,
   filter?: ClientFilter,
+  ateMes?: string,
 ): Promise<EntradaChurnPoint[]> {
   const supabase = createServiceRoleClient();
-  const now = new Date();
-  const meses = monthRange(months, now);
+  const ancora = ateMes ? new Date(`${lastDayOfMonth(ateMes)}T12:00:00Z`) : new Date();
+  const meses = monthRange(months, ancora);
 
   // Filtros SQL:
   // - deleted_at IS NULL → ignora lixeira
@@ -391,11 +393,11 @@ export async function _getEntradaChurnImpl(
   });
 }
 
-export async function getEntradaChurn(months = 6, filter?: ClientFilter): Promise<EntradaChurnPoint[]> {
+export async function getEntradaChurn(months = 6, filter?: ClientFilter, ateMes?: string): Promise<EntradaChurnPoint[]> {
   const cached = unstable_cache(
     async (paramsJson: string) => {
-      const { months: m, filter: f } = JSON.parse(paramsJson) as { months: number; filter: ClientFilter | null };
-      return _getEntradaChurnImpl(m, f ?? undefined);
+      const { months: m, filter: f, ateMes: a } = JSON.parse(paramsJson) as { months: number; filter: ClientFilter | null; ateMes: string | null };
+      return _getEntradaChurnImpl(m, f ?? undefined, a ?? undefined);
     },
     // v3: shape mudou - adicionado avulsos/avulsos_clientes (pontuais) +
     // fix bug em_onboarding contado como entrada.
@@ -403,7 +405,7 @@ export async function getEntradaChurn(months = 6, filter?: ClientFilter): Promis
     ["dashboard-entrada-churn-v4"],
     { revalidate: 300, tags: ["dashboard"] },
   );
-  return cached(JSON.stringify({ months, filter: filter ?? null }));
+  return cached(JSON.stringify({ months, filter: filter ?? null, ateMes: ateMes ?? null }));
 }
 
 // ─── getCarteiraPorAssessor ──────────────────────────────────────────────────
@@ -416,9 +418,9 @@ export interface AssessorCarteira {
   pctDoTotal: number;
 }
 
-export async function _getCarteiraPorAssessorImpl(filter?: ClientFilter): Promise<AssessorCarteira[]> {
+export async function _getCarteiraPorAssessorImpl(filter?: ClientFilter, mesRef?: string): Promise<AssessorCarteira[]> {
   const supabase = createServiceRoleClient();
-  const monthRef = getCurrentMonthYM();
+  const monthRef = mesRef ?? getCurrentMonthYM();
 
   // Sem filtro de tipo_relacao aqui: parceria/permuta também são clientes
   // que o assessor atende (consomem agenda/reunião). Quem não fatura entra
@@ -489,11 +491,11 @@ export async function _getCarteiraPorAssessorImpl(filter?: ClientFilter): Promis
   return list;
 }
 
-export async function getCarteiraPorAssessor(filter?: ClientFilter): Promise<AssessorCarteira[]> {
+export async function getCarteiraPorAssessor(filter?: ClientFilter, mesRef?: string): Promise<AssessorCarteira[]> {
   const cached = unstable_cache(
-    async (filterJson: string) => {
-      const f = filterJson !== "null" ? (JSON.parse(filterJson) as ClientFilter) : undefined;
-      return _getCarteiraPorAssessorImpl(f);
+    async (paramsJson: string) => {
+      const { f, m } = JSON.parse(paramsJson) as { f: ClientFilter | null; m: string | null };
+      return _getCarteiraPorAssessorImpl(f ?? undefined, m ?? undefined);
     },
     // v2: valor por assessor agora considera ajustes mensais
     // v3: filter ganhou unitId (multi-tenant)
@@ -501,7 +503,7 @@ export async function getCarteiraPorAssessor(filter?: ClientFilter): Promise<Ass
     ["dashboard-carteira-por-assessor-v4"],
     { revalidate: 300, tags: ["dashboard"] },
   );
-  return cached(JSON.stringify(filter ?? null));
+  return cached(JSON.stringify({ f: filter ?? null, m: mesRef ?? null }));
 }
 
 // ─── getRankingSatisfacao ────────────────────────────────────────────────────
