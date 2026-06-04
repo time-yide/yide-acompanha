@@ -144,7 +144,8 @@ export async function ProximosEventosSection() {
  */
 export async function RemuneracaoSection({ userId }: { userId: string }) {
   const comissao = await getComissaoPrevista(userId, "socio");
-  return <RemuneracaoCard comissao={comissao} />;
+  // Prolábore do sócio é sempre o mês corrente (em curso); não tem histórico aqui.
+  return <RemuneracaoCard comissao={{ ...comissao, status: "em_curso" }} />;
 }
 
 export function RemuneracaoSkeleton() {

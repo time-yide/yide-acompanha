@@ -10,10 +10,21 @@ const BADGE: Record<ComissaoDoMes["status"], { txt: string; live: boolean }> = {
 
 export function RemuneracaoCard({ comissao }: { comissao: ComissaoDoMes }) {
   const temBase = comissao.baseCalculo > 0;
-  const badge = BADGE[comissao.status];
   // Cargos sem parte variável (ex.: coordenador no novo modelo) - esconde
   // a coluna do meio pra não ficar mostrando "R$ 0 - sem base no mês".
   const soFixo = comissao.percentual === 0 && comissao.baseCalculo === 0 && comissao.valorVariavel === 0;
+  // Mês corrente só-fixo (prolábore do sócio / coordenador) mantém o texto
+  // antigo; meses fechados/estimados mostram o status normalmente.
+  const badge =
+    soFixo && comissao.status === "em_curso"
+      ? { txt: "Salário fixo do mês", live: false }
+      : BADGE[comissao.status];
+  const totalLabel =
+    comissao.status !== "em_curso"
+      ? "valor do mês"
+      : soFixo
+        ? "valor fixo do mês"
+        : "pode variar até o fechamento";
 
   return (
     <div className="rounded-xl border bg-card p-4 space-y-3">
@@ -50,9 +61,7 @@ export function RemuneracaoCard({ comissao }: { comissao: ComissaoDoMes }) {
         <div className="space-y-0.5 sm:border-l sm:pl-3">
           <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Total previsto</div>
           <div className="text-xl font-bold tabular-nums"><Money value={comissao.valor} /></div>
-          <div className="text-[11px] text-muted-foreground">
-            {comissao.status === "em_curso" ? "pode variar até o fechamento" : "valor do mês"}
-          </div>
+          <div className="text-[11px] text-muted-foreground">{totalLabel}</div>
         </div>
       </div>
     </div>
