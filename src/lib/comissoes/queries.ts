@@ -99,3 +99,16 @@ export async function getMonthsAwaitingApproval(): Promise<string[]> {
   );
   return cached();
 }
+
+/** Snapshot de comissão de um usuário num mês específico (ou null). Service-role. */
+export async function getSnapshotForUserMonth(userId: string, monthRef: string) {
+  const supabase = createServiceRoleClient();
+  const { data, error } = await supabase
+    .from("commission_snapshots")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("mes_referencia", monthRef)
+    .maybeSingle();
+  if (error) throw error;
+  return data ?? null;
+}
