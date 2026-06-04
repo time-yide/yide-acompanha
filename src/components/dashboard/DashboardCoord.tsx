@@ -42,16 +42,17 @@ interface Props {
 
 export async function DashboardCoord({ userId, nome, mes, mesAtual, meses }: Props) {
   const filter = { coordenadorId: userId };
+  const isMesAtual = mes === mesAtual;
 
   const [kpis, carteiraTimeline, entradaChurn, carteiraPorAssessor, ranking, eventos, comissao] =
     await Promise.all([
-      getKpis(filter),
-      getCarteiraTimeline(12, filter),
-      getEntradaChurn(6, filter),
-      getCarteiraPorAssessor(filter),
-      getRankingSatisfacao(filter),
-      getProximosEventos(30, 10, { userId }),
-      getComissaoDoMes(userId, "coordenador", mes, mes === mesAtual),
+      getKpis(filter, mes),
+      getCarteiraTimeline(12, filter, mes),
+      getEntradaChurn(6, filter, mes),
+      getCarteiraPorAssessor(filter, mes),
+      isMesAtual ? getRankingSatisfacao(filter) : Promise.resolve({ top: [], bottom: [] }),
+      isMesAtual ? getProximosEventos(30, 10, { userId }) : Promise.resolve([]),
+      getComissaoDoMes(userId, "coordenador", mes, isMesAtual),
     ]);
 
   return (
@@ -68,9 +69,11 @@ export async function DashboardCoord({ userId, nome, mes, mesAtual, meses }: Pro
           </div>
         </header>
 
-        <Suspense fallback={null}>
-          <AlertaOnboardingAtrasadoSection userId={userId} role="coordenador" />
-        </Suspense>
+        {isMesAtual && (
+          <Suspense fallback={null}>
+            <AlertaOnboardingAtrasadoSection userId={userId} role="coordenador" />
+          </Suspense>
+        )}
 
         <KpiRowCoord kpis={kpis} />
         <RemuneracaoCard comissao={comissao} />
@@ -88,19 +91,25 @@ export async function DashboardCoord({ userId, nome, mes, mesAtual, meses }: Pro
           <CarteiraPorAssessorList items={carteiraPorAssessor} />
         </Section>
 
-        <Suspense fallback={<IgListSkeleton />}>
-          <InstagramPostsSection assessorId={null} titulo="Postagens no Instagram" />
-        </Suspense>
+        {isMesAtual && (
+          <Suspense fallback={<IgListSkeleton />}>
+            <InstagramPostsSection assessorId={null} titulo="Postagens no Instagram" />
+          </Suspense>
+        )}
 
-        <Section title="Satisfação dos meus clientes" subtitle="Top 10 mais e menos satisfeitos da semana" cta={{ href: "/satisfacao", label: "Ver completo →" }}>
-          <RankingResumo top={ranking.top} bottom={ranking.bottom} />
-        </Section>
+        {isMesAtual && (
+          <Section title="Satisfação dos meus clientes" subtitle="Top 10 mais e menos satisfeitos da semana" cta={{ href: "/satisfacao", label: "Ver completo →" }}>
+            <RankingResumo top={ranking.top} bottom={ranking.bottom} />
+          </Section>
+        )}
 
-        <Section title="Próximos eventos meus" cta={{ href: "/calendario", label: "Ver agenda →" }}>
-          <ProximosEventosList eventos={eventos} />
-        </Section>
+        {isMesAtual && (
+          <Section title="Próximos eventos meus" cta={{ href: "/calendario", label: "Ver agenda →" }}>
+            <ProximosEventosList eventos={eventos} />
+          </Section>
+        )}
 
-        <PainelAudiovisualSection />
+        {isMesAtual && <PainelAudiovisualSection />}
       </div>
     </HiddenValuesProvider>
   );

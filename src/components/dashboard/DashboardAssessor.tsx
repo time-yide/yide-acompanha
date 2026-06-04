@@ -40,14 +40,15 @@ interface Props {
 
 export async function DashboardAssessor({ userId, nome, mes, mesAtual, meses }: Props) {
   const filter = { assessorId: userId };
+  const isMesAtual = mes === mesAtual;
 
   const [kpis, carteiraTimeline, entradaChurn, ranking, eventos, comissao] = await Promise.all([
-    getKpis(filter),
-    getCarteiraTimeline(12, filter),
-    getEntradaChurn(6, filter),
+    getKpis(filter, mes),
+    getCarteiraTimeline(12, filter, mes),
+    getEntradaChurn(6, filter, mes),
     getRankingSatisfacao(filter),
-    getProximosEventos(30, 10, { userId }),
-    getComissaoDoMes(userId, "assessor", mes, mes === mesAtual),
+    isMesAtual ? getProximosEventos(30, 10, { userId }) : Promise.resolve([]),
+    getComissaoDoMes(userId, "assessor", mes, isMesAtual),
   ]);
 
   return (
@@ -87,13 +88,17 @@ export async function DashboardAssessor({ userId, nome, mes, mesAtual, meses }: 
           />
         </Suspense>
 
-        <Section title="Satisfação dos meus clientes" subtitle="Top 10 mais e menos satisfeitos da semana" cta={{ href: "/satisfacao", label: "Ver completo →" }}>
-          <RankingResumo top={ranking.top} bottom={ranking.bottom} />
-        </Section>
+        {isMesAtual && (
+          <Section title="Satisfação dos meus clientes" subtitle="Top 10 mais e menos satisfeitos da semana" cta={{ href: "/satisfacao", label: "Ver completo →" }}>
+            <RankingResumo top={ranking.top} bottom={ranking.bottom} />
+          </Section>
+        )}
 
-        <Section title="Próximos eventos meus" cta={{ href: "/calendario", label: "Ver agenda →" }}>
-          <ProximosEventosList eventos={eventos} />
-        </Section>
+        {isMesAtual && (
+          <Section title="Próximos eventos meus" cta={{ href: "/calendario", label: "Ver agenda →" }}>
+            <ProximosEventosList eventos={eventos} />
+          </Section>
+        )}
 
         <PainelAudiovisualSection />
       </div>
