@@ -1,8 +1,8 @@
 // SERVER ONLY: do not import from client components
 import { unstable_cache } from "next/cache";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { getCurrentMonthYM, getPreviousMonthYM, getTodayDate } from "@/lib/datetime/timezone";
-import { isInMonth, monthRange, lastDayOfMonth } from "./date-utils";
+import { getCurrentMonthYM, getTodayDate } from "@/lib/datetime/timezone";
+import { isInMonth, monthRange, lastDayOfMonth, previousMonthYM } from "./date-utils";
 
 interface ClientRow {
   id: string;
@@ -62,12 +62,15 @@ function isActiveOn(c: ClientRow, dateIso: string): boolean {
 
 // ─── getKpis ────────────────────────────────────────────────────────────────
 
-export async function _getKpisImpl(filter?: ClientFilter): Promise<KpiData> {
+export async function _getKpisImpl(filter?: ClientFilter, mesRef?: string): Promise<KpiData> {
   const supabase = createServiceRoleClient();
-  const monthRef = getCurrentMonthYM();
-  const todayIso = getTodayDate();
+  const mesAtual = getCurrentMonthYM();
+  const monthRef = mesRef ?? mesAtual;
+  const isMesAtual = monthRef === mesAtual;
+  // "Hoje" pro mês atual; fim do mês pra meses fechados.
+  const todayIso = isMesAtual ? getTodayDate() : lastDayOfMonth(monthRef);
 
-  const prevMonthRef = getPreviousMonthYM();
+  const prevMonthRef = previousMonthYM(monthRef);
   const prevMonthLastDay = lastDayOfMonth(prevMonthRef);
 
   // Não filtra por status='ativo' no SQL - precisamos dos churnados pra contar
@@ -220,11 +223,11 @@ export async function _getKpisImpl(filter?: ClientFilter): Promise<KpiData> {
   };
 }
 
-export async function getKpis(filter?: ClientFilter): Promise<KpiData> {
+export async function getKpis(filter?: ClientFilter, mesRef?: string): Promise<KpiData> {
   const cached = unstable_cache(
-    async (filterJson: string) => {
-      const f = filterJson !== "null" ? (JSON.parse(filterJson) as ClientFilter) : undefined;
-      return _getKpisImpl(f);
+    async (paramsJson: string) => {
+      const { f, m } = JSON.parse(paramsJson) as { f: ClientFilter | null; m: string | null };
+      return _getKpisImpl(f ?? undefined, m ?? undefined);
     },
     // v3: distingue mensal vs pontual no churn + KPI de serviços pontuais
     // v4: shape mudou (servicosPontuais ganhou valorTotal)
@@ -233,7 +236,7 @@ export async function getKpis(filter?: ClientFilter): Promise<KpiData> {
     ["dashboard-kpis-v6"],
     { revalidate: 300, tags: ["dashboard"] },
   );
-  return cached(JSON.stringify(filter ?? null));
+  return cached(JSON.stringify({ f: filter ?? null, m: mesRef ?? null }));
 }
 
 // ─── getCarteiraTimeline ─────────────────────────────────────────────────────
