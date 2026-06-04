@@ -449,3 +449,43 @@ export async function registrarResultadoLigacaoAction(formData: FormData): Promi
   revalidatePath("/ligacoes");
   return { success: true };
 }
+
+// Define/corrige o resultado (status) de QUALQUER ligação da organização.
+// Diferente de registrarResultadoLigacaoAction (que só mexe na própria ligação
+// do ator), esta é pra gestores corrigirem ligações registradas por qualquer
+// pessoa do time — ex: ligações presas em "em_andamento". Escopo de segurança:
+// service role + filtro por organization_id do ator (não vaza entre orgs).
+export async function definirResultadoLigacaoAction(formData: FormData): Promise<ActionResult> {
+  const actor = await requireAuth();
+  if (!canManage(actor.role)) return { error: "Sem permissão" };
+
+  const parsed = resultadoLigacaoSchema.safeParse({
+    id: fd(formData, "id"),
+    status: fd(formData, "status"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const supabase = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+
+  const { data: profile } = await sb
+    .from("profiles")
+    .select("organization_id")
+    .eq("id", actor.id)
+    .single();
+  if (!profile) return { error: "Perfil não encontrado" };
+  const orgId = (profile as { organization_id: string }).organization_id;
+
+  const { data: upd, error } = await sb
+    .from("ligacoes")
+    .update({ status: parsed.data.status, finalizada_em: new Date().toISOString() })
+    .eq("id", parsed.data.id)
+    .eq("organization_id", orgId)
+    .select("id");
+  if (error) return { error: error.message };
+  if (!upd || upd.length === 0) return { error: "Ligação não encontrada nesta organização" };
+
+  revalidatePath("/ligacoes");
+  return { success: true };
+}

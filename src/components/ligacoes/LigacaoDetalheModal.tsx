@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
-  Phone, MessageCircle, ArrowUpRight, ArrowDownLeft, Music, FileText, Save, Plus, X,
+  Phone, MessageCircle, ArrowUpRight, ArrowDownLeft, Music, FileText, Save, Plus, X, PhoneCall,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -10,8 +11,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { updateLigacaoAction, archiveLigacaoAction } from "@/lib/ligacoes/actions";
+import { updateLigacaoAction, archiveLigacaoAction, definirResultadoLigacaoAction } from "@/lib/ligacoes/actions";
 import { STATUS_DEFS, formatDuracao, formatNumeroBR, ORIGEM_LABELS } from "@/lib/ligacoes/tipos";
+import type { StatusLigacao } from "@/lib/ligacoes/tipos";
 import type { LigacaoRow } from "@/lib/ligacoes/queries";
 import { formatDateTimeBR, formatTimeBR } from "@/lib/datetime/timezone";
 
@@ -22,18 +24,49 @@ interface Props {
   canManage: boolean;
 }
 
+// Resultados que a pessoa pode marcar pra uma ligação. Mapeiam pro enum interno.
+const RESULTADOS: Array<{ value: StatusLigacao; label: string }> = [
+  { value: "atendida", label: "Atendida" },
+  { value: "perdida", label: "Não atendeu" },
+  { value: "rejeitada", label: "Rejeitada" },
+  { value: "ocupada", label: "Ocupado" },
+  { value: "caixa_postal", label: "Caixa postal" },
+  { value: "cancelada", label: "Cancelada" },
+];
+
 export function LigacaoDetalheModal({ open, onOpenChange, ligacao, canManage }: Props) {
+  const router = useRouter();
   const [observacoes, setObservacoes] = useState(ligacao.observacoes ?? "");
   const [contatoNome, setContatoNome] = useState(ligacao.contato_nome ?? "");
   const [tags, setTags] = useState<string[]>(ligacao.tags);
   const [tagInput, setTagInput] = useState("");
   const [pending, startTransition] = useTransition();
   const [pendingArchive, startArchive] = useTransition();
+  const [savingStatus, startStatus] = useTransition();
+  const [statusLocal, setStatusLocal] = useState(ligacao.status);
   const [error, setError] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
 
-  const statusDef = STATUS_DEFS[ligacao.status as keyof typeof STATUS_DEFS];
+  const statusDef = STATUS_DEFS[statusLocal as keyof typeof STATUS_DEFS];
   const isWA = ligacao.tipo === "whatsapp";
+  const semResultado = statusLocal === "em_andamento";
+
+  function definirResultado(novoStatus: StatusLigacao) {
+    setError(null);
+    const fd = new FormData();
+    fd.set("id", ligacao.id);
+    fd.set("status", novoStatus);
+    startStatus(async () => {
+      const r = await definirResultadoLigacaoAction(fd);
+      if ("error" in r) {
+        setError(r.error);
+        return;
+      }
+      setStatusLocal(novoStatus);
+      // Atualiza a lista/contadores do painel sem fechar o modal.
+      router.refresh();
+    });
+  }
 
   function addTag() {
     const v = tagInput.trim();
@@ -95,7 +128,7 @@ export function LigacaoDetalheModal({ open, onOpenChange, ligacao, canManage }: 
           <div className="rounded-lg border bg-muted/20 p-4 space-y-3">
             <div className="flex flex-wrap items-center gap-2">
               <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${statusDef?.color ?? ""}`}>
-                {statusDef?.label ?? ligacao.status}
+                {statusDef?.label ?? statusLocal}
               </span>
               <Badge variant="outline" className="text-[10px]">
                 {ligacao.direcao === "entrada" ? (
@@ -125,6 +158,44 @@ export function LigacaoDetalheModal({ open, onOpenChange, ligacao, canManage }: 
               )}
             </div>
           </div>
+
+          {/* Resultado da ligação — marca/corrige o status (atendida, não atendeu, etc.) */}
+          {canManage && (
+            <div
+              className={`rounded-lg border p-3 space-y-2 ${
+                semResultado ? "border-amber-500/40 bg-amber-500/10" : "bg-card"
+              }`}
+            >
+              <h3 className="text-sm font-semibold flex items-center gap-1">
+                <PhoneCall className="h-4 w-4 text-blue-500" />
+                {semResultado ? "Como foi essa ligação?" : "Resultado"}
+              </h3>
+              {semResultado && (
+                <p className="text-xs text-muted-foreground">
+                  Esta ligação está sem resultado (aparece em &quot;Outras&quot;). Marque como foi
+                  pra ela contar certo no painel.
+                </p>
+              )}
+              <div className="flex flex-wrap gap-1.5">
+                {RESULTADOS.map((r) => {
+                  const ativo = statusLocal === r.value;
+                  return (
+                    <button
+                      key={r.value}
+                      type="button"
+                      disabled={savingStatus}
+                      onClick={() => definirResultado(r.value)}
+                      className={`inline-flex h-8 items-center rounded-md border px-2.5 text-xs font-medium hover:bg-muted disabled:opacity-50 ${
+                        ativo ? "border-primary bg-primary/10 text-primary" : "bg-card"
+                      }`}
+                    >
+                      {r.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Gravação (se houver) */}
           {ligacao.gravacao_url ? (

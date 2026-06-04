@@ -38,9 +38,12 @@ export function LigarLeadButton({ leadGeradoId, numero, contatoNome }: Props) {
       const r = await registrarLigacaoLeadAction(fd);
       if ("error" in r) { setError(r.error); return; }
       // Registrou: abre o discador do aparelho e mostra o seletor de resultado.
+      // NÃO dá router.refresh() aqui: o refresh remontava este componente e
+      // apagava o seletor "Como foi?" antes da pessoa marcar o resultado,
+      // deixando a ligação presa em "em_andamento". O refresh acontece só
+      // depois, em definirResultado().
       setLigacaoId(r.id);
       window.location.href = `tel:${tel}`;
-      router.refresh();
     });
   }
 
