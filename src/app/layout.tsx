@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { PWARegister } from "@/components/pwa/PWARegister";
 import { IOSInstallBanner } from "@/components/pwa/IOSInstallBanner";
+import { ChunkErrorRecovery } from "@/components/pwa/ChunkErrorRecovery";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 
@@ -40,6 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           {children}
           <Toaster richColors position="top-right" />
+          <ChunkErrorRecovery />
           <PWARegister />
           <IOSInstallBanner />
         </ThemeProvider>
