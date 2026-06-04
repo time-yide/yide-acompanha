@@ -35,3 +35,15 @@ describe("previousMonthYM", () => {
     expect(previousMonthYM("2026-06")).toBe("2026-05");
   });
 });
+
+describe("âncora UTC-safe (consistência com mesAtual do fuso da app)", () => {
+  // page.tsx ancora mesesRecentes/parseMes numa Date no meio do mês atual
+  // (em UTC) pra bater com mesAtual (que vem do fuso da app). Garante que o
+  // mês corrente nunca seja tratado como histórico na virada de mês.
+  it("ancorado no meio do mês retorna o próprio mês como atual", () => {
+    const ref = new Date("2026-06-15T12:00:00Z");
+    expect(mesesRecentes(1, ref)[0]).toBe("2026-06");
+    expect(parseMes(undefined, ref)).toBe("2026-06");
+    expect(parseMes("2026-06", ref)).toBe("2026-06");
+  });
+});

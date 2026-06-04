@@ -77,9 +77,13 @@ export default async function DashboardPage({
   const params = await searchParams;
   const user = await requireAuth();
   const periodo = parsePeriodo(params.periodo);
-  const mes = parseMes(params.mes);
   const mesAtual = getCurrentMonthYM(new Date());
-  const meses = mesesRecentes(12, new Date());
+  // Âncora no meio do mês atual em UTC: mesesRecentes/parseMes operam em UTC,
+  // mas mesAtual vem do fuso da app (Cuiabá). Sem isso, na virada de mês o mês
+  // corrente seria tratado como "histórico" por algumas horas.
+  const refMes = new Date(`${mesAtual}-15T12:00:00Z`);
+  const mes = parseMes(params.mes, refMes);
+  const meses = mesesRecentes(12, refMes);
 
   const canImpersonate = user.role === "socio" || user.role === "adm";
 
