@@ -4,7 +4,7 @@ import {
   getProximasReunioes,
   getMetaComercial,
 } from "@/lib/dashboard/comercial-queries";
-import { getComissaoPrevista } from "@/lib/dashboard/comissao-prevista";
+import { getComissaoDoMes } from "@/lib/dashboard/comissao-prevista";
 import { KpiRowComercial } from "./KpiRowComercial";
 import { RemuneracaoCard } from "./RemuneracaoCard";
 import { ChartFunilLazy } from "./ChartFunilLazy";
@@ -40,7 +40,7 @@ export async function DashboardComercial({ userId, nome, mes, mesAtual, meses }:
     getFunnelData(userId),
     getProximasReunioes(userId, 14),
     getMetaComercial(userId),
-    getComissaoPrevista(userId, "comercial"),
+    getComissaoDoMes(userId, "comercial", mes, mes === mesAtual),
   ]);
 
   return (

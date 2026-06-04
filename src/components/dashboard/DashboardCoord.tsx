@@ -6,7 +6,7 @@ import {
   getRankingSatisfacao,
   getProximosEventos,
 } from "@/lib/dashboard/queries";
-import { getComissaoPrevista } from "@/lib/dashboard/comissao-prevista";
+import { getComissaoDoMes } from "@/lib/dashboard/comissao-prevista";
 import { KpiRowCoord } from "./KpiRowCoord";
 import { RemuneracaoCard } from "./RemuneracaoCard";
 import { ChartCarteiraTimelineLazy } from "./ChartCarteiraTimelineLazy";
@@ -51,7 +51,7 @@ export async function DashboardCoord({ userId, nome, mes, mesAtual, meses }: Pro
       getCarteiraPorAssessor(filter),
       getRankingSatisfacao(filter),
       getProximosEventos(30, 10, { userId }),
-      getComissaoPrevista(userId, "coordenador"),
+      getComissaoDoMes(userId, "coordenador", mes, mes === mesAtual),
     ]);
 
   return (
