@@ -5,6 +5,7 @@ import {
   getMetaComercial,
 } from "@/lib/dashboard/comercial-queries";
 import { getComissaoDoMes } from "@/lib/dashboard/comissao-prevista";
+import { lastDayOfMonth } from "@/lib/dashboard/date-utils";
 import { KpiRowComercial } from "./KpiRowComercial";
 import { RemuneracaoCard } from "./RemuneracaoCard";
 import { ChartFunilLazy } from "./ChartFunilLazy";
@@ -35,12 +36,15 @@ interface Props {
 }
 
 export async function DashboardComercial({ userId, nome, mes, mesAtual, meses }: Props) {
+  const isMesAtual = mes === mesAtual;
+  const dataNoMes = isMesAtual ? new Date() : new Date(`${lastDayOfMonth(mes)}T12:00:00Z`);
+
   const [leadsKpis, funnel, reunioes, meta, comissao] = await Promise.all([
-    getLeadsKpis(userId),
-    getFunnelData(userId),
-    getProximasReunioes(userId, 14),
-    getMetaComercial(userId),
-    getComissaoDoMes(userId, "comercial", mes, mes === mesAtual),
+    getLeadsKpis(userId, dataNoMes),
+    isMesAtual ? getFunnelData(userId) : Promise.resolve([]),
+    isMesAtual ? getProximasReunioes(userId, 14) : Promise.resolve([]),
+    getMetaComercial(userId, dataNoMes),
+    getComissaoDoMes(userId, "comercial", mes, isMesAtual),
   ]);
 
   return (
@@ -61,19 +65,25 @@ export async function DashboardComercial({ userId, nome, mes, mesAtual, meses }:
         <RemuneracaoCard comissao={comissao} />
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <Section title="Funil de conversão" subtitle="5 estágios atuais">
-            <ChartFunilLazy data={funnel} />
-          </Section>
+          {isMesAtual && (
+            <Section title="Funil de conversão" subtitle="5 estágios atuais">
+              <ChartFunilLazy data={funnel} />
+            </Section>
+          )}
           <MetaTracker meta={meta} />
         </div>
 
-        <Section title="Próximas reuniões" subtitle="Próximos 14 dias" cta={{ href: "/onboarding", label: "Ver kanban →" }}>
-          <ProximasReunioesList reunioes={reunioes} />
-        </Section>
+        {isMesAtual && (
+          <Section title="Próximas reuniões" subtitle="Próximos 14 dias" cta={{ href: "/onboarding", label: "Ver kanban →" }}>
+            <ProximasReunioesList reunioes={reunioes} />
+          </Section>
+        )}
 
-        <Suspense fallback={<IgListSkeleton />}>
-          <InstagramPostsSection assessorId={null} titulo="Postagens no Instagram" />
-        </Suspense>
+        {isMesAtual && (
+          <Suspense fallback={<IgListSkeleton />}>
+            <InstagramPostsSection assessorId={null} titulo="Postagens no Instagram" />
+          </Suspense>
+        )}
       </div>
     </HiddenValuesProvider>
   );
