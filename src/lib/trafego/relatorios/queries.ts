@@ -55,7 +55,12 @@ export async function getRelatorioParaPdf(id: string): Promise<RelatorioRow | nu
 export const listarRelatoriosPublicadosPorCliente = (clienteId: string) =>
   unstable_cache(
     async (): Promise<RelatorioRow[]> => {
-      const supabase = await createClient();
+      // Service-role aqui (não createClient): acessar cookies() dentro de
+      // unstable_cache lança erro no Next 16 e derrubava o portal inteiro.
+      // O clienteId já vem de sessão autenticada/validada e a query filtra
+      // por cliente_id, então service-role (bypass RLS) é seguro e segue o
+      // padrão das outras queries cacheadas (listTasks, listClientes, etc).
+      const supabase = createServiceRoleClient();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const sb = supabase as any;
       const { data } = await sb
