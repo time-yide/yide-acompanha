@@ -44,6 +44,7 @@ export async function listClientesSocial(filter: {
       .from("clients")
       .select(selectStr)
       .eq("status", "ativo")
+      .is("deleted_at", null)
       .in("tipo_pacote", [...PACOTES_COM_SOCIAL_MEDIA]);
     if (filter.unitId) q = q.eq("unit_id", filter.unitId);
     if (filter.assessorId) q = q.eq("assessor_id", filter.assessorId);
