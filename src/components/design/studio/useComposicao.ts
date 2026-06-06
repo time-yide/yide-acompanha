@@ -6,9 +6,7 @@ import type { Camada, CamadaTexto, CamadaShape, CamadaImagem, CamadaLogo, Compos
 import { COMPOSICAO_VAZIA } from "@/lib/design/studio-tipos";
 import type { Comando } from "@/lib/design/studio-comandos";
 
-let zCounter = 10;
 function uid(): string {
-  zCounter += 1;
   return "e" + Math.random().toString(36).slice(2, 10);
 }
 
@@ -31,8 +29,8 @@ export function composicaoReducer(state: Composicao, acao: Acao): Composicao {
     case "reset":
       return acao.composicao;
     case "addCamada": {
-      zCounter += 1;
-      const camada = { ...acao.camada, id: uid(), z: zCounter } as unknown as Camada;
+      const maxZ = state.camadas.reduce((m, c) => Math.max(m, c.z), 10);
+      const camada = { ...acao.camada, id: uid(), z: maxZ + 1 } as unknown as Camada;
       return { ...state, camadas: [...state.camadas, camada] };
     }
     case "updateCamada":
@@ -82,21 +80,18 @@ export function aplicarComandos(state: Composicao, comandos: Comando[], logoUrl:
         s = composicaoReducer(s, { type: "toggleListras", show: cmd.show !== false });
         break;
       case "addTexto": {
-        const { action, ...rest } = cmd;
-        void action;
+        const { action: _action, ...rest } = cmd;
         s = composicaoReducer(s, { type: "addCamada", camada: { tipo: "texto", opacity: 1, ...(rest as object) } as unknown as NovaCamada });
         break;
       }
       case "addShape": {
-        const { action, ...rest } = cmd;
-        void action;
+        const { action: _action, ...rest } = cmd;
         s = composicaoReducer(s, { type: "addCamada", camada: { tipo: "shape", opacity: 1, ...(rest as object) } as unknown as NovaCamada });
         break;
       }
       case "addLogo": {
         if (!logoUrl) break;
-        const { action, ...rest } = cmd;
-        void action;
+        const { action: _action, ...rest } = cmd;
         s = composicaoReducer(s, { type: "addCamada", camada: { tipo: "logo", src: logoUrl, opacity: 1, ...(rest as object) } as unknown as NovaCamada });
         break;
       }
