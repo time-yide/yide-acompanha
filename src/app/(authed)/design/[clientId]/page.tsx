@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Palette } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import {
   getClienteDesign,
@@ -57,7 +57,17 @@ export default async function DesignClientePage({
         >
           <ArrowLeft className="h-3 w-3" /> Voltar pra lista
         </Link>
-        <h1 className="text-2xl font-bold tracking-tight">{cliente.nome}</h1>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-2xl font-bold tracking-tight">{cliente.nome}</h1>
+          {canEdit && (
+            <Link
+              href={`/design/${clientId}/studio`}
+              className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+            >
+              <Palette className="h-4 w-4" /> Criar no Studio
+            </Link>
+          )}
+        </div>
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <span className="rounded-full border bg-card px-2 py-0.5">
             {PACOTE_LABELS[cliente.tipo_pacote] ?? cliente.tipo_pacote}
