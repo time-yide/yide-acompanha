@@ -1,3 +1,4 @@
+-- (timestamp 000100 e não 000000 pra não colidir com 20260606000000_manual_tutoriais.sql)
 -- =====================================================
 -- DESIGN STUDIO — FASE 1
 -- Composição editável da arte (camadas + fundo + formato).

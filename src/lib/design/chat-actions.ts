@@ -3,6 +3,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { getServerEnv } from "@/lib/env";
 import { requireAuth } from "@/lib/auth/session";
+import { isDesignRole } from "./roles";
 import { getManualMarca } from "./queries";
 import { buildStudioSystemPrompt } from "./studio-prompt";
 import { parseRespostaIA, type Comando } from "./studio-comandos";
@@ -12,11 +13,6 @@ export interface ChatMsg { role: "user" | "assistant"; content: string }
 
 interface ChatErr { error: string }
 type ChatResult = { mensagem: string; comandos: Comando[] } | ChatErr;
-
-const ROLES = [
-  "adm", "socio", "coordenador", "assessor",
-  "designer", "videomaker", "editor", "audiovisual_chefe",
-];
 
 /** Pure: monta o array de mensagens da Anthropic a partir do histórico + nova msg. */
 export function montarMensagensChat(historico: ChatMsg[], nova: string): ChatMsg[] {
@@ -31,14 +27,16 @@ export async function chatStudioAction(
   composicao: Composicao,
 ): Promise<ChatResult> {
   const actor = await requireAuth();
-  if (!ROLES.includes(actor.role)) return { error: "Sem permissão" };
+  // m1: use shared isDesignRole
+  if (!isDesignRole(actor.role)) return { error: "Sem permissão" };
 
   const env = getServerEnv();
   if (!env.ANTHROPIC_API_KEY) return { error: "IA não configurada (ANTHROPIC_API_KEY ausente)" };
 
   const manual = await getManualMarca(clientId);
   const system = buildStudioSystemPrompt(manual, composicao);
-  const messages = montarMensagensChat(historico, mensagem);
+  // m3: cap history to the last 10 turns to avoid unbounded context growth
+  const messages = montarMensagensChat(historico.slice(-10), mensagem);
 
   const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
   try {

@@ -3,19 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { requireAuth } from "@/lib/auth/session";
+import { isDesignRole } from "./roles";
 import type { FonteMarca, ManualMarca } from "./studio-tipos";
 
 interface Ok { success: true }
 interface Err { error: string }
 type Result = Ok | Err;
-
-const ROLES = [
-  "adm", "socio", "coordenador", "assessor",
-  "designer", "videomaker", "editor", "audiovisual_chefe",
-];
-function canManage(role: string): boolean {
-  return ROLES.includes(role);
-}
 
 export const MARCA_FONT_EXTS = [".ttf", ".otf", ".woff", ".woff2"] as const;
 
@@ -38,17 +31,31 @@ async function orgIdDoCliente(sb: ReturnType<typeof createServiceRoleClient>, cl
   return data as { organization_id: string; design_style_guide: Record<string, unknown> | null } | null;
 }
 
-async function salvarStyleGuide(clientId: string, patch: Record<string, unknown>): Promise<Result> {
+// I2: optional atualConhecido param avoids a second round-trip when caller
+// already holds a fresh cli row (uploadFonteMarcaAction / uploadLogoMarcaAction).
+async function salvarStyleGuide(
+  clientId: string,
+  patch: Record<string, unknown>,
+  atualConhecido?: Record<string, unknown> | null,
+): Promise<Result> {
   const sb = createServiceRoleClient();
-  const cli = await orgIdDoCliente(sb, clientId);
-  if (!cli) return { error: "Cliente não encontrado" };
-  const atual = (cli.design_style_guide ?? {}) as Record<string, unknown>;
+  let atual: Record<string, unknown>;
+  if (atualConhecido !== undefined) {
+    // caller provided a fresh value — skip the second round-trip
+    atual = (atualConhecido ?? {}) as Record<string, unknown>;
+  } else {
+    const cli = await orgIdDoCliente(sb, clientId);
+    if (!cli) return { error: "Cliente não encontrado" };
+    atual = (cli.design_style_guide ?? {}) as Record<string, unknown>;
+  }
   const novo = { ...atual, ...patch };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (sb as any)
     .from("clients").update({ design_style_guide: novo }).eq("id", clientId);
   if (error) return { error: error.message };
   revalidatePath(`/design/${clientId}/studio`);
+  // I5: revalidate the listing page too
+  revalidatePath(`/design/${clientId}`);
   return { success: true };
 }
 
@@ -56,7 +63,8 @@ export async function uploadFonteMarcaAction(
   clientId: string, papel: "titulo" | "corpo", formData: FormData,
 ): Promise<Result> {
   const actor = await requireAuth();
-  if (!canManage(actor.role)) return { error: "Sem permissão" };
+  // m1: use shared isDesignRole
+  if (!isDesignRole(actor.role)) return { error: "Sem permissão" };
   const file = formData.get("file");
   if (!(file instanceof File)) return { error: "Arquivo inválido" };
   const format = fonteFormatFromName(file.name);
@@ -81,12 +89,14 @@ export async function uploadFonteMarcaAction(
   const nome = file.name.replace(/\.[^.]+$/, "");
   const atual = (cli.design_style_guide?.fontes as FonteMarca[] | undefined) ?? [];
   const fontes = [...atual.filter((f) => f.nome !== nome), { nome, papel, url: signed.signedUrl, format }];
-  return salvarStyleGuide(clientId, { fontes });
+  // I2: pass cli.design_style_guide to skip the re-fetch inside salvarStyleGuide
+  return salvarStyleGuide(clientId, { fontes }, cli.design_style_guide);
 }
 
 export async function uploadLogoMarcaAction(clientId: string, formData: FormData): Promise<Result> {
   const actor = await requireAuth();
-  if (!canManage(actor.role)) return { error: "Sem permissão" };
+  // m1: use shared isDesignRole
+  if (!isDesignRole(actor.role)) return { error: "Sem permissão" };
   const file = formData.get("file");
   if (!(file instanceof File)) return { error: "Arquivo inválido" };
   if (!file.type.startsWith("image/")) return { error: "Logo precisa ser imagem" };
@@ -105,7 +115,8 @@ export async function uploadLogoMarcaAction(clientId: string, formData: FormData
   const { data: signed } = await (sb as any).storage
     .from("design-criativos").createSignedUrl(path, 365 * 24 * 60 * 60);
   if (!signed?.signedUrl) return { error: "Erro ao gerar URL da logo" };
-  return salvarStyleGuide(clientId, { logo_url: signed.signedUrl });
+  // I2: pass cli.design_style_guide to skip the re-fetch inside salvarStyleGuide
+  return salvarStyleGuide(clientId, { logo_url: signed.signedUrl }, cli.design_style_guide);
 }
 
 export async function updateManualMarcaAction(
@@ -113,6 +124,8 @@ export async function updateManualMarcaAction(
   patch: { paletas?: string[]; fundo_padrao?: string | null; mood?: string; tom_voz?: string; evitar?: string },
 ): Promise<Result> {
   const actor = await requireAuth();
-  if (!canManage(actor.role)) return { error: "Sem permissão" };
+  // m1: use shared isDesignRole
+  if (!isDesignRole(actor.role)) return { error: "Sem permissão" };
+  // updateManualMarcaAction keeps calling without atualConhecido (still fetches)
   return salvarStyleGuide(clientId, patch);
 }
