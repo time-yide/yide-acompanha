@@ -2,6 +2,7 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import type { StyleGuide } from "./tipos";
 import { STYLE_GUIDE_VAZIO } from "./tipos";
+import type { ManualMarca, FonteMarca } from "./studio-tipos";
 
 export interface ClienteDesignRow {
   id: string;
@@ -213,5 +214,22 @@ export async function getClienteDesign(clientId: string): Promise<ClienteDesignD
     designer_id: c.designer_id,
     designer_nome: c.designer?.nome ?? null,
     style_guide: styleGuide,
+  };
+}
+
+export async function getManualMarca(clientId: string): Promise<ManualMarca> {
+  const supabase = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data } = await (supabase as any)
+    .from("clients").select("design_style_guide").eq("id", clientId).single();
+  const sg = (data?.design_style_guide ?? {}) as Record<string, unknown>;
+  return {
+    fontes: Array.isArray(sg.fontes) ? (sg.fontes as FonteMarca[]) : [],
+    logo_url: typeof sg.logo_url === "string" ? sg.logo_url : null,
+    fundo_padrao: typeof sg.fundo_padrao === "string" ? sg.fundo_padrao : null,
+    paletas: Array.isArray(sg.paletas) ? (sg.paletas as string[]) : [],
+    mood: typeof sg.mood === "string" ? sg.mood : "",
+    tom_voz: typeof sg.tom_voz === "string" ? sg.tom_voz : "",
+    evitar: typeof sg.evitar === "string" ? sg.evitar : "",
   };
 }
