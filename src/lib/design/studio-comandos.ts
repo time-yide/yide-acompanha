@@ -4,6 +4,7 @@ import { FORMAT_DIMS } from "./studio-tipos";
 export const ACOES_VALIDAS = [
   "setBg", "setFormato", "toggleStripes", "addTexto",
   "addShape", "addLogo", "updateLayer", "removeLayer", "clearAll",
+  "gerarImagem",
 ] as const;
 
 export type Acao = (typeof ACOES_VALIDAS)[number];
@@ -66,6 +67,11 @@ function validarComando(raw: unknown): Comando | null {
     case "removeLayer":
       if (typeof c.id !== "string") return null;
       return { action: act, id: c.id };
+    case "gerarImagem": {
+      if (typeof c.prompt !== "string" || c.prompt.trim() === "") return null;
+      const alvo = c.alvo === "camada" ? "camada" : "fundo";
+      return { action: act, prompt: c.prompt, alvo };
+    }
     default:
       return null;
   }
