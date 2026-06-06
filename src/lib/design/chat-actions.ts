@@ -8,17 +8,12 @@ import { getManualMarca } from "./queries";
 import { buildStudioSystemPrompt } from "./studio-prompt";
 import { parseRespostaIA, type Comando } from "./studio-comandos";
 import type { Composicao } from "./studio-tipos";
+import { montarMensagensChat, type ChatMsg } from "./chat-utils";
 
-export interface ChatMsg { role: "user" | "assistant"; content: string }
+export type { ChatMsg } from "./chat-utils";
 
 interface ChatErr { error: string }
 type ChatResult = { mensagem: string; comandos: Comando[] } | ChatErr;
-
-/** Pure: monta o array de mensagens da Anthropic a partir do histórico + nova msg. */
-export function montarMensagensChat(historico: ChatMsg[], nova: string): ChatMsg[] {
-  const limpo = historico.filter((m) => m.role === "user" || m.role === "assistant");
-  return [...limpo, { role: "user", content: nova }];
-}
 
 export async function chatStudioAction(
   clientId: string,

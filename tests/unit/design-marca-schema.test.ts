@@ -1,6 +1,6 @@
 // tests/unit/design-marca-schema.test.ts
 import { describe, it, expect } from "vitest";
-import { fonteFormatFromName, MARCA_FONT_EXTS } from "@/lib/design/marca-actions";
+import { fonteFormatFromName, MARCA_FONT_EXTS } from "@/lib/design/marca-utils";
 
 describe("fonteFormatFromName", () => {
   it("mapeia extensão pra format de @font-face", () => {

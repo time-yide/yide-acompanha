@@ -1,6 +1,6 @@
 // tests/unit/design-chat-mensagens.test.ts
 import { describe, it, expect } from "vitest";
-import { montarMensagensChat } from "@/lib/design/chat-actions";
+import { montarMensagensChat } from "@/lib/design/chat-utils";
 
 describe("montarMensagensChat", () => {
   it("converte histórico + nova mensagem no formato da Anthropic", () => {

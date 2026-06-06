@@ -1,6 +1,6 @@
 // tests/unit/design-studio-actions-schema.test.ts
 import { describe, it, expect } from "vitest";
-import { salvarComposicaoSchema } from "@/lib/design/studio-actions";
+import { salvarComposicaoSchema } from "@/lib/design/studio-schema";
 
 describe("salvarComposicaoSchema", () => {
   it("aceita payload válido com composição e pngBase64", () => {

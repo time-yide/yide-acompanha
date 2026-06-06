@@ -5,21 +5,11 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { requireAuth } from "@/lib/auth/session";
 import { isDesignRole } from "./roles";
 import type { FonteMarca, ManualMarca } from "./studio-tipos";
+import { fonteFormatFromName } from "./marca-utils";
 
 interface Ok { success: true }
 interface Err { error: string }
 type Result = Ok | Err;
-
-export const MARCA_FONT_EXTS = [".ttf", ".otf", ".woff", ".woff2"] as const;
-
-export function fonteFormatFromName(name: string): FonteMarca["format"] | null {
-  const lower = name.toLowerCase();
-  if (lower.endsWith(".ttf")) return "truetype";
-  if (lower.endsWith(".otf")) return "opentype";
-  if (lower.endsWith(".woff2")) return "woff2";
-  if (lower.endsWith(".woff")) return "woff";
-  return null;
-}
 
 const MAX_BYTES = 10 * 1024 * 1024; // 10MB
 

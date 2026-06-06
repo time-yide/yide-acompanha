@@ -1,46 +1,16 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { requireAuth } from "@/lib/auth/session";
 import { isDesignRole } from "./roles";
 import type { Composicao } from "./studio-tipos";
+import { salvarComposicaoSchema, type SalvarComposicaoInput } from "./studio-schema";
 
 interface Err { error: string }
 // C2: SaveResult can carry arteId even on error, so caller can retry without
 // creating a duplicate row.
 type SaveResult = { success: true; arteId: string } | { error: string; arteId?: string };
-
-const uuid = z.string().regex(
-  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/,
-  "UUID inválido",
-);
-
-export const salvarComposicaoSchema = z
-  .object({
-    clientId: uuid,
-    arteId: uuid.nullable(),
-    titulo: z.string().min(1, "Dê um título à arte"),
-    formato: z.string().min(1),
-    composicao: z.object({
-      formato: z.string(),
-      fundo: z.object({
-        cor: z.string(),
-        foto: z.any().nullable(),
-        listras: z.boolean(),
-      }),
-      camadas: z.array(z.any()),
-    }),
-    // I4: cap pngBase64 size to 30 MB
-    pngBase64: z.string().regex(/^data:image\/png;base64,/, "PNG inválido").max(30 * 1024 * 1024, "Imagem grande demais"),
-  })
-  .refine((v) => JSON.stringify(v.composicao).length <= 2_000_000, {
-    message: "Composição grande demais",
-    path: ["composicao"],
-  });
-
-export type SalvarComposicaoInput = z.infer<typeof salvarComposicaoSchema>;
 
 function dataUrlToBuffer(dataUrl: string): Buffer {
   const base64 = dataUrl.replace(/^data:image\/png;base64,/, "");
