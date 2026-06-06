@@ -52,6 +52,18 @@ describe("parseRespostaIA", () => {
     expect(out.comandos).toEqual([]);
   });
 
+  it("setFormato com formato conhecido é mantido", () => {
+    const raw = `x\n---JSON---\n{"commands":[{"action":"setFormato","formato":"story"}]}`;
+    const out = parseRespostaIA(raw);
+    expect(out.comandos).toEqual([{ action: "setFormato", formato: "story" }]);
+  });
+
+  it("setFormato com formato desconhecido é descartado", () => {
+    const raw = `x\n---JSON---\n{"commands":[{"action":"setFormato","formato":"tiktok"}]}`;
+    const out = parseRespostaIA(raw);
+    expect(out.comandos).toEqual([]);
+  });
+
   it("ACOES_VALIDAS cobre o contrato da Fase 1", () => {
     expect(ACOES_VALIDAS).toEqual(
       expect.arrayContaining([

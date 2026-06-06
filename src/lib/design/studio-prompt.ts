@@ -6,7 +6,7 @@ function resumoCanvas(comp: Composicao): string {
   const dims = dimensoesDoFormato(comp.formato);
   const n = comp.camadas.length;
   const lista = comp.camadas
-    .map((c) => c.tipo + (c.tipo === "texto" ? `("${c.text.slice(0, 20)}")` : ""))
+    .map((c) => c.tipo + (c.tipo === "texto" ? `("${c.text.slice(0, 20).replace(/---JSON---/g, "---")}")` : ""))
     .join(", ");
   return `Formato: ${comp.formato} (${dims.w}x${dims.h}px). Fundo: ${comp.fundo.cor}. ` +
     `${n} elemento(s) na canvas${lista ? `: ${lista}` : ""}.`;

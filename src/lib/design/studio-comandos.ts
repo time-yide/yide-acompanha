@@ -1,4 +1,5 @@
 // src/lib/design/studio-comandos.ts
+import { FORMAT_DIMS } from "./studio-tipos";
 
 export const ACOES_VALIDAS = [
   "setBg", "setFormato", "toggleStripes", "addTexto",
@@ -26,21 +27,22 @@ function validarComando(raw: unknown): Comando | null {
   if (typeof action !== "string" || !(ACOES_VALIDAS as readonly string[]).includes(action)) {
     return null;
   }
-  switch (action) {
+  const act = action as Acao;
+  switch (act) {
     case "clearAll":
-      return { action };
+      return { action: act };
     case "setBg":
       if (typeof c.color !== "string") return null;
-      return { action, color: c.color };
+      return { action: act, color: c.color };
     case "setFormato":
-      if (typeof c.formato !== "string") return null;
-      return { action, formato: c.formato };
+      if (typeof c.formato !== "string" || !(c.formato in FORMAT_DIMS)) return null;
+      return { action: act, formato: c.formato };
     case "toggleStripes":
-      return { action, show: c.show !== false };
+      return { action: act, show: c.show !== false };
     case "addTexto":
       if (typeof c.text !== "string" || c.text.trim() === "") return null;
       return {
-        action, text: c.text,
+        action: act, text: c.text,
         x: num(c.x, 80), y: num(c.y, 200), w: num(c.w, 250),
         fontSize: num(c.fontSize, 40), fontWeight: num(c.fontWeight, 700),
         color: str(c.color, "#ffffff"), align: str(c.align, "center"),
@@ -50,20 +52,20 @@ function validarComando(raw: unknown): Comando | null {
       const subtype = str(c.subtype, "rect");
       if (!["rect", "circle", "line"].includes(subtype)) return null;
       return {
-        action, subtype,
+        action: act, subtype,
         x: num(c.x, 80), y: num(c.y, 180), w: num(c.w, 220), h: num(c.h, 60),
         bg: str(c.bg, "#009c3b"), borderColor: str(c.borderColor, "transparent"),
         borderW: num(c.borderW, 0), radius: num(c.radius, 0),
       };
     }
     case "addLogo":
-      return { action, x: num(c.x, 880), y: num(c.y, 940), w: num(c.w, 140), h: num(c.h, 100) };
+      return { action: act, x: num(c.x, 880), y: num(c.y, 940), w: num(c.w, 140), h: num(c.h, 100) };
     case "updateLayer":
       if (typeof c.id !== "string") return null;
-      return { action, id: c.id, props: (c.props && typeof c.props === "object") ? c.props : {} };
+      return { action: act, id: c.id, props: (c.props && typeof c.props === "object") ? c.props : {} };
     case "removeLayer":
       if (typeof c.id !== "string") return null;
-      return { action, id: c.id };
+      return { action: act, id: c.id };
     default:
       return null;
   }
