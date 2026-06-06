@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { requireAuth } from "@/lib/auth/session";
 import { isDesignRole } from "./roles";
-import type { FonteMarca, ManualMarca } from "./studio-tipos";
+import type { FonteMarca } from "./studio-tipos";
 import { fonteFormatFromName } from "./marca-utils";
 
 interface Ok { success: true }
