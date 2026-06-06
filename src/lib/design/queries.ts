@@ -32,7 +32,8 @@ export async function listClientesDesign(filter: {
     let q: any = supabase
       .from("clients")
       .select(selectStr)
-      .eq("status", "ativo");
+      .eq("status", "ativo")
+      .is("deleted_at", null);
     if (filter.unitId) q = q.eq("unit_id", filter.unitId);
     if (filter.assessorId) q = q.eq("assessor_id", filter.assessorId);
     if (filter.coordenadorId) q = q.eq("coordenador_id", filter.coordenadorId);
