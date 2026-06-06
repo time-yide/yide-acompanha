@@ -26,6 +26,10 @@ export const salvarComposicaoSchema = z
     }),
     // Cap pngBase64 size to 30 MB
     pngBase64: z.string().regex(/^data:image\/png;base64,/, "PNG inválido").max(30 * 1024 * 1024, "Imagem grande demais"),
+    iaInfo: z.object({
+      modelo: z.string().min(1),
+      prompt: z.string().min(1),
+    }).optional(),
   })
   .refine((v) => JSON.stringify(v.composicao).length <= 2_000_000, {
     message: "Composição grande demais",

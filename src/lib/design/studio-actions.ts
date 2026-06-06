@@ -24,6 +24,7 @@ export async function salvarComposicaoAction(input: SalvarComposicaoInput): Prom
   const parsed = salvarComposicaoSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos" };
   const { clientId, arteId, titulo, formato, composicao, pngBase64 } = parsed.data;
+  const iaInfo = parsed.data.iaInfo;
 
   const sb = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -39,14 +40,20 @@ export async function salvarComposicaoAction(input: SalvarComposicaoInput): Prom
     titulo,
     formato,
     composicao: composicao as unknown as Composicao,
-    fonte_origem: "manual" as const,
+    fonte_origem: iaInfo ? ("ia_openai" as const) : ("manual" as const),
+    ai_modelo: iaInfo?.modelo ?? null,
+    ai_prompt: iaInfo?.prompt ?? null,
     criado_por: actor.id,
   };
   let id = arteId;
   if (id) {
     // C1: bind update to clientId to prevent cross-client writes
     const { data: upd, error } = await sbAny.from("design_artes")
-      .update({ titulo, formato, composicao }).eq("id", id).eq("client_id", clientId).select("id");
+      .update({
+        titulo, formato, composicao,
+        ...(iaInfo ? { fonte_origem: "ia_openai", ai_modelo: iaInfo.modelo, ai_prompt: iaInfo.prompt } : {}),
+      })
+      .eq("id", id).eq("client_id", clientId).select("id");
     if (error) return { error: error.message };
     if (!upd || upd.length === 0) return { error: "Arte não encontrada para este cliente" };
   } else {
