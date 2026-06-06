@@ -4,7 +4,7 @@
 import { useRef, useState, useTransition } from "react";
 import { Type, Square, Circle, Minus, ImageIcon, Star, Trash2, Upload } from "lucide-react";
 import type { Camada, Composicao, FonteMarca, ManualMarca } from "@/lib/design/studio-tipos";
-import { uploadFonteMarcaAction } from "@/lib/design/marca-actions";
+import { uploadFonteMarcaAction, uploadLogoMarcaAction, updateManualMarcaAction } from "@/lib/design/marca-actions";
 import { uploadStudioAssetAction } from "@/lib/design/studio-actions";
 import type { Acao, NovaCamada } from "./useComposicao";
 
@@ -19,6 +19,10 @@ interface Props {
   fontesExtra: FonteMarca[];
   /** Avisa o Shell que uma nova fonte foi carregada (pra injetar @font-face). */
   onFonteCarregada: (f: FonteMarca) => void;
+  /** Avisa o Shell que a logo da marca foi atualizada (URL assinada nova). */
+  onLogoAtualizada: (url: string) => void;
+  /** Avisa o Shell que o fundo padrão da marca foi atualizado. */
+  onFundoPadraoAtualizado: (cor: string) => void;
   /** Fontes web disponíveis no select. */
   fontesWeb: string[];
 }
@@ -37,11 +41,14 @@ export function StudioLeftPanel({
   onSelect,
   fontesExtra,
   onFonteCarregada,
+  onLogoAtualizada,
+  onFundoPadraoAtualizado,
   fontesWeb,
 }: Props) {
   const fotoInputRef = useRef<HTMLInputElement>(null);
   const fonteInputRef = useRef<HTMLInputElement>(null);
   const imgInputRef = useRef<HTMLInputElement>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
   const [fonteSel, setFonteSel] = useState<string>(manual.fontes[0]?.nome ?? "Inter");
   const [pendingFonte, startFonte] = useTransition();
   const [erroFonte, setErroFonte] = useState<string | null>(null);
@@ -50,6 +57,10 @@ export function StudioLeftPanel({
   const [pendingImg, startImg] = useTransition();
   const [erroImg, setErroImg] = useState<string | null>(null);
   const [papelFonte, setPapelFonte] = useState<"titulo" | "corpo">("titulo");
+  const [pendingLogo, startLogo] = useTransition();
+  const [erroLogo, setErroLogo] = useState<string | null>(null);
+  const [pendingFundoPadrao, startFundoPadrao] = useTransition();
+  const [erroFundoPadrao, setErroFundoPadrao] = useState<string | null>(null);
 
   const fotoAtual = composicao.fundo.foto;
   const todasFontes: FonteMarca[] = [...manual.fontes, ...fontesExtra];
@@ -149,6 +160,36 @@ export function StudioLeftPanel({
   function addLogo() {
     if (!manual.logo_url) return;
     add({ tipo: "logo", src: manual.logo_url, x: 860, y: 920, w: 160, h: 120, opacity: 1 });
+  }
+
+  function onLogo(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    setErroLogo(null);
+    startLogo(async () => {
+      const fd = new FormData();
+      fd.set("file", f);
+      const r = await uploadLogoMarcaAction(clientId, fd);
+      if ("error" in r) {
+        setErroLogo(r.error);
+        return;
+      }
+      onLogoAtualizada(r.url);
+    });
+  }
+
+  function definirFundoPadrao() {
+    const cor = composicao.fundo.cor;
+    setErroFundoPadrao(null);
+    startFundoPadrao(async () => {
+      const r = await updateManualMarcaAction(clientId, { fundo_padrao: cor });
+      if ("error" in r) {
+        setErroFundoPadrao(r.error);
+        return;
+      }
+      onFundoPadraoAtualizado(cor);
+    });
   }
 
   function aplicarFonteNaSelecao(nome: string) {
@@ -281,6 +322,43 @@ export function StudioLeftPanel({
             Ocultar
           </button>
         </div>
+        <button
+          type="button"
+          onClick={definirFundoPadrao}
+          disabled={pendingFundoPadrao}
+          className="mt-2 w-full rounded-md border bg-card py-1.5 text-[11px] hover:border-primary disabled:opacity-50"
+        >
+          {pendingFundoPadrao
+            ? "Salvando…"
+            : manual.fundo_padrao === composicao.fundo.cor
+              ? "Fundo padrão da marca ✓"
+              : "Definir fundo atual como padrão da marca"}
+        </button>
+        {erroFundoPadrao && <div className="mt-1 text-[10px] text-destructive">{erroFundoPadrao}</div>}
+      </Section>
+
+      {/* MARCA */}
+      <Section>
+        <div className={secTitle}>Logo da marca</div>
+        {manual.logo_url && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={manual.logo_url}
+            alt="Logo da marca"
+            className="mb-2 max-h-16 w-full rounded border bg-muted/40 object-contain p-1"
+          />
+        )}
+        <button
+          type="button"
+          onClick={() => logoInputRef.current?.click()}
+          disabled={pendingLogo}
+          className="flex w-full items-center justify-center gap-1.5 rounded-md border bg-card py-1.5 text-[11px] hover:border-primary disabled:opacity-50"
+        >
+          <Upload className="h-3.5 w-3.5" />
+          {pendingLogo ? "Carregando…" : manual.logo_url ? "Trocar logo" : "Carregar logo"}
+        </button>
+        <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={onLogo} />
+        {erroLogo && <div className="mt-1 text-[10px] text-destructive">{erroLogo}</div>}
       </Section>
 
       {/* ADICIONAR ELEMENTOS */}

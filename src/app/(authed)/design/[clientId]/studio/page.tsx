@@ -26,6 +26,6 @@ export default async function StudioNovoPage({
   if (!cli) notFound();
 
   return (
-    <StudioShell clientId={clientId} nomeCliente={cli.nome} manual={manual} />
+    <StudioShell clientId={clientId} nomeCliente={cli.nome} manualInicial={manual} />
   );
 }

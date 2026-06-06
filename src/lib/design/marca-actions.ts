@@ -83,7 +83,9 @@ export async function uploadFonteMarcaAction(
   return salvarStyleGuide(clientId, { fontes }, cli.design_style_guide);
 }
 
-export async function uploadLogoMarcaAction(clientId: string, formData: FormData): Promise<Result> {
+export async function uploadLogoMarcaAction(
+  clientId: string, formData: FormData,
+): Promise<{ success: true; url: string } | Err> {
   const actor = await requireAuth();
   // m1: use shared isDesignRole
   if (!isDesignRole(actor.role)) return { error: "Sem permissão" };
@@ -106,7 +108,9 @@ export async function uploadLogoMarcaAction(clientId: string, formData: FormData
     .from("design-criativos").createSignedUrl(path, 365 * 24 * 60 * 60);
   if (!signed?.signedUrl) return { error: "Erro ao gerar URL da logo" };
   // I2: pass cli.design_style_guide to skip the re-fetch inside salvarStyleGuide
-  return salvarStyleGuide(clientId, { logo_url: signed.signedUrl }, cli.design_style_guide);
+  const r = await salvarStyleGuide(clientId, { logo_url: signed.signedUrl }, cli.design_style_guide);
+  if ("error" in r) return r;
+  return { success: true, url: signed.signedUrl };
 }
 
 export async function updateManualMarcaAction(

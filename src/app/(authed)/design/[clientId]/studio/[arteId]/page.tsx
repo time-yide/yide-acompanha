@@ -18,7 +18,7 @@ export default async function StudioEditarPage({
   const { clientId, arteId } = await params;
   const [manual, arte] = await Promise.all([
     getManualMarca(clientId),
-    getComposicaoAction(arteId),
+    getComposicaoAction(clientId, arteId),
   ]);
 
   if ("error" in arte) notFound();
@@ -35,7 +35,7 @@ export default async function StudioEditarPage({
     <StudioShell
       clientId={clientId}
       nomeCliente={cli.nome}
-      manual={manual}
+      manualInicial={manual}
       arteInicial={{
         id: arteId,
         titulo: arte.titulo,

@@ -12,6 +12,13 @@ function uid(): string {
 
 export type NovaCamada = Omit<CamadaTexto, "id" | "z"> | Omit<CamadaShape, "id" | "z"> | Omit<CamadaImagem, "id" | "z"> | Omit<CamadaLogo, "id" | "z">;
 
+// Fix #4: a IA só pode patchar campos apresentacionais via updateLayer.
+// Nunca tipo, id, z ou src (trocar src/tipo abre brecha de conteúdo arbitrário).
+const PATCHABLE = new Set([
+  "text", "x", "y", "w", "h", "fontSize", "fontWeight", "color", "align",
+  "font", "spacing", "bg", "borderColor", "borderW", "radius", "opacity",
+]);
+
 export type Acao =
   | { type: "reset"; composicao: Composicao }
   | { type: "addCamada"; camada: NovaCamada }
@@ -95,9 +102,15 @@ export function aplicarComandos(state: Composicao, comandos: Comando[], logoUrl:
         s = composicaoReducer(s, { type: "addCamada", camada: { tipo: "logo", src: logoUrl, opacity: 1, ...(rest as object) } as unknown as NovaCamada });
         break;
       }
-      case "updateLayer":
-        s = composicaoReducer(s, { type: "updateCamada", id: String(cmd.id), patch: (cmd.props ?? {}) as Partial<Camada> });
+      case "updateLayer": {
+        const props = (cmd.props ?? {}) as Record<string, unknown>;
+        const patch: Record<string, unknown> = {};
+        for (const k of Object.keys(props)) {
+          if (PATCHABLE.has(k)) patch[k] = props[k];
+        }
+        s = composicaoReducer(s, { type: "updateCamada", id: String(cmd.id), patch: patch as Partial<Camada> });
         break;
+      }
       case "removeLayer":
         s = composicaoReducer(s, { type: "removeCamada", id: String(cmd.id) });
         break;

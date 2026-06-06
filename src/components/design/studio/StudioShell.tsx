@@ -33,7 +33,7 @@ const FONTES_WEB = [
 interface Props {
   clientId: string;
   nomeCliente: string;
-  manual: ManualMarca;
+  manualInicial: ManualMarca;
   arteInicial?: { id: string; titulo: string; composicao: Composicao };
 }
 
@@ -48,8 +48,12 @@ function injetarFonte(f: FonteMarca) {
   document.head.appendChild(style);
 }
 
-export function StudioShell({ clientId, nomeCliente, manual, arteInicial }: Props) {
+export function StudioShell({ clientId, nomeCliente, manualInicial, arteInicial }: Props) {
   const router = useRouter();
+
+  // Manual da marca em estado local: logo/fundo_padrao podem ser atualizados
+  // ao vivo a partir do painel esquerdo.
+  const [manual, setManual] = useState<ManualMarca>(manualInicial);
 
   // Composição inicial: arte existente ou nova com defaults da marca.
   const inicial = useMemo<Composicao>(() => {
@@ -80,6 +84,14 @@ export function StudioShell({ clientId, nomeCliente, manual, arteInicial }: Prop
   function onFonteCarregada(f: FonteMarca) {
     injetarFonte(f);
     setFontesExtra((prev) => (prev.some((x) => x.nome === f.nome) ? prev : [...prev, f]));
+  }
+
+  function onLogoAtualizada(url: string) {
+    setManual((m) => ({ ...m, logo_url: url }));
+  }
+
+  function onFundoPadraoAtualizado(cor: string) {
+    setManual((m) => ({ ...m, fundo_padrao: cor }));
   }
 
   const dims = dimensoesDoFormato(composicao.formato);
@@ -133,7 +145,7 @@ export function StudioShell({ clientId, nomeCliente, manual, arteInicial }: Prop
   return (
     <div className="flex h-[calc(100vh-1px)] flex-col">
       {/* HEADER */}
-      <header className="flex flex-shrink-0 items-center justify-between gap-3 border-b bg-card px-4 py-2">
+      <header className="flex flex-shrink-0 flex-wrap items-center justify-between gap-2 border-b bg-card px-4 py-2">
         <div className="flex min-w-0 items-center gap-2">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
             <Palette className="h-4 w-4" />
@@ -149,7 +161,7 @@ export function StudioShell({ clientId, nomeCliente, manual, arteInicial }: Prop
             value={titulo}
             onChange={(e) => setTitulo(e.target.value)}
             placeholder="Título da arte"
-            className="hidden w-44 rounded-md border bg-card px-2 py-1.5 text-xs outline-none focus:border-primary sm:block"
+            className="w-32 rounded-md border bg-card px-2 py-1.5 text-xs outline-none focus:border-primary sm:w-44"
           />
           <select
             value={composicao.formato}
@@ -209,6 +221,8 @@ export function StudioShell({ clientId, nomeCliente, manual, arteInicial }: Prop
             onSelect={setSelId}
             fontesExtra={fontesExtra}
             onFonteCarregada={onFonteCarregada}
+            onLogoAtualizada={onLogoAtualizada}
+            onFundoPadraoAtualizado={onFundoPadraoAtualizado}
             fontesWeb={FONTES_WEB}
           />
         </div>

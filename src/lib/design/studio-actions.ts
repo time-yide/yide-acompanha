@@ -65,7 +65,7 @@ export async function salvarComposicaoAction(input: SalvarComposicaoInput): Prom
   // C2/m2: surface upload failure with arteId so client can retry
   if (upErr) return { error: upErr.message, arteId: id! };
   const { data: signed } = await sbAny.storage
-    .from("design-criativos").createSignedUrl(path, 7 * 24 * 60 * 60);
+    .from("design-criativos").createSignedUrl(path, 365 * 24 * 60 * 60);
   // C2/m2: surface signed URL failure with arteId
   if (!signed?.signedUrl) return { error: "Erro ao gerar URL do PNG exportado", arteId: id! };
   const midias = [signed.signedUrl];
@@ -76,14 +76,14 @@ export async function salvarComposicaoAction(input: SalvarComposicaoInput): Prom
   return { success: true, arteId: id! };
 }
 
-export async function getComposicaoAction(arteId: string): Promise<{ composicao: Composicao; titulo: string; formato: string } | Err> {
+export async function getComposicaoAction(clientId: string, arteId: string): Promise<{ composicao: Composicao; titulo: string; formato: string } | Err> {
   const actor = await requireAuth();
   // I3: role check on get as well
   if (!isDesignRole(actor.role)) return { error: "Sem permissão" };
   const sb = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data } = await (sb as any)
-    .from("design_artes").select("composicao, titulo, formato").eq("id", arteId).single();
+    .from("design_artes").select("composicao, titulo, formato").eq("id", arteId).eq("client_id", clientId).single();
   if (!data?.composicao) return { error: "Arte sem composição (foi cadastro manual?)" };
   return { composicao: data.composicao as Composicao, titulo: data.titulo, formato: data.formato };
 }
