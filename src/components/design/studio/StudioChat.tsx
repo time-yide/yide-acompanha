@@ -1,7 +1,7 @@
 // src/components/design/studio/StudioChat.tsx
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useRef, useState, useTransition, useCallback } from "react";
 import { Send, Bot, User } from "lucide-react";
 import { chatStudioAction, type ChatMsg } from "@/lib/design/chat-actions";
 import type { Comando } from "@/lib/design/studio-comandos";
@@ -22,11 +22,16 @@ const PILLS = [
   "Anúncio de evento com data e local",
 ];
 
+type LocalMsg = { id: number; msg: ChatMsg };
+
 export function StudioChat({ clientId, composicao, logoUrl, aplicarIA, onAplicado }: Props) {
-  const [historico, setHistorico] = useState<ChatMsg[]>([]);
+  const [localMsgs, setLocalMsgs] = useState<LocalMsg[]>([]);
   const [texto, setTexto] = useState("");
   const [pending, startTransition] = useTransition();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const idRef = useRef(0);
+
+  const nextId = useCallback(() => { idRef.current += 1; return idRef.current; }, []);
 
   function scrollFim() {
     requestAnimationFrame(() => {
@@ -38,18 +43,22 @@ export function StudioChat({ clientId, composicao, logoUrl, aplicarIA, onAplicad
     const mensagem = msg.trim();
     if (!mensagem || pending) return;
     setTexto("");
-    const novoHist: ChatMsg[] = [...historico, { role: "user", content: mensagem }];
-    setHistorico(novoHist);
+    const userEntry: LocalMsg = { id: nextId(), msg: { role: "user", content: mensagem } };
+    const novoLocal = [...localMsgs, userEntry];
+    setLocalMsgs(novoLocal);
     scrollFim();
 
+    // Build ChatMsg[] history for the server action
+    const historico: ChatMsg[] = novoLocal.map((e) => e.msg);
+
     startTransition(async () => {
-      const r = await chatStudioAction(clientId, historico, mensagem, composicao);
+      const r = await chatStudioAction(clientId, historico.slice(0, -1), mensagem, composicao);
       if ("error" in r) {
-        setHistorico([...novoHist, { role: "assistant", content: `⚠️ ${r.error}` }]);
+        setLocalMsgs([...novoLocal, { id: nextId(), msg: { role: "assistant", content: `⚠️ ${r.error}` } }]);
         scrollFim();
         return;
       }
-      setHistorico([...novoHist, { role: "assistant", content: r.mensagem }]);
+      setLocalMsgs([...novoLocal, { id: nextId(), msg: { role: "assistant", content: r.mensagem } }]);
       if (r.comandos.length > 0) {
         aplicarIA(r.comandos, logoUrl);
         onAplicado();
@@ -84,8 +93,8 @@ export function StudioChat({ clientId, composicao, logoUrl, aplicarIA, onAplicad
           </div>
         </div>
 
-        {historico.map((m, i) => (
-          <div key={i} className={`flex gap-2 ${m.role === "user" ? "flex-row-reverse" : ""}`}>
+        {localMsgs.map(({ id, msg: m }) => (
+          <div key={id} className={`flex gap-2 ${m.role === "user" ? "flex-row-reverse" : ""}`}>
             <Avatar role={m.role} />
             <Bubble role={m.role}>{m.content}</Bubble>
           </div>

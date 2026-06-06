@@ -5,6 +5,7 @@ import { useRef, useState, useTransition } from "react";
 import { Type, Square, Circle, Minus, ImageIcon, Star, Trash2, Upload } from "lucide-react";
 import type { Camada, Composicao, FonteMarca, ManualMarca } from "@/lib/design/studio-tipos";
 import { uploadFonteMarcaAction } from "@/lib/design/marca-actions";
+import { uploadStudioAssetAction } from "@/lib/design/studio-actions";
 import type { Acao, NovaCamada } from "./useComposicao";
 
 interface Props {
@@ -44,25 +45,30 @@ export function StudioLeftPanel({
   const [fonteSel, setFonteSel] = useState<string>(manual.fontes[0]?.nome ?? "Inter");
   const [pendingFonte, startFonte] = useTransition();
   const [erroFonte, setErroFonte] = useState<string | null>(null);
+  const [pendingFoto, startFoto] = useTransition();
+  const [erroFoto, setErroFoto] = useState<string | null>(null);
+  const [pendingImg, startImg] = useTransition();
+  const [erroImg, setErroImg] = useState<string | null>(null);
+  const [papelFonte, setPapelFonte] = useState<"titulo" | "corpo">("titulo");
 
   const fotoAtual = composicao.fundo.foto;
   const todasFontes: FonteMarca[] = [...manual.fontes, ...fontesExtra];
 
-  function lerArquivoComoDataUrl(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const r = new FileReader();
-      r.onload = () => resolve(String(r.result));
-      r.onerror = reject;
-      r.readAsDataURL(file);
-    });
-  }
-
-  async function onFoto(e: React.ChangeEvent<HTMLInputElement>) {
+  function onFoto(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     e.target.value = "";
     if (!f) return;
-    const url = await lerArquivoComoDataUrl(f);
-    dispatch({ type: "setFoto", foto: { url, zoom: 1, x: 0, y: 0, opacidade: 0.55 } });
+    setErroFoto(null);
+    startFoto(async () => {
+      const fd = new FormData();
+      fd.set("file", f);
+      const r = await uploadStudioAssetAction(clientId, fd);
+      if ("error" in r) {
+        setErroFoto(r.error);
+        return;
+      }
+      dispatch({ type: "setFoto", foto: { url: r.url, zoom: 1, x: 0, y: 0, opacidade: 0.55 } });
+    });
   }
 
   function atuFoto(patch: Partial<NonNullable<Composicao["fundo"]["foto"]>>) {
@@ -107,12 +113,21 @@ export function StudioLeftPanel({
     });
   }
 
-  async function onImagem(e: React.ChangeEvent<HTMLInputElement>) {
+  function onImagem(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     e.target.value = "";
     if (!f) return;
-    const src = await lerArquivoComoDataUrl(f);
-    add({ tipo: "imagem", src, x: 200, y: 200, w: 600, h: 450, opacity: 1 });
+    setErroImg(null);
+    startImg(async () => {
+      const fd = new FormData();
+      fd.set("file", f);
+      const r = await uploadStudioAssetAction(clientId, fd);
+      if ("error" in r) {
+        setErroImg(r.error);
+        return;
+      }
+      add({ tipo: "imagem", src: r.url, x: 200, y: 200, w: 600, h: 450, opacity: 1 });
+    });
   }
 
   function addBadge() {
@@ -152,17 +167,22 @@ export function StudioLeftPanel({
     startFonte(async () => {
       const fd = new FormData();
       fd.set("file", f);
-      const r = await uploadFonteMarcaAction(clientId, "titulo", fd);
+      const r = await uploadFonteMarcaAction(clientId, papelFonte, fd);
       if ("error" in r) {
         setErroFonte(r.error);
         return;
       }
       // O server action devolve só {success}; reconstruímos a FonteMarca
       // localmente a partir do data URL pra injetar e usar de imediato.
-      const dataUrl = await lerArquivoComoDataUrl(f);
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = reject;
+        reader.readAsDataURL(f);
+      });
       const nome = f.name.replace(/\.[^.]+$/, "");
       const format = formatoDeNome(f.name);
-      const fonte: FonteMarca = { nome, papel: "titulo", url: dataUrl, format };
+      const fonte: FonteMarca = { nome, papel: papelFonte, url: dataUrl, format };
       onFonteCarregada(fonte);
       aplicarFonteNaSelecao(nome);
     });
@@ -178,11 +198,13 @@ export function StudioLeftPanel({
         <button
           type="button"
           onClick={() => fotoInputRef.current?.click()}
-          className="mb-2 flex w-full flex-col items-center gap-1 rounded-md border border-dashed py-3 text-xs text-muted-foreground hover:border-primary"
+          disabled={pendingFoto}
+          className="mb-2 flex w-full flex-col items-center gap-1 rounded-md border border-dashed py-3 text-xs text-muted-foreground hover:border-primary disabled:opacity-50"
         >
           <ImageIcon className="h-5 w-5" />
-          Adicionar foto
+          {pendingFoto ? "Carregando…" : "Adicionar foto"}
         </button>
+        {erroFoto && <div className="mb-1 text-[10px] text-destructive">{erroFoto}</div>}
         <input ref={fotoInputRef} type="file" accept="image/*" className="hidden" onChange={onFoto} />
         {fotoAtual && (
           <div className="space-y-1.5">
@@ -277,8 +299,8 @@ export function StudioLeftPanel({
           <button type="button" className={btnElem} onClick={() => addShape("line")}>
             <Minus className="h-4 w-4" /> Linha
           </button>
-          <button type="button" className={btnElem} onClick={() => imgInputRef.current?.click()}>
-            <ImageIcon className="h-4 w-4" /> Imagem
+          <button type="button" className={btnElem} disabled={pendingImg} onClick={() => imgInputRef.current?.click()}>
+            <ImageIcon className="h-4 w-4" /> {pendingImg ? "…" : "Imagem"}
           </button>
           <button type="button" className={btnElem} onClick={addBadge}>
             <Star className="h-4 w-4" /> Badge
@@ -288,6 +310,7 @@ export function StudioLeftPanel({
           </button>
         </div>
         <input ref={imgInputRef} type="file" accept="image/*" className="hidden" onChange={onImagem} />
+        {erroImg && <div className="mt-1 text-[10px] text-destructive">{erroImg}</div>}
       </Section>
 
       {/* FONTES */}
@@ -315,6 +338,23 @@ export function StudioLeftPanel({
             ))}
           </optgroup>
         </select>
+        <div className="mb-1 flex items-center gap-1.5">
+          <span className="text-[10px] text-muted-foreground">Papel:</span>
+          <button
+            type="button"
+            onClick={() => setPapelFonte("titulo")}
+            className={`rounded border px-2 py-0.5 text-[10px] ${papelFonte === "titulo" ? "border-primary bg-primary/10 text-primary" : "bg-card hover:border-primary"}`}
+          >
+            título
+          </button>
+          <button
+            type="button"
+            onClick={() => setPapelFonte("corpo")}
+            className={`rounded border px-2 py-0.5 text-[10px] ${papelFonte === "corpo" ? "border-primary bg-primary/10 text-primary" : "bg-card hover:border-primary"}`}
+          >
+            corpo
+          </button>
+        </div>
         <button
           type="button"
           onClick={() => fonteInputRef.current?.click()}

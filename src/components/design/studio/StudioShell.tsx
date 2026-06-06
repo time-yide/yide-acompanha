@@ -106,8 +106,9 @@ export function StudioShell({ clientId, nomeCliente, manual, arteInicial }: Prop
     setSelId(null);
     setAba("editor");
     startSalvar(async () => {
+      if (!canvasRef.current) { setErro("Canvas não pronta."); return; }
       try {
-        const pngBase64 = await exportarCanvasPng(canvasRef.current!, dims);
+        const pngBase64 = await exportarCanvasPng(canvasRef.current, dims);
         const r = await salvarComposicaoAction({
           clientId,
           arteId,

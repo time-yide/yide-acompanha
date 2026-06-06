@@ -17,23 +17,28 @@ const uuid = z.string().regex(
   "UUID inválido",
 );
 
-export const salvarComposicaoSchema = z.object({
-  clientId: uuid,
-  arteId: uuid.nullable(),
-  titulo: z.string().min(1, "Dê um título à arte"),
-  formato: z.string().min(1),
-  composicao: z.object({
-    formato: z.string(),
-    fundo: z.object({
-      cor: z.string(),
-      foto: z.any().nullable(),
-      listras: z.boolean(),
+export const salvarComposicaoSchema = z
+  .object({
+    clientId: uuid,
+    arteId: uuid.nullable(),
+    titulo: z.string().min(1, "Dê um título à arte"),
+    formato: z.string().min(1),
+    composicao: z.object({
+      formato: z.string(),
+      fundo: z.object({
+        cor: z.string(),
+        foto: z.any().nullable(),
+        listras: z.boolean(),
+      }),
+      camadas: z.array(z.any()),
     }),
-    camadas: z.array(z.any()),
-  }),
-  // I4: cap pngBase64 size to 30 MB
-  pngBase64: z.string().regex(/^data:image\/png;base64,/, "PNG inválido").max(30 * 1024 * 1024, "Imagem grande demais"),
-});
+    // I4: cap pngBase64 size to 30 MB
+    pngBase64: z.string().regex(/^data:image\/png;base64,/, "PNG inválido").max(30 * 1024 * 1024, "Imagem grande demais"),
+  })
+  .refine((v) => JSON.stringify(v.composicao).length <= 2_000_000, {
+    message: "Composição grande demais",
+    path: ["composicao"],
+  });
 
 export type SalvarComposicaoInput = z.infer<typeof salvarComposicaoSchema>;
 
@@ -111,4 +116,25 @@ export async function getComposicaoAction(arteId: string): Promise<{ composicao:
     .from("design_artes").select("composicao, titulo, formato").eq("id", arteId).single();
   if (!data?.composicao) return { error: "Arte sem composição (foi cadastro manual?)" };
   return { composicao: data.composicao as Composicao, titulo: data.titulo, formato: data.formato };
+}
+
+export async function uploadStudioAssetAction(clientId: string, formData: FormData): Promise<{ url: string } | Err> {
+  const actor = await requireAuth();
+  if (!isDesignRole(actor.role)) return { error: "Sem permissão" };
+  const file = formData.get("file");
+  if (!(file instanceof File)) return { error: "Arquivo inválido" };
+  if (!file.type.startsWith("image/")) return { error: "Precisa ser imagem" };
+  if (file.size > 15 * 1024 * 1024) return { error: "Imagem grande demais (max 15MB)" };
+  const sb = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sbAny = sb as any;
+  const { data: cli } = await sbAny.from("clients").select("organization_id").eq("id", clientId).single();
+  if (!cli) return { error: "Cliente não encontrado" };
+  const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const path = `${cli.organization_id}/${clientId}/studio-assets/${Date.now()}-${safe}`;
+  const { error: upErr } = await sbAny.storage.from("design-criativos").upload(path, file, { contentType: file.type, upsert: false });
+  if (upErr) return { error: upErr.message };
+  const { data: signed } = await sbAny.storage.from("design-criativos").createSignedUrl(path, 365 * 24 * 60 * 60);
+  if (!signed?.signedUrl) return { error: "Erro ao gerar URL da imagem" };
+  return { url: signed.signedUrl };
 }
