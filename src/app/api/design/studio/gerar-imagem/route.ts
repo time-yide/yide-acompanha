@@ -42,11 +42,14 @@ export async function POST(req: Request) {
   const { data: cli } = await sbAny.from("clients").select("organization_id").eq("id", clientId).single();
   if (!cli) return NextResponse.json({ error: "Cliente não encontrado" }, { status: 404 });
 
-  const path = `${cli.organization_id}/${clientId}/studio-assets/ia-${Date.now()}.png`;
+  const path = `${cli.organization_id}/${clientId}/studio-assets/ia-${Date.now()}-${crypto.randomUUID()}.png`;
   const buffer = Buffer.from(ger.b64, "base64");
   const { error: upErr } = await sbAny.storage
     .from("design-criativos").upload(path, buffer, { contentType: "image/png", upsert: false });
-  if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 });
+  if (upErr) {
+    console.error("[gerar-imagem] upload error:", upErr.message);
+    return NextResponse.json({ error: "Erro ao salvar imagem gerada" }, { status: 500 });
+  }
   const { data: signed } = await sbAny.storage
     .from("design-criativos").createSignedUrl(path, 365 * 24 * 60 * 60);
   if (!signed?.signedUrl) return NextResponse.json({ error: "Erro ao gerar URL da imagem" }, { status: 500 });
