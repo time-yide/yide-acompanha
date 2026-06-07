@@ -29,7 +29,8 @@ export type Acao =
   | { type: "setFormato"; formato: string }
   | { type: "setFoto"; foto: Composicao["fundo"]["foto"] }
   | { type: "toggleListras"; show: boolean }
-  | { type: "limpar" };
+  | { type: "limpar" }
+  | { type: "aplicarComandos"; comandos: Comando[]; logoUrl: string | null };
 
 export function composicaoReducer(state: Composicao, acao: Acao): Composicao {
   switch (acao.type) {
@@ -64,6 +65,8 @@ export function composicaoReducer(state: Composicao, acao: Acao): Composicao {
       return { ...state, fundo: { ...state.fundo, listras: acao.show } };
     case "limpar":
       return { ...state, camadas: [] };
+    case "aplicarComandos":
+      return aplicarComandos(state, acao.comandos, acao.logoUrl);
     default:
       return state;
   }
@@ -123,8 +126,8 @@ export function useComposicao(inicial: Composicao = COMPOSICAO_VAZIA) {
   const [composicao, dispatch] = useReducer(composicaoReducer, inicial);
   const aplicarIA = useCallback(
     (comandos: Comando[], logoUrl: string | null) =>
-      dispatch({ type: "reset", composicao: aplicarComandos(composicao, comandos, logoUrl) }),
-    [composicao],
+      dispatch({ type: "aplicarComandos", comandos, logoUrl }),
+    [],
   );
   return { composicao, dispatch, aplicarIA };
 }

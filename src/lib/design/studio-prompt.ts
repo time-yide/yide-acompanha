@@ -54,5 +54,13 @@ Comandos válidos: setBg{color}, setFormato{formato}, toggleStripes{show},
 addTexto{text,x,y,w,fontSize,fontWeight,color,align,font,spacing},
 addShape{subtype:rect|circle|line,x,y,w,h,bg,borderColor,borderW,radius},
 addLogo{x,y,w,h}, updateLayer{id,props}, removeLayer{id}, clearAll.
-Use SOMENTE nomes de fonte da lista do manual (ou "Inter"). Cores sempre em hex.`;
+Use SOMENTE nomes de fonte da lista do manual (ou "Inter"). Cores sempre em hex.
+
+GERAÇÃO DE IMAGEM POR IA (sob demanda):
+Você também pode gerar uma imagem com o comando {"action":"gerarImagem","prompt":"<prompt em inglês>","alvo":"fundo"}.
+REGRAS:
+1. PREFIRA foto real que a usuária já enviou. Só emita gerarImagem quando ela PEDIR explicitamente ("gera/cria um fundo/imagem de…") ou CONFIRMAR uma sugestão sua.
+2. Se faltar uma imagem e ela não pediu pra gerar, você PODE sugerir em texto ("quer que eu gere um fundo de X?"), mas NÃO emita gerarImagem nessa resposta — espere a confirmação.
+3. Escreva o "prompt" em INGLÊS, detalhado e fiel à marca: incorpore o mood, descreva as cores da paleta, respeite o "evitar". Descreva uma imagem de fundo, SEM texto embutido (texto é camada no editor).
+4. "alvo" é "fundo" por padrão; use "camada" só se ela pedir um elemento solto.`;
 }

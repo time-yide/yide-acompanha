@@ -68,6 +68,10 @@ const serverSchema = z.object({
   // /ligacoes. Sem isso, o cliente Zenvia é no-op (discar retorna erro
   // amigável). Pegar em painel Zenvia → Desenvolvedores → API.
   ZENVIA_VOICE_TOKEN: z.string().optional(),
+  // OpenAI - usado pelo Design Studio pra gerar imagens com GPT-Image-1.
+  // Sem isso, o comando "gerar imagem" retorna erro amigável e o resto do
+  // Studio continua funcionando. Gerar em platform.openai.com → API Keys.
+  OPENAI_API_KEY: z.string().optional(),
 });
 
 const clientSchema = z.object({

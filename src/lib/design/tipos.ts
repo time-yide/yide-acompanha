@@ -82,7 +82,6 @@ export const IA_PROVIDERS: IaProvider[] = [
     label: "ChatGPT (GPT-Image-1)",
     modeloPadrao: "gpt-image-1",
     melhorPara: "Geral, criativo, bom com texto em imagens",
-    comingSoon: true,
   },
   {
     value: "ia_gemini",
