@@ -74,7 +74,7 @@ export function StudioChat({ clientId, composicao, logoUrl, aplicarIA, onGerarIm
                 id: nextId(),
                 msg: {
                   role: "assistant",
-                  content: "⚠️ Não consegui gerar a imagem. Verifique a configuração (OPENAI_API_KEY) ou tente outro pedido.",
+                  content: "⚠️ Não consegui gerar a imagem. Tente de novo daqui a pouco ou avise o suporte.",
                 },
               },
             ]);

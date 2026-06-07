@@ -73,7 +73,7 @@ export function StudioShell({ clientId, nomeCliente, manualInicial, arteInicial 
   const [fontesExtra, setFontesExtra] = useState<FonteMarca[]>([]);
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, startSalvar] = useTransition();
-  const [iaInfo, setIaInfo] = useState<{ modelo: string; prompt: string } | null>(null);
+  const [iaInfo, setIaInfo] = useState<{ modelo: string; prompt: string; url: string } | null>(null);
   const [gerando, setGerando] = useState(false);
 
   const canvasRef = useRef<HTMLDivElement | null>(null);
@@ -124,9 +124,10 @@ export function StudioShell({ clientId, nomeCliente, manualInicial, arteInicial 
         } else {
           dispatch({ type: "setFoto", foto: { url: data.url, zoom: 100, x: 0, y: 0, opacidade: 100 } });
         }
-        setIaInfo({ modelo: "gpt-image-1", prompt });
+        setIaInfo({ modelo: "gpt-image-1", prompt, url: data.url });
         return data.url as string;
-      } catch {
+      } catch (e) {
+        console.error("[gerarImagem]", e);
         return null;
       } finally {
         setGerando(false);
@@ -151,6 +152,11 @@ export function StudioShell({ clientId, nomeCliente, manualInicial, arteInicial 
       if (!canvasRef.current) { setErro("Canvas não pronta."); return; }
       try {
         const pngBase64 = await exportarCanvasPng(canvasRef.current, dims);
+        const iaUrl = iaInfo?.url;
+        const iaAindaPresente = !!iaUrl && (
+          composicao.fundo.foto?.url === iaUrl ||
+          composicao.camadas.some((c) => "src" in c && (c as { src?: string }).src === iaUrl)
+        );
         const r = await salvarComposicaoAction({
           clientId,
           arteId,
@@ -158,7 +164,7 @@ export function StudioShell({ clientId, nomeCliente, manualInicial, arteInicial 
           formato: composicao.formato,
           composicao,
           pngBase64,
-          iaInfo: iaInfo ?? undefined,
+          iaInfo: iaInfo && iaAindaPresente ? { modelo: iaInfo.modelo, prompt: iaInfo.prompt } : undefined,
         });
         if ("error" in r) {
           setErro(r.error);
