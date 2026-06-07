@@ -61,3 +61,23 @@ describe("aplicarComandos", () => {
     expect(st.camadas).toHaveLength(0);
   });
 });
+
+describe("ação aplicarComandos no reducer", () => {
+  it("ação aplicarComandos roda sobre o estado VIVO (não apaga fundo recém-setado)", () => {
+    // 1) seta um fundo (simula imagem gerada)
+    const comFundo = composicaoReducer(COMPOSICAO_VAZIA, {
+      type: "setFoto",
+      foto: { url: "ia.png", zoom: 100, x: 0, y: 0, opacidade: 100 },
+    });
+    // 2) aplica comandos de layout DEPOIS, via a ação do reducer
+    const final = composicaoReducer(comFundo, {
+      type: "aplicarComandos",
+      comandos: [
+        { action: "addTexto", text: "PREÇO", x: 10, y: 10, w: 100, fontSize: 40, fontWeight: 900, color: "#fff", align: "center", font: "Inter", spacing: 0 },
+      ],
+      logoUrl: null,
+    });
+    expect(final.fundo.foto?.url).toBe("ia.png");   // fundo preservado
+    expect(final.camadas).toHaveLength(1);           // texto aplicado por cima
+  });
+});
