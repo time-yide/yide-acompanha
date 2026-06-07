@@ -1,7 +1,7 @@
 // src/components/design/studio/StudioShell.tsx
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Save, Palette } from "lucide-react";
 import { FORMATOS } from "@/lib/design/tipos";
@@ -73,6 +73,8 @@ export function StudioShell({ clientId, nomeCliente, manualInicial, arteInicial 
   const [fontesExtra, setFontesExtra] = useState<FonteMarca[]>([]);
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, startSalvar] = useTransition();
+  const [iaInfo, setIaInfo] = useState<{ modelo: string; prompt: string } | null>(null);
+  const [gerando, setGerando] = useState(false);
 
   const canvasRef = useRef<HTMLDivElement | null>(null);
 
@@ -105,6 +107,34 @@ export function StudioShell({ clientId, nomeCliente, manualInicial, arteInicial 
 
   const camadaSel = selId ? composicao.camadas.find((c) => c.id === selId) ?? null : null;
 
+  // Geração de imagem por IA (on-demand). Retorna a URL ou null em caso de falha.
+  const gerarImagem = useCallback(
+    async (prompt: string, alvo: "fundo" | "camada"): Promise<string | null> => {
+      setGerando(true);
+      try {
+        const resp = await fetch("/api/design/studio/gerar-imagem", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ clientId, prompt, formato: composicao.formato }),
+        });
+        const data = await resp.json();
+        if (!resp.ok || !data.url) return null;
+        if (alvo === "camada") {
+          dispatch({ type: "addCamada", camada: { tipo: "imagem", src: data.url, x: 100, y: 100, w: 400, h: 400, opacity: 1 } });
+        } else {
+          dispatch({ type: "setFoto", foto: { url: data.url, zoom: 100, x: 0, y: 0, opacidade: 100 } });
+        }
+        setIaInfo({ modelo: "gpt-image-1", prompt });
+        return data.url as string;
+      } catch {
+        return null;
+      } finally {
+        setGerando(false);
+      }
+    },
+    [clientId, composicao.formato, dispatch],
+  );
+
   async function salvar() {
     setErro(null);
     if (!titulo.trim()) {
@@ -128,6 +158,7 @@ export function StudioShell({ clientId, nomeCliente, manualInicial, arteInicial 
           formato: composicao.formato,
           composicao,
           pngBase64,
+          iaInfo: iaInfo ?? undefined,
         });
         if ("error" in r) {
           setErro(r.error);
@@ -246,6 +277,8 @@ export function StudioShell({ clientId, nomeCliente, manualInicial, arteInicial 
               composicao={composicao}
               logoUrl={manual.logo_url}
               aplicarIA={aplicarIA}
+              onGerarImagem={gerarImagem}
+              gerando={gerando}
               onAplicado={() => setAba("editor")}
             />
           )}

@@ -2,7 +2,7 @@
 "use client";
 
 import { useRef, useState, useTransition, useCallback } from "react";
-import { Send, Bot, User } from "lucide-react";
+import { Send, Bot, User, Loader2 } from "lucide-react";
 import { chatStudioAction, type ChatMsg } from "@/lib/design/chat-actions";
 import type { Comando } from "@/lib/design/studio-comandos";
 import type { Composicao } from "@/lib/design/studio-tipos";
@@ -12,6 +12,8 @@ interface Props {
   composicao: Composicao;
   logoUrl: string | null;
   aplicarIA: (comandos: Comando[], logoUrl: string | null) => void;
+  onGerarImagem: (prompt: string, alvo: "fundo" | "camada") => Promise<string | null>;
+  gerando: boolean;
   onAplicado: () => void; // troca pra aba Editor
 }
 
@@ -24,7 +26,7 @@ const PILLS = [
 
 type LocalMsg = { id: number; msg: ChatMsg };
 
-export function StudioChat({ clientId, composicao, logoUrl, aplicarIA, onAplicado }: Props) {
+export function StudioChat({ clientId, composicao, logoUrl, aplicarIA, onGerarImagem, gerando, onAplicado }: Props) {
   const [localMsgs, setLocalMsgs] = useState<LocalMsg[]>([]);
   const [texto, setTexto] = useState("");
   const [pending, startTransition] = useTransition();
@@ -41,7 +43,7 @@ export function StudioChat({ clientId, composicao, logoUrl, aplicarIA, onAplicad
 
   function enviar(msg: string) {
     const mensagem = msg.trim();
-    if (!mensagem || pending) return;
+    if (!mensagem || pending || gerando) return;
     setTexto("");
     const userEntry: LocalMsg = { id: nextId(), msg: { role: "user", content: mensagem } };
     const novoLocal = [...localMsgs, userEntry];
@@ -60,7 +62,25 @@ export function StudioChat({ clientId, composicao, logoUrl, aplicarIA, onAplicad
       }
       setLocalMsgs([...novoLocal, { id: nextId(), msg: { role: "assistant", content: r.mensagem } }]);
       if (r.comandos.length > 0) {
-        aplicarIA(r.comandos, logoUrl);
+        const gerar = r.comandos.filter((c) => c.action === "gerarImagem");
+        const resto = r.comandos.filter((c) => c.action !== "gerarImagem");
+        for (const g of gerar) {
+          const alvo = (g.alvo === "camada" ? "camada" : "fundo") as "fundo" | "camada";
+          const url = await onGerarImagem(String(g.prompt), alvo);
+          if (!url) {
+            setLocalMsgs((m) => [
+              ...m,
+              {
+                id: nextId(),
+                msg: {
+                  role: "assistant",
+                  content: "⚠️ Não consegui gerar a imagem. Verifique a configuração (OPENAI_API_KEY) ou tente outro pedido.",
+                },
+              },
+            ]);
+          }
+        }
+        if (resto.length > 0) aplicarIA(resto, logoUrl);
         onAplicado();
       }
       scrollFim();
@@ -83,7 +103,7 @@ export function StudioChat({ clientId, composicao, logoUrl, aplicarIA, onAplicad
                   key={p}
                   type="button"
                   onClick={() => enviar(p)}
-                  disabled={pending}
+                  disabled={pending || gerando}
                   className="rounded-full border bg-card px-2.5 py-1 text-[11px] hover:border-primary hover:text-primary disabled:opacity-50"
                 >
                   {p}
@@ -100,10 +120,22 @@ export function StudioChat({ clientId, composicao, logoUrl, aplicarIA, onAplicad
           </div>
         ))}
 
-        {pending && (
+        {pending && !gerando && (
           <div className="flex gap-2">
             <Avatar role="assistant" />
             <Bubble role="assistant">…</Bubble>
+          </div>
+        )}
+
+        {gerando && (
+          <div className="flex gap-2">
+            <Avatar role="assistant" />
+            <Bubble role="assistant">
+              <span className="flex items-center gap-2">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                gerando imagem…
+              </span>
+            </Bubble>
           </div>
         )}
       </div>
@@ -126,7 +158,7 @@ export function StudioChat({ clientId, composicao, logoUrl, aplicarIA, onAplicad
           <button
             type="button"
             onClick={() => enviar(texto)}
-            disabled={pending || !texto.trim()}
+            disabled={pending || gerando || !texto.trim()}
             className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40"
           >
             <Send className="h-4 w-4" />
