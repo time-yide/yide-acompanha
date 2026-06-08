@@ -1,7 +1,6 @@
 // SERVER ONLY
 import { unstable_cache } from "next/cache";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { roleVeTudo } from "./config";
 import {
   montarProspectosCadencia,
   type ProspectoCadencia,
