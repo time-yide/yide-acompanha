@@ -57,6 +57,7 @@ export default async function BatidasPage({
       </header>
 
       <div className="flex flex-wrap items-center gap-2">
+        <span className="mr-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">Status:</span>
         {tabs.map((t) => (
           <a
             key={t.key}
@@ -66,7 +67,7 @@ export default async function BatidasPage({
             {t.label}
           </a>
         ))}
-        <span className="mx-1 h-4 w-px bg-border" />
+        <span className="ml-3 mr-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">Canal:</span>
         {(["todos", "rua", "ligacao"] as const).map((c) => (
           <a
             key={c}
