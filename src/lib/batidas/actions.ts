@@ -74,7 +74,7 @@ const descartarSchema = z
   });
 
 export async function descartarProspectoAction(formData: FormData): Promise<ActionResult> {
-  await requireAuth();
+  const actor = await requireAuth();
   const parsed = descartarSchema.safeParse({
     lead_id: str(formData, "lead_id"),
     lead_gerado_id: str(formData, "lead_gerado_id"),
@@ -101,6 +101,15 @@ export async function descartarProspectoAction(formData: FormData): Promise<Acti
     if (error) return { error: error.message };
     if (!data || data.length === 0) return { error: "Sem permissão ou registro não encontrado." };
   }
+
+  await supabase.from("audit_log").insert({
+    ator_id: actor.id,
+    acao: "soft_delete",
+    entidade: parsed.data.lead_gerado_id ? "leads_gerados" : "leads",
+    entidade_id: (parsed.data.lead_gerado_id ?? parsed.data.lead_id) as string,
+    dados_depois: { descartado: true, motivo: parsed.data.motivo },
+    justificativa: parsed.data.motivo,
+  });
 
   revalidateTag("batidas", "default");
   revalidatePath("/batidas");

@@ -70,22 +70,25 @@ async function fetchAttempts(
   geradoIds: string[],
   leadIds: string[],
 ): Promise<AttemptLite[]> {
-  const out: AttemptLite[] = [];
+  const byId = new Map<string, AttemptLite>();
+  const collect = (rows: unknown[] | null) => {
+    for (const r of (rows ?? []) as Array<AttemptLite & { id: string }>) byId.set(r.id, r);
+  };
   if (geradoIds.length) {
     const { data } = await sb
       .from("lead_attempts")
-      .select("lead_id, lead_gerado_id, resultado, created_at")
+      .select("id, lead_id, lead_gerado_id, resultado, created_at")
       .in("lead_gerado_id", geradoIds);
-    out.push(...((data ?? []) as AttemptLite[]));
+    collect(data);
   }
   if (leadIds.length) {
     const { data } = await sb
       .from("lead_attempts")
-      .select("lead_id, lead_gerado_id, resultado, created_at")
+      .select("id, lead_id, lead_gerado_id, resultado, created_at")
       .in("lead_id", leadIds);
-    out.push(...((data ?? []) as AttemptLite[]));
+    collect(data);
   }
-  return out;
+  return [...byId.values()];
 }
 
 async function fetchLigacoes(
@@ -94,22 +97,25 @@ async function fetchLigacoes(
   geradoIds: string[],
   leadIds: string[],
 ): Promise<LigacaoLite[]> {
-  const out: LigacaoLite[] = [];
+  const byId = new Map<string, LigacaoLite>();
+  const collect = (rows: unknown[] | null) => {
+    for (const r of (rows ?? []) as Array<LigacaoLite & { id: string }>) byId.set(r.id, r);
+  };
   const base = () =>
     sb
       .from("ligacoes")
-      .select("lead_id, lead_gerado_id, direcao, iniciada_em")
+      .select("id, lead_id, lead_gerado_id, direcao, iniciada_em")
       .eq("direcao", "saida")
       .is("arquivado_em", null);
   if (geradoIds.length) {
     const { data } = await base().in("lead_gerado_id", geradoIds);
-    out.push(...((data ?? []) as LigacaoLite[]));
+    collect(data);
   }
   if (leadIds.length) {
     const { data } = await base().in("lead_id", leadIds);
-    out.push(...((data ?? []) as LigacaoLite[]));
+    collect(data);
   }
-  return out;
+  return [...byId.values()];
 }
 
 export type CadenciaView = "em_cadencia" | "convertidos" | "esgotados" | "todos";
