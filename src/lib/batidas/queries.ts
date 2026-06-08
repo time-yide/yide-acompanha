@@ -20,7 +20,7 @@ export async function getOrganizationId(userId: string): Promise<string | null> 
     .from("profiles")
     .select("organization_id")
     .eq("id", userId)
-    .single();
+    .maybeSingle();
   return (data?.organization_id as string | undefined) ?? null;
 }
 
