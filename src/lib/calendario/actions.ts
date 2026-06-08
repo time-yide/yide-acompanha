@@ -161,12 +161,9 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
   const { data: org } = await supabase.from("organizations").select("id").limit(1).single();
   if (!org) return { error: "Organização não encontrada" };
 
-  // Pra eventos de videomaker, o fluxo agora é: assessor cria → cai na fila
-  // do coord audiovisual (pending_delegation). Coord delega via página de
-  // coordenação. Antes desse PR, ia direto pra agenda dos videomakers nos
-  // participantes_ids. Mantemos os participantes_ids preenchidos (pra
-  // contexto/notificação), mas a fonte da verdade da agenda é o
-  // videomaker_assigned_id (NULL enquanto pending).
+  // Gravação agora nasce já agendada: o criador escolhe o videomaker e o evento
+  // entra como scheduled (videomaker_assigned_id preenchido), sem passar pela
+  // fila de delegação do coordenador. O coord ainda pode reatribuir depois.
   const isVideomaker = parsed.data.sub_calendar === "videomakers";
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -294,6 +291,7 @@ export async function updateEventAction(_prevState: ActionResult, formData: Form
     roteiro_tipo: (fd(formData, "roteiro_tipo") as "link" | "pdf" | undefined) ?? null,
     roteiro_pdf_path: fd(formData, "roteiro_pdf_path"),
     observacoes_gravacao: fd(formData, "observacoes_gravacao"),
+    videomaker_assigned_id: fd(formData, "videomaker_assigned_id"),
   });
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
@@ -305,13 +303,45 @@ export async function updateEventAction(_prevState: ActionResult, formData: Form
     return { error: "Horário de fim deve ser posterior ao início" };
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const beforeVm = before as any;
+  const isVideomaker = parsed.data.sub_calendar === "videomakers";
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sbUpd = supabase as any;
+
+  let videomakerId: string | null = beforeVm?.videomaker_assigned_id ?? null;
+  let participantesFinais = parsed.data.participantes_ids;
+
+  if (isVideomaker) {
+    videomakerId = parsed.data.videomaker_assigned_id ?? null;
+    if (!videomakerId) return { error: "Escolha o videomaker responsável pela gravação" };
+    const mudou = videomakerId !== (beforeVm?.videomaker_assigned_id ?? null);
+    if (mudou) {
+      const check = await validateVideomakerAssignment(sbUpd, {
+        videomakerId,
+        inicioUtc,
+        fimUtc,
+        excludeEventId: id,
+      });
+      if ("error" in check) return { error: check.error };
+      // Remove o videomaker antigo de participantes (se estava só pela atribuição)
+      // e adiciona o novo.
+      const semAntigo = participantesFinais.filter(
+        (pid) => pid !== (beforeVm?.videomaker_assigned_id ?? null),
+      );
+      participantesFinais = comParticipanteVideomaker(semAntigo, videomakerId);
+    } else {
+      participantesFinais = comParticipanteVideomaker(participantesFinais, videomakerId);
+    }
+  }
+
   const updatePayload = {
     titulo: parsed.data.titulo,
     descricao: parsed.data.descricao || null,
     inicio: inicioUtc,
     fim: fimUtc,
     sub_calendar: parsed.data.sub_calendar,
-    participantes_ids: parsed.data.participantes_ids,
+    participantes_ids: participantesFinais,
     client_id: parsed.data.client_id || null,
     localizacao_endereco: parsed.data.localizacao_endereco?.trim() || null,
     localizacao_maps_url: parsed.data.localizacao_maps_url?.trim() || null,
@@ -320,6 +350,15 @@ export async function updateEventAction(_prevState: ActionResult, formData: Form
     roteiro_pdf_path: parsed.data.roteiro_pdf_path ?? null,
     observacoes_gravacao: parsed.data.observacoes_gravacao?.trim() || null,
   };
+
+  if (isVideomaker) {
+    Object.assign(updatePayload, {
+      videomaker_assigned_id: videomakerId,
+      videomaker_status: "scheduled",
+      videomaker_delegado_por: actor.id,
+      videomaker_delegado_em: new Date().toISOString(),
+    });
+  }
 
   // Se o PDF do roteiro foi trocado/removido, apaga o arquivo antigo do storage.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -341,7 +380,12 @@ export async function updateEventAction(_prevState: ActionResult, formData: Form
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await supabase.from("calendar_events").update(updatePayload as any).eq("id", id);
-  if (error) return { error: error.message };
+  if (error) {
+    if (error.message?.includes("no_videomaker_overlap")) {
+      return { error: "Esse videomaker já tem outra captação nesse horário. Recarregue e tente de novo." };
+    }
+    return { error: error.message };
+  }
 
   await logAudit({
     entidade: "calendar_events",
@@ -356,7 +400,7 @@ export async function updateEventAction(_prevState: ActionResult, formData: Form
   // (não re-notifica quem já estava). Compara before vs new.
   const participantesAntes = ((before as unknown as { participantes_ids: string[] | null })
     .participantes_ids ?? []);
-  const adicionados = parsed.data.participantes_ids.filter(
+  const adicionados = participantesFinais.filter(
     (pid) => !participantesAntes.includes(pid),
   );
   if (adicionados.length > 0) {
