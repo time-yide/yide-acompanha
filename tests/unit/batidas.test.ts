@@ -188,4 +188,52 @@ describe("montarProspectosCadencia", () => {
     expect(r[0].statusCadencia).toBe("descartado");
     expect(r[0].descartado).toBe(true);
   });
+
+  it("13 batidas ainda é em_cadencia (fronteira abaixo do esgotamento)", () => {
+    const attempts = Array.from({ length: 13 }, (_, i) => ({
+      lead_id: null, lead_gerado_id: "g1", resultado: "sem_resposta",
+      created_at: `2026-06-${String(i + 1).padStart(2, "0")}T10:00:00Z`,
+    }));
+    const r = montarProspectosCadencia({
+      ...VAZIO,
+      leadsGerados: [
+        { id: "g1", empresa: "Acme", status: "em_contato", fonte: "outscraper",
+          visita_id: null, responsavel_id: "u1", lead_onboarding_id: null,
+          created_at: "2026-06-01T10:00:00Z", decisor_nome: null, telefone: null, whatsapp: null },
+      ],
+      attempts,
+    });
+    expect(r[0].totalBatidas).toBe(13);
+    expect(r[0].esgotou).toBe(false);
+    expect(r[0].statusCadencia).toBe("em_cadencia");
+  });
+
+  it("descartado via motivo_perdido em lead de Onboarding standalone", () => {
+    const r = montarProspectosCadencia({
+      ...VAZIO,
+      leads: [
+        { id: "l5", nome_prospect: "Perdido", stage: "leads_ativos", canal: "ligacao",
+          comercial_id: "u1", motivo_perdido: "não atende há 1 mês", created_at: "2026-06-01T10:00:00Z" },
+      ],
+    });
+    expect(r[0].descartado).toBe(true);
+    expect(r[0].statusCadencia).toBe("descartado");
+  });
+
+  it("descartado tem prioridade sobre convertido (status descartado + attempt agendou)", () => {
+    const r = montarProspectosCadencia({
+      ...VAZIO,
+      leadsGerados: [
+        { id: "g1", empresa: "Acme", status: "descartado", fonte: "outscraper",
+          visita_id: null, responsavel_id: "u1", lead_onboarding_id: null,
+          created_at: "2026-06-01T10:00:00Z", decisor_nome: null, telefone: null, whatsapp: null },
+      ],
+      attempts: [
+        { lead_id: null, lead_gerado_id: "g1", resultado: "agendou", created_at: "2026-06-02T10:00:00Z" },
+      ],
+    });
+    expect(r[0].descartado).toBe(true);
+    expect(r[0].temSucesso).toBe(true);
+    expect(r[0].statusCadencia).toBe("descartado");
+  });
 });
