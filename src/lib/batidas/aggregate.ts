@@ -61,6 +61,8 @@ export interface ProspectoCadencia {
   nome: string;
   canal: "rua" | "ligacao";
   responsavelId: string | null;
+  visitaId: string | null;
+  visitaData: string | null;
   totalBatidas: number;
   meta: number;
   ultimaBatida: string | null;
@@ -193,6 +195,8 @@ function construir(args: {
     nome: args.nome,
     canal: args.canal,
     responsavelId: args.responsavelId,
+    visitaId: args.contaVisita ? args.leadGerado?.visita_id ?? null : null,
+    visitaData: args.contaVisita ? args.visitaData : null,
     totalBatidas: total,
     meta: BATIDAS_META,
     ultimaBatida: ultima,
