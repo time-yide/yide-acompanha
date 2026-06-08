@@ -12,6 +12,7 @@ import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 import {
   createEventSchema,
   editEventSchema,
+  comParticipanteVideomaker,
   ROLES_PODEM_CRIAR_VIDEOMAKER,
   type SelectableSub,
   SELECTABLE_SUBS,
@@ -75,6 +76,49 @@ function canCreateVideomaker(role: string): boolean {
   return (ROLES_PODEM_CRIAR_VIDEOMAKER as readonly string[]).includes(role);
 }
 
+/**
+ * Valida que `videomakerId` é um videomaker ativo e não tem captação scheduled
+ * com horário sobreposto a [inicioUtc, fimUtc]. `excludeEventId` ignora o
+ * próprio evento (usado na edição). Espelha delegateVideomakerAction.
+ * Inputs de horário são ISO UTC.
+ */
+async function validateVideomakerAssignment(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  sb: any,
+  params: { videomakerId: string; inicioUtc: string; fimUtc: string; excludeEventId?: string },
+): Promise<{ error: string } | { ok: true; nome: string }> {
+  const { data: vm } = await sb
+    .from("profiles")
+    .select("id, nome, role, ativo")
+    .eq("id", params.videomakerId)
+    .single();
+  if (!vm || vm.role !== "videomaker" || !vm.ativo) {
+    return { error: "Videomaker inválido ou inativo" };
+  }
+
+  let q = sb
+    .from("calendar_events")
+    .select("id, titulo, inicio, fim")
+    .eq("sub_calendar", "videomakers")
+    .eq("videomaker_status", "scheduled")
+    .eq("videomaker_assigned_id", params.videomakerId)
+    .lt("inicio", params.fimUtc)
+    .gt("fim", params.inicioUtc);
+  if (params.excludeEventId) q = q.neq("id", params.excludeEventId);
+  const { data: conflict } = await q.limit(1).maybeSingle();
+  if (conflict) {
+    const inicioBR = new Date(conflict.inicio).toLocaleString("pt-BR", {
+      timeZone: APP_TIMEZONE,
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    return { error: `${vm.nome} já tem captação "${conflict.titulo}" às ${inicioBR}` };
+  }
+  return { ok: true, nome: vm.nome };
+}
+
 type ActionResult = { error?: string } | undefined;
 
 export async function createEventAction(_prevState: ActionResult, formData: FormData): Promise<ActionResult> {
@@ -101,6 +145,7 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
     roteiro_tipo: (fd(formData, "roteiro_tipo") as "link" | "pdf" | undefined) ?? null,
     roteiro_pdf_path: fd(formData, "roteiro_pdf_path"),
     observacoes_gravacao: fd(formData, "observacoes_gravacao"),
+    videomaker_assigned_id: fd(formData, "videomaker_assigned_id"),
   });
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
@@ -123,6 +168,29 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
   // contexto/notificação), mas a fonte da verdade da agenda é o
   // videomaker_assigned_id (NULL enquanto pending).
   const isVideomaker = parsed.data.sub_calendar === "videomakers";
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+
+  // Gravação: valida o videomaker escolhido e já agenda (scheduled) direto,
+  // sem passar pela fila de delegação do coordenador.
+  let videomakerId: string | null = null;
+  if (isVideomaker) {
+    videomakerId = parsed.data.videomaker_assigned_id ?? null;
+    if (!videomakerId) return { error: "Escolha o videomaker responsável pela gravação" };
+    const check = await validateVideomakerAssignment(sb, {
+      videomakerId,
+      inicioUtc,
+      fimUtc,
+    });
+    if ("error" in check) return { error: check.error };
+  }
+
+  const participantesFinais = comParticipanteVideomaker(
+    parsed.data.participantes_ids,
+    videomakerId,
+  );
+
   const basePayload = {
     organization_id: org.id,
     titulo: parsed.data.titulo,
@@ -131,7 +199,7 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
     fim: fimUtc,
     sub_calendar: parsed.data.sub_calendar,
     criado_por: actor.id,
-    participantes_ids: parsed.data.participantes_ids,
+    participantes_ids: participantesFinais,
     client_id: parsed.data.client_id || null,
     localizacao_endereco: parsed.data.localizacao_endereco?.trim() || null,
     localizacao_maps_url: parsed.data.localizacao_maps_url?.trim() || null,
@@ -141,30 +209,29 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
     observacoes_gravacao: parsed.data.observacoes_gravacao?.trim() || null,
   };
   const insertPayload = isVideomaker
-    ? { ...basePayload, videomaker_status: "pending_delegation" as const }
+    ? {
+        ...basePayload,
+        videomaker_assigned_id: videomakerId,
+        videomaker_status: "scheduled" as const,
+        videomaker_delegado_por: actor.id,
+        videomaker_delegado_em: new Date().toISOString(),
+      }
     : basePayload;
 
-  let createResult = await supabase
+  const createResult = await sb
     .from("calendar_events")
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .insert(insertPayload as any)
+    .insert(insertPayload)
     .select("id")
     .single();
 
-  // Fallback: se a migration 20260603000000 (videomaker_status) ainda não
-  // foi aplicada, insere sem o campo. O evento volta a ser visível
-  // diretamente na agenda (modo legado, sem fluxo de delegação).
-  if (createResult.error && isVideomaker) {
+  // Constraint no_videomaker_overlap é a defesa em profundidade contra corrida
+  // (duas criações pro mesmo videomaker no mesmo horário).
+  if (createResult.error) {
     const msg = String(createResult.error.message ?? "");
-    if (msg.includes("videomaker_status") || msg.includes("schema cache")) {
-      console.warn("[calendario] migration videomaker_status não aplicada - fallback sem delegação");
-      createResult = await supabase
-        .from("calendar_events")
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .insert(basePayload as any)
-        .select("id")
-        .single();
+    if (msg.includes("no_videomaker_overlap")) {
+      return { error: "Esse videomaker já tem outra captação nesse horário. Recarregue e tente de novo." };
     }
+    return { error: createResult.error.message };
   }
 
   const { data: created, error } = createResult;
@@ -183,7 +250,7 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
     eventId: created.id,
     titulo: parsed.data.titulo,
     inicio: inicioUtc,
-    participantesNovos: parsed.data.participantes_ids,
+    participantesNovos: participantesFinais,
     actorId: actor.id,
     actorNome: actor.nome,
   }));
@@ -191,12 +258,9 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
   revalidatePath("/calendario");
   revalidateTag("calendar", "default");
   revalidateTag("dashboard", "default");
-  // Yasmin: quando assessor cria captação, redireciona pra aba "Captações
-  // futuras" do painel audiovisual (onde o coord delega).
-  if (isVideomaker) {
-    revalidatePath("/audiovisual");
-    redirect(`/audiovisual?tab=aguardando_videomaker&novo=${created.id}`);
-  }
+  // Nasce já agendado (scheduled), então vai direto pra agenda — não mais
+  // pra fila "aguardando videomaker".
+  if (isVideomaker) revalidatePath("/audiovisual");
   redirect(`/calendario`);
 }
 
