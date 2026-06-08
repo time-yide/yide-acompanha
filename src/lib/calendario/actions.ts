@@ -378,13 +378,24 @@ export async function updateEventAction(_prevState: ActionResult, formData: Form
     (updatePayload as { reminded_30min_at?: string | null }).reminded_30min_at = null;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await supabase.from("calendar_events").update(updatePayload as any).eq("id", id);
+  // `.select()` força o PostgREST a devolver as linhas afetadas. A RLS de UPDATE
+  // só permite criador/adm/sócio/audiovisual_chefe; um deny vem como 0 rows com
+  // error:null (não como erro). Sem o check, uma edição negada reportaria
+  // sucesso falso (gotcha conhecido do Supabase).
+  const { data: updatedRows, error } = await supabase
+    .from("calendar_events")
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .update(updatePayload as any)
+    .eq("id", id)
+    .select("id");
   if (error) {
     if (error.message?.includes("no_videomaker_overlap")) {
       return { error: "Esse videomaker já tem outra captação nesse horário. Recarregue e tente de novo." };
     }
     return { error: error.message };
+  }
+  if (!updatedRows || updatedRows.length === 0) {
+    return { error: "Não foi possível salvar (sem permissão ou evento removido). Recarregue e tente de novo." };
   }
 
   await logAudit({
