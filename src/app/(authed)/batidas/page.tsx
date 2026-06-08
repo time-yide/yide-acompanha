@@ -56,27 +56,40 @@ export default async function BatidasPage({
         </p>
       </header>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="mr-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">Status:</span>
-        {tabs.map((t) => (
-          <a
-            key={t.key}
-            href={`/batidas?view=${t.key}${canal !== "todos" ? `&canal=${canal}` : ""}`}
-            className={`rounded-md border px-3 py-1.5 text-xs ${view === t.key ? "bg-primary text-primary-foreground" : "bg-card hover:bg-muted/30"}`}
-          >
-            {t.label}
-          </a>
-        ))}
-        <span className="ml-3 mr-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">Canal:</span>
-        {(["todos", "rua", "ligacao"] as const).map((c) => (
-          <a
-            key={c}
-            href={`/batidas?view=${view}${c !== "todos" ? `&canal=${c}` : ""}`}
-            className={`rounded-md border px-3 py-1.5 text-xs ${canal === c ? "bg-secondary" : "bg-card hover:bg-muted/30"}`}
-          >
-            {c === "todos" ? "Todos canais" : c === "rua" ? "Rua" : "Ligação"}
-          </a>
-        ))}
+      <div className="space-y-3">
+        {/* Canal — filtro principal (abas grandes) */}
+        <div className="flex flex-wrap items-center gap-1 border-b">
+          {(["todos", "rua", "ligacao"] as const).map((c) => (
+            <a
+              key={c}
+              href={`/batidas?canal=${c}&view=${view}`}
+              className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
+                canal === c
+                  ? "border-primary text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {c === "todos" ? "Todos os canais" : c === "rua" ? "Rua" : "Ligação"}
+            </a>
+          ))}
+        </div>
+
+        {/* Cadência — sub-filtro dentro do canal escolhido */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          {tabs.map((t) => (
+            <a
+              key={t.key}
+              href={`/batidas?view=${t.key}&canal=${canal}`}
+              className={`rounded-full border px-2.5 py-1 text-xs transition-colors ${
+                view === t.key
+                  ? "border-transparent bg-primary text-primary-foreground"
+                  : "bg-card text-muted-foreground hover:bg-muted/30"
+              }`}
+            >
+              {t.label}
+            </a>
+          ))}
+        </div>
       </div>
 
       <ProspectosCadenciaTable prospectos={prospectos} />
