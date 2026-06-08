@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { requireAuth } from "@/lib/auth/session";
@@ -348,6 +348,7 @@ export async function iniciarLigacaoAction(formData: FormData): Promise<ActionRe
   if (insErr) return { error: insErr.message };
 
   revalidatePath("/ligacoes");
+  revalidateTag("batidas", "default");
   return { success: true };
 }
 
@@ -419,6 +420,7 @@ export async function registrarLigacaoLeadAction(formData: FormData): Promise<Re
   if (error || !lig) return { error: error?.message ?? "Erro ao registrar ligação" };
 
   revalidatePath("/ligacoes");
+  revalidateTag("batidas", "default");
   return { success: true, id: (lig as { id: string }).id };
 }
 

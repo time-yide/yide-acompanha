@@ -2,7 +2,7 @@ import {
   LayoutGrid, Users, KanbanSquare, ListChecks,
   DollarSign, Calendar, UserCog, MessageSquare,
   TrendingUp, Video, Trash2, MessagesSquare, GraduationCap, Megaphone, Share2, Radar, MessageCircle, Phone,
-  IdCard, Rocket, BookOpen, Inbox, Activity, Layers, Sparkles, Zap, MapPin,
+  IdCard, Rocket, BookOpen, Inbox, Activity, Layers, Sparkles, Zap, MapPin, Target,
   type LucideIcon,
 } from "lucide-react";
 import type { Role } from "@/lib/auth/permissions";
@@ -37,6 +37,7 @@ export type NavEntry = NavLink | NavGroup;
  */
 export const NAV_STRUCTURE: readonly NavEntry[] = [
   { type: "link", href: "/", icon: LayoutGrid, label: "Dashboard", roles: "all", badgeKey: null },
+  { type: "link", href: "/batidas", icon: Target, label: "14 Batidas", roles: ["adm", "socio", "comercial", "coordenador", "assessor"], badgeKey: null },
 
   // Comunicação fica direto embaixo do Dashboard e não pode ser minimizada —
   // decisão da Yasmin: recados e escritório precisam estar sempre visíveis

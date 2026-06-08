@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { requireAuth } from "@/lib/auth/session";
 import { getOrganizationId } from "@/lib/gerador-leads/queries";
@@ -56,6 +56,7 @@ export async function criarVisitaAction(formData: FormData): Promise<Result> {
   });
   if (error) return { error: error.message };
   revalidatePath("/visitas");
+  revalidateTag("batidas", "default");
   return { success: true };
 }
 
@@ -89,6 +90,7 @@ export async function updateVisitaAction(formData: FormData): Promise<Result> {
   if (error) return { error: error.message };
   revalidatePath("/visitas");
   revalidatePath(`/visitas/${parsed.data.id}`);
+  revalidateTag("batidas", "default");
   return { success: true };
 }
 
@@ -108,6 +110,7 @@ export async function arquivarVisitaAction(formData: FormData): Promise<Result> 
     .eq("organization_id", orgId);
   if (error) return { error: error.message };
   revalidatePath("/visitas");
+  revalidateTag("batidas", "default");
   return { success: true };
 }
 
@@ -158,5 +161,6 @@ export async function adicionarLeadVisitaAction(
   revalidatePath("/visitas");
   revalidatePath(`/visitas/${parsed.data.visita_id}`);
   revalidatePath("/gerador-leads");
+  revalidateTag("batidas", "default");
   return { success: true };
 }
