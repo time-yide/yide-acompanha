@@ -160,6 +160,7 @@ export async function addLeadAttemptAction(formData: FormData): Promise<ActionRe
   if (error) return { error: error.message };
 
   revalidatePath(`/prospeccao/prospects/${parsed.data.lead_id}`);
+  revalidateTag("batidas", "default");
 
   return { success: true };
 }
