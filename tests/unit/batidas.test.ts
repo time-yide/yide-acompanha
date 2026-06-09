@@ -161,6 +161,30 @@ describe("montarProspectosCadencia", () => {
     expect(r[0].leadId).toBe("l1");
   });
 
+  it("attempt com lead_gerado_id E lead_id do mesmo prospecto ligado conta uma vez só (dedup)", () => {
+    const r = montarProspectosCadencia({
+      ...VAZIO,
+      leadsGerados: [
+        { id: "g1", empresa: "Acme", status: "qualificado", fonte: "outscraper",
+          visita_id: null, responsavel_id: "u1", lead_onboarding_id: "l1",
+          created_at: "2026-06-01T10:00:00Z", decisor_nome: null, telefone: null, whatsapp: null },
+      ],
+      leads: [
+        { id: "l1", nome_prospect: "Acme", stage: "leads_ativos", canal: "ligacao",
+          comercial_id: "u1", motivo_perdido: null, created_at: "2026-06-01T10:00:00Z" },
+      ],
+      // O MESMO registro referencia gerado e lead: não pode contar 2x.
+      attempts: [
+        { lead_id: "l1", lead_gerado_id: "g1", resultado: "sem_resposta", created_at: "2026-06-02T10:00:00Z" },
+      ],
+      ligacoes: [
+        { lead_id: "l1", lead_gerado_id: "g1", direcao: "saida", iniciada_em: "2026-06-03T10:00:00Z" },
+      ],
+    });
+    expect(r).toHaveLength(1);
+    expect(r[0].totalBatidas).toBe(2); // 1 attempt + 1 ligação, sem duplicar
+  });
+
   it("lead de Onboarding standalone (sem lead_gerado) vira prospecto próprio; convertido sai da cadência", () => {
     const r = montarProspectosCadencia({
       ...VAZIO,

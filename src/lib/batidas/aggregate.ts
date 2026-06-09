@@ -78,16 +78,77 @@ function maisRecente(a: string | null, b: string | null): string | null {
   return a > b ? a : b;
 }
 
+/** Adiciona `v` à lista da chave `k` no mapa (criando a lista se preciso). */
+function pushTo<T>(map: Map<string, T[]>, k: string, v: T): void {
+  const arr = map.get(k);
+  if (arr) arr.push(v);
+  else map.set(k, [v]);
+}
+
+/**
+ * Junta os itens indexados por lead_gerado_id e por lead_id pra um prospecto,
+ * deduplicando por referência: o MESMO objeto pode estar nos dois mapas (quando
+ * tem lead_gerado_id e lead_id preenchidos) e nesse caso conta uma vez só —
+ * exatamente o que o `.filter(matchX)` antigo fazia. O(matches) por prospecto.
+ */
+function juntar<T>(
+  porGerado: Map<string, T[]>,
+  porLead: Map<string, T[]>,
+  gid: string | null,
+  lid: string | null,
+): T[] {
+  const a = gid ? porGerado.get(gid) ?? [] : [];
+  const b = lid ? porLead.get(lid) ?? [] : [];
+  if (a.length === 0) return b;
+  if (b.length === 0) return a;
+  const out = a.slice();
+  const seen = new Set<T>(a);
+  for (const x of b) {
+    if (!seen.has(x)) {
+      seen.add(x);
+      out.push(x);
+    }
+  }
+  return out;
+}
+
+interface AttemptIndex {
+  porGerado: Map<string, AttemptLite[]>;
+  porLead: Map<string, AttemptLite[]>;
+}
+interface LigacaoIndex {
+  porGerado: Map<string, LigacaoLite[]>;
+  porLead: Map<string, LigacaoLite[]>;
+}
+
 /**
  * Agrega as fontes de batida (lead_attempts + ligações de saída + visita de origem)
  * em uma lista de prospectos, resolvendo a identidade lead_gerado <-> lead de Onboarding.
  * Função PURA: não faz I/O.
+ *
+ * Indexa attempts/ligações por lead_gerado_id e lead_id UMA vez (O(A+L)) e faz
+ * lookup O(1) por prospecto, em vez de varrer todos os attempts/ligações por
+ * prospecto (que era O(prospectos × (attempts+ligações)) — quadrático).
  */
 export function montarProspectosCadencia(input: AggInput): ProspectoCadencia[] {
   const { leadsGerados, leads, attempts, ligacoes } = input;
 
   const leadById = new Map(leads.map((l) => [l.id, l]));
   const linkedLeadIds = new Set<string>();
+
+  // Índices por chave (construídos uma vez).
+  const attemptIdx: AttemptIndex = { porGerado: new Map(), porLead: new Map() };
+  for (const a of attempts) {
+    if (a.lead_gerado_id) pushTo(attemptIdx.porGerado, a.lead_gerado_id, a);
+    if (a.lead_id) pushTo(attemptIdx.porLead, a.lead_id, a);
+  }
+  const ligIdx: LigacaoIndex = { porGerado: new Map(), porLead: new Map() };
+  for (const c of ligacoes) {
+    // matchLig antigo exigia direção de saída; pré-filtra aqui.
+    if (c.direcao !== "saida") continue;
+    if (c.lead_gerado_id) pushTo(ligIdx.porGerado, c.lead_gerado_id, c);
+    if (c.lead_id) pushTo(ligIdx.porLead, c.lead_id, c);
+  }
 
   const prospectos: ProspectoCadencia[] = [];
 
@@ -107,8 +168,8 @@ export function montarProspectosCadencia(input: AggInput): ProspectoCadencia[] {
         visitaData: g.created_at,
         leadGerado: g,
         lead,
-        attempts,
-        ligacoes,
+        attemptIdx,
+        ligIdx,
       }),
     );
   }
@@ -128,8 +189,8 @@ export function montarProspectosCadencia(input: AggInput): ProspectoCadencia[] {
         visitaData: null,
         leadGerado: null,
         lead: l,
-        attempts,
-        ligacoes,
+        attemptIdx,
+        ligIdx,
       }),
     );
   }
@@ -148,19 +209,13 @@ function construir(args: {
   visitaData: string | null;
   leadGerado: LeadGeradoLite | null;
   lead: LeadLite | null;
-  attempts: AttemptLite[];
-  ligacoes: LigacaoLite[];
+  attemptIdx: AttemptIndex;
+  ligIdx: LigacaoIndex;
 }): ProspectoCadencia {
   const { leadGeradoId, leadId } = args;
 
-  const matchAttempt = (a: AttemptLite) =>
-    (leadGeradoId && a.lead_gerado_id === leadGeradoId) || (leadId && a.lead_id === leadId);
-  const matchLig = (c: LigacaoLite) =>
-    c.direcao === "saida" &&
-    ((leadGeradoId && c.lead_gerado_id === leadGeradoId) || (leadId && c.lead_id === leadId));
-
-  const meusAttempts = args.attempts.filter(matchAttempt);
-  const minhasLig = args.ligacoes.filter(matchLig);
+  const meusAttempts = juntar(args.attemptIdx.porGerado, args.attemptIdx.porLead, leadGeradoId, leadId);
+  const minhasLig = juntar(args.ligIdx.porGerado, args.ligIdx.porLead, leadGeradoId, leadId);
 
   const total = meusAttempts.length + minhasLig.length + (args.contaVisita ? 1 : 0);
 

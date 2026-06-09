@@ -57,8 +57,10 @@ async function _fetchSources(orgId: string, responsavelId: string | null): Promi
   const geradoIds = leadsGerados.map((g) => g.id);
   const leadIds = leads.map((l) => l.id);
 
-  const attempts = await fetchAttempts(sb, geradoIds, leadIds);
-  const ligacoes = await fetchLigacoes(sb, geradoIds, leadIds);
+  const [attempts, ligacoes] = await Promise.all([
+    fetchAttempts(sb, geradoIds, leadIds),
+    fetchLigacoes(sb, geradoIds, leadIds),
+  ]);
 
   return { leadsGerados, leads, attempts, ligacoes };
 }
@@ -73,20 +75,17 @@ async function fetchAttempts(
   const collect = (rows: unknown[] | null) => {
     for (const r of (rows ?? []) as Array<AttemptLite & { id: string }>) byId.set(r.id, r);
   };
-  if (geradoIds.length) {
-    const { data } = await sb
-      .from("lead_attempts")
-      .select("id, lead_id, lead_gerado_id, resultado, created_at")
-      .in("lead_gerado_id", geradoIds);
-    collect(data);
-  }
-  if (leadIds.length) {
-    const { data } = await sb
-      .from("lead_attempts")
-      .select("id, lead_id, lead_gerado_id, resultado, created_at")
-      .in("lead_id", leadIds);
-    collect(data);
-  }
+  const select = "id, lead_id, lead_gerado_id, resultado, created_at";
+  const [porGerado, porLead] = await Promise.all([
+    geradoIds.length
+      ? sb.from("lead_attempts").select(select).in("lead_gerado_id", geradoIds)
+      : Promise.resolve({ data: null }),
+    leadIds.length
+      ? sb.from("lead_attempts").select(select).in("lead_id", leadIds)
+      : Promise.resolve({ data: null }),
+  ]);
+  collect(porGerado.data);
+  collect(porLead.data);
   return [...byId.values()];
 }
 
@@ -106,14 +105,12 @@ async function fetchLigacoes(
       .select("id, lead_id, lead_gerado_id, direcao, iniciada_em")
       .eq("direcao", "saida")
       .is("arquivado_em", null);
-  if (geradoIds.length) {
-    const { data } = await base().in("lead_gerado_id", geradoIds);
-    collect(data);
-  }
-  if (leadIds.length) {
-    const { data } = await base().in("lead_id", leadIds);
-    collect(data);
-  }
+  const [porGerado, porLead] = await Promise.all([
+    geradoIds.length ? base().in("lead_gerado_id", geradoIds) : Promise.resolve({ data: null }),
+    leadIds.length ? base().in("lead_id", leadIds) : Promise.resolve({ data: null }),
+  ]);
+  collect(porGerado.data);
+  collect(porLead.data);
   return [...byId.values()];
 }
 
