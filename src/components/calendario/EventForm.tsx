@@ -33,11 +33,9 @@ interface Props {
     roteiro_tipo: "link" | "pdf" | null;
     roteiro_pdf_path: string | null;
     observacoes_gravacao: string | null;
-    videomaker_assigned_id: string | null;
   }>;
   profiles: ProfileOption[];
   clientes: ClientOption[];
-  videomakers: ProfileOption[];
   canCreateVideomaker: boolean;
   submitLabel?: string;
 }
@@ -56,12 +54,11 @@ const SUB_DESC: Record<SelectableSub, string> = {
   coordenadores: "Reunião de coordenação.",
 };
 
-export function EventForm({ action, defaults = {}, profiles, clientes, videomakers, canCreateVideomaker, submitLabel = "Salvar" }: Props) {
+export function EventForm({ action, defaults = {}, profiles, clientes, canCreateVideomaker, submitLabel = "Salvar" }: Props) {
   const [state, formAction, pending] = useActionState(action, undefined);
   const selected = new Set(defaults.participantes_ids ?? []);
   const [sub, setSub] = useState<SelectableSub>(defaults.sub_calendar ?? "agencia");
   const [clientId, setClientId] = useState<string | null>(defaults.client_id ?? null);
-  const [videomakerId, setVideomakerId] = useState<string | null>(defaults.videomaker_assigned_id ?? null);
   const isVideomaker = sub === "videomakers";
 
   const subOptions = SELECTABLE_SUBS.filter((s) => s !== "videomakers" || canCreateVideomaker);
@@ -134,23 +131,6 @@ export function EventForm({ action, defaults = {}, profiles, clientes, videomake
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="videomaker_assigned_id" className="flex items-center gap-1.5">
-              <Video className="h-3.5 w-3.5" /> Videomaker responsável
-            </Label>
-            <input type="hidden" name="videomaker_assigned_id" value={videomakerId ?? ""} />
-            <SearchableSelect
-              options={videomakers.map((v) => ({ value: v.id, label: v.nome }))}
-              value={videomakerId}
-              onChange={(v) => setVideomakerId(v ?? null)}
-              placeholder="Escolha o videomaker"
-              emptyText="Nenhum videomaker ativo"
-            />
-            <p className="text-[11px] text-muted-foreground">
-              Quem vai gravar. O evento já entra agendado direto pra esse videomaker (sem passar pela fila do coordenador).
-            </p>
-          </div>
-
-          <div className="space-y-2">
             <Label htmlFor="client_id" className="flex items-center gap-1.5">
               <UsersIcon className="h-3.5 w-3.5" /> Cliente <span className="text-xs text-muted-foreground">(recomendado)</span>
             </Label>
@@ -201,14 +181,18 @@ export function EventForm({ action, defaults = {}, profiles, clientes, videomake
           />
 
           <div className="space-y-2">
-            <Label htmlFor="observacoes_gravacao">Observações da gravação (opcional)</Label>
+            <Label htmlFor="observacoes_gravacao">Observações pro coordenador (opcional)</Label>
             <Textarea
               id="observacoes_gravacao"
               name="observacoes_gravacao"
               rows={3}
               defaultValue={defaults.observacoes_gravacao ?? ""}
-              placeholder="Equipamentos, horário de chegada, contato no local, etc."
+              placeholder="Ex.: sugiro a Fulana pra essa; chegar 30min antes; contato no local é o João"
             />
+            <p className="text-[11px] text-muted-foreground">
+              O coordenador do audiovisual lê isso ao escolher quem grava. Use pra sugerir
+              um videomaker, ou dar contexto: equipamentos, horário de chegada, contato no local, etc.
+            </p>
           </div>
         </div>
       )}

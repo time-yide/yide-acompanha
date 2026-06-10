@@ -38,43 +38,12 @@ const baseEventFields = {
   roteiro_tipo: z.enum(["link", "pdf"]).optional().nullable(),
   roteiro_pdf_path: z.string().optional().nullable(),
   observacoes_gravacao: z.string().optional().nullable(),
-  videomaker_assigned_id: z.string().uuid().optional().nullable(),
 };
 
-// Na gravação (videomakers) o videomaker responsável é obrigatório: o evento
-// nasce já delegado (scheduled) em vez de cair na fila do coordenador.
-function refineVideomaker(
-  data: { sub_calendar: SelectableSub; videomaker_assigned_id?: string | null },
-  ctx: z.RefinementCtx,
-) {
-  if (data.sub_calendar === "videomakers" && !data.videomaker_assigned_id) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["videomaker_assigned_id"],
-      message: "Escolha o videomaker responsável pela gravação",
-    });
-  }
-}
-
-export const createEventSchema = z.object(baseEventFields).superRefine(refineVideomaker);
-export const editEventSchema = z
-  .object({ ...baseEventFields, id: z.string().uuid() })
-  .superRefine(refineVideomaker);
-
-/**
- * Garante que o videomaker designado esteja em participantes_ids (sem
- * duplicar) — pra agenda/notificação dele funcionarem. Retorna a lista
- * intacta quando não há videomaker.
- */
-export function comParticipanteVideomaker(
-  participantes: string[],
-  videomakerId: string | null | undefined,
-): string[] {
-  if (!videomakerId) return participantes;
-  return participantes.includes(videomakerId)
-    ? participantes
-    : [...participantes, videomakerId];
-}
+// Por enquanto todos os campos do bloco videomaker são opcionais. Quem cria
+// preenche o que tiver; videomaker complementa depois pela tela de detalhe.
+export const createEventSchema = z.object(baseEventFields);
+export const editEventSchema = z.object({ ...baseEventFields, id: z.string().uuid() });
 
 export type CreateEventInput = z.infer<typeof createEventSchema>;
 export type EditEventInput = z.infer<typeof editEventSchema>;

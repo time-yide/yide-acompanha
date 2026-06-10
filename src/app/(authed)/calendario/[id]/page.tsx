@@ -12,7 +12,6 @@ import { Card } from "@/components/ui/card";
 import { Trash2 } from "lucide-react";
 import { BriefingChecklist } from "@/components/calendario/BriefingChecklist";
 import { getRoteiroSignedUrl } from "@/lib/briefing-gravacao/storage";
-import { listVideomakersAtivos } from "@/lib/audiovisual/coord-queries";
 
 async function resolveRoteiroUrl(event: {
   roteiro_tipo: "link" | "pdf" | null;
@@ -47,10 +46,9 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
   }
 
   const supabase = await createClient();
-  const [{ data: profiles = [] }, { data: clientes = [] }, videomakers] = await Promise.all([
+  const [{ data: profiles = [] }, { data: clientes = [] }] = await Promise.all([
     supabase.from("profiles").select("id, nome").eq("ativo", true).order("nome"),
     supabase.from("clients").select("id, nome").eq("status", "ativo").order("nome"),
-    listVideomakersAtivos(),
   ]);
 
   async function deleteEvent() {
@@ -159,11 +157,9 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
               localizacao_maps_url: event.localizacao_maps_url ?? null,
               link_roteiro: event.link_roteiro ?? null,
               observacoes_gravacao: event.observacoes_gravacao ?? null,
-              videomaker_assigned_id: event.videomaker_assigned_id ?? null,
             }}
             profiles={profiles ?? []}
             clientes={clientes ?? []}
-            videomakers={videomakers}
             canCreateVideomaker={canCreateVideomaker}
             submitLabel="Salvar alterações"
           />
