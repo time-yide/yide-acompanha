@@ -197,20 +197,24 @@ export function EventForm({ action, defaults = {}, profiles, clientes, canCreate
         </div>
       )}
 
-      <div className="space-y-2">
-        <Label>Participantes</Label>
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
-          {profiles.map((p) => (
-            <label key={p.id} className="flex items-center gap-2 rounded-md border p-2 text-sm hover:bg-muted/40">
-              <input
-                type="checkbox" name="participantes_ids" value={p.id}
-                defaultChecked={selected.has(p.id)}
-              />
-              {p.nome}
-            </label>
-          ))}
+      {/* Em gravação quem grava é definido pelo coordenador na delegação, então
+          a lista de participantes não aparece pra quem agenda. */}
+      {!isVideomaker && (
+        <div className="space-y-2">
+          <Label>Participantes <span className="text-xs text-muted-foreground">(opcional)</span></Label>
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+            {profiles.map((p) => (
+              <label key={p.id} className="flex items-center gap-2 rounded-md border p-2 text-sm hover:bg-muted/40">
+                <input
+                  type="checkbox" name="participantes_ids" value={p.id}
+                  defaultChecked={selected.has(p.id)}
+                />
+                {p.nome}
+              </label>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {state?.error && (
         <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
