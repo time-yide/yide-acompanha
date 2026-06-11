@@ -19,6 +19,14 @@ export function canRoleDelegateVideomaker(role: string): boolean {
   return ROLES_COORD_DELEGATE.has(role);
 }
 
+/**
+ * Pra quem escolher o videomaker na criação/edição da gravação é OBRIGATÓRIO.
+ * Só o coordenador audiovisual; sócio/adm podem escolher mas é opcional.
+ */
+export function isVideomakerObrigatorioParaRole(role: string): boolean {
+  return role === "audiovisual_chefe";
+}
+
 export function canRoleViewCoord(role: string): boolean {
   return ROLES_COORD_VIEW.has(role);
 }

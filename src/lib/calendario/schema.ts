@@ -38,12 +38,29 @@ const baseEventFields = {
   roteiro_tipo: z.enum(["link", "pdf"]).optional().nullable(),
   roteiro_pdf_path: z.string().optional().nullable(),
   observacoes_gravacao: z.string().optional().nullable(),
+  videomaker_assigned_id: z.string().uuid().optional().nullable(),
 };
 
-// Por enquanto todos os campos do bloco videomaker são opcionais. Quem cria
-// preenche o que tiver; videomaker complementa depois pela tela de detalhe.
+// O videomaker responsável é opcional no schema — a obrigatoriedade depende do
+// papel de quem cria (só o coordenador audiovisual é obrigado) e é validada na
+// server action, que conhece o role do ator.
 export const createEventSchema = z.object(baseEventFields);
 export const editEventSchema = z.object({ ...baseEventFields, id: z.string().uuid() });
+
+/**
+ * Garante que o videomaker designado esteja em participantes_ids (sem
+ * duplicar) — pra agenda/notificação dele funcionarem. Retorna a lista
+ * intacta quando não há videomaker.
+ */
+export function comParticipanteVideomaker(
+  participantes: string[],
+  videomakerId: string | null | undefined,
+): string[] {
+  if (!videomakerId) return participantes;
+  return participantes.includes(videomakerId)
+    ? participantes
+    : [...participantes, videomakerId];
+}
 
 export type CreateEventInput = z.infer<typeof createEventSchema>;
 export type EditEventInput = z.infer<typeof editEventSchema>;

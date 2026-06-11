@@ -33,10 +33,16 @@ interface Props {
     roteiro_tipo: "link" | "pdf" | null;
     roteiro_pdf_path: string | null;
     observacoes_gravacao: string | null;
+    videomaker_assigned_id: string | null;
   }>;
   profiles: ProfileOption[];
   clientes: ClientOption[];
+  videomakers: ProfileOption[];
   canCreateVideomaker: boolean;
+  /** Pode delegar/escolher o videomaker direto na criação (audiovisual_chefe, socio, adm). */
+  canDelegateVideomaker: boolean;
+  /** Escolher o videomaker é obrigatório (só o coordenador audiovisual). */
+  videomakerRequired: boolean;
   submitLabel?: string;
 }
 
@@ -54,11 +60,12 @@ const SUB_DESC: Record<SelectableSub, string> = {
   coordenadores: "Reunião de coordenação.",
 };
 
-export function EventForm({ action, defaults = {}, profiles, clientes, canCreateVideomaker, submitLabel = "Salvar" }: Props) {
+export function EventForm({ action, defaults = {}, profiles, clientes, videomakers, canCreateVideomaker, canDelegateVideomaker, videomakerRequired, submitLabel = "Salvar" }: Props) {
   const [state, formAction, pending] = useActionState(action, undefined);
   const selected = new Set(defaults.participantes_ids ?? []);
   const [sub, setSub] = useState<SelectableSub>(defaults.sub_calendar ?? "agencia");
   const [clientId, setClientId] = useState<string | null>(defaults.client_id ?? null);
+  const [videomakerId, setVideomakerId] = useState<string | null>(defaults.videomaker_assigned_id ?? null);
   const isVideomaker = sub === "videomakers";
 
   const subOptions = SELECTABLE_SUBS.filter((s) => s !== "videomakers" || canCreateVideomaker);
@@ -130,6 +137,31 @@ export function EventForm({ action, defaults = {}, profiles, clientes, canCreate
             Detalhes da gravação
           </div>
 
+          {canDelegateVideomaker && (
+            <div className="space-y-2">
+              <Label htmlFor="videomaker_assigned_id" className="flex items-center gap-1.5">
+                <Video className="h-3.5 w-3.5" /> Videomaker responsável{" "}
+                <span className="text-xs text-muted-foreground">
+                  ({videomakerRequired ? "obrigatório" : "opcional"})
+                </span>
+              </Label>
+              <input type="hidden" name="videomaker_assigned_id" value={videomakerId ?? ""} />
+              <SearchableSelect
+                options={videomakers.map((v) => ({ value: v.id, label: v.nome }))}
+                value={videomakerId}
+                onChange={(v) => setVideomakerId(v ?? null)}
+                placeholder="Escolha o videomaker"
+                emptyText="Nenhum videomaker ativo"
+                clearLabel={videomakerRequired ? undefined : "Deixar pro coordenador delegar"}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                {videomakerRequired
+                  ? "Escolha quem vai gravar — a captação já entra agendada direto pra esse videomaker."
+                  : "Se escolher, a captação já entra agendada pra esse videomaker. Se deixar em branco, cai na fila do coordenador do audiovisual delegar."}
+              </p>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="client_id" className="flex items-center gap-1.5">
               <UsersIcon className="h-3.5 w-3.5" /> Cliente <span className="text-xs text-muted-foreground">(recomendado)</span>
@@ -197,20 +229,24 @@ export function EventForm({ action, defaults = {}, profiles, clientes, canCreate
         </div>
       )}
 
-      <div className="space-y-2">
-        <Label>Participantes</Label>
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
-          {profiles.map((p) => (
-            <label key={p.id} className="flex items-center gap-2 rounded-md border p-2 text-sm hover:bg-muted/40">
-              <input
-                type="checkbox" name="participantes_ids" value={p.id}
-                defaultChecked={selected.has(p.id)}
-              />
-              {p.nome}
-            </label>
-          ))}
+      {/* Em gravação quem grava é definido pelo coordenador na delegação, então
+          a lista de participantes não aparece pra quem agenda. */}
+      {!isVideomaker && (
+        <div className="space-y-2">
+          <Label>Participantes <span className="text-xs text-muted-foreground">(opcional)</span></Label>
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+            {profiles.map((p) => (
+              <label key={p.id} className="flex items-center gap-2 rounded-md border p-2 text-sm hover:bg-muted/40">
+                <input
+                  type="checkbox" name="participantes_ids" value={p.id}
+                  defaultChecked={selected.has(p.id)}
+                />
+                {p.nome}
+              </label>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {state?.error && (
         <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
