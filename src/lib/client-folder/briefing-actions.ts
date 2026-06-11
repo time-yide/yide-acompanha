@@ -28,16 +28,35 @@ export async function saveBriefingAction(formData: FormData) {
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("client_briefing")
-    .upsert({
-      client_id: parsed.data.client_id,
-      texto_markdown: parsed.data.texto_markdown,
-      updated_by: actor.id,
-    });
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("client_briefing")
+      .upsert({
+        client_id: parsed.data.client_id,
+        texto_markdown: parsed.data.texto_markdown,
+        updated_by: actor.id,
+      })
+      .select("client_id");
 
-  if (error) return { error: error.message };
-  revalidatePath(`/clientes/${parsed.data.client_id}/briefing`);
+    if (error) {
+      console.error("[saveBriefingAction] supabase error:", error);
+      return { error: error.message };
+    }
+    // RLS pode negar o UPDATE silenciosamente (error null, 0 linhas) — detectar isso.
+    if (!data || data.length === 0) {
+      return { error: "Sem permissão para salvar o briefing deste cliente." };
+    }
+  } catch (err) {
+    console.error("[saveBriefingAction] unexpected error:", err);
+    return { error: err instanceof Error ? err.message : "Erro inesperado ao salvar o briefing." };
+  }
+
+  // O briefing já foi gravado; uma falha na revalidação do cache não deve mascarar o sucesso.
+  try {
+    revalidatePath(`/clientes/${parsed.data.client_id}/briefing`);
+  } catch (err) {
+    console.error("[saveBriefingAction] revalidatePath falhou:", err);
+  }
   return { success: "Briefing salvo" };
 }
