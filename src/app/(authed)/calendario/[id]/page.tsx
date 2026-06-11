@@ -6,6 +6,8 @@ import { getEventById } from "@/lib/calendario/queries";
 import { updateEventAction, deleteEventAction } from "@/lib/calendario/actions";
 import { EventForm } from "@/components/calendario/EventForm";
 import { ROLES_PODEM_CRIAR_VIDEOMAKER, type SelectableSub, SELECTABLE_SUBS } from "@/lib/calendario/schema";
+import { listVideomakersAtivos } from "@/lib/audiovisual/coord-queries";
+import { canRoleDelegateVideomaker, isVideomakerObrigatorioParaRole } from "@/lib/audiovisual/coord-roles";
 import { formatBrtDateTime, utcIsoToBrtInputValue } from "@/lib/calendario/timezone";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -45,10 +47,14 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
     roteiroUrl = await resolveRoteiroUrl(event as any);
   }
 
+  const canDelegateVideomaker = canRoleDelegateVideomaker(user.role);
+  const videomakerRequired = isVideomakerObrigatorioParaRole(user.role);
+
   const supabase = await createClient();
-  const [{ data: profiles = [] }, { data: clientes = [] }] = await Promise.all([
+  const [{ data: profiles = [] }, { data: clientes = [] }, videomakers] = await Promise.all([
     supabase.from("profiles").select("id, nome").eq("ativo", true).order("nome"),
     supabase.from("clients").select("id, nome").eq("status", "ativo").order("nome"),
+    canDelegateVideomaker ? listVideomakersAtivos() : Promise.resolve([]),
   ]);
 
   async function deleteEvent() {
@@ -157,10 +163,14 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
               localizacao_maps_url: event.localizacao_maps_url ?? null,
               link_roteiro: event.link_roteiro ?? null,
               observacoes_gravacao: event.observacoes_gravacao ?? null,
+              videomaker_assigned_id: event.videomaker_assigned_id ?? null,
             }}
             profiles={profiles ?? []}
             clientes={clientes ?? []}
+            videomakers={videomakers ?? []}
             canCreateVideomaker={canCreateVideomaker}
+            canDelegateVideomaker={canDelegateVideomaker}
+            videomakerRequired={videomakerRequired}
             submitLabel="Salvar alterações"
           />
         ) : (
