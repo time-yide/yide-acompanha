@@ -9,16 +9,27 @@ export function BriefingEditor({ clientId, initial }: { clientId: string; initia
   const [text, setText] = useState(initial);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSaving(true);
-    const fd = new FormData();
-    fd.set("client_id", clientId);
-    fd.set("texto_markdown", text);
-    const result = await saveBriefingAction(fd);
-    setSaving(false);
-    if ("success" in result) setSavedAt(new Date().toLocaleTimeString("pt-BR"));
+    setError(null);
+    try {
+      const fd = new FormData();
+      fd.set("client_id", clientId);
+      fd.set("texto_markdown", text);
+      const result = await saveBriefingAction(fd);
+      if ("error" in result) {
+        setError(result.error ?? "Erro ao salvar o briefing.");
+      } else {
+        setSavedAt(new Date().toLocaleTimeString("pt-BR"));
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao salvar. Tente novamente.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -31,7 +42,13 @@ export function BriefingEditor({ clientId, initial }: { clientId: string; initia
         placeholder="# Objetivos&#10;&#10;# Persona&#10;&#10;# Tom de voz&#10;&#10;# KPIs..."
       />
       <div className="flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">{savedAt && `Salvo às ${savedAt}`}</span>
+        <span className="text-xs">
+          {error ? (
+            <span className="text-destructive">{error}</span>
+          ) : (
+            savedAt && <span className="text-muted-foreground">{`Salvo às ${savedAt}`}</span>
+          )}
+        </span>
         <Button type="submit" disabled={saving}>{saving ? "Salvando..." : "Salvar briefing"}</Button>
       </div>
     </form>
