@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { HiddenValuesProvider, HiddenValueToggle } from "./HiddenValuesContext";
 import { PainelAudiovisualSection } from "./audiovisual/PainelAudiovisualSection";
 import { AlertaOnboardingAtrasadoSection } from "./AlertaOnboardingAtrasado";
+import { MesSelector } from "./MesSelector";
 import {
   AlertaAprovacaoSection,
   KpiRowSection,
@@ -21,14 +22,25 @@ import {
 interface Props {
   userId: string;
   nome: string;
+  mes: string;
+  mesAtual: string;
+  meses: string[];
 }
 
 /**
  * Shell síncrono. Cada seção streama via Suspense - saudação aparece
  * imediatamente, KPIs/charts/listas chegam quando suas queries resolvem.
  * Mobile vê algo em ~300ms ao invés de esperar 2s+ pelo Promise.all.
+ *
+ * `mes` (do MesSelector) re-escopa KPIs, gráficos e carteira por assessor a um
+ * mês fechado. Seções "ao vivo" (alertas, remuneração em curso, satisfação da
+ * semana, próximos eventos, Instagram, painel audiovisual) só fazem sentido no
+ * mês corrente — quando `mes` é histórico, ficam ocultas pra não mostrar dado
+ * do "agora" rotulado como se fosse daquele mês.
  */
-export function DashboardSocioAdm({ userId, nome }: Props) {
+export function DashboardSocioAdm({ userId, nome, mes, mesAtual, meses }: Props) {
+  const isMesAtual = mes === mesAtual;
+
   return (
     <HiddenValuesProvider>
       <div className="space-y-4 sm:space-y-6">
@@ -39,56 +51,73 @@ export function DashboardSocioAdm({ userId, nome }: Props) {
             </h1>
             <p className="text-sm text-muted-foreground">Visão geral da agência</p>
           </div>
-          <HiddenValueToggle />
+          <div className="flex flex-col items-end gap-2">
+            <MesSelector mes={mes} meses={meses} mesAtual={mesAtual} />
+            <HiddenValueToggle />
+          </div>
         </header>
 
-        <Suspense fallback={null}>
-          <AlertaAprovacaoSection />
-        </Suspense>
+        {isMesAtual && (
+          <Suspense fallback={null}>
+            <AlertaAprovacaoSection />
+          </Suspense>
+        )}
 
-        <Suspense fallback={null}>
-          <AlertaOnboardingAtrasadoSection userId={userId} role="socio" />
-        </Suspense>
+        {isMesAtual && (
+          <Suspense fallback={null}>
+            <AlertaOnboardingAtrasadoSection userId={userId} role="socio" />
+          </Suspense>
+        )}
 
         <Suspense fallback={<KpiRowSkeleton />}>
-          <KpiRowSection />
+          <KpiRowSection mes={mes} />
         </Suspense>
 
-        <Suspense fallback={<RemuneracaoSkeleton />}>
-          <RemuneracaoSection userId={userId} />
-        </Suspense>
+        {isMesAtual && (
+          <Suspense fallback={<RemuneracaoSkeleton />}>
+            <RemuneracaoSection userId={userId} />
+          </Suspense>
+        )}
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Suspense fallback={<ChartSkeleton />}>
-            <CarteiraTimelineSection />
+            <CarteiraTimelineSection mes={mes} />
           </Suspense>
           <Suspense fallback={<ChartSkeleton />}>
-            <EntradaChurnSection />
+            <EntradaChurnSection mes={mes} />
           </Suspense>
         </div>
 
         <Suspense fallback={<ListSkeleton rows={6} />}>
-          <CarteiraPorAssessorSection />
+          <CarteiraPorAssessorSection mes={mes} />
         </Suspense>
 
-        <Suspense fallback={<ListSkeleton rows={5} />}>
-          <InstagramPostsSection
-            assessorId={null}
-            titulo="Postagens no Instagram (Geral)"
-          />
-        </Suspense>
+        {isMesAtual && (
+          <Suspense fallback={<ListSkeleton rows={5} />}>
+            <InstagramPostsSection
+              assessorId={null}
+              titulo="Postagens no Instagram (Geral)"
+            />
+          </Suspense>
+        )}
 
-        <Suspense fallback={<ListSkeleton rows={5} />}>
-          <RankingSection />
-        </Suspense>
+        {isMesAtual && (
+          <Suspense fallback={<ListSkeleton rows={5} />}>
+            <RankingSection />
+          </Suspense>
+        )}
 
-        <Suspense fallback={<ListSkeleton rows={5} />}>
-          <ProximosEventosSection />
-        </Suspense>
+        {isMesAtual && (
+          <Suspense fallback={<ListSkeleton rows={5} />}>
+            <ProximosEventosSection />
+          </Suspense>
+        )}
 
-        <Suspense fallback={<ListSkeleton rows={4} />}>
-          <PainelAudiovisualSection />
-        </Suspense>
+        {isMesAtual && (
+          <Suspense fallback={<ListSkeleton rows={4} />}>
+            <PainelAudiovisualSection />
+          </Suspense>
+        )}
       </div>
     </HiddenValuesProvider>
   );
