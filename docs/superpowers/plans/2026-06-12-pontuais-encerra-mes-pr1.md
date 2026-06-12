@@ -499,23 +499,19 @@ No grupo de abas (linhas 161-163), após a aba de Churn, adicionar:
 
 - [ ] **Step 3: Ajustar o cálculo de `activeTab`**
 
-Localizar onde `activeTab` é derivado (logo acima das abas, procurar por `activeTab =`). Garantir que cobre `concluido`. Se for algo como:
+Trocar o bloco `activeTab` (linhas 86-92) por (adiciona `concluido` ao tipo e ao encadeamento):
 
 ```ts
-const activeTab = status === "churn" ? "churn" : status === "ativo" ? "ativos" : "todos";
+  const activeTab: "ativos" | "churn" | "concluido" | "todos" | "carteira" = isMinhaCarteira
+    ? "carteira"
+    : status === "ativo"
+      ? "ativos"
+      : status === "churn"
+        ? "churn"
+        : status === "concluido"
+          ? "concluido"
+          : "todos";
 ```
-
-trocar por:
-
-```ts
-const activeTab =
-  status === "churn" ? "churn"
-  : status === "concluido" ? "concluido"
-  : status === "ativo" ? "ativos"
-  : "todos";
-```
-
-> Se a derivação real do `activeTab` no arquivo for diferente, adaptar mantendo o mapeamento `status==='concluido' → 'concluido'`. Conferir lendo o trecho antes de editar.
 
 - [ ] **Step 4: Type-check + lint**
 
