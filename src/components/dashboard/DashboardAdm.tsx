@@ -4,7 +4,6 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import {
   listClientPaymentsForMonth,
   listPayrollForMonth,
-  getCurrentMonthRef,
 } from "@/lib/pagamentos/queries";
 import { KpiRowAdm } from "./adm/KpiRowAdm";
 import { LeadsContratoCard } from "./adm/LeadsContratoCard";
@@ -14,6 +13,7 @@ import { RankingResumo } from "./RankingResumo";
 import { ProximosEventosList } from "./ProximosEventosList";
 import { PainelAudiovisualSection } from "./audiovisual/PainelAudiovisualSection";
 import { AlertaOnboardingAtrasadoSection } from "./AlertaOnboardingAtrasado";
+import { MesSelector } from "./MesSelector";
 import { Section } from "./Section";
 import { InstagramPostsSection } from "./sections";
 import { Suspense } from "react";
@@ -31,6 +31,9 @@ function IgListSkeleton() {
 interface Props {
   userId: string;
   nome: string;
+  mes: string;
+  mesAtual: string;
+  meses: string[];
 }
 
 async function getEmAcompanhamentoCount(): Promise<number> {
@@ -43,41 +46,57 @@ async function getEmAcompanhamentoCount(): Promise<number> {
   return count ?? 0;
 }
 
-export async function DashboardAdm({ userId, nome }: Props) {
-  const mes = getCurrentMonthRef();
+/**
+ * `mes` (do MesSelector) re-escopa KPIs e as tabelas de pagamento (cliente +
+ * folha) a um mês fechado. Seções "ao vivo" — leads em contrato, satisfação da
+ * semana, próximos eventos, Instagram, painel audiovisual e o alerta de
+ * onboarding — só aparecem no mês corrente.
+ */
+export async function DashboardAdm({ userId, nome, mes, mesAtual, meses }: Props) {
+  const isMesAtual = mes === mesAtual;
 
-  const [kpis, leadsByStage, emAcompanhamento, ranking, eventos, clientPayments, payroll] = await Promise.all([
-    getKpis(),
-    listLeadsByStage(),
-    getEmAcompanhamentoCount(),
-    getRankingSatisfacao(),
-    // ADM só vê eventos administrativos: agencia (reuniões internas),
-    // onboarding (reuniões comerciais que ela acompanha) e aniversarios.
-    // Gravações de videomaker e eventos de assessor/coord ficam de fora.
-    getProximosEventos(30, 8, { subCalendars: ["agencia", "onboarding", "aniversarios"] }),
-    listClientPaymentsForMonth(mes),
-    listPayrollForMonth(mes),
-  ]);
+  const [kpis, emAcompanhamento, clientPayments, payroll, leadsByStage, ranking, eventos] =
+    await Promise.all([
+      getKpis(undefined, mes),
+      getEmAcompanhamentoCount(),
+      listClientPaymentsForMonth(mes),
+      listPayrollForMonth(mes),
+      isMesAtual ? listLeadsByStage() : Promise.resolve(null),
+      isMesAtual ? getRankingSatisfacao() : Promise.resolve({ top: [], bottom: [] }),
+      // ADM só vê eventos administrativos: agencia (reuniões internas),
+      // onboarding (reuniões comerciais que ela acompanha) e aniversarios.
+      // Gravações de videomaker e eventos de assessor/coord ficam de fora.
+      isMesAtual
+        ? getProximosEventos(30, 8, { subCalendars: ["agencia", "onboarding", "aniversarios"] })
+        : Promise.resolve([]),
+    ]);
 
-  const leadsContrato = leadsByStage.contrato ?? [];
+  const leadsContrato = leadsByStage?.contrato ?? [];
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <header>
-        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Olá, {nome.split(" ")[0]}</h1>
-        <p className="text-sm text-muted-foreground">Visão administrativa</p>
+      <header className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Olá, {nome.split(" ")[0]}</h1>
+          <p className="text-sm text-muted-foreground">Visão administrativa</p>
+        </div>
+        <MesSelector mes={mes} meses={meses} mesAtual={mesAtual} />
       </header>
 
-      <Suspense fallback={null}>
-        <AlertaOnboardingAtrasadoSection userId={userId} role="adm" />
-      </Suspense>
+      {isMesAtual && (
+        <Suspense fallback={null}>
+          <AlertaOnboardingAtrasadoSection userId={userId} role="adm" />
+        </Suspense>
+      )}
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <LeadsContratoCard leads={leadsContrato} />
-        <Section title="Próximos eventos" cta={{ href: "/calendario", label: "Ver agenda →" }}>
-          <ProximosEventosList eventos={eventos} />
-        </Section>
-      </div>
+      {isMesAtual && (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <LeadsContratoCard leads={leadsContrato} />
+          <Section title="Próximos eventos" cta={{ href: "/calendario", label: "Ver agenda →" }}>
+            <ProximosEventosList eventos={eventos} />
+          </Section>
+        </div>
+      )}
 
       <KpiRowAdm
         clientesAtivos={kpis.clientesAtivos.quantidade}
@@ -88,24 +107,28 @@ export async function DashboardAdm({ userId, nome }: Props) {
         pontuaisConcluidosMes={kpis.servicosPontuais.concluidosMes}
       />
 
-      <Section
-        title="Satisfação"
-        subtitle="Top 10 mais e menos satisfeitos da semana"
-        cta={{ href: "/satisfacao", label: "Ver completo →" }}
-      >
-        <RankingResumo top={ranking.top} bottom={ranking.bottom} />
-      </Section>
+      {isMesAtual && (
+        <Section
+          title="Satisfação"
+          subtitle="Top 10 mais e menos satisfeitos da semana"
+          cta={{ href: "/satisfacao", label: "Ver completo →" }}
+        >
+          <RankingResumo top={ranking.top} bottom={ranking.bottom} />
+        </Section>
+      )}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <ClientPaymentsTable rows={clientPayments} mesReferencia={mes} />
         <PayrollPaymentsTable rows={payroll} mesReferencia={mes} />
       </div>
 
-      <Suspense fallback={<IgListSkeleton />}>
-        <InstagramPostsSection assessorId={null} titulo="Postagens no Instagram (Geral)" />
-      </Suspense>
+      {isMesAtual && (
+        <Suspense fallback={<IgListSkeleton />}>
+          <InstagramPostsSection assessorId={null} titulo="Postagens no Instagram (Geral)" />
+        </Suspense>
+      )}
 
-      <PainelAudiovisualSection />
+      {isMesAtual && <PainelAudiovisualSection />}
     </div>
   );
 }

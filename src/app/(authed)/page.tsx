@@ -40,10 +40,10 @@ function renderDashboardForRole(
   mesCtx: { mes: string; mesAtual: string; meses: string[] },
 ) {
   if (target.role === "socio") {
-    return <DashboardSocioAdm userId={target.id} nome={target.nome} />;
+    return <DashboardSocioAdm userId={target.id} nome={target.nome} {...mesCtx} />;
   }
   if (target.role === "adm") {
-    return <DashboardAdm userId={target.id} nome={target.nome} />;
+    return <DashboardAdm userId={target.id} nome={target.nome} {...mesCtx} />;
   }
   if (target.role === "coordenador") {
     return <DashboardCoord userId={target.id} nome={target.nome} {...mesCtx} />;

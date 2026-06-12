@@ -77,15 +77,18 @@ export async function AlertaAprovacaoSection() {
   return <AlertaAprovacao mes={aprovacao?.mes ?? null} />;
 }
 
-export async function KpiRowSection() {
+// `mes` ('YYYY-MM') opcional: quando omitido, queries caem no mês corrente
+// (mesmo comportamento de antes). Passado pelo DashboardSocioAdm a partir do
+// MesSelector pra re-escopar KPIs/gráficos a um mês fechado.
+export async function KpiRowSection({ mes }: { mes?: string }) {
   const unitId = await getEffectiveUnitId();
-  const kpis = await getKpis({ unitId });
+  const kpis = await getKpis({ unitId }, mes);
   return <KpiRow kpis={kpis} />;
 }
 
-export async function CarteiraTimelineSection() {
+export async function CarteiraTimelineSection({ mes }: { mes?: string }) {
   const unitId = await getEffectiveUnitId();
-  const data = await getCarteiraTimeline(12, { unitId });
+  const data = await getCarteiraTimeline(12, { unitId }, mes);
   return (
     <Section title="Evolução da carteira" subtitle="Últimos 12 meses">
       <ChartCarteiraTimelineLazy data={data} />
@@ -93,9 +96,9 @@ export async function CarteiraTimelineSection() {
   );
 }
 
-export async function EntradaChurnSection() {
+export async function EntradaChurnSection({ mes }: { mes?: string }) {
   const unitId = await getEffectiveUnitId();
-  const data = await getEntradaChurn(6, { unitId });
+  const data = await getEntradaChurn(6, { unitId }, mes);
   return (
     <Section title="Entrada vs Churn" subtitle="Últimos 6 meses">
       <ChartEntradaChurnLazy data={data} />
@@ -103,9 +106,9 @@ export async function EntradaChurnSection() {
   );
 }
 
-export async function CarteiraPorAssessorSection() {
+export async function CarteiraPorAssessorSection({ mes }: { mes?: string }) {
   const unitId = await getEffectiveUnitId();
-  const items = await getCarteiraPorAssessor({ unitId });
+  const items = await getCarteiraPorAssessor({ unitId }, mes);
   return (
     <Section title="Carteira por assessor">
       <CarteiraPorAssessorList items={items} />
