@@ -4,6 +4,7 @@ const map: Record<string, { label: string; cls: string }> = {
   ativo: { label: "Ativo", cls: "border-emerald-500/40 text-emerald-600 dark:text-emerald-400" },
   churn: { label: "Churn", cls: "border-rose-500/40 text-rose-600 dark:text-rose-400" },
   em_onboarding: { label: "Onboarding", cls: "border-blue-500/40 text-blue-600 dark:text-blue-400" },
+  concluido: { label: "Concluído", cls: "border-slate-500/40 text-slate-600 dark:text-slate-400" },
 };
 
 export function StatusBadge({ status }: { status: string }) {

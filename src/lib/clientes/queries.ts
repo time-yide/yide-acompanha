@@ -9,7 +9,7 @@ export interface ClienteRow {
   telefone: string | null;
   valor_mensal: number;
   servico_contratado: string | null;
-  status: "ativo" | "churn" | "em_onboarding";
+  status: "ativo" | "churn" | "em_onboarding" | "concluido";
   data_entrada: string;
   assessor_id: string | null;
   coordenador_id: string | null;
@@ -23,7 +23,7 @@ export interface ClienteRow {
 }
 
 export interface ListClientesFilters {
-  status?: "ativo" | "churn" | "em_onboarding";
+  status?: "ativo" | "churn" | "em_onboarding" | "concluido";
   assessorId?: string;
   /** Filtra clientes onde o usuário é assessor OU coordenador. */
   responsibleUserId?: string;

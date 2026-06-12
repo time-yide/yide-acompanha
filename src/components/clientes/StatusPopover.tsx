@@ -14,13 +14,14 @@ import { getTodayDate } from "@/lib/datetime/timezone";
 
 interface Props {
   clienteId: string;
-  current: "ativo" | "churn" | "em_onboarding";
+  current: "ativo" | "churn" | "em_onboarding" | "concluido";
 }
 
 const BADGE: Record<Props["current"], { label: string; cls: string }> = {
   ativo: { label: "Ativo", cls: "border-emerald-500/40 text-emerald-600 dark:text-emerald-400" },
   churn: { label: "Churn", cls: "border-rose-500/40 text-rose-600 dark:text-rose-400" },
   em_onboarding: { label: "Onboarding", cls: "border-blue-500/40 text-blue-600 dark:text-blue-400" },
+  concluido: { label: "Concluído", cls: "border-slate-500/40 text-slate-600 dark:text-slate-400" },
 };
 
 // "Hoje" no fuso da app (Cuiabá). Antes usava toISOString() que dá UTC -
@@ -148,6 +149,21 @@ export function StatusPopover({ clienteId, current }: Props) {
             <div className="text-sm font-medium text-foreground">Cliente em onboarding</div>
             <p className="text-xs text-muted-foreground">
               Use a página de detalhe do cliente pra mudar o status.
+            </p>
+            <div className="flex justify-end">
+              <Button type="button" variant="ghost" size="sm" onClick={() => handleOpenChange(false)}>
+                Fechar
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {current === "concluido" && (
+          <div className="space-y-3">
+            <div className="text-sm font-medium text-foreground">Serviço pontual concluído</div>
+            <p className="text-xs text-muted-foreground">
+              Pontual encerra automaticamente no fim do mês de entrada. Pra reabrir,
+              edite o cliente e mude a modalidade ou as datas.
             </p>
             <div className="flex justify-end">
               <Button type="button" variant="ghost" size="sm" onClick={() => handleOpenChange(false)}>
