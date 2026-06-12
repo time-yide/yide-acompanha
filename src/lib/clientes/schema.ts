@@ -44,7 +44,7 @@ export type TipoRelacaoCliente = (typeof TIPOS_RELACAO)[number];
 export const MODALIDADES = ["mensal", "pontual"] as const;
 export type ModalidadeCliente = (typeof MODALIDADES)[number];
 
-export const STATUSES = ["ativo", "churn", "em_onboarding"] as const;
+export const STATUSES = ["ativo", "churn", "em_onboarding", "concluido"] as const;
 
 export const CADENCIAS_REUNIAO = ["semanal", "quinzenal", "mensal", "trimestral"] as const;
 export type CadenciaReuniao = (typeof CADENCIAS_REUNIAO)[number];
