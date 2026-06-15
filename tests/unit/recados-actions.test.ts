@@ -210,3 +210,58 @@ describe("reagirRecadoAction", () => {
     expect(result).toEqual({ error: "Emoji inválido" });
   });
 });
+
+describe("criarRecadoAction — privado", () => {
+  it("rejeita privado sem destinatarios", async () => {
+    requireAuthMock.mockResolvedValue(ACTOR_ASSESSOR);
+    const fd = new FormData();
+    fd.set("titulo", "oi");
+    fd.set("corpo", "corpo");
+    fd.set("notif_scope", "nenhum");
+    fd.set("privado", "true");
+    fd.set("destinatarios", "[]");
+    const r = await criarRecadoAction(fd);
+    expect(r.error).toBeTruthy();
+  });
+
+  it("cria privado, grava destinatarios e notifica só eles", async () => {
+    requireAuthMock.mockResolvedValue(ACTOR_ASSESSOR);
+
+    const insertDestSelect = vi.fn().mockResolvedValue({
+      data: [{ recado_id: "rec-1", user_id: "dest-1" }],
+      error: null,
+    });
+    const destInsert = vi.fn(() => ({ select: insertDestSelect }));
+
+    fromMock.mockImplementation((table: string) => {
+      if (table === "recados") {
+        return {
+          insert: () => ({
+            select: () => ({
+              single: () => Promise.resolve({ data: { id: "rec-1", titulo: "oi" }, error: null }),
+            }),
+          }),
+        };
+      }
+      if (table === "recado_destinatarios") {
+        return { insert: destInsert };
+      }
+      return {};
+    });
+
+    const fd = new FormData();
+    fd.set("titulo", "oi");
+    fd.set("corpo", "corpo");
+    fd.set("notif_scope", "nenhum");
+    fd.set("privado", "true");
+    fd.set("destinatarios", JSON.stringify(["dest-1"]));
+
+    const r = await criarRecadoAction(fd);
+    expect(r.success).toBe(true);
+    expect(destInsert).toHaveBeenCalledWith([{ recado_id: "rec-1", user_id: "dest-1" }]);
+    expect(dispatchMock).toHaveBeenCalledTimes(1);
+    const arg = dispatchMock.mock.calls[0][0];
+    expect(arg.user_ids_extras).toEqual(["dest-1"]);
+    expect(arg.source_user_id).toBe(ACTOR_ASSESSOR.id);
+  });
+});
