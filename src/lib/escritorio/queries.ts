@@ -14,8 +14,20 @@ export async function listChannels(): Promise<Channel[]> {
   const { data, error } = await sb
     .from("chat_channels")
     .select("id, kind, nome, descricao, ordem")
+    .is("deleted_at", null)
     .order("ordem", { ascending: true });
-  if (error) throw error;
+  if (error) {
+    const msg = String(error.message ?? "");
+    // Pré-migration: deleted_at não existe → lista sem o filtro.
+    if (msg.includes("deleted_at") || msg.includes("schema cache")) {
+      const fb = await sb
+        .from("chat_channels")
+        .select("id, kind, nome, descricao, ordem")
+        .order("ordem", { ascending: true });
+      return (fb.data ?? []) as Channel[];
+    }
+    throw error;
+  }
   return (data ?? []) as Channel[];
 }
 
@@ -39,6 +51,7 @@ async function _listChannelsWithUnreadImpl(
     .from("chat_channels")
     .select("id, kind, nome, descricao, ordem, member_ids, icon_url, unit_id")
     .neq("kind", "direct")
+    .is("deleted_at", null)
     .order("ordem", { ascending: true });
   // Multi-tenant: filtra canais role-based pela unidade ativa.
   // unitId null = sem filtro (master vendo "todas" no futuro / migration não rodada).
@@ -51,12 +64,13 @@ async function _listChannelsWithUnreadImpl(
   let roleChannelsData = roleChannels;
   if (roleErr) {
     const msg = String(roleErr.message ?? "");
-    if (msg.includes("unit_id") || msg.includes("schema cache")) {
-      console.warn("[escritorio/queries] chat_channels.unit_id não existe, fallback sem filtro:", msg);
+    if (msg.includes("unit_id") || msg.includes("deleted_at") || msg.includes("schema cache")) {
+      console.warn("[escritorio/queries] chat_channels.unit_id/deleted_at não existe, fallback sem filtro:", msg);
       const fb = await sb
         .from("chat_channels")
         .select("id, kind, nome, descricao, ordem, member_ids, icon_url")
         .neq("kind", "direct")
+        .is("deleted_at", null)
         .order("ordem", { ascending: true });
       roleChannelsData = fb.data;
     } else {
@@ -243,7 +257,8 @@ async function _getChannelByKindImpl(kind: ChannelKind, unitId: string | null): 
   let q: any = sb
     .from("chat_channels")
     .select("id, kind, nome, descricao, ordem, unit_id")
-    .eq("kind", kind);
+    .eq("kind", kind)
+    .is("deleted_at", null);
   if (unitId !== null) {
     q = q.eq("unit_id", unitId);
   } else {
@@ -253,8 +268,8 @@ async function _getChannelByKindImpl(kind: ChannelKind, unitId: string | null): 
   const { data, error } = unitId !== null ? await q.maybeSingle() : await q;
   if (error) {
     const msg = String(error.message ?? "");
-    // Fallback pra ambientes sem unit_id ainda
-    if (msg.includes("unit_id") || msg.includes("schema cache")) {
+    // Fallback pra ambientes sem unit_id/deleted_at ainda
+    if (msg.includes("unit_id") || msg.includes("deleted_at") || msg.includes("schema cache")) {
       const fb = await sb
         .from("chat_channels")
         .select("id, kind, nome, descricao, ordem")
