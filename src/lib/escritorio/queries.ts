@@ -298,7 +298,10 @@ export async function getChannelByKind(
     async (k: string, uni: string) => _getChannelByKindImpl(k as ChannelKind, uni === "null" ? null : uni),
     // v2: ganhou unitId
     ["escritorio-channel-by-kind-v2"],
-    { revalidate: 300 },
+    // Tag pra invalidar quando um canal é soft-deletado/restaurado
+    // (deleteChannelAction/restoreChannelAction chamam revalidateTag).
+    // Sem isso, um canal excluído ainda abriria por URL direta por até 5min.
+    { revalidate: 300, tags: [ESCRITORIO_UNREAD_TAG] },
   );
   return cached(kind, unitId ?? "null");
 }

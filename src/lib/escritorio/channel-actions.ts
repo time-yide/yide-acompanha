@@ -59,7 +59,8 @@ export async function restoreChannelAction(channelId: string): Promise<ChannelAc
   const { error } = await sb
     .from("chat_channels")
     .update({ deleted_at: null, deleted_by: null })
-    .eq("id", channelId);
+    .eq("id", channelId)
+    .neq("kind", "direct"); // defensivo: DMs nunca são soft-deletados/restaurados
   if (error) return { error: error.message };
 
   revalidateTag(ESCRITORIO_UNREAD_TAG, "default");
