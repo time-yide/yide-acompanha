@@ -87,16 +87,15 @@ export async function criarRecadoAction(formData: FormData) {
   const supabase = await createClient();
   const { data: created, error } = await supabase
     .from("recados")
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .insert({
       autor_id: actor.id,
       autor_role_snapshot: actor.role,
       titulo: parsed.data.titulo,
       corpo: parsed.data.corpo,
       permanente: parsed.data.permanente,
-      privado: parsed.data.privado as any,
+      privado: parsed.data.privado,
       notif_scope: parsed.data.notif_scope,
-    } as any)
+    })
     .select("id, titulo")
     .single();
 
@@ -107,7 +106,7 @@ export async function criarRecadoAction(formData: FormData) {
       recado_id: created.id,
       user_id: uid,
     }));
-    const { data: insertedDest, error: destErr } = await (supabase as any)
+    const { data: insertedDest, error: destErr } = await supabase
       .from("recado_destinatarios")
       .insert(rows)
       .select("recado_id, user_id");
@@ -291,7 +290,7 @@ export async function marcarRecadosVistosAction() {
 export async function marcarPrivadosLidosAction() {
   const actor = await requireAuth();
   const supabase = await createClient();
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from("recado_destinatarios")
     .update({ lido_em: new Date().toISOString() })
     .eq("user_id", actor.id)
