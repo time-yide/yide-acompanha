@@ -30,6 +30,7 @@ interface Props {
   recado: RecadoRow;
   currentUserId: string;
   currentUserRole: string;
+  destinatariosLabel?: string;
 }
 
 function timeAgo(iso: string): string {
@@ -65,7 +66,7 @@ function aggregateReacoes(reacoes: RecadoRow["reacoes"], userId: string) {
     .sort((a, b) => (EMOJI_ORDER.get(a.emoji) ?? 99) - (EMOJI_ORDER.get(b.emoji) ?? 99));
 }
 
-export function RecadoCard({ recado, currentUserId, currentUserRole }: Props) {
+export function RecadoCard({ recado, currentUserId, currentUserRole, destinatariosLabel }: Props) {
   const isAuthor = recado.autor_id === currentUserId;
   const isPrivileged = currentUserRole === "socio" || currentUserRole === "adm";
   const canEdit = isAuthor || isPrivileged;
@@ -152,6 +153,9 @@ export function RecadoCard({ recado, currentUserId, currentUserRole }: Props) {
         </header>
 
         <div className="space-y-1">
+          {destinatariosLabel && (
+            <div className="text-[11px] font-medium text-primary">{destinatariosLabel}</div>
+          )}
           <div className="font-semibold">{recado.titulo}</div>
           <p className="whitespace-pre-wrap text-sm text-muted-foreground">{recado.corpo}</p>
         </div>
