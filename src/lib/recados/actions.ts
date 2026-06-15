@@ -291,18 +291,3 @@ export async function marcarRecadosVistosAction() {
   revalidatePath("/", "layout");
   return { success: true };
 }
-
-export async function marcarPrivadosLidosAction() {
-  const actor = await requireAuth();
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("recado_destinatarios")
-    .update({ lido_em: new Date().toISOString() })
-    .eq("user_id", actor.id)
-    .is("lido_em", null);
-  if (error) return { error: error.message };
-
-  revalidateTag("recados", "default");
-  revalidatePath("/", "layout");
-  return { success: true };
-}
