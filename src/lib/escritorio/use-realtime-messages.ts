@@ -58,6 +58,7 @@ export function useRealtimeMessages(
     let channelRef: any = null;
     let unsubAuth: (() => void) | null = null;
     let pollTimer: ReturnType<typeof setInterval> | null = null;
+    let resubTimer: ReturnType<typeof setTimeout> | null = null;
 
     /**
      * Fetch de mensagens novas (criadas após a mais recente conhecida).
@@ -111,24 +112,31 @@ export function useRealtimeMessages(
      */
     async function pollNew() {
       if (cancelled || document.hidden) return;
-      const last = messagesRef.current[messagesRef.current.length - 1];
-      const since = last?.created_at;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sb = supabase as any;
-      let q = sb
-        .from("chat_messages")
-        .select("id, created_at")
-        .eq("channel_id", channelId)
-        .order("created_at", { ascending: true })
-        .limit(50);
-      if (since) q = q.gt("created_at", since);
-      const { data } = await q;
-      const rows = (data ?? []) as Array<{ id: string; created_at: string }>;
-      if (rows.length === 0) return;
-      // Enriquece em paralelo e adiciona em ordem
-      const enriched = await Promise.all(rows.map((r) => fetchMessage(r.id)));
-      for (const m of enriched) {
-        if (m) appendIfNew(m);
+      try {
+        const last = messagesRef.current[messagesRef.current.length - 1];
+        const since = last?.created_at;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const sb = supabase as any;
+        let q = sb
+          .from("chat_messages")
+          .select("id, created_at")
+          .eq("channel_id", channelId)
+          .order("created_at", { ascending: true })
+          .limit(50);
+        if (since) q = q.gt("created_at", since);
+        const { data, error } = await q;
+        if (error) {
+          console.warn("[escritorio realtime] pollNew error:", error.message);
+          return;
+        }
+        const rows = (data ?? []) as Array<{ id: string; created_at: string }>;
+        if (rows.length === 0) return;
+        const enriched = await Promise.all(rows.map((r) => fetchMessage(r.id)));
+        for (const m of enriched) {
+          if (m) appendIfNew(m);
+        }
+      } catch (e) {
+        console.warn("[escritorio realtime] pollNew exception:", e);
       }
     }
 
@@ -141,12 +149,8 @@ export function useRealtimeMessages(
       if (!document.hidden) void pollNew();
     }
 
-    async function start() {
-      // 1. Autentica o websocket (ver src/lib/supabase/realtime-auth.ts)
-      unsubAuth = await authenticateRealtime(supabase);
+    function subscribe() {
       if (cancelled) return;
-
-      // 2. Subscribe no canal de postgres_changes.
       const ch = supabase
         .channel(`chat:${channelId}`)
         .on(
@@ -162,13 +166,50 @@ export function useRealtimeMessages(
             if (enriched) appendIfNew(enriched);
           },
         )
-        .subscribe();
-
+        .subscribe((status: string) => {
+          if (
+            status === "CHANNEL_ERROR" ||
+            status === "TIMED_OUT" ||
+            status === "CLOSED"
+          ) {
+            console.warn(
+              `[escritorio realtime] status "${status}" no canal ${channelId}; re-subscrevendo em 3s`,
+            );
+            void pollNew();
+            if (channelRef) {
+              supabase.removeChannel(channelRef);
+              channelRef = null;
+            }
+            if (!cancelled && !resubTimer) {
+              resubTimer = setTimeout(() => {
+                resubTimer = null;
+                subscribe();
+              }, 3000);
+            }
+          }
+        });
       channelRef = ch;
+    }
 
-      // 3. Polling fallback (5s) caso realtime falhe silenciosamente.
+    async function start() {
+      // Polling + visibility começam JÁ, independente do realtime auth.
+      // Se authenticateRealtime falhar/travar, o polling (5s) garante que
+      // mensagens novas apareçam mesmo assim — esse era o bug do "nunca atualiza".
+      void pollNew();
       pollTimer = setInterval(() => void pollNew(), POLL_INTERVAL_MS);
       document.addEventListener("visibilitychange", onVisibilityChange);
+
+      // Realtime é best-effort por cima do polling.
+      try {
+        unsubAuth = await authenticateRealtime(supabase);
+      } catch (e) {
+        console.warn(
+          "[escritorio realtime] authenticateRealtime falhou; seguindo só com polling:",
+          e,
+        );
+      }
+      if (cancelled) return;
+      subscribe();
     }
 
     void start();
@@ -178,6 +219,7 @@ export function useRealtimeMessages(
       unsubAuth?.();
       if (channelRef) supabase.removeChannel(channelRef);
       if (pollTimer) clearInterval(pollTimer);
+      if (resubTimer) clearTimeout(resubTimer);
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [channelId, currentUserId]);
