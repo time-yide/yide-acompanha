@@ -8,6 +8,7 @@ import {
 } from "@/lib/escritorio/queries";
 import { canAccessDmChannel, type Channel } from "@/lib/escritorio/types";
 import { ChannelSidebar } from "@/components/escritorio/ChannelSidebar";
+import { listDeletedChannels } from "@/lib/escritorio/channel-actions";
 import { ChannelView } from "@/components/escritorio/ChannelView";
 import { getEffectiveUnitId } from "@/lib/units/session";
 import { getProfileIdsForActiveUnit } from "@/lib/units/filter-helpers";
@@ -63,11 +64,12 @@ export default async function DmPage({ params }: { params: Promise<{ id: string 
       pessoasQ = pessoasQ.in("id", unitProfileIds);
     }
   }
-  const [messages, sidebarChannels, mentionables, pessoasRes] = await Promise.all([
+  const [messages, sidebarChannels, mentionables, pessoasRes, deletedChannels] = await Promise.all([
     listMessages(channel.id, 50),
     listChannelsWithUnread(user.id, user.role, unitId),
     listMentionables(unitProfileIds),
     pessoasQ.order("nome"),
+    listDeletedChannels(user.role),
   ]);
   const pessoas = (pessoasRes.data ?? []) as Array<{ id: string; nome: string; role: string; avatar_url: string | null }>;
 
@@ -79,6 +81,8 @@ export default async function DmPage({ params }: { params: Promise<{ id: string 
         currentChannelId={channel.id}
         pessoas={pessoas}
         viewerId={user.id}
+        viewerRole={user.role}
+        deletedChannels={deletedChannels}
       />
       <ChannelView
         key={channel.id}
