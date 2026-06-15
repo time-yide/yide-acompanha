@@ -10,6 +10,7 @@ import { logActivityInternal } from "@/lib/produtividade/actions";
 import { PAINEL_CACHE_TAG } from "@/lib/painel/queries";
 import { createClienteSchema, editClienteSchema, churnClienteSchema, inferTipoPacote, TIPOS_RELACAO } from "./schema";
 import { getTodayDate } from "@/lib/datetime/timezone";
+import { dataConclusaoPontual, pontualMesEncerrado } from "@/lib/clientes/pontual";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -63,6 +64,19 @@ export async function createClienteAction(formData: FormData) {
   // Parceria/permuta: força valor_mensal = 0
   const tipoRelacao = parsed.data.tipo_relacao ?? "comum";
   const valorMensal = tipoRelacao !== "comum" ? 0 : parsed.data.valor_mensal;
+  // Pontual: serviço único que encerra no fim do mês de entrada.
+  // Grava a data de conclusão já no cadastro (= último dia do mês de entrada);
+  // se o mês já passou (backdate), nasce concluído.
+  const dataEntradaResolvida = parsed.data.data_entrada || getTodayDate();
+  const isPontual = (parsed.data.modalidade ?? "mensal") === "pontual";
+  const pontualFields = isPontual
+    ? {
+        data_churn: dataConclusaoPontual(dataEntradaResolvida),
+        ...(pontualMesEncerrado(dataEntradaResolvida, getTodayDate())
+          ? { status: "concluido" as const }
+          : {}),
+      }
+    : {};
   const insertPayload = {
     organization_id: org.id,
     unit_id: unitId,
@@ -72,7 +86,7 @@ export async function createClienteAction(formData: FormData) {
     telefone: parsed.data.telefone || null,
     valor_mensal: valorMensal,
     servico_contratado: parsed.data.servico_contratado || null,
-    data_entrada: parsed.data.data_entrada || getTodayDate(),
+    data_entrada: dataEntradaResolvida,
     assessor_id: parsed.data.assessor_id || null,
     coordenador_id: parsed.data.coordenador_id || null,
     data_aniversario_socio_cliente: parsed.data.data_aniversario_socio_cliente || null,
@@ -84,6 +98,7 @@ export async function createClienteAction(formData: FormData) {
     valor_trafego_meta: parsed.data.valor_trafego_meta ?? null,
     tipo_relacao: tipoRelacao,
     modalidade: parsed.data.modalidade ?? "mensal",
+    ...pontualFields,
   };
 
   const { data: created, error } = await supabase
@@ -175,6 +190,17 @@ export async function updateClienteAction(formData: FormData) {
   // Parceria/permuta: força valor_mensal = 0
   const tipoRelacaoEdit = parsed.data.tipo_relacao ?? "comum";
   const valorMensalEdit = tipoRelacaoEdit !== "comum" ? 0 : parsed.data.valor_mensal;
+  // Pontual: mantém a data de conclusão coerente com a data de entrada editada.
+  const dataEntradaEdit = parsed.data.data_entrada || before.data_entrada;
+  const isPontualEdit = (parsed.data.modalidade ?? "mensal") === "pontual";
+  const pontualFieldsEdit = isPontualEdit
+    ? {
+        data_churn: dataConclusaoPontual(dataEntradaEdit),
+        status: (pontualMesEncerrado(dataEntradaEdit, getTodayDate())
+          ? "concluido"
+          : "ativo") as "concluido" | "ativo",
+      }
+    : {};
   const updatePayload = {
     nome: parsed.data.nome,
     contato_principal: parsed.data.contato_principal || null,
@@ -182,7 +208,7 @@ export async function updateClienteAction(formData: FormData) {
     telefone: parsed.data.telefone || null,
     valor_mensal: valorMensalEdit,
     servico_contratado: parsed.data.servico_contratado || null,
-    data_entrada: parsed.data.data_entrada || before.data_entrada,
+    data_entrada: dataEntradaEdit,
     assessor_id: parsed.data.assessor_id || null,
     coordenador_id: parsed.data.coordenador_id || null,
     data_aniversario_socio_cliente: parsed.data.data_aniversario_socio_cliente || null,
@@ -202,6 +228,7 @@ export async function updateClienteAction(formData: FormData) {
     valor_trafego_meta: parsed.data.valor_trafego_meta ?? null,
     tipo_relacao: tipoRelacaoEdit,
     modalidade: parsed.data.modalidade ?? "mensal",
+    ...pontualFieldsEdit,
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

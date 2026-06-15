@@ -32,9 +32,9 @@ export default async function ClientesPage({ searchParams }: { searchParams: Pro
     : undefined;
 
   // Em "Minha carteira" forçamos status=ativo (decisão de produto: carteira = ativos).
-  const status: "ativo" | "churn" | undefined = isMinhaCarteira
+  const status: "ativo" | "churn" | "concluido" | undefined = isMinhaCarteira
     ? "ativo"
-    : ((params.status as "ativo" | "churn" | undefined) ?? undefined);
+    : ((params.status as "ativo" | "churn" | "concluido" | undefined) ?? undefined);
 
   // Drill-down filters (vindos dos KPIs do dashboard).
   const modalidade: "mensal" | "pontual" | undefined =
@@ -83,13 +83,15 @@ export default async function ClientesPage({ searchParams }: { searchParams: Pro
         .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))
     : [];
 
-  const activeTab: "ativos" | "churn" | "todos" | "carteira" = isMinhaCarteira
+  const activeTab: "ativos" | "churn" | "concluido" | "todos" | "carteira" = isMinhaCarteira
     ? "carteira"
     : status === "ativo"
       ? "ativos"
       : status === "churn"
         ? "churn"
-        : "todos";
+        : status === "concluido"
+          ? "concluido"
+          : "todos";
   const tabClass = (active: boolean) =>
     active ? "font-semibold text-primary" : "text-muted-foreground";
 
@@ -161,6 +163,8 @@ export default async function ClientesPage({ searchParams }: { searchParams: Pro
         <Link href="/clientes?status=ativo" className={tabClass(activeTab === "ativos")}>Ativos</Link>
         <span className="text-muted-foreground">·</span>
         <Link href="/clientes?status=churn" className={tabClass(activeTab === "churn")}>Churn</Link>
+        <span className="text-muted-foreground">·</span>
+        <Link href="/clientes?status=concluido" className={tabClass(activeTab === "concluido")}>Concluídos</Link>
         <span className="text-muted-foreground">·</span>
         <Link href="/clientes" className={tabClass(activeTab === "todos")}>Todos</Link>
         {canSeeCarteira && (
