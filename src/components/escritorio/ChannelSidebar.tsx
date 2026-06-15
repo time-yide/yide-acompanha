@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { Hash, MessageSquarePlus, Trash2, RotateCcw } from "lucide-react";
+import { Hash, MessageSquarePlus, Trash2, RotateCcw, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatRelativeChatTime } from "@/lib/escritorio/format-relative";
@@ -41,6 +41,7 @@ interface Props {
 
 export function ChannelSidebar({ channels, currentKind, currentChannelId, pessoas, viewerId, viewerRole, deletedChannels }: Props) {
   const [novoOpen, setNovoOpen] = useState(false);
+  const [showDeleted, setShowDeleted] = useState(false);
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -177,26 +178,34 @@ export function ChannelSidebar({ channels, currentKind, currentChannelId, pessoa
       </div>
 
       {viewerRole === "socio" && deletedChannels.length > 0 && (
-        <div className="border-t px-2 py-2">
-          <p className="px-1 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Canais excluídos
-          </p>
-          <ul className="space-y-0.5">
-            {deletedChannels.map((dc) => (
-              <li key={dc.id} className="flex items-center justify-between gap-2 rounded px-2 py-1 text-sm">
-                <span className="truncate text-muted-foreground">{dc.nome}</span>
-                <button
-                  type="button"
-                  disabled={pending}
-                  onClick={() => onRestore(dc.id)}
-                  className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-primary hover:bg-primary/10"
-                  title="Restaurar canal"
-                >
-                  <RotateCcw className="h-3.5 w-3.5" /> Restaurar
-                </button>
-              </li>
-            ))}
-          </ul>
+        <div className="border-t px-2 py-1">
+          <button
+            type="button"
+            onClick={() => setShowDeleted((v) => !v)}
+            className="flex w-full items-center gap-1 rounded px-1 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground"
+            aria-expanded={showDeleted}
+          >
+            <ChevronRight className={cn("h-3.5 w-3.5 transition-transform", showDeleted && "rotate-90")} />
+            Canais excluídos ({deletedChannels.length})
+          </button>
+          {showDeleted && (
+            <ul className="space-y-0.5 pb-1">
+              {deletedChannels.map((dc) => (
+                <li key={dc.id} className="flex items-center justify-between gap-2 rounded px-2 py-1 text-sm">
+                  <span className="truncate text-muted-foreground">{dc.nome}</span>
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={() => onRestore(dc.id)}
+                    className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-primary hover:bg-primary/10"
+                    title="Restaurar canal"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" /> Restaurar
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
 
