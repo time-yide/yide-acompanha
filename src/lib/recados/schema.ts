@@ -13,7 +13,7 @@ export const criarRecadoSchema = z
     notif_scope: z.enum(NOTIF_SCOPES),
     permanente: z.boolean().default(false),
     privado: z.boolean().default(false),
-    destinatarios: z.array(z.string().min(1, "Destinatário inválido")).default([]),
+    destinatarios: z.array(z.string().uuid("Destinatário inválido")).default([]),
   })
   .refine((d) => !d.privado || d.destinatarios.length >= 1, {
     message: "Selecione ao menos um destinatário",

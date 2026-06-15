@@ -228,7 +228,7 @@ describe("criarRecadoAction — privado", () => {
     requireAuthMock.mockResolvedValue(ACTOR_ASSESSOR);
 
     const insertDestSelect = vi.fn().mockResolvedValue({
-      data: [{ recado_id: "rec-1", user_id: "dest-1" }],
+      data: [{ recado_id: "rec-1", user_id: "22222222-2222-4222-a222-222222222222" }],
       error: null,
     });
     const destInsert = vi.fn(() => ({ select: insertDestSelect }));
@@ -254,14 +254,14 @@ describe("criarRecadoAction — privado", () => {
     fd.set("corpo", "corpo");
     fd.set("notif_scope", "nenhum");
     fd.set("privado", "true");
-    fd.set("destinatarios", JSON.stringify(["dest-1"]));
+    fd.set("destinatarios", JSON.stringify(["22222222-2222-4222-a222-222222222222"]));
 
     const r = await criarRecadoAction(fd);
     expect(r.success).toBe(true);
-    expect(destInsert).toHaveBeenCalledWith([{ recado_id: "rec-1", user_id: "dest-1" }]);
+    expect(destInsert).toHaveBeenCalledWith([{ recado_id: "rec-1", user_id: "22222222-2222-4222-a222-222222222222" }]);
     expect(dispatchMock).toHaveBeenCalledTimes(1);
     const arg = dispatchMock.mock.calls[0][0];
-    expect(arg.user_ids_extras).toEqual(["dest-1"]);
+    expect(arg.user_ids_extras).toEqual(["22222222-2222-4222-a222-222222222222"]);
     expect(arg.source_user_id).toBe(ACTOR_ASSESSOR.id);
   });
 });
