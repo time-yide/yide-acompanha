@@ -117,6 +117,11 @@ export async function criarRecadoAction(formData: FormData) {
       return { error: destErr?.message ?? "Falha ao gravar destinatários" };
     }
 
+    // PRIVACIDADE: privado só pode notificar os destinatários escolhidos.
+    // Isto depende da regra `recado_novo` ter default_roles/default_user_ids
+    // VAZIOS (senão o dispatch acrescentaria esses defaults aos destinatários
+    // de um recado privado). Se um dia a regra ganhar defaults, este caminho
+    // precisa passar a ignorá-los explicitamente.
     await dispatchNotification({
       evento_tipo: "recado_novo",
       titulo: `Recado privado de ${actor.nome}`,
