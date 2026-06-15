@@ -84,3 +84,31 @@ describe("REACAO_EMOJIS", () => {
     expect(REACAO_EMOJIS.length).toBe(4);
   });
 });
+
+describe("criarRecadoSchema — privado", () => {
+  const base = { titulo: "oi", corpo: "corpo", notif_scope: "nenhum" as const };
+
+  it("privado exige ao menos 1 destinatario", () => {
+    const r = criarRecadoSchema.safeParse({ ...base, privado: true, destinatarios: [] });
+    expect(r.success).toBe(false);
+  });
+
+  it("privado com 1 destinatario passa", () => {
+    const r = criarRecadoSchema.safeParse({
+      ...base,
+      privado: true,
+      destinatarios: ["11111111-1111-4111-a111-111111111111"],
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it("nao privado nao precisa de destinatarios", () => {
+    const r = criarRecadoSchema.safeParse({ ...base, privado: false });
+    expect(r.success).toBe(true);
+  });
+
+  it("rejeita destinatario que nao e uuid", () => {
+    const r = criarRecadoSchema.safeParse({ ...base, privado: true, destinatarios: ["abc"] });
+    expect(r.success).toBe(false);
+  });
+});

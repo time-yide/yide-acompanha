@@ -24,6 +24,8 @@ import {
 } from "@/components/ui/select";
 import { criarRecadoAction, editarRecadoAction } from "@/lib/recados/actions";
 
+type Person = { id: string; nome: string };
+
 type Props =
   | {
       mode?: "create";
@@ -31,6 +33,7 @@ type Props =
       open?: undefined;
       onOpenChange?: undefined;
       recado?: undefined;
+      people: Person[];
     }
   | {
       mode: "edit";
@@ -38,6 +41,7 @@ type Props =
       open: boolean;
       onOpenChange: (open: boolean) => void;
       recado: { id: string; titulo: string; corpo: string };
+      people?: undefined;
     };
 
 export function NovoRecadoDialog(props: Props) {
@@ -50,14 +54,23 @@ export function NovoRecadoDialog(props: Props) {
   const [corpo, setCorpo] = useState(isEdit ? props.recado.corpo : "");
   const [notifScope, setNotifScope] = useState<"todos" | "meu_time" | "nenhum">("todos");
   const [permanente, setPermanente] = useState(false);
+  const [privado, setPrivado] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const people = !isEdit ? props.people : [];
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  function togglePerson(id: string) {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }
 
   function reset() {
     setTitulo("");
     setCorpo("");
     setNotifScope("todos");
     setPermanente(false);
+    setPrivado(false);
+    setSelectedIds([]);
     setError(null);
   }
 
@@ -76,8 +89,10 @@ export function NovoRecadoDialog(props: Props) {
       } else {
         fd.set("titulo", titulo);
         fd.set("corpo", corpo);
-        fd.set("notif_scope", notifScope);
-        if (permanente) fd.set("permanente", "on");
+        fd.set("notif_scope", privado ? "nenhum" : notifScope);
+        fd.set("privado", privado ? "true" : "false");
+        if (privado) fd.set("destinatarios", JSON.stringify(selectedIds));
+        if (!privado && permanente) fd.set("permanente", "on");
         result = await criarRecadoAction(fd);
       }
 
@@ -136,6 +151,45 @@ export function NovoRecadoDialog(props: Props) {
           </div>
 
           {!isEdit && (
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="recado-privado"
+                checked={privado}
+                onCheckedChange={(v) => setPrivado(!!v)}
+              />
+              <Label htmlFor="recado-privado" className="text-sm font-normal">
+                Recado privado (só pra quem você escolher)
+              </Label>
+            </div>
+          )}
+
+          {!isEdit && privado && (
+            <div className="space-y-2">
+              <Label>Destinatários</Label>
+              <div className="max-h-48 space-y-1 overflow-y-auto rounded-md border p-2">
+                {people.length === 0 && (
+                  <p className="text-xs text-muted-foreground">Ninguém disponível.</p>
+                )}
+                {people.map((p) => (
+                  <label
+                    key={p.id}
+                    className="flex cursor-pointer items-center gap-2 rounded px-1 py-1 text-sm hover:bg-muted"
+                  >
+                    <Checkbox
+                      checked={selectedIds.includes(p.id)}
+                      onCheckedChange={() => togglePerson(p.id)}
+                    />
+                    {p.nome}
+                  </label>
+                ))}
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                {selectedIds.length} selecionado(s)
+              </p>
+            </div>
+          )}
+
+          {!isEdit && !privado && (
             <div className="space-y-2">
               <Label htmlFor="recado-notif">Notificação</Label>
               <Select
@@ -154,7 +208,7 @@ export function NovoRecadoDialog(props: Props) {
             </div>
           )}
 
-          {!isEdit && props.currentUserRole === "socio" && (
+          {!isEdit && !privado && props.currentUserRole === "socio" && (
             <div className="flex items-center gap-2">
               <Checkbox
                 id="recado-permanente"

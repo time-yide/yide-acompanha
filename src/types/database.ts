@@ -2007,6 +2007,42 @@ export type Database = {
           },
         ]
       }
+      recado_destinatarios: {
+        Row: {
+          criado_em: string
+          lido_em: string | null
+          recado_id: string
+          user_id: string
+        }
+        Insert: {
+          criado_em?: string
+          lido_em?: string | null
+          recado_id: string
+          user_id: string
+        }
+        Update: {
+          criado_em?: string
+          lido_em?: string | null
+          recado_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recado_destinatarios_recado_id_fkey"
+            columns: ["recado_id"]
+            isOneToOne: false
+            referencedRelation: "recados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recado_destinatarios_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recado_reacoes: {
         Row: {
           criado_em: string
@@ -2077,6 +2113,7 @@ export type Database = {
           id: string
           notif_scope: string
           permanente: boolean
+          privado: boolean
           titulo: string
         }
         Insert: {
@@ -2089,6 +2126,7 @@ export type Database = {
           id?: string
           notif_scope: string
           permanente?: boolean
+          privado?: boolean
           titulo: string
         }
         Update: {
@@ -2101,6 +2139,7 @@ export type Database = {
           id?: string
           notif_scope?: string
           permanente?: boolean
+          privado?: boolean
           titulo?: string
         }
         Relationships: [
