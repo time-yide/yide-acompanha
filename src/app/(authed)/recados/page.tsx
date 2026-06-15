@@ -3,7 +3,6 @@ import { requireAuth } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { listRecados, listPrivados } from "@/lib/recados/queries";
 import { listMentionables } from "@/lib/escritorio/queries";
-import { marcarPrivadosLidosAction } from "@/lib/recados/actions";
 import { getProfileIdsForActiveUnit } from "@/lib/units/filter-helpers";
 import { NovoRecadoDialog } from "@/components/recados/NovoRecadoDialog";
 import { RecadoFeed } from "@/components/recados/RecadoFeed";
@@ -35,7 +34,17 @@ export default async function RecadosPage({ searchParams }: { searchParams: Prom
 
   if (aba === "privados") {
     privados = await listPrivados(user.id, user.role, false, unitProfileIds);
-    await marcarPrivadosLidosAction();
+    // Marca meus privados como lidos com write direto — igual o mural faz com
+    // last_seen abaixo. NÃO chamar server action c/ revalidate aqui: chamar
+    // revalidateTag/revalidatePath durante o render é proibido no Next e derruba
+    // a página (Application error: client-side exception). A badge atualiza na
+    // próxima request quando o cache de 30s do count expira.
+    const supabase = await createClient();
+    await supabase
+      .from("recado_destinatarios")
+      .update({ lido_em: new Date().toISOString() })
+      .eq("user_id", user.id)
+      .is("lido_em", null);
   } else {
     recados = await listRecados(aba === "arquivados", unitProfileIds);
     if (aba === "ativos") {
