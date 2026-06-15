@@ -71,6 +71,56 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_channels: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+          descricao: string | null
+          icon_url: string | null
+          id: string
+          kind: string
+          member_ids: string[] | null
+          nome: string
+          ordem: number
+          unit_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          descricao?: string | null
+          icon_url?: string | null
+          id?: string
+          kind: string
+          member_ids?: string[] | null
+          nome: string
+          ordem?: number
+          unit_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          descricao?: string | null
+          icon_url?: string | null
+          id?: string
+          kind?: string
+          member_ids?: string[] | null
+          nome?: string
+          ordem?: number
+          unit_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_channels_deleted_by_fkey"
+            columns: ["deleted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       calendar_events: {
         Row: {
           client_id: string | null

@@ -4,6 +4,7 @@ import { revalidateTag } from "next/cache";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { requireAuth } from "@/lib/auth/session";
 import { ESCRITORIO_UNREAD_TAG } from "./queries";
+import { canDeleteDm, type Channel } from "./types";
 
 interface DmResult {
   channelId?: string;
@@ -77,4 +78,33 @@ export async function openOrCreateDmAction(targetUserId: string): Promise<DmResu
 
   revalidateTag(ESCRITORIO_UNREAD_TAG, "default");
   return { channelId: created.id };
+}
+
+/**
+ * Apaga o DM pros dois participantes (hard delete). Mensagens e leituras
+ * somem por cascade (on delete cascade no channel_id). Permissão:
+ * participante do DM ou sócio/adm.
+ */
+export async function deleteDmAction(channelId: string): Promise<DmResult> {
+  const actor = await requireAuth();
+  const supabase = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+
+  const { data: channel } = await sb
+    .from("chat_channels")
+    .select("id, kind, member_ids")
+    .eq("id", channelId)
+    .maybeSingle();
+  if (!channel) return { error: "Conversa não encontrada" };
+
+  if (!canDeleteDm(channel as unknown as Channel, actor.id, actor.role)) {
+    return { error: "Sem permissão" };
+  }
+
+  const { error } = await sb.from("chat_channels").delete().eq("id", channelId);
+  if (error) return { error: error.message };
+
+  revalidateTag(ESCRITORIO_UNREAD_TAG, "default");
+  return { channelId };
 }

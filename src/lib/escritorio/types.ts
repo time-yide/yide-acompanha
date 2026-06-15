@@ -103,3 +103,19 @@ export function canAccessDmChannel(channel: Channel, userId: string): boolean {
   if (channel.kind !== "direct" || !channel.member_ids) return false;
   return channel.member_ids.includes(userId);
 }
+
+/**
+ * Pode apagar o DM (hard delete, pros dois): participante do DM, ou sócio/adm.
+ * Só vale pra kind='direct'.
+ */
+export function canDeleteDm(channel: Channel, userId: string, role: string): boolean {
+  if (channel.kind !== "direct" || !channel.member_ids) return false;
+  return channel.member_ids.includes(userId) || role === "socio" || role === "adm";
+}
+
+/**
+ * Pode soft-deletar um canal fixo: só sócio, e nunca DM (DM usa canDeleteDm).
+ */
+export function canDeleteChannel(role: string, channel: Channel): boolean {
+  return role === "socio" && channel.kind !== "direct";
+}
