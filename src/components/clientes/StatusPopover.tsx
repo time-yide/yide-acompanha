@@ -14,14 +14,26 @@ import { getTodayDate } from "@/lib/datetime/timezone";
 
 interface Props {
   clienteId: string;
-  current: "ativo" | "churn" | "em_onboarding";
+  // Tipado como a union "esperada", mas o dado vindo do banco pode trazer um
+  // valor fora dela (legado/null). Aceitamos string pra não confiar cegamente
+  // no tipo em runtime — o lookup abaixo tem fallback.
+  current: "ativo" | "churn" | "em_onboarding" | (string & {});
 }
 
-const BADGE: Record<Props["current"], { label: string; cls: string }> = {
+const BADGE: Record<string, { label: string; cls: string }> = {
   ativo: { label: "Ativo", cls: "border-emerald-500/40 text-emerald-600 dark:text-emerald-400" },
   churn: { label: "Churn", cls: "border-rose-500/40 text-rose-600 dark:text-rose-400" },
   em_onboarding: { label: "Onboarding", cls: "border-blue-500/40 text-blue-600 dark:text-blue-400" },
 };
+
+// Selo neutro pra qualquer status desconhecido. SEM isto, um único cliente com
+// status fora do mapa fazia `BADGE[current]` virar undefined e o `.cls` derrubava
+// a página inteira de /clientes (tela preta "client-side exception"). O irmão
+// StatusBadge.tsx já tinha essa proteção; aqui faltava.
+const FALLBACK_BADGE = (status: string) => ({
+  label: status || "Sem status",
+  cls: "border-muted-foreground/30 text-muted-foreground",
+});
 
 // "Hoje" no fuso da app (Cuiabá). Antes usava toISOString() que dá UTC -
 // após 20:00 em Cuiabá pré-preenchia o dia seguinte.
@@ -34,7 +46,7 @@ export function StatusPopover({ clienteId, current }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const badge = BADGE[current];
+  const badge = BADGE[current] ?? FALLBACK_BADGE(current);
 
   function handleChurn() {
     setError(null);
