@@ -25,6 +25,9 @@ export function LigarButton({ numero, instanciaId, contatoNome, size = "sm" }: P
       const fd = new FormData();
       fd.set("numero", numero);
       fd.set("instancia_id", instanciaId);
+      // Grava a ligação por padrão pra gestão poder ouvir depois (player no
+      // detalhe da ligação). O áudio chega via webhook da Zenvia em gravacao_url.
+      fd.set("gravar", "on");
       if (contatoNome) fd.set("contato_nome", contatoNome);
       const r = await iniciarLigacaoAction(fd);
       if ("error" in r) { setError(r.error); return; }
