@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { Search } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { updateClienteSocialAccountsAction } from "@/lib/social-media/actions";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { listMetaAccountsAction, updateClienteSocialAccountsAction } from "@/lib/social-media/actions";
+import type { MetaAccount } from "@/lib/social-media/meta-publish";
 
 interface Props {
   open: boolean;
@@ -27,6 +30,31 @@ export function AccountsModal({ open, onOpenChange, clientId, clientNome, initia
   const [gmn, setGmn] = useState(initial.gmn_location_id ?? "");
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+
+  // "Buscar contas" — lista as Páginas/Instagram do token e preenche os IDs
+  // automaticamente, sem copiar/colar na mão.
+  const [accounts, setAccounts] = useState<MetaAccount[] | null>(null);
+  const [buscando, setBuscando] = useState(false);
+  const [buscaError, setBuscaError] = useState<string | null>(null);
+
+  async function buscarContas() {
+    setBuscaError(null);
+    setBuscando(true);
+    const r = await listMetaAccountsAction();
+    setBuscando(false);
+    if ("error" in r) {
+      setBuscaError(r.error);
+      return;
+    }
+    setAccounts(r.accounts);
+  }
+
+  function escolherConta(pageId: string | null) {
+    const conta = accounts?.find((a) => a.pageId === pageId);
+    if (!conta) return;
+    setFb(conta.pageId);
+    setIg(conta.igId ?? "");
+  }
 
   function onSave() {
     setError(null);
@@ -58,6 +86,50 @@ export function AccountsModal({ open, onOpenChange, clientId, clientNome, initia
         </DialogHeader>
 
         <div className="space-y-3">
+          {/* Buscar contas conectadas (estilo mLabs) — evita copiar ID na mão */}
+          <div className="space-y-2 rounded-md border border-dashed border-input bg-muted/30 p-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-medium">Buscar contas conectadas</p>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={buscarContas}
+                disabled={buscando}
+              >
+                <Search className="h-3.5 w-3.5" />
+                {buscando ? "Buscando..." : accounts ? "Atualizar" : "Buscar contas"}
+              </Button>
+            </div>
+            {accounts &&
+              (accounts.length === 0 ? (
+                <p className="text-[11px] text-muted-foreground">
+                  Nenhuma conta encontrada. Confira se as Páginas e contas do
+                  Instagram foram atribuídas ao System User na Business Manager.
+                </p>
+              ) : (
+                <>
+                  <SearchableSelect
+                    options={accounts.map((a) => ({
+                      value: a.pageId,
+                      label: a.igUsername
+                        ? `${a.pageName} · @${a.igUsername}`
+                        : `${a.pageName} · (sem Instagram)`,
+                    }))}
+                    value={accounts.some((a) => a.pageId === fb) ? fb : null}
+                    onChange={escolherConta}
+                    placeholder="Escolha a conta deste cliente..."
+                    emptyText="Nenhuma conta encontrada"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Preenche o Instagram e o Facebook automaticamente. Dá pra
+                    ajustar manualmente abaixo se precisar.
+                  </p>
+                </>
+              ))}
+            {buscaError && <p className="text-[11px] text-destructive">{buscaError}</p>}
+          </div>
+
           <div className="space-y-1.5">
             <Label htmlFor="ig">Instagram Business ID</Label>
             <Input
