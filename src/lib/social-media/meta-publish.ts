@@ -95,16 +95,14 @@ async function metaFetch<T = unknown>(
 }
 
 /**
- * Publica no Instagram. Suporta foto única, vídeo, reels e carrossel.
- * Story (stories de 24h) usa endpoint diferente - fora do escopo da fase 1.
+ * Publica no Instagram. Suporta foto única, vídeo, reels, carrossel e stories.
+ * Story (24h) usa media_type=STORIES e não exibe caption/hashtags nem aceita
+ * primeiro comentário (quem chama deve pular o comentário pra formato story).
  */
 export async function publishToInstagram(
   igUserId: string,
   post: PostToPublish,
 ): Promise<MetaPublishResult> {
-  if (post.formato === "story") {
-    return { success: false, error: "Stories ainda não suportadas (fase 2)" };
-  }
   if (post.midias.length === 0) {
     return { success: false, error: "Post sem mídia - Instagram exige imagem ou vídeo" };
   }
@@ -151,16 +149,26 @@ export async function publishToInstagram(
     return { success: true, postId: publishRes.data.id };
   }
 
-  // Foto/vídeo/reels: 1 mídia
+  // Story, foto, vídeo ou reels: 1 mídia
   const url = post.midias[0];
   const isVideo = url.match(/\.(mp4|mov|m4v)(\?|$)/i);
-  const mediaBody: Record<string, unknown> = isVideo
-    ? {
-        video_url: url,
-        media_type: post.formato === "reels" ? "REELS" : "VIDEO",
-        caption,
-      }
-    : { image_url: url, caption };
+  const isStory = post.formato === "story";
+
+  let mediaBody: Record<string, unknown>;
+  if (isStory) {
+    // Stories não exibem caption/hashtags - publica só a mídia (foto ou vídeo, 24h).
+    mediaBody = isVideo
+      ? { video_url: url, media_type: "STORIES" }
+      : { image_url: url, media_type: "STORIES" };
+  } else if (isVideo) {
+    mediaBody = {
+      video_url: url,
+      media_type: post.formato === "reels" ? "REELS" : "VIDEO",
+      caption,
+    };
+  } else {
+    mediaBody = { image_url: url, caption };
+  }
 
   const containerRes = await metaFetch<{ id: string }>(`/${igUserId}/media`, {
     method: "POST",
