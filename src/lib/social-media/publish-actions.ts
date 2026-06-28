@@ -159,8 +159,8 @@ export async function publishPostById(
           .from("social_media_posts")
           .update({ instagram_post_id: res.postId })
           .eq("id", p.id);
-        // Primeiro comentário (opcional)
-        if (p.primeiro_comentario?.trim()) {
+        // Primeiro comentário (opcional) - Stories não aceitam comentário.
+        if (p.primeiro_comentario?.trim() && p.formato !== "story") {
           await postarComentarioInicial(res.postId, p.primeiro_comentario.trim());
         }
       } else {
