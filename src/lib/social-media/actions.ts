@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { requireAuth } from "@/lib/auth/session";
 import { logActivityInternal } from "@/lib/produtividade/actions";
+import { listAvailableAccounts, type MetaAccount } from "./meta-publish";
 import { STATUS_VALORES } from "./tipos";
 
 interface ActionOk { success: true }
@@ -275,6 +276,22 @@ export async function updateClienteSocialAccountsAction(
 
   revalidatePath(`/social-media/${parsed.data.client_id}`);
   return { success: true };
+}
+
+/**
+ * Lista as contas (Páginas FB + Instagram vinculado) que o System User token
+ * consegue acessar, pra UI conectar o cliente escolhendo numa lista — sem
+ * precisar copiar/colar IDs na mão (estilo mLabs).
+ */
+export async function listMetaAccountsAction(): Promise<
+  { accounts: MetaAccount[] } | ActionErr
+> {
+  const actor = await requireAuth();
+  if (!canManage(actor.role)) return { error: "Sem permissão" };
+
+  const res = await listAvailableAccounts();
+  if (res.error) return { error: res.error };
+  return { accounts: res.accounts ?? [] };
 }
 
 // ===========================================================================

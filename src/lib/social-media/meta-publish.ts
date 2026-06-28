@@ -262,3 +262,66 @@ export function buildInstagramPostUrl(postId: string): string {
   // Permalink via API: GET /{post-id}?fields=permalink. Aqui só monta um link genérico.
   return `https://www.instagram.com/p/${postId}/`;
 }
+
+// ===========================================================================
+// Descoberta de contas (pra conectar cliente sem copiar ID na mão, estilo mLabs)
+// ===========================================================================
+
+export interface MetaAccount {
+  pageId: string;
+  pageName: string;
+  igId: string | null;
+  igUsername: string | null;
+}
+
+/**
+ * Lista as Páginas do Facebook acessíveis pelo System User token, já com o
+ * Instagram Business vinculado (quando houver). Alimenta o "Buscar contas" da UI,
+ * pra conectar cada cliente escolhendo numa lista em vez de colar IDs na mão.
+ *
+ * Requer que as Páginas estejam atribuídas ao System User na BM (Business
+ * Settings → Usuários do sistema → Adicionar ativos → Páginas + Contas do Instagram).
+ */
+export async function listAvailableAccounts(): Promise<{ accounts?: MetaAccount[]; error?: string }> {
+  if (!getSystemUserToken()) {
+    return { error: "META_SYSTEM_USER_TOKEN não configurado no Vercel" };
+  }
+
+  const accounts: MetaAccount[] = [];
+  let after: string | undefined;
+
+  // Pagina o /me/accounts (até 10x = 1000 páginas) acumulando os resultados.
+  for (let i = 0; i < 10; i++) {
+    const res = await metaFetch<{
+      data?: Array<{
+        id: string;
+        name?: string;
+        instagram_business_account?: { id: string; username?: string };
+      }>;
+      paging?: { cursors?: { after?: string }; next?: string };
+    }>("/me/accounts", {
+      body: {
+        fields: "id,name,instagram_business_account{id,username}",
+        limit: 100,
+        ...(after ? { after } : {}),
+      },
+    });
+    if (res.error) return { error: res.error };
+
+    for (const p of res.data?.data ?? []) {
+      accounts.push({
+        pageId: p.id,
+        pageName: p.name ?? p.id,
+        igId: p.instagram_business_account?.id ?? null,
+        igUsername: p.instagram_business_account?.username ?? null,
+      });
+    }
+
+    const next = res.data?.paging?.next;
+    after = res.data?.paging?.cursors?.after;
+    if (!next || !after) break;
+  }
+
+  accounts.sort((a, b) => a.pageName.localeCompare(b.pageName, "pt-BR"));
+  return { accounts };
+}
