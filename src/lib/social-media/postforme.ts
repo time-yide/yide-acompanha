@@ -53,9 +53,20 @@ export async function gerarAuthUrl(
   platform: PfmPlatform,
   externalId: string,
 ): Promise<PfmResult<{ url: string }>> {
+  const body: Record<string, unknown> = {
+    platform,
+    external_id: externalId,
+    // Permissão de publicar (padrão do Post for Me).
+    permissions: ["posts"],
+  };
+  // Instagram exige o connection_type (igual o formulário do painel do Post for
+  // Me). Sem ele, o link de OAuth vem incompleto e a aba abre em BRANCO.
+  if (platform === "instagram") {
+    body.platform_data = { instagram: { connection_type: "instagram" } };
+  }
   return pfmFetch<{ url: string }>("/social-accounts/auth-url", {
     method: "POST",
-    body: { platform, external_id: externalId },
+    body,
   });
 }
 
