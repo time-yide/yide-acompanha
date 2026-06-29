@@ -283,6 +283,7 @@ export function InstagramPostsCard({
               <th className="px-3 py-2 text-right">
                 <SortHeader label={mesHeader} k="mes" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort} align="right" />
               </th>
+              <th className="px-3 py-2 text-right" title="Posts publicados pelo sistema neste mês (conferência)">Sistema</th>
               <th className="px-3 py-2 text-xs">Atualizado</th>
               <th className="px-3 py-2 w-12"></th>
             </tr>
@@ -353,7 +354,7 @@ function ClienteRow({
   const [expanded, setExpanded] = useState(false);
   const hasError = !counts && snap && c.status !== "no_url";
   const limiteApify = c.status === "error" && ehLimiteApify(snap?.erro);
-  const colSpan = hideAssessor ? 6 : 7;
+  const colSpan = hideAssessor ? 7 : 8;
 
   return (
     <>
@@ -440,6 +441,13 @@ function ClienteRow({
           </button>
         </td>
       )}
+
+      <td
+        className="px-3 py-2 text-right text-sm font-medium tabular-nums text-muted-foreground"
+        title="Posts publicados pelo sistema neste mês (conferência vs Apify)"
+      >
+        {c.posts_sistema_mes}
+      </td>
 
       <td className="px-3 py-2 text-xs text-muted-foreground">
         {snap ? timeAgo(snap.scraped_at) : "—"}
