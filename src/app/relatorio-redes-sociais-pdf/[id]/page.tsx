@@ -5,6 +5,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { verifyPdfToken } from "@/lib/apresenta-yide/pdf-token";
 import { getServerEnv } from "@/lib/env";
 import type { DadosRelatorioSocial, PostRelatorio } from "@/lib/social-media/relatorios/dados";
+import type { DadosTrafegoRelatorio } from "@/lib/social-media/relatorios/trafego-dados";
 
 export const dynamic = "force-dynamic";
 
@@ -87,7 +88,7 @@ export default async function RelatorioRedesSociaisPdfPage({
   const sbAny = sb as any;
   const { data: rel } = await sbAny
     .from("social_media_relatorios")
-    .select("cliente_id, periodo_inicio, dados")
+    .select("cliente_id, periodo_inicio, dados, secoes, dados_trafego")
     .eq("id", id)
     .single();
   if (!rel) notFound();
@@ -100,6 +101,19 @@ export default async function RelatorioRedesSociaisPdfPage({
   };
   const posts = dados.posts ?? [];
   const paginasPosts = chunk(posts, 6);
+
+  const secoes = Array.isArray(rel.secoes) ? (rel.secoes as string[]) : ["redes"];
+  const incluiRedes = secoes.includes("redes");
+  const incluiTrafego = secoes.includes("trafego");
+  const trafego = (rel.dados_trafego ?? null) as DadosTrafegoRelatorio | null;
+  const tituloCapa =
+    incluiRedes && incluiTrafego
+      ? "Relatório Mensal"
+      : incluiTrafego
+        ? "Relatório de Tráfego"
+        : "Relatório de Redes Sociais";
+  const fmtMoney = (n: number) =>
+    `R$ ${(n ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   const pageStyle: React.CSSProperties = {
     width: "100%",
@@ -119,14 +133,15 @@ export default async function RelatorioRedesSociaisPdfPage({
       {/* Capa */}
       <div style={{ ...pageStyle, display: "flex", flexDirection: "column", justifyContent: "center" }}>
         <div style={{ fontSize: 16, color: ACCENT, fontWeight: 700, letterSpacing: 2 }}>YIDE DIGITAL</div>
-        <div style={{ fontSize: 56, fontWeight: 800, marginTop: 12 }}>Relatório de Redes Sociais</div>
+        <div style={{ fontSize: 56, fontWeight: 800, marginTop: 12 }}>{tituloCapa}</div>
         <div style={{ fontSize: 28, color: MUT, marginTop: 8 }}>{clienteNome}</div>
         <div style={{ fontSize: 20, color: MUT, marginTop: 24 }}>{mesAno(rel.periodo_inicio)}</div>
       </div>
 
-      {/* Resumo */}
+      {/* Resumo (redes sociais) */}
+      {incluiRedes && (
       <div style={pageStyle}>
-        <div style={{ fontSize: 32, fontWeight: 800, marginBottom: 24 }}>Resumo do mês</div>
+        <div style={{ fontSize: 32, fontWeight: 800, marginBottom: 24 }}>Resumo das redes sociais</div>
         <div style={{ display: "flex", gap: 16, marginBottom: 16 }}>
           <Card label="Posts publicados" valor={totais.posts} />
           <Card label="Alcance total" valor={totais.alcance} />
@@ -139,9 +154,10 @@ export default async function RelatorioRedesSociaisPdfPage({
           <Card label="Compartilhamentos" valor={totais.compartilhamentos} />
         </div>
       </div>
+      )}
 
       {/* Posts (6 por página) */}
-      {paginasPosts.map((pagina, i) => (
+      {incluiRedes && paginasPosts.map((pagina, i) => (
         <div key={i} style={pageStyle}>
           {i === 0 && <div style={{ fontSize: 32, fontWeight: 800, marginBottom: 24 }}>Posts publicados</div>}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 18 }}>
@@ -150,9 +166,49 @@ export default async function RelatorioRedesSociaisPdfPage({
         </div>
       ))}
 
-      {posts.length === 0 && (
+      {incluiRedes && posts.length === 0 && (
         <div style={pageStyle}>
           <div style={{ fontSize: 24, color: MUT }}>Nenhum post publicado neste período.</div>
+        </div>
+      )}
+
+      {/* Tráfego (anúncios) */}
+      {incluiTrafego && trafego && (
+        <div style={pageStyle}>
+          <div style={{ fontSize: 32, fontWeight: 800, marginBottom: 24 }}>Tráfego (anúncios)</div>
+          <div style={{ display: "flex", gap: 16, marginBottom: 16 }}>
+            <div style={{ background: CARD, borderRadius: 14, padding: "22px 26px", flex: "1 1 0", minWidth: 0 }}>
+              <div style={{ fontSize: 34, fontWeight: 800, color: TXT }}>{fmtMoney(trafego.spend)}</div>
+              <div style={{ fontSize: 14, color: MUT, marginTop: 4 }}>Investimento</div>
+            </div>
+            <Card label="Alcance" valor={trafego.alcance} />
+            <Card label="Cliques" valor={trafego.cliques} />
+          </div>
+          <div style={{ display: "flex", gap: 16, marginBottom: 24 }}>
+            <Card label="Impressões" valor={trafego.impressoes} />
+            <Card label="Leads" valor={trafego.leads} />
+            <Card label="Conversões" valor={trafego.conversoes} />
+            <Card label="CTR (%)" valor={Number((trafego.ctr ?? 0).toFixed(2))} />
+          </div>
+          {trafego.top_campanhas.length > 0 && (
+            <>
+              <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 12 }}>Campanhas que mais investiram</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {trafego.top_campanhas.map((c, i) => (
+                  <div
+                    key={i}
+                    style={{ display: "flex", justifyContent: "space-between", background: CARD, borderRadius: 10, padding: "12px 18px" }}
+                  >
+                    <span style={{ fontSize: 14 }}>{c.nome}</span>
+                    <span style={{ fontSize: 14, fontWeight: 700 }}>
+                      {fmtMoney(c.spend)}
+                      {c.resultados > 0 ? ` · ${fmt(c.resultados)} result.` : ""}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )}
 

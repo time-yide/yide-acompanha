@@ -8,6 +8,7 @@ import { getServerEnv, env as publicEnv } from "@/lib/env";
 import { signPdfToken } from "@/lib/apresenta-yide/pdf-token";
 import { generatePdfFromUrl } from "@/lib/apresenta-yide/pdf-generator";
 import { montarDadosRelatorio } from "./dados";
+import { montarDadosTrafego } from "./trafego-dados";
 
 const ROLES_QUE_GERENCIAM = [
   "adm", "socio", "comercial", "coordenador", "assessor",
@@ -28,16 +29,22 @@ const criarSchema = z.object({
   cliente_id: uuidLike,
   periodo_inicio: dateLike,
   periodo_fim: dateLike,
+  secoes: z.array(z.enum(["redes", "trafego"])).min(1).default(["redes"]),
 });
 
 /** Cria o relatório do mês (monta os dados na hora; sem etapa de IA). */
 export async function criarRelatorioSocialAction(
-  input: { cliente_id: string; periodo_inicio: string; periodo_fim: string },
+  input: { cliente_id: string; periodo_inicio: string; periodo_fim: string; secoes?: string[] },
 ): Promise<{ id: string } | { error: string }> {
   const actor = await requireAuth();
   if (!canManage(actor.role)) return { error: "Sem permissão" };
 
-  const parsed = criarSchema.safeParse(input);
+  const parsed = criarSchema.safeParse({
+    cliente_id: input.cliente_id,
+    periodo_inicio: input.periodo_inicio,
+    periodo_fim: input.periodo_fim,
+    secoes: (input.secoes && input.secoes.length ? input.secoes : ["redes"]) as ("redes" | "trafego")[],
+  });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
   const sb = createServiceRoleClient();
@@ -50,11 +57,15 @@ export async function criarRelatorioSocialAction(
     .single();
   if (!cliente) return { error: "Cliente não encontrado" };
 
-  const dados = await montarDadosRelatorio(
-    parsed.data.cliente_id,
-    parsed.data.periodo_inicio,
-    parsed.data.periodo_fim,
-  );
+  const incluiRedes = parsed.data.secoes.includes("redes");
+  const incluiTrafego = parsed.data.secoes.includes("trafego");
+
+  const dados = incluiRedes
+    ? await montarDadosRelatorio(parsed.data.cliente_id, parsed.data.periodo_inicio, parsed.data.periodo_fim)
+    : null;
+  const dados_trafego = incluiTrafego
+    ? await montarDadosTrafego(parsed.data.cliente_id, parsed.data.periodo_inicio, parsed.data.periodo_fim)
+    : null;
 
   const { data, error } = await sbAny
     .from("social_media_relatorios")
@@ -63,7 +74,9 @@ export async function criarRelatorioSocialAction(
       organization_id: cliente.organization_id,
       periodo_inicio: parsed.data.periodo_inicio,
       periodo_fim: parsed.data.periodo_fim,
-      dados,
+      secoes: parsed.data.secoes,
+      dados: dados ?? {},
+      dados_trafego,
       status: "pronta",
       criado_por: actor.id,
     })

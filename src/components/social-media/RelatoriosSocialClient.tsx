@@ -40,7 +40,12 @@ export function RelatoriosSocialClient({
   const router = useRouter();
   const [clienteId, setClienteId] = useState("");
   const [mes, setMes] = useState("");
+  const [secoes, setSecoes] = useState<string[]>(["redes"]);
   const [pending, startTransition] = useTransition();
+
+  function toggleSecao(s: string) {
+    setSecoes((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
+  }
   const [busyId, setBusyId] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -50,11 +55,16 @@ export function RelatoriosSocialClient({
       setErro("Escolha o cliente e o mês.");
       return;
     }
+    if (secoes.length === 0) {
+      setErro("Marque pelo menos uma seção (Redes ou Tráfego).");
+      return;
+    }
     startTransition(async () => {
       const r = await criarRelatorioSocialAction({
         cliente_id: clienteId,
         periodo_inicio: `${mes}-01`,
         periodo_fim: ultimoDiaDoMes(mes),
+        secoes,
       });
       if ("error" in r) {
         setErro(r.error);
@@ -124,6 +134,29 @@ export function RelatoriosSocialClient({
             onChange={(e) => setMes(e.target.value)}
             className="h-9 rounded-md border bg-background px-2 text-sm"
           />
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs text-muted-foreground">Seções</label>
+          <div className="flex gap-2">
+            {[
+              { key: "redes", label: "Redes Sociais" },
+              { key: "trafego", label: "Tráfego" },
+            ].map((s) => (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => toggleSecao(s.key)}
+                className={`h-9 rounded-md border px-3 text-xs font-medium ${
+                  secoes.includes(s.key)
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-input bg-background text-muted-foreground"
+                }`}
+              >
+                {secoes.includes(s.key) ? "✓ " : ""}
+                {s.label}
+              </button>
+            ))}
+          </div>
         </div>
         <Button type="button" onClick={criar} disabled={pending}>
           {pending ? "Gerando..." : "Criar relatório"}
