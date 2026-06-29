@@ -7,6 +7,7 @@ import { getCurrentMonthYM } from "@/lib/datetime/timezone";
 import { getClientIdsForActiveUnit } from "@/lib/units/filter-helpers";
 import { TasksBoard } from "@/components/tarefas/TasksBoard";
 import { TasksGroupedList, type GroupBy } from "@/components/tarefas/TasksGroupedList";
+import { TasksGraph } from "@/components/tarefas/TasksGraph";
 import { TaskFilters } from "@/components/tarefas/TaskFilters";
 import { ViewToggle } from "@/components/tarefas/ViewToggle";
 import { GroupBySelector } from "@/components/tarefas/GroupBySelector";
@@ -16,7 +17,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 
 type Aba = "minhas" | "criadas" | "todas";
-type View = "board" | "list";
+type View = "board" | "list" | "grafico";
 
 const VALID_GROUP_BY: GroupBy[] = ["prazo", "cliente", "responsavel", "prioridade"];
 
@@ -38,7 +39,8 @@ export default async function TarefasPage({ searchParams }: { searchParams: Prom
 
   const aba: Aba =
     params.aba === "minhas" ? "minhas" : params.aba === "criadas" ? "criadas" : "todas";
-  const view: View = params.view === "list" ? "list" : "board";
+  const view: View =
+    params.view === "list" ? "list" : params.view === "grafico" ? "grafico" : "board";
   const groupBy: GroupBy = VALID_GROUP_BY.includes(params.groupBy as GroupBy)
     ? (params.groupBy as GroupBy)
     : "prazo";
@@ -151,6 +153,12 @@ export default async function TarefasPage({ searchParams }: { searchParams: Prom
 
       {view === "board" ? (
         <TasksBoard tasks={tasks} userRole={user.role} />
+      ) : view === "grafico" ? (
+        <TasksGraph
+          tasks={tasks}
+          profiles={(profiles ?? []) as { id: string; nome: string }[]}
+          clientes={(clientes ?? []) as { id: string; nome: string }[]}
+        />
       ) : (
         <TasksGroupedList tasks={tasks} groupBy={groupBy} userRole={user.role} />
       )}
