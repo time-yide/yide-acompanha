@@ -11,6 +11,10 @@ import {
   postarComentarioInicial,
   buildInstagramPostUrl,
 } from "./meta-publish";
+import { publicarPostforme } from "./postforme";
+
+/** Redes publicadas via Post for Me (não-Meta). */
+const REDES_PFM = ["tiktok", "youtube", "linkedin"] as const;
 
 interface ActionResult {
   success?: boolean;
@@ -19,6 +23,7 @@ interface ActionResult {
   results?: {
     instagram?: { postId?: string; url?: string; error?: string };
     facebook?: { postId?: string; error?: string };
+    postforme?: { postId?: string; error?: string; redes?: string[] };
   };
 }
 
@@ -187,6 +192,44 @@ export async function publishPostById(
       } else {
         results.facebook = { error: res.error };
         erros.push(`FB: ${res.error}`);
+      }
+    }
+  }
+
+  // Post for Me (TikTok / YouTube / LinkedIn) — publica numa chamada só
+  const redesPfm = REDES_PFM.filter((r) => p.redes.includes(r));
+  if (redesPfm.length > 0) {
+    const { data: contas } = await sbAny
+      .from("client_postforme_accounts")
+      .select("plataforma, account_id")
+      .eq("client_id", p.client_id)
+      .in("plataforma", redesPfm);
+    const contasMap = new Map(
+      ((contas ?? []) as Array<{ plataforma: string; account_id: string }>).map((x) => [
+        x.plataforma,
+        x.account_id,
+      ]),
+    );
+    const accountIds: string[] = [];
+    for (const r of redesPfm) {
+      const accId = contasMap.get(r);
+      if (accId) accountIds.push(accId);
+      else erros.push(`${r}: conta não conectada (conecte em Contas do cliente)`);
+    }
+
+    if (accountIds.length > 0) {
+      const caption = [p.legenda ?? "", p.hashtags ?? ""].filter((s) => s.trim()).join("\n\n");
+      const res = await publicarPostforme({
+        accountIds,
+        caption,
+        mediaUrls: p.midias ?? [],
+      });
+      if (res.data?.id) {
+        results.postforme = { postId: res.data.id, redes: redesPfm };
+        qualquerSucesso = true;
+      } else {
+        results.postforme = { error: res.error };
+        erros.push(`Post for Me: ${res.error}`);
       }
     }
   }
