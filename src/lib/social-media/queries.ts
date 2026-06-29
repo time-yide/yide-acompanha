@@ -125,6 +125,15 @@ export async function listClientesSocial(filter: {
   });
 }
 
+export interface PostMetricasResumo {
+  alcance: number;
+  curtidas: number;
+  comentarios: number;
+  salvamentos: number;
+  compartilhamentos: number;
+  engajamento: number;
+}
+
 export interface SocialPostRow {
   id: string;
   client_id: string;
@@ -144,6 +153,7 @@ export interface SocialPostRow {
   design_arte_id: string | null;
   created_at: string;
   updated_at: string;
+  metricas: PostMetricasResumo | null;
 }
 
 export async function listPostsByCliente(clientId: string): Promise<SocialPostRow[]> {
@@ -162,7 +172,7 @@ export async function listPostsByCliente(clientId: string): Promise<SocialPostRo
     return [];
   }
 
-  return ((data ?? []) as Array<Record<string, unknown>>).map((row) => ({
+  const posts = ((data ?? []) as Array<Record<string, unknown>>).map((row) => ({
     id: row.id as string,
     client_id: row.client_id as string,
     titulo: (row.titulo as string | null) ?? null,
@@ -181,7 +191,29 @@ export async function listPostsByCliente(clientId: string): Promise<SocialPostRo
     design_arte_id: (row.design_arte_id as string | null) ?? null,
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
+    metricas: null as PostMetricasResumo | null,
   }));
+
+  // Anexa métricas (soma das redes por métrica). Tolera tabela ausente (migration não rodada).
+  const ids = posts.map((p) => p.id);
+  if (ids.length > 0) {
+    const { data: mets, error: metErr } = await sb
+      .from("social_media_metricas")
+      .select("post_id, metrica, valor")
+      .in("post_id", ids);
+    if (!metErr && mets) {
+      const acc: Record<string, PostMetricasResumo> = {};
+      for (const m of mets as Array<{ post_id: string; metrica: string; valor: number }>) {
+        const r = (acc[m.post_id] ??= {
+          alcance: 0, curtidas: 0, comentarios: 0, salvamentos: 0, compartilhamentos: 0, engajamento: 0,
+        });
+        if (m.metrica in r) (r as unknown as Record<string, number>)[m.metrica] += Number(m.valor) || 0;
+      }
+      for (const p of posts) p.metricas = acc[p.id] ?? null;
+    }
+  }
+
+  return posts;
 }
 
 export interface ClienteSocialDetalhe {

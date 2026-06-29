@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useMemo } from "react";
-import { Pencil, Archive, ImageIcon } from "lucide-react";
+import { Pencil, Archive, ImageIcon, BarChart3 } from "lucide-react";
 import { PostApprovalButtons } from "./PostApprovalButtons";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
@@ -10,8 +10,9 @@ import {
   STATUS_DEFS, STATUS_VALORES, REDES, REDE_BY_VALUE, FORMATOS,
 } from "@/lib/social-media/tipos";
 import {
-  archiveSocialPostAction, changeSocialPostStatusAction,
+  archiveSocialPostAction, changeSocialPostStatusAction, atualizarMetricasPostAction,
 } from "@/lib/social-media/actions";
+import { formatCompact } from "@/lib/social-media/format";
 import type { SocialPostRow } from "@/lib/social-media/queries";
 import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
@@ -95,6 +96,7 @@ function PostListItem({
 }) {
   const [pendingArchive, startArchive] = useTransition();
   const [pendingStatus, startStatus] = useTransition();
+  const [pendingMetricas, startMetricas] = useTransition();
   const statusDef = STATUS_DEFS[post.status];
   const cover = post.midias[0];
   const isVideo = cover?.match(/\.(mp4|mov|webm)$/i);
@@ -114,6 +116,14 @@ function PostListItem({
     fd.set("status", novo);
     startStatus(async () => {
       await changeSocialPostStatusAction(fd);
+    });
+  }
+
+  function atualizarMetricas() {
+    const fd = new FormData();
+    fd.set("post_id", post.id);
+    startMetricas(async () => {
+      await atualizarMetricasPostAction(fd);
     });
   }
 
@@ -181,6 +191,33 @@ function PostListItem({
             {post.titulo && post.legenda ? " · " : ""}
             {post.legenda}
           </p>
+        )}
+        {post.status === "publicado" && (
+          <div className="flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
+            {post.metricas ? (
+              <span className="inline-flex items-center gap-2">
+                <span title="Alcance">👁 {formatCompact(post.metricas.alcance)}</span>
+                <span title="Curtidas">❤️ {formatCompact(post.metricas.curtidas)}</span>
+                <span title="Comentários">💬 {formatCompact(post.metricas.comentarios)}</span>
+                <span title="Salvamentos">🔖 {formatCompact(post.metricas.salvamentos)}</span>
+                <span title="Compartilhamentos">🔁 {formatCompact(post.metricas.compartilhamentos)}</span>
+              </span>
+            ) : (
+              <span>Sem métricas ainda —</span>
+            )}
+            {canManage && (
+              <button
+                type="button"
+                onClick={atualizarMetricas}
+                disabled={pendingMetricas}
+                className="inline-flex items-center gap-1 rounded-md border bg-card px-1.5 py-0.5 hover:bg-muted disabled:opacity-50"
+                title="Atualizar métricas"
+              >
+                <BarChart3 className="h-3 w-3" />
+                {pendingMetricas ? "Atualizando..." : "Atualizar métricas"}
+              </button>
+            )}
+          </div>
         )}
       </div>
 

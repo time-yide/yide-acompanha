@@ -6,8 +6,8 @@ vi.mock("@/lib/social-media/meta-publish", () => ({ metaFetch }));
 import {
   getInstagramMediaInsights,
   getFacebookPostInsights,
-  formatCompact,
 } from "@/lib/social-media/meta-insights";
+import { formatCompact } from "@/lib/social-media/format";
 
 beforeEach(() => metaFetch.mockReset());
 
