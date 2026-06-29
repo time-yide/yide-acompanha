@@ -10,7 +10,8 @@ export interface PfmResult<T> {
   error?: string;
 }
 
-export type PfmPlatform = "tiktok" | "youtube" | "linkedin";
+export type PfmPlatform = "tiktok" | "youtube" | "linkedin" | "instagram" | "facebook";
+export type PfmPlacement = "timeline" | "reels" | "stories";
 
 export interface PfmAccount {
   id: string;
@@ -73,14 +74,21 @@ export async function publicarPostforme(args: {
   accountIds: string[];
   caption: string;
   mediaUrls: string[];
+  /** Placement pra Instagram/Facebook (feed=timeline, reels, stories). */
+  placement?: PfmPlacement;
 }): Promise<PfmResult<{ id: string }>> {
   if (args.accountIds.length === 0) return { error: "Sem contas conectadas" };
-  return pfmFetch<{ id: string }>("/social-posts", {
-    method: "POST",
-    body: {
-      caption: args.caption,
-      social_accounts: args.accountIds,
-      media: args.mediaUrls.map((url) => ({ url })),
-    },
-  });
+  const body: Record<string, unknown> = {
+    caption: args.caption,
+    social_accounts: args.accountIds,
+    media: args.mediaUrls.map((url) => ({ url })),
+  };
+  // Stories/Reels precisam de placement explícito no IG/FB; feed é o default.
+  if (args.placement && args.placement !== "timeline") {
+    body.platform_configurations = {
+      instagram: { placement: args.placement },
+      facebook: { placement: args.placement },
+    };
+  }
+  return pfmFetch<{ id: string }>("/social-posts", { method: "POST", body });
 }

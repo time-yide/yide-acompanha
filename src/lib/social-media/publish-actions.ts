@@ -147,8 +147,20 @@ export async function publishPostById(
     formato: p.formato,
   };
 
-  // Instagram
-  if (p.redes.includes("instagram")) {
+  // Contas conectadas via Post for Me (IG/FB podem ir por aqui em vez do Meta nativo).
+  const { data: pfmRows } = await sbAny
+    .from("client_postforme_accounts")
+    .select("plataforma, account_id")
+    .eq("client_id", p.client_id);
+  const pfmMap = new Map(
+    ((pfmRows ?? []) as Array<{ plataforma: string; account_id: string }>).map((x) => [
+      x.plataforma,
+      x.account_id,
+    ]),
+  );
+
+  // Instagram (nativo Meta) — só se NÃO estiver conectado via Post for Me.
+  if (p.redes.includes("instagram") && !pfmMap.has("instagram")) {
     if (!c.instagram_business_id) {
       results.instagram = { error: "instagram_business_id não cadastrado no cliente" };
       erros.push("IG: ID da conta não cadastrado");
@@ -175,8 +187,8 @@ export async function publishPostById(
     }
   }
 
-  // Facebook
-  if (p.redes.includes("facebook")) {
+  // Facebook (nativo Meta) — só se NÃO estiver conectado via Post for Me.
+  if (p.redes.includes("facebook") && !pfmMap.has("facebook")) {
     if (!c.facebook_page_id) {
       results.facebook = { error: "facebook_page_id não cadastrado no cliente" };
       erros.push("FB: ID da página não cadastrado");
@@ -196,33 +208,29 @@ export async function publishPostById(
     }
   }
 
-  // Post for Me (TikTok / YouTube / LinkedIn) — publica numa chamada só
-  const redesPfm = REDES_PFM.filter((r) => p.redes.includes(r));
+  // Post for Me — TikTok/YouTube/LinkedIn sempre por aqui; IG/FB só se conectados via PFM.
+  const redesPfm = p.redes.filter(
+    (r) =>
+      (REDES_PFM as readonly string[]).includes(r) ||
+      ((r === "instagram" || r === "facebook") && pfmMap.has(r)),
+  );
   if (redesPfm.length > 0) {
-    const { data: contas } = await sbAny
-      .from("client_postforme_accounts")
-      .select("plataforma, account_id")
-      .eq("client_id", p.client_id)
-      .in("plataforma", redesPfm);
-    const contasMap = new Map(
-      ((contas ?? []) as Array<{ plataforma: string; account_id: string }>).map((x) => [
-        x.plataforma,
-        x.account_id,
-      ]),
-    );
     const accountIds: string[] = [];
     for (const r of redesPfm) {
-      const accId = contasMap.get(r);
+      const accId = pfmMap.get(r);
       if (accId) accountIds.push(accId);
       else erros.push(`${r}: conta não conectada (conecte em Contas do cliente)`);
     }
 
     if (accountIds.length > 0) {
       const caption = [p.legenda ?? "", p.hashtags ?? ""].filter((s) => s.trim()).join("\n\n");
+      const placement =
+        p.formato === "story" ? "stories" : p.formato === "reels" ? "reels" : "timeline";
       const res = await publicarPostforme({
         accountIds,
         caption,
         mediaUrls: p.midias ?? [],
+        placement,
       });
       if (res.data?.id) {
         results.postforme = { postId: res.data.id, redes: redesPfm };

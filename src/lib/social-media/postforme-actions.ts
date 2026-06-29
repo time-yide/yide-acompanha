@@ -22,7 +22,7 @@ function canManage(role: string): boolean {
 const uuidLike = z.string().regex(
   /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/,
 );
-const PLATAFORMAS = ["tiktok", "youtube", "linkedin"] as const;
+const PLATAFORMAS = ["tiktok", "youtube", "linkedin", "instagram", "facebook"] as const;
 
 export interface PfmContaResumo {
   plataforma: string;
