@@ -16,6 +16,8 @@ export interface ClienteComSnapshot {
   /** Meta mensal de posts. NULL = sem meta (não mostra alerta). */
   meta_posts_mes: number | null;
   ultimo_snapshot: SnapshotRow | null;
+  /** Conferência: posts publicados PELO SISTEMA no mês atual (vs Apify). */
+  posts_sistema_mes: number;
 }
 
 /**
@@ -88,6 +90,28 @@ export async function listClientesComUltimoSnapshot(opts: {
     }
   }
 
+  // Conferência: posts publicados PELO SISTEMA no mês atual (início do mês em Cuiabá = UTC-4).
+  const agora = new Date();
+  const cuiaba = new Date(agora.getTime() - 4 * 60 * 60 * 1000);
+  const inicioMesIso = new Date(
+    Date.UTC(cuiaba.getUTCFullYear(), cuiaba.getUTCMonth(), 1, 4, 0, 0),
+  ).toISOString();
+  const postsSistemaPorCliente = new Map<string, number>();
+  try {
+    const { data: smPosts } = await sb
+      .from("social_media_posts")
+      .select("client_id")
+      .in("client_id", clienteIds)
+      .eq("status", "publicado")
+      .is("archived_at", null)
+      .gte("publicado_em", inicioMesIso);
+    for (const p of (smPosts ?? []) as Array<{ client_id: string }>) {
+      postsSistemaPorCliente.set(p.client_id, (postsSistemaPorCliente.get(p.client_id) ?? 0) + 1);
+    }
+  } catch {
+    // tabela ausente / erro → conferência fica 0, não quebra o dashboard
+  }
+
   return rows.map((c) => ({
     cliente_id: c.id,
     cliente_nome: c.nome,
@@ -98,6 +122,7 @@ export async function listClientesComUltimoSnapshot(opts: {
     unit_id: c.unit_id,
     meta_posts_mes: c.pacote_post_padrao,
     ultimo_snapshot: ultimoPorCliente.get(c.id) ?? null,
+    posts_sistema_mes: postsSistemaPorCliente.get(c.id) ?? 0,
   }));
 }
 
