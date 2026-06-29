@@ -14,6 +14,8 @@ import {
 import type { MetaAccount } from "@/lib/social-media/meta-publish";
 
 const PFM_REDES: { plataforma: string; label: string }[] = [
+  { plataforma: "instagram", label: "Instagram" },
+  { plataforma: "facebook", label: "Facebook" },
   { plataforma: "tiktok", label: "TikTok" },
   { plataforma: "youtube", label: "YouTube" },
   { plataforma: "linkedin", label: "LinkedIn" },
