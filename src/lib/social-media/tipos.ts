@@ -7,7 +7,7 @@
  * Fase 4: LinkedIn + GMN + inbox unificada.
  */
 
-export type Rede = "instagram" | "facebook" | "linkedin" | "gmn";
+export type Rede = "instagram" | "facebook" | "linkedin" | "gmn" | "tiktok" | "youtube";
 
 export interface RedeDef {
   value: Rede;
@@ -33,7 +33,16 @@ export const REDES: RedeDef[] = [
     value: "linkedin",
     label: "LinkedIn",
     color: "border-sky-500/40 bg-sky-500/10 text-sky-700 dark:text-sky-300",
-    comingSoon: true,
+  },
+  {
+    value: "tiktok",
+    label: "TikTok",
+    color: "border-foreground/30 bg-foreground/10 text-foreground",
+  },
+  {
+    value: "youtube",
+    label: "YouTube",
+    color: "border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-300",
   },
   {
     value: "gmn",

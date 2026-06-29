@@ -49,7 +49,7 @@ function parseStringArray(raw: FormDataEntryValue | null): string[] {
   }
 }
 
-const REDES_VALIDAS = ["instagram", "facebook", "linkedin", "gmn"] as const;
+const REDES_VALIDAS = ["instagram", "facebook", "linkedin", "gmn", "tiktok", "youtube"] as const;
 const FORMATOS_VALIDOS = ["feed", "carrossel", "story", "reels"] as const;
 
 const createPostSchema = z.object({
@@ -59,7 +59,7 @@ const createPostSchema = z.object({
   primeiro_comentario: z.string().trim().max(2000).optional().nullable(),
   hashtags: z.string().trim().max(2000).optional().nullable(),
   formato: z.enum(FORMATOS_VALIDOS).default("feed"),
-  redes: z.array(z.enum(REDES_VALIDAS)).max(4).default([]),
+  redes: z.array(z.enum(REDES_VALIDAS)).max(6).default([]),
   midias: z.array(z.string().url()).max(20).default([]),
   agendar_para: z.string().nullable().optional(),
   status: z.enum(STATUS_VALORES).default("rascunho"),
@@ -363,7 +363,7 @@ const gerarLegendaSchema = z.object({
   brief: z.string().trim().max(500).optional().nullable(),
   rascunho: z.string().trim().max(4000).optional().nullable(),
   formato: z.enum(FORMATOS_VALIDOS).default("feed"),
-  redes: z.array(z.enum(REDES_VALIDAS)).max(4).default([]),
+  redes: z.array(z.enum(REDES_VALIDAS)).max(6).default([]),
 });
 
 export async function gerarLegendaIaAction(input: {

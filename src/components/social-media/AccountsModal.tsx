@@ -1,14 +1,23 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { Search } from "lucide-react";
+import { useState, useTransition, useEffect, useCallback } from "react";
+import { Search, Link2, X } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { listMetaAccountsAction, updateClienteSocialAccountsAction } from "@/lib/social-media/actions";
+import {
+  listarContasClienteAction, iniciarConexaoAction, capturarConexaoAction, desconectarPfmAction,
+} from "@/lib/social-media/postforme-actions";
 import type { MetaAccount } from "@/lib/social-media/meta-publish";
+
+const PFM_REDES: { plataforma: string; label: string }[] = [
+  { plataforma: "tiktok", label: "TikTok" },
+  { plataforma: "youtube", label: "YouTube" },
+  { plataforma: "linkedin", label: "LinkedIn" },
+];
 
 interface Props {
   open: boolean;
@@ -36,6 +45,67 @@ export function AccountsModal({ open, onOpenChange, clientId, clientNome, initia
   const [accounts, setAccounts] = useState<MetaAccount[] | null>(null);
   const [buscando, setBuscando] = useState(false);
   const [buscaError, setBuscaError] = useState<string | null>(null);
+
+  // Post for Me (TikTok / YouTube / LinkedIn): conexão por rede.
+  const [pfmContas, setPfmContas] = useState<Record<string, string | null>>({});
+  const [pfmBusy, setPfmBusy] = useState<string | null>(null);
+  const [pfmAviso, setPfmAviso] = useState<string | null>(null);
+
+  const carregarPfm = useCallback(async () => {
+    const r = await listarContasClienteAction(clientId);
+    if ("contas" in r) {
+      const map: Record<string, string | null> = {};
+      for (const c of r.contas) map[c.plataforma] = c.username ?? null;
+      setPfmContas(map);
+    }
+  }, [clientId]);
+
+  useEffect(() => {
+    if (!open) return;
+    let active = true;
+    void (async () => {
+      const r = await listarContasClienteAction(clientId);
+      if (!active || !("contas" in r)) return;
+      const map: Record<string, string | null> = {};
+      for (const c of r.contas) map[c.plataforma] = c.username ?? null;
+      setPfmContas(map);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [open, clientId]);
+
+  async function conectarPfm(plataforma: string) {
+    setPfmAviso(null);
+    setPfmBusy(plataforma);
+    const r = await iniciarConexaoAction(clientId, plataforma);
+    setPfmBusy(null);
+    if ("error" in r) {
+      setPfmAviso(r.error);
+      return;
+    }
+    window.open(r.url, "_blank", "noopener");
+    setPfmAviso(`Autorize na aba que abriu e depois clique "Já autorizei".`);
+  }
+
+  async function confirmarPfm(plataforma: string) {
+    setPfmAviso(null);
+    setPfmBusy(plataforma);
+    const r = await capturarConexaoAction(clientId, plataforma);
+    setPfmBusy(null);
+    if ("error" in r) {
+      setPfmAviso(r.error);
+      return;
+    }
+    await carregarPfm();
+  }
+
+  async function desconectarPfm(plataforma: string) {
+    setPfmBusy(plataforma);
+    await desconectarPfmAction(clientId, plataforma);
+    setPfmBusy(null);
+    await carregarPfm();
+  }
 
   async function buscarContas() {
     setBuscaError(null);
@@ -185,6 +255,63 @@ export function AccountsModal({ open, onOpenChange, clientId, clientNome, initia
               placeholder="locations/12345"
               maxLength={80}
             />
+          </div>
+
+          {/* Post for Me — TikTok / YouTube / LinkedIn (conecta sem copiar ID) */}
+          <div className="space-y-2 rounded-md border border-dashed border-input bg-muted/30 p-3">
+            <p className="text-xs font-medium">Outras redes (TikTok / YouTube / LinkedIn)</p>
+            <p className="text-[10px] text-muted-foreground">
+              Conecta direto via Post for Me — sem copiar ID. Você autoriza a conta do cliente.
+            </p>
+            {PFM_REDES.map((rede) => {
+              const conectado = rede.plataforma in pfmContas;
+              const user = pfmContas[rede.plataforma];
+              return (
+                <div key={rede.plataforma} className="flex items-center justify-between gap-2">
+                  <span className="text-xs">
+                    {rede.label}
+                    {conectado && (
+                      <span className="ml-1 text-green-600 dark:text-green-400">
+                        ✓ {user ? `@${user}` : "conectado"}
+                      </span>
+                    )}
+                  </span>
+                  {conectado ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      disabled={pfmBusy === rede.plataforma}
+                      onClick={() => desconectarPfm(rede.plataforma)}
+                    >
+                      <X className="h-3.5 w-3.5" /> Desconectar
+                    </Button>
+                  ) : (
+                    <div className="flex gap-1">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={pfmBusy === rede.plataforma}
+                        onClick={() => conectarPfm(rede.plataforma)}
+                      >
+                        <Link2 className="h-3.5 w-3.5" /> Conectar
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        disabled={pfmBusy === rede.plataforma}
+                        onClick={() => confirmarPfm(rede.plataforma)}
+                      >
+                        Já autorizei
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {pfmAviso && <p className="text-[11px] text-muted-foreground">{pfmAviso}</p>}
           </div>
         </div>
 
