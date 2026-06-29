@@ -57,7 +57,7 @@ function montarCaption(post: PostToPublish): string {
   return parts.join("\n\n");
 }
 
-async function metaFetch<T = unknown>(
+export async function metaFetch<T = unknown>(
   endpoint: string,
   options: { method?: "GET" | "POST"; body?: Record<string, unknown> } = {},
 ): Promise<{ data?: T; error?: string }> {

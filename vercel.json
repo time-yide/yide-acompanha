@@ -10,6 +10,7 @@
     { "path": "/api/cron/trafego-meta-sync", "schedule": "0 4 * * *" },
     { "path": "/api/cron/refresh-gmb", "schedule": "0 6 * * *" },
     { "path": "/api/cron/social-media-publish", "schedule": "*/5 * * * *" },
+    { "path": "/api/cron/social-media-insights-sync", "schedule": "0 11,17,23 * * *" },
     { "path": "/api/cron/instagram-snapshots", "schedule": "30 4 * * *" },
     { "path": "/api/cron/instagram-meta-alerts", "schedule": "0 12 * * *" },
     { "path": "/api/cron/yori-worker", "schedule": "*/1 * * * *" },

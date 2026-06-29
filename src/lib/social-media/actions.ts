@@ -9,6 +9,7 @@ import { logActivityInternal } from "@/lib/produtividade/actions";
 import { listAvailableAccounts, type MetaAccount } from "./meta-publish";
 import { STATUS_VALORES } from "./tipos";
 import { gerarLegenda, type CaptionResult } from "./caption-generator";
+import { sincronizarMetricasPost } from "./insights-sync";
 
 interface ActionOk { success: true }
 interface ActionErr { error: string }
@@ -431,4 +432,33 @@ export async function gerarLegendaIaAction(input: {
     brief: parsed.data.brief ?? null,
     rascunho: parsed.data.rascunho ?? null,
   });
+}
+
+// ===========================================================================
+// Atualizar métricas de um post sob demanda (botão na UI)
+// ===========================================================================
+
+const atualizarMetricasSchema = z.object({ post_id: uuidLike });
+
+export async function atualizarMetricasPostAction(formData: FormData): Promise<ActionResult> {
+  const actor = await requireAuth();
+  if (!canManage(actor.role)) return { error: "Sem permissão" };
+
+  const parsed = atualizarMetricasSchema.safeParse({ post_id: fd(formData, "post_id") });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const r = await sincronizarMetricasPost(parsed.data.post_id);
+  if (r.ok === 0 && r.erros.length > 0) return { error: r.erros.join(" | ") };
+
+  // Descobre o client_id pra revalidar a página certa.
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const { data } = await sb
+    .from("social_media_posts")
+    .select("client_id")
+    .eq("id", parsed.data.post_id)
+    .single();
+  if (data?.client_id) revalidatePath(`/social-media/${data.client_id}`);
+  return { success: true };
 }
