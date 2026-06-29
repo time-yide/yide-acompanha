@@ -92,6 +92,9 @@ export function AccountsModal({ open, onOpenChange, clientId, clientNome }: Prop
 
   async function conectar(rede: RedeDef) {
     setAviso(null);
+    // Abre a aba JÁ no clique (gesto do usuário) pra não ser bloqueada pelo
+    // pop-up blocker. Depois redireciona ela pra URL de autorização.
+    const win = window.open("about:blank", "_blank");
     setBusy(rede.key);
     const r =
       rede.provider === "google"
@@ -99,10 +102,12 @@ export function AccountsModal({ open, onOpenChange, clientId, clientNome }: Prop
         : await iniciarConexaoAction(clientId, rede.key);
     setBusy(null);
     if ("error" in r) {
+      win?.close();
       setAviso(r.error);
       return;
     }
-    window.open(r.url, "_blank", "noopener");
+    if (win) win.location.href = r.url;
+    else window.open(r.url, "_blank", "noopener");
     setAguardando((a) => ({ ...a, [rede.key]: true }));
   }
 
