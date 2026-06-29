@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Upload, X } from "lucide-react";
+import { Upload, X, Sparkles } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   createSocialPostAction, updateSocialPostAction, uploadSocialMidiaAction,
+  gerarLegendaIaAction,
 } from "@/lib/social-media/actions";
 import { REDES, FORMATOS, STATUS_DEFS } from "@/lib/social-media/tipos";
 import { brtInputToUtcIso, utcIsoToBrtInputValue } from "@/lib/calendario/timezone";
@@ -54,6 +55,10 @@ export function PostFormModal({ open, onOpenChange, clientId, post, defaultDate 
   const [formato, setFormato] = useState<string>(post?.formato ?? "feed");
   const [status, setStatus] = useState<string>(post?.status ?? "rascunho");
   const [redes, setRedes] = useState<string[]>(post?.redes ?? ["instagram"]);
+  const [legenda, setLegenda] = useState<string>(post?.legenda ?? "");
+  const [hashtags, setHashtags] = useState<string>(post?.hashtags ?? "");
+  const [briefIa, setBriefIa] = useState<string>("");
+  const [gerandoIa, setGerandoIa] = useState(false);
   const [midias, setMidias] = useState<string[]>(post?.midias ?? []);
   const [agendar, setAgendar] = useState<string>(
     isoToDatetimeLocal(post?.agendar_para) || (defaultDate ? `${defaultDate}T10:00` : ""),
@@ -88,6 +93,28 @@ export function PostFormModal({ open, onOpenChange, clientId, post, defaultDate 
 
   function removerMidia(idx: number) {
     setMidias((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  async function onGerarIa(modo: "gerar" | "melhorar") {
+    setError(null);
+    setGerandoIa(true);
+    try {
+      const r = await gerarLegendaIaAction({
+        client_id: clientId,
+        brief: modo === "gerar" ? briefIa : null,
+        rascunho: modo === "melhorar" ? legenda : null,
+        formato,
+        redes,
+      });
+      if ("error" in r) {
+        setError(r.error);
+        return;
+      }
+      setLegenda(r.legenda);
+      setHashtags(r.hashtags);
+    } finally {
+      setGerandoIa(false);
+    }
   }
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -226,6 +253,33 @@ export function PostFormModal({ open, onOpenChange, clientId, post, defaultDate 
             </div>
           </div>
 
+          {/* IA: gerar/melhorar legenda */}
+          <div className="space-y-2 rounded-md border border-primary/30 bg-primary/5 p-3">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-primary">
+              <Sparkles className="h-3.5 w-3.5" /> Gerar com IA
+            </div>
+            <Input
+              value={briefIa}
+              onChange={(e) => setBriefIa(e.target.value)}
+              placeholder="Conte a ideia. Ex: promoção de Dia das Mães, 20% off até domingo"
+              maxLength={500}
+              disabled={gerandoIa}
+            />
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" size="sm" onClick={() => onGerarIa("gerar")} disabled={gerandoIa || !briefIa.trim()}>
+                {gerandoIa ? "Gerando..." : "✨ Gerar legenda"}
+              </Button>
+              {legenda.trim() && (
+                <Button type="button" size="sm" variant="outline" onClick={() => onGerarIa("melhorar")} disabled={gerandoIa}>
+                  {gerandoIa ? "Gerando..." : "Melhorar rascunho"}
+                </Button>
+              )}
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              Usa o tom de voz do cliente. Você edita o resultado à vontade.
+            </p>
+          </div>
+
           {/* Legenda */}
           <div className="space-y-1.5">
             <Label htmlFor="legenda">Legenda</Label>
@@ -233,7 +287,8 @@ export function PostFormModal({ open, onOpenChange, clientId, post, defaultDate 
               id="legenda"
               name="legenda"
               rows={5}
-              defaultValue={post?.legenda ?? ""}
+              value={legenda}
+              onChange={(e) => setLegenda(e.target.value)}
               placeholder="Texto principal do post..."
               maxLength={4000}
             />
@@ -247,7 +302,8 @@ export function PostFormModal({ open, onOpenChange, clientId, post, defaultDate 
                 id="hashtags"
                 name="hashtags"
                 rows={2}
-                defaultValue={post?.hashtags ?? ""}
+                value={hashtags}
+                onChange={(e) => setHashtags(e.target.value)}
                 placeholder="#blackfriday #marketing"
                 maxLength={2000}
               />
