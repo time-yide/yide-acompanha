@@ -11,6 +11,9 @@ import { listMetaAccountsAction, updateClienteSocialAccountsAction } from "@/lib
 import {
   listarContasClienteAction, iniciarConexaoAction, capturarConexaoAction, desconectarPfmAction,
 } from "@/lib/social-media/postforme-actions";
+import {
+  googleConectadoAction, iniciarConexaoGoogleAction, capturarConexaoGoogleAction, desconectarGoogleAction,
+} from "@/lib/social-media/outstand-actions";
 import type { MetaAccount } from "@/lib/social-media/meta-publish";
 
 const PFM_REDES: { plataforma: string; label: string }[] = [
@@ -53,6 +56,19 @@ export function AccountsModal({ open, onOpenChange, clientId, clientNome, initia
   const [pfmBusy, setPfmBusy] = useState<string | null>(null);
   const [pfmAviso, setPfmAviso] = useState<string | null>(null);
 
+  // Google Meu Negócio (via Outstand)
+  const [googleConn, setGoogleConn] = useState<{ conectado: boolean; username: string | null }>({
+    conectado: false,
+    username: null,
+  });
+  const [googleBusy, setGoogleBusy] = useState(false);
+  const [googleAviso, setGoogleAviso] = useState<string | null>(null);
+
+  const carregarGoogle = useCallback(async () => {
+    const g = await googleConectadoAction(clientId);
+    if (!("error" in g)) setGoogleConn({ conectado: g.conectado, username: g.username });
+  }, [clientId]);
+
   const carregarPfm = useCallback(async () => {
     const r = await listarContasClienteAction(clientId);
     if ("contas" in r) {
@@ -71,6 +87,18 @@ export function AccountsModal({ open, onOpenChange, clientId, clientNome, initia
       const map: Record<string, string | null> = {};
       for (const c of r.contas) map[c.plataforma] = c.username ?? null;
       setPfmContas(map);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [open, clientId]);
+
+  useEffect(() => {
+    if (!open) return;
+    let active = true;
+    void (async () => {
+      const g = await googleConectadoAction(clientId);
+      if (active && !("error" in g)) setGoogleConn({ conectado: g.conectado, username: g.username });
     })();
     return () => {
       active = false;
@@ -107,6 +135,38 @@ export function AccountsModal({ open, onOpenChange, clientId, clientNome, initia
     await desconectarPfmAction(clientId, plataforma);
     setPfmBusy(null);
     await carregarPfm();
+  }
+
+  async function conectarGoogle() {
+    setGoogleAviso(null);
+    setGoogleBusy(true);
+    const r = await iniciarConexaoGoogleAction(clientId);
+    setGoogleBusy(false);
+    if ("error" in r) {
+      setGoogleAviso(r.error);
+      return;
+    }
+    window.open(r.url, "_blank", "noopener");
+    setGoogleAviso(`Autorize na aba que abriu e depois clique "Já autorizei".`);
+  }
+
+  async function confirmarGoogle() {
+    setGoogleAviso(null);
+    setGoogleBusy(true);
+    const r = await capturarConexaoGoogleAction(clientId);
+    setGoogleBusy(false);
+    if ("error" in r) {
+      setGoogleAviso(r.error);
+      return;
+    }
+    await carregarGoogle();
+  }
+
+  async function desconectarGoogle() {
+    setGoogleBusy(true);
+    await desconectarGoogleAction(clientId);
+    setGoogleBusy(false);
+    await carregarGoogle();
   }
 
   async function buscarContas() {
@@ -314,6 +374,36 @@ export function AccountsModal({ open, onOpenChange, clientId, clientNome, initia
               );
             })}
             {pfmAviso && <p className="text-[11px] text-muted-foreground">{pfmAviso}</p>}
+          </div>
+
+          {/* Google Meu Negócio — via Outstand */}
+          <div className="space-y-2 rounded-md border border-dashed border-input bg-muted/30 p-3">
+            <p className="text-xs font-medium">Google Meu Negócio (via Outstand)</p>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs">
+                Google
+                {googleConn.conectado && (
+                  <span className="ml-1 text-green-600 dark:text-green-400">
+                    ✓ {googleConn.username ? googleConn.username : "conectado"}
+                  </span>
+                )}
+              </span>
+              {googleConn.conectado ? (
+                <Button type="button" size="sm" variant="ghost" disabled={googleBusy} onClick={desconectarGoogle}>
+                  <X className="h-3.5 w-3.5" /> Desconectar
+                </Button>
+              ) : (
+                <div className="flex gap-1">
+                  <Button type="button" size="sm" variant="outline" disabled={googleBusy} onClick={conectarGoogle}>
+                    <Link2 className="h-3.5 w-3.5" /> Conectar
+                  </Button>
+                  <Button type="button" size="sm" variant="ghost" disabled={googleBusy} onClick={confirmarGoogle}>
+                    Já autorizei
+                  </Button>
+                </div>
+              )}
+            </div>
+            {googleAviso && <p className="text-[11px] text-muted-foreground">{googleAviso}</p>}
           </div>
         </div>
 

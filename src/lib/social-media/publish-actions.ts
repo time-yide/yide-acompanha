@@ -12,6 +12,7 @@ import {
   buildInstagramPostUrl,
 } from "./meta-publish";
 import { publicarPostforme } from "./postforme";
+import { publicarOutstand } from "./outstand";
 
 /** Redes publicadas via Post for Me (não-Meta). */
 const REDES_PFM = ["tiktok", "youtube", "linkedin"] as const;
@@ -24,6 +25,7 @@ interface ActionResult {
     instagram?: { postId?: string; url?: string; error?: string };
     facebook?: { postId?: string; error?: string };
     postforme?: { postId?: string; error?: string; redes?: string[] };
+    google?: { postId?: string; error?: string };
   };
 }
 
@@ -238,6 +240,34 @@ export async function publishPostById(
       } else {
         results.postforme = { error: res.error };
         erros.push(`Post for Me: ${res.error}`);
+      }
+    }
+  }
+
+  // Google Meu Negócio — via Outstand
+  if (p.redes.includes("gmn")) {
+    const { data: gConta } = await sbAny
+      .from("client_outstand_accounts")
+      .select("account_id")
+      .eq("client_id", p.client_id)
+      .eq("plataforma", "google_business")
+      .maybeSingle();
+    if (!gConta?.account_id) {
+      results.google = { error: "Google não conectado (conecte em Contas do cliente)" };
+      erros.push("Google: conta não conectada");
+    } else {
+      const content = [p.legenda ?? "", p.hashtags ?? ""].filter((s) => s.trim()).join("\n\n");
+      const res = await publicarOutstand({
+        accountIds: [gConta.account_id as string],
+        content,
+        mediaUrls: p.midias ?? [],
+      });
+      if (res.data?.id) {
+        results.google = { postId: res.data.id };
+        qualquerSucesso = true;
+      } else {
+        results.google = { error: res.error };
+        erros.push(`Google: ${res.error}`);
       }
     }
   }

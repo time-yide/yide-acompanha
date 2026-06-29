@@ -48,7 +48,6 @@ export const REDES: RedeDef[] = [
     value: "gmn",
     label: "Google Meu Negócio",
     color: "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300",
-    comingSoon: true,
   },
 ];
 
