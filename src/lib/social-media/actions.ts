@@ -8,6 +8,7 @@ import { requireAuth } from "@/lib/auth/session";
 import { logActivityInternal } from "@/lib/produtividade/actions";
 import { listAvailableAccounts, type MetaAccount } from "./meta-publish";
 import { STATUS_VALORES } from "./tipos";
+import { gerarLegenda, type CaptionResult } from "./caption-generator";
 
 interface ActionOk { success: true }
 interface ActionErr { error: string }
@@ -350,4 +351,84 @@ export async function uploadSocialMidiaAction(
   if (!signed?.signedUrl) return { error: "Erro ao gerar URL" };
 
   return { url: signed.signedUrl };
+}
+
+// ===========================================================================
+// IA: gerar/melhorar legenda + hashtags (opt-in, só roda no clique)
+// ===========================================================================
+
+const gerarLegendaSchema = z.object({
+  client_id: uuidLike,
+  brief: z.string().trim().max(500).optional().nullable(),
+  rascunho: z.string().trim().max(4000).optional().nullable(),
+  formato: z.enum(FORMATOS_VALIDOS).default("feed"),
+  redes: z.array(z.enum(REDES_VALIDAS)).max(4).default([]),
+});
+
+export async function gerarLegendaIaAction(input: {
+  client_id: string;
+  brief?: string | null;
+  rascunho?: string | null;
+  formato?: string;
+  redes?: string[];
+}): Promise<CaptionResult> {
+  const actor = await requireAuth();
+  if (!canManage(actor.role)) return { error: "Sem permissão" };
+
+  const parsed = gerarLegendaSchema.safeParse({
+    client_id: input.client_id,
+    brief: input.brief ?? null,
+    rascunho: input.rascunho ?? null,
+    formato: input.formato ?? "feed",
+    redes: (input.redes ?? []) as ("instagram" | "facebook" | "linkedin" | "gmn")[],
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+
+  // Busca contexto da marca. design_style_guide pode não existir no schema cache → fallback.
+  let nome = "Cliente";
+  let servico: string | null = null;
+  let sg: Record<string, unknown> = {};
+
+  const full = await sb
+    .from("clients")
+    .select("nome, servico_contratado, design_style_guide")
+    .eq("id", parsed.data.client_id)
+    .single();
+  if (full.error) {
+    const msg = full.error.message ?? "";
+    if (msg.includes("design_style_guide") || msg.includes("schema cache")) {
+      const basic = await sb
+        .from("clients")
+        .select("nome, servico_contratado")
+        .eq("id", parsed.data.client_id)
+        .single();
+      if (!basic.data) return { error: "Cliente não encontrado" };
+      nome = basic.data.nome ?? "Cliente";
+      servico = basic.data.servico_contratado ?? null;
+    } else {
+      return { error: "Cliente não encontrado" };
+    }
+  } else if (full.data) {
+    nome = full.data.nome ?? "Cliente";
+    servico = full.data.servico_contratado ?? null;
+    sg = (full.data.design_style_guide ?? {}) as Record<string, unknown>;
+  }
+
+  const str = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v : null);
+
+  return gerarLegenda({
+    clientNome: nome,
+    servico,
+    tomVoz: str(sg.tom_voz),
+    mood: str(sg.mood),
+    evitar: str(sg.evitar),
+    formato: parsed.data.formato,
+    redes: parsed.data.redes,
+    brief: parsed.data.brief ?? null,
+    rascunho: parsed.data.rascunho ?? null,
+  });
 }
