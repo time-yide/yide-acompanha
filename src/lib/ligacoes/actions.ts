@@ -393,12 +393,16 @@ export async function getTwilioVoiceTokenAction(): Promise<{
   const supabase = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
+  // .limit(1) + order pra não quebrar (maybeSingle lança) caso o colaborador
+  // tenha mais de uma instância Twilio cadastrada — pega a mais recente.
   const { data: inst } = await sb
     .from("ligacoes_instancias")
     .select("id, numero, provedor")
     .eq("colaborador_id", actor.id)
     .eq("provedor", "twilio")
     .is("arquivado_em", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
     .maybeSingle();
   if (!inst) return { token: null, callerId: null, instanciaId: null };
   const token = gerarVoiceToken(actor.id);
