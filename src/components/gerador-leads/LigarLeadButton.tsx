@@ -4,11 +4,19 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Phone, Loader2 } from "lucide-react";
 import { registrarLigacaoLeadAction, registrarResultadoLigacaoAction } from "@/lib/ligacoes/actions";
+import { useTwilioCall } from "@/components/ligacoes/TwilioCallProvider";
 
 interface Props {
   leadGeradoId: string;
   numero: string;
   contatoNome?: string | null;
+}
+
+/** Normaliza um telefone BR cru ("(65) 9 9680-0712") pra E.164 (+5565996800712). */
+function toE164BR(raw: string): string {
+  const d = raw.replace(/\D/g, "");
+  if (d.startsWith("55") && d.length >= 12) return `+${d}`;
+  return `+55${d}`;
 }
 
 // Resultados oferecidos (mapeiam pro enum de status de ligacoes).
@@ -21,6 +29,7 @@ const RESULTADOS: Array<{ value: string; label: string }> = [
 
 export function LigarLeadButton({ leadGeradoId, numero, contatoNome }: Props) {
   const router = useRouter();
+  const twilio = useTwilioCall();
   const [pending, start] = useTransition();
   const [savingResult, startResult] = useTransition();
   const [ligacaoId, setLigacaoId] = useState<string | null>(null);
@@ -30,6 +39,20 @@ export function LigarLeadButton({ leadGeradoId, numero, contatoNome }: Props) {
 
   function ligar() {
     setError(null);
+
+    // Twilio disponível: liga DE VERDADE pelo navegador, gravando. A rota de voz
+    // cria a ligação já vinculada ao lead (lead_gerado_id) e o webhook preenche
+    // status + gravação automaticamente — não precisa do tel: nem do "Como foi?".
+    if (twilio.available) {
+      twilio.dial(toE164BR(numero), {
+        lead_gerado_id: leadGeradoId,
+        ...(contatoNome ? { contato_nome: contatoNome } : {}),
+      });
+      return;
+    }
+
+    // Fallback (celular / sem Twilio): registra + abre o discador do aparelho +
+    // pede o resultado manual.
     start(async () => {
       const fd = new FormData();
       fd.set("numero", numero);
@@ -86,11 +109,15 @@ export function LigarLeadButton({ leadGeradoId, numero, contatoNome }: Props) {
       <button
         type="button"
         onClick={ligar}
-        disabled={pending}
+        disabled={pending || (twilio.available && twilio.status !== "idle")}
         className="inline-flex h-7 items-center gap-1 rounded-md border border-blue-500/40 bg-blue-500/10 px-2 text-[10px] font-medium text-blue-700 dark:text-blue-300 hover:bg-blue-500/20 disabled:opacity-50"
-        title="Ligar (abre o discador e registra a ligação)"
+        title={twilio.available ? "Ligar pelo computador (Twilio)" : "Ligar (abre o discador e registra a ligação)"}
       >
-        {pending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Phone className="h-3 w-3" />}
+        {pending || (twilio.available && twilio.status !== "idle") ? (
+          <Loader2 className="h-3 w-3 animate-spin" />
+        ) : (
+          <Phone className="h-3 w-3" />
+        )}
         Ligar
       </button>
       {error && <span className="mt-0.5 text-[10px] text-destructive">{error}</span>}
