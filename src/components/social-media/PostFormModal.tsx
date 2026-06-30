@@ -10,9 +10,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  createSocialPostAction, updateSocialPostAction, uploadSocialMidiaAction,
+  createSocialPostAction, updateSocialPostAction,
+  prepareSocialMidiaUploadAction, finalizeSocialMidiaUploadAction,
   gerarLegendaIaAction,
 } from "@/lib/social-media/actions";
+import { createClient } from "@/lib/supabase/client";
 import { REDES, FORMATOS, STATUS_DEFS } from "@/lib/social-media/tipos";
 import { brtInputToUtcIso, utcIsoToBrtInputValue } from "@/lib/calendario/timezone";
 import type { SocialPostRow } from "@/lib/social-media/queries";
@@ -78,15 +80,45 @@ export function PostFormModal({ open, onOpenChange, clientId, post, defaultDate 
     e.target.value = "";
 
     startUpload(async () => {
-      for (const file of files) {
-        const fd = new FormData();
-        fd.set("file", file);
-        const r = await uploadSocialMidiaAction(clientId, fd);
-        if ("error" in r) {
-          setError(r.error);
-          break;
+      try {
+        const supabase = createClient();
+        for (const file of files) {
+          // 1) Server Action só gera o token (payload minúsculo) — o arquivo
+          //    nunca trafega por Server Action, evitando o teto de 2MB/4,5MB
+          //    que dava tela preta com vídeo.
+          const prep = await prepareSocialMidiaUploadAction(
+            clientId, file.name, file.type, file.size,
+          );
+          if ("error" in prep) {
+            setError(prep.error);
+            break;
+          }
+          // 2) Browser envia os bytes direto pro Storage.
+          const { error: upErr } = await supabase.storage
+            .from("social-media-creatives")
+            .uploadToSignedUrl(prep.path, prep.token, file, {
+              contentType: file.type,
+            });
+          if (upErr) {
+            setError(`Falha no upload: ${upErr.message}`);
+            break;
+          }
+          // 3) Gera a signed URL de leitura pra salvar no post.
+          const fin = await finalizeSocialMidiaUploadAction(prep.path);
+          if ("error" in fin) {
+            setError(fin.error);
+            break;
+          }
+          setMidias((prev) => [...prev, fin.url]);
         }
-        setMidias((prev) => [...prev, r.url]);
+      } catch (err) {
+        // Rede caindo, action lançando, etc. Nunca deixa estourar pro error
+        // boundary (a "tela preta com erro").
+        setError(
+          err instanceof Error
+            ? `Erro no upload: ${err.message}`
+            : "Erro inesperado no upload",
+        );
       }
     });
   }

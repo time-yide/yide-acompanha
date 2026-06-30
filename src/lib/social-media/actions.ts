@@ -305,20 +305,34 @@ const ALLOWED_MIME = [
   "video/mp4", "video/quicktime",
 ];
 const MAX_BYTES = 50 * 1024 * 1024; // 50MB (Reels permite vídeos maiores)
+const CREATIVES_BUCKET = "social-media-creatives";
 
-export async function uploadSocialMidiaAction(
+type PrepareUploadResult = { path: string; token: string } | ActionErr;
+
+/**
+ * Prepara um upload de mídia direto do browser pro Supabase Storage.
+ *
+ * IMPORTANTE: o arquivo NÃO passa por Server Action. Server Actions têm teto de
+ * corpo de requisição (bodySizeLimit, 2MB neste projeto) e a Vercel limita o
+ * corpo de funções serverless a ~4,5MB — qualquer vídeo estourava esses limites
+ * e quebrava a página (tela de erro). Aqui só geramos um signed upload token
+ * (payload minúsculo); o browser envia os bytes direto pro Storage via
+ * `uploadToSignedUrl`, suportando os 50MB de verdade.
+ */
+export async function prepareSocialMidiaUploadAction(
   clientId: string,
-  formData: FormData,
-): Promise<UploadResult> {
+  fileName: string,
+  fileType: string,
+  fileSize: number,
+): Promise<PrepareUploadResult> {
   const actor = await requireAuth();
   if (!canManage(actor.role)) return { error: "Sem permissão" };
 
-  const file = formData.get("file");
-  if (!(file instanceof File)) return { error: "Arquivo inválido" };
-  if (!ALLOWED_MIME.includes(file.type)) {
-    return { error: `Tipo não suportado: ${file.type}` };
+  if (!ALLOWED_MIME.includes(fileType)) {
+    return { error: `Tipo não suportado: ${fileType}` };
   }
-  if (file.size > MAX_BYTES) {
+  if (fileSize <= 0) return { error: "Arquivo vazio" };
+  if (fileSize > MAX_BYTES) {
     return { error: `Arquivo grande demais (max ${MAX_BYTES / 1024 / 1024}MB)` };
   }
 
@@ -333,21 +347,35 @@ export async function uploadSocialMidiaAction(
   if (!client) return { error: "Cliente não encontrado" };
   const orgId = (client as { organization_id: string }).organization_id;
 
-  const ext = file.name.split(".").pop() ?? "bin";
+  const ext = fileName.split(".").pop() ?? "bin";
   const filename = `${Date.now()}-${crypto.randomUUID()}.${ext}`;
   const path = `${orgId}/${clientId}/${filename}`;
 
-  const { error: uploadErr } = await sb.storage
-    .from("social-media-creatives")
-    .upload(path, file, {
-      contentType: file.type,
-      cacheControl: "3600",
-      upsert: false,
-    });
-  if (uploadErr) return { error: uploadErr.message };
+  const { data, error } = await sb.storage
+    .from(CREATIVES_BUCKET)
+    .createSignedUploadUrl(path);
+  if (error || !data?.token) {
+    return { error: error?.message ?? "Erro ao preparar upload" };
+  }
+  return { path: (data.path as string) ?? path, token: data.token as string };
+}
 
+/**
+ * Gera a signed URL de leitura (7 dias) depois que o browser já subiu o arquivo
+ * via `uploadToSignedUrl`. Separado da preparação porque `createSignedUrl` exige
+ * que o objeto já exista no bucket.
+ */
+export async function finalizeSocialMidiaUploadAction(
+  path: string,
+): Promise<UploadResult> {
+  const actor = await requireAuth();
+  if (!canManage(actor.role)) return { error: "Sem permissão" };
+
+  const supabase = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
   const { data: signed } = await sb.storage
-    .from("social-media-creatives")
+    .from(CREATIVES_BUCKET)
     .createSignedUrl(path, 7 * 24 * 60 * 60);
   if (!signed?.signedUrl) return { error: "Erro ao gerar URL" };
 
