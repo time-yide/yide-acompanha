@@ -23,6 +23,7 @@ import { LigacoesTable } from "@/components/ligacoes/LigacoesTable";
 import { LigacoesToolbar } from "@/components/ligacoes/LigacoesToolbar";
 import { Discador } from "@/components/ligacoes/Discador";
 import { DiscadorRapido } from "@/components/ligacoes/DiscadorRapido";
+import { TwilioCallProvider } from "@/components/ligacoes/TwilioCallProvider";
 import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 const ALLOWED_ROLES = ["adm", "socio", "comercial", "coordenador", "assessor"];
@@ -137,29 +138,33 @@ export default async function LigacoesPage({
         <RankingColaboradores ranking={ranking} />
       </div>
 
-      {/* Discador rápido (tel/WhatsApp, sem provedor) + webphone Zenvia quando ativo */}
-      <div className="mb-4 space-y-3">
-        <DiscadorRapido />
-        <Discador />
-      </div>
+      {/* Provider do Device Twilio: envolve o discador e a tabela pra que o
+          botão Ligar de cada linha use o mesmo "telefone" do navegador. */}
+      <TwilioCallProvider>
+        {/* Discador rápido (tel/WhatsApp, sem provedor) + webphone Zenvia/Twilio */}
+        <div className="mb-4 space-y-3">
+          <DiscadorRapido />
+          <Discador />
+        </div>
 
-      {/* Toolbar + tabela */}
-      <section className="space-y-3 pt-2 border-t">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-          Histórico de chamadas
-        </h2>
-        <LigacoesToolbar
-          total={total}
-          ligacoesAtuais={ligacoes}
-          colaboradores={colaboradores}
-          canManage={canManage}
-        />
-        <LigacoesTable ligacoes={ligacoes} canManage={canManage} />
+        {/* Toolbar + tabela */}
+        <section className="space-y-3 pt-2 border-t">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            Histórico de chamadas
+          </h2>
+          <LigacoesToolbar
+            total={total}
+            ligacoesAtuais={ligacoes}
+            colaboradores={colaboradores}
+            canManage={canManage}
+          />
+          <LigacoesTable ligacoes={ligacoes} canManage={canManage} />
 
-        {totalPages > 1 && (
-          <Pagination current={page} total={totalPages} searchParams={params} />
-        )}
-      </section>
+          {totalPages > 1 && (
+            <Pagination current={page} total={totalPages} searchParams={params} />
+          )}
+        </section>
+      </TwilioCallProvider>
     </div>
   );
 }
