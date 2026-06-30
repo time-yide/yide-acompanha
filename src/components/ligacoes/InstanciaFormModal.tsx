@@ -152,8 +152,12 @@ export function InstanciaFormModal({ open, onOpenChange, instancia, colaboradore
                 <SelectTrigger id="provedor"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="manual">Registro manual (sem integração)</SelectItem>
-                  <SelectItem value="totalvoice">Zenvia (ligar pelo sistema)</SelectItem>
                   <SelectItem value="twilio">Twilio (ligar pelo sistema)</SelectItem>
+                  {/* Zenvia foi descontinuada. Só aparece se a instância já for
+                      Zenvia (edição de registro legado), pra não criar nova. */}
+                  {provedor === "totalvoice" && (
+                    <SelectItem value="totalvoice">Zenvia (ex-TotalVoice, descontinuado)</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
