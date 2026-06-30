@@ -22,7 +22,9 @@ interface TwilioCallCtx {
   status: Status;
   activeNumber: string | null;
   error: string | null;
-  dial: (numero: string) => void;
+  /** `extra` vira params extras no Device.connect (ex: lead_gerado_id,
+   *  contato_nome) — a rota de voz vincula a ligação ao lead. */
+  dial: (numero: string, extra?: Record<string, string>) => void;
   hangup: () => void;
 }
 
@@ -90,14 +92,20 @@ export function TwilioCallProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  function dial(numero: string) {
+  function dial(numero: string, extra?: Record<string, string>) {
     const device = deviceRef.current;
     if (!device || !numero.trim() || status !== "idle") return;
     setError(null);
     setStatus("connecting");
     setActiveNumber(numero.trim());
     device
-      .connect({ params: { To: numero.trim(), instancia_id: instanciaIdRef.current ?? "" } })
+      .connect({
+        params: {
+          To: numero.trim(),
+          instancia_id: instanciaIdRef.current ?? "",
+          ...(extra ?? {}),
+        },
+      })
       .then((call) => {
         callRef.current = call;
         call.on("accept", () => setStatus("in_call"));

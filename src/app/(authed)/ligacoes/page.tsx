@@ -22,7 +22,6 @@ import { RankingColaboradores } from "@/components/ligacoes/RankingColaboradores
 import { LigacoesTable } from "@/components/ligacoes/LigacoesTable";
 import { LigacoesToolbar } from "@/components/ligacoes/LigacoesToolbar";
 import { DiscadorTwilio } from "@/components/ligacoes/DiscadorTwilio";
-import { TwilioCallProvider } from "@/components/ligacoes/TwilioCallProvider";
 import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 const ALLOWED_ROLES = ["adm", "socio", "comercial", "coordenador", "assessor"];
@@ -137,34 +136,30 @@ export default async function LigacoesPage({
         <RankingColaboradores ranking={ranking} />
       </div>
 
-      {/* Provider do Device Twilio: envolve o discador e a tabela pra que o
-          botão Ligar de cada linha use o mesmo "telefone" do navegador. */}
-      <TwilioCallProvider>
-        {/* Só o discador Twilio (o que de fato liga pelo computador). O discador
-            rápido tel:/WhatsApp e o webphone Zenvia foram removidos por não
-            funcionarem/confundirem. Aparece quando o colaborador tem instância Twilio. */}
-        <div className="mb-4">
-          <DiscadorTwilio />
-        </div>
+      {/* O TwilioCallProvider agora vive no layout (authed), então o discador e
+          os botões Ligar usam o mesmo Device em qualquer tela. */}
+      {/* Só o discador Twilio (o que de fato liga pelo computador). */}
+      <div className="mb-4">
+        <DiscadorTwilio />
+      </div>
 
-        {/* Toolbar + tabela */}
-        <section className="space-y-3 pt-2 border-t">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-            Histórico de chamadas
-          </h2>
-          <LigacoesToolbar
-            total={total}
-            ligacoesAtuais={ligacoes}
-            colaboradores={colaboradores}
-            canManage={canManage}
-          />
-          <LigacoesTable ligacoes={ligacoes} canManage={canManage} />
+      {/* Toolbar + tabela */}
+      <section className="space-y-3 pt-2 border-t">
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+          Histórico de chamadas
+        </h2>
+        <LigacoesToolbar
+          total={total}
+          ligacoesAtuais={ligacoes}
+          colaboradores={colaboradores}
+          canManage={canManage}
+        />
+        <LigacoesTable ligacoes={ligacoes} canManage={canManage} />
 
-          {totalPages > 1 && (
-            <Pagination current={page} total={totalPages} searchParams={params} />
-          )}
-        </section>
-      </TwilioCallProvider>
+        {totalPages > 1 && (
+          <Pagination current={page} total={totalPages} searchParams={params} />
+        )}
+      </section>
     </div>
   );
 }
