@@ -27,6 +27,7 @@ export interface ProspectListRow {
   nome_prospect: string;
   site: string | null;
   contato_principal: string | null;
+  telefone: string | null;
   stage: "prospeccao" | "comercial" | "contrato" | "marco_zero" | "ativo";
   valor_proposto: number;
   comercial_id: string;
@@ -48,7 +49,7 @@ async function _getProspectsListImpl(filter: ProspectsFilter): Promise<ProspectL
 
   let query = supabase
     .from("leads")
-    .select("id, nome_prospect, site, contato_principal, stage, valor_proposto, comercial_id, motivo_perdido, data_fechamento, prioridade, created_at, comercial:profiles!leads_comercial_id_fkey(nome)")
+    .select("id, nome_prospect, site, contato_principal, telefone, stage, valor_proposto, comercial_id, motivo_perdido, data_fechamento, prioridade, created_at, comercial:profiles!leads_comercial_id_fkey(nome)")
     .is("deleted_at", null);
 
   if (filter.comercialId) {
@@ -99,8 +100,8 @@ async function _getProspectsListImpl(filter: ProspectsFilter): Promise<ProspectL
 export async function getProspectsList(filter: ProspectsFilter = {}): Promise<ProspectListRow[]> {
   const cached = unstable_cache(
     async (filterJson: string) => _getProspectsListImpl(JSON.parse(filterJson) as ProspectsFilter),
-    // v2: filter ganhou unitProfileIds (multi-tenant)
-    ["prospeccao-list-v2"],
+    // v3: ProspectListRow ganhou telefone (botão Ligar na lista)
+    ["prospeccao-list-v3"],
     { revalidate: 60, tags: [PROSPECTS_CACHE_TAG] },
   );
   // Normaliza ordem do array de status pra cache key estável

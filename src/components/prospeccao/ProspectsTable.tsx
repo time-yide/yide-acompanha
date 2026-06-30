@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ProspectListRow } from "@/lib/prospeccao/queries";
+import { LigarProspectButton } from "./LigarProspectButton";
 
 interface Props {
   rows: ProspectListRow[];
@@ -54,6 +55,7 @@ export function ProspectsTable({ rows }: Props) {
             <th className="px-3 py-2 text-right font-medium">Valor</th>
             <th className="px-3 py-2 text-left font-medium">Comercial</th>
             <th className="px-3 py-2 text-left font-medium">Criado</th>
+            <th className="px-3 py-2 text-right font-medium">Ligar</th>
           </tr>
         </thead>
         <tbody>
@@ -80,6 +82,17 @@ export function ProspectsTable({ rows }: Props) {
               <td className="px-3 py-2 text-muted-foreground">{r.comercial?.nome ?? ""}</td>
               <td className="px-3 py-2 text-muted-foreground text-xs">
                 {new Date(r.created_at).toLocaleDateString("pt-BR")}
+              </td>
+              <td className="px-3 py-2 text-right">
+                {r.telefone ? (
+                  <LigarProspectButton
+                    leadId={r.id}
+                    numero={r.telefone}
+                    contatoNome={r.contato_principal ?? r.nome_prospect}
+                  />
+                ) : (
+                  <span className="text-[10px] text-muted-foreground">sem telefone</span>
+                )}
               </td>
             </tr>
           ))}
