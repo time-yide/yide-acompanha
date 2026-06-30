@@ -1,86 +1,23 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Phone, PhoneOff } from "lucide-react";
-import { Device, type Call } from "@twilio/voice-sdk";
+import { useState } from "react";
+import { Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getTwilioVoiceTokenAction } from "@/lib/ligacoes/actions";
+import { useTwilioCall } from "./TwilioCallProvider";
 
-type Estado = "carregando" | "indisponivel" | "pronto" | "chamando" | "em_chamada";
-
+/**
+ * Discador manual (digita/cola um número) que liga pelo Device Twilio
+ * compartilhado do `TwilioCallProvider`. Não renderiza nada se o colaborador não
+ * tiver instância Twilio (provider inerte).
+ */
 export function DiscadorTwilio() {
-  const [estado, setEstado] = useState<Estado>("carregando");
+  const { available, status, dial, error } = useTwilioCall();
   const [numero, setNumero] = useState("");
-  const [erro, setErro] = useState<string | null>(null);
-  const deviceRef = useRef<Device | null>(null);
-  const callRef = useRef<Call | null>(null);
-  const instanciaIdRef = useRef<string | null>(null);
 
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        const r = await getTwilioVoiceTokenAction();
-        if (!alive) return;
-        if (!r.token || !r.instanciaId) {
-          setEstado("indisponivel");
-          return;
-        }
-        instanciaIdRef.current = r.instanciaId;
-        const device = new Device(r.token, { logLevel: "error" });
-        await device.register();
-        deviceRef.current = device;
-        setEstado("pronto");
-      } catch (e) {
-        if (alive) {
-          setErro((e as Error).message);
-          setEstado("indisponivel");
-        }
-      }
-    })();
-    return () => {
-      alive = false;
-      callRef.current?.disconnect();
-      deviceRef.current?.destroy();
-    };
-  }, []);
+  if (!available) return null;
 
-  async function ligar() {
-    setErro(null);
-    const device = deviceRef.current;
-    if (!device || !numero.trim()) return;
-    try {
-      setEstado("chamando");
-      const call = await device.connect({
-        params: { To: numero.trim(), instancia_id: instanciaIdRef.current ?? "" },
-      });
-      callRef.current = call;
-      call.on("accept", () => setEstado("em_chamada"));
-      call.on("disconnect", () => {
-        setEstado("pronto");
-        callRef.current = null;
-      });
-      call.on("error", (e: { message: string }) => {
-        setErro(e.message);
-        setEstado("pronto");
-      });
-    } catch (e) {
-      setErro((e as Error).message);
-      setEstado("pronto");
-    }
-  }
-
-  function desligar() {
-    callRef.current?.disconnect();
-    deviceRef.current?.disconnectAll();
-  }
-
-  if (estado === "carregando" || estado === "indisponivel") {
-    return null;
-  }
-
-  const emChamada = estado === "chamando" || estado === "em_chamada";
+  const emChamada = status !== "idle";
 
   return (
     <div className="rounded-lg border overflow-hidden">
@@ -94,17 +31,14 @@ export function DiscadorTwilio() {
           onChange={(e) => setNumero(e.target.value)}
           disabled={emChamada}
         />
-        {!emChamada ? (
-          <Button onClick={ligar} disabled={!numero.trim()} className="w-full gap-2">
-            <Phone className="h-4 w-4" /> Ligar
-          </Button>
-        ) : (
-          <Button onClick={desligar} variant="destructive" className="w-full gap-2">
-            <PhoneOff className="h-4 w-4" />
-            {estado === "chamando" ? "Chamando…" : "Desligar"}
-          </Button>
-        )}
-        {erro && <p className="text-xs text-destructive">{erro}</p>}
+        <Button
+          onClick={() => dial(numero)}
+          disabled={emChamada || !numero.trim()}
+          className="w-full gap-2"
+        >
+          <Phone className="h-4 w-4" /> Ligar
+        </Button>
+        {error && <p className="text-xs text-destructive">{error}</p>}
       </div>
     </div>
   );
