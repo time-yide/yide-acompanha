@@ -19,7 +19,7 @@ export function LigarButton({ numero, instanciaId, contatoNome, size = "sm" }: P
   const [error, setError] = useState<string | null>(null);
 
   function ligar() {
-    if (!instanciaId) { setError("Sem instancia Zenvia"); return; }
+    if (!instanciaId) { setError("Sem instância de ligação configurada"); return; }
     setError(null);
     start(async () => {
       const fd = new FormData();
@@ -43,7 +43,7 @@ export function LigarButton({ numero, instanciaId, contatoNome, size = "sm" }: P
         variant="outline"
         onClick={ligar}
         disabled={pending || !instanciaId}
-        title={!instanciaId ? "Sem instancia Zenvia atribuida" : "Ligar via Zenvia"}
+        title={!instanciaId ? "Sem instância de ligação configurada" : "Ligar"}
       >
         {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Phone className="h-4 w-4" />}
         {size === "sm" && <span className="ml-1">Ligar</span>}
