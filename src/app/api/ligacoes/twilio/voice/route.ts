@@ -11,12 +11,21 @@ export async function POST(req: NextRequest) {
   const form = await req.formData();
   const params = Object.fromEntries(form.entries()) as Record<string, string>;
   const appUrl = getServerEnv().NEXT_PUBLIC_APP_URL;
-  const sigOk = validarAssinaturaTwilio(
-    req.headers.get("x-twilio-signature"),
+
+  // Valida a assinatura da Twilio contra a URL EXATA que ela chamou. A Voice URL
+  // é configurada manualmente no TwiML App, então pode não bater com
+  // NEXT_PUBLIC_APP_URL — por isso testamos também a URL reconstruída dos headers
+  // (proto + host), que é o que a Twilio realmente assinou atrás do proxy.
+  const sig = req.headers.get("x-twilio-signature");
+  const proto = req.headers.get("x-forwarded-proto") ?? "https";
+  const host = req.headers.get("host");
+  const candidateUrls = [
+    host ? `${proto}://${host}${req.nextUrl.pathname}` : null,
     `${appUrl.replace(/\/$/, "")}/api/ligacoes/twilio/voice`,
-    params,
-  );
+  ].filter((u): u is string => !!u);
+  const sigOk = candidateUrls.some((u) => validarAssinaturaTwilio(sig, u, params));
   if (!sigOk) {
+    console.error("[twilio voice] assinatura inválida", { hasSig: !!sig, candidateUrls });
     return new NextResponse("forbidden", { status: 403 });
   }
   const to = String(form.get("To") ?? "");
