@@ -10,6 +10,8 @@ Faça uma vez. ~20-30 min.
    pro lead. (Não precisa comprar número nem fazer o cadastro regulatório.)
 4. Console → **Account → API keys & tokens** → criar uma **API Key (Standard)**:
    anote o **SID** e o **Secret**. Anote também o **Account SID** (dashboard).
+   Anote também o **Auth Token** da conta (no dashboard, abaixo do Account SID) —
+   usado pra validar a assinatura dos webhooks.
 5. Console → **Voice → TwiML Apps** → criar um app. Na **Voice Request URL**, cole
    `https://sistemaacompanha.yidedigital.com.br/api/ligacoes/twilio/voice` (POST).
    Anote o **TwiML App SID**.
@@ -18,6 +20,7 @@ Faça uma vez. ~20-30 min.
    - `TWILIO_API_KEY_SID`
    - `TWILIO_API_KEY_SECRET`
    - `TWILIO_TWIML_APP_SID`
+   - `TWILIO_AUTH_TOKEN`
    Redeploy.
 7. No sistema → **Ligações → Configurações** → nova instância de **telefone**:
    provedor **Twilio**, campo **Número** = o caller ID verificado, atribuir à

@@ -368,6 +368,7 @@ export async function getWebphoneUrlAction(): Promise<{
     .eq("colaborador_id", actor.id)
     .in("provedor", ["totalvoice", "twilio"])
     .is("arquivado_em", null)
+    .limit(1)
     .maybeSingle();
   const provedor = (inst?.provedor as string | null) ?? null;
   if (provedor !== "totalvoice") return { url: null, ramal: null, provedor };
@@ -388,6 +389,7 @@ export async function getTwilioVoiceTokenAction(): Promise<{
   instanciaId: string | null;
 }> {
   const actor = await requireAuth();
+  if (!canManage(actor.role)) return { token: null, callerId: null, instanciaId: null };
   const supabase = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;

@@ -76,6 +76,9 @@ const serverSchema = z.object({
   TWILIO_API_KEY_SID: z.string().optional(),
   TWILIO_API_KEY_SECRET: z.string().optional(),
   TWILIO_TWIML_APP_SID: z.string().optional(),
+  // Account Auth Token (dashboard) — usado SÓ pra validar X-Twilio-Signature
+  // nos webhooks/rota de voz. Diferente da API Key.
+  TWILIO_AUTH_TOKEN: z.string().optional(),
   // OpenAI - usado pelo Design Studio pra gerar imagens com GPT-Image-1.
   // Sem isso, o comando "gerar imagem" retorna erro amigável e o resto do
   // Studio continua funcionando. Gerar em platform.openai.com → API Keys.

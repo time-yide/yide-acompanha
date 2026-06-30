@@ -60,8 +60,8 @@ describe("buildTwilioWebhookUrl / buildRecordingProxyUrl", () => {
     );
   });
   it("monta a URL do proxy de gravação", () => {
-    expect(buildRecordingProxyUrl("https://app.com", "RE1", "sek")).toBe(
-      "https://app.com/api/ligacoes/twilio/recording?sid=RE1&secret=sek",
+    expect(buildRecordingProxyUrl("https://app.com", "RE1", "CA9")).toBe(
+      "https://app.com/api/ligacoes/twilio/recording?sid=RE1&call=CA9",
     );
   });
 });

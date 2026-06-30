@@ -29,6 +29,33 @@ export function getTwilioCreds(): TwilioCreds | null {
   };
 }
 
+/** Auth Token da conta (≠ API Key) — só pra validar assinatura de webhook. */
+export function getTwilioAuthToken(): string | null {
+  const t = getServerEnv().TWILIO_AUTH_TOKEN;
+  return t && t.trim() ? t.trim() : null;
+}
+
+/** Formato de um Recording SID da Twilio. */
+export const RECORDING_SID_RE = /^RE[0-9a-f]{32}$/i;
+
+/**
+ * Valida o header X-Twilio-Signature. Fail-closed: sem auth token ou sem
+ * assinatura, retorna false (rejeita).
+ */
+export function validarAssinaturaTwilio(
+  signature: string | null,
+  url: string,
+  params: Record<string, string>,
+): boolean {
+  const authToken = getTwilioAuthToken();
+  if (!authToken || !signature) return false;
+  try {
+    return twilio.validateRequest(authToken, signature, url, params);
+  } catch {
+    return false;
+  }
+}
+
 /** Mapeia o status da Twilio (DialCallStatus/CallStatus) pro enum interno. */
 export function mapStatusTwilio(statusTwilio: string, duracaoSegundos: number): StatusLigacao {
   const s = (statusTwilio || "").toLowerCase();
@@ -47,8 +74,8 @@ export function buildTwilioWebhookUrl(appUrl: string, webhookSecret: string): st
 }
 
 /** URL do proxy autenticado que serve a gravação pro player <audio>. */
-export function buildRecordingProxyUrl(appUrl: string, recordingSid: string, webhookSecret: string): string {
-  return `${appUrl.replace(/\/$/, "")}/api/ligacoes/twilio/recording?sid=${recordingSid}&secret=${webhookSecret}`;
+export function buildRecordingProxyUrl(appUrl: string, recordingSid: string, callSid: string): string {
+  return `${appUrl.replace(/\/$/, "")}/api/ligacoes/twilio/recording?sid=${recordingSid}&call=${callSid}`;
 }
 
 export interface EventoWebhookTwilioParsed {

@@ -2,13 +2,23 @@ import { NextRequest, NextResponse } from "next/server";
 import twilio from "twilio";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getServerEnv } from "@/lib/env";
-import { buildTwilioWebhookUrl } from "@/lib/ligacoes/twilio";
+import { buildTwilioWebhookUrl, validarAssinaturaTwilio } from "@/lib/ligacoes/twilio";
 
 const AVISO_GRAVACAO =
   "Esta ligação será gravada para fins de qualidade e treinamento.";
 
 export async function POST(req: NextRequest) {
   const form = await req.formData();
+  const params = Object.fromEntries(form.entries()) as Record<string, string>;
+  const appUrl = getServerEnv().NEXT_PUBLIC_APP_URL;
+  const sigOk = validarAssinaturaTwilio(
+    req.headers.get("x-twilio-signature"),
+    `${appUrl.replace(/\/$/, "")}/api/ligacoes/twilio/voice`,
+    params,
+  );
+  if (!sigOk) {
+    return new NextResponse("forbidden", { status: 403 });
+  }
   const to = String(form.get("To") ?? "");
   const instanciaId = String(form.get("instancia_id") ?? "");
   const callSid = String(form.get("CallSid") ?? "");
@@ -57,7 +67,6 @@ export async function POST(req: NextRequest) {
     console.error("[twilio voice] insert falhou:", (e as Error).message);
   }
 
-  const appUrl = getServerEnv().NEXT_PUBLIC_APP_URL;
   const webhookUrl = buildTwilioWebhookUrl(appUrl, inst.webhook_secret as string);
 
   // Aviso legal de gravação antes de conectar.
