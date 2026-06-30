@@ -153,6 +153,7 @@ export function InstanciaFormModal({ open, onOpenChange, instancia, colaboradore
                 <SelectContent>
                   <SelectItem value="manual">Registro manual (sem integração)</SelectItem>
                   <SelectItem value="totalvoice">Zenvia (ligar pelo sistema)</SelectItem>
+                  <SelectItem value="twilio">Twilio (ligar pelo sistema)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
