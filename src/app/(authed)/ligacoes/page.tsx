@@ -21,8 +21,7 @@ import { HeatmapHorarios } from "@/components/ligacoes/HeatmapHorarios";
 import { RankingColaboradores } from "@/components/ligacoes/RankingColaboradores";
 import { LigacoesTable } from "@/components/ligacoes/LigacoesTable";
 import { LigacoesToolbar } from "@/components/ligacoes/LigacoesToolbar";
-import { Discador } from "@/components/ligacoes/Discador";
-import { DiscadorRapido } from "@/components/ligacoes/DiscadorRapido";
+import { DiscadorTwilio } from "@/components/ligacoes/DiscadorTwilio";
 import { TwilioCallProvider } from "@/components/ligacoes/TwilioCallProvider";
 import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
@@ -141,10 +140,11 @@ export default async function LigacoesPage({
       {/* Provider do Device Twilio: envolve o discador e a tabela pra que o
           botão Ligar de cada linha use o mesmo "telefone" do navegador. */}
       <TwilioCallProvider>
-        {/* Discador rápido (tel/WhatsApp, sem provedor) + webphone Zenvia/Twilio */}
-        <div className="mb-4 space-y-3">
-          <DiscadorRapido />
-          <Discador />
+        {/* Só o discador Twilio (o que de fato liga pelo computador). O discador
+            rápido tel:/WhatsApp e o webphone Zenvia foram removidos por não
+            funcionarem/confundirem. Aparece quando o colaborador tem instância Twilio. */}
+        <div className="mb-4">
+          <DiscadorTwilio />
         </div>
 
         {/* Toolbar + tabela */}
