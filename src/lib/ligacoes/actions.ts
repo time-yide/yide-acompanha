@@ -15,6 +15,7 @@ import {
   resultadoLigacaoSchema,
 } from "./schema";
 import { iniciarChamada, getWebphoneUrl } from "./zenvia";
+import { gerarVoiceToken } from "./twilio";
 
 interface ActionOk { success: true }
 interface ActionErr { error: string }
@@ -352,7 +353,11 @@ export async function iniciarLigacaoAction(formData: FormData): Promise<ActionRe
   return { success: true };
 }
 
-export async function getWebphoneUrlAction(): Promise<{ url: string | null; ramal: string | null }> {
+export async function getWebphoneUrlAction(): Promise<{
+  url: string | null;
+  ramal: string | null;
+  provedor: string | null;
+}> {
   const actor = await requireAuth();
   const supabase = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -361,13 +366,47 @@ export async function getWebphoneUrlAction(): Promise<{ url: string | null; rama
     .from("ligacoes_instancias")
     .select("ramal, provedor")
     .eq("colaborador_id", actor.id)
-    .eq("provedor", "totalvoice")
+    .in("provedor", ["totalvoice", "twilio"])
+    .is("arquivado_em", null)
+    .limit(1)
+    .maybeSingle();
+  const provedor = (inst?.provedor as string | null) ?? null;
+  if (provedor !== "totalvoice") return { url: null, ramal: null, provedor };
+  const ramal = (inst?.ramal as string | null) ?? null;
+  if (!ramal) return { url: null, ramal: null, provedor };
+  const url = await getWebphoneUrl(ramal);
+  return { url, ramal, provedor };
+}
+
+/**
+ * Retorna o Access Token de voz da Twilio pro colaborador logado, junto do
+ * número (caller ID) e do nome da instância. Sem instância Twilio atribuída ou
+ * sem env configurada, retorna { token: null }.
+ */
+export async function getTwilioVoiceTokenAction(): Promise<{
+  token: string | null;
+  callerId: string | null;
+  instanciaId: string | null;
+}> {
+  const actor = await requireAuth();
+  if (!canManage(actor.role)) return { token: null, callerId: null, instanciaId: null };
+  const supabase = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const { data: inst } = await sb
+    .from("ligacoes_instancias")
+    .select("id, numero, provedor")
+    .eq("colaborador_id", actor.id)
+    .eq("provedor", "twilio")
     .is("arquivado_em", null)
     .maybeSingle();
-  const ramal = (inst?.ramal as string | null) ?? null;
-  if (!ramal) return { url: null, ramal: null };
-  const url = await getWebphoneUrl(ramal);
-  return { url, ramal };
+  if (!inst) return { token: null, callerId: null, instanciaId: null };
+  const token = gerarVoiceToken(actor.id);
+  return {
+    token,
+    callerId: (inst.numero as string | null) ?? null,
+    instanciaId: (inst.id as string) ?? null,
+  };
 }
 
 // ===========================================================================

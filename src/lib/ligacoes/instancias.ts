@@ -47,14 +47,12 @@ export const PROVEDOR_DEFS: ProvedorDef[] = [
   },
   {
     value: "twilio",
-    label: "Twilio",
-    tipo: "ambos",
-    status: "em_construcao",
-    webhookHint: "Cole essa URL no Twilio → Phone Numbers → Number → Voice & Fax → Status Callback URL",
-    campos: [
-      { key: "account_sid", label: "Account SID", type: "text", placeholder: "ACxxxxxxxxxxxxx", obrigatorio: true },
-      { key: "auth_token", label: "Auth Token", type: "password", obrigatorio: true },
-    ],
+    label: "Twilio (ligar pelo sistema)",
+    tipo: "telefone",
+    status: "pronto",
+    webhookHint:
+      "No Twilio: crie um TwiML App e aponte a Voice URL pra rota /api/ligacoes/twilio/voice. As chaves (Account SID, API Key SID/Secret, TwiML App SID) vão nas envs do Vercel.",
+    campos: [],
   },
   {
     value: "3cx",

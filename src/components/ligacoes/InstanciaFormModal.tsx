@@ -153,6 +153,7 @@ export function InstanciaFormModal({ open, onOpenChange, instancia, colaboradore
                 <SelectContent>
                   <SelectItem value="manual">Registro manual (sem integração)</SelectItem>
                   <SelectItem value="totalvoice">Zenvia (ligar pelo sistema)</SelectItem>
+                  <SelectItem value="twilio">Twilio (ligar pelo sistema)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -180,6 +181,20 @@ export function InstanciaFormModal({ open, onOpenChange, instancia, colaboradore
               <p className="text-[11px] text-muted-foreground">
                 Zenvia → Desenvolvedores → Webhooks. Informe tambem o ramal acima. O token
                 da conta vai na variavel ZENVIA_VOICE_TOKEN (configurada pela equipe).
+              </p>
+            </div>
+          )}
+
+          {tipo === "telefone" && provedor === "twilio" && isEdit && instancia?.webhook_secret && (
+            <div className="rounded-md border bg-muted/20 p-3 space-y-1.5">
+              <p className="text-sm font-medium">Webhook de status/gravação (cole no TwiML App da Twilio)</p>
+              <code className="block break-all text-[11px]">
+                {`${appUrl}/api/webhooks/ligacoes/twilio?secret=${instancia.webhook_secret}`}
+              </code>
+              <p className="text-[11px] text-muted-foreground">
+                A Voice URL do TwiML App é <code>{`${appUrl}/api/ligacoes/twilio/voice`}</code>. No
+                campo <strong>Número</strong> acima, informe o caller ID verificado na Twilio (o
+                número que aparece pro lead). As chaves da conta ficam nas envs do Vercel.
               </p>
             </div>
           )}
