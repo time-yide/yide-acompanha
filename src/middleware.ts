@@ -97,17 +97,19 @@ export const config = {
   // corromper o Content-Type (manifest e service worker precisam ser
   // servidos limpos, sem cookies de auth/redirect).
   //
-  // Também exclui `api/cron/*` e `api/webhooks/*` - esses endpoints são
-  // chamados sem cookies de usuário (Vercel Cron, integrações externas),
-  // então não faz sentido rodar `auth.getUser()` (~1 round-trip HTTP) neles.
-  // Eles validam autenticação pelo próprio header (CRON_SECRET, signature
-  // do webhook, etc).
+  // Também exclui `api/cron/*`, `api/webhooks/*` e `api/ligacoes/twilio/voice`
+  // - esses endpoints são chamados sem cookies de usuário (Vercel Cron,
+  // integrações externas, a própria Twilio buscando o TwiML da chamada), então
+  // não faz sentido rodar `auth.getUser()` (~1 round-trip HTTP) neles. Eles
+  // validam autenticação pelo próprio header (CRON_SECRET, X-Twilio-Signature,
+  // etc). Sem essa exclusão, o POST da Twilio na rota de voz leva 307 pro
+  // /login e a chamada toca "an application error has occurred".
   //
   // E os ícones do app (apple-icon, icon0/1/2) são rotas dinâmicas geradas
   // por next/og — NÃO terminam em .png, então precisam ser excluídos
   // explicitamente, senão o auth redireciona pro /login e o ícone não
   // carrega (manifest é público mas apontaria pra ícone gated).
   matcher: [
-    "/((?!_next/static|_next/image|favicon|public|manifest\\.webmanifest|sw\\.js|api/cron|api/webhooks|apple-icon|icon0|icon1|icon2|.*\\.svg|.*\\.png).*)",
+    "/((?!_next/static|_next/image|favicon|public|manifest\\.webmanifest|sw\\.js|api/cron|api/webhooks|api/ligacoes/twilio/voice|apple-icon|icon0|icon1|icon2|.*\\.svg|.*\\.png).*)",
   ],
 };
