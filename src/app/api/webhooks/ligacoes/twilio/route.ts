@@ -5,13 +5,26 @@ import {
   parseEventoWebhookTwilio,
   buildRecordingProxyUrl,
   validarAssinaturaTwilio,
+  TWIML_VAZIO,
 } from "@/lib/ligacoes/twilio";
+
+// SEMPRE responder TwiML, nunca JSON. Este endpoint recebe dois callbacks no
+// mesmo lugar: o `<Dial action>` (a Twilio USA o corpo como TwiML pra continuar
+// a chamada) e o recordingStatusCallback (ignora o corpo). Responder JSON no
+// caminho do action faz a Twilio anunciar "an application error has occurred".
+// Status 200 sempre pelo mesmo motivo: não-2xx no action também vira erro falado.
+function respostaTwiml() {
+  return new NextResponse(TWIML_VAZIO, { headers: { "Content-Type": "text/xml" } });
+}
 
 // Webhook público autenticado por ?secret= + validação de X-Twilio-Signature.
 // Recebe application/x-www-form-urlencoded da Twilio.
 export async function POST(req: NextRequest) {
   const secret = req.nextUrl.searchParams.get("secret");
-  if (!secret) return NextResponse.json({ error: "missing secret" }, { status: 401 });
+  if (!secret) {
+    console.error("[webhook twilio] secret ausente");
+    return respostaTwiml();
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
@@ -22,26 +35,38 @@ export async function POST(req: NextRequest) {
     .eq("provedor", "twilio")
     .is("arquivado_em", null)
     .maybeSingle();
-  if (!inst) return NextResponse.json({ error: "invalid secret" }, { status: 401 });
+  if (!inst) {
+    console.error("[webhook twilio] secret inválido");
+    return respostaTwiml();
+  }
 
   let params: Record<string, string> = {};
   try {
     const form = await req.formData();
     params = Object.fromEntries(form.entries()) as Record<string, string>;
   } catch {
-    return NextResponse.json({ ok: true });
+    return respostaTwiml();
   }
 
   const appUrl = getServerEnv().NEXT_PUBLIC_APP_URL;
-  const sigOk = validarAssinaturaTwilio(
-    req.headers.get("x-twilio-signature"),
+  // Assinatura contra a URL EXATA que a Twilio chamou. Atrás do proxy da Vercel
+  // o host real pode não bater com NEXT_PUBLIC_APP_URL — por isso testamos também
+  // a URL reconstruída dos headers (mesma correção do voice route, #544).
+  const sig = req.headers.get("x-twilio-signature");
+  const proto = req.headers.get("x-forwarded-proto") ?? "https";
+  const host = req.headers.get("host");
+  const candidateUrls = [
+    host ? `${proto}://${host}${req.nextUrl.pathname}${req.nextUrl.search}` : null,
     `${appUrl.replace(/\/$/, "")}/api/webhooks/ligacoes/twilio?secret=${secret}`,
-    params,
-  );
-  if (!sigOk) return NextResponse.json({ error: "bad signature" }, { status: 403 });
+  ].filter((u): u is string => !!u);
+  const sigOk = candidateUrls.some((u) => validarAssinaturaTwilio(sig, u, params));
+  if (!sigOk) {
+    console.error("[webhook twilio] assinatura inválida", { hasSig: !!sig, candidateUrls });
+    return respostaTwiml();
+  }
 
   const ev = parseEventoWebhookTwilio(params);
-  if (!ev.externalId) return NextResponse.json({ ok: true });
+  if (!ev.externalId) return respostaTwiml();
 
   try {
     const { data: existing } = await sb
@@ -68,7 +93,7 @@ export async function POST(req: NextRequest) {
 
     if (existing) {
       await sb.from("ligacoes").update(patch).eq("id", (existing as { id: string }).id);
-      return NextResponse.json({ ok: true, updated: true });
+      return respostaTwiml();
     }
 
     // Upsert-on-missing: se a linha do voice route não existir (corrida/falha),
@@ -89,9 +114,9 @@ export async function POST(req: NextRequest) {
       external_id: ev.externalId,
       raw_data: ev.raw,
     });
-    return NextResponse.json({ ok: true, created: true });
+    return respostaTwiml();
   } catch (e) {
     console.error("[webhook twilio] erro:", (e as Error).message);
-    return NextResponse.json({ ok: true });
+    return respostaTwiml();
   }
 }
