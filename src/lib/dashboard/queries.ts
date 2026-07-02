@@ -161,8 +161,10 @@ export async function _getKpisImpl(filter?: ClientFilter, mesRef?: string): Prom
     .filter((c) => !c.tipo_relacao || c.tipo_relacao === "comum")
     .reduce((acc, c) => acc + Number(c.valor_mensal), 0);
 
-  // Serviços pontuais - contagem própria, sem entrar no churn.
-  const pontuaisAtivosArr = allClients.filter((c) => ehPontual(c) && c.status === "ativo");
+  // Serviços pontuais - contagem própria, sem entrar no churn. Ponto no tempo
+  // (vigentes no fim do mês selecionado), igual à carteira ativa - por isso usa
+  // isActiveOn(todayIso) ao invés do status ao vivo, senão não muda com o mês.
+  const pontuaisAtivosArr = allClients.filter((c) => ehPontual(c) && isActiveOn(c, todayIso));
   const pontuaisAtivos = pontuaisAtivosArr.length;
   const pontuaisValorTotal = pontuaisAtivosArr.reduce((acc, c) => acc + Number(c.valor_mensal ?? 0), 0);
   const pontuaisConcluidosMes = allClients.filter(
@@ -233,7 +235,8 @@ export async function getKpis(filter?: ClientFilter, mesRef?: string): Promise<K
     // v4: shape mudou (servicosPontuais ganhou valorTotal)
     // v5: shape mudou (adicionado ticketMedio + ltv)
     // v6: filter ganhou unitId (multi-tenant)
-    ["dashboard-kpis-v6"],
+    // v7: pontuais ativos/valor agora são ponto-no-tempo (isActiveOn) e variam com o mês
+    ["dashboard-kpis-v7"],
     { revalidate: 300, tags: ["dashboard"] },
   );
   return cached(JSON.stringify({ f: filter ?? null, m: mesRef ?? null }));
