@@ -39,6 +39,16 @@ export function getTwilioAuthToken(): string | null {
 export const RECORDING_SID_RE = /^RE[0-9a-f]{32}$/i;
 
 /**
+ * TwiML mínimo válido (Response vazio). É a resposta correta do webhook: no
+ * callback de `<Dial action>` a Twilio USA o corpo da resposta como TwiML pra
+ * continuar a chamada — devolver JSON (ou qualquer coisa que não seja TwiML)
+ * faz ela anunciar "an application error has occurred" pro atendente. Um
+ * Response vazio encerra a perna do atendente de forma limpa. No
+ * recordingStatusCallback a Twilio ignora o corpo, então é inócuo lá.
+ */
+export const TWIML_VAZIO = '<?xml version="1.0" encoding="UTF-8"?><Response></Response>';
+
+/**
  * Valida o header X-Twilio-Signature. Fail-closed: sem auth token ou sem
  * assinatura, retorna false (rejeita).
  */

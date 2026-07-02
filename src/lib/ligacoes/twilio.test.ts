@@ -4,6 +4,7 @@ import {
   parseEventoWebhookTwilio,
   buildTwilioWebhookUrl,
   buildRecordingProxyUrl,
+  TWIML_VAZIO,
 } from "./twilio";
 
 describe("mapStatusTwilio", () => {
@@ -63,5 +64,15 @@ describe("buildTwilioWebhookUrl / buildRecordingProxyUrl", () => {
     expect(buildRecordingProxyUrl("https://app.com", "RE1", "CA9")).toBe(
       "https://app.com/api/ligacoes/twilio/recording?sid=RE1&call=CA9",
     );
+  });
+});
+
+describe("TWIML_VAZIO", () => {
+  // Regressão: o webhook precisa responder TwiML no callback de <Dial action>.
+  // Responder JSON fazia a Twilio anunciar "an application error has occurred".
+  it("é um documento TwiML Response válido, não JSON", () => {
+    expect(TWIML_VAZIO).toContain("<Response>");
+    expect(TWIML_VAZIO).toContain("</Response>");
+    expect(() => JSON.parse(TWIML_VAZIO)).toThrow();
   });
 });
