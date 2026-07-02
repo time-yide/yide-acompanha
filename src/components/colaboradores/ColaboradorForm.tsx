@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { editColaboradorAction } from "@/lib/colaboradores/actions";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +22,7 @@ interface Props {
     comissao_primeiro_mes_percent: number | string;
     role: string;
     ativo: boolean;
+    especialidade?: string | null;
     meta_prospects_mes?: number | null;
     meta_fechamentos_mes?: number | null;
     meta_receita_mes?: number | null;
@@ -31,6 +33,7 @@ interface Props {
 }
 
 export function ColaboradorForm({ data, canEditFinance, canEditRole, canEditMetas }: Props) {
+  const [role, setRole] = useState(data.role);
   return (
     <form action={editColaboradorAction as unknown as (formData: FormData) => Promise<void>} className="space-y-5">
       <input type="hidden" name="id" value={data.id} />
@@ -63,7 +66,7 @@ export function ColaboradorForm({ data, canEditFinance, canEditRole, canEditMeta
 
         <div className="space-y-2">
           <Label htmlFor="role">Papel</Label>
-          <Select name="role" defaultValue={data.role} disabled={!canEditRole}>
+          <Select name="role" value={role} onValueChange={(v) => setRole(v ?? "")} disabled={!canEditRole}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -102,6 +105,24 @@ export function ColaboradorForm({ data, canEditFinance, canEditRole, canEditMeta
             </div>
           )}
         </div>
+
+        {role === "assessor" && (
+          <div className="space-y-2">
+            <Label htmlFor="especialidade">Especialidade</Label>
+            <Select name="especialidade" defaultValue={data.especialidade ?? "comum"}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="comum">Comum</SelectItem>
+                <SelectItem value="ecommerce">E-commerce</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Só rótulo — não muda comissão nem regras. &quot;Comum&quot; = assessor padrão.
+            </p>
+          </div>
+        )}
 
         <div className="space-y-2">
           <Label htmlFor="fixo_mensal">Fixo mensal (R$)</Label>

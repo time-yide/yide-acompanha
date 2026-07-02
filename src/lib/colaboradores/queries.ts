@@ -13,6 +13,8 @@ export interface ColaboradorRow {
   created_at: string;
   data_admissao: string | null;
   avatar_url: string | null;
+  /** 'ecommerce' | null — só rótulo, relevante quando role='assessor'. */
+  especialidade: string | null;
 }
 
 export interface ColaboradorFilters {
@@ -52,10 +54,14 @@ async function _listColaboradoresImpl(filters?: ColaboradorFilters): Promise<Col
     .select("user_id");
   const portalUserIds = (portalUsers ?? []).map((r) => r.user_id as string);
 
-  let query = supabase
+  // Cast via any: coluna `especialidade` ainda não está nos types gerados do
+  // Supabase (chega após `npm run db:types` pós-migration).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  let query = sb
     .from("profiles")
     .select(
-      "id, nome, email, role, ativo, fixo_mensal, comissao_percent, comissao_primeiro_mes_percent, created_at, data_admissao, avatar_url",
+      "id, nome, email, role, ativo, fixo_mensal, comissao_percent, comissao_primeiro_mes_percent, created_at, data_admissao, avatar_url, especialidade",
     );
 
   if (portalUserIds.length > 0) {
@@ -94,7 +100,8 @@ export async function listColaboradores(filters?: ColaboradorFilters): Promise<C
       const f = filtersJson !== "null" ? (JSON.parse(filtersJson) as ColaboradorFilters) : undefined;
       return _listColaboradoresImpl(f);
     },
-    ["colaboradores-list"],
+    // v2: ColaboradorRow ganhou `especialidade`
+    ["colaboradores-list-v2"],
     { revalidate: 60, tags: ["colaboradores"] },
   );
   return cached(JSON.stringify(filters ?? null));

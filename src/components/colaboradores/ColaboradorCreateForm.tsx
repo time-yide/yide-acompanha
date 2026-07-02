@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createColaboradorAction } from "@/lib/colaboradores/actions";
 import { Input } from "@/components/ui/input";
@@ -31,6 +31,7 @@ async function createColaboradorActionWrapper(
 
 export function ColaboradorCreateForm({ canSetCommission }: { canSetCommission: boolean }) {
   const [state, formAction, isPending] = useActionState(createColaboradorActionWrapper, null);
+  const [role, setRole] = useState("");
   const router = useRouter();
 
   const success = state && "success" in state ? state : null;
@@ -54,7 +55,7 @@ export function ColaboradorCreateForm({ canSetCommission }: { canSetCommission: 
           </div>
           <div className="space-y-2">
             <Label htmlFor="role">Papel</Label>
-            <Select name="role" required>
+            <Select name="role" required value={role} onValueChange={(v) => setRole(v ?? "")}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione" />
               </SelectTrigger>
@@ -79,6 +80,23 @@ export function ColaboradorCreateForm({ canSetCommission }: { canSetCommission: 
               Os campos de % serão zerados automaticamente.
             </p>
           </div>
+          {role === "assessor" && (
+            <div className="space-y-2">
+              <Label htmlFor="especialidade">Especialidade</Label>
+              <Select name="especialidade" defaultValue="comum">
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="comum">Comum</SelectItem>
+                  <SelectItem value="ecommerce">E-commerce</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                Só rótulo — não muda comissão nem regras. &quot;Comum&quot; = assessor padrão.
+              </p>
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="fixo_mensal">Fixo mensal (R$)</Label>
             <Input id="fixo_mensal" name="fixo_mensal" type="number" step="0.01" min="0" defaultValue="0" />

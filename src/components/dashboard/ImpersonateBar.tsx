@@ -1,11 +1,20 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import { especialidadeLabel } from "@/components/colaboradores/EspecialidadeBadge";
 
 interface Colaborador {
   id: string;
   nome: string;
   role: string;
+  especialidade: string | null;
+}
+
+/** Rótulo do role + especialidade (ex.: "Assessor · E-commerce"). */
+function colaboradorLabel(c: Colaborador): string {
+  const base = ROLE_LABEL[c.role] ?? c.role;
+  const esp = especialidadeLabel(c.especialidade);
+  return esp ? `${base} · ${esp}` : base;
 }
 
 interface Props {
@@ -57,7 +66,7 @@ export function ImpersonateBar({ colaboradores, currentTargetId, isImpersonating
           👁 Visualizando como <strong>{current?.nome ?? ""}</strong>
           {current && (
             <span className="ml-1 opacity-70">
-              ({ROLE_LABEL[current.role] ?? current.role})
+              ({colaboradorLabel(current)})
             </span>
           )}
         </span>
@@ -69,7 +78,7 @@ export function ImpersonateBar({ colaboradores, currentTargetId, isImpersonating
           >
             {colaboradores.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.nome} · {ROLE_LABEL[c.role] ?? c.role}
+                {c.nome} · {colaboradorLabel(c)}
               </option>
             ))}
           </select>
@@ -95,7 +104,7 @@ export function ImpersonateBar({ colaboradores, currentTargetId, isImpersonating
         <option value="">Selecione</option>
         {colaboradores.map((c) => (
           <option key={c.id} value={c.id}>
-            {c.nome} · {ROLE_LABEL[c.role] ?? c.role}
+            {c.nome} · {colaboradorLabel(c)}
           </option>
         ))}
       </select>

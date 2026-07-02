@@ -13,6 +13,16 @@ export const ROLES = [
 ] as const;
 export type RoleEnum = typeof ROLES[number];
 
+/** Especialidades de assessor. Só rótulo — não muda comissão/regras. */
+export const ESPECIALIDADES = ["ecommerce"] as const;
+export type EspecialidadeEnum = typeof ESPECIALIDADES[number];
+
+/** Campo `especialidade` do form: "", null ou "comum" viram null; senão valida contra ESPECIALIDADES. */
+const especialidadeField = z.preprocess(
+  (v) => (v === "" || v == null || v === "comum" ? null : v),
+  z.enum(ESPECIALIDADES).nullable(),
+);
+
 const PRODUCERS = ["videomaker", "designer", "editor"] as const;
 
 function zeroPercentForProducers<T extends { role: string; comissao_percent: number; comissao_primeiro_mes_percent: number }>(
@@ -24,6 +34,25 @@ function zeroPercentForProducers<T extends { role: string; comissao_percent: num
   return data;
 }
 
+/** Especialidade só faz sentido pra assessor — zera pra qualquer outro role. */
+function clearEspecialidadeForNonAssessor<T extends { role: string; especialidade?: EspecialidadeEnum | null }>(
+  data: T,
+): T {
+  if (data.role !== "assessor" && data.especialidade != null) {
+    return { ...data, especialidade: null };
+  }
+  return data;
+}
+
+function normalizeColaborador<T extends {
+  role: string;
+  comissao_percent: number;
+  comissao_primeiro_mes_percent: number;
+  especialidade?: EspecialidadeEnum | null;
+}>(data: T): T {
+  return clearEspecialidadeForNonAssessor(zeroPercentForProducers(data));
+}
+
 export const createColaboradorSchema = z
   .object({
     nome: z.string().min(2, "Nome muito curto"),
@@ -32,8 +61,9 @@ export const createColaboradorSchema = z
     fixo_mensal: z.coerce.number().min(0).default(0),
     comissao_percent: z.coerce.number().min(0).max(100).default(0),
     comissao_primeiro_mes_percent: z.coerce.number().min(0).max(100).default(0),
+    especialidade: especialidadeField.default(null),
   })
-  .transform(zeroPercentForProducers);
+  .transform(normalizeColaborador);
 
 export const editColaboradorSchema = z
   .object({
@@ -49,13 +79,14 @@ export const editColaboradorSchema = z
     comissao_primeiro_mes_percent: z.coerce.number().min(0).max(100),
     role: z.enum(ROLES),
     ativo: z.coerce.boolean(),
+    especialidade: especialidadeField.default(null),
     justificativa: z.string().optional(),
     // Metas comerciais (opcionais, só relevantes para role='comercial')
     meta_prospects_mes: z.coerce.number().int().min(0).optional().nullable(),
     meta_fechamentos_mes: z.coerce.number().int().min(0).optional().nullable(),
     meta_receita_mes: z.coerce.number().min(0).optional().nullable(),
   })
-  .transform(zeroPercentForProducers);
+  .transform(normalizeColaborador);
 
 export type CreateColaboradorInput = z.infer<typeof createColaboradorSchema>;
 export type EditColaboradorInput = z.infer<typeof editColaboradorSchema>;

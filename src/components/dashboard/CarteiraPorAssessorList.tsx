@@ -1,5 +1,6 @@
 import type { AssessorCarteira } from "@/lib/dashboard/queries";
 import { Money } from "./HiddenValuesContext";
+import { EspecialidadeBadge } from "@/components/colaboradores/EspecialidadeBadge";
 
 interface Props {
   items: AssessorCarteira[];
@@ -15,7 +16,10 @@ export function CarteiraPorAssessorList({ items }: Props) {
       {items.map((a) => (
         <li key={a.assessorId} className="space-y-1.5">
           <div className="flex items-baseline justify-between text-sm">
-            <span className="font-medium">{a.assessorNome}</span>
+            <span className="flex items-center gap-1.5 font-medium">
+              {a.assessorNome}
+              <EspecialidadeBadge especialidade={a.especialidade} />
+            </span>
             <div className="flex items-center gap-3 text-xs text-muted-foreground tabular-nums">
               <span>{a.qtdClientes} {a.qtdClientes === 1 ? "cliente" : "clientes"}</span>
               <span className="font-semibold text-foreground"><Money value={a.valorTotal} noDecimals /></span>

@@ -53,6 +53,9 @@ export default async function EditarColaboradorPage({ params }: { params: Promis
             comissao_primeiro_mes_percent: colab.comissao_primeiro_mes_percent,
             role: colab.role,
             ativo: colab.ativo,
+            // Coluna `especialidade` ainda não está nos types gerados (chega
+            // após `npm run db:types` pós-migration) — acesso via cast.
+            especialidade: (colab as { especialidade?: string | null }).especialidade ?? null,
             meta_prospects_mes: colab.meta_prospects_mes,
             meta_fechamentos_mes: colab.meta_fechamentos_mes,
             meta_receita_mes: colab.meta_receita_mes,

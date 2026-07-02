@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { RowActionsMenu } from "@/components/colaboradores/RowActionsMenu";
+import { EspecialidadeBadge } from "@/components/colaboradores/EspecialidadeBadge";
 import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 interface Row {
@@ -16,6 +17,7 @@ interface Row {
   comissao_primeiro_mes_percent: number;
   data_admissao: string | null;
   avatar_url: string | null;
+  especialidade: string | null;
 }
 
 const roleLabels: Record<string, string> = {
@@ -108,7 +110,10 @@ export function ColaboradoresTable({
               </Link>
             </TableCell>
             <TableCell>
-              <Badge variant="secondary">{roleLabels[r.role] ?? r.role}</Badge>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <Badge variant="secondary">{roleLabels[r.role] ?? r.role}</Badge>
+                <EspecialidadeBadge especialidade={r.especialidade} />
+              </div>
             </TableCell>
             <TableCell className="text-sm text-muted-foreground">{r.email}</TableCell>
             <TableCell className="text-sm text-muted-foreground">

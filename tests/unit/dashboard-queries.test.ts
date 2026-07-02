@@ -364,6 +364,7 @@ describe("getCarteiraPorAssessor", () => {
     expect(list[0]).toEqual({
       assessorId: "a1",
       assessorNome: "Ana",
+      especialidade: null,
       qtdClientes: 2,
       valorTotal: 8000,
       pctDoTotal: expect.closeTo(66.67, 1),
@@ -371,10 +372,29 @@ describe("getCarteiraPorAssessor", () => {
     expect(list[1]).toEqual({
       assessorId: "a2",
       assessorNome: "Bruno",
+      especialidade: null,
       qtdClientes: 1,
       valorTotal: 4000,
       pctDoTotal: expect.closeTo(33.33, 1),
     });
+  });
+
+  it("propaga a especialidade do assessor (selo e-commerce)", async () => {
+    fromMock.mockImplementation((table) => {
+      if (table === "clients") {
+        return {
+          select: () => makeChainableQuery([
+            { id: "c1", valor_mensal: 5000, assessor_id: "a1", assessor: { nome: "Ana", especialidade: "ecommerce" }, tipo_relacao: "comum" },
+            { id: "c2", valor_mensal: 4000, assessor_id: "a2", assessor: { nome: "Bruno", especialidade: null }, tipo_relacao: "comum" },
+          ]),
+        };
+      }
+      return { select: () => makeChainableQuery([]) };
+    });
+
+    const list = await getCarteiraPorAssessor();
+    expect(list.find((a) => a.assessorId === "a1")?.especialidade).toBe("ecommerce");
+    expect(list.find((a) => a.assessorId === "a2")?.especialidade).toBeNull();
   });
 
   it("conta parceria/permuta na qtd mas zero valor (continua sem inflar receita)", async () => {

@@ -29,6 +29,7 @@ export async function createColaboradorAction(
     fixo_mensal: formData.get("fixo_mensal"),
     comissao_percent: formData.get("comissao_percent"),
     comissao_primeiro_mes_percent: formData.get("comissao_primeiro_mes_percent"),
+    especialidade: formData.get("especialidade"),
   });
 
   if (!parsed.success) {
@@ -71,6 +72,7 @@ export async function createColaboradorAction(
   // Atualiza fixo e percentuais - usa service-role para gravar colunas sensíveis.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updatePayload: any = {
+    especialidade: parsed.data.especialidade ?? null,
     fixo_mensal: parsed.data.fixo_mensal,
     comissao_percent: parsed.data.comissao_percent,
     comissao_primeiro_mes_percent: parsed.data.comissao_primeiro_mes_percent,
@@ -134,6 +136,7 @@ export async function editColaboradorAction(formData: FormData) {
     comissao_primeiro_mes_percent: formData.get("comissao_primeiro_mes_percent"),
     role: formData.get("role"),
     ativo: formData.get("ativo") === "on",
+    especialidade: formData.get("especialidade"),
     justificativa: formData.get("justificativa") || undefined,
     meta_prospects_mes: formData.get("meta_prospects_mes") || null,
     meta_fechamentos_mes: formData.get("meta_fechamentos_mes") || null,
@@ -165,24 +168,30 @@ export async function editColaboradorAction(formData: FormData) {
     return { error: "Apenas sócio pode alterar fixo, % de comissão ou papel" };
   }
 
+  // Payload tipado como any: coluna `especialidade` ainda não está nos types
+  // gerados do Supabase (chega após `npm run db:types` pós-migration).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const editPayload: any = {
+    nome: parsed.data.nome,
+    telefone: parsed.data.telefone,
+    endereco: parsed.data.endereco,
+    pix: parsed.data.pix,
+    data_nascimento: parsed.data.data_nascimento,
+    data_admissao: parsed.data.data_admissao,
+    fixo_mensal: parsed.data.fixo_mensal,
+    comissao_percent: parsed.data.comissao_percent,
+    comissao_primeiro_mes_percent: parsed.data.comissao_primeiro_mes_percent,
+    role: parsed.data.role,
+    ativo: parsed.data.ativo,
+    especialidade: parsed.data.especialidade ?? null,
+    meta_prospects_mes: parsed.data.meta_prospects_mes ?? null,
+    meta_fechamentos_mes: parsed.data.meta_fechamentos_mes ?? null,
+    meta_receita_mes: parsed.data.meta_receita_mes ?? null,
+  };
+
   const { error } = await supabase
     .from("profiles")
-    .update({
-      nome: parsed.data.nome,
-      telefone: parsed.data.telefone,
-      endereco: parsed.data.endereco,
-      pix: parsed.data.pix,
-      data_nascimento: parsed.data.data_nascimento,
-      data_admissao: parsed.data.data_admissao,
-      fixo_mensal: parsed.data.fixo_mensal,
-      comissao_percent: parsed.data.comissao_percent,
-      comissao_primeiro_mes_percent: parsed.data.comissao_primeiro_mes_percent,
-      role: parsed.data.role,
-      ativo: parsed.data.ativo,
-      meta_prospects_mes: parsed.data.meta_prospects_mes ?? null,
-      meta_fechamentos_mes: parsed.data.meta_fechamentos_mes ?? null,
-      meta_receita_mes: parsed.data.meta_receita_mes ?? null,
-    })
+    .update(editPayload)
     .eq("id", parsed.data.id);
 
   if (error) return { error: "Falha ao atualizar" };
