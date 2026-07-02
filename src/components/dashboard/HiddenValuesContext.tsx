@@ -106,3 +106,16 @@ export function Money({ value, noDecimals = false }: MoneyProps) {
   const formatted = noDecimals ? BRL_NO_DECIMALS(value) : BRL(value);
   return <span>{formatted}</span>;
 }
+
+interface CountProps {
+  value: number | string;
+}
+
+/** Esconde números não-monetários (qtd clientes, serviços, churn). */
+export function Count({ value }: CountProps) {
+  const { hidden } = useHiddenValues();
+  if (hidden) {
+    return <span className="select-none tracking-wider">•••</span>;
+  }
+  return <span>{value}</span>;
+}
