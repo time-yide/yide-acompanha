@@ -416,6 +416,8 @@ export async function getEntradaChurn(months = 6, filter?: ClientFilter, ateMes?
 export interface AssessorCarteira {
   assessorId: string;
   assessorNome: string;
+  /** 'ecommerce' | null — só rótulo pra distinguir o assessor. */
+  especialidade: string | null;
   qtdClientes: number;
   valorTotal: number;
   pctDoTotal: number;
@@ -430,7 +432,7 @@ export async function _getCarteiraPorAssessorImpl(filter?: ClientFilter, mesRef?
   // só na contagem; o valor é tratado separadamente embaixo.
   let clientsQuery = supabase
     .from("clients")
-    .select("id, valor_mensal, assessor_id, coordenador_id, tipo_relacao, assessor:profiles!clients_assessor_id_fkey(nome)")
+    .select("id, valor_mensal, assessor_id, coordenador_id, tipo_relacao, assessor:profiles!clients_assessor_id_fkey(nome, especialidade)")
     .eq("status", "ativo")
     .is("deleted_at", null);
   clientsQuery = buildClientFilterQuery(clientsQuery as never, filter) as never;
@@ -451,7 +453,7 @@ export async function _getCarteiraPorAssessorImpl(filter?: ClientFilter, mesRef?
     assessor_id: string | null;
     coordenador_id: string | null;
     tipo_relacao: string | null;
-    assessor: { nome: string } | null;
+    assessor: { nome: string; especialidade: string | null } | null;
   }>;
   const ajusteByClient = new Map(
     ((ajustesData ?? []) as Array<{ client_id: string; tipo: string; valor_desconto: number | null }>).map(
@@ -459,10 +461,10 @@ export async function _getCarteiraPorAssessorImpl(filter?: ClientFilter, mesRef?
     ),
   );
 
-  const groups = new Map<string, { nome: string; qtd: number; valor: number }>();
+  const groups = new Map<string, { nome: string; especialidade: string | null; qtd: number; valor: number }>();
   for (const c of clients) {
     if (!c.assessor_id || !c.assessor) continue;
-    const cur = groups.get(c.assessor_id) ?? { nome: c.assessor.nome, qtd: 0, valor: 0 };
+    const cur = groups.get(c.assessor_id) ?? { nome: c.assessor.nome, especialidade: c.assessor.especialidade ?? null, qtd: 0, valor: 0 };
     cur.qtd += 1;
     // Só clientes 'comum' faturam. parceria/permuta entram na qtd mas
     // não no R$ — manter assim mantém o gráfico de % por receita correto.
@@ -485,6 +487,7 @@ export async function _getCarteiraPorAssessorImpl(filter?: ClientFilter, mesRef?
   const list: AssessorCarteira[] = [...groups.entries()].map(([id, g]) => ({
     assessorId: id,
     assessorNome: g.nome,
+    especialidade: g.especialidade,
     qtdClientes: g.qtd,
     valorTotal: g.valor,
     pctDoTotal: total > 0 ? (g.valor / total) * 100 : 0,
@@ -503,7 +506,8 @@ export async function getCarteiraPorAssessor(filter?: ClientFilter, mesRef?: str
     // v2: valor por assessor agora considera ajustes mensais
     // v3: filter ganhou unitId (multi-tenant)
     // v4: qtdClientes inclui parceria/permuta (valorTotal segue só comum)
-    ["dashboard-carteira-por-assessor-v4"],
+    // v5: AssessorCarteira ganhou `especialidade` (selo e-commerce)
+    ["dashboard-carteira-por-assessor-v5"],
     { revalidate: 300, tags: ["dashboard"] },
   );
   return cached(JSON.stringify({ f: filter ?? null, m: mesRef ?? null }));

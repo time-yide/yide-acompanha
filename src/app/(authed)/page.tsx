@@ -25,6 +25,7 @@ interface TargetUser {
   id: string;
   role: string;
   nome: string;
+  especialidade: string | null;
 }
 
 const PERIODOS_VALIDOS: ReadonlySet<Periodo> = new Set(["mes_atual", "mes_anterior", "dias_7", "total"]);
@@ -49,7 +50,14 @@ function renderDashboardForRole(
     return <DashboardCoord userId={target.id} nome={target.nome} {...mesCtx} />;
   }
   if (target.role === "assessor") {
-    return <DashboardAssessor userId={target.id} nome={target.nome} {...mesCtx} />;
+    return (
+      <DashboardAssessor
+        userId={target.id}
+        nome={target.nome}
+        especialidade={target.especialidade}
+        {...mesCtx}
+      />
+    );
   }
   if (target.role === "comercial") {
     return <DashboardComercial userId={target.id} nome={target.nome} {...mesCtx} />;
@@ -88,15 +96,15 @@ export default async function DashboardPage({
   const canImpersonate = user.role === "socio" || user.role === "adm";
 
   // Resolve target. Default = self. Sócio/adm com ?as= pode visualizar como outro colab.
-  let target: TargetUser = { id: user.id, role: user.role, nome: user.nome };
+  let target: TargetUser = { id: user.id, role: user.role, nome: user.nome, especialidade: null };
   let isImpersonating = false;
 
   if (canImpersonate && params.as) {
     try {
       const profile = await getColaboradorById(params.as);
-      const p = profile as { id: string; role: string; nome: string; ativo: boolean } | null;
+      const p = profile as { id: string; role: string; nome: string; ativo: boolean; especialidade?: string | null } | null;
       if (p?.id && p.ativo) {
-        target = { id: p.id, role: p.role, nome: p.nome };
+        target = { id: p.id, role: p.role, nome: p.nome, especialidade: p.especialidade ?? null };
         isImpersonating = target.id !== user.id;
       }
     } catch {
@@ -104,13 +112,24 @@ export default async function DashboardPage({
     }
   }
 
+  // Self assessor: busca a especialidade pro selo do próprio dashboard.
+  // (Só assessor mostra o selo no header; evita query extra pros demais.)
+  if (!isImpersonating && target.role === "assessor") {
+    try {
+      const self = (await getColaboradorById(user.id)) as { especialidade?: string | null } | null;
+      target = { ...target, especialidade: self?.especialidade ?? null };
+    } catch {
+      // sem especialidade — segue como assessor comum
+    }
+  }
+
   // Lista de colaboradores pra dropdown - só fetch se o requester pode impersonate
   const [colaboradores, unitContext] = await Promise.all([
     canImpersonate
       ? listColaboradores({ ativo: true }).then((rows) =>
-          rows.map((c) => ({ id: c.id, nome: c.nome, role: c.role })),
+          rows.map((c) => ({ id: c.id, nome: c.nome, role: c.role, especialidade: c.especialidade })),
         )
-      : Promise.resolve([] as Array<{ id: string; nome: string; role: string }>),
+      : Promise.resolve([] as Array<{ id: string; nome: string; role: string; especialidade: string | null }>),
     getUnitContext().catch(() => null),
   ]);
 
