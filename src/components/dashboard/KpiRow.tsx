@@ -1,6 +1,6 @@
 import { Wallet, Users, TrendingDown, Percent, Sparkles, DollarSign, Receipt, Infinity as InfinityIcon } from "lucide-react";
 import { KpiCard } from "./KpiCard";
-import { Money } from "./HiddenValuesContext";
+import { Money, Count } from "./HiddenValuesContext";
 import type { KpiData } from "@/lib/dashboard/queries";
 import { getCurrentMonthYM } from "@/lib/datetime/timezone";
 
@@ -9,9 +9,9 @@ function formatDeltaMoney(v: number): { valor: React.ReactNode; direction: "up" 
   return { valor: <Money value={Math.abs(v)} noDecimals />, direction: v > 0 ? "up" : "down" };
 }
 
-function formatDeltaCount(v: number): { valor: string; direction: "up" | "down" | "neutral" } {
-  if (v === 0) return { valor: "0", direction: "neutral" };
-  return { valor: String(Math.abs(v)), direction: v > 0 ? "up" : "down" };
+function formatDeltaCount(v: number): { valor: React.ReactNode; direction: "up" | "down" | "neutral" } {
+  if (v === 0) return { valor: <Count value={0} />, direction: "neutral" };
+  return { valor: <Count value={Math.abs(v)} />, direction: v > 0 ? "up" : "down" };
 }
 
 export function KpiRow({ kpis }: { kpis: KpiData }) {
@@ -40,7 +40,7 @@ export function KpiRow({ kpis }: { kpis: KpiData }) {
       />
       <KpiCard
         label="Clientes ativos"
-        valor={String(kpis.clientesAtivos.quantidade)}
+        valor={<Count value={kpis.clientesAtivos.quantidade} />}
         delta={formatDeltaCount(kpis.clientesAtivos.deltaQuantidade)}
         helperText="vs mês anterior"
         icon={Users}
@@ -60,15 +60,15 @@ export function KpiRow({ kpis }: { kpis: KpiData }) {
       />
       <KpiCard
         label="Churn do mês"
-        valor={String(kpis.churnMes.quantidade)}
+        valor={<Count value={kpis.churnMes.quantidade} />}
         helperText={<><Money value={kpis.churnMes.valorPerdido} noDecimals /> perdidos</>}
         icon={TrendingDown}
         href={`/clientes?status=churn&churn_mes=${mesAtual}`}
       />
       <KpiCard
         label="Serviços pontuais"
-        valor={String(pontuais.ativos)}
-        helperText={`${pontuais.concluidosMes} concluídos no mês`}
+        valor={<Count value={pontuais.ativos} />}
+        helperText={<><Count value={pontuais.concluidosMes} /> concluídos no mês</>}
         icon={Sparkles}
         href="/clientes?status=ativo&modalidade=pontual"
       />
