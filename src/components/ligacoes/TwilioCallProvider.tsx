@@ -64,6 +64,18 @@ export function TwilioCallProvider({ children }: { children: ReactNode }) {
   const deviceRef = useRef<Device | null>(null);
   const callRef = useRef<Call | null>(null);
   const instanciaIdRef = useRef<string | null>(null);
+  // Watchdog: se um `connect` ficar preso em "connecting" (ex: o token venceu no
+  // meio da discagem e a chamada nunca dispara accept/disconnect/error), libera
+  // o discador em vez de travar pra sempre — o `dial` bloqueia enquanto status
+  // não for "idle".
+  const connectingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function clearWatchdog() {
+    if (connectingTimerRef.current) {
+      clearTimeout(connectingTimerRef.current);
+      connectingTimerRef.current = null;
+    }
+  }
 
   useEffect(() => {
     let alive = true;
@@ -74,6 +86,18 @@ export function TwilioCallProvider({ children }: { children: ReactNode }) {
         if (!r.token || !r.instanciaId) return; // sem Twilio: provider inerte
         instanciaIdRef.current = r.instanciaId;
         const device = new Device(r.token, { logLevel: "error" });
+        // O Access Token da Twilio vale só 1h (ttl 3600). Sem renovar, o Device
+        // para de discar depois de ~1h de página aberta ("travou depois de N
+        // ligações"). O SDK emite `tokenWillExpire` ~10s antes do fim: buscamos
+        // um token novo pela action e atualizamos o Device no lugar.
+        device.on("tokenWillExpire", async () => {
+          try {
+            const novo = await getTwilioVoiceTokenAction();
+            if (novo.token) device.updateToken(novo.token);
+          } catch {
+            // silencioso: o SDK re-emite o evento; a próxima tentativa renova.
+          }
+        });
         await device.register();
         if (!alive) {
           device.destroy();
@@ -87,6 +111,7 @@ export function TwilioCallProvider({ children }: { children: ReactNode }) {
     })();
     return () => {
       alive = false;
+      clearWatchdog();
       callRef.current?.disconnect();
       deviceRef.current?.destroy();
     };
@@ -98,6 +123,15 @@ export function TwilioCallProvider({ children }: { children: ReactNode }) {
     setError(null);
     setStatus("connecting");
     setActiveNumber(numero.trim());
+    clearWatchdog();
+    connectingTimerRef.current = setTimeout(() => {
+      // Passou muito tempo sem conectar: destrava o discador.
+      callRef.current?.disconnect();
+      callRef.current = null;
+      setStatus("idle");
+      setActiveNumber(null);
+      setError("A ligação não completou. Tente de novo.");
+    }, 45000);
     device
       .connect({
         params: {
@@ -108,20 +142,26 @@ export function TwilioCallProvider({ children }: { children: ReactNode }) {
       })
       .then((call) => {
         callRef.current = call;
-        call.on("accept", () => setStatus("in_call"));
+        call.on("accept", () => {
+          clearWatchdog();
+          setStatus("in_call");
+        });
         call.on("disconnect", () => {
+          clearWatchdog();
           setStatus("idle");
           setActiveNumber(null);
           callRef.current = null;
           router.refresh(); // recarrega a tabela pra mostrar a ligação nova
         });
         call.on("error", (e: { message: string }) => {
+          clearWatchdog();
           setError(e.message);
           setStatus("idle");
           setActiveNumber(null);
         });
       })
       .catch((e: Error) => {
+        clearWatchdog();
         setError(e.message);
         setStatus("idle");
         setActiveNumber(null);
