@@ -49,16 +49,19 @@ tabela própria com `organization_id` + `colaborador_id`, RLS permissiva
 - Formulário de colaborador (`/colaboradores/novo` e editar) já lista roles a
   partir de `ROLE_LABELS`/enum — confirmar que o papel novo aparece na seleção.
 
-### 2. Flag de cliente e-commerce
+### 2. Identificação de cliente e-commerce (reaproveita `tipo_pacote`)
 
-- Migration: `alter table public.clients add column is_ecommerce boolean not null default false;`
-  - Índice parcial: `create index idx_clients_is_ecommerce on public.clients(is_ecommerce) where is_ecommerce = true;`
-- Toggle **"Cliente de e-commerce"** no formulário de editar cliente
-  (`src/app/(authed)/clientes/[id]/editar`). Incluir no fullSelect/whitelist do
-  cliente para não quebrar em prod entre deploy e migration (ver aprendizado
-  "Fallback do SELECT cobre TODA coluna nova").
-- No módulo `/ecommerce`, a lista de clientes para lançamento filtra
-  `is_ecommerce = true` (e não arquivados).
+**Correção do design original:** já existe `tipo_pacote = 'ecommerce'` no enum
+`public.tipo_pacote` (migrations `20260610000000_pacote_ecommerce.sql` e
+`20260611000000_corrige_ecommerce_tipo_pacote.sql`) e os clientes já são
+classificados automaticamente a partir de `servico_contratado`. Portanto **não
+criamos coluna nova nem toggle** — o módulo simplesmente filtra clientes com
+`tipo_pacote = 'ecommerce'` (e não arquivados). Sem migration de cliente.
+
+- No módulo `/ecommerce`, o seletor de clientes lista apenas
+  `clients.tipo_pacote = 'ecommerce'` da organização, não arquivados.
+- Se no futuro a Yasmin quiser marcar e-commerce manualmente (independente do
+  pacote), aí sim vira uma coluna — fora de escopo agora (YAGNI).
 
 ### 3. Tabela `anuncios_ecommerce`
 
@@ -173,6 +176,7 @@ agregações do painel.
 
 ## Migrations manuais
 
-As migrations `.sql` (enum do papel, coluna `is_ecommerce`, tabela
+As migrations `.sql` (enum do papel `assessor_ecommerce` e tabela
 `anuncios_ecommerce`) precisam ser aplicadas manualmente no SQL Editor do
-Supabase após o merge — a Vercel não roda migrations no deploy.
+Supabase após o merge — a Vercel não roda migrations no deploy. **Não há**
+migration de cliente (reaproveitamos `tipo_pacote = 'ecommerce'`).
