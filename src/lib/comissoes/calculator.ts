@@ -1,7 +1,8 @@
 // SERVER ONLY: do not import from client components
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { getCurrentMonthYM, getTodayDate } from "@/lib/datetime/timezone";
 import type { CommissionResult, SnapshotItem } from "./schema";
-import { valorEfetivoCliente } from "@/lib/clientes/ajustes";
+import { valorEfetivoCliente, isClienteAtivoNaData } from "@/lib/clientes/ajustes";
 import type { MonthlyAdjustment, TipoRelacao } from "@/lib/clientes/ajustes";
 
 interface ProfileRow {
@@ -22,6 +23,8 @@ interface ClientRow {
   valor_mensal: number;
   tipo_relacao: string;
   assessor_id: string | null;
+  data_entrada?: string;
+  data_churn?: string | null;
 }
 
 interface LeadRow {
@@ -160,6 +163,14 @@ function computeCommissionForProfile(
   };
 }
 
+/**
+ * Data de referência pra "ativo por data": hoje se for o mês corrente, senão o
+ * último dia do mês (fechado). Espelha o todayIso do KPI de carteira.
+ */
+function refDateForMonth(monthRef: string): string {
+  return monthRef === getCurrentMonthYM() ? getTodayDate() : getMonthRange(monthRef).lastDay;
+}
+
 function getMonthRange(monthRef: string): { firstDay: string; lastDay: string } {
   const [year, month] = monthRef.split("-").map(Number);
   const firstDay = `${year}-${String(month).padStart(2, "0")}-01`;
@@ -193,12 +204,17 @@ export async function calculateCommission(
   if (p.role === "assessor") {
     const { data: clientsRows } = await supabase
       .from("clients")
-      .select("valor_mensal, nome, id, tipo_relacao, assessor_id")
+      .select("valor_mensal, nome, id, tipo_relacao, assessor_id, data_entrada, data_churn")
       .eq("assessor_id", userId)
       .eq("status", "ativo")
       .eq("tipo_relacao", "comum")
       .is("deleted_at", null);
-    const rows = (clientsRows ?? []) as ClientRow[];
+    // Só clientes já vigentes na data de referência (mesma regra da carteira):
+    // status='ativo' com data_entrada no futuro ainda não gera comissão.
+    const refIso = refDateForMonth(monthRef);
+    const rows = ((clientsRows ?? []) as ClientRow[]).filter((c) =>
+      isClienteAtivoNaData({ data_entrada: c.data_entrada ?? "", data_churn: c.data_churn ?? null }, refIso),
+    );
     data.clientsAssessor = rows;
 
     const ajustesRes = await supabase
@@ -267,7 +283,7 @@ export async function calculateCommissionsBatch(monthRef: string): Promise<Batch
       .order("nome"),
     supabase
       .from("clients")
-      .select("id, nome, valor_mensal, tipo_relacao, assessor_id")
+      .select("id, nome, valor_mensal, tipo_relacao, assessor_id, data_entrada, data_churn")
       .eq("status", "ativo")
       .eq("tipo_relacao", "comum")
       .is("deleted_at", null),
@@ -291,9 +307,15 @@ export async function calculateCommissionsBatch(monthRef: string): Promise<Batch
   // Indexa pra acesso O(1) por user
   const ajustesByClient = new Map(ajustes.map((a) => [a.client_id, a]));
 
+  // Comissão do assessor: só clientes já vigentes na data de referência do mês
+  // (mesma regra da carteira). Agência (clientsAgencia) mantém comportamento atual.
+  const refIso = refDateForMonth(monthRef);
   const clientsByAssessor = new Map<string, ClientRow[]>();
   for (const c of allClients) {
     if (!c.assessor_id) continue;
+    if (!isClienteAtivoNaData({ data_entrada: c.data_entrada ?? "", data_churn: c.data_churn ?? null }, refIso)) {
+      continue;
+    }
     const arr = clientsByAssessor.get(c.assessor_id) ?? [];
     arr.push(c);
     clientsByAssessor.set(c.assessor_id, arr);

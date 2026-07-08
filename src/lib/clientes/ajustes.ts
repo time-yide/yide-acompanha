@@ -35,6 +35,21 @@ export function valorEfetivoCliente(
   return Number(cliente.valor_mensal);
 }
 
+/**
+ * Cliente está ativo na data X se já entrou (data_entrada <= X) e ainda não
+ * churnou até X. Mesma semântica do KPI de carteira (dashboard/queries.ts:isActiveOn):
+ * comissão conta só clientes já vigentes na data de referência — não os que
+ * têm status='ativo' mas ainda vão iniciar (data_entrada no futuro).
+ */
+export function isClienteAtivoNaData(
+  cliente: { data_entrada: string; data_churn: string | null },
+  dateIso: string,
+): boolean {
+  if (cliente.data_entrada > dateIso) return false;
+  if (cliente.data_churn && cliente.data_churn <= dateIso) return false;
+  return true;
+}
+
 /** Carrega o ajuste de um mês pra um cliente (ou null se não tem). */
 export async function getAjusteCliente(
   clientId: string,
