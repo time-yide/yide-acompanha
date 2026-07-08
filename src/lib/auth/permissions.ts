@@ -1,6 +1,7 @@
 export type Role =
   | "adm" | "socio" | "comercial" | "coordenador" | "assessor"
-  | "videomaker" | "designer" | "editor" | "audiovisual_chefe";
+  | "videomaker" | "designer" | "editor" | "audiovisual_chefe"
+  | "assessor_ecommerce";
 
 /**
  * Label visível no UI pra cada role. O enum `app_role` no banco mantém
@@ -17,6 +18,7 @@ export const ROLE_LABELS: Record<string, string> = {
   designer: "Designer",
   editor: "Editor",
   audiovisual_chefe: "Coordenador audiovisual",
+  assessor_ecommerce: "Assessor de e-commerce",
 };
 
 /** Devolve o label visível de um role. Faz fallback pro próprio valor. */
@@ -124,6 +126,11 @@ const matrix: Record<Role, Action[]> = {
     "view:own_commission",
     "create:tasks", "create:calendar_event", "customize:notification_recipients",
     "feed:satisfaction",
+  ],
+  assessor_ecommerce: [
+    "view:all_clients",
+    "view:own_commission",
+    "create:tasks", "create:calendar_event", "customize:notification_recipients",
   ],
 };
 

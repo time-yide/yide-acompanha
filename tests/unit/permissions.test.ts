@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { canAccess, type Action } from "@/lib/auth/permissions";
+import { canAccess, ROLE_LABELS, roleLabel, type Action } from "@/lib/auth/permissions";
 
 describe("permissions.canAccess", () => {
   it("socio can do everything", () => {
@@ -40,5 +40,19 @@ describe("permissions.canAccess", () => {
   it("returns false for unknown role/action combo", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect(canAccess("invalid" as any, "manage:users")).toBe(false);
+  });
+});
+
+describe("assessor_ecommerce role", () => {
+  it("tem label visível", () => {
+    expect(ROLE_LABELS.assessor_ecommerce).toBe("Assessor de e-commerce");
+    expect(roleLabel("assessor_ecommerce")).toBe("Assessor de e-commerce");
+  });
+  it("não tem acesso a ações privilegiadas por padrão", () => {
+    expect(canAccess("assessor_ecommerce", "manage:users")).toBe(false);
+    expect(canAccess("assessor_ecommerce", "view:financial_consolidated")).toBe(false);
+  });
+  it("pode criar tarefas", () => {
+    expect(canAccess("assessor_ecommerce", "create:tasks")).toBe(true);
   });
 });
