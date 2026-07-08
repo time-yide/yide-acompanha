@@ -18,7 +18,7 @@ interface ClienteRow {
  * - Assessor: só os clientes onde é assessor.
  * - Outros: vazio.
  */
-export async function listClientsForUser(userId: string, role: RoleEnum): Promise<ClienteRow[]> {
+export async function listClientsForUser(userId: string, role: RoleEnum | string): Promise<ClienteRow[]> {
   const supabase = await createClient();
   let query = supabase
     .from("clients")
