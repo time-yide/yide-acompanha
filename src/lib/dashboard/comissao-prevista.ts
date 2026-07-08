@@ -1,9 +1,9 @@
 // SERVER ONLY: do not import from client components
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { getCurrentMonthYM } from "@/lib/datetime/timezone";
+import { getCurrentMonthYM, getTodayDate } from "@/lib/datetime/timezone";
 import { getSnapshotForUserMonth } from "@/lib/comissoes/queries";
 import { lastDayOfMonth } from "./date-utils";
-import { valorEfetivoCliente } from "@/lib/clientes/ajustes";
+import { valorEfetivoCliente, isClienteAtivoNaData } from "@/lib/clientes/ajustes";
 import type { MonthlyAdjustment, TipoRelacao } from "@/lib/clientes/ajustes";
 
 export interface ComissaoPrevista {
@@ -54,13 +54,25 @@ export async function getComissaoPrevista(
     // Só carteira "comum" entra na comissão (parceria/permuta = R$ 0).
     const { data: clientsData } = await supabase
       .from("clients")
-      .select("id, valor_mensal, tipo_relacao")
+      .select("id, valor_mensal, tipo_relacao, data_entrada, data_churn")
       .eq("status", "ativo")
       .eq("tipo_relacao", "comum")
       .is("deleted_at", null)
       .eq("assessor_id", userId);
 
-    const clients = (clientsData ?? []) as Array<{ id: string; valor_mensal: number; tipo_relacao: string }>;
+    // Só clientes já vigentes na data de referência entram (mesma regra da
+    // carteira): hoje pro mês atual, último dia pra mês fechado. Cliente com
+    // status='ativo' mas data_entrada no futuro ainda NÃO gera comissão.
+    const refIso = monthRef === getCurrentMonthYM() ? getTodayDate() : lastDayOfMonth(monthRef);
+    const clients = (
+      (clientsData ?? []) as Array<{
+        id: string;
+        valor_mensal: number;
+        tipo_relacao: string;
+        data_entrada: string;
+        data_churn: string | null;
+      }>
+    ).filter((c) => isClienteAtivoNaData(c, refIso));
 
     // Ajustes do mês (desconto parcial / gratuidade) reduzem a base efetiva.
     const ajustesByClient = new Map<string, MonthlyAdjustment>();
