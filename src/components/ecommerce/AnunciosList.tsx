@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { arquivarAnuncioAction } from "@/lib/ecommerce/actions";
+import { formatarDataBR } from "@/lib/ecommerce/format";
 import { marketplaceLabel } from "@/lib/ecommerce/marketplaces";
 import type { AnuncioRow } from "@/lib/ecommerce/queries";
 
@@ -11,11 +12,6 @@ interface Props {
   anuncios: AnuncioRow[];
   mostrarAssessor: boolean;
   podeArquivar: boolean;
-}
-
-function formatarData(iso: string) {
-  const [ano, mes, dia] = iso.split("-");
-  return `${dia}/${mes}/${ano}`;
 }
 
 export function AnunciosList({ anuncios, mostrarAssessor, podeArquivar }: Props) {
@@ -56,7 +52,7 @@ export function AnunciosList({ anuncios, mostrarAssessor, podeArquivar }: Props)
               </span>
             </p>
             <p className="text-xs text-muted-foreground">
-              {formatarData(a.data)} &middot; {marketplaceLabel(a.marketplace)}
+              {formatarDataBR(a.data)} &middot; {marketplaceLabel(a.marketplace)}
               {mostrarAssessor && a.colaborador_nome ? (
                 <span> &middot; {a.colaborador_nome}</span>
               ) : null}

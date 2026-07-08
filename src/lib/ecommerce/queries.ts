@@ -106,12 +106,15 @@ export interface AssessorOption {
 }
 
 /** Assessores de e-commerce ativos da org (para o filtro do painel). */
-export async function listAssessoresEcommerce(): Promise<AssessorOption[]> {
+export async function listAssessoresEcommerce(
+  orgId: string,
+): Promise<AssessorOption[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
   const { data, error } = await sb
     .from("profiles")
     .select("id, nome")
+    .eq("organization_id", orgId)
     .eq("role", "assessor_ecommerce")
     .eq("ativo", true)
     .order("nome");

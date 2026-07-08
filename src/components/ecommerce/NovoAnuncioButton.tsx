@@ -44,9 +44,13 @@ export function NovoAnuncioButton({ clientes }: Props) {
           <form
             action={submit}
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="novo-anuncio-titulo"
+            onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); }}
             className="w-full max-w-md space-y-3 rounded-xl border bg-card p-5"
           >
-            <h2 className="font-semibold">Novo lançamento de anúncios</h2>
+            <h2 id="novo-anuncio-titulo" className="font-semibold">Novo lançamento de anúncios</h2>
 
             <div className="space-y-1.5">
               <Label htmlFor="client_id">Cliente (e-commerce)</Label>

@@ -7,14 +7,16 @@ interface Props {
   de: string;
   ate: string;
   tab: string;
+  assessores?: { id: string; nome: string }[];
+  assessorAtual?: string;
 }
 
-export function FiltroPeriodo({ de, ate, tab }: Props) {
+export function FiltroPeriodo({ de, ate, tab, assessores, assessorAtual }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
 
-  function update(key: "de" | "ate", value: string) {
+  function update(key: "de" | "ate" | "assessor", value: string) {
     const next = new URLSearchParams(params.toString());
     if (value) next.set(key, value);
     else next.delete(key);
@@ -44,6 +46,22 @@ export function FiltroPeriodo({ de, ate, tab }: Props) {
           className="h-9"
         />
       </div>
+      {assessores && assessores.length > 0 && (
+        <div className="space-y-1">
+          <Label htmlFor="assessor" className="text-xs">Assessor</Label>
+          <select
+            id="assessor"
+            defaultValue={assessorAtual ?? ""}
+            onChange={(e) => update("assessor", e.target.value)}
+            className="h-9 rounded-md border bg-background px-3 text-sm"
+          >
+            <option value="">Todos</option>
+            {assessores.map((a) => (
+              <option key={a.id} value={a.id}>{a.nome}</option>
+            ))}
+          </select>
+        </div>
+      )}
     </div>
   );
 }

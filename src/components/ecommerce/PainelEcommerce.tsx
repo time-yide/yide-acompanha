@@ -1,3 +1,4 @@
+import { formatarDataBR } from "@/lib/ecommerce/format";
 import { marketplaceLabel } from "@/lib/ecommerce/marketplaces";
 import type { EcommerceAggregate } from "@/lib/ecommerce/aggregate";
 
@@ -29,8 +30,8 @@ function BarList({
         <p className="text-sm text-muted-foreground">Sem dados no período.</p>
       ) : (
         <ul className="space-y-2">
-          {items.map((i) => (
-            <li key={i.label} className="space-y-1">
+          {items.map((i, idx) => (
+            <li key={`${i.label}-${idx}`} className="space-y-1">
               <div className="flex justify-between text-xs">
                 <span className="truncate">{i.label}</span>
                 <span className="tabular-nums font-medium">{i.total}</span>
@@ -79,8 +80,7 @@ export function PainelEcommerce({ agg }: Props) {
         <BarList
           title="Evolução no tempo"
           items={agg.porTempo.map((t) => {
-            const [ano, mes, dia] = t.data.split("-");
-            return { label: `${dia}/${mes}/${ano}`, total: t.total };
+            return { label: formatarDataBR(t.data), total: t.total };
           })}
         />
       </div>

@@ -4,6 +4,7 @@ import { requireAuth } from "@/lib/auth/session";
 import { getOrganizationId } from "@/lib/gerador-leads/queries";
 import {
   listAnuncios,
+  listAssessoresEcommerce,
   listClientesEcommerce,
   veTudo,
 } from "@/lib/ecommerce/queries";
@@ -26,7 +27,7 @@ function hoje(): string {
 export default async function EcommercePage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; de?: string; ate?: string }>;
+  searchParams: Promise<{ tab?: string; de?: string; ate?: string; assessor?: string }>;
 }) {
   const user = await requireAuth();
   if (!ALLOWED.includes(user.role)) notFound();
@@ -34,14 +35,17 @@ export default async function EcommercePage({
   if (!orgId) notFound();
 
   const sp = await searchParams;
+  const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
   const chefia = veTudo(user.role);
   const tab = sp.tab === "painel" && chefia ? "painel" : "lancar";
-  const de = sp.de || inicioDoMes();
-  const ate = sp.ate || hoje();
+  const de = sp.de && DATE_RE.test(sp.de) ? sp.de : inicioDoMes();
+  const ate = sp.ate && DATE_RE.test(sp.ate) ? sp.ate : hoje();
+  const assessorId = chefia && sp.assessor ? sp.assessor : null;
 
-  const [clientes, anuncios] = await Promise.all([
+  const [clientes, anuncios, assessores] = await Promise.all([
     listClientesEcommerce(orgId),
-    listAnuncios(orgId, user.role, user.id, { de, ate }),
+    listAnuncios(orgId, user.role, user.id, { de, ate, assessorId }),
+    chefia ? listAssessoresEcommerce(orgId) : Promise.resolve([]),
   ]);
   const agg = aggregateAnuncios(anuncios);
 
@@ -50,6 +54,7 @@ export default async function EcommercePage({
     p.set("tab", t);
     p.set("de", de);
     p.set("ate", ate);
+    if (assessorId) p.set("assessor", assessorId);
     return `/ecommerce?${p.toString()}`;
   };
 
@@ -97,7 +102,13 @@ export default async function EcommercePage({
         </nav>
       )}
 
-      <FiltroPeriodo de={de} ate={ate} tab={tab} />
+      <FiltroPeriodo
+        de={de}
+        ate={ate}
+        tab={tab}
+        assessores={chefia ? assessores : undefined}
+        assessorAtual={assessorId ?? undefined}
+      />
 
       {tab === "painel" && chefia ? (
         <PainelEcommerce agg={agg} />

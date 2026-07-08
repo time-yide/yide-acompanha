@@ -127,6 +127,8 @@ const matrix: Record<Role, Action[]> = {
     "create:tasks", "create:calendar_event", "customize:notification_recipients",
     "feed:satisfaction",
   ],
+  // Conjunto mínimo intencional: assessor de e-commerce não participa do fluxo
+  // de satisfação (sem feed:satisfaction) nem de aprovações/financeiro.
   assessor_ecommerce: [
     "view:all_clients",
     "view:own_commission",
