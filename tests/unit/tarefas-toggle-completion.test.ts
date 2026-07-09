@@ -83,25 +83,32 @@ function setupMocks(
   return { update, updateEq };
 }
 
+// Helper: extrai o sinal requiresDelivery do retorno (ou undefined).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function deliveryOf(result: any) {
+  return result && "requiresDelivery" in result ? result.requiresDelivery : undefined;
+}
+
 describe("toggleTaskCompletionAction — roles que entregam (designer/editor/videomaker/audiovisual_chefe)", () => {
-  it("designer fechando recebe erro pedindo uso do modal de entrega", async () => {
+  it("designer fechando recebe sinal pra abrir o modal de entrega", async () => {
     requireAuthMock.mockResolvedValue({ id: "user-1", role: "designer", nome: "Designer Teste" });
     const { update } = setupMocks(mockTaskRow({ status: "aberta", tipo: "video" }), { assigneeRole: "designer" });
 
     const result = await toggleTaskCompletionAction("task-1");
 
-    expect(result?.error).toBeTruthy();
+    expect(deliveryOf(result)).toBeTruthy();
+    expect(deliveryOf(result).toStatus).toBe("concluida");
     expect(update).not.toHaveBeenCalled();
     expect(logAuditMock).not.toHaveBeenCalled();
   });
 
-  it("editor fechando recebe erro pedindo uso do modal de entrega", async () => {
+  it("editor fechando recebe sinal pra abrir o modal de entrega", async () => {
     requireAuthMock.mockResolvedValue({ id: "user-1", role: "editor", nome: "Editor Teste" });
     const { update } = setupMocks(mockTaskRow({ status: "aberta", tipo: "video" }), { assigneeRole: "editor" });
 
     const result = await toggleTaskCompletionAction("task-1");
 
-    expect(result?.error).toBeTruthy();
+    expect(deliveryOf(result)).toBeTruthy();
     expect(update).not.toHaveBeenCalled();
   });
 
@@ -163,28 +170,53 @@ describe("toggleTaskCompletionAction — semântica de Postado/Entregue", () => 
 });
 
 describe("toggleTaskCompletionAction — assessor/coord também entregam", () => {
-  // ROLES_QUE_ENTREGAM agora inclui assessor e coordenador, então o guard
-  // de "use o modal de entrega" se aplica a eles também.
-  it("assessor fechando tarefa de entrega (video/arte) recebe erro pedindo modal", async () => {
+  // ROLES_QUE_ENTREGAM inclui assessor; em video/arte o modal se aplica a ele.
+  it("assessor fechando tarefa de entrega (video/arte) recebe sinal pra abrir modal", async () => {
     requireAuthMock.mockResolvedValue({ id: "user-1", role: "assessor", nome: "Assessor Teste" });
     const { update } = setupMocks(mockTaskRow({ status: "aberta", tipo: "video" }), { assigneeRole: "assessor" });
 
     const result = await toggleTaskCompletionAction("task-1");
 
-    expect(result?.error).toBeTruthy();
+    expect(deliveryOf(result)).toBeTruthy();
     expect(update).not.toHaveBeenCalled();
   });
 
   it("assessor fechando tarefa GERAL (sem entrega) conclui direto, sem modal", async () => {
-    // PR #463: tarefas "geral" (reunião/follow-up) não têm drive_link nem
-    // quantidade pra preencher, então assessor/coord concluem pelo checkbox.
+    // Assessor NÃO está em ROLES_ENTREGA_SEMPRE: suas tarefas "geral"
+    // (reunião/follow-up) não têm material, então conclui pelo checkbox.
     requireAuthMock.mockResolvedValue({ id: "user-1", role: "assessor", nome: "Assessor Teste" });
     const { update } = setupMocks(mockTaskRow({ status: "aberta", tipo: "geral" }), { assigneeRole: "assessor" });
 
     const result = await toggleTaskCompletionAction("task-1");
 
+    expect(deliveryOf(result)).toBeUndefined();
     expect(result?.error).toBeUndefined();
     expect(update).toHaveBeenCalled();
     expect(update.mock.calls[0][0].status).toBe("postada");
+  });
+});
+
+describe("toggleTaskCompletionAction — audiovisual de execução entrega em QUALQUER tipo", () => {
+  // ROLES_ENTREGA_SEMPRE (editor/videomaker/designer/audiovisual_chefe/
+  // coordenador): link obrigatório inclusive em tarefa "geral".
+  it("editor fechando tarefa GERAL agora abre o modal de entrega", async () => {
+    requireAuthMock.mockResolvedValue({ id: "user-1", role: "editor", nome: "Editor Teste" });
+    const { update } = setupMocks(mockTaskRow({ status: "aberta", tipo: "geral" }), { assigneeRole: "editor" });
+
+    const result = await toggleTaskCompletionAction("task-1");
+
+    expect(deliveryOf(result)).toBeTruthy();
+    expect(deliveryOf(result).tipo).toBe("geral");
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it("coordenador fechando tarefa GERAL agora abre o modal de entrega", async () => {
+    requireAuthMock.mockResolvedValue({ id: "user-1", role: "coordenador", nome: "Coord Teste" });
+    const { update } = setupMocks(mockTaskRow({ status: "aberta", tipo: "geral" }), { assigneeRole: "coordenador" });
+
+    const result = await toggleTaskCompletionAction("task-1");
+
+    expect(deliveryOf(result)).toBeTruthy();
+    expect(update).not.toHaveBeenCalled();
   });
 });
