@@ -16,6 +16,11 @@ type Result = Ok | Err;
 const ROLES_GESTAO = ["adm", "socio"] as const;
 function isGestao(role: string): boolean { return (ROLES_GESTAO as readonly string[]).includes(role); }
 
+// Quem pode subir/criar freela (além de gerir os próprios): gestão + coordenador
+// audiovisual (audiovisual_chefe) + assessor.
+const ROLES_PODE_CRIAR = ["adm", "socio", "audiovisual_chefe", "assessor"] as const;
+function podeCriar(role: string): boolean { return (ROLES_PODE_CRIAR as readonly string[]).includes(role); }
+
 function fd(formData: FormData, key: string): string | null {
   const v = formData.get(key);
   if (typeof v !== "string") return null;
@@ -31,7 +36,7 @@ async function orgIdDo(userId: string, sb: ReturnType<typeof createClient> exten
 
 export async function criarOportunidadeAction(formData: FormData): Promise<Result> {
   const actor = await requireAuth();
-  if (!isGestao(actor.role)) return { error: "Sem permissão" };
+  if (!podeCriar(actor.role)) return { error: "Sem permissão" };
   const parsed = criarOportunidadeSchema.safeParse({
     titulo: fd(formData, "titulo"),
     descricao: fd(formData, "descricao"),
@@ -92,7 +97,6 @@ export async function criarOportunidadeAction(formData: FormData): Promise<Resul
 
 export async function editarOportunidadeAction(formData: FormData): Promise<Result> {
   const actor = await requireAuth();
-  if (!isGestao(actor.role)) return { error: "Sem permissão" };
   const parsed = editarOportunidadeSchema.safeParse({
     id: fd(formData, "id"),
     titulo: fd(formData, "titulo"),
@@ -108,6 +112,11 @@ export async function editarOportunidadeAction(formData: FormData): Promise<Resu
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
   const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: op } = await (supabase as any).from("freela_oportunidades").select("criado_por").eq("id", parsed.data.id).single();
+  if (!op) return { error: "Oportunidade não encontrada" };
+  if (!isGestao(actor.role) && op.criado_por !== actor.id) return { error: "Só quem subiu (ou adm/sócio) pode editar" };
+
   const urg = normalizeUrgencia(parsed.data.tipo, parsed.data.entrega_urgente, parsed.data.prazo_entrega ?? null);
 
   // .select() + checagem de length: RLS bloqueado devolve error:null com 0 linhas.
@@ -134,6 +143,7 @@ export async function editarOportunidadeAction(formData: FormData): Promise<Resu
 
 export async function pegarOportunidadeAction(id: string): Promise<Result> {
   const actor = await requireAuth();
+  if (actor.role === "adm") return { error: "Adm não pega freela" };
   const supabase = await createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
@@ -179,10 +189,14 @@ export async function moverStatusAction(formData: FormData): Promise<Result> {
 
 export async function excluirOportunidadeAction(id: string): Promise<Result> {
   const actor = await requireAuth();
-  if (!isGestao(actor.role)) return { error: "Sem permissão" };
   const supabase = await createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any).from("freela_oportunidades")
+  const sb = supabase as any;
+  const { data: op } = await sb.from("freela_oportunidades").select("criado_por").eq("id", id).single();
+  if (!op) return { error: "Oportunidade não encontrada" };
+  if (!isGestao(actor.role) && op.criado_por !== actor.id) return { error: "Só quem subiu (ou adm/sócio) pode excluir" };
+
+  const { error } = await sb.from("freela_oportunidades")
     .update({ deleted_at: new Date().toISOString() }).eq("id", id);
   if (error) return { error: error.message };
   revalidatePath("/freela-yide");

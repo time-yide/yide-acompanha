@@ -12,6 +12,8 @@ import { DefinirMetaButton } from "@/components/freela-yide/DefinirMetaButton";
 
 const ALLOWED = ["adm", "socio", "comercial", "coordenador", "assessor", "designer", "videomaker", "editor", "audiovisual_chefe"];
 const GESTAO = ["adm", "socio"];
+// Quem pode subir/criar freela: gestão + coordenador audiovisual + assessor.
+const PODE_CRIAR = ["adm", "socio", "audiovisual_chefe", "assessor"];
 
 export default async function FreelaYidePage() {
   const user = await requireAuth();
@@ -20,11 +22,13 @@ export default async function FreelaYidePage() {
   if (!orgId) notFound();
 
   const gestao = GESTAO.includes(user.role);
+  const podeCriar = PODE_CRIAR.includes(user.role);
+  const podePegar = user.role !== "adm"; // adm não pega freela
 
   const [todas, minhas, criadas, ranking, historico, meta, stats] = await Promise.all([
     listOportunidades(orgId, true),
     listMinhas(orgId, user.id),
-    gestao ? listCriadasPorMim(orgId, user.id) : Promise.resolve([]),
+    podeCriar ? listCriadasPorMim(orgId, user.id) : Promise.resolve([]),
     getRanking(orgId),
     getHistorico(orgId),
     getMetaAtual(orgId),
@@ -40,9 +44,9 @@ export default async function FreelaYidePage() {
           <section className="space-y-2">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Oportunidades disponíveis</h2>
-              {gestao && <NovaOportunidadeButton />}
+              {podeCriar && <NovaOportunidadeButton />}
             </div>
-            <OportunidadesGrid ops={todas} gestao={gestao} />
+            <OportunidadesGrid ops={todas} gestao={gestao} podePegar={podePegar} />
           </section>
 
           <section className="space-y-2">
@@ -50,11 +54,11 @@ export default async function FreelaYidePage() {
             <MinhasOportunidades ops={minhas} />
           </section>
 
-          {gestao && (
+          {podeCriar && (
             <section className="space-y-2">
               <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Que eu subi</h2>
               <ResumoSubidos ops={criadas} />
-              <OportunidadesGrid ops={criadas} gestao={gestao} />
+              <OportunidadesGrid ops={criadas} gestao podePegar={podePegar} />
             </section>
           )}
         </div>
