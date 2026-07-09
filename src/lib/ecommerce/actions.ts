@@ -15,7 +15,7 @@ interface Ok { success: true }
 interface Err { error: string }
 type Result = Ok | Err;
 
-const ROLES_LANCAM = ["adm", "socio", "assessor_ecommerce"] as const;
+const ROLES_LANCAM = ["adm", "socio", "assessor_ecommerce", "assistente_ecommerce"] as const;
 function podeLancar(role: string) {
   return (ROLES_LANCAM as readonly string[]).includes(role);
 }

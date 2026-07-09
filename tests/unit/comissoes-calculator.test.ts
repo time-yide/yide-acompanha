@@ -209,6 +209,21 @@ describe("calculateCommission — ADM e Produtores", () => {
     expect(r!.snapshot.valor_variavel).toBe(0);
     expect(r!.items.length).toBe(1);
   });
+
+  it("Assistente de e-commerce: só fixo, IGNORA comissao_percent (não ganha %)", async () => {
+    fromMock.mockImplementation((table) => {
+      if (table === "profiles") {
+        // comissao_percent=10 de propósito: o cálculo deve ignorar pra esse role.
+        return mockProfile({ id: "u1", role: "assistente_ecommerce", fixo_mensal: 2500, comissao_percent: 10, comissao_primeiro_mes_percent: 10 });
+      }
+      return {};
+    });
+    const r = await calculateCommission("u1", "2026-04");
+    expect(r!.snapshot.fixo).toBe(2500);
+    expect(r!.snapshot.valor_variavel).toBe(0);
+    expect(r!.snapshot.percentual_aplicado).toBe(0);
+    expect(r!.items.length).toBe(1);
+  });
 });
 
 describe("calculateCommission — Sócio (prolábore fixo, sem variável)", () => {

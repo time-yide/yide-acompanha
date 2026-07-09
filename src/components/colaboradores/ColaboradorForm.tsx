@@ -91,6 +91,8 @@ export function ColaboradorForm({ data, canEditFinance, canEditRole, canEditMeta
               <SelectItem value="videomaker">Videomaker</SelectItem>
               <SelectItem value="designer">Designer</SelectItem>
               <SelectItem value="editor">Editor</SelectItem>
+              <SelectItem value="assessor_ecommerce">Assessor de e-commerce</SelectItem>
+              <SelectItem value="assistente_ecommerce">Assistente de e-commerce</SelectItem>
             </SelectContent>
           </Select>
           {data.role === "coordenador" && (
