@@ -154,6 +154,7 @@ async function renderWeek({
     listBloqueiosAprovadosNoPeriodo(
       start.toISOString().slice(0, 10),
       new Date(end.getTime() - 1).toISOString().slice(0, 10),
+      unitProfileIds,
     ),
   ]);
   const events = applySubFilter([...rawEvents, ...bloqueiosToEvents(bloqueios)]);
@@ -220,6 +221,7 @@ async function renderMonth({
     listBloqueiosAprovadosNoPeriodo(
       grid.start.toISOString().slice(0, 10),
       new Date(grid.end.getTime() - 1).toISOString().slice(0, 10),
+      unitProfileIds,
     ),
   ]);
   const events = applySubFilter([...rawEvents, ...bloqueiosToEvents(bloqueios)]);
