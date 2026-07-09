@@ -2,9 +2,11 @@ import Link from "next/link";
 import { requireAuth } from "@/lib/auth/session";
 import {
   listEventsForWeek,
+  listBloqueiosAprovadosNoPeriodo,
   getWeekRange,
   getMonthGridRange,
 } from "@/lib/calendario/queries";
+import { brtInputToUtcIso } from "@/lib/calendario/timezone";
 import {
   getClientIdsForActiveUnit,
   getProfileIdsForActiveUnit,
@@ -22,6 +24,39 @@ import type { CalendarEvent } from "@/lib/calendario/schema";
 const VALID_SUBS: ReadonlySet<string> = new Set([...SUB_CALENDARS, "meus"]);
 
 type View = "week" | "month";
+
+/**
+ * Converte bloqueios aprovados em marcadores read-only da sub-agenda
+ * "videomakers". NÃO cria linha em calendar_events — só um item renderizado
+ * junto, distinto dos eventos reais (ver EventCell/MonthView).
+ *
+ * `data` (YYYY-MM-DD) + `hora_inicio` são wall-clock no fuso da app; convertidos
+ * pra ISO UTC via brtInputToUtcIso pra agrupar no dia certo em ambas as views.
+ */
+function bloqueiosToEvents(
+  bloqueios: Awaited<ReturnType<typeof listBloqueiosAprovadosNoPeriodo>>,
+): CalendarEvent[] {
+  return bloqueios.map((b) => {
+    const inicioIso = brtInputToUtcIso(`${b.data}T${b.hora_inicio.slice(0, 5)}`);
+    const fimIso = brtInputToUtcIso(`${b.data}T${b.hora_fim.slice(0, 5)}`);
+    return {
+      id: `bloqueio-${b.id}`,
+      origem: "bloqueio_agenda",
+      titulo: `Indisponível — ${b.motivo}`,
+      descricao: null,
+      inicio: inicioIso,
+      fim: fimIso,
+      sub_calendar: "videomakers",
+      // sem `link` → read-only, sem navegação
+      bloqueio: {
+        videomaker_nome: b.criado_por_nome,
+        hora_inicio: b.hora_inicio.slice(0, 5),
+        hora_fim: b.hora_fim.slice(0, 5),
+        motivo: b.motivo,
+      },
+    };
+  });
+}
 
 export default async function CalendarioPage({
   searchParams,
@@ -114,7 +149,15 @@ async function renderWeek({
   const todayStart = getWeekRange(new Date()).start;
   const isOnTodayWeek = start.getTime() === todayStart.getTime();
 
-  const events = applySubFilter(await listEventsForWeek(start, end, unitClientIds, unitProfileIds));
+  const [rawEvents, bloqueios] = await Promise.all([
+    listEventsForWeek(start, end, unitClientIds, unitProfileIds),
+    listBloqueiosAprovadosNoPeriodo(
+      start.toISOString().slice(0, 10),
+      new Date(end.getTime() - 1).toISOString().slice(0, 10),
+      unitProfileIds,
+    ),
+  ]);
+  const events = applySubFilter([...rawEvents, ...bloqueiosToEvents(bloqueios)]);
 
   const prevWeek = new Date(start);
   prevWeek.setUTCDate(prevWeek.getUTCDate() - 7);
@@ -173,7 +216,15 @@ async function renderMonth({
   const isOnTodayMonth =
     grid.year === todayGrid.year && grid.month === todayGrid.month;
 
-  const events = applySubFilter(await listEventsForWeek(grid.start, grid.end, unitClientIds, unitProfileIds));
+  const [rawEvents, bloqueios] = await Promise.all([
+    listEventsForWeek(grid.start, grid.end, unitClientIds, unitProfileIds),
+    listBloqueiosAprovadosNoPeriodo(
+      grid.start.toISOString().slice(0, 10),
+      new Date(grid.end.getTime() - 1).toISOString().slice(0, 10),
+      unitProfileIds,
+    ),
+  ]);
+  const events = applySubFilter([...rawEvents, ...bloqueiosToEvents(bloqueios)]);
 
   const prevMonth = grid.month === 1 ? 12 : grid.month - 1;
   const prevYear = grid.month === 1 ? grid.year - 1 : grid.year;

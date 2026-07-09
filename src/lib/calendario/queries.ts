@@ -409,6 +409,52 @@ export async function listEventsForWeek(
   );
 }
 
+/**
+ * Bloqueios de agenda APROVADOS num intervalo de datas (YYYY-MM-DD, inclusivo).
+ * Usa service-role de propósito: a RLS de `agenda_bloqueios` só deixa o próprio
+ * criador ou coord/adm/sócio verem os registros, mas o calendário precisa
+ * mostrar a indisponibilidade do videomaker pra TODOS que abrem a agenda
+ * (mesma semântica dos demais eventos, que já rodam via service-role).
+ * Read-only: não cria linha em calendar_events, só alimenta um marcador.
+ */
+export async function listBloqueiosAprovadosNoPeriodo(
+  inicio: string,
+  fim: string,
+  unitProfileIds: string[] | null = null,
+) {
+  // Multi-tenant: escopa pelos videomakers da unidade ativa (mesma semântica
+  // dos eventos). unitProfileIds === null → sem filtro (todas as unidades);
+  // array vazio → nenhum bloqueio.
+  if (unitProfileIds !== null && unitProfileIds.length === 0) return [];
+
+  const supabase = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let q = (supabase as any)
+    .from("agenda_bloqueios")
+    .select("id, criado_por, criado_por_nome, data, hora_inicio, hora_fim, motivo")
+    .eq("status", "aprovada")
+    .is("deleted_at", null)
+    .gte("data", inicio)
+    .lte("data", fim);
+  if (unitProfileIds !== null) {
+    q = q.in("criado_por", unitProfileIds);
+  }
+  const { data, error } = await q;
+  if (error) {
+    console.error("[calendario] bloqueios aprovados fetch failed:", error);
+    return [];
+  }
+  return (data ?? []) as {
+    id: string;
+    criado_por: string;
+    criado_por_nome: string;
+    data: string;
+    hora_inicio: string;
+    hora_fim: string;
+    motivo: string;
+  }[];
+}
+
 export async function getEventById(id: string) {
   const supabase = await createClient();
   const { data, error } = await supabase

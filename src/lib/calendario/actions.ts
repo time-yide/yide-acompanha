@@ -18,6 +18,7 @@ import {
   SELECTABLE_SUBS,
 } from "./schema";
 import { canRoleDelegateVideomaker, isVideomakerObrigatorioParaRole } from "@/lib/audiovisual/coord-roles";
+import { checarBloqueioVideomaker } from "./bloqueio-check";
 
 function fd(formData: FormData, key: string) {
   const v = formData.get(key);
@@ -86,8 +87,17 @@ function canCreateVideomaker(role: string): boolean {
 async function validateVideomakerAssignment(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   sb: any,
-  params: { videomakerId: string; inicioUtc: string; fimUtc: string; excludeEventId?: string },
-): Promise<{ error: string } | { ok: true; nome: string }> {
+  params: {
+    videomakerId: string;
+    inicioUtc: string;
+    fimUtc: string;
+    excludeEventId?: string;
+    dataLocal: string;
+    horaInicioLocal: string;
+    horaFimLocal: string;
+    ignorarBloqueio?: boolean;
+  },
+): Promise<{ error: string } | { blockWarning: string } | { ok: true; nome: string }> {
   const { data: vm } = await sb
     .from("profiles")
     .select("id, nome, role, ativo")
@@ -117,10 +127,22 @@ async function validateVideomakerAssignment(
     });
     return { error: `${vm.nome} já tem captação "${conflict.titulo}" às ${inicioBR}` };
   }
+
+  if (!params.ignorarBloqueio) {
+    const warning = await checarBloqueioVideomaker(sb, {
+      videomakerId: params.videomakerId,
+      nome: vm.nome,
+      dataLocal: params.dataLocal,
+      horaInicioLocal: params.horaInicioLocal,
+      horaFimLocal: params.horaFimLocal,
+    });
+    if (warning) return { blockWarning: warning };
+  }
+
   return { ok: true, nome: vm.nome };
 }
 
-type ActionResult = { error?: string } | undefined;
+type ActionResult = { error?: string; blockWarning?: string } | undefined;
 
 export async function createEventAction(_prevState: ActionResult, formData: FormData): Promise<ActionResult> {
   const actor = await requireAuth();
@@ -154,6 +176,13 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
   const inicioUtc = brtInputToUtcIso(parsed.data.inicio);
   const fimUtc = brtInputToUtcIso(parsed.data.fim);
 
+  // Wall-clock local (fuso da app) direto do input datetime-local, pra checagem
+  // de bloqueio sem conversão de TZ. "2026-07-10T14:00" → data + HH:MM.
+  const dataLocal = parsed.data.inicio.slice(0, 10);
+  const horaInicioLocal = parsed.data.inicio.slice(11, 16);
+  const horaFimLocal = parsed.data.fim.slice(11, 16);
+  const ignorarBloqueio = fd(formData, "ignorar_bloqueio") === "true";
+
   if (new Date(fimUtc) <= new Date(inicioUtc)) {
     return { error: "Horário de fim deve ser posterior ao início" };
   }
@@ -180,8 +209,17 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
       return { error: "Escolha o videomaker responsável pela gravação" };
     }
     if (videomakerId) {
-      const check = await validateVideomakerAssignment(sb, { videomakerId, inicioUtc, fimUtc });
+      const check = await validateVideomakerAssignment(sb, {
+        videomakerId,
+        inicioUtc,
+        fimUtc,
+        dataLocal,
+        horaInicioLocal,
+        horaFimLocal,
+        ignorarBloqueio,
+      });
       if ("error" in check) return { error: check.error };
+      if ("blockWarning" in check) return { blockWarning: check.blockWarning };
     }
   }
 
@@ -320,6 +358,13 @@ export async function updateEventAction(_prevState: ActionResult, formData: Form
   const inicioUtc = brtInputToUtcIso(parsed.data.inicio);
   const fimUtc = brtInputToUtcIso(parsed.data.fim);
 
+  // Wall-clock local (fuso da app) direto do input datetime-local, pra checagem
+  // de bloqueio sem conversão de TZ. "2026-07-10T14:00" → data + HH:MM.
+  const dataLocal = parsed.data.inicio.slice(0, 10);
+  const horaInicioLocal = parsed.data.inicio.slice(11, 16);
+  const horaFimLocal = parsed.data.fim.slice(11, 16);
+  const ignorarBloqueio = fd(formData, "ignorar_bloqueio") === "true";
+
   if (new Date(fimUtc) <= new Date(inicioUtc)) {
     return { error: "Horário de fim deve ser posterior ao início" };
   }
@@ -355,8 +400,13 @@ export async function updateEventAction(_prevState: ActionResult, formData: Form
           inicioUtc,
           fimUtc,
           excludeEventId: id,
+          dataLocal,
+          horaInicioLocal,
+          horaFimLocal,
+          ignorarBloqueio,
         });
         if ("error" in check) return { error: check.error };
+        if ("blockWarning" in check) return { blockWarning: check.blockWarning };
         // Troca: remove o videomaker antigo (se estava só pela atribuição) e
         // adiciona o novo.
         participantesFinais = comParticipanteVideomaker(

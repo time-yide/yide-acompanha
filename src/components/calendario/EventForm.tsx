@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 interface ProfileOption { id: string; nome: string; }
 interface ClientOption { id: string; nome: string; }
 
-type ActionResult = { error?: string } | undefined;
+type ActionResult = { error?: string; blockWarning?: string } | undefined;
 
 interface Props {
   action: (state: ActionResult, formData: FormData) => Promise<ActionResult>;
@@ -62,6 +62,8 @@ const SUB_DESC: Record<SelectableSub, string> = {
 
 export function EventForm({ action, defaults = {}, profiles, clientes, videomakers, canCreateVideomaker, canDelegateVideomaker, videomakerRequired, submitLabel = "Salvar" }: Props) {
   const [state, formAction, pending] = useActionState(action, undefined);
+  const formRef = useRef<HTMLFormElement>(null);
+  const [ignorar, setIgnorar] = useState(false);
   const selected = new Set(defaults.participantes_ids ?? []);
   const [sub, setSub] = useState<SelectableSub>(defaults.sub_calendar ?? "agencia");
   const [clientId, setClientId] = useState<string | null>(defaults.client_id ?? null);
@@ -70,8 +72,21 @@ export function EventForm({ action, defaults = {}, profiles, clientes, videomake
 
   const subOptions = SELECTABLE_SUBS.filter((s) => s !== "videomakers" || canCreateVideomaker);
 
+  // "Confirmar mesmo assim": não é submit nativo. Monta o FormData atual e força
+  // ignorar_bloqueio=true na hora, sem depender do re-render do state (evita o bug
+  // de o submit nativo usar o valor antigo do input escondido).
+  function confirmarMesmoAssim() {
+    const formEl = formRef.current;
+    if (!formEl) return;
+    const data = new FormData(formEl);
+    data.set("ignorar_bloqueio", "true");
+    setIgnorar(true);
+    formAction(data);
+  }
+
   return (
-    <form action={formAction} className="space-y-5">
+    <form ref={formRef} action={formAction} className="space-y-5">
+      <input type="hidden" name="ignorar_bloqueio" value={ignorar ? "true" : "false"} />
       {defaults.id && <input type="hidden" name="id" value={defaults.id} />}
 
       <div className="space-y-2">
@@ -122,11 +137,11 @@ export function EventForm({ action, defaults = {}, profiles, clientes, videomake
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="inicio">Início</Label>
-          <Input id="inicio" name="inicio" type="datetime-local" required defaultValue={defaults.inicio ?? ""} />
+          <Input id="inicio" name="inicio" type="datetime-local" required defaultValue={defaults.inicio ?? ""} onChange={() => setIgnorar(false)} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="fim">Fim</Label>
-          <Input id="fim" name="fim" type="datetime-local" required defaultValue={defaults.fim ?? ""} />
+          <Input id="fim" name="fim" type="datetime-local" required defaultValue={defaults.fim ?? ""} onChange={() => setIgnorar(false)} />
         </div>
       </div>
 
@@ -149,7 +164,12 @@ export function EventForm({ action, defaults = {}, profiles, clientes, videomake
               <SearchableSelect
                 options={videomakers.map((v) => ({ value: v.id, label: v.nome }))}
                 value={videomakerId}
-                onChange={(v) => setVideomakerId(v ?? null)}
+                onChange={(v) => {
+                  setVideomakerId(v ?? null);
+                  // Trocou o videomaker → o bloqueio pode não valer mais; volta a
+                  // checar no próximo submit normal ao invés de bypassar silencioso.
+                  setIgnorar(false);
+                }}
                 placeholder="Escolha o videomaker"
                 emptyText="Nenhum videomaker ativo"
                 clearLabel={videomakerRequired ? undefined : "Deixar pro coordenador delegar"}
@@ -252,6 +272,24 @@ export function EventForm({ action, defaults = {}, profiles, clientes, videomake
         <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {state.error}
         </p>
+      )}
+
+      {state?.blockWarning && !state?.error && (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+          <p className="font-medium text-amber-700 dark:text-amber-400">⚠️ {state.blockWarning}</p>
+          <p className="mt-1 text-muted-foreground">
+            O videomaker tem um bloqueio aprovado nesse horário. Você pode confirmar assim mesmo.
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            className="mt-2"
+            disabled={pending}
+            onClick={confirmarMesmoAssim}
+          >
+            Confirmar mesmo assim
+          </Button>
+        </div>
       )}
 
       <Button type="submit" disabled={pending}>{pending ? "Salvando..." : submitLabel}</Button>

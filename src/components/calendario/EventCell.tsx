@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Video, User, UserPlus } from "lucide-react";
+import { Video, User, UserPlus, Lock } from "lucide-react";
 import type { CalendarEvent } from "@/lib/calendario/schema";
 import { formatBrtTime } from "@/lib/calendario/timezone";
 import { computaStatus } from "@/lib/briefing-gravacao/status";
@@ -18,6 +18,30 @@ const subClass: Record<string, string> = {
 };
 
 export function EventCell({ event }: { event: CalendarEvent }) {
+  // Bloqueio de agenda aprovado: marcador read-only "🔒 Indisponível", visual
+  // neutro + borda tracejada pra NÃO confundir com uma gravação real.
+  if (event.bloqueio) {
+    const b = event.bloqueio;
+    return (
+      <div
+        className="rounded-md border border-dashed border-muted-foreground/50 bg-muted/40 p-2 text-xs leading-tight text-muted-foreground sm:p-1.5 sm:text-[11px]"
+        title={`${b.videomaker_nome} indisponível — ${b.motivo}`}
+      >
+        <div className="flex items-center gap-1 font-semibold">
+          <Lock className="h-3.5 w-3.5 flex-shrink-0 sm:h-3 sm:w-3" />
+          <span className="truncate">🔒 Indisponível — {b.motivo}</span>
+        </div>
+        <div className="opacity-80">
+          {b.hora_inicio}–{b.hora_fim}
+        </div>
+        <div className="mt-0.5 flex items-center gap-1 truncate font-medium opacity-90">
+          <User className="h-3 w-3 flex-shrink-0" />
+          <span className="truncate">{b.videomaker_nome}</span>
+        </div>
+      </div>
+    );
+  }
+
   const isVm = event.sub_calendar === "videomakers";
   const assignedNome = event.videomaker_assigned_nome;
   const isPending =
