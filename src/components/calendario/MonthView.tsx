@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Video } from "lucide-react";
+import { Video, Lock } from "lucide-react";
 import type { CalendarEvent } from "@/lib/calendario/schema";
 import { formatBrtDateOnly, formatBrtTime } from "@/lib/calendario/timezone";
 import { getDatePartsInAppTz, getTodayDate } from "@/lib/datetime/timezone";
@@ -106,6 +106,20 @@ export function MonthView({ gridStart, refMonth, events }: Props) {
               {/* Eventos do dia */}
               <div className="flex-1 space-y-0.5 overflow-hidden">
                 {dayEvents.slice(0, MAX_PER_CELL).map((e) => {
+                  // Bloqueio aprovado: marcador read-only, visual neutro/tracejado.
+                  if (e.bloqueio) {
+                    const b = e.bloqueio;
+                    return (
+                      <div
+                        key={e.id}
+                        className="flex items-center gap-1 rounded border border-dashed border-muted-foreground/50 bg-muted/40 px-1.5 py-0.5 text-[10px] leading-tight font-medium text-muted-foreground"
+                        title={`${b.hora_inicio}–${b.hora_fim} · ${b.videomaker_nome} indisponível — ${b.motivo}`}
+                      >
+                        <Lock className="h-2.5 w-2.5 flex-shrink-0" />
+                        <span className="truncate">🔒 {b.motivo}</span>
+                      </div>
+                    );
+                  }
                   const isVm = e.sub_calendar === "videomakers";
                   const cls = subBar[e.sub_calendar] ?? subBar.agencia;
                   const inner = (

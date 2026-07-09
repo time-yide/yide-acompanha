@@ -67,7 +67,7 @@ export type EditEventInput = z.infer<typeof editEventSchema>;
 
 export interface CalendarEvent {
   id: string;
-  origem: "manual" | "lead_prospeccao" | "lead_marco_zero" | "client_birthday" | "colab_birthday" | "client_date";
+  origem: "manual" | "lead_prospeccao" | "lead_marco_zero" | "client_birthday" | "colab_birthday" | "client_date" | "bloqueio_agenda";
   titulo: string;
   descricao: string | null;
   inicio: string;
@@ -93,4 +93,15 @@ export interface CalendarEvent {
   videomaker_leu_em?: string | null;
   /** Quando o videomaker marcou que imprimiu o roteiro. */
   videomaker_imprimiu_em?: string | null;
+  /** Marca de indisponibilidade (bloqueio de agenda aprovado). Read-only, sem link. */
+  bloqueio?: {
+    /** Nome do videomaker que ficou indisponível. */
+    videomaker_nome: string;
+    /** HH:MM (fuso da app). */
+    hora_inicio: string;
+    /** HH:MM (fuso da app). */
+    hora_fim: string;
+    /** Motivo informado na solicitação. */
+    motivo: string;
+  };
 }
