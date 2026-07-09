@@ -56,3 +56,17 @@ describe("assessor_ecommerce role", () => {
     expect(canAccess("assessor_ecommerce", "create:tasks")).toBe(true);
   });
 });
+
+describe("assistente_ecommerce role", () => {
+  it("tem label visível", () => {
+    expect(ROLE_LABELS.assistente_ecommerce).toBe("Assistente de e-commerce");
+    expect(roleLabel("assistente_ecommerce")).toBe("Assistente de e-commerce");
+  });
+  it("não tem acesso a ações privilegiadas por padrão", () => {
+    expect(canAccess("assistente_ecommerce", "manage:users")).toBe(false);
+    expect(canAccess("assistente_ecommerce", "view:financial_consolidated")).toBe(false);
+  });
+  it("pode criar tarefas (mesmos acessos do assessor de e-commerce)", () => {
+    expect(canAccess("assistente_ecommerce", "create:tasks")).toBe(true);
+  });
+});

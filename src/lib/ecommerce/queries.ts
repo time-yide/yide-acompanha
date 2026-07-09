@@ -115,7 +115,7 @@ export async function listAssessoresEcommerce(
     .from("profiles")
     .select("id, nome")
     .eq("organization_id", orgId)
-    .eq("role", "assessor_ecommerce")
+    .in("role", ["assessor_ecommerce", "assistente_ecommerce"])
     .eq("ativo", true)
     .order("nome");
   if (error) {

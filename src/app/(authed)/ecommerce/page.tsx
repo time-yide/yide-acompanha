@@ -14,7 +14,7 @@ import { AnunciosList } from "@/components/ecommerce/AnunciosList";
 import { PainelEcommerce } from "@/components/ecommerce/PainelEcommerce";
 import { FiltroPeriodo } from "@/components/ecommerce/FiltroPeriodo";
 
-const ALLOWED = ["adm", "socio", "assessor_ecommerce"];
+const ALLOWED = ["adm", "socio", "assessor_ecommerce", "assistente_ecommerce"];
 
 function inicioDoMes(): string {
   const d = new Date();

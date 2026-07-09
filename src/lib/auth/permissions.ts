@@ -1,7 +1,7 @@
 export type Role =
   | "adm" | "socio" | "comercial" | "coordenador" | "assessor"
   | "videomaker" | "designer" | "editor" | "audiovisual_chefe"
-  | "assessor_ecommerce";
+  | "assessor_ecommerce" | "assistente_ecommerce";
 
 /**
  * Label visível no UI pra cada role. O enum `app_role` no banco mantém
@@ -19,6 +19,7 @@ export const ROLE_LABELS: Record<string, string> = {
   editor: "Editor",
   audiovisual_chefe: "Coordenador audiovisual",
   assessor_ecommerce: "Assessor de e-commerce",
+  assistente_ecommerce: "Assistente de e-commerce",
 };
 
 /** Devolve o label visível de um role. Faz fallback pro próprio valor. */
@@ -130,6 +131,13 @@ const matrix: Record<Role, Action[]> = {
   // Conjunto mínimo intencional: assessor de e-commerce não participa do fluxo
   // de satisfação (sem feed:satisfaction) nem de aprovações/financeiro.
   assessor_ecommerce: [
+    "view:all_clients",
+    "view:own_commission",
+    "create:tasks", "create:calendar_event", "customize:notification_recipients",
+  ],
+  // Assistente de e-commerce: mesmos acessos do assessor de e-commerce, mas é
+  // um cargo separado. Também não ganha comissão (fica de fora do calculator).
+  assistente_ecommerce: [
     "view:all_clients",
     "view:own_commission",
     "create:tasks", "create:calendar_event", "customize:notification_recipients",
