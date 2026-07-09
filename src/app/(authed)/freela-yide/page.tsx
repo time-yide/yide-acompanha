@@ -5,6 +5,7 @@ import { FreelaHero } from "@/components/freela-yide/FreelaHero";
 import { MetaCard } from "@/components/freela-yide/MetaCard";
 import { OportunidadesGrid } from "@/components/freela-yide/OportunidadesGrid";
 import { MinhasOportunidades } from "@/components/freela-yide/MinhasOportunidades";
+import { ResumoSubidos } from "@/components/freela-yide/ResumoSubidos";
 import { RankingPainel } from "@/components/freela-yide/RankingPainel";
 import { NovaOportunidadeButton } from "@/components/freela-yide/NovaOportunidadeButton";
 import { DefinirMetaButton } from "@/components/freela-yide/DefinirMetaButton";
@@ -52,6 +53,7 @@ export default async function FreelaYidePage() {
           {gestao && (
             <section className="space-y-2">
               <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Que eu subi</h2>
+              <ResumoSubidos ops={criadas} />
               <OportunidadesGrid ops={criadas} gestao={gestao} />
             </section>
           )}
