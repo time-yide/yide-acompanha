@@ -60,34 +60,33 @@ export function TasksBoard({ tasks, userRole }: { tasks: TaskRow[]; userRole: st
     setError(null);
 
     // Mover pra "concluida" ou "em_aprovacao": responsáveis de execução
-    // (editor/videomaker/designer/audiovisual_chefe/coordenador/assessor)
-    // precisam preencher modal com link de entrega antes da movimentação.
-    // Exceção 1: tarefas "geral" (sem entrega real) não exigem modal —
-    // assessor/coord arrastam direto. Modal só faz sentido pra video/arte.
-    // Exceção 2: se a tarefa já tem drive_link salvo (re-conclusão depois
-    // de "alteração"), pula o modal - link só é pedido uma vez por tarefa.
+    // precisam preencher o modal com link de entrega antes da movimentação.
+    // - Responsável audiovisual de execução (editor/videomaker/designer/
+    //   chefe/coordenador): modal em QUALQUER tipo, inclusive "geral".
+    // - Assessor: só em vídeo/arte — suas tarefas "geral" (reunião/follow-up)
+    //   não têm material, arrasta direto.
+    // Exceção: se a tarefa já tem drive_link salvo (re-conclusão depois de
+    // "alteração"), pula o modal - link só é pedido uma vez por tarefa.
     if (toStatus === "concluida" || toStatus === "em_aprovacao") {
       const task = tasks.find((t) => t.id === taskId);
-      const hasDelivery = task?.tipo === "video" || task?.tipo === "arte";
-      if (task && hasDelivery && !task.drive_link) {
-        const role = task.atribuido_a_role;
-        const requiresModal =
-          role === "editor" ||
-          role === "videomaker" ||
-          role === "designer" ||
-          role === "audiovisual_chefe" ||
-          role === "coordenador" ||
-          role === "assessor";
-        if (requiresModal) {
-          setConclModalTask({
-            id: taskId,
-            tipo: (task.tipo as "geral" | "video" | "arte") ?? "geral",
-            atribuidoRole: role ?? null,
-            toStatus,
-          });
-          setConclModalOpen(true);
-          return;
-        }
+      const role = task?.atribuido_a_role;
+      const tipoEntrega = task?.tipo === "video" || task?.tipo === "arte";
+      const isEntregaSempre =
+        role === "editor" ||
+        role === "videomaker" ||
+        role === "designer" ||
+        role === "audiovisual_chefe" ||
+        role === "coordenador";
+      const requiresModal = isEntregaSempre || (tipoEntrega && role === "assessor");
+      if (task && !task.drive_link && requiresModal) {
+        setConclModalTask({
+          id: taskId,
+          tipo: (task.tipo as "geral" | "video" | "arte") ?? "geral",
+          atribuidoRole: role ?? null,
+          toStatus,
+        });
+        setConclModalOpen(true);
+        return;
       }
     }
 

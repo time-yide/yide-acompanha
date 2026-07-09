@@ -65,6 +65,16 @@ function isRoleQueEntrega(role: string): role is RoleQueEntrega {
   return (ROLES_QUE_ENTREGAM as readonly string[]).includes(role);
 }
 
+// Papéis do audiovisual que SEMPRE entregam material pronto: pra eles o link
+// de entrega é obrigatório em QUALQUER tipo de tarefa (inclusive "geral"), não
+// só vídeo/arte. Assessor fica de fora de propósito - suas tarefas "geral"
+// (reunião, follow-up, acompanhamento) não têm material pra linkar.
+const ROLES_ENTREGA_SEMPRE = ["editor", "videomaker", "designer", "audiovisual_chefe", "coordenador"] as const;
+
+function isRoleEntregaSempre(role: string | null | undefined): boolean {
+  return (ROLES_ENTREGA_SEMPRE as readonly string[]).includes(role ?? "");
+}
+
 async function getProfileNameAndActive(supabase: Awaited<ReturnType<typeof createClient>>, profileId: string) {
   const { data } = await supabase.from("profiles").select("nome, ativo").eq("id", profileId).single();
   return data ?? null;
@@ -336,27 +346,40 @@ export async function toggleTaskCompletionAction(taskId: string) {
     canManageAnyTask(actor);
   if (!canToggle) return { error: "Sem permissão" };
 
-  // Bloqueia conclusão simples pra roles que devem usar o modal de entrega
-  // (editor/videomaker/designer/audiovisual_chefe). Defense in depth - UI
-  // dispara concludeOperationalAction via modal.
-  // Agora "concluído de verdade" = postada (Postado/Entregue). Toggle pula
-  // o operacional e vai direto pro final pra simplificar workflow do sócio.
+  // Roles que devem entregar material precisam passar pelo modal de entrega
+  // (link + quantidade) em vez de concluir direto. Em vez de erro, devolvemos
+  // um sinal `requiresDelivery` pro botão abrir o ConcludeOperationalModal.
   //
-  // Modal só faz sentido pra tarefas com entrega real (video/arte) — tarefas
-  // "geral" (reunião, follow-up, acompanhamento) não têm drive_link nem
-  // quantidade pra preencher, então assessor/coord concluem direto.
+  // Quando exige entrega:
+  // - Tarefa vídeo/arte com responsável em ROLES_QUE_ENTREGAM (inclui assessor).
+  // - QUALQUER tarefa (inclusive "geral") com responsável audiovisual de
+  //   execução (editor/videomaker/designer/chefe/coordenador) — sempre têm
+  //   material pronto pra linkar.
+  // Assessor concluindo tarefa "geral" (reunião/follow-up) segue direto: não
+  // tem material, então não cai aqui.
   const isDoneState = (s: string) => s === "postada" || s === "concluida";
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tTipo = (t as any).tipo as string | null | undefined;
-  const requiresDelivery = tTipo === "video" || tTipo === "arte";
-  if (!isDoneState(t.status) && requiresDelivery) {
+  if (!isDoneState(t.status)) {
     const { data: assignee } = await supabase
       .from("profiles")
       .select("role")
       .eq("id", t.atribuido_a)
       .single();
-    if (assignee && isRoleQueEntrega(assignee.role)) {
-      return { error: "Use o modal de entrega pra concluir essa tarefa" };
+    const role = assignee?.role;
+    const requiresDelivery =
+      tTipo === "video" || tTipo === "arte" || isRoleEntregaSempre(role);
+    if (requiresDelivery && role && isRoleQueEntrega(role)) {
+      return {
+        requiresDelivery: {
+          tipo: (tTipo === "video" || tTipo === "arte" ? tTipo : "geral") as
+            | "geral"
+            | "video"
+            | "arte",
+          atribuidoRole: role,
+          toStatus: "concluida" as const,
+        },
+      };
     }
   }
 
@@ -462,8 +485,10 @@ export async function moveTaskStatusAction(formData: FormData) {
   // "concluida" ou "em_aprovacao" - os 2 destinos exigem drive_link.
   // Defense in depth caso o client burle o trigger do modal.
   //
-  // Exceção 1: tarefas "geral" (não vídeo/arte) não têm entrega — assessor/
-  // coord movem direto sem modal.
+  // Exceção 1: só cai no modal quem tem material pra entregar — tarefa vídeo/
+  // arte (qualquer responsável de entrega) OU responsável audiovisual de
+  // execução em qualquer tipo (inclui "geral"). Assessor em tarefa "geral"
+  // (reunião/follow-up) move direto, sem material.
   // Exceção 2: se a tarefa JÁ tem drive_link salvo (caso de re-conclusão
   // depois de alteração), bypass do modal - o link de entrega só precisa
   // ser pedido uma vez por tarefa.
@@ -471,20 +496,20 @@ export async function moveTaskStatusAction(formData: FormData) {
   const beforeDriveLink = (before as any).drive_link as string | null | undefined;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const beforeTipo = (before as any).tipo as string | null | undefined;
-  const requiresDelivery = beforeTipo === "video" || beforeTipo === "arte";
-  if (
-    requiresDelivery &&
-    (parsed.data.to_status === "concluida" || parsed.data.to_status === "em_aprovacao") &&
-    !beforeDriveLink
-  ) {
+  const tipoEntrega = beforeTipo === "video" || beforeTipo === "arte";
+  const movendoPraEntrega =
+    parsed.data.to_status === "concluida" || parsed.data.to_status === "em_aprovacao";
+  if (movendoPraEntrega && !beforeDriveLink) {
     const { data: assignee } = await supabase
       .from("profiles")
       .select("role")
       .eq("id", before.atribuido_a)
       .single();
-    // Mesma lista de ROLES_QUE_ENTREGAM - defense in depth.
-    const ROLES = ROLES_QUE_ENTREGAM;
-    if (assignee && (ROLES as readonly string[]).includes(assignee.role)) {
+    const role = assignee?.role;
+    const requiresDelivery = tipoEntrega || isRoleEntregaSempre(role);
+    // Defense in depth: só bloqueia responsáveis de entrega (o client já
+    // deveria ter aberto o modal).
+    if (requiresDelivery && role && isRoleQueEntrega(role)) {
       return { error: "Use o modal de entrega pra mover essa tarefa" };
     }
   }
