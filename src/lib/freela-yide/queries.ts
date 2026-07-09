@@ -33,12 +33,23 @@ export interface MetaRow {
   bonus_descricao: string | null;
 }
 
+/** Uma oportunidade que a pessoa pegou (para expandir no ranking). */
+export interface RankingItem {
+  titulo: string;
+  status: StatusOp;
+  cliente_nome: string | null;
+  valor_comissao: number;
+  pego_em: string;
+}
+
 export interface RankingEntry {
   user_id: string;
   nome: string;
   pontos: number;
   fechamentos: number;
   comissao: number;
+  /** Eventos/oportunidades que a pessoa pegou. Preenchido só em getHistorico. */
+  itens?: RankingItem[];
 }
 
 /** Entrada do ranking acumulado ("de todos os tempos"): inclui total de freelas pegas. */
@@ -126,6 +137,17 @@ export async function listMinhas(orgId: string, userId: string): Promise<Oportun
   return ((data ?? []) as Array<Record<string, unknown>>).map(mapRow);
 }
 
+/** Oportunidades que o usuário publicou (criou), qualquer status. */
+export async function listCriadasPorMim(orgId: string, userId: string): Promise<OportunidadeRow[]> {
+  const sb = createServiceRoleClient() as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  const { data, error } = await sb
+    .from("freela_oportunidades").select(SELECT)
+    .eq("organization_id", orgId).eq("criado_por", userId).is("deleted_at", null)
+    .order("created_at", { ascending: false });
+  if (error) { console.error("[freelayide] listCriadasPorMim", error.message); return []; }
+  return ((data ?? []) as Array<Record<string, unknown>>).map(mapRow);
+}
+
 export async function getMetaAtual(orgId: string): Promise<MetaRow | null> {
   const sb = createServiceRoleClient() as any; // eslint-disable-line @typescript-eslint/no-explicit-any
   const mesIso = inicioDoMes().slice(0, 10);
@@ -179,7 +201,7 @@ function labelMes(chave: string): string {
 export async function getHistorico(orgId: string): Promise<FreelaHistorico> {
   const sb = createServiceRoleClient() as any; // eslint-disable-line @typescript-eslint/no-explicit-any
   const { data, error } = await sb.from("freela_oportunidades")
-    .select("pego_por, status, negociacao_em, fechada_em, valor_comissao, pego_em, responsavel:profiles!freela_oportunidades_pego_por_fkey(nome)")
+    .select("pego_por, titulo, cliente_nome, status, negociacao_em, fechada_em, valor_comissao, pego_em, responsavel:profiles!freela_oportunidades_pego_por_fkey(nome)")
     .eq("organization_id", orgId).is("deleted_at", null)
     .not("pego_por", "is", null).not("pego_em", "is", null);
   if (error) { console.error("[freelayide] getHistorico", error.message); return { meses: [], geral: [] }; }
@@ -194,36 +216,48 @@ export async function getHistorico(orgId: string): Promise<FreelaHistorico> {
     const valor = Number(r.valor_comissao ?? 0);
     const negociacao_em = (r.negociacao_em as string | null) ?? null;
     const fechada_em = (r.fechada_em as string | null) ?? null;
+    const pego_em = r.pego_em as string;
     const pts = calcularPontos({ status, negociacao_em, fechada_em, valor_comissao: valor });
     const fechou = status === "fechada";
-    const chave = chaveMes(r.pego_em as string);
+    const chave = chaveMes(pego_em);
+    const item: RankingItem = {
+      titulo: r.titulo as string,
+      status,
+      cliente_nome: (r.cliente_nome as string | null) ?? null,
+      valor_comissao: valor,
+      pego_em,
+    };
 
     if (!porMes.has(chave)) porMes.set(chave, new Map());
     const mMap = porMes.get(chave)!;
-    const cur = mMap.get(uid) ?? { user_id: uid, nome, pontos: 0, fechamentos: 0, comissao: 0 };
+    const cur = mMap.get(uid) ?? { user_id: uid, nome, pontos: 0, fechamentos: 0, comissao: 0, itens: [] };
     cur.pontos += pts;
     if (fechou) { cur.fechamentos += 1; cur.comissao += valor; }
+    cur.itens!.push(item);
     mMap.set(uid, cur);
 
-    const g = geral.get(uid) ?? { user_id: uid, nome, pontos: 0, fechamentos: 0, comissao: 0, pegas: 0 };
+    const g = geral.get(uid) ?? { user_id: uid, nome, pontos: 0, fechamentos: 0, comissao: 0, pegas: 0, itens: [] };
     g.pontos += pts;
     g.pegas += 1;
     if (fechou) { g.fechamentos += 1; g.comissao += valor; }
+    g.itens!.push(item);
     geral.set(uid, g);
   }
 
   const chaveAtual = chaveMes(new Date().toISOString());
   if (!porMes.has(chaveAtual)) porMes.set(chaveAtual, new Map());
 
+  const ordenaItens = <T extends RankingEntry>(e: T): T => { e.itens?.sort((a, b) => b.pego_em.localeCompare(a.pego_em)); return e; };
+
   const meses: MesRanking[] = [...porMes.entries()]
     .sort((a, b) => b[0].localeCompare(a[0])) // mais recente primeiro
     .map(([chave, m]) => ({
       chave,
       label: labelMes(chave),
-      ranking: [...m.values()].sort((a, b) => b.pontos - a.pontos),
+      ranking: [...m.values()].map(ordenaItens).sort((a, b) => b.pontos - a.pontos),
     }));
 
-  const geralArr = [...geral.values()].sort((a, b) => b.pegas - a.pegas || b.pontos - a.pontos);
+  const geralArr = [...geral.values()].map(ordenaItens).sort((a, b) => b.pegas - a.pegas || b.pontos - a.pontos);
 
   return { meses, geral: geralArr };
 }
