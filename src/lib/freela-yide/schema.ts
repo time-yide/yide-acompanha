@@ -20,6 +20,10 @@ export const criarOportunidadeSchema = z.object({
     .nullable(),
 });
 
+export const editarOportunidadeSchema = criarOportunidadeSchema.extend({
+  id: uuid,
+});
+
 export const moverStatusSchema = z.object({
   id: uuid,
   status: z.enum(STATUS_OP),

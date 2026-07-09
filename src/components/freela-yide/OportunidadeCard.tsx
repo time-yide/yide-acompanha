@@ -1,11 +1,12 @@
 "use client";
 import { useTransition } from "react";
-import { Clock, Coins, Flame, Loader2 } from "lucide-react";
+import { Clock, Coins, Flame, Loader2, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { STATUS_OP_DEFS, TIPO_OP_DEFS } from "@/lib/freela-yide/tipos";
-import { pegarOportunidadeAction } from "@/lib/freela-yide/actions";
+import { pegarOportunidadeAction, excluirOportunidadeAction } from "@/lib/freela-yide/actions";
 import type { OportunidadeRow } from "@/lib/freela-yide/queries";
 import { useRouter } from "next/navigation";
+import { EditarOportunidadeButton } from "./EditarOportunidadeButton";
 
 function fmtPrazo(iso: string): string {
   const d = new Date(iso);
@@ -13,7 +14,7 @@ function fmtPrazo(iso: string): string {
   return d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
-export function OportunidadeCard({ op }: { op: OportunidadeRow }) {
+export function OportunidadeCard({ op, gestao = false }: { op: OportunidadeRow; gestao?: boolean }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const def = STATUS_OP_DEFS[op.status];
@@ -21,6 +22,14 @@ export function OportunidadeCard({ op }: { op: OportunidadeRow }) {
   function pegar() {
     start(async () => {
       const r = await pegarOportunidadeAction(op.id);
+      if ("error" in r) { alert(r.error); return; }
+      router.refresh();
+    });
+  }
+  function excluir() {
+    if (!window.confirm(`Excluir a oportunidade "${op.titulo}"?`)) return;
+    start(async () => {
+      const r = await excluirOportunidadeAction(op.id);
       if ("error" in r) { alert(r.error); return; }
       router.refresh();
     });
@@ -63,6 +72,19 @@ export function OportunidadeCard({ op }: { op: OportunidadeRow }) {
       )}
       {op.status !== "disponivel" && op.pego_por_nome && (
         <p className="text-[11px] text-muted-foreground">Com <strong className="text-foreground">{op.pego_por_nome}</strong></p>
+      )}
+      {gestao && (
+        <div className="flex items-center gap-2 border-t pt-2">
+          <EditarOportunidadeButton op={op} />
+          <button
+            type="button"
+            onClick={excluir}
+            disabled={pending}
+            className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs text-muted-foreground hover:text-destructive disabled:opacity-50"
+          >
+            <Trash2 className="h-3 w-3" /> Excluir
+          </button>
+        </div>
       )}
     </Card>
   );
