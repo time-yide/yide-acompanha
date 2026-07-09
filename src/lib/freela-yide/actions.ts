@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/auth/session";
 import { transicaoValida } from "./pontos";
 import type { StatusOp } from "./tipos";
-import { criarOportunidadeSchema, moverStatusSchema, definirMetaSchema, normalizeUrgencia } from "./schema";
+import { criarOportunidadeSchema, editarOportunidadeSchema, moverStatusSchema, definirMetaSchema, normalizeUrgencia } from "./schema";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 import { brtInputToUtcIso } from "@/lib/calendario/timezone";
 
@@ -85,6 +85,48 @@ export async function criarOportunidadeAction(formData: FormData): Promise<Resul
   } catch (e) {
     console.error("[freelayide] dispatch nova oportunidade falhou:", e);
   }
+
+  revalidatePath("/freela-yide");
+  return { success: true };
+}
+
+export async function editarOportunidadeAction(formData: FormData): Promise<Result> {
+  const actor = await requireAuth();
+  if (!isGestao(actor.role)) return { error: "Sem permissão" };
+  const parsed = editarOportunidadeSchema.safeParse({
+    id: fd(formData, "id"),
+    titulo: fd(formData, "titulo"),
+    descricao: fd(formData, "descricao"),
+    cliente_nome: fd(formData, "cliente_nome"),
+    contato: fd(formData, "contato"),
+    horario: fd(formData, "horario"),
+    valor_comissao: fd(formData, "valor_comissao") ?? 0,
+    tipo: fd(formData, "tipo") ?? "captacao",
+    entrega_urgente: formData.get("entrega_urgente") === "on",
+    prazo_entrega: fd(formData, "prazo_entrega"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const supabase = await createClient();
+  const urg = normalizeUrgencia(parsed.data.tipo, parsed.data.entrega_urgente, parsed.data.prazo_entrega ?? null);
+
+  // .select() + checagem de length: RLS bloqueado devolve error:null com 0 linhas.
+  const { data: upd, error } = await (supabase as any).from("freela_oportunidades") // eslint-disable-line @typescript-eslint/no-explicit-any
+    .update({
+      titulo: parsed.data.titulo,
+      descricao: parsed.data.descricao,
+      cliente_nome: parsed.data.cliente_nome,
+      contato: parsed.data.contato,
+      horario: parsed.data.horario,
+      valor_comissao: parsed.data.valor_comissao,
+      tipo: parsed.data.tipo,
+      entrega_urgente: urg.entrega_urgente,
+      prazo_entrega: urg.prazo_entrega ? brtInputToUtcIso(urg.prazo_entrega) : null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", parsed.data.id).is("deleted_at", null).select("id");
+  if (error) return { error: error.message };
+  if (!upd || upd.length === 0) return { error: "Oportunidade não encontrada" };
 
   revalidatePath("/freela-yide");
   return { success: true };

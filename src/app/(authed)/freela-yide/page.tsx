@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth/session";
-import { getOrganizationId, listOportunidades, listMinhas, getRanking, getMetaAtual, getStats } from "@/lib/freela-yide/queries";
+import { getOrganizationId, listOportunidades, listMinhas, getRanking, getHistorico, getMetaAtual, getStats } from "@/lib/freela-yide/queries";
 import { FreelaHero } from "@/components/freela-yide/FreelaHero";
 import { MetaCard } from "@/components/freela-yide/MetaCard";
 import { OportunidadesGrid } from "@/components/freela-yide/OportunidadesGrid";
 import { MinhasOportunidades } from "@/components/freela-yide/MinhasOportunidades";
-import { RankingTime } from "@/components/freela-yide/RankingTime";
+import { RankingPainel } from "@/components/freela-yide/RankingPainel";
 import { NovaOportunidadeButton } from "@/components/freela-yide/NovaOportunidadeButton";
 import { DefinirMetaButton } from "@/components/freela-yide/DefinirMetaButton";
 
@@ -18,10 +18,11 @@ export default async function FreelaYidePage() {
   const orgId = await getOrganizationId(user.id);
   if (!orgId) notFound();
 
-  const [todas, minhas, ranking, meta, stats] = await Promise.all([
+  const [todas, minhas, ranking, historico, meta, stats] = await Promise.all([
     listOportunidades(orgId, true),
     listMinhas(orgId, user.id),
     getRanking(orgId),
+    getHistorico(orgId),
     getMetaAtual(orgId),
     getStats(orgId, user.id),
   ]);
@@ -38,7 +39,7 @@ export default async function FreelaYidePage() {
               <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Oportunidades disponíveis</h2>
               {gestao && <NovaOportunidadeButton />}
             </div>
-            <OportunidadesGrid ops={todas} />
+            <OportunidadesGrid ops={todas} gestao={gestao} />
           </section>
 
           <section className="space-y-2">
@@ -49,11 +50,11 @@ export default async function FreelaYidePage() {
 
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Ranking do mês</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Ranking</h2>
             {gestao && <DefinirMetaButton />}
           </div>
           <MetaCard meta={meta} ranking={ranking} />
-          <RankingTime ranking={ranking} meId={user.id} />
+          <RankingPainel historico={historico} meId={user.id} />
         </div>
       </div>
     </div>

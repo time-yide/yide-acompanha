@@ -41,6 +41,24 @@ export interface RankingEntry {
   comissao: number;
 }
 
+/** Entrada do ranking acumulado ("de todos os tempos"): inclui total de freelas pegas. */
+export interface RankingGeralEntry extends RankingEntry {
+  pegas: number;
+}
+
+/** Ranking de um mês fechado. `chave` = "AAAA-MM", `label` = "Julho 2026". */
+export interface MesRanking {
+  chave: string;
+  label: string;
+  ranking: RankingEntry[];
+}
+
+/** Histórico completo: ranking mês a mês (recente primeiro) + acumulado geral. */
+export interface FreelaHistorico {
+  meses: MesRanking[];
+  geral: RankingGeralEntry[];
+}
+
 export interface FreelaStats {
   disponiveis: number;
   comissaoEmJogo: number;   // soma valor_comissao das disponíveis
@@ -136,6 +154,78 @@ export async function getRanking(orgId: string): Promise<RankingEntry[]> {
     mapa.set(uid, cur);
   }
   return [...mapa.values()].sort((a, b) => b.pontos - a.pontos);
+}
+
+const MESES_PT = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+];
+
+function chaveMes(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function labelMes(chave: string): string {
+  const [ano, mes] = chave.split("-").map(Number);
+  return `${MESES_PT[mes - 1] ?? "?"} ${ano}`;
+}
+
+/**
+ * Histórico do ranking em uma única query: agrupa todas as oportunidades já
+ * pegas (pego_em não nulo) por mês (retrovisor) e no acumulado geral. O mês
+ * corrente é sempre incluído, mesmo sem ninguém no ranking ainda.
+ */
+export async function getHistorico(orgId: string): Promise<FreelaHistorico> {
+  const sb = createServiceRoleClient() as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  const { data, error } = await sb.from("freela_oportunidades")
+    .select("pego_por, status, negociacao_em, fechada_em, valor_comissao, pego_em, responsavel:profiles!freela_oportunidades_pego_por_fkey(nome)")
+    .eq("organization_id", orgId).is("deleted_at", null)
+    .not("pego_por", "is", null).not("pego_em", "is", null);
+  if (error) { console.error("[freelayide] getHistorico", error.message); return { meses: [], geral: [] }; }
+
+  const porMes = new Map<string, Map<string, RankingEntry>>();
+  const geral = new Map<string, RankingGeralEntry>();
+
+  for (const r of (data ?? []) as Array<Record<string, unknown>>) {
+    const uid = r.pego_por as string;
+    const nome = ((r.responsavel as { nome?: string } | null) ?? null)?.nome ?? "—";
+    const status = r.status as StatusOp;
+    const valor = Number(r.valor_comissao ?? 0);
+    const negociacao_em = (r.negociacao_em as string | null) ?? null;
+    const fechada_em = (r.fechada_em as string | null) ?? null;
+    const pts = calcularPontos({ status, negociacao_em, fechada_em, valor_comissao: valor });
+    const fechou = status === "fechada";
+    const chave = chaveMes(r.pego_em as string);
+
+    if (!porMes.has(chave)) porMes.set(chave, new Map());
+    const mMap = porMes.get(chave)!;
+    const cur = mMap.get(uid) ?? { user_id: uid, nome, pontos: 0, fechamentos: 0, comissao: 0 };
+    cur.pontos += pts;
+    if (fechou) { cur.fechamentos += 1; cur.comissao += valor; }
+    mMap.set(uid, cur);
+
+    const g = geral.get(uid) ?? { user_id: uid, nome, pontos: 0, fechamentos: 0, comissao: 0, pegas: 0 };
+    g.pontos += pts;
+    g.pegas += 1;
+    if (fechou) { g.fechamentos += 1; g.comissao += valor; }
+    geral.set(uid, g);
+  }
+
+  const chaveAtual = chaveMes(new Date().toISOString());
+  if (!porMes.has(chaveAtual)) porMes.set(chaveAtual, new Map());
+
+  const meses: MesRanking[] = [...porMes.entries()]
+    .sort((a, b) => b[0].localeCompare(a[0])) // mais recente primeiro
+    .map(([chave, m]) => ({
+      chave,
+      label: labelMes(chave),
+      ranking: [...m.values()].sort((a, b) => b.pontos - a.pontos),
+    }));
+
+  const geralArr = [...geral.values()].sort((a, b) => b.pegas - a.pegas || b.pontos - a.pontos);
+
+  return { meses, geral: geralArr };
 }
 
 export async function getStats(orgId: string, userId: string): Promise<FreelaStats> {
