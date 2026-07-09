@@ -79,7 +79,11 @@ export default async function AudiovisualPage({
   if (canSeeAguardando) availableTabs.push("aguardando_videomaker");
   if (canSeeDelegacao) availableTabs.push("pendente_delegacao");
   if (isVideomaker) availableTabs.push("meus_bloqueios");
-  if (ROLES_GESTAO.includes(user.role)) availableTabs.push("solicitacoes_bloqueio");
+  // Só quem realmente aprova (coord. audiovisual + adm/sócio) vê a fila de
+  // solicitações — assessor/coordenador geral não aprovam, então não faz
+  // sentido mostrar botões que dariam erro.
+  const canAprovarBloqueio = ["audiovisual_chefe", "adm", "socio"].includes(user.role);
+  if (canAprovarBloqueio) availableTabs.push("solicitacoes_bloqueio");
 
   const { tab: tabParam, novo: novoEventoId } = await searchParams;
   const activeTab: TabKey = availableTabs.includes(tabParam as TabKey)
