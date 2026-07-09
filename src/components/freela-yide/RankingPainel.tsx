@@ -91,7 +91,7 @@ export function RankingPainel({ historico, meId }: { historico: FreelaHistorico;
             <div className="space-y-1.5">
               {mesAtual.ranking.map((r: RankingEntry, i) => (
                 <LinhaRanking key={r.user_id} pos={i + 1} nome={r.nome} ehVoce={r.user_id === meId}
-                  sub={`${r.fechamentos} fechada(s) · R$ ${r.comissao.toLocaleString("pt-BR")}`}
+                  sub={`R$ ${(r.valorPego ?? 0).toLocaleString("pt-BR")} pego · ${r.fechamentos} fechada(s)`}
                   destaque={`${r.pontos} pts`} itens={r.itens} />
               ))}
             </div>
@@ -110,7 +110,7 @@ export function RankingPainel({ historico, meId }: { historico: FreelaHistorico;
             <div className="space-y-1.5">
               {historico.geral.map((r: RankingGeralEntry, i) => (
                 <LinhaRanking key={r.user_id} pos={i + 1} nome={r.nome} ehVoce={r.user_id === meId}
-                  sub={`${r.fechamentos} fechada(s) · R$ ${r.comissao.toLocaleString("pt-BR")} · ${r.pontos} pts`}
+                  sub={`R$ ${(r.valorPego ?? 0).toLocaleString("pt-BR")} pego · ${r.fechamentos} fechada(s) · ${r.pontos} pts`}
                   destaque={`${r.pegas} freela${r.pegas === 1 ? "" : "s"}`} itens={r.itens} />
               ))}
             </div>
