@@ -15,6 +15,8 @@ import { CapturasAba } from "@/components/audiovisual/CapturasAba";
 import { PendenteEntregaAba } from "@/components/audiovisual/PendenteEntregaAba";
 import { PendenteDelegacaoAba } from "@/components/audiovisual/PendenteDelegacaoAba";
 import { AguardandoVideomakerAba } from "@/components/audiovisual/AguardandoVideomakerAba";
+import { MeusBloqueiosAba } from "@/components/audiovisual/MeusBloqueiosAba";
+import { SolicitacoesBloqueioAba } from "@/components/audiovisual/SolicitacoesBloqueioAba";
 import { listPendingDelegations, listScheduledFutureCaptures, listVideomakersAtivos, listScheduledByVideomaker, listAudiovisualCoords } from "@/lib/audiovisual/coord-queries";
 import { canRoleDelegateVideomaker, canRoleViewCoord } from "@/lib/audiovisual/coord-roles";
 import { Card } from "@/components/ui/card";
@@ -27,13 +29,15 @@ const ROLES_QUE_DELEGAM = ["audiovisual_chefe", "adm", "socio"];
 const ROLES_GESTAO = ["audiovisual_chefe", "coordenador", "assessor", "adm", "socio"];
 const ROLES_QUE_EXCLUEM = ["audiovisual_chefe", "coordenador", "adm", "socio"];
 
-type TabKey = "capturas" | "pendente_entrega" | "pendente_delegacao" | "aguardando_videomaker";
+type TabKey = "capturas" | "pendente_entrega" | "pendente_delegacao" | "aguardando_videomaker" | "meus_bloqueios" | "solicitacoes_bloqueio";
 
 const TAB_LABELS: Record<TabKey, string> = {
   capturas: "Capturas",
   pendente_entrega: "Pendente de entrega",
   pendente_delegacao: "Pendente edição",
   aguardando_videomaker: "Captações futuras",
+  meus_bloqueios: "Meus bloqueios",
+  solicitacoes_bloqueio: "Solicitações de bloqueio",
 };
 
 interface SearchParams { tab?: string; novo?: string; }
@@ -74,6 +78,8 @@ export default async function AudiovisualPage({
   const availableTabs: TabKey[] = ["capturas", "pendente_entrega"];
   if (canSeeAguardando) availableTabs.push("aguardando_videomaker");
   if (canSeeDelegacao) availableTabs.push("pendente_delegacao");
+  if (isVideomaker) availableTabs.push("meus_bloqueios");
+  if (ROLES_GESTAO.includes(user.role)) availableTabs.push("solicitacoes_bloqueio");
 
   const { tab: tabParam, novo: novoEventoId } = await searchParams;
   const activeTab: TabKey = availableTabs.includes(tabParam as TabKey)
@@ -192,6 +198,10 @@ export default async function AudiovisualPage({
         canDelegate={canDelegateVideomaker}
       />
     );
+  } else if (activeTab === "meus_bloqueios") {
+    content = <MeusBloqueiosAba userId={user.id} />;
+  } else if (activeTab === "solicitacoes_bloqueio") {
+    content = <SolicitacoesBloqueioAba />;
   }
 
   return (
