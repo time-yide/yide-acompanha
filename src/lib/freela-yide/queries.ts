@@ -47,7 +47,9 @@ export interface RankingEntry {
   nome: string;
   pontos: number;
   fechamentos: number;
-  comissao: number;
+  comissao: number;       // R$ só das fechadas
+  /** R$ de tudo que a pessoa pegou (fechado ou não). Preenchido só em getHistorico. */
+  valorPego?: number;
   /** Eventos/oportunidades que a pessoa pegou. Preenchido só em getHistorico. */
   itens?: RankingItem[];
 }
@@ -230,15 +232,17 @@ export async function getHistorico(orgId: string): Promise<FreelaHistorico> {
 
     if (!porMes.has(chave)) porMes.set(chave, new Map());
     const mMap = porMes.get(chave)!;
-    const cur = mMap.get(uid) ?? { user_id: uid, nome, pontos: 0, fechamentos: 0, comissao: 0, itens: [] };
+    const cur = mMap.get(uid) ?? { user_id: uid, nome, pontos: 0, fechamentos: 0, comissao: 0, valorPego: 0, itens: [] };
     cur.pontos += pts;
+    cur.valorPego! += valor;
     if (fechou) { cur.fechamentos += 1; cur.comissao += valor; }
     cur.itens!.push(item);
     mMap.set(uid, cur);
 
-    const g = geral.get(uid) ?? { user_id: uid, nome, pontos: 0, fechamentos: 0, comissao: 0, pegas: 0, itens: [] };
+    const g = geral.get(uid) ?? { user_id: uid, nome, pontos: 0, fechamentos: 0, comissao: 0, valorPego: 0, pegas: 0, itens: [] };
     g.pontos += pts;
     g.pegas += 1;
+    g.valorPego! += valor;
     if (fechou) { g.fechamentos += 1; g.comissao += valor; }
     g.itens!.push(item);
     geral.set(uid, g);
