@@ -14,7 +14,7 @@ function fmtPrazo(iso: string): string {
   return d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
-export function OportunidadeCard({ op, gestao = false }: { op: OportunidadeRow; gestao?: boolean }) {
+export function OportunidadeCard({ op, gestao = false, podePegar = true }: { op: OportunidadeRow; gestao?: boolean; podePegar?: boolean }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const def = STATUS_OP_DEFS[op.status];
@@ -64,7 +64,7 @@ export function OportunidadeCard({ op, gestao = false }: { op: OportunidadeRow; 
         </div>
         <span className="flex items-center gap-1 text-xs text-muted-foreground"><Flame className="h-3.5 w-3.5 text-orange-400" /> +{op.pontos} pts</span>
       </div>
-      {op.status === "disponivel" && (
+      {op.status === "disponivel" && podePegar && (
         <button onClick={pegar} disabled={pending}
           className="inline-flex items-center justify-center gap-1 rounded-lg bg-gradient-to-r from-violet-600 to-cyan-400 py-2 text-sm font-bold text-white hover:opacity-90 disabled:opacity-50">
           {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Pegar oportunidade"}
