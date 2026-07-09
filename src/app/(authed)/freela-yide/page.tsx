@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth/session";
-import { getOrganizationId, listOportunidades, listMinhas, getRanking, getHistorico, getMetaAtual, getStats } from "@/lib/freela-yide/queries";
+import { getOrganizationId, listOportunidades, listMinhas, listCriadasPorMim, getRanking, getHistorico, getMetaAtual, getStats } from "@/lib/freela-yide/queries";
 import { FreelaHero } from "@/components/freela-yide/FreelaHero";
 import { MetaCard } from "@/components/freela-yide/MetaCard";
 import { OportunidadesGrid } from "@/components/freela-yide/OportunidadesGrid";
@@ -18,15 +18,17 @@ export default async function FreelaYidePage() {
   const orgId = await getOrganizationId(user.id);
   if (!orgId) notFound();
 
-  const [todas, minhas, ranking, historico, meta, stats] = await Promise.all([
+  const gestao = GESTAO.includes(user.role);
+
+  const [todas, minhas, criadas, ranking, historico, meta, stats] = await Promise.all([
     listOportunidades(orgId, true),
     listMinhas(orgId, user.id),
+    gestao ? listCriadasPorMim(orgId, user.id) : Promise.resolve([]),
     getRanking(orgId),
     getHistorico(orgId),
     getMetaAtual(orgId),
     getStats(orgId, user.id),
   ]);
-  const gestao = GESTAO.includes(user.role);
 
   return (
     <div className="space-y-6">
@@ -46,6 +48,13 @@ export default async function FreelaYidePage() {
             <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Minhas oportunidades</h2>
             <MinhasOportunidades ops={minhas} />
           </section>
+
+          {gestao && (
+            <section className="space-y-2">
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Que eu subi</h2>
+              <OportunidadesGrid ops={criadas} gestao={gestao} />
+            </section>
+          )}
         </div>
 
         <div className="space-y-4">

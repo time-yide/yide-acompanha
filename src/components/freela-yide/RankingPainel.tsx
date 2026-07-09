@@ -1,22 +1,55 @@
 "use client";
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Trophy } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Trophy } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import type { FreelaHistorico, RankingEntry, RankingGeralEntry } from "@/lib/freela-yide/queries";
+import { STATUS_OP_DEFS } from "@/lib/freela-yide/tipos";
+import type { FreelaHistorico, RankingEntry, RankingGeralEntry, RankingItem } from "@/lib/freela-yide/queries";
 
 type Aba = "mes" | "geral";
 
-function LinhaRanking({ pos, nome, ehVoce, sub, destaque }: {
-  pos: number; nome: string; ehVoce: boolean; sub: string; destaque: string;
+function fmtData(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+}
+
+function LinhaRanking({ pos, nome, ehVoce, sub, destaque, itens }: {
+  pos: number; nome: string; ehVoce: boolean; sub: string; destaque: string; itens?: RankingItem[];
 }) {
+  const [aberto, setAberto] = useState(false);
+  const temItens = (itens?.length ?? 0) > 0;
   return (
-    <Card className={`flex items-center gap-3 p-3 ${ehVoce ? "ring-1 ring-violet-500/50" : ""}`}>
-      <span className="w-7 text-center text-lg font-bold tabular-nums">{pos}º</span>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold">{nome}{ehVoce && <span className="text-violet-400"> (você)</span>}</p>
-        <p className="text-[11px] text-muted-foreground">{sub}</p>
-      </div>
-      <span className="whitespace-nowrap rounded-full bg-gradient-to-r from-violet-600 to-cyan-400 px-3 py-1 text-xs font-bold text-white tabular-nums">{destaque}</span>
+    <Card className={`overflow-hidden ${ehVoce ? "ring-1 ring-violet-500/50" : ""}`}>
+      <button
+        type="button"
+        onClick={() => temItens && setAberto((v) => !v)}
+        className={`flex w-full items-center gap-3 p-3 text-left ${temItens ? "hover:bg-muted/40" : "cursor-default"}`}
+      >
+        <span className="w-7 text-center text-lg font-bold tabular-nums">{pos}º</span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold">{nome}{ehVoce && <span className="text-violet-400"> (você)</span>}</p>
+          <p className="text-[11px] text-muted-foreground">{sub}</p>
+        </div>
+        <span className="whitespace-nowrap rounded-full bg-gradient-to-r from-violet-600 to-cyan-400 px-3 py-1 text-xs font-bold text-white tabular-nums">{destaque}</span>
+        {temItens && <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${aberto ? "rotate-180" : ""}`} />}
+      </button>
+      {aberto && temItens && (
+        <ul className="space-y-1 border-t bg-muted/20 px-3 py-2">
+          {itens!.map((it, i) => {
+            const def = STATUS_OP_DEFS[it.status];
+            return (
+              <li key={i} className="flex items-center gap-2 text-xs">
+                <span className="text-[10px] tabular-nums text-muted-foreground">{fmtData(it.pego_em)}</span>
+                <span className="min-w-0 flex-1 truncate">
+                  {it.titulo}
+                  {it.cliente_nome && <span className="text-muted-foreground"> · {it.cliente_nome}</span>}
+                </span>
+                <span className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-medium ${def.color}`}>{def.label}</span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </Card>
   );
 }
@@ -59,7 +92,7 @@ export function RankingPainel({ historico, meId }: { historico: FreelaHistorico;
               {mesAtual.ranking.map((r: RankingEntry, i) => (
                 <LinhaRanking key={r.user_id} pos={i + 1} nome={r.nome} ehVoce={r.user_id === meId}
                   sub={`${r.fechamentos} fechada(s) · R$ ${r.comissao.toLocaleString("pt-BR")}`}
-                  destaque={`${r.pontos} pts`} />
+                  destaque={`${r.pontos} pts`} itens={r.itens} />
               ))}
             </div>
           )}
@@ -78,7 +111,7 @@ export function RankingPainel({ historico, meId }: { historico: FreelaHistorico;
               {historico.geral.map((r: RankingGeralEntry, i) => (
                 <LinhaRanking key={r.user_id} pos={i + 1} nome={r.nome} ehVoce={r.user_id === meId}
                   sub={`${r.fechamentos} fechada(s) · R$ ${r.comissao.toLocaleString("pt-BR")} · ${r.pontos} pts`}
-                  destaque={`${r.pegas} freela${r.pegas === 1 ? "" : "s"}`} />
+                  destaque={`${r.pegas} freela${r.pegas === 1 ? "" : "s"}`} itens={r.itens} />
               ))}
             </div>
           )}
