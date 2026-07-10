@@ -83,7 +83,13 @@ export async function DashboardFastMidia({ userId, nome }: Props) {
           <ul className="divide-y rounded-lg border bg-card">
             {storiesRows.map((r) => (
               <li key={r.client_id} className="flex items-center gap-3 px-4 py-2">
-                <span className="min-w-0 flex-1 truncate text-sm font-medium">{r.client_nome}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{r.client_nome}</p>
+                  <p className="truncate text-[11px] text-muted-foreground">
+                    {r.quantidade_diaria_stories}/dia
+                    {r.assessor_nome ? ` · Assessor: ${r.assessor_nome}` : ""}
+                  </p>
+                </div>
                 <div className="w-32 shrink-0">
                   <StoriesCell
                     clientId={r.client_id}
