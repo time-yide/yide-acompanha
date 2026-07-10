@@ -146,11 +146,20 @@ export function EditorEdicaoCard({ editor: e }: { editor: EditorStat }) {
       {/* Cabeçalho: avatar + nome (identidade clara) + contagens. Separado por linha. */}
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 border-b bg-muted/20 px-3.5 py-2.5">
         <div className="flex min-w-0 items-center gap-2.5">
-          <span
-            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${avatarColor(e.id)}`}
-          >
-            {iniciais(e.nome)}
-          </span>
+          {e.avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={e.avatar_url}
+              alt={e.nome}
+              className="h-8 w-8 shrink-0 rounded-full object-cover"
+            />
+          ) : (
+            <span
+              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${avatarColor(e.id)}`}
+            >
+              {iniciais(e.nome)}
+            </span>
+          )}
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold leading-tight">{e.nome}</p>
             <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{roleLabel(e.role)}</p>

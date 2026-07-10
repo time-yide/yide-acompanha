@@ -44,6 +44,7 @@ export interface EditorStat {
   nome: string;
   /** "editor" | "videomaker" | "audiovisual_chefe" - pra UI mostrar a função real. */
   role: string;
+  avatar_url: string | null;
   /** Abertas com prazo já vencido (`due_date < hoje BRT`). */
   atrasadas: number;
   /** Abertas com prazo hoje ou no futuro, ou sem prazo. */
@@ -106,11 +107,11 @@ async function _getEquipeAudiovisualImpl(periodo: Periodo): Promise<EquipeAudiov
 
   const { data: profilesData } = await supabase
     .from("profiles")
-    .select("id, nome, role")
+    .select("id, nome, role, avatar_url")
     .in("role", ["videomaker", "fast_midia", "editor", "audiovisual_chefe"])
     .eq("ativo", true)
     .order("nome");
-  const profiles = (profilesData ?? []) as Array<{ id: string; nome: string; role: string }>;
+  const profiles = (profilesData ?? []) as Array<{ id: string; nome: string; role: string; avatar_url: string | null }>;
   if (profiles.length === 0) {
     return {
       videomakers: [],
@@ -268,6 +269,7 @@ async function _getEquipeAudiovisualImpl(periodo: Periodo): Promise<EquipeAudiov
         id: p.id,
         nome: p.nome,
         role: p.role,
+        avatar_url: p.avatar_url,
         atrasadas: atrasadasList.length,
         proximas: proximasList.length,
         emAndamento: emAndamentoList.length,
@@ -303,7 +305,7 @@ export async function getEquipeAudiovisual(periodo: Periodo): Promise<EquipeAudi
     // v3: shape mudou (videomaker proximas/hoje/concluidas, editor proximas/emAndamento/concluidas)
     // v4: EditorStat ganhou atrasadas + atrasadasList (separa por due_date < hoje BRT)
     // v5: TaskItem ganhou cliente_nome (join clients p/ mostrar cliente inline na edição)
-    ["dashboard-audiovisual-equipe-v5"],
+    ["dashboard-audiovisual-equipe-v6"],
     { revalidate: 60, tags: ["dashboard", "tasks", "calendar", AUDIOVISUAL_CAPTURAS_TAG] },
   );
   return cached(periodo);
