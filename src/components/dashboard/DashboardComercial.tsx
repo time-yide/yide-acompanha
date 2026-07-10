@@ -13,19 +13,7 @@ import { MetaTracker } from "./MetaTracker";
 import { ProximasReunioesList } from "./ProximasReunioesList";
 import { Section } from "./Section";
 import { HiddenValuesProvider, HiddenValueToggle } from "./HiddenValuesContext";
-import { InstagramPostsSection } from "./sections";
 import { MesSelector } from "./MesSelector";
-import { Suspense } from "react";
-
-function IgListSkeleton() {
-  return (
-    <div className="space-y-2">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="h-10 animate-pulse rounded bg-muted/50" />
-      ))}
-    </div>
-  );
-}
 
 interface Props {
   userId: string;
@@ -79,11 +67,6 @@ export async function DashboardComercial({ userId, nome, mes, mesAtual, meses }:
           </Section>
         )}
 
-        {isMesAtual && (
-          <Suspense fallback={<IgListSkeleton />}>
-            <InstagramPostsSection assessorId={null} titulo="Postagens no Instagram" />
-          </Suspense>
-        )}
       </div>
     </HiddenValuesProvider>
   );
