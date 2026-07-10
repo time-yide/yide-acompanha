@@ -51,6 +51,8 @@ interface PostRow {
   status: string;
   agendar_para: string | null;
   publish_attempts: number;
+  reels_cover_url: string | null;
+  reels_thumb_offset: number | null;
 }
 
 interface ClientAccounts {
@@ -98,7 +100,7 @@ export async function publishPostById(
   const { data: post } = await sbAny
     .from("social_media_posts")
     .select(
-      "id, client_id, legenda, primeiro_comentario, hashtags, midias, formato, redes, status, agendar_para, publish_attempts",
+      "id, client_id, legenda, primeiro_comentario, hashtags, midias, formato, redes, status, agendar_para, publish_attempts, reels_cover_url, reels_thumb_offset",
     )
     .eq("id", postId)
     .single();
@@ -147,6 +149,8 @@ export async function publishPostById(
     hashtags: p.hashtags,
     midias: p.midias ?? [],
     formato: p.formato,
+    reels_cover_url: p.reels_cover_url,
+    reels_thumb_offset: p.reels_thumb_offset,
   };
 
   // Contas conectadas via Post for Me (IG/FB podem ir por aqui em vez do Meta nativo).

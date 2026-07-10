@@ -147,6 +147,8 @@ export interface SocialPostRow {
   agendar_para: string | null;
   status: string;
   observacoes: string | null;
+  reels_cover_url: string | null;
+  reels_thumb_offset: number | null;
   ajuste_observacoes: string | null;
   aprovado_em: string | null;
   aprovacao_token: string | null;
@@ -185,6 +187,8 @@ export async function listPostsByCliente(clientId: string): Promise<SocialPostRo
     agendar_para: (row.agendar_para as string | null) ?? null,
     status: row.status as string,
     observacoes: (row.observacoes as string | null) ?? null,
+    reels_cover_url: (row.reels_cover_url as string | null) ?? null,
+    reels_thumb_offset: (row.reels_thumb_offset as number | null) ?? null,
     ajuste_observacoes: (row.ajuste_observacoes as string | null) ?? null,
     aprovado_em: (row.aprovado_em as string | null) ?? null,
     aprovacao_token: (row.aprovacao_token as string | null) ?? null,
