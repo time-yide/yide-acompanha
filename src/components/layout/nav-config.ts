@@ -130,6 +130,11 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
 ];
 
 function isLinkVisible(role: Role, link: NavLink): boolean {
+  // Programação (cargo técnico) começa SEM acessos: nem os itens "all".
+  // Cada área é liberada explicitamente quando o módulo dela for construído.
+  if (role === "programacao") {
+    return Array.isArray(link.roles) && link.roles.includes(role);
+  }
   return link.roles === "all" || (Array.isArray(link.roles) && link.roles.includes(role));
 }
 

@@ -78,7 +78,7 @@ export function ColaboradorForm({ data, canEditFinance, canEditRole, canEditMeta
                 "Coordenador" (role `socio` no banco), que tem todas as
                 permissões de gestão.
               */}
-              <SelectItem value="adm">ADM</SelectItem>
+              <SelectItem value="adm">Administrativo</SelectItem>
               <SelectItem value="socio">Coordenador</SelectItem>
               <SelectItem value="comercial">Comercial</SelectItem>
               {data.role === "coordenador" && (
@@ -93,6 +93,7 @@ export function ColaboradorForm({ data, canEditFinance, canEditRole, canEditMeta
               <SelectItem value="editor">Editor</SelectItem>
               <SelectItem value="assessor_ecommerce">Assessor de e-commerce</SelectItem>
               <SelectItem value="assistente_ecommerce">Assistente de e-commerce</SelectItem>
+              <SelectItem value="programacao">Programação</SelectItem>
             </SelectContent>
           </Select>
           {data.role === "coordenador" && (
