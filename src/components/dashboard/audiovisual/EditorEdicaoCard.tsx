@@ -59,8 +59,8 @@ function TaskRow({ t, atrasada = false }: { t: TaskItem; atrasada?: boolean }) {
       href={`/tarefas/${t.id}`}
       className={`flex items-start justify-between gap-2 rounded-lg border px-3 py-2 transition-colors ${
         atrasada
-          ? "border-rose-500/40 bg-rose-500/5 hover:bg-rose-500/10"
-          : "border-border bg-card hover:bg-muted/40"
+          ? "border-border border-l-2 border-l-rose-500 bg-rose-500/[0.04] hover:bg-rose-500/[0.08]"
+          : "border-border bg-background hover:bg-muted/50"
       }`}
     >
       <div className="min-w-0 flex-1 space-y-0.5">
@@ -126,30 +126,26 @@ export function EditorEdicaoCard({ editor: e }: { editor: EditorStat }) {
     e.atrasadasList.length === 0 && e.proximasList.length === 0 && e.emAndamentoList.length === 0;
 
   return (
-    <div className="rounded-lg border bg-card p-4">
-      <div className="flex flex-wrap items-start justify-between gap-2">
+    <div className="mb-3 break-inside-avoid rounded-xl border bg-card p-4 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1.5">
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold">{e.nome}</p>
-          <p className="text-xs text-muted-foreground">{roleLabel(e.role)}</p>
+          <p className="truncate text-sm font-semibold leading-tight">{e.nome}</p>
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{roleLabel(e.role)}</p>
         </div>
-        <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-          <span
-            className={`rounded px-1.5 py-0.5 font-medium ${
-              e.atrasadas > 0
-                ? "bg-rose-500/10 text-rose-600 dark:text-rose-400"
-                : "bg-muted text-muted-foreground"
-            }`}
-          >
-            {e.atrasadas} atrasadas
+        <div className="flex shrink-0 flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] text-muted-foreground">
+          {e.atrasadas > 0 && (
+            <span className="rounded-full bg-rose-500/10 px-2 py-0.5 font-semibold text-rose-600 dark:text-rose-400">
+              {e.atrasadas} atrasada{e.atrasadas > 1 ? "s" : ""}
+            </span>
+          )}
+          <span>
+            <span className="font-semibold tabular-nums text-foreground/80">{e.proximas}</span> próx.
           </span>
-          <span className="rounded bg-muted px-1.5 py-0.5 text-muted-foreground">
-            {e.proximas} próximas
+          <span>
+            <span className="font-semibold tabular-nums text-foreground/80">{e.emAndamento}</span> em and.
           </span>
-          <span className="rounded bg-muted px-1.5 py-0.5 text-muted-foreground">
-            {e.emAndamento} em andamento
-          </span>
-          <span className="rounded bg-muted px-1.5 py-0.5 text-muted-foreground">
-            {e.concluidas} concluídas
+          <span>
+            <span className="font-semibold tabular-nums text-foreground/80">{e.concluidas}</span> concl.
           </span>
         </div>
       </div>
