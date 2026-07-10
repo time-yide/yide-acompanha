@@ -65,7 +65,7 @@ export function ColaboradorCreateForm({ canSetCommission }: { canSetCommission: 
                   como opção pra perfis novos. O que era "Sócio" virou
                   "Coordenador" no UI (role no banco continua `socio`).
                 */}
-                <SelectItem value="adm">ADM</SelectItem>
+                <SelectItem value="adm">Administrativo</SelectItem>
                 <SelectItem value="socio">Coordenador</SelectItem>
                 <SelectItem value="comercial">Comercial</SelectItem>
                 <SelectItem value="assessor">Assessor</SelectItem>
@@ -73,6 +73,9 @@ export function ColaboradorCreateForm({ canSetCommission }: { canSetCommission: 
                 <SelectItem value="videomaker">Videomaker</SelectItem>
                 <SelectItem value="designer">Designer</SelectItem>
                 <SelectItem value="editor">Editor</SelectItem>
+                <SelectItem value="assessor_ecommerce">Assessor de e-commerce</SelectItem>
+                <SelectItem value="assistente_ecommerce">Assistente de e-commerce</SelectItem>
+                <SelectItem value="programacao">Programação</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-[11px] text-muted-foreground">
