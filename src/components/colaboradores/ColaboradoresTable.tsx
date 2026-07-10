@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { RowActionsMenu } from "@/components/colaboradores/RowActionsMenu";
 import { EspecialidadeBadge } from "@/components/colaboradores/EspecialidadeBadge";
 import { APP_TIMEZONE } from "@/lib/datetime/timezone";
+import { roleLabel } from "@/lib/auth/permissions";
 
 interface Row {
   id: string;
@@ -19,18 +20,6 @@ interface Row {
   avatar_url: string | null;
   especialidade: string | null;
 }
-
-const roleLabels: Record<string, string> = {
-  adm: "ADM",
-  socio: "Coordenador",
-  comercial: "Comercial",
-  coordenador: "Coordenador (legado)",
-  assessor: "Assessor",
-  videomaker: "Videomaker",
-  designer: "Designer",
-  editor: "Editor",
-  audiovisual_chefe: "Coordenador audiovisual",
-};
 
 const PRODUCERS = new Set(["videomaker", "designer", "editor"]);
 
@@ -111,7 +100,7 @@ export function ColaboradoresTable({
             </TableCell>
             <TableCell>
               <div className="flex flex-wrap items-center gap-1.5">
-                <Badge variant="secondary">{roleLabels[r.role] ?? r.role}</Badge>
+                <Badge variant="secondary">{roleLabel(r.role)}</Badge>
                 <EspecialidadeBadge especialidade={r.especialidade} />
               </div>
             </TableCell>

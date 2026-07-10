@@ -2,26 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { requireAuth } from "@/lib/auth/session";
-import { canAccess } from "@/lib/auth/permissions";
+import { canAccess, roleLabel } from "@/lib/auth/permissions";
 import { getColaboradorById } from "@/lib/colaboradores/queries";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Pencil } from "lucide-react";
-
-// Decisão de produto Yasmin: role `socio` no banco passou a se chamar
-// "Coordenador" no UI. Role `coordenador` antigo foi descontinuado - perfis
-// remanescentes aparecem com sufixo (legado).
-const roleLabels: Record<string, string> = {
-  adm: "ADM",
-  socio: "Coordenador",
-  comercial: "Comercial",
-  coordenador: "Coordenador (legado)",
-  assessor: "Assessor",
-  videomaker: "Videomaker",
-  designer: "Designer",
-  editor: "Editor",
-  audiovisual_chefe: "Coordenador audiovisual",
-};
 
 function initials(nome: string): string {
   return nome
@@ -66,7 +51,7 @@ export default async function ColaboradorPage({ params }: { params: Promise<{ id
           <div>
             <h1 className="text-2xl font-bold tracking-tight">{colab.nome}</h1>
             <div className="mt-1 flex items-center gap-2">
-              <Badge variant="secondary">{roleLabels[colab.role] ?? colab.role}</Badge>
+              <Badge variant="secondary">{roleLabel(colab.role)}</Badge>
               {colab.ativo ? (
                 <Badge variant="outline" className="border-green-500/40 text-green-600 dark:text-green-400">
                   Ativo

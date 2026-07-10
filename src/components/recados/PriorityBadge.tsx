@@ -1,17 +1,6 @@
 import { cn } from "@/lib/utils";
 import { roleToTier, type Tier } from "@/lib/recados/tiers";
-
-const ROLE_LABEL: Record<string, string> = {
-  socio: "Coordenador",
-  adm: "ADM",
-  coordenador: "Coordenador (legado)",
-  assessor: "Assessor",
-  comercial: "Comercial",
-  audiovisual_chefe: "Coordenador audiovisual",
-  videomaker: "Videomaker",
-  designer: "Designer",
-  editor: "Editor",
-};
+import { roleLabel } from "@/lib/auth/permissions";
 
 const TIER_BG: Record<Tier, string> = {
   socios: "bg-sky-900 text-white",
@@ -22,7 +11,7 @@ const TIER_BG: Record<Tier, string> = {
 
 export function PriorityBadge({ role }: { role: string }) {
   const tier = roleToTier(role);
-  const label = ROLE_LABEL[role] ?? role;
+  const label = roleLabel(role);
   return (
     <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold", TIER_BG[tier])}>
       {label}

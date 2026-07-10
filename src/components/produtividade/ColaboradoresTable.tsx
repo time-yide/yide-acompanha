@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Circle, ArrowUp, ArrowDown, Trophy, AlertTriangle, Video } from "lucide-react";
 import type { ColaboradorStatusRow } from "@/lib/produtividade/queries";
 import { formatHours, formatBRL } from "./ProdutividadeSummaryCards";
+import { roleLabel } from "@/lib/auth/permissions";
 
 interface Props {
   rows: ColaboradorStatusRow[];
@@ -26,18 +27,6 @@ function StatusDot({ online, ativo }: { online: boolean; ativo: boolean }) {
     </span>
   );
 }
-
-const ROLE_LABEL: Record<string, string> = {
-  adm: "Administração",
-  socio: "Sócio",
-  comercial: "Comercial",
-  coordenador: "Coordenador",
-  assessor: "Assessor",
-  videomaker: "Videomaker",
-  designer: "Designer",
-  editor: "Editor",
-  audiovisual_chefe: "Coord. Audiovisual",
-};
 
 export function ColaboradoresTable({ rows }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>("tempo");
@@ -157,7 +146,7 @@ export function ColaboradoresTable({ rows }: Props) {
                       <div className="min-w-0">
                         <div className="truncate font-medium">{r.nome}</div>
                         <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                          {ROLE_LABEL[r.role] ?? r.role}
+                          {roleLabel(r.role)}
                         </div>
                       </div>
                     </div>
