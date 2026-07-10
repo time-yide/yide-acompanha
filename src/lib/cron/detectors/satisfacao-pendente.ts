@@ -8,7 +8,7 @@ import { listClientsWithEntriesButNoSynthesis } from "@/lib/satisfacao/queries";
 interface ClientRow { id: string; assessor_id: string | null; coordenador_id: string | null }
 interface ProfileRow { id: string; role: string }
 
-const PRODUTORES = ["videomaker", "designer", "editor", "audiovisual_chefe"];
+const PRODUTORES = ["videomaker", "fast_midia", "designer", "editor", "audiovisual_chefe"];
 
 export async function detectSatisfacaoPendente(counters: { satisfacao_pendente: number }): Promise<void> {
   const dayOfWeek = new Date().getUTCDay(); // 0=domingo, 1=segunda, ..., 4=quinta

@@ -29,13 +29,15 @@ export default async function EditClientePage({ params }: { params: Promise<{ id
 
   const [designersResp, videomakersResp, editorsResp] = await Promise.all([
     supabase.from("profiles").select("id, nome").eq("role", "designer").eq("ativo", true).order("nome"),
-    supabase.from("profiles").select("id, nome").eq("role", "videomaker").eq("ativo", true).order("nome"),
-    // "Editor responsável" agora aceita editor, videomaker ou audiovisual_chefe -
-    // videomaker/chefe também fazem edição em alguns clientes.
+    // Fast Mídia exerce a função de videomaker, então também é um videomaker
+    // atribuível ao cliente.
+    supabase.from("profiles").select("id, nome").in("role", ["videomaker", "fast_midia"]).eq("ativo", true).order("nome"),
+    // "Editor responsável" agora aceita editor, videomaker, fast mídia ou
+    // audiovisual_chefe - também fazem edição em alguns clientes.
     supabase
       .from("profiles")
       .select("id, nome, role")
-      .in("role", ["editor", "videomaker", "audiovisual_chefe"])
+      .in("role", ["editor", "videomaker", "fast_midia", "audiovisual_chefe"])
       .eq("ativo", true)
       .order("nome"),
   ]);
@@ -46,9 +48,11 @@ export default async function EditClientePage({ params }: { params: Promise<{ id
     nome:
       p.role === "videomaker"
         ? `${p.nome} (videomaker)`
-        : p.role === "audiovisual_chefe"
-          ? `${p.nome} (audiovisual chefe)`
-          : p.nome,
+        : p.role === "fast_midia"
+          ? `${p.nome} (fast mídia)`
+          : p.role === "audiovisual_chefe"
+            ? `${p.nome} (audiovisual chefe)`
+            : p.nome,
   }));
 
   return (

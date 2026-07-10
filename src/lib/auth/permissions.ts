@@ -149,10 +149,16 @@ const matrix: Record<Role, Action[]> = {
   // Por ora SEM acessos: nenhuma permissão e nenhum item de menu (ver
   // isLinkVisible em nav-config). Não ganha comissão (fora do calculator).
   programacao: [],
-  // Fast Mídia: responsável pelos stories dos clientes. Sem permissões na
-  // matrix — seu único acesso é o Painel mensal, liberado à parte pela lista
-  // de roles do item de menu (ver nav-config). Não ganha comissão.
-  fast_midia: [],
+  // Fast Mídia: responsável pelos stories dos clientes E exerce a função de
+  // videomaker (aparece na equipe audiovisual do coordenador, é delegável a
+  // gravações, entra no fluxo de satisfação). Mesmo conjunto de permissões do
+  // videomaker. Não ganha comissão (fica de fora do calculator).
+  fast_midia: [
+    "view:all_clients",
+    "view:own_commission",
+    "create:tasks", "create:calendar_event", "customize:notification_recipients",
+    "feed:satisfaction",
+  ],
 };
 
 export function canAccess(role: Role | string, action: Action): boolean {

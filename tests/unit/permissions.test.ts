@@ -89,9 +89,14 @@ describe("fast_midia role", () => {
     expect(ROLE_LABELS.fast_midia).toBe("Fast Mídia");
     expect(roleLabel("fast_midia")).toBe("Fast Mídia");
   });
-  it("não tem acessos especiais por padrão", () => {
+  it("ganha o conjunto de permissões do videomaker (função de videomaker)", () => {
+    expect(canAccess("fast_midia", "create:tasks")).toBe(true);
+    expect(canAccess("fast_midia", "view:all_clients")).toBe(true);
+    expect(canAccess("fast_midia", "feed:satisfaction")).toBe(true);
+  });
+  it("não tem poderes de gestão", () => {
     expect(canAccess("fast_midia", "manage:users")).toBe(false);
-    expect(canAccess("fast_midia", "view:all_clients")).toBe(false);
+    expect(canAccess("fast_midia", "approve:monthly_closing")).toBe(false);
   });
 });
 

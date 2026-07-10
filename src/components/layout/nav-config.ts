@@ -49,7 +49,7 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
     alwaysExpanded: true,
     items: [
       { type: "link", href: "/recados", icon: MessageSquare, label: "Recados", roles: "all", badgeKey: "recados" },
-      { type: "link", href: "/escritorio", icon: MessagesSquare, label: "Escritório Virtual", roles: ["adm", "socio", "coordenador", "assessor", "designer", "videomaker", "editor", "audiovisual_chefe", "assessor_ecommerce", "assistente_ecommerce"], badgeKey: "escritorio" },
+      { type: "link", href: "/escritorio", icon: MessagesSquare, label: "Escritório Virtual", roles: ["adm", "socio", "coordenador", "assessor", "designer", "videomaker", "fast_midia", "editor", "audiovisual_chefe", "assessor_ecommerce", "assistente_ecommerce"], badgeKey: "escritorio" },
     ],
   },
 
@@ -84,18 +84,18 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
       // D0 → D30 vem depois - é o fluxo de entrada/onboarding do cliente.
       { type: "link", href: "/d0-d30", icon: Rocket, label: "D0 → D30", roles: ["adm", "socio", "coordenador", "assessor", "comercial"], badgeKey: null },
       { type: "link", href: "/tarefas", icon: ListChecks, label: "Tarefas", roles: "all", badgeKey: null },
-      { type: "link", href: "/audiovisual", icon: Video, label: "Audiovisual", roles: ["adm", "socio", "coordenador", "assessor", "videomaker", "audiovisual_chefe"], badgeKey: null },
-      { type: "link", href: "/audiovisual/editor-ia", icon: Sparkles, label: "Yori", roles: ["videomaker", "editor", "audiovisual_chefe", "assessor", "socio", "adm"], badgeKey: null },
-      { type: "link", href: "/freela-yide", icon: Zap, label: "FreelaYide", roles: ["adm", "socio", "comercial", "coordenador", "assessor", "designer", "videomaker", "editor", "audiovisual_chefe"], badgeKey: null },
+      { type: "link", href: "/audiovisual", icon: Video, label: "Audiovisual", roles: ["adm", "socio", "coordenador", "assessor", "videomaker", "fast_midia", "audiovisual_chefe"], badgeKey: null },
+      { type: "link", href: "/audiovisual/editor-ia", icon: Sparkles, label: "Yori", roles: ["videomaker", "fast_midia", "editor", "audiovisual_chefe", "assessor", "socio", "adm"], badgeKey: null },
+      { type: "link", href: "/freela-yide", icon: Zap, label: "FreelaYide", roles: ["adm", "socio", "comercial", "coordenador", "assessor", "designer", "videomaker", "fast_midia", "editor", "audiovisual_chefe"], badgeKey: null },
       { type: "link", href: "/trafego", icon: Megaphone, label: "Tráfego", roles: ["adm", "socio", "coordenador", "assessor", "comercial"], badgeKey: null },
       { type: "link", href: "/ecommerce", icon: ShoppingCart, label: "E-commerce", roles: ["adm", "socio", "assessor_ecommerce", "assistente_ecommerce"], badgeKey: null },
       // Label "Estratégia" — engloba Painel Mensal + Agendamento de Post + Design + Apresenta Yide.
       // URL /social-media preservada (redirect pro /painel).
-      { type: "link", href: "/social-media", icon: Share2, label: "Estratégia", roles: ["adm", "socio", "coordenador", "assessor", "designer", "videomaker", "editor", "audiovisual_chefe"], badgeKey: null },
+      { type: "link", href: "/social-media", icon: Share2, label: "Estratégia", roles: ["adm", "socio", "coordenador", "assessor", "designer", "videomaker", "fast_midia", "editor", "audiovisual_chefe"], badgeKey: null },
       // "CRM" e "Painel GMB" saíram do menu — aparecem como abas dentro de Tráfego. URLs preservadas.
       // "Design" e "Painel mensal" saíram do menu — aparecem como abas dentro de Social Media. URLs /design e /painel preservadas.
-      // Fast Mídia acessa o Painel mensal direto (é seu único item de menu).
-      { type: "link", href: "/painel", icon: Share2, label: "Painel mensal", roles: ["fast_midia"], badgeKey: null },
+      // Fast Mídia chega ao Painel mensal (sua tela de stories) pelo item
+      // "Estratégia" acima, que redireciona /social-media → /painel.
       { type: "link", href: "/painel-cliente", icon: IdCard, label: "Painel do cliente", roles: ["adm", "socio", "coordenador", "assessor", "audiovisual_chefe"], badgeKey: null },
       // "Satisfação" saiu do menu — agora aparece como aba dentro de Painel do cliente. URL /satisfacao preservada.
       { type: "link", href: "/solicitacoes", icon: Inbox, label: "Solicitações", roles: ["adm", "socio", "coordenador", "assessor", "audiovisual_chefe"], badgeKey: null },
@@ -134,7 +134,7 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
 function isLinkVisible(role: Role, link: NavLink): boolean {
   // Programação (cargo técnico) começa SEM acessos: nem os itens "all".
   // Cada área é liberada explicitamente quando o módulo dela for construído.
-  if (role === "programacao" || role === "fast_midia") {
+  if (role === "programacao") {
     return Array.isArray(link.roles) && link.roles.includes(role);
   }
   return link.roles === "all" || (Array.isArray(link.roles) && link.roles.includes(role));

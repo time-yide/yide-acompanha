@@ -103,7 +103,7 @@ async function validateVideomakerAssignment(
     .select("id, nome, role, ativo")
     .eq("id", params.videomakerId)
     .single();
-  if (!vm || vm.role !== "videomaker" || !vm.ativo) {
+  if (!vm || !["videomaker", "fast_midia"].includes(vm.role) || !vm.ativo) {
     return { error: "Videomaker inválido ou inativo" };
   }
 

@@ -8,8 +8,9 @@
  * alguns fluxos) e coordenador audiovisual (que pode pegar edição quando
  * a equipe tá apertada).
  */
-export const ROLES_QUE_EDITAM: Array<"editor" | "videomaker" | "audiovisual_chefe"> = [
+export const ROLES_QUE_EDITAM: Array<"editor" | "videomaker" | "fast_midia" | "audiovisual_chefe"> = [
   "editor",
   "videomaker",
+  "fast_midia",
   "audiovisual_chefe",
 ];

@@ -29,7 +29,7 @@ export async function listClientsForUser(userId: string, role: RoleEnum | string
 
   if (role === "assessor") {
     query = query.eq("assessor_id", userId);
-  } else if (!["socio", "adm", "coordenador", "audiovisual_chefe", "videomaker", "designer", "editor"].includes(role)) {
+  } else if (!["socio", "adm", "coordenador", "audiovisual_chefe", "videomaker", "fast_midia", "designer", "editor"].includes(role)) {
     return [];
   }
 

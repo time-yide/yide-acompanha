@@ -169,9 +169,9 @@ export function ColaboradorForm({ data, canEditFinance, canEditRole, canEditMeta
           />
         </div>
 
-        {(data.role === "videomaker" || data.role === "designer" || data.role === "editor") && (
+        {(data.role === "videomaker" || data.role === "fast_midia" || data.role === "designer" || data.role === "editor") && (
           <p className="md:col-span-2 text-xs text-muted-foreground">
-            Produtores audiovisuais (videomaker / designer / editor) recebem apenas fixo.
+            Produtores audiovisuais (videomaker / fast mídia / designer / editor) recebem apenas fixo.
             Os campos de % de comissão são zerados automaticamente ao salvar.
           </p>
         )}
