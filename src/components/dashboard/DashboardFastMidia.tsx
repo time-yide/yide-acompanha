@@ -3,7 +3,7 @@ import { FixoCard } from "./personal/FixoCard";
 import { MinhasTarefasPendentes } from "./personal/MinhasTarefasPendentes";
 import { getProximasGravacoes } from "@/lib/dashboard/personal";
 import { getStoriesForMonth } from "@/lib/painel/stories-queries";
-import { StoriesCell } from "@/components/painel/cells/StoriesCell";
+import { StoriesRingCard } from "@/components/painel/StoriesRingCard";
 import { Video, MapPin, Images } from "lucide-react";
 import {
   APP_TIMEZONE,
@@ -80,29 +80,51 @@ export async function DashboardFastMidia({ userId, nome }: Props) {
             Nenhum cliente com stories ativado.
           </p>
         ) : (
-          <ul className="divide-y rounded-lg border bg-card">
-            {storiesRows.map((r) => (
-              <li key={r.client_id} className="flex items-center gap-3 px-4 py-2">
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{r.client_nome}</p>
-                  <p className="truncate text-[11px] text-muted-foreground">
-                    {r.quantidade_diaria_stories}/dia
-                    {r.assessor_nome ? ` · Assessor: ${r.assessor_nome}` : ""}
-                  </p>
+          (() => {
+            const totalPostados = storiesRows.reduce((s, r) => s + r.postados, 0);
+            const totalMeta = storiesRows.reduce((s, r) => s + r.meta, 0);
+            const totalPct = totalMeta > 0 ? Math.min(100, (totalPostados / totalMeta) * 100) : 0;
+            return (
+              <div className="space-y-3">
+                {/* Resumo geral do mês */}
+                <div className="rounded-xl border bg-card p-4">
+                  <div className="flex items-end justify-between gap-3">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">Total do mês</p>
+                      <p className="mt-0.5 text-2xl font-bold tabular-nums">
+                        {totalPostados}
+                        <span className="text-base font-medium text-muted-foreground"> / {totalMeta}</span>
+                      </p>
+                    </div>
+                    <p className="text-2xl font-bold tabular-nums text-primary">{Math.round(totalPct)}%</p>
+                  </div>
+                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full rounded-full bg-primary transition-all"
+                      style={{ width: `${totalPct}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="w-32 shrink-0">
-                  <StoriesCell
-                    clientId={r.client_id}
-                    clientNome={r.client_nome}
-                    mesReferencia={mesRef}
-                    postados={r.postados}
-                    meta={r.meta}
-                    canEdit={true}
-                  />
+
+                {/* Card por cliente com anel de progresso */}
+                <div className="grid gap-2.5 sm:grid-cols-2">
+                  {storiesRows.map((r) => (
+                    <StoriesRingCard
+                      key={r.client_id}
+                      clientId={r.client_id}
+                      clientNome={r.client_nome}
+                      assessorNome={r.assessor_nome}
+                      quantidadeDiaria={r.quantidade_diaria_stories}
+                      mesReferencia={mesRef}
+                      postados={r.postados}
+                      meta={r.meta}
+                      canEdit={true}
+                    />
+                  ))}
                 </div>
-              </li>
-            ))}
-          </ul>
+              </div>
+            );
+          })()
         )}
       </section>
 
