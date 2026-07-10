@@ -117,7 +117,9 @@ export async function EquipeAudiovisualSection({ periodo }: Props) {
             Ninguém com tarefas de edição no momento.
           </p>
         ) : (
-          <div className="grid gap-3 md:grid-cols-2">
+          // Masonry (CSS columns): cards se encaixam sem buraco entre um curto
+          // e um alto. Cada card carrega mb-3 + break-inside-avoid.
+          <div className="gap-3 md:columns-2">
             {editores.map((e) => (
               <EditorEdicaoCard key={e.id} editor={e} />
             ))}
