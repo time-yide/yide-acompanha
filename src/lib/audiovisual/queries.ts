@@ -180,7 +180,7 @@ async function _listEventosSemCapturaImpl(options: { videomakerId?: string }): P
       .from("profiles")
       .select("id, nome")
       .in("id", Array.from(profileIds))
-      .eq("role", "videomaker")
+      .in("role", ["videomaker", "fast_midia"])
       .eq("ativo", true);
     profilesMap = new Map(((profiles ?? []) as Array<{ id: string; nome: string }>).map((p) => [p.id, p.nome]));
   }

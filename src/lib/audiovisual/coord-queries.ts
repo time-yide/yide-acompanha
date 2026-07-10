@@ -247,7 +247,8 @@ export interface VideomakerOption {
   nome: string;
 }
 
-/** Lista videomakers ativos pra dropdown da delegação. */
+/** Lista videomakers ativos pra dropdown da delegação (inclui Fast Mídia,
+ * que acumula a função de videomaker). */
 export async function listVideomakersAtivos(): Promise<VideomakerOption[]> {
   const admin = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -255,7 +256,7 @@ export async function listVideomakersAtivos(): Promise<VideomakerOption[]> {
   const { data } = await sb
     .from("profiles")
     .select("id, nome")
-    .eq("role", "videomaker")
+    .in("role", ["videomaker", "fast_midia"])
     .eq("ativo", true)
     .order("nome");
   return (data ?? []) as VideomakerOption[];
