@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils";
 import { EditorIaEntryButton } from "@/components/editor-ia/EditorIaEntryButton";
 import { isEditorIaEnabled, canUseEditorIa } from "@/lib/editor-ia/feature-flag";
 
-const ROLES_QUE_VEEM = ["videomaker", "audiovisual_chefe", "coordenador", "assessor", "adm", "socio"];
+const ROLES_QUE_VEEM = ["videomaker", "fast_midia", "audiovisual_chefe", "coordenador", "assessor", "adm", "socio"];
 const ROLES_QUE_DELEGAM = ["audiovisual_chefe", "adm", "socio"];
 const ROLES_GESTAO = ["audiovisual_chefe", "coordenador", "assessor", "adm", "socio"];
 const ROLES_QUE_EXCLUEM = ["audiovisual_chefe", "coordenador", "adm", "socio"];
@@ -50,7 +50,9 @@ export default async function AudiovisualPage({
   const user = await requireAuth();
   if (!ROLES_QUE_VEEM.includes(user.role)) notFound();
 
-  const isVideomaker = user.role === "videomaker";
+  // Fast Mídia exerce a função de videomaker: mesma visão (só as próprias
+  // captações, banner de atraso, aba "meus_bloqueios") que o videomaker.
+  const isVideomaker = user.role === "videomaker" || user.role === "fast_midia";
   const isAssessor = user.role === "assessor";
   const canDelegate = ROLES_QUE_DELEGAM.includes(user.role);
   const canDelete = ROLES_QUE_EXCLUEM.includes(user.role);

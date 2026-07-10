@@ -104,7 +104,7 @@ async function _getEquipeAudiovisualImpl(periodo: Periodo): Promise<EquipeAudiov
   const { data: profilesData } = await supabase
     .from("profiles")
     .select("id, nome, role")
-    .in("role", ["videomaker", "editor", "audiovisual_chefe"])
+    .in("role", ["videomaker", "fast_midia", "editor", "audiovisual_chefe"])
     .eq("ativo", true)
     .order("nome");
   const profiles = (profilesData ?? []) as Array<{ id: string; nome: string; role: string }>;
@@ -116,7 +116,7 @@ async function _getEquipeAudiovisualImpl(periodo: Periodo): Promise<EquipeAudiov
     };
   }
   const ids = profiles.map((p) => p.id);
-  const videomakerIds = profiles.filter((p) => p.role === "videomaker").map((p) => p.id);
+  const videomakerIds = profiles.filter((p) => p.role === "videomaker" || p.role === "fast_midia").map((p) => p.id);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
@@ -168,7 +168,7 @@ async function _getEquipeAudiovisualImpl(periodo: Periodo): Promise<EquipeAudiov
   const inPeriod = (iso: string | null) => !!iso && iso >= periodoFrom && iso < periodoTo;
 
   const videomakers: VideomakerStat[] = profiles
-    .filter((p) => p.role === "videomaker")
+    .filter((p) => p.role === "videomaker" || p.role === "fast_midia")
     .map((p) => {
       const proximasList = eventos
         .filter((e) => (e.participantes_ids ?? []).includes(p.id) && e.inicio >= futuroFromIso && e.inicio < futuroToIso)

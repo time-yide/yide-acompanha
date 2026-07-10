@@ -9,6 +9,7 @@ import { DashboardCoord } from "@/components/dashboard/DashboardCoord";
 import { DashboardAssessor } from "@/components/dashboard/DashboardAssessor";
 import { DashboardComercial } from "@/components/dashboard/DashboardComercial";
 import { DashboardVideomaker } from "@/components/dashboard/DashboardVideomaker";
+import { DashboardFastMidia } from "@/components/dashboard/DashboardFastMidia";
 import { DashboardDesigner } from "@/components/dashboard/DashboardDesigner";
 import { DashboardEditor } from "@/components/dashboard/DashboardEditor";
 import { DashboardAudiovisualChefe } from "@/components/dashboard/DashboardAudiovisualChefe";
@@ -64,6 +65,9 @@ function renderDashboardForRole(
   }
   if (target.role === "videomaker") {
     return <DashboardVideomaker userId={target.id} nome={target.nome} />;
+  }
+  if (target.role === "fast_midia") {
+    return <DashboardFastMidia userId={target.id} nome={target.nome} />;
   }
   if (target.role === "designer") {
     return <DashboardDesigner userId={target.id} nome={target.nome} periodo={periodo} />;

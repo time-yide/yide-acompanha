@@ -27,7 +27,7 @@ const especialidadeField = z.preprocess(
   z.enum(ESPECIALIDADES).nullable(),
 );
 
-const PRODUCERS = ["videomaker", "designer", "editor"] as const;
+const PRODUCERS = ["videomaker", "fast_midia", "designer", "editor"] as const;
 
 function zeroPercentForProducers<T extends { role: string; comissao_percent: number; comissao_primeiro_mes_percent: number }>(
   data: T,
