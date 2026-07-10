@@ -79,7 +79,7 @@ export async function delegateVideomakerAction(
     .select("id, nome, role, ativo")
     .eq("id", videomakerId)
     .single();
-  if (!videomaker || videomaker.role !== "videomaker" || !videomaker.ativo) {
+  if (!videomaker || !["videomaker", "fast_midia"].includes(videomaker.role) || !videomaker.ativo) {
     return { error: "Videomaker inválido ou inativo" };
   }
 
@@ -244,7 +244,7 @@ export async function updateDelegacaoAction(
       .select("id, nome, role, ativo")
       .eq("id", newVideomakerId)
       .single();
-    if (!vm || vm.role !== "videomaker" || !vm.ativo) {
+    if (!vm || !["videomaker", "fast_midia"].includes(vm.role) || !vm.ativo) {
       return { error: "Videomaker inválido ou inativo" };
     }
     // Conflito de horário (ignora o próprio evento)
