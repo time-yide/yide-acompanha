@@ -66,6 +66,24 @@ const createPostSchema = z.object({
   observacoes: z.string().trim().max(2000).optional().nullable(),
 });
 
+/**
+ * Se o post tem agendamento pra um horário futuro, o status vira "agendado" —
+ * assim o cron (/api/cron/social-media-publish) publica sozinho no horário.
+ * Sem isso o post ficava "rascunho" e o agendamento não disparava nada.
+ */
+function statusComAgendamento(
+  agendarPara: string | null | undefined,
+  statusAtual: string,
+): string {
+  if (agendarPara) {
+    const quando = new Date(agendarPara);
+    if (!Number.isNaN(quando.getTime()) && quando.getTime() > Date.now()) {
+      return "agendado";
+    }
+  }
+  return statusAtual;
+}
+
 export async function createSocialPostAction(formData: FormData): Promise<CreateResult> {
   const actor = await requireAuth();
   if (!canManage(actor.role)) return { error: "Sem permissão" };
@@ -106,7 +124,7 @@ export async function createSocialPostAction(formData: FormData): Promise<Create
     redes: parsed.data.redes,
     midias: parsed.data.midias,
     agendar_para: parsed.data.agendar_para,
-    status: parsed.data.status,
+    status: statusComAgendamento(parsed.data.agendar_para, parsed.data.status),
     observacoes: parsed.data.observacoes,
     criado_por: actor.id,
   }).select("id").single();
@@ -163,7 +181,7 @@ export async function updateSocialPostAction(formData: FormData): Promise<Action
       redes: parsed.data.redes,
       midias: parsed.data.midias,
       agendar_para: parsed.data.agendar_para,
-      status: parsed.data.status,
+      status: statusComAgendamento(parsed.data.agendar_para, parsed.data.status),
       observacoes: parsed.data.observacoes,
     })
     .eq("id", parsed.data.id);
