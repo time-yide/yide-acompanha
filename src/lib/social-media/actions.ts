@@ -64,6 +64,8 @@ const createPostSchema = z.object({
   agendar_para: z.string().nullable().optional(),
   status: z.enum(STATUS_VALORES).default("rascunho"),
   observacoes: z.string().trim().max(2000).optional().nullable(),
+  reels_cover_url: z.string().nullable().optional(),
+  reels_thumb_offset: z.coerce.number().int().min(0).nullable().optional(),
 });
 
 /**
@@ -100,6 +102,8 @@ export async function createSocialPostAction(formData: FormData): Promise<Create
     agendar_para: fd(formData, "agendar_para"),
     status: fd(formData, "status") ?? "rascunho",
     observacoes: fd(formData, "observacoes"),
+    reels_cover_url: fd(formData, "reels_cover_url"),
+    reels_thumb_offset: fd(formData, "reels_thumb_offset"),
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
@@ -126,6 +130,8 @@ export async function createSocialPostAction(formData: FormData): Promise<Create
     agendar_para: parsed.data.agendar_para,
     status: statusComAgendamento(parsed.data.agendar_para, parsed.data.status),
     observacoes: parsed.data.observacoes,
+    reels_cover_url: parsed.data.reels_cover_url ?? null,
+    reels_thumb_offset: parsed.data.reels_thumb_offset ?? null,
     criado_por: actor.id,
   }).select("id").single();
   if (error) return { error: error.message };
@@ -164,6 +170,8 @@ export async function updateSocialPostAction(formData: FormData): Promise<Action
     agendar_para: fd(formData, "agendar_para"),
     status: fd(formData, "status") ?? "rascunho",
     observacoes: fd(formData, "observacoes"),
+    reels_cover_url: fd(formData, "reels_cover_url"),
+    reels_thumb_offset: fd(formData, "reels_thumb_offset"),
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
@@ -183,6 +191,8 @@ export async function updateSocialPostAction(formData: FormData): Promise<Action
       agendar_para: parsed.data.agendar_para,
       status: statusComAgendamento(parsed.data.agendar_para, parsed.data.status),
       observacoes: parsed.data.observacoes,
+      reels_cover_url: parsed.data.reels_cover_url ?? null,
+      reels_thumb_offset: parsed.data.reels_thumb_offset ?? null,
     })
     .eq("id", parsed.data.id);
   if (error) return { error: error.message };

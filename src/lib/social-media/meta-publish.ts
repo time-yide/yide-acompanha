@@ -47,6 +47,10 @@ export interface PostToPublish {
   hashtags: string | null;
   midias: string[]; // URLs públicas das mídias
   formato: "feed" | "story" | "reels" | "carrossel";
+  /** Capa do Reels: imagem própria. Tem prioridade sobre reels_thumb_offset. */
+  reels_cover_url?: string | null;
+  /** Capa do Reels: frame do vídeo (offset em ms). */
+  reels_thumb_offset?: number | null;
 }
 
 /** Monta a caption combinando legenda + hashtags. */
@@ -166,6 +170,15 @@ export async function publishToInstagram(
       media_type: post.formato === "reels" ? "REELS" : "VIDEO",
       caption,
     };
+    // Capa do Reels: imagem própria (cover_url) OU frame do vídeo (thumb_offset em ms).
+    // Prefere cover_url se ambos vierem setados.
+    if (post.formato === "reels") {
+      if (post.reels_cover_url) {
+        mediaBody.cover_url = post.reels_cover_url;
+      } else if (post.reels_thumb_offset != null) {
+        mediaBody.thumb_offset = post.reels_thumb_offset;
+      }
+    }
   } else {
     mediaBody = { image_url: url, caption };
   }

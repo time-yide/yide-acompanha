@@ -2324,6 +2324,8 @@ export type Database = {
           organization_id: string
           primeiro_comentario: string | null
           redes: string[]
+          reels_cover_url: string | null
+          reels_thumb_offset: number | null
           status: string
           titulo: string | null
           updated_at: string
@@ -2348,6 +2350,8 @@ export type Database = {
           organization_id: string
           primeiro_comentario?: string | null
           redes?: string[]
+          reels_cover_url?: string | null
+          reels_thumb_offset?: number | null
           status?: string
           titulo?: string | null
           updated_at?: string
@@ -2372,6 +2376,8 @@ export type Database = {
           organization_id?: string
           primeiro_comentario?: string | null
           redes?: string[]
+          reels_cover_url?: string | null
+          reels_thumb_offset?: number | null
           status?: string
           titulo?: string | null
           updated_at?: string
