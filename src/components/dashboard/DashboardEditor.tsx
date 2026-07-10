@@ -1,21 +1,9 @@
-import { Suspense } from "react";
 import { FixoCard } from "./personal/FixoCard";
 import { MinhasTarefasPendentes } from "./personal/MinhasTarefasPendentes";
 import { PeriodoSelector } from "./personal/PeriodoSelector";
 import { HiddenValuesProvider, HiddenValueToggle } from "./HiddenValuesContext";
-import { InstagramPostsSection } from "./sections";
 import { resolvePeriodo, getProducaoNoPeriodo, type Periodo } from "@/lib/dashboard/personal";
 import { CheckCircle2 } from "lucide-react";
-
-function IgListSkeleton() {
-  return (
-    <div className="space-y-2">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="h-10 animate-pulse rounded bg-muted/50" />
-      ))}
-    </div>
-  );
-}
 
 interface Props {
   userId: string;
@@ -63,10 +51,6 @@ export async function DashboardEditor({ userId, nome, periodo = "mes_atual" }: P
         </div>
 
         <MinhasTarefasPendentes userId={userId} />
-
-        <Suspense fallback={<IgListSkeleton />}>
-          <InstagramPostsSection assessorId={null} titulo="Postagens no Instagram" />
-        </Suspense>
       </div>
     </HiddenValuesProvider>
   );

@@ -18,19 +18,8 @@ import { PainelAudiovisualSection } from "./audiovisual/PainelAudiovisualSection
 import { AlertaOnboardingAtrasadoSection } from "./AlertaOnboardingAtrasado";
 import { Section } from "./Section";
 import { HiddenValuesProvider, HiddenValueToggle } from "./HiddenValuesContext";
-import { InstagramPostsSection } from "./sections";
 import { MesSelector } from "./MesSelector";
 import { Suspense } from "react";
-
-function IgListSkeleton() {
-  return (
-    <div className="space-y-2">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="h-10 animate-pulse rounded bg-muted/50" />
-      ))}
-    </div>
-  );
-}
 
 interface Props {
   userId: string;
@@ -90,12 +79,6 @@ export async function DashboardCoord({ userId, nome, mes, mesAtual, meses }: Pro
         <Section title="Carteira por assessor (sob sua coordenação)">
           <CarteiraPorAssessorList items={carteiraPorAssessor} />
         </Section>
-
-        {isMesAtual && (
-          <Suspense fallback={<IgListSkeleton />}>
-            <InstagramPostsSection assessorId={null} titulo="Postagens no Instagram" />
-          </Suspense>
-        )}
 
         {isMesAtual && (
           <Section title="Satisfação dos meus clientes" subtitle="Top 10 mais e menos satisfeitos da semana" cta={{ href: "/satisfacao", label: "Ver completo →" }}>

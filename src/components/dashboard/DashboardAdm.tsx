@@ -15,18 +15,7 @@ import { PainelAudiovisualSection } from "./audiovisual/PainelAudiovisualSection
 import { AlertaOnboardingAtrasadoSection } from "./AlertaOnboardingAtrasado";
 import { MesSelector } from "./MesSelector";
 import { Section } from "./Section";
-import { InstagramPostsSection } from "./sections";
 import { Suspense } from "react";
-
-function IgListSkeleton() {
-  return (
-    <div className="space-y-2">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="h-10 animate-pulse rounded bg-muted/50" />
-      ))}
-    </div>
-  );
-}
 
 interface Props {
   userId: string;
@@ -121,12 +110,6 @@ export async function DashboardAdm({ userId, nome, mes, mesAtual, meses }: Props
         <ClientPaymentsTable rows={clientPayments} mesReferencia={mes} />
         <PayrollPaymentsTable rows={payroll} mesReferencia={mes} />
       </div>
-
-      {isMesAtual && (
-        <Suspense fallback={<IgListSkeleton />}>
-          <InstagramPostsSection assessorId={null} titulo="Postagens no Instagram (Geral)" />
-        </Suspense>
-      )}
 
       {isMesAtual && <PainelAudiovisualSection />}
     </div>
