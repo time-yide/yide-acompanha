@@ -79,6 +79,9 @@ export default async function EditClientePage({ params }: { params: Promise<{ id
             drive_url: cliente.drive_url ?? null,
             link_estrategia: (cliente as { link_estrategia?: string | null }).link_estrategia ?? null,
             pacote_post_padrao: cliente.pacote_post_padrao ?? null,
+            tem_stories: (cliente as { tem_stories?: boolean | null }).tem_stories ?? null,
+            quantidade_diaria_stories:
+              (cliente as { quantidade_diaria_stories?: number | null }).quantidade_diaria_stories ?? null,
             tipo_pacote: cliente.tipo_pacote ?? null,
             cadencia_reuniao: cliente.cadencia_reuniao ?? null,
             numero_unidades: cliente.numero_unidades ?? 1,

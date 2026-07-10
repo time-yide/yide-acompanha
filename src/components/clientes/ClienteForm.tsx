@@ -38,6 +38,8 @@ interface Props {
     drive_url: string | null;
     link_estrategia: string | null;
     pacote_post_padrao: number | null;
+    tem_stories?: boolean | null;
+    quantidade_diaria_stories?: number | null;
     tipo_pacote: string | null;
     cadencia_reuniao: string | null;
     numero_unidades: number | null;
@@ -280,6 +282,29 @@ export function ClienteForm({ action, defaults = {}, assessores, coordenadores, 
               defaultValue={defaults.pacote_post_padrao ?? ""}
               min={0}
               placeholder="12"
+              className="mt-1 block w-full h-9 rounded-md border bg-card px-2 text-sm"
+            />
+          </div>
+          <div className="flex items-center gap-2 sm:col-span-2">
+            <input
+              type="checkbox"
+              id="tem_stories"
+              name="tem_stories"
+              defaultChecked={!!defaults.tem_stories}
+              className="h-4 w-4 rounded border"
+            />
+            <label htmlFor="tem_stories" className="text-xs font-medium text-muted-foreground">
+              Cliente tem stories no Instagram
+            </label>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Quantidade diária de stories</label>
+            <input
+              type="number"
+              name="quantidade_diaria_stories"
+              defaultValue={defaults.quantidade_diaria_stories ?? ""}
+              min={0}
+              placeholder="0"
               className="mt-1 block w-full h-9 rounded-md border bg-card px-2 text-sm"
             />
           </div>

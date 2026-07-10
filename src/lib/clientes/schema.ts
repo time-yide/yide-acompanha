@@ -80,6 +80,12 @@ export const editClienteSchema = createClienteSchema.extend({
   drive_url: z.string().url().or(z.literal("")).optional().nullable(),
   link_estrategia: z.string().url().or(z.literal("")).optional().nullable(),
   pacote_post_padrao: z.coerce.number().int().min(0).optional().nullable(),
+  // Stories: checkbox posta "on" quando marcado e some quando desmarcado.
+  tem_stories: z.preprocess(
+    (v) => v === "on" || v === "true" || v === true,
+    z.boolean(),
+  ),
+  quantidade_diaria_stories: z.coerce.number().int().min(0).default(0),
   // new fields already in base schema - inherited; explicit here for clarity
 });
 
