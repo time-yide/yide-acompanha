@@ -4,11 +4,12 @@ import { createColaboradorSchema, editColaboradorSchema, ROLES } from "@/lib/col
 const VALID_UUID = "00000000-0000-0000-0000-000000000000";
 
 describe("ROLES", () => {
-  it("contém os 12 roles esperados", () => {
+  it("contém os 13 roles esperados", () => {
     expect(ROLES).toEqual([
       "adm", "socio", "comercial", "coordenador", "assessor",
       "videomaker", "designer", "editor", "audiovisual_chefe",
       "assessor_ecommerce", "assistente_ecommerce", "programacao",
+      "fast_midia",
     ]);
   });
 });
