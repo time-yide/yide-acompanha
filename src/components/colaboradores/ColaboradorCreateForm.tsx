@@ -76,6 +76,7 @@ export function ColaboradorCreateForm({ canSetCommission }: { canSetCommission: 
                 <SelectItem value="assessor_ecommerce">Assessor de e-commerce</SelectItem>
                 <SelectItem value="assistente_ecommerce">Assistente de e-commerce</SelectItem>
                 <SelectItem value="programacao">Programação</SelectItem>
+                <SelectItem value="fast_midia">Fast Mídia</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-[11px] text-muted-foreground">

@@ -94,6 +94,8 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
       { type: "link", href: "/social-media", icon: Share2, label: "Estratégia", roles: ["adm", "socio", "coordenador", "assessor", "designer", "videomaker", "editor", "audiovisual_chefe"], badgeKey: null },
       // "CRM" e "Painel GMB" saíram do menu — aparecem como abas dentro de Tráfego. URLs preservadas.
       // "Design" e "Painel mensal" saíram do menu — aparecem como abas dentro de Social Media. URLs /design e /painel preservadas.
+      // Fast Mídia acessa o Painel mensal direto (é seu único item de menu).
+      { type: "link", href: "/painel", icon: Share2, label: "Painel mensal", roles: ["fast_midia"], badgeKey: null },
       { type: "link", href: "/painel-cliente", icon: IdCard, label: "Painel do cliente", roles: ["adm", "socio", "coordenador", "assessor", "audiovisual_chefe"], badgeKey: null },
       // "Satisfação" saiu do menu — agora aparece como aba dentro de Painel do cliente. URL /satisfacao preservada.
       { type: "link", href: "/solicitacoes", icon: Inbox, label: "Solicitações", roles: ["adm", "socio", "coordenador", "assessor", "audiovisual_chefe"], badgeKey: null },
@@ -132,7 +134,7 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
 function isLinkVisible(role: Role, link: NavLink): boolean {
   // Programação (cargo técnico) começa SEM acessos: nem os itens "all".
   // Cada área é liberada explicitamente quando o módulo dela for construído.
-  if (role === "programacao") {
+  if (role === "programacao" || role === "fast_midia") {
     return Array.isArray(link.roles) && link.roles.includes(role);
   }
   return link.roles === "all" || (Array.isArray(link.roles) && link.roles.includes(role));
