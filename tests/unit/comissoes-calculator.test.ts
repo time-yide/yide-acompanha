@@ -224,6 +224,20 @@ describe("calculateCommission — ADM e Produtores", () => {
     expect(r!.snapshot.percentual_aplicado).toBe(0);
     expect(r!.items.length).toBe(1);
   });
+
+  it("Programação: só fixo, IGNORA comissao_percent (não ganha %)", async () => {
+    fromMock.mockImplementation((table) => {
+      if (table === "profiles") {
+        return mockProfile({ id: "u1", role: "programacao", fixo_mensal: 4000, comissao_percent: 10, comissao_primeiro_mes_percent: 10 });
+      }
+      return {};
+    });
+    const r = await calculateCommission("u1", "2026-04");
+    expect(r!.snapshot.fixo).toBe(4000);
+    expect(r!.snapshot.valor_variavel).toBe(0);
+    expect(r!.snapshot.percentual_aplicado).toBe(0);
+    expect(r!.items.length).toBe(1);
+  });
 });
 
 describe("calculateCommission — Sócio (prolábore fixo, sem variável)", () => {

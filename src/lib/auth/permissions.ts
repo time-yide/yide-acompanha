@@ -1,7 +1,8 @@
 export type Role =
   | "adm" | "socio" | "comercial" | "coordenador" | "assessor"
   | "videomaker" | "designer" | "editor" | "audiovisual_chefe"
-  | "assessor_ecommerce" | "assistente_ecommerce";
+  | "assessor_ecommerce" | "assistente_ecommerce"
+  | "programacao";
 
 /**
  * Label visível no UI pra cada role. O enum `app_role` no banco mantém
@@ -9,7 +10,7 @@ export type Role =
  * sócio aparece como "Coordenador". `coordenador` antigo virou "legado".
  */
 export const ROLE_LABELS: Record<string, string> = {
-  adm: "ADM",
+  adm: "Administrativo",
   socio: "Coordenador",
   comercial: "Comercial",
   coordenador: "Coordenador (legado)",
@@ -20,6 +21,7 @@ export const ROLE_LABELS: Record<string, string> = {
   audiovisual_chefe: "Coordenador audiovisual",
   assessor_ecommerce: "Assessor de e-commerce",
   assistente_ecommerce: "Assistente de e-commerce",
+  programacao: "Programação",
 };
 
 /** Devolve o label visível de um role. Faz fallback pro próprio valor. */
@@ -142,6 +144,10 @@ const matrix: Record<Role, Action[]> = {
     "view:own_commission",
     "create:tasks", "create:calendar_event", "customize:notification_recipients",
   ],
+  // Programação: cargo técnico (CRM/integrações/analytics — módulos futuros).
+  // Por ora SEM acessos: nenhuma permissão e nenhum item de menu (ver
+  // isLinkVisible em nav-config). Não ganha comissão (fora do calculator).
+  programacao: [],
 };
 
 export function canAccess(role: Role | string, action: Action): boolean {

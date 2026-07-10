@@ -12,6 +12,7 @@ export const ROLES = [
   "audiovisual_chefe",
   "assessor_ecommerce",
   "assistente_ecommerce",
+  "programacao",
 ] as const;
 export type RoleEnum = typeof ROLES[number];
 

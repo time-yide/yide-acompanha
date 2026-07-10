@@ -70,3 +70,23 @@ describe("assistente_ecommerce role", () => {
     expect(canAccess("assistente_ecommerce", "create:tasks")).toBe(true);
   });
 });
+
+describe("programacao role", () => {
+  it("tem label 'Programação'", () => {
+    expect(ROLE_LABELS.programacao).toBe("Programação");
+    expect(roleLabel("programacao")).toBe("Programação");
+  });
+  it("não tem acesso a nada por padrão", () => {
+    expect(canAccess("programacao", "manage:users")).toBe(false);
+    expect(canAccess("programacao", "create:tasks")).toBe(false);
+    expect(canAccess("programacao", "view:all_clients")).toBe(false);
+    expect(canAccess("programacao", "view:financial_consolidated")).toBe(false);
+  });
+});
+
+describe("rename ADM → Administrativo", () => {
+  it("o role 'adm' agora tem label 'Administrativo'", () => {
+    expect(ROLE_LABELS.adm).toBe("Administrativo");
+    expect(roleLabel("adm")).toBe("Administrativo");
+  });
+});
