@@ -3,17 +3,10 @@ import { PeriodoSelector } from "@/components/dashboard/personal/PeriodoSelector
 import type { Periodo } from "@/lib/dashboard/personal";
 import { Video, CheckCircle2, Wrench, AlertTriangle } from "lucide-react";
 import { MemberRow } from "./MemberRow";
+import { EditorEdicaoCard } from "./EditorEdicaoCard";
 
 interface Props {
   periodo: Periodo;
-}
-
-function roleLabel(role: string): string {
-  if (role === "videomaker") return "Videomaker";
-  if (role === "fast_midia") return "Fast Mídia";
-  if (role === "audiovisual_chefe") return "Coordenador audiovisual";
-  if (role === "editor") return "Editor";
-  return role;
 }
 
 export async function EquipeAudiovisualSection({ periodo }: Props) {
@@ -124,37 +117,10 @@ export async function EquipeAudiovisualSection({ periodo }: Props) {
             Ninguém com tarefas de edição no momento.
           </p>
         ) : (
-          <div className="overflow-hidden rounded-lg border bg-card">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
-                <tr>
-                  <th className="px-3 py-2 text-left font-medium">Nome</th>
-                  <th className="px-3 py-2 text-left font-medium">Função</th>
-                  <th className="px-3 py-2 text-right font-medium text-rose-600 dark:text-rose-400">Atrasadas</th>
-                  <th className="px-3 py-2 text-right font-medium">Próximas</th>
-                  <th className="px-3 py-2 text-right font-medium">Em andamento</th>
-                  <th className="px-3 py-2 text-right font-medium">Concluídas</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {editores.map((e) => (
-                  <MemberRow
-                    key={e.id}
-                    variant="edicao"
-                    nome={e.nome}
-                    funcao={roleLabel(e.role)}
-                    atrasadas={e.atrasadas}
-                    proximas={e.proximas}
-                    emAndamento={e.emAndamento}
-                    concluidas={e.concluidas}
-                    atrasadasList={e.atrasadasList}
-                    proximasList={e.proximasList}
-                    emAndamentoList={e.emAndamentoList}
-                    concluidasList={e.concluidasList}
-                  />
-                ))}
-              </tbody>
-            </table>
+          <div className="grid gap-3 md:grid-cols-2">
+            {editores.map((e) => (
+              <EditorEdicaoCard key={e.id} editor={e} />
+            ))}
           </div>
         )}
       </div>
