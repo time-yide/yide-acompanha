@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { FixoCard } from "./personal/FixoCard";
+import { HiddenValuesProvider, HiddenValueToggle } from "./HiddenValuesContext";
 import { MinhasTarefasPendentes } from "./personal/MinhasTarefasPendentes";
 import { getProximasGravacoes } from "@/lib/dashboard/personal";
 import { getStoriesForMonth } from "@/lib/painel/stories-queries";
@@ -58,10 +59,14 @@ export async function DashboardFastMidia({ userId, nome }: Props) {
   ]);
 
   return (
+    <HiddenValuesProvider>
     <div className="space-y-4 sm:space-y-6">
-      <header>
-        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Olá, {primeiroNome}</h1>
-        <p className="text-sm text-muted-foreground">Seus stories, gravações e tarefas.</p>
+      <header className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Olá, {primeiroNome}</h1>
+          <p className="text-sm text-muted-foreground">Seus stories, gravações e tarefas.</p>
+        </div>
+        <HiddenValueToggle />
       </header>
 
       <FixoCard userId={userId} />
@@ -171,5 +176,6 @@ export async function DashboardFastMidia({ userId, nome }: Props) {
 
       <MinhasTarefasPendentes userId={userId} />
     </div>
+    </HiddenValuesProvider>
   );
 }
