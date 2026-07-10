@@ -22,10 +22,16 @@ const STATUS_LABEL: Record<string, string> = {
   postada: "Postada",
 };
 
-const PRIO_BADGE: Record<string, string> = {
-  alta: "border-rose-500/40 text-rose-600 dark:text-rose-400",
-  media: "border-amber-500/40 text-amber-600 dark:text-amber-400",
-  baixa: "border-muted-foreground/30 text-muted-foreground",
+// Prioridade discreta: só um pontinho colorido + o texto em tom suave.
+const PRIO_DOT: Record<string, string> = {
+  alta: "bg-rose-500",
+  media: "bg-amber-500",
+  baixa: "bg-muted-foreground/40",
+};
+const PRIO_LABEL: Record<string, string> = {
+  alta: "Alta",
+  media: "Média",
+  baixa: "Baixa",
 };
 
 // Avatar: iniciais + cor determinística (mesma pessoa = mesma cor sempre).
@@ -99,8 +105,9 @@ function TaskRow({ t, atrasada = false }: { t: TaskItem; atrasada?: boolean }) {
             {atrasada && dias !== null && ` (${dias === 1 ? "1 dia" : `${dias} dias`})`}
           </span>
           {t.prioridade && (
-            <span className={`rounded border px-1 py-px text-[9px] uppercase ${PRIO_BADGE[t.prioridade] ?? ""}`}>
-              {t.prioridade}
+            <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground/80">
+              <span className={`h-1.5 w-1.5 rounded-full ${PRIO_DOT[t.prioridade] ?? "bg-muted-foreground/40"}`} />
+              {PRIO_LABEL[t.prioridade] ?? t.prioridade}
             </span>
           )}
         </p>
