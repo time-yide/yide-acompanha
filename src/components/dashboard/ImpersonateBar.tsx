@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { especialidadeLabel } from "@/components/colaboradores/EspecialidadeBadge";
+import { roleLabel } from "@/lib/auth/permissions";
 
 interface Colaborador {
   id: string;
@@ -12,7 +13,7 @@ interface Colaborador {
 
 /** Rótulo do role + especialidade (ex.: "Assessor · E-commerce"). */
 function colaboradorLabel(c: Colaborador): string {
-  const base = ROLE_LABEL[c.role] ?? c.role;
+  const base = roleLabel(c.role);
   const esp = especialidadeLabel(c.especialidade);
   return esp ? `${base} · ${esp}` : base;
 }
@@ -22,18 +23,6 @@ interface Props {
   currentTargetId: string | null;
   isImpersonating: boolean;
 }
-
-const ROLE_LABEL: Record<string, string> = {
-  socio: "Coordenador",
-  adm: "Adm",
-  comercial: "Comercial",
-  coordenador: "Coordenador (legado)",
-  assessor: "Assessor",
-  videomaker: "Videomaker",
-  designer: "Designer",
-  editor: "Editor",
-  audiovisual_chefe: "Coordenador audiovisual",
-};
 
 export function ImpersonateBar({ colaboradores, currentTargetId, isImpersonating }: Props) {
   const router = useRouter();

@@ -1,18 +1,8 @@
+import { roleLabel } from "@/lib/auth/permissions";
+
 function brl(n: number): string {
   return Number(n).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
-
-const roleLabels: Record<string, string> = {
-  adm: "ADM",
-  socio: "Coordenador",
-  comercial: "Comercial",
-  coordenador: "Coordenador (legado)",
-  assessor: "Assessor",
-  videomaker: "Videomaker",
-  designer: "Designer",
-  editor: "Editor",
-  audiovisual_chefe: "Coordenador audiovisual",
-};
 
 interface Row {
   id: string;
@@ -60,7 +50,7 @@ export function OverviewTable({ rows }: { rows: Row[] }) {
               <tr key={r.id} className="border-t">
                 <td className="px-3 py-2">{r.profile?.nome ?? ""}</td>
                 <td className="px-3 py-2 text-xs text-muted-foreground">
-                  {roleLabels[r.papel_naquele_mes] ?? r.papel_naquele_mes}
+                  {roleLabel(r.papel_naquele_mes)}
                 </td>
                 <td className="px-3 py-2 text-right tabular-nums">{brl(Number(r.fixo))}</td>
                 <td className="px-3 py-2 text-right tabular-nums">{brl(Number(r.valor_variavel))}</td>

@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { TogglePagamentoButton } from "./TogglePagamentoButton";
 import type { PayrollRow } from "@/lib/pagamentos/queries";
+import { roleLabel } from "@/lib/auth/permissions";
 
 interface Props {
   rows: PayrollRow[];
@@ -10,18 +11,6 @@ interface Props {
 function formatBRL(v: number): string {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(v);
 }
-
-const ROLE_LABEL: Record<string, string> = {
-  socio: "Coordenador",
-  adm: "ADM",
-  coordenador: "Coordenador (legado)",
-  assessor: "Assessor",
-  comercial: "Comercial",
-  designer: "Designer",
-  videomaker: "Videomaker",
-  editor: "Editor",
-  audiovisual_chefe: "Coordenador audiovisual",
-};
 
 export function PayrollPaymentsTable({ rows, mesReferencia }: Props) {
   const pagos = rows.filter((r) => r.status === "pago").length;
@@ -46,7 +35,7 @@ export function PayrollPaymentsTable({ rows, mesReferencia }: Props) {
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{r.user_nome}</p>
                 <p className="text-xs text-muted-foreground">
-                  {ROLE_LABEL[r.user_role] ?? r.user_role} · Fixo {formatBRL(r.fixo_mensal)}
+                  {roleLabel(r.user_role)} · Fixo {formatBRL(r.fixo_mensal)}
                   {r.comissao_mes > 0 && <> · Comissão {formatBRL(r.comissao_mes)}</>}
                   {" · Total "}<strong className="text-foreground">{formatBRL(r.total)}</strong>
                 </p>

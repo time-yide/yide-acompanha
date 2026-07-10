@@ -6,25 +6,12 @@ import { DRELine } from "./DRELine";
 import { OverrideDialog } from "./OverrideDialog";
 import { type ExpenseCategoria } from "@/lib/financeiro/schema";
 import type { ColaboradorBreakdown, DREData, DRELine as DRELineData } from "@/lib/financeiro/queries";
+import { roleLabel } from "@/lib/auth/permissions";
 
 const CATEGORIA_ORDER: ExpenseCategoria[] = [
   "aluguel", "software", "contabilidade", "impostos",
   "marketing_proprio", "equipamento", "pro_labore", "outros",
 ];
-
-// Role `socio` no banco aparece como "Coordenador" no UI (decisão Yasmin -
-// renomear quebraria RLS/FKs). `coordenador` antigo virou legado.
-const ROLE_LABEL: Record<string, string> = {
-  socio: "Coordenador",
-  comercial: "Comercial",
-  assessor: "Assessor",
-  coordenador: "Coordenador (legado)",
-  audiovisual_chefe: "Coordenador audiovisual",
-  videomaker: "Videomaker",
-  designer: "Designer",
-  editor: "Editor",
-  adm: "ADM",
-};
 
 const BRL = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -222,7 +209,7 @@ function BreakdownList({
         <div key={r.user_id} className="flex items-center justify-between gap-3 py-0.5 text-[11px]">
           <span className="flex items-center gap-1.5">
             <span className="text-foreground">{r.nome}</span>
-            <span className="text-muted-foreground">· {ROLE_LABEL[r.role] ?? r.role}</span>
+            <span className="text-muted-foreground">· {roleLabel(r.role)}</span>
           </span>
           <span className="tabular-nums text-muted-foreground">{BRL(r[field])}</span>
         </div>
@@ -248,7 +235,7 @@ function FolhaTable({ rows }: { rows: ColaboradorBreakdown[] }) {
           {rows.map((r) => (
             <tr key={r.user_id} className="border-t">
               <td className="px-3 py-1.5">{r.nome}</td>
-              <td className="px-3 py-1.5 text-muted-foreground">{ROLE_LABEL[r.role] ?? r.role}</td>
+              <td className="px-3 py-1.5 text-muted-foreground">{roleLabel(r.role)}</td>
               <td className="px-3 py-1.5 text-right tabular-nums">{BRL(r.fixo)}</td>
               <td className="px-3 py-1.5 text-right tabular-nums">{BRL(r.comissao)}</td>
               <td className="px-3 py-1.5 text-right tabular-nums font-semibold">{BRL(r.total)}</td>
