@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { FixoCard } from "./personal/FixoCard";
+import { HiddenValuesProvider, HiddenValueToggle } from "./HiddenValuesContext";
 import { MinhasTarefasPendentes } from "./personal/MinhasTarefasPendentes";
 import { getProximasGravacoes } from "@/lib/dashboard/personal";
 import { Video, MapPin } from "lucide-react";
@@ -47,10 +48,14 @@ export async function DashboardVideomaker({ userId, nome }: Props) {
   const gravacoes = await getProximasGravacoes(userId, fromIso, toIso);
 
   return (
+    <HiddenValuesProvider>
     <div className="space-y-4 sm:space-y-6">
-      <header>
-        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Olá, {primeiroNome}</h1>
-        <p className="text-sm text-muted-foreground">Suas gravações e tarefas de edição.</p>
+      <header className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Olá, {primeiroNome}</h1>
+          <p className="text-sm text-muted-foreground">Suas gravações e tarefas de edição.</p>
+        </div>
+        <HiddenValueToggle />
       </header>
 
       <FixoCard userId={userId} />
@@ -98,5 +103,6 @@ export async function DashboardVideomaker({ userId, nome }: Props) {
 
       <MinhasTarefasPendentes userId={userId} />
     </div>
+    </HiddenValuesProvider>
   );
 }
