@@ -17,6 +17,7 @@ export interface TaskItem {
   status: string;
   due_date: string | null;
   prioridade: string | null;
+  cliente_nome: string | null;
 }
 
 export interface CapturaItem {
@@ -77,6 +78,8 @@ interface TaskMinimal {
   updated_at: string | null;
   due_date: string | null;
   prioridade: string | null;
+  client_id: string | null;
+  cliente: { nome: string } | null;
 }
 
 interface CapturaDelegadaMinimal {
@@ -124,12 +127,12 @@ async function _getEquipeAudiovisualImpl(periodo: Periodo): Promise<EquipeAudiov
   const [tasksAtribuidoRes, tasksParticipantesRes, gravRes, capturasRes] = await Promise.all([
     sb
       .from("tasks")
-      .select("id, titulo, atribuido_a, participantes_ids, status, completed_at, aprovada_em, updated_at, due_date, prioridade")
+      .select("id, titulo, atribuido_a, participantes_ids, status, completed_at, aprovada_em, updated_at, due_date, prioridade, client_id, cliente:clients(nome)")
       .is("deleted_at", null)
       .in("atribuido_a", ids),
     sb
       .from("tasks")
-      .select("id, titulo, atribuido_a, participantes_ids, status, completed_at, aprovada_em, updated_at, due_date, prioridade")
+      .select("id, titulo, atribuido_a, participantes_ids, status, completed_at, aprovada_em, updated_at, due_date, prioridade, client_id, cliente:clients(nome)")
       .is("deleted_at", null)
       .overlaps("participantes_ids", ids),
     sb
@@ -218,14 +221,14 @@ async function _getEquipeAudiovisualImpl(periodo: Periodo): Promise<EquipeAudiov
       );
       const atrasadasList: TaskItem[] = abertasDoMembro
         .filter((t) => !!t.due_date && t.due_date < hojeBRTDate)
-        .map((t) => ({ id: t.id, titulo: t.titulo, status: t.status, due_date: t.due_date, prioridade: t.prioridade }));
+        .map((t) => ({ id: t.id, titulo: t.titulo, status: t.status, due_date: t.due_date, prioridade: t.prioridade, cliente_nome: t.cliente?.nome ?? null }));
       const proximasList: TaskItem[] = abertasDoMembro
         .filter((t) => !t.due_date || t.due_date >= hojeBRTDate)
-        .map((t) => ({ id: t.id, titulo: t.titulo, status: t.status, due_date: t.due_date, prioridade: t.prioridade }));
+        .map((t) => ({ id: t.id, titulo: t.titulo, status: t.status, due_date: t.due_date, prioridade: t.prioridade, cliente_nome: t.cliente?.nome ?? null }));
 
       const emAndamentoList: TaskItem[] = tasks
         .filter((t) => (STATUS_EM_ANDAMENTO as readonly string[]).includes(t.status) && pertence(t, p.id))
-        .map((t) => ({ id: t.id, titulo: t.titulo, status: t.status, due_date: t.due_date, prioridade: t.prioridade }));
+        .map((t) => ({ id: t.id, titulo: t.titulo, status: t.status, due_date: t.due_date, prioridade: t.prioridade, cliente_nome: t.cliente?.nome ?? null }));
 
       const concluidasWithTime = tasks
         .filter(
@@ -235,7 +238,7 @@ async function _getEquipeAudiovisualImpl(periodo: Periodo): Promise<EquipeAudiov
             inPeriod(getTerminadoEm(t)),
         )
         .map((t) => ({
-          item: { id: t.id, titulo: t.titulo, status: t.status, due_date: t.due_date, prioridade: t.prioridade },
+          item: { id: t.id, titulo: t.titulo, status: t.status, due_date: t.due_date, prioridade: t.prioridade, cliente_nome: t.cliente?.nome ?? null },
           terminadoEm: getTerminadoEm(t),
         }));
 
@@ -299,7 +302,8 @@ export async function getEquipeAudiovisual(periodo: Periodo): Promise<EquipeAudi
     async (p: string) => _getEquipeAudiovisualImpl(p as Periodo),
     // v3: shape mudou (videomaker proximas/hoje/concluidas, editor proximas/emAndamento/concluidas)
     // v4: EditorStat ganhou atrasadas + atrasadasList (separa por due_date < hoje BRT)
-    ["dashboard-audiovisual-equipe-v4"],
+    // v5: TaskItem ganhou cliente_nome (join clients p/ mostrar cliente inline na edição)
+    ["dashboard-audiovisual-equipe-v5"],
     { revalidate: 60, tags: ["dashboard", "tasks", "calendar", AUDIOVISUAL_CAPTURAS_TAG] },
   );
   return cached(periodo);
