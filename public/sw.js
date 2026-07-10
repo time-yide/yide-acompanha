@@ -2,10 +2,14 @@
 // Recebe Web Push e mostra notificação nativa do SO. Click leva pra rota
 // da notificação (ou pra home se sem link).
 
-const SW_VERSION = "v1.4.0";
+// "__DEPLOY__" é substituído no build (scripts/inject-sw-version.mjs) pelo
+// hash do commit do deploy (VERCEL_GIT_COMMIT_SHA). Assim CADA deploy gera um
+// SW_VERSION diferente → o navegador detecta o sw.js novo, troca o SW e o
+// PWARegister recarrega a página sozinho. É o que faz toda atualização
+// aparecer pra todo mundo sem precisar limpar cache.
+const SW_VERSION = "__DEPLOY__";
 // Cache versionado pelo SW_VERSION. Bumpar a versão = novo cache + limpeza do
-// antigo no activate. É o kill-switch: qualquer deploy que mude o SW_VERSION
-// zera tudo que estava cacheado.
+// antigo no activate. É o kill-switch: qualquer deploy zera o cache antigo.
 const STATIC_CACHE = `static-${SW_VERSION}`;
 
 self.addEventListener("install", () => {
