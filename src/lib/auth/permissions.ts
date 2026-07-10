@@ -2,7 +2,7 @@ export type Role =
   | "adm" | "socio" | "comercial" | "coordenador" | "assessor"
   | "videomaker" | "designer" | "editor" | "audiovisual_chefe"
   | "assessor_ecommerce" | "assistente_ecommerce"
-  | "programacao";
+  | "programacao" | "fast_midia";
 
 /**
  * Label visível no UI pra cada role. O enum `app_role` no banco mantém
@@ -22,6 +22,7 @@ export const ROLE_LABELS: Record<string, string> = {
   assessor_ecommerce: "Assessor de e-commerce",
   assistente_ecommerce: "Assistente de e-commerce",
   programacao: "Programação",
+  fast_midia: "Fast Mídia",
 };
 
 /** Devolve o label visível de um role. Faz fallback pro próprio valor. */
@@ -148,6 +149,10 @@ const matrix: Record<Role, Action[]> = {
   // Por ora SEM acessos: nenhuma permissão e nenhum item de menu (ver
   // isLinkVisible em nav-config). Não ganha comissão (fora do calculator).
   programacao: [],
+  // Fast Mídia: responsável pelos stories dos clientes. Sem permissões na
+  // matrix — seu único acesso é o Painel mensal, liberado à parte pela lista
+  // de roles do item de menu (ver nav-config). Não ganha comissão.
+  fast_midia: [],
 };
 
 export function canAccess(role: Role | string, action: Action): boolean {

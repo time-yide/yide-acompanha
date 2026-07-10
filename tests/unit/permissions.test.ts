@@ -84,6 +84,17 @@ describe("programacao role", () => {
   });
 });
 
+describe("fast_midia role", () => {
+  it("tem label 'Fast Mídia'", () => {
+    expect(ROLE_LABELS.fast_midia).toBe("Fast Mídia");
+    expect(roleLabel("fast_midia")).toBe("Fast Mídia");
+  });
+  it("não tem acessos especiais por padrão", () => {
+    expect(canAccess("fast_midia", "manage:users")).toBe(false);
+    expect(canAccess("fast_midia", "view:all_clients")).toBe(false);
+  });
+});
+
 describe("rename ADM → Administrativo", () => {
   it("o role 'adm' agora tem label 'Administrativo'", () => {
     expect(ROLE_LABELS.adm).toBe("Administrativo");
