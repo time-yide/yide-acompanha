@@ -16,8 +16,10 @@ import { PACOTES_NO_PAINEL_MENSAL, type TipoPacote } from "@/lib/painel/pacote-m
 import { parseArea, matchesArea } from "@/lib/painel/area-filter";
 import { getCurrentMonthYM } from "@/lib/datetime/timezone";
 import { ensureMonthlyChecklistsImpl } from "@/lib/painel/ensure-checklists";
+import { getStoriesForMonth } from "@/lib/painel/stories-queries";
+import { FastMidiaStoriesView } from "@/components/painel/FastMidiaStoriesView";
 
-const ALLOWED_ROLES = ["adm", "socio", "coordenador", "assessor", "designer", "videomaker", "editor", "audiovisual_chefe"];
+const ALLOWED_ROLES = ["adm", "socio", "coordenador", "assessor", "designer", "videomaker", "editor", "audiovisual_chefe", "fast_midia"];
 const PRIVILEGED_ROLES = ["adm", "socio", "coordenador"];
 
 function currentMonthRef(): string {
@@ -68,6 +70,35 @@ export default async function PainelPage({
   // Multi-tenant: filtra clientes pela unidade ativa
   const unitClientIds = await getClientIdsForActiveUnit();
 
+  // Lista de meses: próximo mês primeiro (sempre disponível pra planejamento),
+  // depois mês corrente, e os anteriores até PAINEL_PRIMEIRO_MES (mai/2026).
+  // Anteriores a mai/26 não aparecem — não tinha estrutura de checklist.
+  const mesesDisponiveis: string[] = [];
+  const mesAtualRef = currentMonthRef();
+  const proximoMes = nextMonthRef(mesAtualRef);
+  mesesDisponiveis.push(proximoMes);
+  let cursor = mesAtualRef;
+  while (cursor >= PAINEL_PRIMEIRO_MES) {
+    mesesDisponiveis.push(cursor);
+    cursor = previousMonthRef(cursor);
+  }
+
+  // Fast Mídia: visão isolada de stories. Não roda o pipeline normal do painel
+  // (sem checklists, sem ensureMonthlyChecklists).
+  if (user.role === "fast_midia") {
+    const rows = await getStoriesForMonth(mesAtual, unitClientIds);
+    return (
+      <div className="space-y-5">
+        <FastMidiaStoriesView
+          mesAtual={mesAtual}
+          mesesDisponiveis={mesesDisponiveis}
+          rows={rows}
+          canEdit={true}
+        />
+      </div>
+    );
+  }
+
   const filter: ChecklistFilter = { unitClientIds };
   if (user.role === "assessor") filter.assessorId = user.id;
   else if (user.role === "coordenador") {
@@ -102,19 +133,6 @@ export default async function PainelPage({
     .filter((c) => tipoFiltro === "todos" || c.client_tipo_pacote === tipoFiltro)
     .filter((c) => matchesArea(c.client_tipo_pacote as TipoPacote, areaFiltro))
     .filter((c) => searchQuery === "" || c.client_nome.toLowerCase().includes(searchQuery));
-
-  // Lista de meses: próximo mês primeiro (sempre disponível pra planejamento),
-  // depois mês corrente, e os anteriores até PAINEL_PRIMEIRO_MES (mai/2026).
-  // Anteriores a mai/26 não aparecem — não tinha estrutura de checklist.
-  const mesesDisponiveis: string[] = [];
-  const mesAtualRef = currentMonthRef();
-  const proximoMes = nextMonthRef(mesAtualRef);
-  mesesDisponiveis.push(proximoMes);
-  let cursor = mesAtualRef;
-  while (cursor >= PAINEL_PRIMEIRO_MES) {
-    mesesDisponiveis.push(cursor);
-    cursor = previousMonthRef(cursor);
-  }
 
   // Cria proativamente os checklists do próximo mês (idempotente). Garante
   // que ao selecionar o próximo mês, o painel já tem dados. Custo: 1 SELECT
