@@ -65,6 +65,7 @@ export function FastMidiaStoriesView({ mesAtual, mesesDisponiveis, rows, canEdit
                     <div className="font-medium">{row.client_nome}</div>
                     <p className="mt-0.5 text-[10px] text-muted-foreground">
                       {row.quantidade_diaria_stories}/dia
+                      {row.assessor_nome ? ` · Assessor: ${row.assessor_nome}` : ""}
                     </p>
                   </td>
                   <td className="px-2 py-2 text-center">

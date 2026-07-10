@@ -5,6 +5,7 @@ export interface StoriesRow {
   client_id: string;
   client_nome: string;
   quantidade_diaria_stories: number;
+  assessor_nome: string | null;
   postados: number;
   meta: number;
 }
@@ -37,7 +38,7 @@ export async function getStoriesForMonth(
 
   let clientsQuery = supabase
     .from("clients")
-    .select("id, nome, quantidade_diaria_stories")
+    .select("id, nome, quantidade_diaria_stories, assessor_id")
     .eq("status", "ativo")
     .eq("tem_stories", true);
   if (unitClientIds !== null) {
@@ -54,10 +55,24 @@ export async function getStoriesForMonth(
     id: string;
     nome: string;
     quantidade_diaria_stories: number | null;
+    assessor_id: string | null;
   }>;
   if (clients.length === 0) return [];
 
   const clientIds = clients.map((c) => c.id);
+
+  // Nome do assessor responsável de cada cliente.
+  const assessorIds = [...new Set(clients.map((c) => c.assessor_id).filter((id): id is string => !!id))];
+  const assessorNomeById = new Map<string, string>();
+  if (assessorIds.length > 0) {
+    const { data: assessoresData } = await supabase
+      .from("profiles")
+      .select("id, nome")
+      .in("id", assessorIds);
+    for (const a of (assessoresData ?? []) as Array<{ id: string; nome: string }>) {
+      assessorNomeById.set(a.id, a.nome);
+    }
+  }
 
   const { data: monthlyData, error: monthlyError } = await supabase
     .from("client_monthly_stories")
@@ -82,6 +97,7 @@ export async function getStoriesForMonth(
         client_id: c.id,
         client_nome: c.nome,
         quantidade_diaria_stories: diaria,
+        assessor_nome: c.assessor_id ? (assessorNomeById.get(c.assessor_id) ?? null) : null,
         postados: postadosByClient.get(c.id) ?? 0,
         meta: diaria * dias,
       };
