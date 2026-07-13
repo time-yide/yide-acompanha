@@ -104,3 +104,126 @@ export async function getStoriesForMonth(
     })
     .sort((a, b) => a.client_nome.localeCompare(b.client_nome, "pt-BR"));
 }
+
+export interface StoryDay {
+  dia: number;
+  /** "YYYY-MM-DD" */
+  data: string;
+  postado: boolean;
+  quantidade: number;
+}
+
+export interface StoriesGridRow {
+  client_id: string;
+  client_nome: string;
+  quantidade_diaria_stories: number;
+  assessor_nome: string | null;
+  dias: StoryDay[];
+  postados: number;
+  meta: number;
+}
+
+/**
+ * Grade de stories POR DIA do mês (aba FastMedia). Pra cada cliente com stories
+ * ativado, devolve um array de dias (1..N do mês) marcando quais já foram
+ * postados (via client_story_posts) e a quantidade de cada dia. `postados` é a
+ * soma das quantidades; `meta` = diária × dias do mês.
+ */
+export async function getStoriesGridForMonth(
+  mesRef: string,
+  unitClientIds: string[] | null,
+): Promise<StoriesGridRow[]> {
+  if (unitClientIds !== null && unitClientIds.length === 0) return [];
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = createServiceRoleClient() as any;
+
+  let clientsQuery = supabase
+    .from("clients")
+    .select("id, nome, quantidade_diaria_stories, assessor_id")
+    .eq("status", "ativo")
+    .eq("tem_stories", true);
+  if (unitClientIds !== null) clientsQuery = clientsQuery.in("id", unitClientIds);
+
+  const { data: clientsData, error: clientsError } = await clientsQuery.order("nome");
+  if (clientsError) {
+    console.error("[painel/stories-grid] erro ao listar clientes:", clientsError.message);
+    return [];
+  }
+  const clients = (clientsData ?? []) as Array<{
+    id: string;
+    nome: string;
+    quantidade_diaria_stories: number | null;
+    assessor_id: string | null;
+  }>;
+  if (clients.length === 0) return [];
+
+  const clientIds = clients.map((c) => c.id);
+
+  // Nome do assessor de cada cliente.
+  const assessorIds = [...new Set(clients.map((c) => c.assessor_id).filter((id): id is string => !!id))];
+  const assessorNomeById = new Map<string, string>();
+  if (assessorIds.length > 0) {
+    const { data: assessoresData } = await supabase
+      .from("profiles")
+      .select("id, nome")
+      .in("id", assessorIds);
+    for (const a of (assessoresData ?? []) as Array<{ id: string; nome: string }>) {
+      assessorNomeById.set(a.id, a.nome);
+    }
+  }
+
+  const dias = diasNoMes(mesRef);
+  const start = `${mesRef}-01`;
+  const [y, m] = mesRef.split("-").map(Number);
+  const nextMonth = m === 12 ? 1 : m + 1;
+  const nextYear = m === 12 ? y + 1 : y;
+  const end = `${nextYear}-${String(nextMonth).padStart(2, "0")}-01`;
+
+  const { data: postsData, error: postsError } = await supabase
+    .from("client_story_posts")
+    .select("client_id, data, quantidade")
+    .gte("data", start)
+    .lt("data", end)
+    .in("client_id", clientIds);
+  if (postsError) {
+    console.error("[painel/stories-grid] erro ao listar posts:", postsError.message);
+  }
+
+  // client_id -> Map(dia -> quantidade)
+  const postsByClient = new Map<string, Map<number, number>>();
+  for (const p of (postsData ?? []) as Array<{ client_id: string; data: string; quantidade: number | null }>) {
+    const dia = Number(p.data.slice(8, 10));
+    if (!postsByClient.has(p.client_id)) postsByClient.set(p.client_id, new Map());
+    postsByClient.get(p.client_id)!.set(dia, p.quantidade ?? 0);
+  }
+
+  return clients
+    .map((c) => {
+      const diaria = c.quantidade_diaria_stories ?? 0;
+      const daysMap = postsByClient.get(c.id) ?? new Map<number, number>();
+      const diasArr: StoryDay[] = [];
+      let postados = 0;
+      for (let d = 1; d <= dias; d++) {
+        const qtd = daysMap.get(d);
+        const postado = qtd !== undefined;
+        if (postado) postados += qtd ?? 0;
+        diasArr.push({
+          dia: d,
+          data: `${mesRef}-${String(d).padStart(2, "0")}`,
+          postado,
+          quantidade: qtd ?? 0,
+        });
+      }
+      return {
+        client_id: c.id,
+        client_nome: c.nome,
+        quantidade_diaria_stories: diaria,
+        assessor_nome: c.assessor_id ? (assessorNomeById.get(c.assessor_id) ?? null) : null,
+        dias: diasArr,
+        postados,
+        meta: diaria * dias,
+      };
+    })
+    .sort((a, b) => a.client_nome.localeCompare(b.client_nome, "pt-BR"));
+}

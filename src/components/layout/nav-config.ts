@@ -2,7 +2,7 @@ import {
   LayoutGrid, Users, KanbanSquare, ListChecks,
   DollarSign, Calendar, UserCog, MessageSquare,
   TrendingUp, Video, Trash2, MessagesSquare, GraduationCap, Megaphone, Share2, Radar, MessageCircle, Phone,
-  IdCard, Rocket, BookOpen, Inbox, Activity, Layers, Sparkles, Zap, MapPin, Target, ShoppingCart,
+  IdCard, Rocket, BookOpen, Inbox, Activity, Layers, Sparkles, Zap, MapPin, Target, ShoppingCart, Images,
   type LucideIcon,
 } from "lucide-react";
 import type { Role } from "@/lib/auth/permissions";
@@ -85,6 +85,7 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
       { type: "link", href: "/d0-d30", icon: Rocket, label: "D0 → D30", roles: ["adm", "socio", "coordenador", "assessor", "comercial"], badgeKey: null },
       { type: "link", href: "/tarefas", icon: ListChecks, label: "Tarefas", roles: "all", badgeKey: null },
       { type: "link", href: "/audiovisual", icon: Video, label: "Audiovisual", roles: ["adm", "socio", "coordenador", "assessor", "videomaker", "fast_midia", "audiovisual_chefe"], badgeKey: null },
+      { type: "link", href: "/fast-media", icon: Images, label: "Fast Mídia", roles: ["adm", "socio", "coordenador", "audiovisual_chefe", "fast_midia"], badgeKey: null },
       { type: "link", href: "/audiovisual/editor-ia", icon: Sparkles, label: "Yori", roles: ["videomaker", "fast_midia", "editor", "audiovisual_chefe", "assessor", "socio", "adm"], badgeKey: null },
       { type: "link", href: "/freela-yide", icon: Zap, label: "FreelaYide", roles: ["adm", "socio", "comercial", "coordenador", "assessor", "designer", "videomaker", "fast_midia", "editor", "audiovisual_chefe"], badgeKey: null },
       { type: "link", href: "/trafego", icon: Megaphone, label: "Tráfego", roles: ["adm", "socio", "coordenador", "assessor", "comercial"], badgeKey: null },
