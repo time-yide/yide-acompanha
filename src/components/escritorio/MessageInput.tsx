@@ -132,10 +132,14 @@ export function MessageInput({ channelId, mentionables, replyTo, onClearReply, c
     const sentAttachments = [...attachments];
     const sentReplyTo = replyTo;
 
-    // ID temporário pra deduplicação quando o realtime/server confirmar
-    const tempId = `optimistic-${crypto.randomUUID()}`;
+    // Gera o UUID REAL no client e manda pro server inserir com ele. Assim a
+    // msg otimista, o insert e o evento realtime compartilham o MESMO id — a
+    // dedup por id funciona e não duplica no envio. `pending` mostra o relógio
+    // até o server confirmar (aí vira check).
+    const msgId = crypto.randomUUID();
     const optimisticMsg: ChatMessage = {
-      id: tempId,
+      id: msgId,
+      pending: true,
       channel_id: channelId,
       autor_id: currentUser.id,
       conteudo: trimmed,
@@ -157,6 +161,7 @@ export function MessageInput({ channelId, mentionables, replyTo, onClearReply, c
     onClearReply();
 
     const fd = new FormData();
+    fd.set("id", msgId);
     fd.set("channel_id", channelId);
     fd.set("conteudo", trimmed);
     if (sentReplyTo) fd.set("reply_to_id", sentReplyTo.id);
@@ -167,20 +172,19 @@ export function MessageInput({ channelId, mentionables, replyTo, onClearReply, c
       const r = await sendChatMessageAction(undefined, fd);
       if (r?.error) {
         // Remove a otimista e devolve o texto pro user tentar de novo.
-        setMessages((prev) => prev.filter((m) => m.id !== tempId));
+        setMessages((prev) => prev.filter((m) => m.id !== msgId));
         setText(trimmed);
         setAttachments(sentAttachments);
         toast.error(r.error);
         return;
       }
-      // 2. Substitui o ID temporário pelo real, evitando duplicar quando o realtime chegar.
-      if (r?.id) {
-        const realId = r.id;
-        const realCreatedAt = r.created_at ?? optimisticMsg.created_at;
-        setMessages((prev) =>
-          prev.map((m) => (m.id === tempId ? { ...m, id: realId, created_at: realCreatedAt } : m)),
-        );
-      }
+      // Confirmado: tira o `pending` (relógio → check) e alinha o created_at
+      // com o do server. O id já é o real, então não há troca de id nem risco
+      // de duplicar com o evento realtime (dedup por id cobre).
+      const realCreatedAt = r?.created_at ?? optimisticMsg.created_at;
+      setMessages((prev) =>
+        prev.map((m) => (m.id === msgId ? { ...m, pending: false, created_at: realCreatedAt } : m)),
+      );
     });
   }
 

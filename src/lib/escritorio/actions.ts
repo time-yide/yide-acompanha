@@ -13,6 +13,9 @@ import { ESCRITORIO_UNREAD_TAG } from "./queries";
 type ActionResult = { error?: string; success?: boolean; id?: string; created_at?: string };
 
 const sendMessageSchema = z.object({
+  /** Id gerado no client pra alinhar a msg otimista com o insert e o evento
+   * realtime — assim a dedup por id funciona e não duplica no envio. */
+  id: z.string().uuid().optional(),
   channel_id: z.string().uuid(),
   conteudo: z.string().trim().min(1, "Mensagem vazia").max(4000, "Mensagem muito longa"),
   reply_to_id: z.string().uuid().nullable().optional(),
@@ -44,6 +47,7 @@ export async function sendChatMessageAction(
   const actor = await requireAuth();
 
   const parsed = sendMessageSchema.safeParse({
+    id: fdString(formData, "id"),
     channel_id: fdString(formData, "channel_id"),
     conteudo: fdString(formData, "conteudo"),
     reply_to_id: fdString(formData, "reply_to_id"),
@@ -78,6 +82,7 @@ export async function sendChatMessageAction(
   const { data: created, error } = await sb
     .from("chat_messages")
     .insert({
+      ...(parsed.data.id ? { id: parsed.data.id } : {}),
       channel_id: parsed.data.channel_id,
       autor_id: actor.id,
       conteudo: parsed.data.conteudo,

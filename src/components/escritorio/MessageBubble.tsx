@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink, FileText, Reply } from "lucide-react";
+import { ExternalLink, FileText, Reply, Check, Clock } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { ChatMessage } from "@/lib/escritorio/types";
 import { cn } from "@/lib/utils";
@@ -140,8 +140,15 @@ export function MessageBubble({ message, isMine, prev, onReply }: Props) {
           )}
         >
           <span className="pr-12">{renderConteudo(message.conteudo)}</span>
-          <span className="ml-2 inline-flex items-baseline text-[10px] text-muted-foreground/80 align-bottom">
+          <span className="ml-2 inline-flex items-center gap-0.5 text-[10px] text-muted-foreground/80 align-bottom">
             {formatHourMinute(message.created_at)}
+            {isMine && (
+              message.pending ? (
+                <Clock className="h-2.5 w-2.5 text-muted-foreground/60" aria-label="Enviando" />
+              ) : (
+                <Check className="h-3 w-3 text-primary/80" aria-label="Enviado" />
+              )
+            )}
           </span>
         </div>
 
