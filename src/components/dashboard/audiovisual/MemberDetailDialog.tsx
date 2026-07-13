@@ -11,6 +11,8 @@ interface VideomakerProps {
   onOpenChange: (open: boolean) => void;
   nome: string;
   variant: "videomaker";
+  /** Quando presente, mostra "Ver histórico completo →" no rodapé. */
+  historicoHref?: string;
   proximasList: GravacaoItem[];
   hojeList: GravacaoItem[];
   concluidasList: CapturaItem[];
@@ -21,6 +23,8 @@ interface EditorProps {
   onOpenChange: (open: boolean) => void;
   nome: string;
   variant: "edicao";
+  /** Quando presente, mostra "Ver histórico completo →" no rodapé. */
+  historicoHref?: string;
   /** Tarefas abertas com prazo já vencido. Aparecem destacadas em vermelho. */
   atrasadasList: TaskItem[];
   proximasList: TaskItem[];
@@ -237,6 +241,17 @@ export function MemberDetailDialog(props: Props) {
               </>
             )}
           </div>
+        )}
+
+        {props.historicoHref && (
+          <Link
+            href={props.historicoHref}
+            onClick={() => props.onOpenChange(false)}
+            className="mt-1 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+          >
+            Ver histórico completo
+            <ExternalLink className="h-3.5 w-3.5" />
+          </Link>
         )}
       </DialogContent>
     </Dialog>

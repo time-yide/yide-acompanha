@@ -6,6 +6,7 @@ import type { GravacaoItem, TaskItem, CapturaItem } from "@/lib/dashboard/audiov
 
 interface VideomakerProps {
   variant: "videomaker";
+  id: string;
   nome: string;
   proximas: number;
   hoje: number;
@@ -17,6 +18,7 @@ interface VideomakerProps {
 
 interface EditorProps {
   variant: "edicao";
+  id: string;
   nome: string;
   funcao: string;
   atrasadas: number;
@@ -62,6 +64,7 @@ export function MemberRow(props: Props) {
             onOpenChange={setOpen}
             nome={props.nome}
             variant="videomaker"
+            historicoHref={`/colaboradores/${props.id}/tarefas`}
             proximasList={props.proximasList}
             hojeList={props.hojeList}
             concluidasList={props.concluidasList}
@@ -107,6 +110,7 @@ export function MemberRow(props: Props) {
           onOpenChange={setOpen}
           nome={props.nome}
           variant="edicao"
+          historicoHref={`/colaboradores/${props.id}/tarefas`}
           atrasadasList={props.atrasadasList}
           proximasList={props.proximasList}
           emAndamentoList={props.emAndamentoList}
