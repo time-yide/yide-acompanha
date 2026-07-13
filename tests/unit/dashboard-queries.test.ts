@@ -438,18 +438,38 @@ describe("getCarteiraPorAssessor", () => {
 });
 
 /** Mock do supabase para o ranking de satisfação live (entries + synthesis). */
+/** Monta uma captura com as 7 notas (1-5) iguais a `val`. */
+function captura(client_id: string, val: number) {
+  return {
+    client_id,
+    rating_organizacao: val,
+    rating_facilidade: val,
+    rating_execucao_roteiro: val,
+    rating_atrasos: val,
+    rating_comunicacao: val,
+    rating_retrabalho: val,
+    rating_colaboracao: val,
+  };
+}
+
 function mockSatisfacaoRanking({
   clients,
   entries,
   synthesis,
+  capturas = [],
 }: {
   clients: Array<{ id: string; nome: string; assessor_id: string | null; coordenador_id: string | null }>;
   entries: Array<{ client_id: string; autor_id: string; papel_autor: string; cor: "verde" | "amarelo" | "vermelho" }>;
   synthesis: Array<{ id: string; client_id: string; score_final: number; cor_final: "verde" | "amarelo" | "vermelho"; resumo_ia: string; divergencia_detectada: boolean; acao_sugerida: string | null; created_at: string }>;
+  capturas?: Array<Record<string, number | string>>;
 }) {
   fromMock.mockImplementation((table) => {
     if (table === "clients") {
       return { select: () => makeChainableQuery(clients) };
+    }
+    if (table === "audiovisual_capturas") {
+      // Cadeia: .select().gte().lt().in() → makeChainableQuery cobre.
+      return { select: () => makeChainableQuery(capturas) };
     }
     if (table === "satisfaction_entries") {
       // Cadeia: .select().eq().in().not() → resolve com { data: entries }
@@ -486,7 +506,9 @@ function mockSatisfacaoRanking({
 }
 
 describe("getRankingSatisfacao", () => {
-  it("ranqueia top (verde desc) e bottom (vermelho asc), usa síntese quando existe", async () => {
+  it("ranqueia top (verde desc) e bottom (vermelho asc) pela média das fontes", async () => {
+    // Modelo novo: nota = média simples de assessor + coordenador + gravação.
+    // Síntese IA não define mais a nota.
     mockSatisfacaoRanking({
       clients: [
         { id: "c1", nome: "Alpha", assessor_id: "a1", coordenador_id: "co1" },
@@ -494,31 +516,56 @@ describe("getRankingSatisfacao", () => {
         { id: "c3", nome: "Gamma", assessor_id: "a1", coordenador_id: "co1" },
         { id: "c4", nome: "Delta", assessor_id: "a1", coordenador_id: "co1" },
         { id: "c5", nome: "Epsilon", assessor_id: "a1", coordenador_id: "co1" },
-        { id: "c6", nome: "Zeta", assessor_id: "a1", coordenador_id: "co1" },
       ],
       entries: [
+        // c1: 10 + 10 = 10.0 (verde)
         { client_id: "c1", autor_id: "a1", papel_autor: "assessor", cor: "verde" },
+        { client_id: "c1", autor_id: "co1", papel_autor: "coordenador", cor: "verde" },
+        // c2: 10 + 5 = 7.5 (verde)
         { client_id: "c2", autor_id: "a1", papel_autor: "assessor", cor: "verde" },
-        { client_id: "c3", autor_id: "a1", papel_autor: "assessor", cor: "verde" },
+        { client_id: "c2", autor_id: "co1", papel_autor: "coordenador", cor: "amarelo" },
+        // c3: 5 + 5 = 5.0 (amarelo)
+        { client_id: "c3", autor_id: "a1", papel_autor: "assessor", cor: "amarelo" },
+        { client_id: "c3", autor_id: "co1", papel_autor: "coordenador", cor: "amarelo" },
+        // c4: 0 + 5 = 2.5 (vermelho)
         { client_id: "c4", autor_id: "a1", papel_autor: "assessor", cor: "vermelho" },
-        { client_id: "c5", autor_id: "a1", papel_autor: "assessor", cor: "amarelo" },
-        { client_id: "c6", autor_id: "a1", papel_autor: "assessor", cor: "vermelho" },
+        { client_id: "c4", autor_id: "co1", papel_autor: "coordenador", cor: "amarelo" },
+        // c5: 0 + 0 = 0.0 (vermelho)
+        { client_id: "c5", autor_id: "a1", papel_autor: "assessor", cor: "vermelho" },
+        { client_id: "c5", autor_id: "co1", papel_autor: "coordenador", cor: "vermelho" },
       ],
-      synthesis: [
-        { id: "s1", client_id: "c1", score_final: 9.5, cor_final: "verde", resumo_ia: "ok", divergencia_detectada: false, acao_sugerida: null, created_at: "2026-04-27" },
-        { id: "s2", client_id: "c2", score_final: 8.5, cor_final: "verde", resumo_ia: "ok", divergencia_detectada: false, acao_sugerida: null, created_at: "2026-04-27" },
-        { id: "s3", client_id: "c3", score_final: 9.0, cor_final: "verde", resumo_ia: "ok", divergencia_detectada: false, acao_sugerida: null, created_at: "2026-04-27" },
-        { id: "s4", client_id: "c4", score_final: 2.0, cor_final: "vermelho", resumo_ia: "x", divergencia_detectada: false, acao_sugerida: "ação", created_at: "2026-04-27" },
-        { id: "s5", client_id: "c5", score_final: 5.0, cor_final: "amarelo", resumo_ia: "x", divergencia_detectada: false, acao_sugerida: "ação", created_at: "2026-04-27" },
-        { id: "s6", client_id: "c6", score_final: 3.5, cor_final: "vermelho", resumo_ia: "x", divergencia_detectada: false, acao_sugerida: "ação", created_at: "2026-04-27" },
-      ],
+      synthesis: [],
     });
 
     const r = await getRankingSatisfacao();
-    // Top: 3 verdes ordenados desc + amarelo (faltam 7 verdes pra completar 10)
-    expect(r.top.map((s) => s.client_id)).toEqual(["c1", "c3", "c2", "c5"]);
-    // Bottom: 2 vermelhos asc + amarelo (faltam 8 vermelhos pra completar 10)
-    expect(r.bottom.map((s) => s.client_id)).toEqual(["c4", "c6", "c5"]);
+    // Top: verdes desc (c1=10, c2=7.5) + amarelo (c3=5) pra preencher.
+    expect(r.top.map((s) => s.client_id)).toEqual(["c1", "c2", "c3"]);
+    // Bottom: vermelhos asc (c5=0, c4=2.5) + amarelo (c3=5) pra preencher.
+    expect(r.bottom.map((s) => s.client_id)).toEqual(["c5", "c4", "c3"]);
+  });
+
+  it("inclui a nota das gravações do mês na média e aceita cliente só com gravação", async () => {
+    mockSatisfacaoRanking({
+      clients: [
+        // c1: assessor verde (10) + gravação nota 3→5 → média 7.5 (verde)
+        { id: "c1", nome: "Alpha", assessor_id: "a1", coordenador_id: "co1" },
+        // c2: SEM voto, só gravação nota 5→10 → 10 (verde) — entra mesmo sem voto
+        { id: "c2", nome: "Beta", assessor_id: "a1", coordenador_id: "co1" },
+      ],
+      entries: [
+        { client_id: "c1", autor_id: "a1", papel_autor: "assessor", cor: "verde" },
+      ],
+      synthesis: [],
+      capturas: [captura("c1", 3), captura("c2", 5)],
+    });
+
+    const r = await getRankingSatisfacao();
+    const c1 = r.top.find((s) => s.client_id === "c1");
+    const c2 = r.top.find((s) => s.client_id === "c2");
+    expect(c1?.score_final).toBe(7.5); // (10 + 5) / 2
+    expect(c1?.breakdown).toEqual({ assessor: 10, coordenador: null, gravacao: 5 });
+    expect(c2?.score_final).toBe(10); // só gravação
+    expect(c2?.breakdown).toEqual({ assessor: null, coordenador: null, gravacao: 10 });
   });
 
   it("inclui cliente no ranking mesmo sem síntese (live por entries)", async () => {
