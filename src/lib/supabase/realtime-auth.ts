@@ -17,11 +17,15 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 export async function authenticateRealtime(supabase: SupabaseClient<any, any, any>): Promise<() => void> {
   const { data } = await supabase.auth.getSession();
   if (data.session?.access_token) {
-    supabase.realtime.setAuth(data.session.access_token);
+    // IMPORTANTE: setAuth é async (realtime-js 2.104+). Precisa de await —
+    // senão o .subscribe() do caller entra no ar antes do JWT ser aplicado no
+    // websocket, o Realtime avalia o RLS como anônimo e dropa TODOS os eventos
+    // em silêncio (chat/notificações/tarefas nunca atualizam sozinhos).
+    await supabase.realtime.setAuth(data.session.access_token);
   }
   const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
     if (session?.access_token) {
-      supabase.realtime.setAuth(session.access_token);
+      void supabase.realtime.setAuth(session.access_token);
     }
   });
   return () => sub.subscription.unsubscribe();
