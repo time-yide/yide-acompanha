@@ -70,6 +70,14 @@ export async function DashboardAssessor({ userId, nome, especialidade, mes, mesA
           </div>
         </header>
 
+        {/* Postagem no topo: primeira coisa que o assessor vê (decisão Yasmin). */}
+        <Suspense fallback={<ListSkeleton rows={5} />}>
+          <InstagramPostsSection
+            assessorId={userId}
+            titulo="Suas postagens no Instagram"
+          />
+        </Suspense>
+
         <Suspense fallback={null}>
           <AlertaOnboardingAtrasadoSection userId={userId} role="assessor" />
         </Suspense>
@@ -85,13 +93,6 @@ export async function DashboardAssessor({ userId, nome, especialidade, mes, mesA
             <ChartEntradaChurnLazy data={entradaChurn} />
           </Section>
         </div>
-
-        <Suspense fallback={<ListSkeleton rows={5} />}>
-          <InstagramPostsSection
-            assessorId={userId}
-            titulo="Suas postagens no Instagram"
-          />
-        </Suspense>
 
         {isMesAtual && (
           <Section title="Satisfação dos meus clientes" subtitle="Top 10 mais e menos satisfeitos da semana" cta={{ href: "/satisfacao", label: "Ver completo →" }}>
