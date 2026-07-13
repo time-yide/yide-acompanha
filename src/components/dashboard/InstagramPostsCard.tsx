@@ -65,6 +65,9 @@ interface Props {
   titulo?: string;
   /** Se true, esconde o filtro de assessor (caso assessor logado, só vê os próprios). */
   esconderFiltroAssessor?: boolean;
+  /** Coordenador/sócio: começa SEM assessor selecionado (não despeja a lista
+   * inteira). A tabela só aparece depois de escolher um assessor no filtro. */
+  exigirSelecaoAssessor?: boolean;
 }
 
 interface ClienteEnriched extends ClienteComSnapshot {
@@ -78,6 +81,7 @@ export function InstagramPostsCard({
   clientes,
   titulo = "Postagens no Instagram",
   esconderFiltroAssessor = false,
+  exigirSelecaoAssessor = false,
 }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -85,7 +89,9 @@ export function InstagramPostsCard({
   const [lastRun, setLastRun] = useState<string | null>(null);
 
   const [query, setQuery] = useState("");
-  const [assessorFilter, setAssessorFilter] = useState<string>("__todos__");
+  const [assessorFilter, setAssessorFilter] = useState<string>(
+    exigirSelecaoAssessor ? "__nenhum__" : "__todos__",
+  );
   const [sortKey, setSortKey] = useState<SortKey>("mes");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   // Sempre mês corrente. O scraper agora só guarda posts do mês atual (corte de
@@ -143,6 +149,9 @@ export function InstagramPostsCard({
 
   // Aplica filtros + sort.
   const visiveis = useMemo(() => {
+    // Coordenador/sócio sem assessor escolhido: não mostra nada (evita a lista
+    // enorme). A tabela aparece só depois de selecionar um assessor.
+    if (assessorFilter === "__nenhum__") return [];
     const q = query.trim().toLowerCase();
     let arr = enriched.filter((c) => {
       if (q && !c.cliente_nome.toLowerCase().includes(q)) return false;
@@ -254,6 +263,7 @@ export function InstagramPostsCard({
               onChange={(e) => setAssessorFilter(e.target.value)}
               className="h-8 appearance-none rounded-md border bg-card pl-3 pr-7 text-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
             >
+              {exigirSelecaoAssessor && <option value="__nenhum__">Selecione um assessor…</option>}
               <option value="__todos__">Todos os assessores</option>
               <option value="__sem__">Sem assessor</option>
               {assessores.map((a) => (
@@ -292,7 +302,9 @@ export function InstagramPostsCard({
             {visiveis.length === 0 && (
               <tr>
                 <td colSpan={esconderFiltroAssessor ? 6 : 7} className="px-4 py-8 text-center text-xs text-muted-foreground">
-                  Nenhum cliente bate com o filtro.
+                  {assessorFilter === "__nenhum__"
+                    ? "Selecione um assessor no filtro acima pra ver as postagens."
+                    : "Nenhum cliente bate com o filtro."}
                 </td>
               </tr>
             )}

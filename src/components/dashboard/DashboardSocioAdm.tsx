@@ -97,6 +97,7 @@ export function DashboardSocioAdm({ userId, nome, mes, mesAtual, meses }: Props)
             <InstagramPostsSection
               assessorId={null}
               titulo="Postagens no Instagram (Geral)"
+              exigirSelecaoAssessor
             />
           </Suspense>
         )}

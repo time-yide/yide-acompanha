@@ -164,9 +164,13 @@ export function RemuneracaoSkeleton() {
 export async function InstagramPostsSection({
   assessorId,
   titulo,
+  exigirSelecaoAssessor = false,
 }: {
   assessorId: string | null;
   titulo?: string;
+  /** Coordenador/sócio: não despeja a lista inteira — começa sem assessor
+   * selecionado e só mostra as postagens depois de escolher um no filtro. */
+  exigirSelecaoAssessor?: boolean;
 }) {
   const unitId = await getEffectiveUnitId();
   const clientes = await listClientesComUltimoSnapshot({
@@ -180,6 +184,7 @@ export async function InstagramPostsSection({
       clientes={clientes}
       titulo={titulo}
       esconderFiltroAssessor={assessorId !== null}
+      exigirSelecaoAssessor={exigirSelecaoAssessor}
     />
   );
 }
