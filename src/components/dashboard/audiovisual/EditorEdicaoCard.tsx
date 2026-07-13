@@ -168,7 +168,13 @@ export function EditorEdicaoCard({ editor: e }: { editor: EditorStat }) {
             </span>
           )}
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold leading-tight">{e.nome}</p>
+            <Link
+              href={`/colaboradores/${e.id}/tarefas`}
+              className="block truncate text-sm font-semibold leading-tight underline-offset-4 hover:underline"
+              title="Ver histórico de tarefas"
+            >
+              {e.nome}
+            </Link>
             <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{roleLabel(e.role)}</p>
           </div>
         </div>

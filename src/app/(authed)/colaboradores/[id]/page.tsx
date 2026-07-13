@@ -6,7 +6,11 @@ import { canAccess, roleLabel } from "@/lib/auth/permissions";
 import { getColaboradorById } from "@/lib/colaboradores/queries";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Pencil } from "lucide-react";
+import { Pencil, ListTodo } from "lucide-react";
+
+// Gestão que pode ver o histórico de tarefas de qualquer colaborador (espelha
+// canManageAnyTask). Além deles, o próprio colaborador vê o seu.
+const MANAGER_ROLES_HISTORICO = ["adm", "socio", "coordenador", "assessor", "audiovisual_chefe"];
 
 function initials(nome: string): string {
   return nome
@@ -22,6 +26,7 @@ export default async function ColaboradorPage({ params }: { params: Promise<{ id
   const user = await requireAuth();
   const canEdit = canAccess(user.role, "edit:colaboradores");
   const canSeeFinance = canAccess(user.role, "view:other_commissions") || user.id === id;
+  const canSeeHistorico = user.id === id || MANAGER_ROLES_HISTORICO.includes(user.role);
 
   let colab;
   try {
@@ -62,15 +67,26 @@ export default async function ColaboradorPage({ params }: { params: Promise<{ id
             </div>
           </div>
         </div>
-        {canEdit && (
-          <Link
-            href={`/colaboradores/${id}/editar`}
-            className="group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-border bg-background text-sm font-medium whitespace-nowrap transition-all outline-none select-none hover:bg-muted hover:text-foreground h-8 gap-1.5 px-2.5"
-          >
-            <Pencil className="h-4 w-4" />
-            Editar
-          </Link>
-        )}
+        <div className="flex shrink-0 items-center gap-2">
+          {canSeeHistorico && (
+            <Link
+              href={`/colaboradores/${id}/tarefas`}
+              className="group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-border bg-background text-sm font-medium whitespace-nowrap transition-all outline-none select-none hover:bg-muted hover:text-foreground h-8 gap-1.5 px-2.5"
+            >
+              <ListTodo className="h-4 w-4" />
+              Histórico de tarefas
+            </Link>
+          )}
+          {canEdit && (
+            <Link
+              href={`/colaboradores/${id}/editar`}
+              className="group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-border bg-background text-sm font-medium whitespace-nowrap transition-all outline-none select-none hover:bg-muted hover:text-foreground h-8 gap-1.5 px-2.5"
+            >
+              <Pencil className="h-4 w-4" />
+              Editar
+            </Link>
+          )}
+        </div>
       </header>
 
       <Card className="p-6">

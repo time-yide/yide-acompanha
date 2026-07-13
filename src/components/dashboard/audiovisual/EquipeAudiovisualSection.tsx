@@ -92,6 +92,7 @@ export async function EquipeAudiovisualSection({ periodo }: Props) {
                   <MemberRow
                     key={v.id}
                     variant="videomaker"
+                    id={v.id}
                     nome={v.nome}
                     proximas={v.proximas}
                     hoje={v.hoje}
