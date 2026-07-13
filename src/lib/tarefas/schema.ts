@@ -84,6 +84,9 @@ export const requestAdjustmentsSchema = z.object({
 });
 
 export const taskCommentSchema = z.object({
+  /** Id gerado no client pra alinhar a otimista com o insert e o realtime
+   * (evita duplicar no envio). */
+  id: z.string().uuid().optional(),
   task_id: z.string().uuid(),
   conteudo: z
     .string()

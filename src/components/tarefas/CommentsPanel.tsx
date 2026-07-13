@@ -69,9 +69,12 @@ export function CommentsPanel({ taskId, initialComments, canComment, currentUser
     if (content.length === 0) return;
 
     // Optimistic insert - UI atualiza imediato, antes do round-trip do server.
-    const tempId = `optimistic-${crypto.randomUUID()}`;
+    // Gera o UUID REAL no client e manda pro server inserir com ele: assim a
+    // otimista, o insert e o evento realtime têm o MESMO id e a dedup por id
+    // não duplica quando o realtime chega antes da resposta do server.
+    const msgId = crypto.randomUUID();
     const optimistic: TaskComment = {
-      id: tempId,
+      id: msgId,
       task_id: taskId,
       autor_id: currentUser.id,
       conteudo: content,
@@ -83,25 +86,24 @@ export function CommentsPanel({ taskId, initialComments, canComment, currentUser
 
     startTransition(async () => {
       const fd = new FormData();
+      fd.set("id", msgId);
       fd.set("task_id", taskId);
       fd.set("conteudo", content);
       const r = await addCommentAction(fd);
       if (r?.error) {
         // Remove a otimista e devolve o texto pro user.
-        setComments((prev) => prev.filter((c) => c.id !== tempId));
+        setComments((prev) => prev.filter((c) => c.id !== msgId));
         setDraft(content);
         setError(r.error);
         toast.error(r.error);
         return;
       }
-      // Substitui temp_id pelo id real - dedup do realtime cobre o resto.
-      if (r?.id) {
-        const realId = r.id;
-        const realCriadoEm = r.criado_em ?? optimistic.criado_em;
-        setComments((prev) =>
-          prev.map((c) => (c.id === tempId ? { ...c, id: realId, criado_em: realCriadoEm } : c)),
-        );
-      }
+      // Confirmado: alinha o criado_em com o do server. O id já é o real, então
+      // não há troca de id nem risco de duplicar com o evento realtime.
+      const realCriadoEm = r?.criado_em ?? optimistic.criado_em;
+      setComments((prev) =>
+        prev.map((c) => (c.id === msgId ? { ...c, criado_em: realCriadoEm } : c)),
+      );
     });
   }
 

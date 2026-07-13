@@ -875,6 +875,7 @@ export async function addCommentAction(formData: FormData): Promise<CommentResul
   const actor = await requireAuth();
 
   const parsed = taskCommentSchema.safeParse({
+    id: fd(formData, "id"),
     task_id: fd(formData, "task_id"),
     conteudo: fd(formData, "conteudo"),
   });
@@ -901,6 +902,7 @@ export async function addCommentAction(formData: FormData): Promise<CommentResul
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
   const { data: created, error } = await sb.from("task_comments").insert({
+    ...(parsed.data.id ? { id: parsed.data.id } : {}),
     task_id: parsed.data.task_id,
     autor_id: actor.id,
     conteudo: parsed.data.conteudo,

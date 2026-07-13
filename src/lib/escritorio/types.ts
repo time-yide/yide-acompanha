@@ -32,6 +32,9 @@ export interface ChatMessage {
   updated_at: string | null;
   autor?: { id: string; nome: string; avatar_url?: string | null } | null;
   reply_to?: { id: string; conteudo: string; autor_nome: string | null } | null;
+  /** Só no client: true enquanto a mensagem otimista não foi confirmada pelo
+   * server (mostra relógio em vez de check). Nunca vem do banco. */
+  pending?: boolean;
 }
 
 export interface ChannelLastMessagePreview {
