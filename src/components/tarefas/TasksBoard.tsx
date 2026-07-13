@@ -6,6 +6,7 @@ import { X } from "lucide-react";
 import { TasksColumn } from "./TasksColumn";
 import { ConcludeOperationalModal } from "./ConcludeOperationalModal";
 import { moveTaskStatusAction } from "@/lib/tarefas/actions";
+import { isRoleQueEntrega, isRoleEntregaSempre } from "@/lib/tarefas/delivery-roles";
 import type { TaskRow } from "@/lib/tarefas/queries";
 
 type Status =
@@ -71,13 +72,11 @@ export function TasksBoard({ tasks, userRole }: { tasks: TaskRow[]; userRole: st
       const task = tasks.find((t) => t.id === taskId);
       const role = task?.atribuido_a_role;
       const tipoEntrega = task?.tipo === "video" || task?.tipo === "arte";
-      const isEntregaSempre =
-        role === "editor" ||
-        role === "videomaker" ||
-        role === "designer" ||
-        role === "audiovisual_chefe" ||
-        role === "coordenador";
-      const requiresModal = isEntregaSempre || (tipoEntrega && role === "assessor");
+      // Espelha EXATAMENTE a trava do server (moveTaskStatusAction): quem tem
+      // material pra entregar (vídeo/arte OU papel que sempre entrega) E é papel
+      // de entrega precisa do modal com link. Lista compartilhada em
+      // delivery-roles pra não divergir (foi a divergência que soltou fast_midia).
+      const requiresModal = (tipoEntrega || isRoleEntregaSempre(role)) && isRoleQueEntrega(role);
       if (task && !task.drive_link && requiresModal) {
         setConclModalTask({
           id: taskId,

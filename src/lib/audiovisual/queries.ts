@@ -195,9 +195,12 @@ async function _listEventosSemCapturaImpl(options: { videomakerId?: string }): P
     cliente: { id: string; nome: string } | null;
   }>) {
     if (captured.has(e.id)) continue;
-    const partIds = e.participantes_ids ?? [];
-    // Quando há múltiplos participantes, emite uma linha por videomaker
-    // (cada um precisa entregar sua captura). Se options.videomakerId, filtra.
+    // dedupe: participantes_ids pode ter o mesmo videomaker repetido (bug de
+    // dados / múltiplas delegações), o que gerava a MESMA gravação duplicada
+    // idêntica na aba "Pendente de entrega". new Set garante 1 linha por
+    // (evento, videomaker). Quando há videomakers DIFERENTES, cada um vira uma
+    // linha (cada um precisa entregar sua captura). Se options.videomakerId, filtra.
+    const partIds = [...new Set(e.participantes_ids ?? [])];
     for (const pid of partIds) {
       if (options.videomakerId && pid !== options.videomakerId) continue;
       // Skip pids que não são de videomakers ativos (poderiam vir de coord/assessor

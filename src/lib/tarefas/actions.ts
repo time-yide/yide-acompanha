@@ -8,6 +8,7 @@ import { logAudit } from "@/lib/audit/log";
 import { logActivityInternal } from "@/lib/produtividade/actions";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 import { getCoordenadoresAudiovisualIds } from "./client-team";
+import { isRoleQueEntrega, isRoleEntregaSempre } from "./delivery-roles";
 import {
   createTaskSchema,
   editTaskSchema,
@@ -56,23 +57,6 @@ function canManageAnyTask(user: CurrentUser): boolean {
     user.role === "assessor" ||
     user.role === "audiovisual_chefe"
   );
-}
-
-const ROLES_QUE_ENTREGAM = ["editor", "videomaker", "designer", "audiovisual_chefe", "coordenador", "assessor"] as const;
-type RoleQueEntrega = (typeof ROLES_QUE_ENTREGAM)[number];
-
-function isRoleQueEntrega(role: string): role is RoleQueEntrega {
-  return (ROLES_QUE_ENTREGAM as readonly string[]).includes(role);
-}
-
-// Papéis do audiovisual que SEMPRE entregam material pronto: pra eles o link
-// de entrega é obrigatório em QUALQUER tipo de tarefa (inclusive "geral"), não
-// só vídeo/arte. Assessor fica de fora de propósito - suas tarefas "geral"
-// (reunião, follow-up, acompanhamento) não têm material pra linkar.
-const ROLES_ENTREGA_SEMPRE = ["editor", "videomaker", "designer", "audiovisual_chefe", "coordenador"] as const;
-
-function isRoleEntregaSempre(role: string | null | undefined): boolean {
-  return (ROLES_ENTREGA_SEMPRE as readonly string[]).includes(role ?? "");
 }
 
 async function getProfileNameAndActive(supabase: Awaited<ReturnType<typeof createClient>>, profileId: string) {
