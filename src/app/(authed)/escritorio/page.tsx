@@ -17,7 +17,15 @@ export default async function EscritorioIndexPage() {
       </div>
     );
   }
-  // Redireciona pro canal com mensagens não lidas, ou pro primeiro
+  // Redireciona pro canal com mensagens não lidas, ou pro primeiro.
+  // DMs e grupos são roteados por id (/escritorio/dm|grupo/[id]); canais fixos
+  // por kind. Sem isso, um grupo/DM como alvo cairia em /escritorio/grupo → 404.
   const target = channels.find((c) => c.unread_count > 0) ?? channels[0];
-  redirect(`/escritorio/${target.kind}`);
+  const href =
+    target.kind === "direct"
+      ? `/escritorio/dm/${target.id}`
+      : target.kind === "grupo"
+        ? `/escritorio/grupo/${target.id}`
+        : `/escritorio/${target.kind}`;
+  redirect(href);
 }
