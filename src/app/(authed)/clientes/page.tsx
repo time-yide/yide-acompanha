@@ -31,10 +31,16 @@ export default async function ClientesPage({ searchParams }: { searchParams: Pro
       : user.id
     : undefined;
 
-  // Em "Minha carteira" forçamos status=ativo (decisão de produto: carteira = ativos).
+  // Padrão = "ativo" quando não vem status (clicar em "Clientes" no menu cai em
+  // Ativos, não em Todos). "Todos" agora é explícito via ?status=todos.
+  // Em "Minha carteira" forçamos ativo (carteira = ativos).
   const status: "ativo" | "churn" | undefined = isMinhaCarteira
     ? "ativo"
-    : ((params.status as "ativo" | "churn" | undefined) ?? undefined);
+    : params.status === "churn"
+      ? "churn"
+      : params.status === "todos"
+        ? undefined
+        : "ativo";
 
   // Drill-down filters (vindos dos KPIs do dashboard).
   const modalidade: "mensal" | "pontual" | undefined =
@@ -162,7 +168,7 @@ export default async function ClientesPage({ searchParams }: { searchParams: Pro
         <span className="text-muted-foreground">·</span>
         <Link href="/clientes?status=churn" className={tabClass(activeTab === "churn")}>Churn</Link>
         <span className="text-muted-foreground">·</span>
-        <Link href="/clientes" className={tabClass(activeTab === "todos")}>Todos</Link>
+        <Link href="/clientes?status=todos" className={tabClass(activeTab === "todos")}>Todos</Link>
         {canSeeCarteira && (
           <>
             <span className="text-muted-foreground">·</span>
