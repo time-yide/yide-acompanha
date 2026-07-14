@@ -16,12 +16,11 @@ describe("PACOTE_COLUMNS", () => {
     }
   });
 
-  it("trafego não tem crono, design, mobile nem postagem", () => {
-    // GMN, câmera e edição passaram a fazer parte do pacote trafego.
+  it("trafego não tem crono nem postagem", () => {
+    // GMN, gravação (câmera) e edição fazem parte do pacote trafego.
     expect(PACOTE_COLUMNS.trafego.crono).toBe(0);
-    expect(PACOTE_COLUMNS.trafego.design).toBe(0);
-    expect(PACOTE_COLUMNS.trafego.mobile).toBe(0);
     expect(PACOTE_COLUMNS.trafego.pacote_postados).toBe(0);
+    expect(PACOTE_COLUMNS.trafego.camera).toBe(1);
   });
 
   it("estrategia não tem TPG/TPM", () => {
@@ -29,8 +28,7 @@ describe("PACOTE_COLUMNS", () => {
     expect(PACOTE_COLUMNS.estrategia.tpm).toBe(0);
   });
 
-  it("audiovisual não tem design, GMN, TPG, TPM, postagem", () => {
-    expect(PACOTE_COLUMNS.audiovisual.design).toBe(0);
+  it("audiovisual não tem GMN, TPG, TPM, postagem", () => {
     expect(PACOTE_COLUMNS.audiovisual.gmn).toBe(0);
     expect(PACOTE_COLUMNS.audiovisual.tpg).toBe(0);
     expect(PACOTE_COLUMNS.audiovisual.tpm).toBe(0);
@@ -69,11 +67,11 @@ describe("PACOTES_NO_PAINEL_MENSAL", () => {
 
 describe("isApplicable", () => {
   it("retorna true quando coluna se aplica", () => {
-    expect(isApplicable("trafego_estrategia", "design")).toBe(true);
+    expect(isApplicable("trafego_estrategia", "camera")).toBe(true);
   });
   it("retorna false quando não se aplica", () => {
-    expect(isApplicable("audiovisual", "design")).toBe(false);
-    expect(isApplicable("trafego", "design")).toBe(false);
+    expect(isApplicable("audiovisual", "tpg")).toBe(false);
+    expect(isApplicable("trafego", "crono")).toBe(false);
   });
 });
 

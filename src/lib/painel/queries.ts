@@ -62,6 +62,7 @@ export interface ChecklistRow {
   gmn_nota_media: number | null;
   gmn_observacoes: string | null;
   gmn_otimizado: boolean;
+  gravacao_count: number;
   steps: ChecklistStepRow[];
 }
 
@@ -261,6 +262,7 @@ async function _getMonthlyChecklistsImpl(
       gmn_nota_media: null,
       gmn_observacoes: null,
       gmn_otimizado: false,
+      gravacao_count: 0,
       steps: [],
     }));
   }
@@ -291,7 +293,7 @@ async function _getMonthlyChecklistsImpl(
   // correspondente como pronto sem precisar de clique manual.
   // Marca manual via markStepProntoAction continua funcionando - quem chegar
   // primeiro grava `pronto` no banco.
-  const derivedDone = await getDerivedDoneSet(supabase, mesReferencia, clientIds);
+  const { done: derivedDone, gravacaoCount } = await getDerivedDoneSet(supabase, mesReferencia, clientIds);
   // Cronograma fica pronto quando o cliente tem link_estrategia preenchido
   // (Drive, Gamma, etc.). O link é gerenciado na página /clientes/[id]/editar.
   for (const c of clients) {
@@ -355,6 +357,7 @@ async function _getMonthlyChecklistsImpl(
       gmn_nota_media: cl?.gmn_nota_media ?? null,
       gmn_observacoes: cl?.gmn_observacoes ?? null,
       gmn_otimizado: cl?.gmn_otimizado ?? false,
+      gravacao_count: gravacaoCount.get(c.id) ?? 0,
       steps: cl ? (stepsByChecklist.get(cl.id) ?? []) : [],
     };
   });
@@ -395,12 +398,24 @@ function getMonthRangeBRT(mesReferencia: string): { startIso: string; endIso: st
  * MOB (mobile) fica de fora - o sistema não diferencia captura mobile vs
  * câmera profissional ainda. Marca manual pelo cell.
  */
+/** Conta capturas (gravações) por client_id. Ignora linhas sem cliente. */
+export function countGravacoesByClient(
+  rows: Array<{ client_id: string | null }>,
+): Map<string, number> {
+  const m = new Map<string, number>();
+  for (const r of rows) {
+    if (!r.client_id) continue;
+    m.set(r.client_id, (m.get(r.client_id) ?? 0) + 1);
+  }
+  return m;
+}
+
 async function getDerivedDoneSet(
   supabase: ReturnType<typeof createServiceRoleClient>,
   mesReferencia: string,
   clientIds: string[],
-): Promise<Set<string>> {
-  if (clientIds.length === 0) return new Set();
+): Promise<{ done: Set<string>; gravacaoCount: Map<string, number> }> {
+  if (clientIds.length === 0) return { done: new Set(), gravacaoCount: new Map() };
 
   const { startIso, endIso } = getMonthRangeBRT(mesReferencia);
   // data_captacao é DATE - usa formato YYYY-MM-DD
@@ -419,10 +434,13 @@ async function getDerivedDoneSet(
       .in("client_id", clientIds)
       .gte("data_captacao", startDate)
       .lt("data_captacao", endDate),
-    // Reunião - qualquer evento com client_id no mês
+    // Reunião - só eventos do tipo "Assessores" (reunião de assessoria) com
+    // client_id no mês. Usa o TIPO do evento (não quem criou) pra não contar
+    // gravação (videomakers) ou outros eventos como reunião.
     sb
       .from("calendar_events")
       .select("client_id")
+      .eq("sub_calendar", "assessores")
       .in("client_id", clientIds)
       .gte("inicio", startIso)
       .lt("inicio", endIso),
@@ -460,5 +478,9 @@ async function getDerivedDoneSet(
     if (row.client_id) done.add(`${row.client_id}:postagem`);
   }
 
-  return done;
+  const gravacaoCount = countGravacoesByClient(
+    (capturasRes.data ?? []) as Array<{ client_id: string | null }>,
+  );
+
+  return { done, gravacaoCount };
 }

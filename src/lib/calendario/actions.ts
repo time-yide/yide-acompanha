@@ -238,6 +238,7 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
     criado_por: actor.id,
     participantes_ids: participantesFinais,
     client_id: parsed.data.client_id || null,
+    cliente_avulso: parsed.data.cliente_avulso?.trim() || null,
     localizacao_endereco: parsed.data.localizacao_endereco?.trim() || null,
     localizacao_maps_url: parsed.data.localizacao_maps_url?.trim() || null,
     link_roteiro: parsed.data.link_roteiro?.trim() || null,
@@ -281,6 +282,15 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
         .select("id")
         .single();
     }
+  }
+
+  // Fallback: migration cliente_avulso ainda não aplicada → insere sem o campo
+  // (janela deploy→migration manual).
+  if (createResult.error && String(createResult.error.message ?? "").includes("cliente_avulso")) {
+    console.warn("[calendario] migration cliente_avulso não aplicada - fallback sem o campo");
+    const semAvulso = { ...insertPayload } as Record<string, unknown>;
+    delete semAvulso.cliente_avulso;
+    createResult = await sb.from("calendar_events").insert(semAvulso).select("id").single();
   }
 
   const { data: created, error } = createResult;
@@ -438,6 +448,7 @@ export async function updateEventAction(_prevState: ActionResult, formData: Form
     sub_calendar: parsed.data.sub_calendar,
     participantes_ids: participantesFinais,
     client_id: parsed.data.client_id || null,
+    cliente_avulso: parsed.data.cliente_avulso?.trim() || null,
     localizacao_endereco: parsed.data.localizacao_endereco?.trim() || null,
     localizacao_maps_url: parsed.data.localizacao_maps_url?.trim() || null,
     link_roteiro: parsed.data.link_roteiro?.trim() || null,
@@ -467,11 +478,22 @@ export async function updateEventAction(_prevState: ActionResult, formData: Form
 
   // .select() + check de linhas afetadas: a RLS pode negar o UPDATE
   // silenciosamente (error:null, 0 rows). Sem isso, reportaríamos sucesso falso.
-  const { data: updatedRows, error } = await sbUpd
+  let { data: updatedRows, error } = await sbUpd
     .from("calendar_events")
     .update(updatePayload)
     .eq("id", id)
     .select("id");
+  // Fallback: migration cliente_avulso ainda não aplicada → atualiza sem o campo.
+  if (error && String(error.message ?? "").includes("cliente_avulso")) {
+    console.warn("[calendario] migration cliente_avulso não aplicada - update sem o campo");
+    const semAvulso = { ...updatePayload } as Record<string, unknown>;
+    delete semAvulso.cliente_avulso;
+    ({ data: updatedRows, error } = await sbUpd
+      .from("calendar_events")
+      .update(semAvulso)
+      .eq("id", id)
+      .select("id"));
+  }
   if (error) {
     const msg = String(error.message ?? "");
     if (msg.includes("no_videomaker_overlap")) {
