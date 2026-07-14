@@ -44,15 +44,16 @@ Fonte: `audiovisual_capturas` — `COUNT(*)` por `client_id`, filtrando
 Não distingue tipo de videomaker (mobile não é rastreado à parte hoje). As
 colunas `camera`/`mobile` manuais somem da UI.
 
-### 3. Reunião → auto (do calendário, pelo assessor)
+### 3. Reunião → auto (do calendário, tipo "Assessores")
 Deixa de ser marcação manual. Mostra:
-- **"Agendada"** se há ≥1 `calendar_events` do cliente no mês criado por um
-  assessor (`criado_por` com `role = 'assessor'`).
+- **"Agendada"** se há ≥1 `calendar_events` com **`sub_calendar = 'assessores'`**
+  (tipo "Reunião de assessoria") ligado àquele cliente no mês.
 - **"Sem reunião"** caso contrário.
 
-Fonte: `calendar_events` — `client_id` + `inicio` no mês + `criado_por` é
-assessor. **Ressalva:** o calendário não tem campo "tipo = reunião", então o
-sinal é "evento criado pelo assessor pro cliente". É a leitura pretendida.
+Fonte: `calendar_events` — `sub_calendar = 'assessores'` + `client_id` + `inicio`
+no mês. Usar o **tipo do evento** (não "quem criou") evita contar gravação
+(`videomakers`) ou outros eventos como reunião. **Depende** de os eventos de
+assessoria carregarem `client_id` — ver seção "Mudanças no formulário de evento".
 
 ### 4. Edição → auto (passou pelo time de edição)
 Deixa de ser marcação manual. Mostra:
@@ -61,6 +62,24 @@ Deixa de ser marcação manual. Mostra:
 - **"Pendente"** caso contrário.
 
 Fonte: `tasks` (já usado hoje em `getDerivedDoneSet`).
+
+## Mudanças no formulário de evento do calendário
+
+Pra Reunião (e Gravação) aparecerem amarradas ao cliente, o formulário
+"Novo evento" (`src/components/calendario/EventForm.tsx`) precisa:
+
+1. **Mostrar o seletor de "Cliente" para todos os tipos** (hoje ele já existe,
+   mas só aparece quando o tipo é Videomaker). Mover o campo pra seção geral do
+   form, de modo que **Assessores** (e os demais) também possam escolher o
+   cliente. Schema e insert já aceitam `client_id` — **sem migration**.
+2. **Opção "+" de cliente avulso (texto livre)** — quando o cliente não está na
+   lista, um "+" abre um campo de texto pra digitar um nome só pra aquele evento.
+   Não vira cliente na base e **não entra nas contagens do painel**.
+   - Requer **1 coluna nova**: `calendar_events.cliente_avulso text` (nullable).
+   - **Migration manual** (Vercel não roda; aplicar no SQL Editor após o merge).
+
+A criação de **captura de gravação** continua manual pelo videomaker (inalterado);
+ela já herda o `client_id` do evento vinculado. Nenhuma mudança nesse fluxo.
 
 ### Colunas que continuam iguais
 `Pacote` (barra de progresso postados/contratados), `Crono` (link do
@@ -97,20 +116,33 @@ dados de outros módulos, não se clica pra marcar. Continuam clicáveis/acioná
 `Pacote` (editar contagem), `Crono` (add link), `TPG`/`TPM` (toggle), `GMN`
 (editar nota), `Drive` (abrir).
 
-## Escopo
+## Escopo e fases
 
-- **Inclui:** view Tabela (`PainelTable` + células) e a view Cards
-  (`PainelCard`) espelhando o mesmo conjunto de colunas, pra não divergir.
-- **Não inclui:** mudar o modelo de dados do checklist (as colunas viram
-  derivadas na leitura; não removemos passos do banco). Sem migration nova
-  esperada — tudo lê tabelas existentes (`audiovisual_capturas`,
-  `calendar_events`, `tasks`).
+Como cresceu, dá pra entregar em fases (cada uma some sozinha):
+
+- **Fase 1 — Painel (visual + colunas derivadas):** view Tabela (`PainelTable` +
+  células) e Cards (`PainelCard`) com o novo conjunto de colunas, visual limpo,
+  legenda, Drive como texto. Reunião/Gravação/Edição derivadas de dados
+  existentes. Não precisa de migration.
+- **Fase 2 — Formulário de evento:** mostrar o seletor de Cliente pra todos os
+  tipos + "+" avulso. Precisa da migration `cliente_avulso`. É o que faz a
+  coluna Reunião ficar precisa daqui pra frente (eventos de assessoria passam a
+  carregar o cliente).
+
+**Não inclui:** mudar o modelo do checklist (as colunas viram derivadas na
+leitura; não removemos passos do banco); mudar o fluxo de criação de captura.
+
+## Migration
+
+- **Fase 2:** `ALTER TABLE calendar_events ADD COLUMN cliente_avulso text;`
+  (nullable). Aplicar manualmente no SQL Editor após o merge.
 
 ## Riscos / pontos de atenção
 
-- **Reunião sem tipo:** aproximação por "assessor criou evento pro cliente".
-  Se aparecer falso-positivo (assessor criou outro tipo de evento), reavaliar
-  depois (ex.: filtrar `sub_calendar`).
+- **Reunião depende do preenchimento:** eventos de assessoria antigos não têm
+  `client_id` (o seletor não aparecia pra esse tipo). Até o time começar a
+  selecionar o cliente, a coluna mostra "Sem reunião". É esperado — melhora com
+  o uso. Por isso a Fase 2 (form) idealmente vem junto/antes.
 - **Design removida:** confirmar que nenhum fluxo dependia de delegar design
   *pelo painel* (a delegação existe em outros lugares).
 - **KPIs:** revisar `global-status.ts` pra não contar passos manuais que saíram
