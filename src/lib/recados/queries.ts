@@ -258,6 +258,77 @@ async function _countPrivadosNaoLidosImpl(userId: string): Promise<number> {
   return count ?? 0;
 }
 
+/** Uma pessoa que viu um recado (mural: abriu o mural depois do post; privado: leu). */
+export interface RecadoViewer {
+  user_id: string;
+  nome: string;
+  avatar_url: string | null;
+  /** Quando viu (last_seen_at no mural, lido_em no privado). */
+  visto_em: string;
+}
+
+interface SeenUser {
+  user_id: string;
+  last_seen_at: string;
+  nome: string;
+  avatar_url: string | null;
+}
+
+async function _listSeenUsersImpl(unitProfileIds: string[] | null): Promise<SeenUser[]> {
+  const supabase = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let q: any = supabase
+    .from("recado_visualizacoes")
+    .select("user_id, last_seen_at, profile:profiles!recado_visualizacoes_user_id_fkey(nome, avatar_url)");
+  // Só quem faz parte da audiência (unidade ativa). Recado do mural é por unidade,
+  // então contar quem abriu de outra unidade seria "visto" falso.
+  if (unitProfileIds !== null) {
+    if (unitProfileIds.length === 0) return [];
+    q = q.in("user_id", unitProfileIds);
+  }
+  const { data, error } = await q;
+  if (error) {
+    console.error("[recados/queries] listSeenUsers error:", error.message);
+    return [];
+  }
+  type Row = { user_id: string; last_seen_at: string; profile: { nome: string; avatar_url: string | null } | null };
+  return ((data ?? []) as Row[]).map((r) => ({
+    user_id: r.user_id,
+    last_seen_at: r.last_seen_at,
+    nome: r.profile?.nome ?? "Alguém",
+    avatar_url: r.profile?.avatar_url ?? null,
+  }));
+}
+
+/**
+ * Todos que já abriram o mural (com nome/avatar), pra derivar "quem viu" cada
+ * recado por `last_seen_at >= criado_em`. Cacheado 30s + tag "recados".
+ */
+export async function listSeenUsers(unitProfileIds: string[] | null = null): Promise<SeenUser[]> {
+  const cached = unstable_cache(
+    async (paramsJson: string) => {
+      const { up } = JSON.parse(paramsJson) as { up: string[] | null };
+      return _listSeenUsersImpl(up);
+    },
+    ["recados-seen-users-v1"],
+    { revalidate: 30, tags: ["recados"] },
+  );
+  return cached(JSON.stringify({ up: unitProfileIds }));
+}
+
+/**
+ * Deriva a lista de quem viu um recado do mural: pessoas cujo último acesso ao
+ * mural é >= a criação do recado. Exclui o autor (viu trivialmente). Comparação
+ * por timestamp (getTime) pra evitar dependência do formato ISO do Postgres.
+ */
+export function muralViewers(seen: SeenUser[], criadoEm: string, autorId: string | null): RecadoViewer[] {
+  const cutoff = new Date(criadoEm).getTime();
+  return seen
+    .filter((u) => u.user_id !== autorId && new Date(u.last_seen_at).getTime() >= cutoff)
+    .map((u) => ({ user_id: u.user_id, nome: u.nome, avatar_url: u.avatar_url, visto_em: u.last_seen_at }))
+    .sort((a, b) => (a.visto_em < b.visto_em ? 1 : -1));
+}
+
 export async function getMyLastSeen(userId: string): Promise<string | null> {
   // Não cacheado: usado pontualmente; valor exato muda muito.
   const supabase = await createClient();
