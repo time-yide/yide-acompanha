@@ -5,7 +5,6 @@ export const AREA_FILTERS = [
   "trafego",
   "estrategia",
   "audiovisual",
-  "design",
   "edicao",
   "yide_360",
 ] as const;
@@ -16,7 +15,6 @@ export const AREA_LABELS: Record<AreaFilter, string> = {
   trafego: "Tráfego",
   estrategia: "Estratégia",
   audiovisual: "Audiovisual",
-  design: "Design",
   edicao: "Edição",
   yide_360: "Yide 360°",
 };
@@ -26,7 +24,6 @@ export const AREA_CHIP_CLASSES: Record<AreaFilter, string> = {
   trafego: "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30",
   estrategia: "bg-violet-500/15 text-violet-700 dark:text-violet-300 border-violet-500/30",
   audiovisual: "bg-pink-500/15 text-pink-700 dark:text-pink-300 border-pink-500/30",
-  design: "bg-fuchsia-500/15 text-fuchsia-700 dark:text-fuchsia-300 border-fuchsia-500/30",
   edicao: "bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border-cyan-500/30",
   yide_360: "bg-gradient-to-r from-amber-500 to-yellow-600 text-white border-amber-500/30",
 };
@@ -46,8 +43,7 @@ export function matchesArea(pacote: TipoPacote, area: AreaFilter): boolean {
   const flags = PACOTE_COLUMNS[pacote];
   if (area === "trafego") return flags.tpg === 1 || flags.tpm === 1;
   if (area === "estrategia") return ["trafego_estrategia", "estrategia", "yide_360"].includes(pacote);
-  if (area === "audiovisual") return flags.camera === 1 || flags.mobile === 1 || flags.edicao === 1;
-  if (area === "design") return flags.design === 1;
+  if (area === "audiovisual") return flags.camera === 1 || flags.edicao === 1;
   if (area === "edicao") return flags.edicao === 1;
   return true;
 }

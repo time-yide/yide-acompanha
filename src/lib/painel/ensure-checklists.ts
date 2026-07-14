@@ -15,12 +15,10 @@ import type { StepKey } from "./deadlines";
 
 const COLUMN_TO_STEP: Record<ColumnKey, StepKey> = {
   crono: "cronograma",
-  design: "design",
   tpg: "tpg",
   tpm: "tpm",
   gmn: "gmn_post",
   camera: "camera",
-  mobile: "mobile",
   edicao: "edicao",
   reuniao: "reuniao",
   pacote_postados: "postagem",

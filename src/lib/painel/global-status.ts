@@ -5,9 +5,7 @@ export type GlobalStatus = "concluido" | "atrasado" | "em_producao" | "aberto";
 
 const COLUNA_STEP_KEY: Partial<Record<ColumnKey, string>> = {
   crono: "cronograma",
-  design: "design",
-  camera: "camera",
-  mobile: "mobile",
+  camera: "camera", // "Gravação"
   edicao: "edicao",
   reuniao: "reuniao",
 };

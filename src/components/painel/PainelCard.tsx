@@ -1,14 +1,13 @@
 "use client";
 
-import { ExternalLink, Calendar, Palette, TrendingUp, Megaphone, MapPin, Video, Smartphone, Scissors, Handshake } from "lucide-react";
+import { ExternalLink, Calendar, TrendingUp, Megaphone, MapPin, Video, Scissors, Handshake } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { TipoPacoteBadge } from "./TipoPacoteBadge";
 import { PacotePostadosCell } from "./cells/PacotePostadosCell";
 import { CronoCell } from "./cells/CronoCell";
-import { DesignCell } from "./cells/DesignCell";
 import { TpgTpmCell } from "./cells/TpgTpmCell";
 import { GmnCell } from "./cells/GmnCell";
-import { CameraMobileCell } from "./cells/CameraMobileCell";
+import { GravacaoCell } from "./cells/GravacaoCell";
 import { EdicaoCell } from "./cells/EdicaoCell";
 import { ReuniaoCell } from "./cells/ReuniaoCell";
 import { computeGlobalStatus, statusMeta } from "@/lib/painel/global-status";
@@ -32,14 +31,12 @@ function isPrivileged(role: string): boolean {
 
 const COLUMN_META: Record<Exclude<ColumnKey, "pacote_postados">, { label: string; icon: LucideIcon }> = {
   crono: { label: "Crono", icon: Calendar },
-  design: { label: "Design", icon: Palette },
   tpg: { label: "TPG", icon: TrendingUp },
   tpm: { label: "TPM", icon: TrendingUp },
   gmn: { label: "GMN", icon: Megaphone },
-  camera: { label: "Câm", icon: Video },
-  mobile: { label: "Mob", icon: Smartphone },
-  edicao: { label: "Ed", icon: Scissors },
-  reuniao: { label: "Reu", icon: Handshake },
+  camera: { label: "Gravação", icon: Video },
+  edicao: { label: "Edição", icon: Scissors },
+  reuniao: { label: "Reunião", icon: Handshake },
 };
 
 function IndicatorTile({
@@ -63,20 +60,12 @@ function IndicatorTile({
 }
 
 export function PainelCard({ row, userRole, userId }: Props) {
+  void userId;
   const pacote = row.client_tipo_pacote as TipoPacote;
-  const isPriv = isPrivileged(userRole);
+  const canEditCommon = isPrivileged(userRole);
   const cronoStep = findStep(row.steps, "cronograma");
-  const designStep = findStep(row.steps, "design");
-  const cameraStep = findStep(row.steps, "camera");
-  const mobileStep = findStep(row.steps, "mobile");
   const edicaoStep = findStep(row.steps, "edicao");
   const reuniaoStep = findStep(row.steps, "reuniao");
-
-  const canEditCommon = isPriv;
-  const canMarkDesign = isPriv || (designStep?.responsavel_id === userId);
-  const canMarkEdicao = isPriv || (edicaoStep?.responsavel_id === userId);
-  const canMarkCamera = isPriv || (cameraStep?.responsavel_id === userId);
-  const canMarkMobile = isPriv || (mobileStep?.responsavel_id === userId);
 
   const status = computeGlobalStatus(row);
   const meta = statusMeta(status);
@@ -148,18 +137,6 @@ export function PainelCard({ row, userRole, userId }: Props) {
             />
           </IndicatorTile>
         )}
-        {isApplicable(pacote, "design") && (
-          <IndicatorTile icon={COLUMN_META.design.icon} label={COLUMN_META.design.label}>
-            <DesignCell
-              stepId={designStep?.id ?? null}
-              status={designStep?.status ?? "pendente"}
-              responsavelNome={designStep?.responsavel_nome ?? null}
-              designerCadastrado={!!row.client_designer_id}
-              canMarkPronto={canMarkDesign}
-              canDelegate={canEditCommon}
-            />
-          </IndicatorTile>
-        )}
         {isApplicable(pacote, "tpg") && (
           <IndicatorTile icon={COLUMN_META.tpg.icon} label={COLUMN_META.tpg.label}>
             <TpgTpmCell
@@ -199,39 +176,17 @@ export function PainelCard({ row, userRole, userId }: Props) {
         )}
         {isApplicable(pacote, "camera") && (
           <IndicatorTile icon={COLUMN_META.camera.icon} label={COLUMN_META.camera.label}>
-            <CameraMobileCell
-              stepId={cameraStep?.id ?? null}
-              status={cameraStep?.status ?? "pendente"}
-              canEdit={canMarkCamera}
-            />
-          </IndicatorTile>
-        )}
-        {isApplicable(pacote, "mobile") && (
-          <IndicatorTile icon={COLUMN_META.mobile.icon} label={COLUMN_META.mobile.label}>
-            <CameraMobileCell
-              stepId={mobileStep?.id ?? null}
-              status={mobileStep?.status ?? "pendente"}
-              canEdit={canMarkMobile}
-            />
+            <GravacaoCell count={row.gravacao_count} />
           </IndicatorTile>
         )}
         {isApplicable(pacote, "edicao") && (
           <IndicatorTile icon={COLUMN_META.edicao.icon} label={COLUMN_META.edicao.label}>
-            <EdicaoCell
-              stepId={edicaoStep?.id ?? null}
-              status={edicaoStep?.status ?? "pendente"}
-              responsavelNome={edicaoStep?.responsavel_nome ?? null}
-              canEdit={canMarkEdicao}
-            />
+            <EdicaoCell status={edicaoStep?.status ?? "pendente"} />
           </IndicatorTile>
         )}
         {isApplicable(pacote, "reuniao") && (
           <IndicatorTile icon={COLUMN_META.reuniao.icon} label={COLUMN_META.reuniao.label}>
-            <ReuniaoCell
-              stepId={reuniaoStep?.id ?? null}
-              status={reuniaoStep?.status ?? "pendente"}
-              canEdit={canEditCommon}
-            />
+            <ReuniaoCell status={reuniaoStep?.status ?? "pendente"} />
           </IndicatorTile>
         )}
       </div>
