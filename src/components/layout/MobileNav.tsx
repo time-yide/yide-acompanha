@@ -14,12 +14,13 @@ interface Props {
   role: Role;
   nome: string;
   badges?: SidebarBadges;
+  especialidade?: string | null;
 }
 
-export function MobileNav({ role, nome, badges }: Props) {
+export function MobileNav({ role, nome, badges, especialidade }: Props) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
-  const visible = visibleNavStructure(role);
+  const visible = visibleNavStructure(role, especialidade);
 
   // Fecha o drawer ao navegar. setTimeout tira o setState de dentro do
   // body do effect (passa no react-hooks/set-state-in-effect) sem mudar

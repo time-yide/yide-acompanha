@@ -6,6 +6,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { Role } from "@/lib/auth/permissions";
+import { canAccessEcommerce } from "@/lib/ecommerce/access";
 
 export type NavBadgeKey = "recados" | "escritorio" | "yoriProntos";
 
@@ -132,26 +133,31 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
   { type: "link", href: "/lixeira", icon: Trash2, label: "Lixeira", roles: ["adm", "socio", "coordenador", "assessor"], badgeKey: null },
 ];
 
-function isLinkVisible(role: Role, link: NavLink): boolean {
+function isLinkVisible(role: Role, link: NavLink, especialidade?: string | null): boolean {
   // Programação (cargo técnico) começa SEM acessos: nem os itens "all".
   // Cada área é liberada explicitamente quando o módulo dela for construído.
   if (role === "programacao") {
     return Array.isArray(link.roles) && link.roles.includes(role);
   }
+  // E-commerce: além dos cargos dedicados, assessor comum com especialidade
+  // "ecommerce" também vê (mantém cargo + comissão de assessor). Ver
+  // canAccessEcommerce (fonte única com a guarda da página).
+  if (link.href === "/ecommerce") return canAccessEcommerce(role, especialidade);
   return link.roles === "all" || (Array.isArray(link.roles) && link.roles.includes(role));
 }
 
 /**
- * Filtra a estrutura do menu por role. Grupos cujos itens todos sumirem
- * pra esse role também são removidos (não fica grupo vazio na tela).
+ * Filtra a estrutura do menu por role (+ especialidade, pra casos como o
+ * assessor de e-commerce). Grupos cujos itens todos sumirem pra esse role
+ * também são removidos (não fica grupo vazio na tela).
  */
-export function visibleNavStructure(role: Role): NavEntry[] {
+export function visibleNavStructure(role: Role, especialidade?: string | null): NavEntry[] {
   const out: NavEntry[] = [];
   for (const entry of NAV_STRUCTURE) {
     if (entry.type === "link") {
-      if (isLinkVisible(role, entry)) out.push(entry);
+      if (isLinkVisible(role, entry, especialidade)) out.push(entry);
     } else {
-      const items = entry.items.filter((it) => isLinkVisible(role, it));
+      const items = entry.items.filter((it) => isLinkVisible(role, it, especialidade));
       if (items.length > 0) out.push({ ...entry, items });
     }
   }

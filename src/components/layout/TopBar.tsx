@@ -17,6 +17,7 @@ export function TopBar({
   role,
   badges,
   unitContext,
+  especialidade,
 }: {
   userId: string;
   nome: string;
@@ -25,6 +26,7 @@ export function TopBar({
   role: Role;
   badges?: SidebarBadges;
   unitContext: UnitContext | null;
+  especialidade?: string | null;
 }) {
   return (
     // sticky + safe-area-inset-top empurra o conteúdo da TopBar pra baixo do
@@ -37,7 +39,7 @@ export function TopBar({
     >
       <div className="flex h-14 items-center justify-between gap-2 px-4 md:px-6">
         <div className="flex items-center gap-1">
-          <MobileNav role={role} nome={nome} badges={badges} />
+          <MobileNav role={role} nome={nome} badges={badges} especialidade={especialidade} />
           <SidebarToggle />
         </div>
         <div className="flex flex-1 items-center justify-end gap-2">

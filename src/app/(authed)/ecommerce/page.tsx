@@ -13,8 +13,7 @@ import { NovoAnuncioButton } from "@/components/ecommerce/NovoAnuncioButton";
 import { AnunciosList } from "@/components/ecommerce/AnunciosList";
 import { PainelEcommerce } from "@/components/ecommerce/PainelEcommerce";
 import { FiltroPeriodo } from "@/components/ecommerce/FiltroPeriodo";
-
-const ALLOWED = ["adm", "socio", "assessor_ecommerce", "assistente_ecommerce"];
+import { canAccessEcommerce } from "@/lib/ecommerce/access";
 
 function inicioDoMes(): string {
   const d = new Date();
@@ -30,7 +29,7 @@ export default async function EcommercePage({
   searchParams: Promise<{ tab?: string; de?: string; ate?: string; assessor?: string }>;
 }) {
   const user = await requireAuth();
-  if (!ALLOWED.includes(user.role)) notFound();
+  if (!canAccessEcommerce(user.role, user.especialidade)) notFound();
   const orgId = await getOrganizationId(user.id);
   if (!orgId) notFound();
 

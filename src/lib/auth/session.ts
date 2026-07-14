@@ -12,6 +12,8 @@ export type CurrentUser = {
   nome: string;
   ativo: boolean;
   avatarUrl: string | null;
+  /** Especialidade do assessor (ex: "ecommerce"). Livre, pode ser null. */
+  especialidade: string | null;
 };
 
 /**
@@ -32,9 +34,12 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   // tenha cookie pra essa rota, getCurrentUser() retorna null → redirect /login.
   if (await isAuthUserAClientPortalUser(user.id)) return null;
 
-  const { data: profile } = await supabase
+  // `especialidade` ainda não está nos tipos gerados do Supabase → cast via any.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const { data: profile } = await sb
     .from("profiles")
-    .select("id, email, role, nome, ativo, avatar_url")
+    .select("id, email, role, nome, ativo, avatar_url, especialidade")
     .eq("id", user.id)
     .single();
 
@@ -47,6 +52,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     nome: profile.nome,
     ativo: profile.ativo,
     avatarUrl: profile.avatar_url,
+    especialidade: (profile.especialidade as string | null) ?? null,
   };
 });
 
