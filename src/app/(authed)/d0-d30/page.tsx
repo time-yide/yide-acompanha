@@ -5,6 +5,7 @@ import {
   listClientesElegiveisParaOnboarding,
 } from "@/lib/d0-d30/queries";
 import { D0D30Table } from "@/components/d0-d30/D0D30Table";
+import { TabsSocialMedia } from "@/components/social-media/TabsSocialMedia";
 
 const ROLES_QUE_VEEM = ["adm", "socio", "coordenador", "assessor", "comercial"];
 
@@ -35,6 +36,7 @@ export default async function D0D30Page() {
 
   return (
     <div className="space-y-6">
+      <TabsSocialMedia active="d0-d30" />
       <header>
         <h1 className="text-2xl font-bold tracking-tight">D0 → D30</h1>
         <p className="text-sm text-muted-foreground">
