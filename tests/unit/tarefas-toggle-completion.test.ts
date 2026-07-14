@@ -35,7 +35,7 @@ beforeEach(() => {
   dispatchNotificationMock.mockReset();
 });
 
-function mockTaskRow(overrides: Partial<{ status: string; criado_por: string; atribuido_a: string; completed_at: string | null; artes_entregues: number | null; titulo: string; client_id: string | null; tipo: string }>) {
+function mockTaskRow(overrides: Partial<{ status: string; criado_por: string; atribuido_a: string; completed_at: string | null; artes_entregues: number | null; titulo: string; client_id: string | null; tipo: string; drive_link: string | null }>) {
   return {
     id: "task-1",
     titulo: "Tarefa de teste",
@@ -47,6 +47,8 @@ function mockTaskRow(overrides: Partial<{ status: string; criado_por: string; at
     client_id: null,
     // Default "geral": NÃO exige modal de entrega (só video/arte exigem).
     tipo: "geral",
+    // Sem link por padrão (tarefa que ainda não passou pela entrega).
+    drive_link: null,
     ...overrides,
   };
 }
@@ -186,6 +188,24 @@ describe("toggleTaskCompletionAction — assessor/coord também entregam", () =>
     // (reunião/follow-up) não têm material, então conclui pelo checkbox.
     requireAuthMock.mockResolvedValue({ id: "user-1", role: "assessor", nome: "Assessor Teste" });
     const { update } = setupMocks(mockTaskRow({ status: "aberta", tipo: "geral" }), { assigneeRole: "assessor" });
+
+    const result = await toggleTaskCompletionAction("task-1");
+
+    expect(deliveryOf(result)).toBeUndefined();
+    expect(result?.error).toBeUndefined();
+    expect(update).toHaveBeenCalled();
+    expect(update.mock.calls[0][0].status).toBe("postada");
+  });
+
+  it("tarefa vídeo/arte que JÁ tem drive_link vai pra postada sem re-pedir link", async () => {
+    // Bug: link é pra ENTRAR no concluído operacional/aprovação. Se a tarefa já
+    // passou pela entrega (tem drive_link), marcar Postado/Entregue não deve
+    // re-pedir. Antes o checkbox ignorava o drive_link e abria o modal de novo.
+    requireAuthMock.mockResolvedValue({ id: "user-1", role: "assessor", nome: "Assessor Teste" });
+    const { update } = setupMocks(
+      mockTaskRow({ status: "aprovada", tipo: "video", drive_link: "https://drive.google.com/abc" }),
+      { assigneeRole: "assessor" },
+    );
 
     const result = await toggleTaskCompletionAction("task-1");
 

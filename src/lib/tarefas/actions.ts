@@ -344,7 +344,13 @@ export async function toggleTaskCompletionAction(taskId: string) {
   const isDoneState = (s: string) => s === "postada" || s === "concluida";
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tTipo = (t as any).tipo as string | null | undefined;
-  if (!isDoneState(t.status)) {
+  // O link é pedido pra ENTRAR no concluído operacional / aprovação — não pra
+  // marcar como Postado/Entregue. Se a tarefa JÁ tem drive_link (já passou pela
+  // entrega), o checkbox marca postada direto, sem re-pedir. Espelha a "Exceção
+  // 2" do moveTaskStatusAction.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tDriveLink = (t as any).drive_link as string | null | undefined;
+  if (!isDoneState(t.status) && !tDriveLink) {
     const { data: assignee } = await supabase
       .from("profiles")
       .select("role")
