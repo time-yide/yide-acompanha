@@ -49,6 +49,9 @@ async function _listChannelsWithUnreadImpl(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let roleChannelsQ: any = sb
     .from("chat_channels")
+    // Não filtra 'grupo' aqui (evita referenciar o enum antes da migration
+    // rodar — quebraria a listagem). Grupos vêm com kind != 'direct' e são
+    // descartados pelo canAccessChannel abaixo (role-based → false pra grupo).
     .select("id, kind, nome, descricao, ordem, member_ids, icon_url, unit_id")
     .neq("kind", "direct")
     .is("deleted_at", null)
@@ -81,13 +84,15 @@ async function _listChannelsWithUnreadImpl(
   const accessibleRoleChannels = ((roleChannelsData ?? []) as Channel[])
     .filter((c) => canAccessChannel(userRole, c.kind));
 
-  const { data: dmChannels } = await sb
+  // DMs + grupos: canais por lista de membros onde o user está.
+  const { data: memberChannels } = await sb
     .from("chat_channels")
     .select("id, kind, nome, descricao, ordem, member_ids, icon_url")
-    .eq("kind", "direct")
+    .in("kind", ["direct", "grupo"])
+    .is("deleted_at", null)
     .contains("member_ids", [userId]);
 
-  const allChannels = [...accessibleRoleChannels, ...((dmChannels ?? []) as Channel[])];
+  const allChannels = [...accessibleRoleChannels, ...((memberChannels ?? []) as Channel[])];
   if (allChannels.length === 0) return [];
 
   const channelIds = allChannels.map((c) => c.id);
@@ -240,7 +245,8 @@ export async function listChannelsWithUnread(
       return _listChannelsWithUnreadImpl(uid, role, uni);
     },
     // v2: shape ganhou unitId (multi-tenant)
-    ["escritorio-channels-unread-v2"],
+    // v3: passou a incluir grupos (kind='grupo') na lista
+    ["escritorio-channels-unread-v3"],
     { revalidate: 15, tags: [ESCRITORIO_UNREAD_TAG] },
   );
   return cached(JSON.stringify({ uid: userId, role: userRole, uni: unitId }));

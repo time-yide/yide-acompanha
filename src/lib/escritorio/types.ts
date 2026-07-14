@@ -6,7 +6,8 @@ export type ChannelKind =
   | "designers"
   | "comercial"
   | "administrativo"
-  | "direct";
+  | "direct"
+  | "grupo";
 
 export interface Channel {
   id: string;
@@ -14,10 +15,12 @@ export interface Channel {
   nome: string;
   descricao: string | null;
   ordem: number;
-  /** Populado só quando kind === 'direct'. Array com os 2 user_ids do DM. */
+  /** Populado quando kind é 'direct' (2 users) ou 'grupo' (N users escolhidos). */
   member_ids: string[] | null;
   /** Foto custom do canal de grupo (subida por admin). NULL pra DMs. */
   icon_url: string | null;
+  /** Quem criou o grupo (kind='grupo'). NULL pros canais fixos e DMs. */
+  created_by?: string | null;
 }
 
 export interface ChatMessage {
@@ -81,14 +84,46 @@ export const CHANNEL_KIND_TO_ROLES: Record<ChannelKind, readonly string[]> = {
   designers: ["designer", "adm", "socio"],
   comercial: ["comercial", "adm", "socio"],
   administrativo: ["adm", "socio"],
-  // 'direct' não usa role-based access - controle é via member_ids
-  // (vide canAccessDmChannel). Mantemos vazio aqui pra satisfazer o
-  // Record<ChannelKind, ...>.
+  // 'direct' e 'grupo' não usam role-based access - controle é via member_ids
+  // (vide canAccessMemberChannel). Vazio aqui pra satisfazer o Record.
   direct: [],
+  grupo: [],
 };
 
 export function canAccessChannel(role: string, kind: ChannelKind): boolean {
   return (CHANNEL_KIND_TO_ROLES[kind] as readonly string[]).includes(role);
+}
+
+/** Canal cujo acesso é por lista de membros (DM ou grupo). */
+export function isMemberBasedKind(kind: ChannelKind): boolean {
+  return kind === "direct" || kind === "grupo";
+}
+
+/** Acesso a canal por member_ids (DM ou grupo): user precisa estar na lista. */
+export function canAccessMemberChannel(channel: Channel, userId: string): boolean {
+  if (!isMemberBasedKind(channel.kind) || !channel.member_ids) return false;
+  return channel.member_ids.includes(userId);
+}
+
+/** Acesso a um grupo: user precisa estar em member_ids. */
+export function canAccessGroupChannel(channel: Channel, userId: string): boolean {
+  if (channel.kind !== "grupo" || !channel.member_ids) return false;
+  return channel.member_ids.includes(userId);
+}
+
+/**
+ * Só adm/sócio criam grupos (decisão Yasmin).
+ */
+export function canCreateGroup(role: string): boolean {
+  return role === "adm" || role === "socio";
+}
+
+/**
+ * Gerenciar um grupo (editar membros / apagar): quem criou, ou adm/sócio.
+ */
+export function canManageGroup(channel: Channel, userId: string, role: string): boolean {
+  if (channel.kind !== "grupo") return false;
+  return channel.created_by === userId || role === "adm" || role === "socio";
 }
 
 /**

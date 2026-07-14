@@ -2,15 +2,16 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { Hash, MessageSquarePlus, Trash2, RotateCcw, ChevronRight } from "lucide-react";
+import { Hash, MessageSquarePlus, Trash2, RotateCcw, ChevronRight, Users, UsersRound, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatRelativeChatTime } from "@/lib/escritorio/format-relative";
 import { NovoDmModal } from "./NovoDmModal";
-import type { ChannelWithUnread } from "@/lib/escritorio/types";
+import { GrupoModal } from "./GrupoModal";
+import { canCreateGroup, type ChannelWithUnread } from "@/lib/escritorio/types";
 import { useRouter } from "next/navigation";
 import { deleteDmAction } from "@/lib/escritorio/dm-actions";
-import { deleteChannelAction, restoreChannelAction, type DeletedChannel } from "@/lib/escritorio/channel-actions";
+import { deleteChannelAction, restoreChannelAction, deleteGroupAction, type DeletedChannel } from "@/lib/escritorio/channel-actions";
 
 function initials(nome: string | undefined | null): string {
   if (!nome) return "";
@@ -41,9 +42,22 @@ interface Props {
 
 export function ChannelSidebar({ channels, currentKind, currentChannelId, pessoas, viewerId, viewerRole, deletedChannels }: Props) {
   const [novoOpen, setNovoOpen] = useState(false);
+  const [grupoNovoOpen, setGrupoNovoOpen] = useState(false);
+  const [grupoEdit, setGrupoEdit] = useState<ChannelWithUnread | null>(null);
   const [showDeleted, setShowDeleted] = useState(false);
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const podeCriarGrupo = canCreateGroup(viewerRole);
+
+  function onDeleteGroup(channelId: string, nome: string) {
+    if (!confirm(`Apagar o grupo "${nome}"? Não dá pra desfazer.`)) return;
+    startTransition(async () => {
+      const r = await deleteGroupAction(channelId);
+      if (r?.error) { alert(r.error); return; }
+      if (currentChannelId === channelId) router.push("/escritorio");
+      else router.refresh();
+    });
+  }
 
   function onDeleteDm(channelId: string, nome: string) {
     if (!confirm(`Apagar a conversa com ${nome} pra vocês dois? Não dá pra desfazer.`)) return;
@@ -79,15 +93,28 @@ export function ChannelSidebar({ channels, currentKind, currentChannelId, pessoa
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Conversas
         </h2>
-        <button
-          type="button"
-          onClick={() => setNovoOpen(true)}
-          className="rounded-md p-1.5 text-primary hover:bg-primary/10"
-          aria-label="Nova conversa"
-          title="Nova conversa"
-        >
-          <MessageSquarePlus className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-0.5">
+          {podeCriarGrupo && (
+            <button
+              type="button"
+              onClick={() => setGrupoNovoOpen(true)}
+              className="rounded-md p-1.5 text-primary hover:bg-primary/10"
+              aria-label="Criar grupo"
+              title="Criar grupo"
+            >
+              <UsersRound className="h-4 w-4" />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setNovoOpen(true)}
+            className="rounded-md p-1.5 text-primary hover:bg-primary/10"
+            aria-label="Nova conversa"
+            title="Nova conversa"
+          >
+            <MessageSquarePlus className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto py-1">
@@ -98,23 +125,33 @@ export function ChannelSidebar({ channels, currentKind, currentChannelId, pessoa
         ) : (
           channels.map((c) => {
             const isDm = c.kind === "direct";
+            const isGrupo = c.kind === "grupo";
+            const isMemberChannel = isDm || isGrupo;
             const displayName = isDm ? (c.dm_other?.nome ?? "Usuário removido") : c.nome;
-            // Pra DM, foto é a do outro membro. Pra grupo, é a icon_url
-            // setada pelo admin (ou null → fallback no Hash).
+            // DM: foto do outro membro. Grupo/canal fixo: icon_url do canal.
             const avatarSrc = isDm ? c.dm_other?.avatar_url ?? null : c.icon_url;
-            const active = isDm
+            // DM e grupo são roteados por id; canais fixos por kind.
+            const active = isMemberChannel
               ? c.id === currentChannelId
               : c.kind === currentKind;
-            const href = isDm ? `/escritorio/dm/${c.id}` : `/escritorio/${c.kind}`;
+            const href = isDm
+              ? `/escritorio/dm/${c.id}`
+              : isGrupo
+                ? `/escritorio/grupo/${c.id}`
+                : `/escritorio/${c.kind}`;
 
             const preview = c.last_message;
             const previewText = preview
               ? `${preview.autor_id === viewerId ? "Você: " : ""}${preview.conteudo}`
               : null;
 
+            // Grupo: gerencia (editar/apagar) quem é adm/sócio (só eles criam).
+            const canManageGrupo = isGrupo && (viewerRole === "adm" || viewerRole === "socio");
             const canDel = isDm
               ? (c.dm_other != null || viewerRole === "socio" || viewerRole === "adm")
-              : viewerRole === "socio";
+              : isGrupo
+                ? canManageGrupo
+                : viewerRole === "socio";
 
             return (
               <div key={c.id} className="group relative">
@@ -128,7 +165,13 @@ export function ChannelSidebar({ channels, currentKind, currentChannelId, pessoa
                   <Avatar className="h-10 w-10 flex-shrink-0">
                     {avatarSrc ? <AvatarImage src={avatarSrc} alt={displayName} /> : null}
                     <AvatarFallback className="text-xs">
-                      {isDm ? initials(displayName) : <Hash className="h-4 w-4 text-muted-foreground" />}
+                      {isDm ? (
+                        initials(displayName)
+                      ) : isGrupo ? (
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <Hash className="h-4 w-4 text-muted-foreground" />
+                      )}
                     </AvatarFallback>
                   </Avatar>
 
@@ -155,21 +198,39 @@ export function ChannelSidebar({ channels, currentKind, currentChannelId, pessoa
                     </div>
                   </div>
                 </Link>
-                {canDel && (
-                  <button
-                    type="button"
-                    disabled={pending}
-                    onClick={() =>
-                      isDm
-                        ? onDeleteDm(c.id, displayName)
-                        : onDeleteChannel(c.id, c.kind, c.nome)
-                    }
-                    className="absolute right-2 top-1/2 hidden -translate-y-1/2 rounded p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive group-hover:block"
-                    aria-label={isDm ? "Excluir conversa" : "Excluir canal"}
-                    title={isDm ? "Excluir conversa" : "Excluir canal"}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                {(canDel || canManageGrupo) && (
+                  <div className="absolute right-2 top-1/2 hidden -translate-y-1/2 items-center gap-0.5 group-hover:flex">
+                    {canManageGrupo && (
+                      <button
+                        type="button"
+                        disabled={pending}
+                        onClick={() => setGrupoEdit(c)}
+                        className="rounded p-1.5 text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                        aria-label="Editar grupo"
+                        title="Editar grupo"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                    )}
+                    {canDel && (
+                      <button
+                        type="button"
+                        disabled={pending}
+                        onClick={() =>
+                          isDm
+                            ? onDeleteDm(c.id, displayName)
+                            : isGrupo
+                              ? onDeleteGroup(c.id, c.nome)
+                              : onDeleteChannel(c.id, c.kind, c.nome)
+                        }
+                        className="rounded p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                        aria-label={isDm ? "Excluir conversa" : isGrupo ? "Apagar grupo" : "Excluir canal"}
+                        title={isDm ? "Excluir conversa" : isGrupo ? "Apagar grupo" : "Excluir canal"}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             );
@@ -210,6 +271,25 @@ export function ChannelSidebar({ channels, currentKind, currentChannelId, pessoa
       )}
 
       <NovoDmModal open={novoOpen} onOpenChange={setNovoOpen} pessoas={pessoas} />
+      {podeCriarGrupo && (
+        <GrupoModal
+          open={grupoNovoOpen}
+          onOpenChange={setGrupoNovoOpen}
+          pessoas={pessoas}
+          mode="create"
+        />
+      )}
+      {grupoEdit && (
+        <GrupoModal
+          open={grupoEdit !== null}
+          onOpenChange={(o) => { if (!o) setGrupoEdit(null); }}
+          pessoas={pessoas}
+          mode="edit"
+          channelId={grupoEdit.id}
+          initialNome={grupoEdit.nome}
+          initialMemberIds={grupoEdit.member_ids ?? []}
+        />
+      )}
     </aside>
   );
 }
