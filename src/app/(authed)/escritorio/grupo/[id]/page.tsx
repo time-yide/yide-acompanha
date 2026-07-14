@@ -5,6 +5,7 @@ import {
   listChannelsWithUnread,
   listMessages,
   listMentionables,
+  listChannelReads,
 } from "@/lib/escritorio/queries";
 import { canAccessGroupChannel, type Channel } from "@/lib/escritorio/types";
 import { ChannelSidebar } from "@/components/escritorio/ChannelSidebar";
@@ -46,12 +47,13 @@ export default async function GrupoPage({ params }: { params: Promise<{ id: stri
       pessoasQ = pessoasQ.in("id", unitProfileIds);
     }
   }
-  const [messages, sidebarChannels, mentionables, pessoasRes, deletedChannels] = await Promise.all([
+  const [messages, sidebarChannels, mentionables, pessoasRes, deletedChannels, reads] = await Promise.all([
     listMessages(channel.id, 50),
     listChannelsWithUnread(user.id, user.role, unitId),
     listMentionables(unitProfileIds),
     pessoasQ.order("nome"),
     listDeletedChannels(user.role),
+    listChannelReads(channel.id),
   ]);
   const pessoas = (pessoasRes.data ?? []) as Array<{ id: string; nome: string; role: string; avatar_url: string | null }>;
 
@@ -72,6 +74,7 @@ export default async function GrupoPage({ params }: { params: Promise<{ id: stri
         initialMessages={messages}
         currentUser={{ id: user.id, nome: user.nome, avatar_url: user.avatarUrl }}
         mentionables={mentionables}
+        initialReads={reads}
       />
     </div>
   );

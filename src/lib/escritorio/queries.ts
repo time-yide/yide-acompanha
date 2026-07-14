@@ -2,7 +2,7 @@
 import { unstable_cache } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { canAccessChannel, type Channel, type ChannelDmOther, type ChannelKind, type ChannelWithUnread, type ChatMessage } from "./types";
+import { canAccessChannel, type Channel, type ChannelDmOther, type ChannelKind, type ChannelRead, type ChannelWithUnread, type ChatMessage } from "./types";
 
 export const ESCRITORIO_UNREAD_TAG = "chat-unread";
 export const ESCRITORIO_MENTIONABLES_TAG = "chat-mentionables";
@@ -342,6 +342,32 @@ export async function listMessages(channelId: string, limit = 50): Promise<ChatM
     reply_to: r.reply_to
       ? { id: r.reply_to.id, conteudo: r.reply_to.conteudo, autor_nome: r.reply_to.autor?.nome ?? null }
       : null,
+  }));
+}
+
+/**
+ * Leituras de um canal (read receipts "quem leu"). Uma linha por usuário que já
+ * abriu o canal, com nome/avatar pra montar a lista. Service-role — quem pode
+ * ver é gatekept no page-level (só quem acessa o canal carrega isso).
+ */
+export async function listChannelReads(channelId: string): Promise<ChannelRead[]> {
+  const supabase = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const { data, error } = await sb
+    .from("chat_reads")
+    .select("user_id, last_read_at, autor:profiles!user_id(nome, avatar_url)")
+    .eq("channel_id", channelId);
+  if (error) {
+    console.warn("[escritorio] listChannelReads:", error.message);
+    return [];
+  }
+  type Row = { user_id: string; last_read_at: string; autor: { nome: string; avatar_url: string | null } | null };
+  return ((data ?? []) as Row[]).map((r) => ({
+    user_id: r.user_id,
+    last_read_at: r.last_read_at,
+    nome: r.autor?.nome ?? "Alguém",
+    avatar_url: r.autor?.avatar_url ?? null,
   }));
 }
 

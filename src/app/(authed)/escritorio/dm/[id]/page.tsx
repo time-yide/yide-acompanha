@@ -5,6 +5,7 @@ import {
   listChannelsWithUnread,
   listMessages,
   listMentionables,
+  listChannelReads,
 } from "@/lib/escritorio/queries";
 import { canAccessDmChannel, type Channel } from "@/lib/escritorio/types";
 import { ChannelSidebar } from "@/components/escritorio/ChannelSidebar";
@@ -64,12 +65,13 @@ export default async function DmPage({ params }: { params: Promise<{ id: string 
       pessoasQ = pessoasQ.in("id", unitProfileIds);
     }
   }
-  const [messages, sidebarChannels, mentionables, pessoasRes, deletedChannels] = await Promise.all([
+  const [messages, sidebarChannels, mentionables, pessoasRes, deletedChannels, reads] = await Promise.all([
     listMessages(channel.id, 50),
     listChannelsWithUnread(user.id, user.role, unitId),
     listMentionables(unitProfileIds),
     pessoasQ.order("nome"),
     listDeletedChannels(user.role),
+    listChannelReads(channel.id),
   ]);
   const pessoas = (pessoasRes.data ?? []) as Array<{ id: string; nome: string; role: string; avatar_url: string | null }>;
 
@@ -90,6 +92,7 @@ export default async function DmPage({ params }: { params: Promise<{ id: string 
         initialMessages={messages}
         currentUser={{ id: user.id, nome: user.nome, avatar_url: user.avatarUrl }}
         mentionables={mentionables}
+        initialReads={reads}
       />
     </div>
   );
