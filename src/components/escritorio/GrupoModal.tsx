@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check } from "lucide-react";
+import { Check, Camera, Users, X } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { createGroupAction, updateGroupAction } from "@/lib/escritorio/channel-actions";
+import { uploadChannelIconAction, removeChannelIconAction } from "@/lib/escritorio/icon-actions";
 
 function initials(nome: string | undefined | null): string {
   if (!nome) return "";
@@ -36,6 +37,7 @@ interface Props {
   channelId?: string;
   initialNome?: string;
   initialMemberIds?: string[];
+  initialIconUrl?: string | null;
 }
 
 /**
@@ -50,12 +52,55 @@ export function GrupoModal({
   channelId,
   initialNome = "",
   initialMemberIds = [],
+  initialIconUrl = null,
 }: Props) {
   const router = useRouter();
   const [nome, setNome] = useState(initialNome);
   const [selected, setSelected] = useState<Set<string>>(() => new Set(initialMemberIds));
   const [search, setSearch] = useState("");
   const [pending, start] = useTransition();
+
+  // Foto do grupo: arquivo escolhido (upload após salvar) + flag de remoção.
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [iconFile, setIconFile] = useState<File | null>(null);
+  const [iconPreview, setIconPreview] = useState<string | null>(null);
+  const [iconRemoved, setIconRemoved] = useState(false);
+  const iconSrc = iconPreview ?? (iconRemoved ? null : initialIconUrl);
+
+  function pickIcon(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(f.type)) {
+      toast.error("Use JPEG, PNG ou WebP");
+      return;
+    }
+    if (f.size > 2 * 1024 * 1024) {
+      toast.error("Máximo 2MB");
+      return;
+    }
+    setIconFile(f);
+    setIconRemoved(false);
+    setIconPreview(URL.createObjectURL(f));
+  }
+
+  function clearIcon() {
+    setIconFile(null);
+    setIconPreview(null);
+    setIconRemoved(true);
+  }
+
+  /** Aplica a foto (upload ou remoção) depois que o grupo já existe. */
+  async function applyIcon(cid: string) {
+    if (iconFile) {
+      const ifd = new FormData();
+      ifd.set("icon", iconFile);
+      const ir = await uploadChannelIconAction(cid, ifd);
+      if ("error" in ir) toast.error(`Grupo salvo, mas a foto falhou: ${ir.error}`);
+    } else if (iconRemoved && initialIconUrl) {
+      await removeChannelIconAction(cid);
+    }
+  }
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -89,10 +134,13 @@ export function GrupoModal({
           toast.error(r.error);
           return;
         }
+        if (r.channelId) await applyIcon(r.channelId);
         onOpenChange(false);
         setNome("");
         setSelected(new Set());
         setSearch("");
+        setIconFile(null);
+        setIconPreview(null);
         if (r.channelId) router.push(`/escritorio/grupo/${r.channelId}`);
       } else {
         if (!channelId) return;
@@ -101,6 +149,7 @@ export function GrupoModal({
           toast.error(r.error);
           return;
         }
+        await applyIcon(channelId);
         toast.success("Grupo atualizado");
         onOpenChange(false);
         router.refresh();
@@ -116,6 +165,50 @@ export function GrupoModal({
         </DialogHeader>
 
         <div className="space-y-3">
+          {/* Foto do grupo */}
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="group relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-full border bg-muted"
+              title="Trocar foto do grupo"
+            >
+              {iconSrc ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={iconSrc} alt="Foto do grupo" className="h-full w-full object-cover" />
+              ) : (
+                <span className="flex h-full w-full items-center justify-center text-muted-foreground">
+                  <Users className="h-6 w-6" />
+                </span>
+              )}
+              <span className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                <Camera className="h-5 w-5 text-white" />
+              </span>
+            </button>
+            <div className="space-y-1">
+              <Button type="button" size="sm" variant="outline" onClick={() => fileRef.current?.click()}>
+                <Camera className="mr-1.5 h-3.5 w-3.5" /> Trocar foto
+              </Button>
+              {iconSrc && (
+                <button
+                  type="button"
+                  onClick={clearIcon}
+                  className="ml-1 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive"
+                >
+                  <X className="h-3 w-3" /> Remover
+                </button>
+              )}
+              <p className="text-[11px] text-muted-foreground">JPEG, PNG ou WebP · máx. 2MB</p>
+            </div>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={pickIcon}
+              className="hidden"
+            />
+          </div>
+
           <div className="space-y-1.5">
             <Label htmlFor="grupo-nome">Nome do grupo</Label>
             <Input
