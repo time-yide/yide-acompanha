@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BookOpen, FolderOpen, ScrollText, Heart, Compass, PlayCircle } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
+import { TabsManual } from "@/components/manual/TabsManual";
 
 interface Card {
   href: string;
@@ -47,6 +48,7 @@ export default async function ManualPage() {
 
   return (
     <div className="space-y-8">
+      <TabsManual active="manual" />
       <header className="overflow-hidden rounded-2xl border bg-gradient-to-br from-primary/15 via-card to-card p-6 sm:p-8">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/15 text-primary">

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { BookOpen, GraduationCap, Plus, Trophy } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import { listMeusCursos, listAllCursos, getRanking } from "@/lib/academy/queries";
+import { TabsManual } from "@/components/manual/TabsManual";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CursoCard } from "@/components/academy/CursoCard";
@@ -28,6 +29,7 @@ export default async function AcademyPage() {
 
   return (
     <div className="space-y-6">
+      <TabsManual active="academy" />
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
