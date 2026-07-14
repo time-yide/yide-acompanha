@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Activity, Info, AlertTriangle, ChevronRight } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
+import { TabsColaboradores } from "@/components/colaboradores/TabsColaboradores";
 import {
   getColaboradoresStatus,
   summarizeStatus,
@@ -51,6 +52,7 @@ export default async function ProdutividadePage({
 
   return (
     <div className="space-y-6">
+      <TabsColaboradores active="produtividade" canSeeProdutividade />
       <AutoRefresh intervalSeconds={30} />
 
       <header className="flex flex-wrap items-start justify-between gap-3">

@@ -1,8 +1,8 @@
 import {
   LayoutGrid, Users, KanbanSquare, ListChecks,
   DollarSign, Calendar, UserCog, MessageSquare,
-  TrendingUp, Video, Trash2, MessagesSquare, GraduationCap, Share2, Radar, MessageCircle, Phone,
-  IdCard, BookOpen, Inbox, Activity, Layers, Zap, MapPin, Target, ShoppingCart, Images,
+  TrendingUp, Video, Trash2, MessagesSquare, Share2, Radar, MessageCircle, Phone,
+  IdCard, BookOpen, Inbox, Layers, Zap, MapPin, Target, ShoppingCart, Images,
   type LucideIcon,
 } from "lucide-react";
 import type { Role } from "@/lib/auth/permissions";
@@ -116,10 +116,10 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
     id: "equipe",
     label: "Interno",
     items: [
+      // Yide Academy virou aba dentro do Manual (TabsManual); Produtividade virou
+      // aba dentro de Colaboradores (TabsColaboradores). URLs preservadas.
       { type: "link", href: "/manual", icon: BookOpen, label: "Manual da Yide", roles: "all", badgeKey: null },
-      { type: "link", href: "/academy", icon: GraduationCap, label: "Yide Academy", roles: "all", badgeKey: null },
       { type: "link", href: "/colaboradores", icon: UserCog, label: "Colaboradores", roles: "all", badgeKey: null },
-      { type: "link", href: "/produtividade", icon: Activity, label: "Produtividade", roles: ["adm", "socio", "coordenador", "audiovisual_chefe"], badgeKey: null },
       { type: "link", href: "/unidades", icon: Layers, label: "Unidades", roles: ["adm", "socio"], badgeKey: null },
     ],
   },
