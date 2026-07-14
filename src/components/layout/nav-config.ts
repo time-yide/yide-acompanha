@@ -1,8 +1,8 @@
 import {
   LayoutGrid, Users, KanbanSquare, ListChecks,
   DollarSign, Calendar, UserCog, MessageSquare,
-  TrendingUp, Video, Trash2, MessagesSquare, GraduationCap, Megaphone, Share2, Radar, MessageCircle, Phone,
-  IdCard, Rocket, BookOpen, Inbox, Activity, Layers, Sparkles, Zap, MapPin, Target, ShoppingCart, Images,
+  TrendingUp, Video, Trash2, MessagesSquare, GraduationCap, Share2, Radar, MessageCircle, Phone,
+  IdCard, BookOpen, Inbox, Activity, Layers, Zap, MapPin, Target, ShoppingCart, Images,
   type LucideIcon,
 } from "lucide-react";
 import type { Role } from "@/lib/auth/permissions";
@@ -19,12 +19,20 @@ export interface NavLink {
   badgeKey: NavBadgeKey | null;
 }
 
+/** Subtítulo/divisória dentro de um grupo (ex: "Rua" no Comercial). */
+export interface NavSubheader {
+  type: "subheader";
+  label: string;
+}
+
+export type NavGroupItem = NavLink | NavSubheader;
+
 export interface NavGroup {
   type: "group";
   /** ID estável usado como chave em localStorage. */
   id: string;
   label: string;
-  items: NavLink[];
+  items: readonly NavGroupItem[];
   /** Quando true, o grupo não pode ser minimizado — sem botão de toggle. */
   alwaysExpanded?: boolean;
 }
@@ -38,7 +46,6 @@ export type NavEntry = NavLink | NavGroup;
  */
 export const NAV_STRUCTURE: readonly NavEntry[] = [
   { type: "link", href: "/", icon: LayoutGrid, label: "Dashboard", roles: "all", badgeKey: null },
-  { type: "link", href: "/batidas", icon: Target, label: "14 Batidas", roles: ["adm", "socio", "comercial", "coordenador", "assessor"], badgeKey: null },
 
   // Comunicação fica direto embaixo do Dashboard e não pode ser minimizada —
   // decisão da Yasmin: recados e escritório precisam estar sempre visíveis
@@ -56,20 +63,18 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
 
   {
     type: "group",
+    // id mantido ("comercial-ligacao") pra preservar a preferência aberto/fechado
+    // que o usuário já tem salva em localStorage. Só o label e o conteúdo mudam.
     id: "comercial-ligacao",
-    label: "Comercial Ligação",
+    label: "Comercial",
     items: [
+      { type: "link", href: "/batidas", icon: Target, label: "14 Batidas", roles: ["adm", "socio", "comercial", "coordenador", "assessor"], badgeKey: null },
       { type: "link", href: "/ligacoes", icon: Phone, label: "Ligações", roles: ["adm", "socio", "comercial", "coordenador", "assessor"], badgeKey: null },
       { type: "link", href: "/onboarding?canal=ligacao", icon: KanbanSquare, label: "Onboarding Ligação", roles: ["adm", "socio", "comercial", "assessor", "coordenador", "audiovisual_chefe"], badgeKey: null },
       { type: "link", href: "/gerador-leads", icon: Radar, label: "Gerador de Leads", roles: ["adm", "socio", "comercial", "coordenador", "assessor"], badgeKey: null },
       { type: "link", href: "/conversas", icon: MessageCircle, label: "Conversas", roles: ["adm", "socio", "comercial", "coordenador", "assessor"], badgeKey: null },
-    ],
-  },
-  {
-    type: "group",
-    id: "comercial-rua",
-    label: "Comercial Rua",
-    items: [
+      // Sub-seção "Rua" dentro do Comercial.
+      { type: "subheader", label: "Rua" },
       { type: "link", href: "/visitas", icon: MapPin, label: "Visitas", roles: ["adm", "socio", "comercial", "coordenador", "assessor"], badgeKey: null },
       { type: "link", href: "/onboarding?canal=rua", icon: KanbanSquare, label: "Onboarding Rua", roles: ["adm", "socio", "comercial", "assessor", "coordenador", "audiovisual_chefe"], badgeKey: null },
     ],
@@ -82,14 +87,13 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
     items: [
       // Clientes no topo da Operação (decisão Yasmin: é o coração do dia-a-dia operacional).
       { type: "link", href: "/clientes", icon: Users, label: "Clientes", roles: "all", badgeKey: null },
-      // D0 → D30 vem depois - é o fluxo de entrada/onboarding do cliente.
-      { type: "link", href: "/d0-d30", icon: Rocket, label: "D0 → D30", roles: ["adm", "socio", "coordenador", "assessor", "comercial"], badgeKey: null },
+      // D0 → D30 e Tráfego saíram do menu — agora são abas dentro da Estratégia
+      // (TabsSocialMedia). URLs /d0-d30 e /trafego preservadas.
       { type: "link", href: "/tarefas", icon: ListChecks, label: "Tarefas", roles: "all", badgeKey: null },
       { type: "link", href: "/audiovisual", icon: Video, label: "Audiovisual", roles: ["adm", "socio", "coordenador", "assessor", "videomaker", "fast_midia", "audiovisual_chefe"], badgeKey: null },
       { type: "link", href: "/fast-media", icon: Images, label: "Fast Mídia", roles: ["adm", "socio", "coordenador", "audiovisual_chefe", "fast_midia"], badgeKey: null },
-      { type: "link", href: "/audiovisual/editor-ia", icon: Sparkles, label: "Yori", roles: ["videomaker", "fast_midia", "editor", "audiovisual_chefe", "assessor", "socio", "adm"], badgeKey: null },
+      // Yori saiu do menu — fica só dentro do Audiovisual (botão de entrada lá). URL preservada.
       { type: "link", href: "/freela-yide", icon: Zap, label: "FreelaYide", roles: ["adm", "socio", "comercial", "coordenador", "assessor", "designer", "videomaker", "fast_midia", "editor", "audiovisual_chefe"], badgeKey: null },
-      { type: "link", href: "/trafego", icon: Megaphone, label: "Tráfego", roles: ["adm", "socio", "coordenador", "assessor", "comercial"], badgeKey: null },
       { type: "link", href: "/ecommerce", icon: ShoppingCart, label: "E-commerce", roles: ["adm", "socio", "assessor_ecommerce", "assistente_ecommerce"], badgeKey: null },
       // Label "Estratégia" — engloba Painel Mensal + Agendamento de Post + Design + Apresenta Yide.
       // URL /social-media preservada (redirect pro /painel).
@@ -151,14 +155,39 @@ function isLinkVisible(role: Role, link: NavLink, especialidade?: string | null)
  * assessor de e-commerce). Grupos cujos itens todos sumirem pra esse role
  * também são removidos (não fica grupo vazio na tela).
  */
+/** Remove subtítulos órfãos: divisória sem nenhum link visível abaixo dela
+ * (antes do próximo subtítulo ou do fim). */
+function stripOrphanSubheaders(items: NavGroupItem[]): NavGroupItem[] {
+  const out: NavGroupItem[] = [];
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i];
+    if (it.type === "subheader") {
+      let hasLink = false;
+      for (let j = i + 1; j < items.length; j++) {
+        if (items[j].type === "subheader") break;
+        if (items[j].type === "link") { hasLink = true; break; }
+      }
+      if (hasLink) out.push(it);
+    } else {
+      out.push(it);
+    }
+  }
+  return out;
+}
+
 export function visibleNavStructure(role: Role, especialidade?: string | null): NavEntry[] {
   const out: NavEntry[] = [];
   for (const entry of NAV_STRUCTURE) {
     if (entry.type === "link") {
       if (isLinkVisible(role, entry, especialidade)) out.push(entry);
     } else {
-      const items = entry.items.filter((it) => isLinkVisible(role, it, especialidade));
-      if (items.length > 0) out.push({ ...entry, items });
+      // Mantém subtítulos; filtra links por role/especialidade.
+      const kept = entry.items.filter(
+        (it) => it.type === "subheader" || isLinkVisible(role, it, especialidade),
+      );
+      const items = stripOrphanSubheaders(kept);
+      // Só mostra o grupo se sobrou ao menos 1 link (não deixa grupo só com título).
+      if (items.some((it) => it.type === "link")) out.push({ ...entry, items });
     }
   }
   return out;

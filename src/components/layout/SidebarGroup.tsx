@@ -4,14 +4,14 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { SidebarItem } from "./SidebarItem";
-import type { NavLink, NavBadgeKey } from "./nav-config";
+import type { NavGroupItem, NavBadgeKey } from "./nav-config";
 
 const STORAGE_KEY = "yide:sidebar-groups";
 
 interface Props {
   groupId: string;
   label: string;
-  items: NavLink[];
+  items: readonly NavGroupItem[];
   badges?: Partial<Record<NavBadgeKey, number>>;
   /** Quando true, grupo nunca colapsa — sem botão de toggle. */
   alwaysExpanded?: boolean;
@@ -30,7 +30,7 @@ interface Props {
 export function SidebarGroup({ groupId, label, items, badges, alwaysExpanded = false }: Props) {
   const pathname = usePathname();
   const containsActive = items.some(
-    (i) => pathname === i.href || pathname.startsWith(i.href + "/"),
+    (i) => i.type === "link" && (pathname === i.href || pathname.startsWith(i.href + "/")),
   );
 
   // explicit: preferência do usuário em localStorage; null = nunca tocou.
@@ -89,15 +89,24 @@ export function SidebarGroup({ groupId, label, items, badges, alwaysExpanded = f
       )}
       {open && (
         <div className="mt-0.5 space-y-1">
-          {items.map((item) => (
-            <SidebarItem
-              key={item.href}
-              href={item.href}
-              icon={item.icon}
-              label={item.label}
-              badge={item.badgeKey ? badges?.[item.badgeKey] : undefined}
-            />
-          ))}
+          {items.map((item, i) =>
+            item.type === "subheader" ? (
+              <div
+                key={`sub-${item.label}-${i}`}
+                className="px-3 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60"
+              >
+                {item.label}
+              </div>
+            ) : (
+              <SidebarItem
+                key={item.href}
+                href={item.href}
+                icon={item.icon}
+                label={item.label}
+                badge={item.badgeKey ? badges?.[item.badgeKey] : undefined}
+              />
+            ),
+          )}
         </div>
       )}
     </div>
