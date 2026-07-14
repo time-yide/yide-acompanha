@@ -27,6 +27,7 @@ interface Props {
     participantes_ids: string[];
     sub_calendar: SelectableSub;
     client_id: string | null;
+    cliente_avulso: string | null;
     localizacao_endereco: string | null;
     localizacao_maps_url: string | null;
     link_roteiro: string | null;
@@ -67,6 +68,7 @@ export function EventForm({ action, defaults = {}, profiles, clientes, videomake
   const selected = new Set(defaults.participantes_ids ?? []);
   const [sub, setSub] = useState<SelectableSub>(defaults.sub_calendar ?? "agencia");
   const [clientId, setClientId] = useState<string | null>(defaults.client_id ?? null);
+  const [avulsoOpen, setAvulsoOpen] = useState<boolean>(!!defaults.cliente_avulso);
   const [videomakerId, setVideomakerId] = useState<string | null>(defaults.videomaker_assigned_id ?? null);
   const isVideomaker = sub === "videomakers";
 
@@ -145,6 +147,55 @@ export function EventForm({ action, defaults = {}, profiles, clientes, videomake
         </div>
       </div>
 
+      {/* Cliente — disponível pra todos os tipos. Em reunião de assessoria,
+          vincular o cliente faz a reunião aparecer no painel mensal dele. */}
+      <div className="space-y-2">
+        <Label className="flex items-center gap-1.5">
+          <UsersIcon className="h-3.5 w-3.5" /> Cliente{" "}
+          <span className="text-xs text-muted-foreground">(recomendado)</span>
+        </Label>
+        {!avulsoOpen ? (
+          <>
+            <input type="hidden" name="client_id" value={clientId ?? ""} />
+            <SearchableSelect
+              options={clientes.map((c) => ({ value: c.id, label: c.nome }))}
+              value={clientId}
+              onChange={(v) => setClientId(v ?? null)}
+              placeholder="Sem cliente"
+              emptyText="Nenhum cliente encontrado"
+              clearLabel="Sem cliente"
+            />
+            <button
+              type="button"
+              onClick={() => { setAvulsoOpen(true); setClientId(null); }}
+              className="text-[12px] text-primary hover:underline"
+            >
+              + Cliente avulso (não cadastrado)
+            </button>
+          </>
+        ) : (
+          <>
+            <Input
+              name="cliente_avulso"
+              maxLength={120}
+              defaultValue={defaults.cliente_avulso ?? ""}
+              placeholder="Nome do cliente avulso"
+            />
+            <button
+              type="button"
+              onClick={() => setAvulsoOpen(false)}
+              className="text-[12px] text-muted-foreground hover:underline"
+            >
+              Escolher da lista de clientes
+            </button>
+          </>
+        )}
+        <p className="text-[11px] text-muted-foreground">
+          Em reunião de assessoria, vincular o cliente faz a reunião aparecer no painel mensal dele.
+          Cliente avulso é só um rótulo no evento (não entra no painel).
+        </p>
+      </div>
+
       {isVideomaker && (
         <div className="space-y-4 rounded-lg border border-fuchsia-500/40 bg-fuchsia-500/5 p-4">
           <div className="flex items-center gap-2 text-sm font-semibold text-fuchsia-700 dark:text-fuchsia-300">
@@ -181,24 +232,6 @@ export function EventForm({ action, defaults = {}, profiles, clientes, videomake
               </p>
             </div>
           )}
-
-          <div className="space-y-2">
-            <Label htmlFor="client_id" className="flex items-center gap-1.5">
-              <UsersIcon className="h-3.5 w-3.5" /> Cliente <span className="text-xs text-muted-foreground">(recomendado)</span>
-            </Label>
-            <input type="hidden" name="client_id" value={clientId ?? ""} />
-            <SearchableSelect
-              options={clientes.map((c) => ({ value: c.id, label: c.nome }))}
-              value={clientId}
-              onChange={(v) => setClientId(v ?? null)}
-              placeholder="Sem cliente"
-              emptyText="Nenhum cliente encontrado"
-              clearLabel="Sem cliente"
-            />
-            <p className="text-[11px] text-muted-foreground">
-              Vinculando o cliente, a captação é interligada ao histórico (Audiovisual, ranking de satisfação, painel mensal).
-            </p>
-          </div>
 
           <div className="space-y-2">
             <Label htmlFor="localizacao_endereco" className="flex items-center gap-1.5">

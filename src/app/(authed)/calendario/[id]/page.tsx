@@ -159,6 +159,8 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
               participantes_ids: event.participantes_ids ?? [],
               sub_calendar: formSub,
               client_id: event.client_id ?? null,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              cliente_avulso: (event as any).cliente_avulso ?? null,
               localizacao_endereco: event.localizacao_endereco ?? null,
               localizacao_maps_url: event.localizacao_maps_url ?? null,
               link_roteiro: event.link_roteiro ?? null,
