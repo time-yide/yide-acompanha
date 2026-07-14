@@ -157,3 +157,100 @@ export async function toggleStoryDayAction(
   revalidatePath("/painel");
   return { postado };
 }
+
+const setStoryDayCountSchema = z.object({
+  client_id: uuidLike,
+  data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Formato esperado YYYY-MM-DD"),
+  quantidade: z.coerce.number().int().min(0).max(999),
+});
+
+/**
+ * Define QUANTOS stories foram postados num dia (marcação incremental). A
+ * Fast Mídia vai marcando ao longo do dia; o dia só fica "completo" quando
+ * atinge a diária do cliente. quantidade=0 remove a marca do dia. O total
+ * mensal (client_monthly_stories.quantidade_postada) é recalculado (soma do mês).
+ */
+export async function setStoryDayCountAction(
+  formData: FormData,
+): Promise<{ error?: string; quantidade?: number; diaria?: number }> {
+  const actor = await requireAuth();
+  if (!(ALLOWED_ROLES as readonly string[]).includes(actor.role)) {
+    return { error: "Sem permissão" };
+  }
+
+  const parsed = setStoryDayCountSchema.safeParse({
+    client_id: formData.get("client_id"),
+    data: formData.get("data"),
+    quantidade: formData.get("quantidade"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const { client_id, data, quantidade } = parsed.data;
+  const mesRef = data.slice(0, 7);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = (await createClient()) as any;
+
+  const { data: clientRow, error: clientError } = await supabase
+    .from("clients")
+    .select("organization_id, quantidade_diaria_stories")
+    .eq("id", client_id)
+    .single();
+  if (clientError || !clientRow) return { error: "Cliente não encontrado" };
+  const organization_id = (clientRow as { organization_id: string }).organization_id;
+  const diaria = Math.max(1, (clientRow as { quantidade_diaria_stories: number | null }).quantidade_diaria_stories ?? 1);
+
+  // Cap na diária: o dia "completa" quando bate a meta.
+  const qtd = Math.min(quantidade, diaria);
+
+  if (qtd <= 0) {
+    const { error } = await supabase
+      .from("client_story_posts")
+      .delete()
+      .eq("client_id", client_id)
+      .eq("data", data);
+    if (error) return { error: error.message };
+  } else {
+    const { error } = await supabase.from("client_story_posts").upsert(
+      {
+        client_id,
+        organization_id,
+        data,
+        quantidade: qtd,
+        marcado_por: actor.id,
+      },
+      { onConflict: "client_id,data" },
+    );
+    if (error) return { error: error.message };
+  }
+
+  // Recalcula o total do mês e sincroniza o contador mensal.
+  const monthStart = `${mesRef}-01`;
+  const [y, m] = mesRef.split("-").map(Number);
+  const nextMonth = m === 12 ? 1 : m + 1;
+  const nextYear = m === 12 ? y + 1 : y;
+  const monthEnd = `${nextYear}-${String(nextMonth).padStart(2, "0")}-01`;
+  const { data: monthRows } = await supabase
+    .from("client_story_posts")
+    .select("quantidade")
+    .eq("client_id", client_id)
+    .gte("data", monthStart)
+    .lt("data", monthEnd);
+  const totalMes = ((monthRows ?? []) as Array<{ quantidade: number | null }>).reduce(
+    (s, r) => s + (r.quantidade ?? 0),
+    0,
+  );
+  await supabase.from("client_monthly_stories").upsert(
+    {
+      client_id,
+      organization_id,
+      mes_referencia: mesRef,
+      quantidade_postada: totalMes,
+    },
+    { onConflict: "client_id,mes_referencia" },
+  );
+
+  revalidatePath("/fast-media");
+  revalidatePath("/painel");
+  return { quantidade: qtd, diaria };
+}
