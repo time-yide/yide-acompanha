@@ -59,7 +59,8 @@ function ClientStoryRow({
 
   function save(dia: number, data: string, qtd: number) {
     if (!canEdit) return;
-    const clamped = Math.max(0, Math.min(qtd, diaria));
+    // Permite passar do mínimo (fez mais que a diária). Cap alto só de segurança.
+    const clamped = Math.max(0, Math.min(qtd, 99));
     const prev = counts;
     setCounts({ ...counts, [dia]: clamped });
     startTransition(async () => {
@@ -140,7 +141,7 @@ function ClientStoryRow({
                 isToday && "ring-2 ring-primary ring-offset-1 ring-offset-background",
               )}
             >
-              {complete ? <Check className="h-3.5 w-3.5" /> : d.dia}
+              {complete ? (c > diaria ? c : <Check className="h-3.5 w-3.5" />) : d.dia}
             </button>
           );
         })}
@@ -175,7 +176,7 @@ function ClientStoryRow({
                 type="button"
                 variant="outline"
                 size="icon"
-                disabled={pending || editCount >= diaria}
+                disabled={pending || editCount >= 99}
                 onClick={() => editing && save(editing.dia, editing.data, editCount + 1)}
                 aria-label="Mais um"
               >
@@ -203,7 +204,9 @@ function ClientStoryRow({
               </Button>
             </div>
             {editCount >= diaria && (
-              <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">✓ Dia completo</p>
+              <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                ✓ Dia completo{editCount > diaria ? ` · +${editCount - diaria} além da meta` : ""}
+              </p>
             )}
           </div>
 
