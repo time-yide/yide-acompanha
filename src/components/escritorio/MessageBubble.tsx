@@ -1,8 +1,10 @@
 "use client";
 
-import { ExternalLink, FileText, Reply, Check, Clock } from "lucide-react";
+import { useState } from "react";
+import { ExternalLink, FileText, Reply, Check, CheckCheck, Clock } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import type { ChatMessage } from "@/lib/escritorio/types";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import type { ChatMessage, ChannelRead } from "@/lib/escritorio/types";
 import { cn } from "@/lib/utils";
 
 function initials(nome: string | undefined | null): string {
@@ -86,6 +88,8 @@ interface Props {
   isMine: boolean;
   prev?: ChatMessage | null;
   onReply: () => void;
+  /** Só pras minhas mensagens: quem já leu esta mensagem (exceto eu). */
+  readers?: ChannelRead[];
 }
 
 function isImage(url: string): boolean {
@@ -99,8 +103,11 @@ function isContinuationOf(message: ChatMessage, prev: ChatMessage | null | undef
   return dt < 5 * 60 * 1000;
 }
 
-export function MessageBubble({ message, isMine, prev, onReply }: Props) {
+export function MessageBubble({ message, isMine, prev, onReply, readers }: Props) {
   const continuation = isContinuationOf(message, prev);
+  const [showReaders, setShowReaders] = useState(false);
+  const readCount = readers?.length ?? 0;
+  const lida = readCount > 0;
 
   return (
     <div className={cn("group flex gap-2", isMine && "flex-row-reverse", continuation ? "mt-0.5" : "mt-2")}>
@@ -145,8 +152,19 @@ export function MessageBubble({ message, isMine, prev, onReply }: Props) {
             {isMine && (
               message.pending ? (
                 <Clock className="h-2.5 w-2.5 text-muted-foreground/60" aria-label="Enviando" />
+              ) : lida ? (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setShowReaders(true); }}
+                  className="inline-flex items-center gap-0.5 text-sky-500 hover:opacity-80"
+                  title={`Lido por ${readCount} — clique pra ver quem`}
+                  aria-label={`Lido por ${readCount}. Ver quem leu.`}
+                >
+                  <CheckCheck className="h-3.5 w-3.5" />
+                  {readCount > 1 && <span className="text-[9px] font-semibold">{readCount}</span>}
+                </button>
               ) : (
-                <Check className="h-3 w-3 text-primary/80" aria-label="Enviado" />
+                <Check className="h-3 w-3 text-muted-foreground/60" aria-label="Enviado" />
               )
             )}
           </span>
@@ -188,6 +206,37 @@ export function MessageBubble({ message, isMine, prev, onReply }: Props) {
       >
         <Reply className="h-3.5 w-3.5" />
       </button>
+
+      {isMine && lida && (
+        <Dialog open={showReaders} onOpenChange={setShowReaders}>
+          <DialogContent className="sm:max-w-xs">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-1.5 text-sm">
+                <CheckCheck className="h-4 w-4 text-sky-500" />
+                Lido por {readCount}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="max-h-[50vh] space-y-1 overflow-y-auto">
+              {[...(readers ?? [])]
+                .sort((a, b) => (a.last_read_at < b.last_read_at ? -1 : 1))
+                .map((r) => (
+                  <div key={r.user_id} className="flex items-center gap-2.5 rounded-md px-1 py-1.5">
+                    <Avatar className="h-8 w-8">
+                      {r.avatar_url ? <AvatarImage src={r.avatar_url} alt={r.nome} /> : null}
+                      <AvatarFallback className="text-[10px]">{initials(r.nome)}</AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{r.nome}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {formatHourMinute(r.last_read_at)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

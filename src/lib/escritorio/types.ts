@@ -47,6 +47,14 @@ export interface ChannelLastMessagePreview {
   created_at: string;
 }
 
+/** Leitura de um canal por um usuário (pra read receipts "quem leu"). */
+export interface ChannelRead {
+  user_id: string;
+  last_read_at: string;
+  nome: string;
+  avatar_url: string | null;
+}
+
 export interface ChannelDmOther {
   id: string;
   nome: string;

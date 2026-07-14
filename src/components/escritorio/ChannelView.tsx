@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Hash } from "lucide-react";
 import { MessageBubble } from "./MessageBubble";
 import { MessageInput } from "./MessageInput";
 import { useRealtimeMessages } from "@/lib/escritorio/use-realtime-messages";
+import { useRealtimeReads } from "@/lib/escritorio/use-realtime-reads";
 import { markChannelReadAction } from "@/lib/escritorio/actions";
-import type { Channel, ChatMessage } from "@/lib/escritorio/types";
+import type { Channel, ChatMessage, ChannelRead } from "@/lib/escritorio/types";
 import { APP_TIMEZONE, getDatePartsInAppTz } from "@/lib/datetime/timezone";
 
 function sameDay(a: string, b: string): boolean {
@@ -73,12 +74,35 @@ interface Props {
   initialMessages: ChatMessage[];
   currentUser: CurrentUser;
   mentionables: Array<{ id: string; nome: string; role: string }>;
+  /** Leituras do canal (read receipts "quem leu"). */
+  initialReads?: ChannelRead[];
 }
 
-export function ChannelView({ channel, initialMessages, currentUser, mentionables }: Props) {
+export function ChannelView({ channel, initialMessages, currentUser, mentionables, initialReads = [] }: Props) {
   const { messages, setMessages } = useRealtimeMessages(channel.id, initialMessages, currentUser.id);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
+
+  // Read receipts: nome/avatar por user pra resolver quem aparece via realtime.
+  const profilesById = useMemo(() => {
+    const map: Record<string, { nome: string; avatar_url: string | null }> = {};
+    for (const m of mentionables) map[m.id] = { nome: m.nome, avatar_url: null };
+    for (const r of initialReads) map[r.user_id] = { nome: r.nome, avatar_url: r.avatar_url };
+    map[currentUser.id] = { nome: currentUser.nome, avatar_url: currentUser.avatar_url };
+    return map;
+  }, [mentionables, initialReads, currentUser]);
+
+  const reads = useRealtimeReads(channel.id, initialReads, profilesById);
+
+  // Pra cada mensagem minha: quem já leu (last_read_at >= created_at, exceto eu).
+  function readersOf(message: ChatMessage): ChannelRead[] {
+    const out: ChannelRead[] = [];
+    for (const r of reads.values()) {
+      if (r.user_id === currentUser.id) continue;
+      if (r.last_read_at >= message.created_at) out.push(r);
+    }
+    return out;
+  }
 
   // Auto-scroll pra última mensagem
   useEffect(() => {
@@ -122,6 +146,7 @@ export function ChannelView({ channel, initialMessages, currentUser, mentionable
                   isMine={m.autor_id === currentUser.id}
                   prev={showDateDivider ? null : prev}
                   onReply={() => setReplyTo(m)}
+                  readers={m.autor_id === currentUser.id ? readersOf(m) : undefined}
                 />
               </div>
             );
