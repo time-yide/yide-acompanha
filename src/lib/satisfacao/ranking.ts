@@ -86,7 +86,11 @@ export async function computeWeeklyRanking(
   let clientsQuery = supabase
     .from("clients")
     .select("id, nome, assessor_id, coordenador_id")
-    .eq("status", "ativo");
+    .eq("status", "ativo")
+    // Exclui clientes soft-deletados (excluídos → /lixeira). "Excluir cliente"
+    // seta deleted_at mas NÃO muda status, então sem este filtro o cliente
+    // excluído continua aparecendo na avaliação.
+    .is("deleted_at", null);
   clientsQuery = applyClientFilter(clientsQuery as never, filter) as never;
   const { data: clientsData } = await clientsQuery;
   const clients = (clientsData ?? []) as Array<{
