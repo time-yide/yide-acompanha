@@ -1,6 +1,7 @@
 import { ShieldAlert } from "lucide-react";
 import { RecadoCard } from "./RecadoCard";
 import type { PrivadoRow } from "@/lib/recados/privados";
+import type { RecadoViewer } from "@/lib/recados/queries";
 import { destinatariosLabel, isAuditoriaSomente } from "@/lib/recados/privados";
 
 interface Props {
@@ -8,9 +9,11 @@ interface Props {
   currentUserId: string;
   currentUserRole: string;
   emptyLabel: string;
+  /** Quem leu cada recado privado, indexado por id. */
+  viewersByRecado?: Record<string, RecadoViewer[]>;
 }
 
-export function PrivadoFeed({ privados, currentUserId, currentUserRole, emptyLabel }: Props) {
+export function PrivadoFeed({ privados, currentUserId, currentUserRole, emptyLabel, viewersByRecado }: Props) {
   if (privados.length === 0) {
     return (
       <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
@@ -34,6 +37,7 @@ export function PrivadoFeed({ privados, currentUserId, currentUserRole, emptyLab
               currentUserId={currentUserId}
               currentUserRole={currentUserRole}
               destinatariosLabel={destinatariosLabel(r)}
+              viewers={viewersByRecado?.[r.id]}
             />
           ))}
           {meus.length === 0 && (

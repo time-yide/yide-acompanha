@@ -1,6 +1,6 @@
 import { Pin } from "lucide-react";
 import { RecadoCard } from "./RecadoCard";
-import type { RecadoRow } from "@/lib/recados/queries";
+import type { RecadoRow, RecadoViewer } from "@/lib/recados/queries";
 import { groupByTier, TIER_LABELS, TIER_ORDER, type Tier } from "@/lib/recados/tiers";
 import { cn } from "@/lib/utils";
 
@@ -16,9 +16,11 @@ interface Props {
   currentUserId: string;
   currentUserRole: string;
   emptyLabel: string;
+  /** Quem viu cada recado, indexado por id. */
+  viewersByRecado?: Record<string, RecadoViewer[]>;
 }
 
-export function RecadoFeed({ recados, currentUserId, currentUserRole, emptyLabel }: Props) {
+export function RecadoFeed({ recados, currentUserId, currentUserRole, emptyLabel, viewersByRecado }: Props) {
   if (recados.length === 0) {
     return <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">{emptyLabel}</p>;
   }
@@ -35,7 +37,7 @@ export function RecadoFeed({ recados, currentUserId, currentUserRole, emptyLabel
           </header>
           <div className="grid gap-3">
             {groups.fixados.map((r) => (
-              <RecadoCard key={r.id} recado={r} currentUserId={currentUserId} currentUserRole={currentUserRole} />
+              <RecadoCard key={r.id} recado={r} currentUserId={currentUserId} currentUserRole={currentUserRole} viewers={viewersByRecado?.[r.id]} />
             ))}
           </div>
         </section>
@@ -51,7 +53,7 @@ export function RecadoFeed({ recados, currentUserId, currentUserRole, emptyLabel
             </header>
             <div className="grid gap-3">
               {list.map((r) => (
-                <RecadoCard key={r.id} recado={r} currentUserId={currentUserId} currentUserRole={currentUserRole} />
+                <RecadoCard key={r.id} recado={r} currentUserId={currentUserId} currentUserRole={currentUserRole} viewers={viewersByRecado?.[r.id]} />
               ))}
             </div>
           </section>

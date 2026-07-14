@@ -13,13 +13,14 @@ import { Card } from "@/components/ui/card";
 import { PriorityBadge } from "./PriorityBadge";
 import { EmojiReactionPicker } from "./EmojiReactionPicker";
 import { NovoRecadoDialog } from "./NovoRecadoDialog";
+import { RecadoViewers } from "./RecadoViewers";
 import {
   apagarRecadoAction,
   arquivarRecadoAction,
   fixarRecadoAction,
   reagirRecadoAction,
 } from "@/lib/recados/actions";
-import type { RecadoRow } from "@/lib/recados/queries";
+import type { RecadoRow, RecadoViewer } from "@/lib/recados/queries";
 import { REACAO_EMOJIS } from "@/lib/recados/schema";
 import { cn } from "@/lib/utils";
 import { APP_TIMEZONE } from "@/lib/datetime/timezone";
@@ -31,6 +32,8 @@ interface Props {
   currentUserId: string;
   currentUserRole: string;
   destinatariosLabel?: string;
+  /** Quem já viu esse recado (mural: abriu depois do post; privado: leu). */
+  viewers?: RecadoViewer[];
 }
 
 function timeAgo(iso: string): string {
@@ -66,7 +69,7 @@ function aggregateReacoes(reacoes: RecadoRow["reacoes"], userId: string) {
     .sort((a, b) => (EMOJI_ORDER.get(a.emoji) ?? 99) - (EMOJI_ORDER.get(b.emoji) ?? 99));
 }
 
-export function RecadoCard({ recado, currentUserId, currentUserRole, destinatariosLabel }: Props) {
+export function RecadoCard({ recado, currentUserId, currentUserRole, destinatariosLabel, viewers }: Props) {
   const isAuthor = recado.autor_id === currentUserId;
   const isPrivileged = currentUserRole === "socio" || currentUserRole === "adm";
   const canEdit = isAuthor || isPrivileged;
@@ -177,6 +180,7 @@ export function RecadoCard({ recado, currentUserId, currentUserRole, destinatari
             </button>
           ))}
           <EmojiReactionPicker recadoId={recado.id} />
+          {viewers && <RecadoViewers viewers={viewers} />}
         </footer>
       </Card>
 

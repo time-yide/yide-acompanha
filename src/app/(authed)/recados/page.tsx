@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireAuth } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import { listRecados, listPrivados } from "@/lib/recados/queries";
+import { listRecados, listPrivados, listSeenUsers, muralViewers, type RecadoViewer } from "@/lib/recados/queries";
 import { listMentionables } from "@/lib/escritorio/queries";
 import { getProfileIdsForActiveUnit } from "@/lib/units/filter-helpers";
 import { NovoRecadoDialog } from "@/components/recados/NovoRecadoDialog";
@@ -31,9 +31,18 @@ export default async function RecadosPage({ searchParams }: { searchParams: Prom
 
   let recados: Awaited<ReturnType<typeof listRecados>> = [];
   let privados: Awaited<ReturnType<typeof listPrivados>> = [];
+  // "Quem viu" por recado (id → lista). Mural: quem abriu depois do post.
+  // Privado: destinatários que já leram (lido_em).
+  const viewersByRecado: Record<string, RecadoViewer[]> = {};
 
   if (aba === "privados") {
     privados = await listPrivados(user.id, user.role, false, unitProfileIds);
+    for (const r of privados) {
+      viewersByRecado[r.id] = r.destinatarios
+        .filter((d) => d.lido_em)
+        .map((d) => ({ user_id: d.user_id, nome: d.nome, avatar_url: d.avatar_url, visto_em: d.lido_em as string }))
+        .sort((a, b) => (a.visto_em < b.visto_em ? 1 : -1));
+    }
     // Marca meus privados como lidos com write direto — igual o mural faz com
     // last_seen abaixo. NÃO chamar server action c/ revalidate aqui: chamar
     // revalidateTag/revalidatePath durante o render é proibido no Next e derruba
@@ -47,6 +56,10 @@ export default async function RecadosPage({ searchParams }: { searchParams: Prom
       .is("lido_em", null);
   } else {
     recados = await listRecados(aba === "arquivados", unitProfileIds);
+    const seen = await listSeenUsers(unitProfileIds);
+    for (const r of recados) {
+      viewersByRecado[r.id] = muralViewers(seen, r.criado_em, r.autor_id);
+    }
     if (aba === "ativos") {
       const supabase = await createClient();
       await supabase
@@ -102,6 +115,7 @@ export default async function RecadosPage({ searchParams }: { searchParams: Prom
           currentUserId={user.id}
           currentUserRole={user.role}
           emptyLabel="Nenhum recado privado."
+          viewersByRecado={viewersByRecado}
         />
       ) : (
         <RecadoFeed
@@ -109,6 +123,7 @@ export default async function RecadosPage({ searchParams }: { searchParams: Prom
           currentUserId={user.id}
           currentUserRole={user.role}
           emptyLabel={aba === "ativos" ? "Nenhum recado ativo. Seja o primeiro!" : "Nenhum recado arquivado."}
+          viewersByRecado={viewersByRecado}
         />
       )}
     </div>
