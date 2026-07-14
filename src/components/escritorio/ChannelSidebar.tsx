@@ -288,6 +288,7 @@ export function ChannelSidebar({ channels, currentKind, currentChannelId, pessoa
           channelId={grupoEdit.id}
           initialNome={grupoEdit.nome}
           initialMemberIds={grupoEdit.member_ids ?? []}
+          initialIconUrl={grupoEdit.icon_url}
         />
       )}
     </aside>
