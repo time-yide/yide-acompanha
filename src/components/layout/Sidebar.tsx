@@ -13,8 +13,8 @@ export interface SidebarBadges {
   yoriProntos?: number;
 }
 
-export function Sidebar({ role, nome, badges }: { role: Role; nome: string; badges?: SidebarBadges }) {
-  const visible = visibleNavStructure(role);
+export function Sidebar({ role, nome, badges, especialidade }: { role: Role; nome: string; badges?: SidebarBadges; especialidade?: string | null }) {
+  const visible = visibleNavStructure(role, especialidade);
 
   return (
     <aside data-role="sidebar" className="hidden w-[210px] flex-col border-r bg-card md:flex">

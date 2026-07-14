@@ -48,7 +48,7 @@ export default async function AuthedLayout({ children }: { children: React.React
 
   return (
     <div className="flex min-h-screen">
-      <Sidebar role={user.role} nome={user.nome} badges={{ recados: recadosNaoLidos, escritorio: escritorioUnread, yoriProntos }} />
+      <Sidebar role={user.role} nome={user.nome} especialidade={user.especialidade} badges={{ recados: recadosNaoLidos, escritorio: escritorioUnread, yoriProntos }} />
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar
           userId={user.id}
@@ -58,6 +58,7 @@ export default async function AuthedLayout({ children }: { children: React.React
           role={user.role}
           badges={{ recados: recadosNaoLidos, escritorio: escritorioUnread, yoriProntos }}
           unitContext={unitContext}
+          especialidade={user.especialidade}
         />
         <main
           className="flex-1 overflow-auto bg-muted/20 p-3 md:p-6"
