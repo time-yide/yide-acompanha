@@ -200,8 +200,10 @@ export async function setStoryDayCountAction(
   const organization_id = (clientRow as { organization_id: string }).organization_id;
   const diaria = Math.max(1, (clientRow as { quantidade_diaria_stories: number | null }).quantidade_diaria_stories ?? 1);
 
-  // Cap na diária: o dia "completa" quando bate a meta.
-  const qtd = Math.min(quantidade, diaria);
+  // Permite passar do mínimo (fez mais que a diária). `quantidade` já vem
+  // clampada 0..999 pelo schema. O dia "completa" ao bater a diária; acima
+  // disso conta como extra e soma no total do mês.
+  const qtd = quantidade;
 
   if (qtd <= 0) {
     const { error } = await supabase
