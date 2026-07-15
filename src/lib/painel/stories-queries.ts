@@ -227,3 +227,40 @@ export async function getStoriesGridForMonth(
     })
     .sort((a, b) => a.client_nome.localeCompare(b.client_nome, "pt-BR"));
 }
+
+export interface ClienteElegivelStories {
+  id: string;
+  nome: string;
+}
+
+/**
+ * Clientes que PODEM entrar na grade de stories: status 'ativo' e ainda sem
+ * stories ativado. Serve o seletor do dialog "Adicionar cliente" no /fast-media.
+ * Filtra pela unidade ativa (unitClientIds); service-role, mesmo padrão das
+ * demais queries deste arquivo.
+ */
+export async function getClientesElegiveisStories(
+  unitClientIds: string[] | null,
+): Promise<ClienteElegivelStories[]> {
+  // Unidade nova sem clientes → nada elegível.
+  if (unitClientIds !== null && unitClientIds.length === 0) return [];
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = createServiceRoleClient() as any;
+
+  let q = supabase
+    .from("clients")
+    .select("id, nome")
+    .eq("status", "ativo")
+    .eq("tem_stories", false);
+  if (unitClientIds !== null) q = q.in("id", unitClientIds);
+
+  const { data, error } = await q.order("nome");
+  if (error) {
+    console.error("[painel/stories] erro ao listar elegíveis:", error.message);
+    return [];
+  }
+  return ((data ?? []) as Array<{ id: string; nome: string }>).sort((a, b) =>
+    a.nome.localeCompare(b.nome, "pt-BR"),
+  );
+}
