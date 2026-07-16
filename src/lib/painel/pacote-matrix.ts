@@ -14,48 +14,51 @@ export type TipoPacote = (typeof TIPOS_PACOTE)[number];
 
 export const COLUMN_KEYS = [
   "crono",
+  "design", // status da tarefa de design auto-criada no upload do cronograma
   "tpg",
   "tpm",
   "gmn",
   "camera", // exibida como "Gravação" (conta capturas do mês)
   "edicao",
   "reuniao",
-  "pacote_postados",
+  "pacote_postados", // não mais renderizada como coluna; mantida p/ compat de código
 ] as const;
 export type ColumnKey = (typeof COLUMN_KEYS)[number];
 
 export type ColumnFlags = Record<ColumnKey, 0 | 1>;
 
 const NOTHING: ColumnFlags = {
-  crono: 0, tpg: 0, tpm: 0, gmn: 0,
+  crono: 0, design: 0, tpg: 0, tpm: 0, gmn: 0,
   camera: 0, edicao: 0, reuniao: 0, pacote_postados: 0,
 };
 
+// "design" acompanha "crono": aplicável aos pacotes que têm cronograma
+// (trafego_estrategia, estrategia, yide_360, ecommerce).
 export const PACOTE_COLUMNS: Record<TipoPacote, ColumnFlags> = {
   trafego_estrategia: {
-    crono: 1, tpg: 1, tpm: 1, gmn: 1,
+    crono: 1, design: 1, tpg: 1, tpm: 1, gmn: 1,
     camera: 1, edicao: 1, reuniao: 1, pacote_postados: 1,
   },
   trafego: {
-    crono: 0, tpg: 1, tpm: 1, gmn: 1,
+    crono: 0, design: 0, tpg: 1, tpm: 1, gmn: 1,
     camera: 1, edicao: 1, reuniao: 1, pacote_postados: 0,
   },
   estrategia: {
-    crono: 1, tpg: 0, tpm: 0, gmn: 1,
+    crono: 1, design: 1, tpg: 0, tpm: 0, gmn: 1,
     camera: 1, edicao: 1, reuniao: 1, pacote_postados: 1,
   },
   audiovisual: {
-    crono: 1, tpg: 0, tpm: 0, gmn: 0,
+    crono: 1, design: 0, tpg: 0, tpm: 0, gmn: 0,
     camera: 1, edicao: 1, reuniao: 1, pacote_postados: 0,
   },
   yide_360: {
-    crono: 1, tpg: 1, tpm: 1, gmn: 1,
+    crono: 1, design: 1, tpg: 1, tpm: 1, gmn: 1,
     camera: 1, edicao: 1, reuniao: 1, pacote_postados: 1,
   },
   // E-commerce: gestão completa de loja virtual + tráfego + conteúdo orgânico.
   // Mesma cobertura do Yide 360 — todas as colunas habilitadas.
   ecommerce: {
-    crono: 1, tpg: 1, tpm: 1, gmn: 1,
+    crono: 1, design: 1, tpg: 1, tpm: 1, gmn: 1,
     camera: 1, edicao: 1, reuniao: 1, pacote_postados: 1,
   },
   site: { ...NOTHING },
