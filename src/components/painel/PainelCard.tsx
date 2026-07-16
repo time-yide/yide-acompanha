@@ -1,10 +1,10 @@
 "use client";
 
-import { ExternalLink, Calendar, TrendingUp, Megaphone, MapPin, Video, Scissors, Handshake } from "lucide-react";
+import { ExternalLink, Calendar, Palette, TrendingUp, Megaphone, MapPin, Video, Scissors, Handshake } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { TipoPacoteBadge } from "./TipoPacoteBadge";
-import { PacotePostadosCell } from "./cells/PacotePostadosCell";
 import { CronoCell } from "./cells/CronoCell";
+import { DesignCell } from "./cells/DesignCell";
 import { TpgTpmCell } from "./cells/TpgTpmCell";
 import { GmnCell } from "./cells/GmnCell";
 import { GravacaoCell } from "./cells/GravacaoCell";
@@ -31,6 +31,7 @@ function isPrivileged(role: string): boolean {
 
 const COLUMN_META: Record<Exclude<ColumnKey, "pacote_postados">, { label: string; icon: LucideIcon }> = {
   crono: { label: "Crono", icon: Calendar },
+  design: { label: "Design", icon: Palette },
   tpg: { label: "TPG", icon: TrendingUp },
   tpm: { label: "TPM", icon: TrendingUp },
   gmn: { label: "GMN", icon: Megaphone },
@@ -70,11 +71,6 @@ export function PainelCard({ row, userRole, userId }: Props) {
   const status = computeGlobalStatus(row);
   const meta = statusMeta(status);
 
-  const pacoteAplicavel = isApplicable(pacote, "pacote_postados");
-  const total = row.pacote_post ?? 0;
-  const done = row.quantidade_postada ?? 0;
-  const pacotePct = total > 0 ? Math.min(100, (done / total) * 100) : 0;
-
   return (
     <article className="flex flex-col gap-4 rounded-xl border bg-card p-4 shadow-sm">
       {/* Header */}
@@ -96,44 +92,26 @@ export function PainelCard({ row, userRole, userId }: Props) {
         </span>
       </header>
 
-      {/* Pacote/post: destaque */}
-      {pacoteAplicavel && (
-        <div className="rounded-lg border bg-muted/20 p-3">
-          <div className="flex items-center justify-between text-xs">
-            <span className="font-semibold uppercase tracking-wider text-muted-foreground">
-              Pacote/Post
-            </span>
-            <PacotePostadosCell
-              checklistId={row.id}
-              clientNome={row.client_nome}
-              pacotePost={total}
-              postados={done}
-              canEdit={canEditCommon}
-            />
-          </div>
-          {total > 0 && (
-            <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
-              <div
-                className={cn(
-                  "h-full rounded-full transition-all",
-                  done >= total ? "bg-emerald-500" : "bg-primary",
-                )}
-                style={{ width: `${pacotePct}%` }}
-              />
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Grid de indicadores aplicáveis */}
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-3">
         {isApplicable(pacote, "crono") && (
           <IndicatorTile icon={COLUMN_META.crono.icon} label={COLUMN_META.crono.label}>
             <CronoCell
-              stepId={cronoStep?.id ?? null}
               status={cronoStep?.status ?? "pendente"}
-              linkEstrategia={row.client_link_estrategia}
+              cronogramaUrl={row.cronograma_url ?? row.client_link_estrategia}
+              pacotePost={row.pacote_post}
               clientId={row.client_id}
+              clientNome={row.client_nome}
+              mesReferencia={row.mes_referencia}
+              canEdit={canEditCommon}
+            />
+          </IndicatorTile>
+        )}
+        {isApplicable(pacote, "design") && (
+          <IndicatorTile icon={COLUMN_META.design.icon} label={COLUMN_META.design.label}>
+            <DesignCell
+              designTaskId={row.design_task_id}
+              designTaskStatus={row.designTaskStatus}
             />
           </IndicatorTile>
         )}

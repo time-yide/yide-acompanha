@@ -2,8 +2,8 @@
 
 import { TipoPacoteBadge } from "./TipoPacoteBadge";
 import { NaoSeAplicaCell } from "./cells/NaoSeAplicaCell";
-import { PacotePostadosCell } from "./cells/PacotePostadosCell";
 import { CronoCell } from "./cells/CronoCell";
+import { DesignCell } from "./cells/DesignCell";
 import { TpgTpmCell } from "./cells/TpgTpmCell";
 import { GmnCell } from "./cells/GmnCell";
 import { GravacaoCell } from "./cells/GravacaoCell";
@@ -20,8 +20,8 @@ interface Props {
 }
 
 const COLUMNS: Array<{ key: ColumnKey | "drive"; label: string }> = [
-  { key: "pacote_postados", label: "Pacote/Post" },
   { key: "crono", label: "Crono" },
+  { key: "design", label: "Design" },
   { key: "tpg", label: "TPG" },
   { key: "tpm", label: "TPM" },
   { key: "gmn", label: "GMN" },
@@ -98,26 +98,26 @@ export function PainelTable({ checklists, userRole, userId }: Props) {
                   </td>
 
                   <td className="px-2 py-2 text-center">
-                    {isApplicable(pacote, "pacote_postados") ? (
-                      <PacotePostadosCell
-                        checklistId={row.id}
-                        clientNome={row.client_nome}
+                    {isApplicable(pacote, "crono") ? (
+                      <CronoCell
+                        status={cronoStep?.status ?? "pendente"}
+                        cronogramaUrl={row.cronograma_url ?? row.client_link_estrategia}
                         pacotePost={row.pacote_post}
-                        postados={row.quantidade_postada}
+                        clientId={row.client_id}
+                        clientNome={row.client_nome}
+                        mesReferencia={row.mes_referencia}
                         canEdit={canEditCommon}
                       />
                     ) : (
-                      <NaoSeAplicaCell tooltip="Pacote sem postagem" />
+                      <NaoSeAplicaCell />
                     )}
                   </td>
 
                   <td className="px-2 py-2 text-center">
-                    {isApplicable(pacote, "crono") ? (
-                      <CronoCell
-                        stepId={cronoStep?.id ?? null}
-                        status={cronoStep?.status ?? "pendente"}
-                        linkEstrategia={row.client_link_estrategia}
-                        clientId={row.client_id}
+                    {isApplicable(pacote, "design") ? (
+                      <DesignCell
+                        designTaskId={row.design_task_id}
+                        designTaskStatus={row.designTaskStatus}
                       />
                     ) : (
                       <NaoSeAplicaCell />
