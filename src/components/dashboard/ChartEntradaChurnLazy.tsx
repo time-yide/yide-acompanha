@@ -11,6 +11,12 @@ const ChartEntradaChurn = dynamic(
   },
 );
 
-export function ChartEntradaChurnLazy({ data }: { data: EntradaChurnPoint[] }) {
-  return <ChartEntradaChurn data={data} />;
+export function ChartEntradaChurnLazy({
+  data,
+  porAno,
+}: {
+  data?: EntradaChurnPoint[];
+  porAno?: Record<string, EntradaChurnPoint[]>;
+}) {
+  return <ChartEntradaChurn data={data} porAno={porAno} />;
 }

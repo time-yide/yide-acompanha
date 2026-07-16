@@ -14,6 +14,7 @@ import {
   getMesAguardandoAprovacao,
 } from "@/lib/dashboard/queries";
 import { getEffectiveUnitId } from "@/lib/units/session";
+import { getCurrentMonthYM } from "@/lib/datetime/timezone";
 import { getClientIdsForActiveUnit } from "@/lib/units/filter-helpers";
 import { getComissaoPrevista } from "@/lib/dashboard/comissao-prevista";
 import { KpiRow } from "./KpiRow";
@@ -98,10 +99,19 @@ export async function CarteiraTimelineSection({ mes }: { mes?: string }) {
 
 export async function EntradaChurnSection({ mes }: { mes?: string }) {
   const unitId = await getEffectiveUnitId();
-  const data = await getEntradaChurn(6, { unitId }, mes);
+  const anoAtual = Number((mes ?? getCurrentMonthYM()).slice(0, 4));
+  const anos = [2024, 2025, 2026].filter((a) => a <= anoAtual);
+  const entries = await Promise.all(
+    anos.map(async (ano) => {
+      // Ano cheio (jan–dez) ancorado em dezembro; meses futuros vêm zerados.
+      const pts = await getEntradaChurn(12, { unitId }, `${ano}-12`);
+      return [String(ano), pts] as const;
+    }),
+  );
+  const porAno = Object.fromEntries(entries);
   return (
-    <Section title="Entrada vs Churn" subtitle="Últimos 6 meses">
-      <ChartEntradaChurnLazy data={data} />
+    <Section title="Entrada vs Churn" subtitle="Por ano">
+      <ChartEntradaChurnLazy porAno={porAno} />
     </Section>
   );
 }
