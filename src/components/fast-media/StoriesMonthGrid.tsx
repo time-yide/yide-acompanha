@@ -4,15 +4,17 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Minus, Plus, Check, Pencil, Trash2, ExternalLink } from "lucide-react";
+import { Minus, Plus, Check, Pencil, Trash2, ExternalLink, StickyNote } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   setStoryDayCountAction,
   updateClienteDiariaStoriesAction,
   removeClienteStoriesAction,
+  updateClienteStoriesInstrucaoAction,
 } from "@/lib/painel/stories-actions";
 import type { StoriesGridRow } from "@/lib/painel/stories-queries";
 import { cn } from "@/lib/utils";
@@ -22,9 +24,13 @@ interface Props {
   canEdit: boolean;
   /** "YYYY-MM-DD" de hoje no fuso da app (server-provided, evita drift de TZ). */
   todayIso: string;
+  /** id do usuário logado (pra decidir se é o assessor-dono do cliente). */
+  viewerId: string | null;
+  /** true se o cargo edita instrução (adm/socio/coordenador). */
+  canEditInstrucaoManager: boolean;
 }
 
-export function StoriesMonthGrid({ rows, canEdit, todayIso }: Props) {
+export function StoriesMonthGrid({ rows, canEdit, todayIso, viewerId, canEditInstrucaoManager }: Props) {
   if (rows.length === 0) {
     return (
       <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
@@ -36,7 +42,13 @@ export function StoriesMonthGrid({ rows, canEdit, todayIso }: Props) {
   return (
     <div className="space-y-2.5">
       {rows.map((r) => (
-        <ClientStoryRow key={r.client_id} row={r} canEdit={canEdit} todayIso={todayIso} />
+        <ClientStoryRow
+          key={r.client_id}
+          row={r}
+          canEdit={canEdit}
+          todayIso={todayIso}
+          canEditInstrucao={canEditInstrucaoManager || (!!viewerId && r.assessor_id === viewerId)}
+        />
       ))}
     </div>
   );
@@ -46,10 +58,12 @@ function ClientStoryRow({
   row,
   canEdit,
   todayIso,
+  canEditInstrucao,
 }: {
   row: StoriesGridRow;
   canEdit: boolean;
   todayIso: string;
+  canEditInstrucao: boolean;
 }) {
   const diaria = Math.max(1, row.quantidade_diaria_stories);
 
@@ -66,6 +80,24 @@ function ClientStoryRow({
   const [managing, setManaging] = useState(false);
   const [diariaInput, setDiariaInput] = useState<string>(String(row.quantidade_diaria_stories));
   const [confirmRemove, setConfirmRemove] = useState(false);
+  const [editingInstrucao, setEditingInstrucao] = useState(false);
+  const [instrucaoInput, setInstrucaoInput] = useState<string>(row.stories_instrucao ?? "");
+
+  function saveInstrucao() {
+    startTransition(async () => {
+      const fd = new FormData();
+      fd.set("client_id", row.client_id);
+      fd.set("instrucao", instrucaoInput);
+      const res = await updateClienteStoriesInstrucaoAction(fd);
+      if (res.error) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success("Instrução salva");
+      setEditingInstrucao(false);
+      router.refresh();
+    });
+  }
 
   function saveDiaria() {
     const n = Number(diariaInput);
@@ -179,6 +211,51 @@ function ClientStoryRow({
       <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
         <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
       </div>
+
+      {/* Instrução do cliente (Fast Mídia lê; gestores/assessor editam) */}
+      {(row.stories_instrucao || canEditInstrucao) && (
+        <div className="mt-2.5">
+          {row.stories_instrucao ? (
+            <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 p-2.5">
+              <StickyNote className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
+              <p className="min-w-0 flex-1 whitespace-pre-wrap text-xs text-foreground/90">
+                {row.stories_instrucao}
+              </p>
+              {canEditInstrucao && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 shrink-0 text-muted-foreground"
+                  onClick={() => {
+                    setInstrucaoInput(row.stories_instrucao ?? "");
+                    setEditingInstrucao(true);
+                  }}
+                  aria-label="Editar instrução"
+                >
+                  <Pencil className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+          ) : (
+            canEditInstrucao && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1.5 px-2 text-xs text-muted-foreground"
+                onClick={() => {
+                  setInstrucaoInput("");
+                  setEditingInstrucao(true);
+                }}
+              >
+                <StickyNote className="h-3.5 w-3.5" />
+                Adicionar instrução
+              </Button>
+            )
+          )}
+        </div>
+      )}
 
       {/* Strip de dias do mês */}
       <div className="mt-2.5 flex flex-wrap gap-1">
@@ -369,6 +446,43 @@ function ClientStoryRow({
               Fechar
             </Button>
             <Button type="button" disabled={pending} onClick={saveDiaria}>
+              {pending ? "Salvando..." : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Instrução: dialog de edição */}
+      <Dialog
+        open={editingInstrucao}
+        onOpenChange={(o) => {
+          if (!o) setEditingInstrucao(false);
+        }}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Instrução · {row.client_nome}</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-1.5 py-1">
+            <Label htmlFor={`instrucao-${row.client_id}`}>Instrução pra Fast Mídia</Label>
+            <Textarea
+              id={`instrucao-${row.client_id}`}
+              rows={5}
+              maxLength={1000}
+              placeholder="Ex.: foco em bastidores, evitar promoções, sempre marcar @cliente..."
+              value={instrucaoInput}
+              onChange={(e) => setInstrucaoInput(e.target.value)}
+              disabled={pending}
+            />
+            <p className="text-[11px] text-muted-foreground">{instrucaoInput.length}/1000</p>
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" disabled={pending} onClick={() => setEditingInstrucao(false)}>
+              Cancelar
+            </Button>
+            <Button type="button" disabled={pending} onClick={saveInstrucao}>
               {pending ? "Salvando..." : "Salvar"}
             </Button>
           </DialogFooter>
