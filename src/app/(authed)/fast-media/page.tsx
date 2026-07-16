@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft, ChevronRight, Images, Video, ListChecks, MapPin, ExternalLink } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
-import { getStoriesGridForMonth } from "@/lib/painel/stories-queries";
+import { getStoriesGridForMonth, getClientesElegiveisStories } from "@/lib/painel/stories-queries";
+import { AdicionarClienteStoriesDialog } from "@/components/fast-media/AdicionarClienteStoriesDialog";
 import { getFastMidiaDemandas } from "@/lib/fast-media/queries";
 import { getClientIdsForActiveUnit } from "@/lib/units/filter-helpers";
 import { getCurrentMonthYM, APP_TIMEZONE } from "@/lib/datetime/timezone";
@@ -66,9 +67,10 @@ export default async function FastMediaPage({
   const isManager = MANAGER_ROLES.includes(user.role);
 
   const unitClientIds = await getClientIdsForActiveUnit();
-  const [storiesRows, demandas] = await Promise.all([
+  const [storiesRows, demandas, clientesElegiveis] = await Promise.all([
     getStoriesGridForMonth(mesRef, unitClientIds),
     getFastMidiaDemandas(user.id, user.role),
+    canEdit ? getClientesElegiveisStories(unitClientIds) : Promise.resolve([]),
   ]);
 
   const totalPostados = storiesRows.reduce((s, r) => s + r.postados, 0);
@@ -93,22 +95,25 @@ export default async function FastMediaPage({
               </span>
             )}
           </h2>
-          <div className="flex items-center gap-1 rounded-lg border bg-card p-0.5">
-            <Link
-              href={`/fast-media?mes=${shiftMonth(mesRef, -1)}`}
-              className="rounded-md p-1 hover:bg-muted"
-              aria-label="Mês anterior"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Link>
-            <span className="min-w-[7.5rem] text-center text-sm font-medium capitalize">{monthLabel(mesRef)}</span>
-            <Link
-              href={`/fast-media?mes=${shiftMonth(mesRef, 1)}`}
-              className="rounded-md p-1 hover:bg-muted"
-              aria-label="Próximo mês"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Link>
+          <div className="flex items-center gap-2">
+            {canEdit && <AdicionarClienteStoriesDialog clientesElegiveis={clientesElegiveis} />}
+            <div className="flex items-center gap-1 rounded-lg border bg-card p-0.5">
+              <Link
+                href={`/fast-media?mes=${shiftMonth(mesRef, -1)}`}
+                className="rounded-md p-1 hover:bg-muted"
+                aria-label="Mês anterior"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Link>
+              <span className="min-w-[7.5rem] text-center text-sm font-medium capitalize">{monthLabel(mesRef)}</span>
+              <Link
+                href={`/fast-media?mes=${shiftMonth(mesRef, 1)}`}
+                className="rounded-md p-1 hover:bg-muted"
+                aria-label="Próximo mês"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Link>
+            </div>
           </div>
         </div>
         <StoriesMonthGrid rows={storiesRows} canEdit={canEdit} todayIso={todayIso} />
