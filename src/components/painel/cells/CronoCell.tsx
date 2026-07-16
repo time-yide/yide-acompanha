@@ -11,8 +11,10 @@ interface Props {
   /** URL do cronograma do mês (client_monthly_checklist.cronograma_url) ou, como
    *  fallback pra clientes antigos, o link_estrategia do cliente. */
   cronogramaUrl: string | null;
-  /** Quantidade do pacote (pacote_post) — exibida como sub-rótulo "<n> posts". */
+  /** Quantidade de artes/posts (pacote_post) — exibida no sub-rótulo. */
   pacotePost: number | null;
+  /** Quantidade de vídeos (pacote_video) — exibida no sub-rótulo. */
+  pacoteVideo: number | null;
   /** ID do cliente. */
   clientId: string;
   clientNome: string;
@@ -28,14 +30,20 @@ interface Props {
  *    ainda disponível pra quem pode editar, clicando no rótulo de posts).
  */
 export function CronoCell({
-  status, cronogramaUrl, pacotePost, clientId, clientNome, mesReferencia, canEdit,
+  status, cronogramaUrl, pacotePost, pacoteVideo, clientId, clientNome, mesReferencia, canEdit,
 }: Props) {
   const [open, setOpen] = useState(false);
   const hasLink = !!(cronogramaUrl && cronogramaUrl.trim().length > 0);
   const isPronto = status === "pronto" || hasLink;
   const qtd = pacotePost ?? 0;
+  const qtdVideos = pacoteVideo ?? 0;
 
-  const postsLabel = qtd > 0 ? (
+  const partes = [
+    qtd > 0 ? `${qtd} arte${qtd > 1 ? "s" : ""}` : null,
+    qtdVideos > 0 ? `${qtdVideos} vídeo${qtdVideos > 1 ? "s" : ""}` : null,
+  ].filter(Boolean);
+
+  const postsLabel = partes.length > 0 ? (
     <button
       type="button"
       onClick={() => canEdit && setOpen(true)}
@@ -45,7 +53,7 @@ export function CronoCell({
         canEdit && "hover:text-foreground hover:underline",
       )}
     >
-      {qtd} posts
+      {partes.join(" · ")}
     </button>
   ) : null;
 
@@ -97,6 +105,7 @@ export function CronoCell({
           mesReferencia={mesReferencia}
           initialUrl={cronogramaUrl}
           initialQuantidade={qtd}
+          initialVideos={qtdVideos}
         />
       )}
     </>

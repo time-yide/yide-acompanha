@@ -100,6 +100,7 @@ export function PainelCard({ row, userRole, userId }: Props) {
               status={cronoStep?.status ?? "pendente"}
               cronogramaUrl={row.cronograma_url ?? row.client_link_estrategia}
               pacotePost={row.pacote_post}
+              pacoteVideo={row.pacote_video}
               clientId={row.client_id}
               clientNome={row.client_nome}
               mesReferencia={row.mes_referencia}

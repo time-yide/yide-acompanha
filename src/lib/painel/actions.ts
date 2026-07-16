@@ -278,14 +278,16 @@ const uploadCronogramaSchema = z.object({
   client_id: uuidLike,
   mes_referencia: z.string().regex(/^\d{4}-\d{2}$/, "Formato esperado YYYY-MM"),
   cronograma_url: z.string().url("Link inválido"),
+  // Artes/posts (pacote_post) e vídeos (pacote_video) do cronograma.
   quantidade: z.coerce.number().int().min(0),
+  quantidade_videos: z.coerce.number().int().min(0).default(0),
 });
 
 /**
  * Upload do cronograma mensal (Parte A do spec painel-cronograma-design).
  *
- * - Grava `cronograma_url` + `pacote_post` (quantidade) no
- *   `client_monthly_checklist` do mês (upsert por client_id,mes_referencia).
+ * - Grava `cronograma_url` + `pacote_post` (artes) + `pacote_video` (vídeos)
+ *   no `client_monthly_checklist` do mês (upsert por client_id,mes_referencia).
  * - Cria automaticamente uma tarefa "arte" pro designer do cliente
  *   (fallback: coordenador, depois o próprio ator). Guarda o id em
  *   `design_task_id`. Re-upload NÃO cria segunda tarefa.
@@ -301,6 +303,7 @@ export async function uploadCronogramaAction(formData: FormData): Promise<Action
     mes_referencia: formData.get("mes_referencia"),
     cronograma_url: formData.get("cronograma_url"),
     quantidade: formData.get("quantidade"),
+    quantidade_videos: formData.get("quantidade_videos") ?? 0,
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
@@ -334,7 +337,7 @@ export async function uploadCronogramaAction(formData: FormData): Promise<Action
 
     const insertPayload = {
       titulo: `Design — cronograma ${cliente.nome} (${parsed.data.mes_referencia})`,
-      descricao: `Cronograma do mês: ${parsed.data.cronograma_url}`,
+      descricao: `Cronograma do mês: ${parsed.data.cronograma_url}\nDemanda: ${parsed.data.quantidade} arte(s) · ${parsed.data.quantidade_videos} vídeo(s)`,
       prioridade: "media" as const,
       tipo: "arte" as const,
       formatos: ["feed"],
@@ -370,6 +373,7 @@ export async function uploadCronogramaAction(formData: FormData): Promise<Action
     mes_referencia: parsed.data.mes_referencia,
     cronograma_url: parsed.data.cronograma_url,
     pacote_post: parsed.data.quantidade,
+    pacote_video: parsed.data.quantidade_videos,
   };
   if (designTaskId) checklistPayload.design_task_id = designTaskId;
 

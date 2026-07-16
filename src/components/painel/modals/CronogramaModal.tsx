@@ -17,15 +17,17 @@ interface Props {
   mesReferencia: string;
   initialUrl: string | null;
   initialQuantidade: number;
+  initialVideos: number;
 }
 
 export function CronogramaModal({
   open, onOpenChange, clientId, clientNome, mesReferencia,
-  initialUrl, initialQuantidade,
+  initialUrl, initialQuantidade, initialVideos,
 }: Props) {
   const router = useRouter();
   const [url, setUrl] = useState(initialUrl ?? "");
   const [quantidade, setQuantidade] = useState(String(initialQuantidade));
+  const [videos, setVideos] = useState(String(initialVideos));
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -37,6 +39,7 @@ export function CronogramaModal({
     fd.set("mes_referencia", mesReferencia);
     fd.set("cronograma_url", url.trim());
     fd.set("quantidade", quantidade);
+    fd.set("quantidade_videos", videos);
     startTransition(async () => {
       const r = await uploadCronogramaAction(fd);
       if ("error" in r) {
@@ -69,15 +72,27 @@ export function CronogramaModal({
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="quantidade">Quantidade de posts</Label>
-            <Input
-              id="quantidade"
-              type="number"
-              min={0}
-              value={quantidade}
-              onChange={(e) => setQuantidade(e.target.value)}
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="quantidade">Qtd. de artes (posts)</Label>
+              <Input
+                id="quantidade"
+                type="number"
+                min={0}
+                value={quantidade}
+                onChange={(e) => setQuantidade(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="quantidade_videos">Qtd. de vídeos</Label>
+              <Input
+                id="quantidade_videos"
+                type="number"
+                min={0}
+                value={videos}
+                onChange={(e) => setVideos(e.target.value)}
+              />
+            </div>
           </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}

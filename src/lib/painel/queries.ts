@@ -52,7 +52,10 @@ export interface ChecklistRow {
   client_valor_trafego_google: number | null;
   client_valor_trafego_meta: number | null;
   mes_referencia: string;
+  /** Quantidade de artes/posts do pacote (informada no upload do cronograma). */
   pacote_post: number | null;
+  /** Quantidade de vídeos do pacote (informada no upload do cronograma). */
+  pacote_video: number | null;
   quantidade_postada: number | null;
   valor_trafego_mes: number | null;
   cronograma_url: string | null;
@@ -89,8 +92,8 @@ export async function getMonthlyChecklists(
       const f = JSON.parse(filterJson) as ChecklistFilter;
       return _getMonthlyChecklistsImpl(mes, f);
     },
-    // v6: ChecklistRow ganhou cronograma_url + design_task_id + designTaskStatus
-    ["painel-monthly-checklists-v6"],
+    // v7: ChecklistRow ganhou pacote_video (artes x vídeos separados no upload)
+    ["painel-monthly-checklists-v7"],
     { revalidate: 60, tags: [PAINEL_CACHE_TAG] },
   );
   return cached(mesReferencia, JSON.stringify(filter));
@@ -202,7 +205,7 @@ async function _getMonthlyChecklistsImpl(
   // entre deploy e migration: gmn_otimizado OU cronograma_url/design_task_id.
   const SELECT_CHECKLIST_COMPLETO = `
     id, client_id, mes_referencia,
-    pacote_post, quantidade_postada, valor_trafego_mes,
+    pacote_post, pacote_video, quantidade_postada, valor_trafego_mes,
     cronograma_url, design_task_id,
     tpg_ativo, tpm_ativo,
     gmn_comentarios, gmn_avaliacoes, gmn_nota_media, gmn_observacoes, gmn_otimizado
@@ -225,8 +228,8 @@ async function _getMonthlyChecklistsImpl(
   let checklistsResp = await buildChecklistsQuery(SELECT_CHECKLIST_COMPLETO);
   if (checklistsResp.error) {
     const msg = checklistsResp.error.message ?? "";
-    if (msg.includes("cronograma_url") || msg.includes("design_task_id")) {
-      console.warn("[painel] cronograma_url/design_task_id indisponíveis no banco - usando fallback");
+    if (msg.includes("cronograma_url") || msg.includes("design_task_id") || msg.includes("pacote_video")) {
+      console.warn("[painel] cronograma_url/design_task_id/pacote_video indisponíveis no banco - usando fallback");
       checklistsResp = await buildChecklistsQuery(SELECT_CHECKLIST_SEM_CRONO);
     }
     // Se ainda falhar (ou o primeiro erro já era gmn_otimizado), cai no fallback
@@ -246,6 +249,7 @@ async function _getMonthlyChecklistsImpl(
     client_id: string;
     mes_referencia: string;
     pacote_post: number | null;
+    pacote_video?: number | null;
     quantidade_postada: number | null;
     valor_trafego_mes: number | null;
     cronograma_url?: string | null;
@@ -259,6 +263,7 @@ async function _getMonthlyChecklistsImpl(
     gmn_otimizado?: boolean;
   }>).map((cl) => ({
     ...cl,
+    pacote_video: cl.pacote_video ?? null,
     cronograma_url: cl.cronograma_url ?? null,
     design_task_id: cl.design_task_id ?? null,
     gmn_otimizado: cl.gmn_otimizado ?? false,
@@ -283,6 +288,7 @@ async function _getMonthlyChecklistsImpl(
       client_valor_trafego_meta: c.valor_trafego_meta,
       mes_referencia: mesReferencia,
       pacote_post: null,
+      pacote_video: null,
       quantidade_postada: null,
       valor_trafego_mes: null,
       cronograma_url: null,
@@ -406,6 +412,7 @@ async function _getMonthlyChecklistsImpl(
       client_valor_trafego_meta: c.valor_trafego_meta,
       mes_referencia: mesReferencia,
       pacote_post: cl?.pacote_post ?? null,
+      pacote_video: cl?.pacote_video ?? null,
       quantidade_postada: cl?.quantidade_postada ?? null,
       valor_trafego_mes: cl?.valor_trafego_mes ?? null,
       cronograma_url: cl?.cronograma_url ?? null,
