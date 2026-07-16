@@ -6,6 +6,8 @@ import { DREView } from "@/components/financeiro/DREView";
 import { DREComposition } from "@/components/financeiro/DREComposition";
 import { DRECompositionSeries } from "@/components/financeiro/DRECompositionSeries";
 import { ChartReceitaCustoLucro } from "@/components/financeiro/ChartReceitaCustoLucro";
+import { InadimplenciaCard } from "@/components/financeiro/InadimplenciaCard";
+import { getInadimplencia, type InadimplenciaData } from "@/lib/financeiro/inadimplencia";
 import { MesSelector } from "@/components/financeiro/MesSelector";
 import { ViewModeToggle } from "@/components/financeiro/ViewModeToggle";
 import { Button } from "@/components/ui/button";
@@ -81,11 +83,13 @@ function PageShell({
   mesRef,
   mode,
   serie12,
+  inad,
   children,
 }: {
   mesRef: string;
   mode: Mode;
   serie12: DREData[];
+  inad: InadimplenciaData;
   children: React.ReactNode;
 }) {
   return (
@@ -109,6 +113,8 @@ function PageShell({
         <MesSelector current={mesRef} />
         <ViewModeToggle current={mode} />
       </div>
+
+      <InadimplenciaCard data={inad} />
 
       <ChartReceitaCustoLucro series={serie12} />
 
@@ -135,7 +141,7 @@ export default async function FinanceiroPage({
   // Série de 12 meses pro gráfico Receita×Custo×Lucro (sempre visível no topo).
   // getDRE é cacheado por mês, então reaproveita o cálculo dos outros modos.
   const meses12 = Array.from({ length: 12 }, (_, i) => shiftMes(mesRef, -(11 - i)));
-  const serie12 = await getDRESeries(meses12);
+  const [serie12, inad] = await Promise.all([getDRESeries(meses12), getInadimplencia()]);
 
   if (mode === "mes") {
     const [data, prev] = await Promise.all([
@@ -143,7 +149,7 @@ export default async function FinanceiroPage({
       getDRE(shiftMes(mesRef, -1)),
     ]);
     return (
-      <PageShell mesRef={mesRef} mode={mode} serie12={serie12}>
+      <PageShell mesRef={mesRef} mode={mode} serie12={serie12} inad={inad}>
         <DREComposition data={data} />
         <DREView data={data} prev={prev} />
       </PageShell>
@@ -154,7 +160,7 @@ export default async function FinanceiroPage({
     const meses = Array.from({ length: 6 }, (_, i) => shiftMes(mesRef, -(5 - i)));
     const series = await getDRESeries(meses);
     return (
-      <PageShell mesRef={mesRef} mode={mode} serie12={serie12}>
+      <PageShell mesRef={mesRef} mode={mode} serie12={serie12} inad={inad}>
         <DRECompositionSeries series={series} />
         <SeriesTable series={series} />
       </PageShell>
@@ -169,7 +175,7 @@ export default async function FinanceiroPage({
   );
   const ytdSeries = await getDRESeries(ytdMeses);
   return (
-    <PageShell mesRef={mesRef} mode={mode} serie12={serie12}>
+    <PageShell mesRef={mesRef} mode={mode} serie12={serie12} inad={inad}>
       <DRECompositionSeries series={ytdSeries} />
       <SeriesTable series={ytdSeries} />
     </PageShell>
