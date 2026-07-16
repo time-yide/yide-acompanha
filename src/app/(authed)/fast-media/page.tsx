@@ -13,6 +13,7 @@ import { Card } from "@/components/ui/card";
 
 const ROLES_QUE_VEEM = ["fast_midia", "adm", "socio", "coordenador", "audiovisual_chefe"];
 const ROLES_QUE_MARCAM = ["fast_midia", "adm", "socio", "coordenador"];
+const ROLES_QUE_EDITAM_INSTRUCAO = ["adm", "socio", "coordenador"];
 const MANAGER_ROLES = ["adm", "socio", "coordenador", "audiovisual_chefe"];
 
 const STATUS_LABEL: Record<string, string> = {
@@ -116,7 +117,13 @@ export default async function FastMediaPage({
             </div>
           </div>
         </div>
-        <StoriesMonthGrid rows={storiesRows} canEdit={canEdit} todayIso={todayIso} />
+        <StoriesMonthGrid
+          rows={storiesRows}
+          canEdit={canEdit}
+          todayIso={todayIso}
+          viewerId={user.id}
+          canEditInstrucaoManager={ROLES_QUE_EDITAM_INSTRUCAO.includes(user.role)}
+        />
       </section>
 
       {/* Seção B: Demandas */}

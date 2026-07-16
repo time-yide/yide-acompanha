@@ -400,3 +400,62 @@ export async function removeClienteStoriesAction(
   revalidatePath("/painel");
   return { success: true };
 }
+
+// ── Instrução por cliente (Fast Mídia lê; gestores + assessor do cliente editam)
+const EDIT_INSTRUCAO_ROLES = ["adm", "socio", "coordenador"] as const;
+
+const updateInstrucaoSchema = z.object({
+  client_id: uuidLike,
+  instrucao: z.string().max(1000, "Instrução muito longa (máx. 1000)"),
+});
+
+/**
+ * Define a instrução/indicação de um cliente na grade de stories. Editam:
+ * gestores (adm/socio/coordenador) OU o assessor do próprio cliente. A Fast
+ * Mídia só lê. Texto vazio limpa (grava null). Service-role + validação de
+ * unidade (fast_midia não pode editar, por isso o gate é próprio, diferente do
+ * ALLOWED_ROLES das outras actions).
+ */
+export async function updateClienteStoriesInstrucaoAction(
+  formData: FormData,
+): Promise<{ error?: string; success?: boolean }> {
+  const actor = await requireAuth();
+
+  const parsed = updateInstrucaoSchema.safeParse({
+    client_id: formData.get("client_id"),
+    instrucao: formData.get("instrucao") ?? "",
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const { client_id, instrucao } = parsed.data;
+  if (!(await clienteNaUnidadeAtiva(client_id))) {
+    return { error: "Cliente fora da unidade ativa" };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = createServiceRoleClient() as any;
+
+  // Carrega o assessor do cliente pra decidir permissão de assessor-dono.
+  const { data: clientRow, error: clientError } = await supabase
+    .from("clients")
+    .select("assessor_id")
+    .eq("id", client_id)
+    .single();
+  if (clientError || !clientRow) return { error: "Cliente não encontrado" };
+
+  const isManager = (EDIT_INSTRUCAO_ROLES as readonly string[]).includes(actor.role);
+  const isAssessorDono = (clientRow as { assessor_id: string | null }).assessor_id === actor.id;
+  if (!isManager && !isAssessorDono) return { error: "Sem permissão" };
+
+  const texto = instrucao.trim();
+  const { data, error } = await supabase
+    .from("clients")
+    .update({ stories_instrucao: texto.length > 0 ? texto : null })
+    .eq("id", client_id)
+    .select("id");
+  if (error) return { error: error.message };
+  if (!data || data.length === 0) return { error: "Cliente não encontrado" };
+
+  revalidatePath("/fast-media");
+  return { success: true };
+}
