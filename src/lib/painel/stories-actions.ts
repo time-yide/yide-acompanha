@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/auth/session";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { getClientIdsForActiveUnit } from "@/lib/units/filter-helpers";
 
 const ALLOWED_ROLES = ["fast_midia", "adm", "socio", "coordenador"] as const;
 
@@ -255,4 +257,146 @@ export async function setStoryDayCountAction(
   revalidatePath("/fast-media");
   revalidatePath("/painel");
   return { quantidade: qtd, diaria };
+}
+
+// ── Gerenciamento de clientes na grade de stories ────────────────────────────
+// Usa service-role: fast_midia NÃO tem policy de UPDATE em `clients` (a policy
+// cobre adm/socio/coordenador/assessor — ver gmb-actions.ts), mas precisa
+// gerenciar a grade. Proteção = gate de role (ALLOWED_ROLES) + validação de
+// unidade (client_id precisa estar na unidade ativa).
+
+/** Verifica que o client_id alvo está na unidade ativa (quando há filtro). */
+async function clienteNaUnidadeAtiva(clientId: string): Promise<boolean> {
+  const unitClientIds = await getClientIdsForActiveUnit();
+  if (unitClientIds === null) return true; // sem filtro de unidade
+  return unitClientIds.includes(clientId);
+}
+
+const addClienteStoriesSchema = z.object({
+  client_id: uuidLike,
+  quantidade_diaria: z.coerce.number().int().min(1).max(99),
+});
+
+/**
+ * Adiciona um cliente já existente à grade de stories: liga tem_stories e grava
+ * a quantidade diária. Só clientes 'ativo'.
+ */
+export async function addClienteStoriesAction(
+  formData: FormData,
+): Promise<{ error?: string; success?: boolean }> {
+  const actor = await requireAuth();
+  if (!(ALLOWED_ROLES as readonly string[]).includes(actor.role)) {
+    return { error: "Sem permissão" };
+  }
+
+  const parsed = addClienteStoriesSchema.safeParse({
+    client_id: formData.get("client_id"),
+    quantidade_diaria: formData.get("quantidade_diaria"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const { client_id, quantidade_diaria } = parsed.data;
+  if (!(await clienteNaUnidadeAtiva(client_id))) {
+    return { error: "Cliente fora da unidade ativa" };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = createServiceRoleClient() as any;
+  const { data, error } = await supabase
+    .from("clients")
+    .update({ tem_stories: true, quantidade_diaria_stories: quantidade_diaria })
+    .eq("id", client_id)
+    .eq("status", "ativo")
+    // Só liga quem ainda NÃO está na grade — impede que um add (com client_id
+    // craftado/stale) sobrescreva silenciosamente a diária de um cliente que já
+    // tem stories. Editar a diária de quem já está na grade é via updateClienteDiariaStoriesAction.
+    .eq("tem_stories", false)
+    .select("id");
+  if (error) return { error: error.message };
+  if (!data || data.length === 0) return { error: "Cliente não encontrado, inativo ou já na grade" };
+
+  revalidatePath("/fast-media");
+  revalidatePath("/painel");
+  return { success: true };
+}
+
+const updateDiariaSchema = z.object({
+  client_id: uuidLike,
+  quantidade_diaria: z.coerce.number().int().min(1).max(99),
+});
+
+/** Edita a quantidade diária de um cliente que já está na grade. */
+export async function updateClienteDiariaStoriesAction(
+  formData: FormData,
+): Promise<{ error?: string; success?: boolean }> {
+  const actor = await requireAuth();
+  if (!(ALLOWED_ROLES as readonly string[]).includes(actor.role)) {
+    return { error: "Sem permissão" };
+  }
+
+  const parsed = updateDiariaSchema.safeParse({
+    client_id: formData.get("client_id"),
+    quantidade_diaria: formData.get("quantidade_diaria"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const { client_id, quantidade_diaria } = parsed.data;
+  if (!(await clienteNaUnidadeAtiva(client_id))) {
+    return { error: "Cliente fora da unidade ativa" };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = createServiceRoleClient() as any;
+  const { data, error } = await supabase
+    .from("clients")
+    .update({ quantidade_diaria_stories: quantidade_diaria })
+    .eq("id", client_id)
+    .eq("tem_stories", true)
+    .select("id");
+  if (error) return { error: error.message };
+  if (!data || data.length === 0) return { error: "Cliente não está na grade" };
+
+  revalidatePath("/fast-media");
+  revalidatePath("/painel");
+  return { success: true };
+}
+
+const removeClienteStoriesSchema = z.object({ client_id: uuidLike });
+
+/**
+ * Remove o cliente da grade de stories (desliga tem_stories). Mantém o
+ * histórico de marcações (client_story_posts / client_monthly_stories); se
+ * readicionar depois, os stories já marcados reaparecem.
+ */
+export async function removeClienteStoriesAction(
+  formData: FormData,
+): Promise<{ error?: string; success?: boolean }> {
+  const actor = await requireAuth();
+  if (!(ALLOWED_ROLES as readonly string[]).includes(actor.role)) {
+    return { error: "Sem permissão" };
+  }
+
+  const parsed = removeClienteStoriesSchema.safeParse({
+    client_id: formData.get("client_id"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const { client_id } = parsed.data;
+  if (!(await clienteNaUnidadeAtiva(client_id))) {
+    return { error: "Cliente fora da unidade ativa" };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = createServiceRoleClient() as any;
+  const { data, error } = await supabase
+    .from("clients")
+    .update({ tem_stories: false })
+    .eq("id", client_id)
+    .select("id");
+  if (error) return { error: error.message };
+  if (!data || data.length === 0) return { error: "Cliente não encontrado" };
+
+  revalidatePath("/fast-media");
+  revalidatePath("/painel");
+  return { success: true };
 }
