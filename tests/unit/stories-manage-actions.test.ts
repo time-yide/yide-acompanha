@@ -77,11 +77,11 @@ describe("addClienteStoriesAction", () => {
     expect(r.success).toBeUndefined();
   });
 
-  it("erro quando update não afeta linha (cliente inativo)", async () => {
+  it("erro quando update não afeta linha (cliente inativo ou já na grade)", async () => {
     requireAuthMock.mockResolvedValue({ id: "u1", role: "fast_midia" });
     mockClientsUpdate({ data: [], error: null });
     const r = await addClienteStoriesAction(fd({ client_id: CID, quantidade_diaria: "3" }));
-    expect(r.error).toBe("Cliente não encontrado ou inativo");
+    expect(r.error).toBe("Cliente não encontrado, inativo ou já na grade");
   });
 });
 

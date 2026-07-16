@@ -307,9 +307,13 @@ export async function addClienteStoriesAction(
     .update({ tem_stories: true, quantidade_diaria_stories: quantidade_diaria })
     .eq("id", client_id)
     .eq("status", "ativo")
+    // Só liga quem ainda NÃO está na grade — impede que um add (com client_id
+    // craftado/stale) sobrescreva silenciosamente a diária de um cliente que já
+    // tem stories. Editar a diária de quem já está na grade é via updateClienteDiariaStoriesAction.
+    .eq("tem_stories", false)
     .select("id");
   if (error) return { error: error.message };
-  if (!data || data.length === 0) return { error: "Cliente não encontrado ou inativo" };
+  if (!data || data.length === 0) return { error: "Cliente não encontrado, inativo ou já na grade" };
 
   revalidatePath("/fast-media");
   revalidatePath("/painel");
