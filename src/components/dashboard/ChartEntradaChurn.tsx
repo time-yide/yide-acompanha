@@ -15,7 +15,9 @@ import { monthLabel } from "@/lib/dashboard/date-utils";
 import type { EntradaChurnPoint, EntradaChurnClient } from "@/lib/dashboard/queries";
 
 interface Props {
-  data: EntradaChurnPoint[];
+  data?: EntradaChurnPoint[];
+  /** Quando presente, mostra um seletor de ano e exibe os pontos do ano escolhido. */
+  porAno?: Record<string, EntradaChurnPoint[]>;
 }
 
 interface DialogState {
@@ -26,10 +28,13 @@ interface DialogState {
   avulsos: EntradaChurnClient[];
 }
 
-export function ChartEntradaChurn({ data }: Props) {
+export function ChartEntradaChurn({ data, porAno }: Props) {
   const [drilldown, setDrilldown] = useState<DialogState | null>(null);
+  const anos = porAno ? Object.keys(porAno).sort() : null;
+  const [anoSel, setAnoSel] = useState<string>(anos ? anos[anos.length - 1] : "");
 
-  const chartData = data.map((p) => ({
+  const pontos = porAno ? (porAno[anoSel] ?? []) : (data ?? []);
+  const chartData = pontos.map((p) => ({
     mes: monthLabel(p.mes),
     mesRaw: p.mes,
     Entradas: p.entradas,
@@ -39,7 +44,7 @@ export function ChartEntradaChurn({ data }: Props) {
 
   function handleBarClick(payload: { mesRaw?: string }) {
     if (!payload?.mesRaw) return;
-    const point = data.find((p) => p.mes === payload.mesRaw);
+    const point = pontos.find((p) => p.mes === payload.mesRaw);
     if (!point) return;
     if (point.entradas === 0 && point.churns === 0 && point.avulsos === 0) return;
     setDrilldown({
@@ -53,7 +58,26 @@ export function ChartEntradaChurn({ data }: Props) {
 
   return (
     <>
-      <div className="h-48 w-full sm:h-64" aria-label="Gráfico de entradas vs churns nos últimos 6 meses">
+      {anos && (
+        <div className="mb-2 flex items-center justify-center gap-1">
+          {anos.map((ano) => (
+            <button
+              key={ano}
+              type="button"
+              onClick={() => setAnoSel(ano)}
+              className={
+                "rounded-md px-2.5 py-1 text-xs font-medium transition-colors " +
+                (ano === anoSel
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-muted-foreground/20")
+              }
+            >
+              {ano}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="h-48 w-full sm:h-64" aria-label="Gráfico de entradas vs churns por mês">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
