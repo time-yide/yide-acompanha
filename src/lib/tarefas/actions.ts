@@ -383,12 +383,18 @@ export async function toggleTaskCompletionAction(taskId: string) {
   type TaskPatch = { status: "aberta" | "postada"; completed_at: string | null };
   const updatePayload: TaskPatch = { status: novoStatus, completed_at };
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("tasks")
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .update(updatePayload as any)
-    .eq("id", taskId);
+    .eq("id", taskId)
+    .select("id");
   if (error) return { error: error.message };
+  // RLS deny em UPDATE é silencioso (0 linhas, sem erro). Sem essa checagem, a
+  // action reportava "sucesso" mas nada mudava (bug do assessor→postado).
+  if (!updated || updated.length === 0) {
+    return { error: "Sem permissão pra alterar essa tarefa" };
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tAny = t as any;
@@ -532,8 +538,18 @@ export async function moveTaskStatusAction(formData: FormData) {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
-  const { error } = await sb.from("tasks").update(patch).eq("id", parsed.data.id);
+  const { data: updated, error } = await sb
+    .from("tasks")
+    .update(patch)
+    .eq("id", parsed.data.id)
+    .select("id");
   if (error) return { error: error.message };
+  // RLS deny em UPDATE é silencioso (0 linhas, sem erro). canManageAnyTask deixa
+  // o assessor/coordenador passar aqui, mas se a RLS não os incluir o update não
+  // afeta nada — sem essa checagem, reportava falso "sucesso" (nada acontecia).
+  if (!updated || updated.length === 0) {
+    return { error: "Sem permissão pra mover essa tarefa" };
+  }
 
   await logAudit({
     entidade: "tasks",
