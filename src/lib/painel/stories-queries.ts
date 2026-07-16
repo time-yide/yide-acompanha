@@ -117,7 +117,9 @@ export interface StoriesGridRow {
   client_id: string;
   client_nome: string;
   quantidade_diaria_stories: number;
+  assessor_id: string | null;
   assessor_nome: string | null;
+  stories_instrucao: string | null;
   dias: StoryDay[];
   postados: number;
   meta: number;
@@ -138,14 +140,29 @@ export async function getStoriesGridForMonth(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = createServiceRoleClient() as any;
 
-  let clientsQuery = supabase
-    .from("clients")
-    .select("id, nome, quantidade_diaria_stories, assessor_id")
-    .eq("status", "ativo")
-    .eq("tem_stories", true);
-  if (unitClientIds !== null) clientsQuery = clientsQuery.in("id", unitClientIds);
+  // SELECT resiliente: tenta com stories_instrucao; se a coluna ainda não existe
+  // (gap entre deploy e migration manual), refaz sem ela pra não esvaziar a grade.
+  const buildClientsQuery = (cols: string) => {
+    let q = supabase
+      .from("clients")
+      .select(cols)
+      .eq("status", "ativo")
+      .eq("tem_stories", true);
+    if (unitClientIds !== null) q = q.in("id", unitClientIds);
+    return q.order("nome");
+  };
 
-  const { data: clientsData, error: clientsError } = await clientsQuery.order("nome");
+  const BASE_COLS = "id, nome, quantidade_diaria_stories, assessor_id";
+  let { data: clientsData, error: clientsError } = await buildClientsQuery(
+    `${BASE_COLS}, stories_instrucao`,
+  );
+  if (clientsError && /stories_instrucao|column|schema cache/i.test(clientsError.message ?? "")) {
+    console.warn(
+      "[painel/stories-grid] coluna stories_instrucao ainda não existe, usando fallback:",
+      clientsError.message,
+    );
+    ({ data: clientsData, error: clientsError } = await buildClientsQuery(BASE_COLS));
+  }
   if (clientsError) {
     console.error("[painel/stories-grid] erro ao listar clientes:", clientsError.message);
     return [];
@@ -155,6 +172,7 @@ export async function getStoriesGridForMonth(
     nome: string;
     quantidade_diaria_stories: number | null;
     assessor_id: string | null;
+    stories_instrucao?: string | null;
   }>;
   if (clients.length === 0) return [];
 
@@ -219,7 +237,9 @@ export async function getStoriesGridForMonth(
         client_id: c.id,
         client_nome: c.nome,
         quantidade_diaria_stories: diaria,
+        assessor_id: c.assessor_id,
         assessor_nome: c.assessor_id ? (assessorNomeById.get(c.assessor_id) ?? null) : null,
+        stories_instrucao: c.stories_instrucao ?? null,
         dias: diasArr,
         postados,
         meta: diaria * dias,
