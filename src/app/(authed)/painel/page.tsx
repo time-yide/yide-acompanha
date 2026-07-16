@@ -9,6 +9,7 @@ import { PainelTable } from "@/components/painel/PainelTable";
 import { PainelCardsList } from "@/components/painel/PainelCardsList";
 import { PainelKpis } from "@/components/painel/PainelKpis";
 import { AreaFilterChips } from "@/components/painel/AreaFilter";
+import { TipoFilter } from "@/components/painel/TipoFilter";
 import { AssessorFilter } from "@/components/painel/AssessorFilter";
 import { ClientSearchInput } from "@/components/painel/ClientSearchInput";
 import { ViewToggle } from "@/components/painel/ViewToggle";
@@ -154,24 +155,23 @@ export default async function PainelPage({
       <PainelHeader
         mesAtual={mesAtual}
         mesesDisponiveis={mesesDisponiveis}
-        tipoFiltro={tipoFiltro}
         canAtualizar={PRIVILEGED_ROLES.includes(user.role)}
       />
 
       <PainelKpis checklists={checklists} />
 
-      <div className="flex flex-wrap items-end justify-between gap-3 rounded-lg border bg-card p-3">
-        <div className="space-y-2">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Área</p>
-          <AreaFilterChips current={areaFiltro} />
+      <div className="space-y-3 rounded-lg border bg-card p-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <TipoFilter current={tipoFiltro} />
+          <div className="flex flex-wrap items-center gap-2">
+            <ClientSearchInput current={params.q ?? ""} />
+            {canFilterAssessor && (
+              <AssessorFilter current={assessorFiltro} options={assessoresOptions} />
+            )}
+            <ViewToggle current={view} />
+          </div>
         </div>
-        <div className="flex flex-wrap items-end gap-3">
-          <ClientSearchInput current={params.q ?? ""} />
-          {canFilterAssessor && (
-            <AssessorFilter current={assessorFiltro} options={assessoresOptions} />
-          )}
-          <ViewToggle current={view} />
-        </div>
+        <AreaFilterChips current={areaFiltro} />
       </div>
 
       {view === "cards" ? (
