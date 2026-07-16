@@ -1,14 +1,11 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { PACOTES_NO_PAINEL_MENSAL, tipoPacoteBadge, type TipoPacote } from "@/lib/painel/pacote-matrix";
-import { cn } from "@/lib/utils";
 import { AtualizarPainelButton } from "./AtualizarPainelButton";
 
 interface Props {
   mesAtual: string;
   mesesDisponiveis: string[];
-  tipoFiltro: TipoPacote | "todos";
   canAtualizar?: boolean;
 }
 
@@ -18,15 +15,9 @@ function formatMonthLabel(monthRef: string): string {
   return `${names[Number(m) - 1]}/${y.slice(2)}`;
 }
 
-export function PainelHeader({ mesAtual, mesesDisponiveis, tipoFiltro, canAtualizar = false }: Props) {
+export function PainelHeader({ mesAtual, mesesDisponiveis, canAtualizar = false }: Props) {
   const router = useRouter();
   const params = useSearchParams();
-
-  function setTipo(tipo: string) {
-    const sp = new URLSearchParams(params.toString());
-    if (tipo === "todos") sp.delete("tipo"); else sp.set("tipo", tipo);
-    router.push(`/painel?${sp.toString()}`);
-  }
 
   function setMes(mes: string) {
     const sp = new URLSearchParams(params.toString());
@@ -53,40 +44,6 @@ export function PainelHeader({ mesAtual, mesesDisponiveis, tipoFiltro, canAtuali
             ))}
           </select>
         </div>
-      </div>
-
-      <div className="flex flex-wrap gap-1.5">
-        <button
-          type="button"
-          onClick={() => setTipo("todos")}
-          className={cn(
-            "rounded-full border px-3 py-1 text-[11px] font-medium transition-colors",
-            tipoFiltro === "todos"
-              ? "border-foreground/30 bg-foreground/5"
-              : "border-muted-foreground/20 bg-muted/40 text-muted-foreground",
-          )}
-        >
-          Todos
-        </button>
-        {(PACOTES_NO_PAINEL_MENSAL as readonly TipoPacote[]).map((p) => {
-          const meta = tipoPacoteBadge(p);
-          const active = tipoFiltro === p;
-          return (
-            <button
-              key={p}
-              type="button"
-              onClick={() => setTipo(p)}
-              className={cn(
-                "rounded-full border px-3 py-1 text-[11px] font-medium transition-colors",
-                active
-                  ? meta.classes
-                  : "border-muted-foreground/20 bg-muted/40 text-muted-foreground",
-              )}
-            >
-              {meta.label}
-            </button>
-          );
-        })}
       </div>
     </header>
   );

@@ -13,8 +13,11 @@ import { getResponsavelFor } from "./chain";
 import { PACOTES_NO_PAINEL_MENSAL, PACOTE_COLUMNS, type ColumnKey, type TipoPacote } from "./pacote-matrix";
 import type { StepKey } from "./deadlines";
 
-const COLUMN_TO_STEP: Record<ColumnKey, StepKey> = {
+// "design" não tem checklist_step — é derivado do status da tarefa de design
+// auto-criada no upload do cronograma. Mapeia pra null e é ignorado abaixo.
+const COLUMN_TO_STEP: Record<ColumnKey, StepKey | null> = {
   crono: "cronograma",
+  design: null,
   tpg: "tpg",
   tpm: "tpm",
   gmn: "gmn_post",
@@ -133,6 +136,7 @@ export async function ensureMonthlyChecklistsImpl(
     for (const col of Object.keys(columns) as ColumnKey[]) {
       if (columns[col] !== 1) continue;
       const stepKey = COLUMN_TO_STEP[col];
+      if (!stepKey) continue;
       stepRowsToUpsert.push({
         checklist_id: checklistId,
         step_key: stepKey,

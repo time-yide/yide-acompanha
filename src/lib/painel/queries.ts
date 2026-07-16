@@ -55,6 +55,11 @@ export interface ChecklistRow {
   pacote_post: number | null;
   quantidade_postada: number | null;
   valor_trafego_mes: number | null;
+  cronograma_url: string | null;
+  /** Id da tarefa de design auto-criada no upload do cronograma (ou null). */
+  design_task_id: string | null;
+  /** Status da tarefa de design (coluna Design). null = sem tarefa. */
+  designTaskStatus: string | null;
   tpg_ativo: boolean | null;
   tpm_ativo: boolean | null;
   gmn_comentarios: number;
@@ -84,8 +89,8 @@ export async function getMonthlyChecklists(
       const f = JSON.parse(filterJson) as ChecklistFilter;
       return _getMonthlyChecklistsImpl(mes, f);
     },
-    // v5: filter ganhou unitClientIds (multi-tenant)
-    ["painel-monthly-checklists-v5"],
+    // v6: ChecklistRow ganhou cronograma_url + design_task_id + designTaskStatus
+    ["painel-monthly-checklists-v6"],
     { revalidate: 60, tags: [PAINEL_CACHE_TAG] },
   );
   return cached(mesReferencia, JSON.stringify(filter));
@@ -192,12 +197,24 @@ async function _getMonthlyChecklistsImpl(
       .eq("mes_referencia", mesReferencia)
       .in("client_id", clientIds);
 
+  // SELECT completo inclui cronograma_url + design_task_id (colunas novas da
+  // migration 20260716200000). O fallback abaixo trata dois gaps possíveis
+  // entre deploy e migration: gmn_otimizado OU cronograma_url/design_task_id.
   const SELECT_CHECKLIST_COMPLETO = `
+    id, client_id, mes_referencia,
+    pacote_post, quantidade_postada, valor_trafego_mes,
+    cronograma_url, design_task_id,
+    tpg_ativo, tpm_ativo,
+    gmn_comentarios, gmn_avaliacoes, gmn_nota_media, gmn_observacoes, gmn_otimizado
+  `;
+  // Sem cronograma_url/design_task_id (migration painel-cronograma não rodada).
+  const SELECT_CHECKLIST_SEM_CRONO = `
     id, client_id, mes_referencia,
     pacote_post, quantidade_postada, valor_trafego_mes,
     tpg_ativo, tpm_ativo,
     gmn_comentarios, gmn_avaliacoes, gmn_nota_media, gmn_observacoes, gmn_otimizado
   `;
+  // Sem gmn_otimizado nem crono (banco mais antigo ainda).
   const SELECT_CHECKLIST_SEM_OTIMIZADO = `
     id, client_id, mes_referencia,
     pacote_post, quantidade_postada, valor_trafego_mes,
@@ -208,11 +225,20 @@ async function _getMonthlyChecklistsImpl(
   let checklistsResp = await buildChecklistsQuery(SELECT_CHECKLIST_COMPLETO);
   if (checklistsResp.error) {
     const msg = checklistsResp.error.message ?? "";
-    if (msg.includes("gmn_otimizado") || msg.includes("schema cache")) {
-      console.warn("[painel] gmn_otimizado indisponível no banco - usando fallback");
-      checklistsResp = await buildChecklistsQuery(SELECT_CHECKLIST_SEM_OTIMIZADO);
-    } else {
-      console.error("[painel] erro ao listar checklists:", msg);
+    if (msg.includes("cronograma_url") || msg.includes("design_task_id")) {
+      console.warn("[painel] cronograma_url/design_task_id indisponíveis no banco - usando fallback");
+      checklistsResp = await buildChecklistsQuery(SELECT_CHECKLIST_SEM_CRONO);
+    }
+    // Se ainda falhar (ou o primeiro erro já era gmn_otimizado), cai no fallback
+    // mais antigo sem gmn_otimizado.
+    if (checklistsResp.error) {
+      const msg2 = checklistsResp.error.message ?? "";
+      if (msg2.includes("gmn_otimizado") || msg2.includes("schema cache")) {
+        console.warn("[painel] gmn_otimizado indisponível no banco - usando fallback");
+        checklistsResp = await buildChecklistsQuery(SELECT_CHECKLIST_SEM_OTIMIZADO);
+      } else {
+        console.error("[painel] erro ao listar checklists:", msg2);
+      }
     }
   }
   const checklists = ((checklistsResp.data ?? []) as unknown as Array<{
@@ -222,6 +248,8 @@ async function _getMonthlyChecklistsImpl(
     pacote_post: number | null;
     quantidade_postada: number | null;
     valor_trafego_mes: number | null;
+    cronograma_url?: string | null;
+    design_task_id?: string | null;
     tpg_ativo: boolean | null;
     tpm_ativo: boolean | null;
     gmn_comentarios: number;
@@ -231,6 +259,8 @@ async function _getMonthlyChecklistsImpl(
     gmn_otimizado?: boolean;
   }>).map((cl) => ({
     ...cl,
+    cronograma_url: cl.cronograma_url ?? null,
+    design_task_id: cl.design_task_id ?? null,
     gmn_otimizado: cl.gmn_otimizado ?? false,
   }));
 
@@ -255,6 +285,9 @@ async function _getMonthlyChecklistsImpl(
       pacote_post: null,
       quantidade_postada: null,
       valor_trafego_mes: null,
+      cronograma_url: null,
+      design_task_id: null,
+      designTaskStatus: null,
       tpg_ativo: null,
       tpm_ativo: null,
       gmn_comentarios: 0,
@@ -294,11 +327,36 @@ async function _getMonthlyChecklistsImpl(
   // Marca manual via markStepProntoAction continua funcionando - quem chegar
   // primeiro grava `pronto` no banco.
   const { done: derivedDone, gravacaoCount } = await getDerivedDoneSet(supabase, mesReferencia, clientIds);
-  // Cronograma fica pronto quando o cliente tem link_estrategia preenchido
-  // (Drive, Gamma, etc.). O link é gerenciado na página /clientes/[id]/editar.
+  // Cronograma fica pronto quando o checklist do mês tem cronograma_url
+  // preenchido (upload via CronogramaModal). Fallback: link_estrategia do
+  // cliente (clientes antigos, antes do fluxo mensal).
+  const cronogramaUrlByClient = new Map(
+    checklists.map((cl) => [cl.client_id, cl.cronograma_url]),
+  );
   for (const c of clients) {
-    if (c.link_estrategia && c.link_estrategia.trim().length > 0) {
+    const cronoUrl = cronogramaUrlByClient.get(c.id);
+    const hasCrono = !!(cronoUrl && cronoUrl.trim().length > 0);
+    const hasLinkEstrategia = !!(c.link_estrategia && c.link_estrategia.trim().length > 0);
+    if (hasCrono || hasLinkEstrategia) {
       derivedDone.add(`${c.id}:cronograma`);
+    }
+  }
+
+  // Status das tarefas de design (coluna Design). Busca os status das tarefas
+  // referenciadas por design_task_id de todos os checklists do mês.
+  const designTaskIds = checklists
+    .map((cl) => cl.design_task_id)
+    .filter((id): id is string => !!id);
+  const designStatusById = new Map<string, string>();
+  if (designTaskIds.length > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = supabase as any;
+    const { data: designTasks } = await sb
+      .from("tasks")
+      .select("id, status")
+      .in("id", designTaskIds);
+    for (const t of (designTasks ?? []) as Array<{ id: string; status: string }>) {
+      designStatusById.set(t.id, t.status);
     }
   }
   const checklistIdByClient = new Map(checklists.map((cl) => [cl.client_id, cl.id]));
@@ -350,6 +408,11 @@ async function _getMonthlyChecklistsImpl(
       pacote_post: cl?.pacote_post ?? null,
       quantidade_postada: cl?.quantidade_postada ?? null,
       valor_trafego_mes: cl?.valor_trafego_mes ?? null,
+      cronograma_url: cl?.cronograma_url ?? null,
+      design_task_id: cl?.design_task_id ?? null,
+      designTaskStatus: cl?.design_task_id
+        ? (designStatusById.get(cl.design_task_id) ?? null)
+        : null,
       tpg_ativo: cl?.tpg_ativo ?? null,
       tpm_ativo: cl?.tpm_ativo ?? null,
       gmn_comentarios: cl?.gmn_comentarios ?? 0,

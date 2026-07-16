@@ -274,6 +274,121 @@ export async function setMonthlyPostsAction(formData: FormData): Promise<ActionR
   return { success: true };
 }
 
+const uploadCronogramaSchema = z.object({
+  client_id: uuidLike,
+  mes_referencia: z.string().regex(/^\d{4}-\d{2}$/, "Formato esperado YYYY-MM"),
+  cronograma_url: z.string().url("Link inválido"),
+  quantidade: z.coerce.number().int().min(0),
+});
+
+/**
+ * Upload do cronograma mensal (Parte A do spec painel-cronograma-design).
+ *
+ * - Grava `cronograma_url` + `pacote_post` (quantidade) no
+ *   `client_monthly_checklist` do mês (upsert por client_id,mes_referencia).
+ * - Cria automaticamente uma tarefa "arte" pro designer do cliente
+ *   (fallback: coordenador, depois o próprio ator). Guarda o id em
+ *   `design_task_id`. Re-upload NÃO cria segunda tarefa.
+ *
+ * Mesmo gate/serviço do setMonthlyPostsAction (requireAuth + createClient).
+ * `as any` nos writes porque as colunas novas (cronograma_url, design_task_id)
+ * ainda não estão nos tipos gerados — mesmo padrão de createTaskAction.
+ */
+export async function uploadCronogramaAction(formData: FormData): Promise<ActionResult> {
+  const actor = await requireAuth();
+  const parsed = uploadCronogramaSchema.safeParse({
+    client_id: formData.get("client_id"),
+    mes_referencia: formData.get("mes_referencia"),
+    cronograma_url: formData.get("cronograma_url"),
+    quantidade: formData.get("quantidade"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+
+  // Estado atual do checklist do mês (pra saber se já existe design_task_id).
+  const { data: existing } = await sb
+    .from("client_monthly_checklist")
+    .select("id, design_task_id")
+    .eq("client_id", parsed.data.client_id)
+    .eq("mes_referencia", parsed.data.mes_referencia)
+    .maybeSingle();
+
+  const existingTaskId: string | null = existing?.design_task_id ?? null;
+
+  // Cria a tarefa do designer só na primeira vez (evita duplicar no re-upload).
+  let designTaskId: string | null = existingTaskId;
+  if (!existingTaskId) {
+    const { data: cliente } = await sb
+      .from("clients")
+      .select("id, nome, designer_id, coordenador_id")
+      .eq("id", parsed.data.client_id)
+      .single();
+
+    if (!cliente) return { error: "Cliente não encontrado" };
+
+    const atribuidoA: string =
+      cliente.designer_id ?? cliente.coordenador_id ?? actor.id;
+
+    const insertPayload = {
+      titulo: `Design — cronograma ${cliente.nome} (${parsed.data.mes_referencia})`,
+      descricao: `Cronograma do mês: ${parsed.data.cronograma_url}`,
+      prioridade: "media" as const,
+      tipo: "arte" as const,
+      formatos: ["feed"],
+      status_aprovacao: "pendente_envio" as const,
+      atribuido_a: atribuidoA,
+      client_id: parsed.data.client_id,
+      criado_por: actor.id,
+    };
+
+    const { data: created, error: taskErr } = await sb
+      .from("tasks")
+      .insert(insertPayload)
+      .select("id, titulo")
+      .single();
+    if (taskErr || !created) {
+      return { error: taskErr?.message ?? "Falha ao criar tarefa de design" };
+    }
+    designTaskId = created.id;
+
+    await dispatchNotification({
+      evento_tipo: "task_assigned",
+      titulo: "Nova tarefa atribuída a você",
+      mensagem: `${actor.nome} atribuiu: "${created.titulo}"`,
+      link: `/tarefas/${created.id}`,
+      user_ids_extras: [atribuidoA],
+      source_user_id: actor.id,
+    });
+  }
+
+  // Upsert do checklist com o link + quantidade (+ design_task_id na 1ª vez).
+  const checklistPayload: Record<string, unknown> = {
+    client_id: parsed.data.client_id,
+    mes_referencia: parsed.data.mes_referencia,
+    cronograma_url: parsed.data.cronograma_url,
+    pacote_post: parsed.data.quantidade,
+  };
+  if (designTaskId) checklistPayload.design_task_id = designTaskId;
+
+  const { data: upserted, error: upsertErr } = await sb
+    .from("client_monthly_checklist")
+    .upsert(checklistPayload, { onConflict: "client_id,mes_referencia" })
+    .select("id");
+  if (upsertErr) return { error: upsertErr.message };
+  // RLS deny em UPDATE/UPSERT é silencioso (0 linhas, sem erro) — convenção do projeto.
+  if (!upserted || upserted.length === 0) {
+    return { error: "Sem permissão pra salvar o cronograma" };
+  }
+
+  revalidatePath("/painel");
+  revalidateTag(PAINEL_CACHE_TAG, "default");
+  revalidateTag("tasks", "default");
+  return { success: true };
+}
+
 const delegarDesignSchema = z.object({
   step_id: uuidLike,
 });
