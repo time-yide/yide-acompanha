@@ -3,9 +3,11 @@ import { redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth/session";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getFluxoCaixa, listAportes, getMesesComCaixa, type FluxoCaixaPonto } from "@/lib/financeiro/caixa";
-import { getProjecaoCaixaMes } from "@/lib/financeiro/projecao";
+import { getProjecaoCaixaMes, calcularReserva } from "@/lib/financeiro/projecao";
+import { getInadimplencia } from "@/lib/financeiro/inadimplencia";
 import { FluxoCaixaChart } from "@/components/financeiro/FluxoCaixaChart";
 import { ProjecaoCaixaMes } from "@/components/financeiro/ProjecaoCaixaMes";
+import { ReservaCaixaCard } from "@/components/financeiro/ReservaCaixaCard";
 import { AporteForm } from "@/components/financeiro/AporteForm";
 import { AporteTable } from "@/components/financeiro/AporteTable";
 import { Button } from "@/components/ui/button";
@@ -80,12 +82,14 @@ export default async function FluxoCaixaPage() {
   // histórico importado (caixa_mensal, 2024/2025); limita aos últimos 36 meses.
   const mesesComDado = (await getMesesComCaixa()).slice(-36);
 
-  const [series, aportes, socios, projecao] = await Promise.all([
+  const [series, aportes, socios, projecao, inad] = await Promise.all([
     getFluxoCaixa(mesesComDado),
     listAportes(),
     getSocios(),
     getProjecaoCaixaMes(currentMesRef()),
+    getInadimplencia(),
   ]);
+  const reserva = calcularReserva(projecao, inad.totalEmAberto);
 
   return (
     <div className="space-y-5">
@@ -125,6 +129,8 @@ export default async function FluxoCaixaPage() {
           <FluxoTable series={series} />
         </>
       )}
+
+      <ReservaCaixaCard data={reserva} />
 
       <ProjecaoCaixaMes data={projecao} />
 

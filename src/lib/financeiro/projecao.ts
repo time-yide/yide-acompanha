@@ -76,3 +76,37 @@ export async function getProjecaoCaixaMes(mesRef: string): Promise<ProjecaoCaixa
     saldoFinal: saldo,
   };
 }
+
+export interface ReservaCaixaData {
+  /** Custos que saem antes do recebimento (salários + outras saídas do mês). */
+  bridge: number;
+  /** Inadimplência atual em aberto (colchão pra clientes que não pagam/atrasam). */
+  inadimplencia: number;
+  /** Reserva recomendada = bridge + inadimplência. */
+  reservaRecomendada: number;
+  /** Caixa acumulado estimado (do modelo). */
+  saldoAtual: number;
+  cobre: boolean;
+  /** saldoAtual − reservaRecomendada (negativo = falta). */
+  faltaOuSobra: number;
+}
+
+/**
+ * Reserva de caixa (capital de giro) recomendada: o quanto ter em caixa pra
+ * atravessar o vale do mês (saídas antes do recebimento) E aguentar a
+ * inadimplência/atrasos reais. Função pura — recebe a projeção do mês e o total
+ * de inadimplência em aberto.
+ */
+export function calcularReserva(proj: ProjecaoCaixaMes, inadimplenciaTotal: number): ReservaCaixaData {
+  const bridge = proj.salarios + proj.outrasSaidas;
+  const reservaRecomendada = bridge + inadimplenciaTotal;
+  const saldoAtual = proj.saldoInicial;
+  return {
+    bridge,
+    inadimplencia: inadimplenciaTotal,
+    reservaRecomendada,
+    saldoAtual,
+    cobre: saldoAtual >= reservaRecomendada,
+    faltaOuSobra: saldoAtual - reservaRecomendada,
+  };
+}
