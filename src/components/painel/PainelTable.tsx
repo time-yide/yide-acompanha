@@ -51,15 +51,6 @@ export function PainelTable({ checklists, userRole, userId }: Props) {
 
   return (
     <div className="space-y-2">
-      <p className="px-1 text-[11.5px] text-muted-foreground">
-        <b className="text-foreground/70">TPG</b> Tráfego Google ·{" "}
-        <b className="text-foreground/70">TPM</b> Tráfego Meta ·{" "}
-        <b className="text-foreground/70">GMN</b> Google Meu Negócio ·{" "}
-        <b className="text-foreground/70">Gravação</b> nº de gravações no mês ·{" "}
-        <b className="text-foreground/70">Edição</b> passou pelo time ·{" "}
-        <b className="text-foreground/70">Reunião</b> agendada (tipo Assessores)
-      </p>
-
       <div className="overflow-x-auto rounded-lg border bg-card">
         <table className="w-full text-sm">
           <thead className="bg-muted/40">
