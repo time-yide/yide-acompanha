@@ -100,6 +100,9 @@ function PageShell({
           <p className="text-sm text-muted-foreground">DRE, visão de sócio</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Link href="/financeiro/caixa">
+            <Button variant="outline">Fluxo de caixa</Button>
+          </Link>
           <Link href="/financeiro/pagamentos">
             <Button variant="outline">Pagamentos do mês</Button>
           </Link>
