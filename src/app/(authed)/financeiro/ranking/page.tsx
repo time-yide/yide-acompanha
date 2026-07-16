@@ -13,7 +13,14 @@ function mesLabel(m: string): string {
   return `${mm}/${y}`;
 }
 
-const MEDAL = ["🥇", "🥈", "🥉"];
+/** Converte meses ativos em "X anos e Y dias" (aprox. 30,44 dias/mês). */
+function tempoDeCasa(meses: number): string {
+  const totalDias = Math.round(meses * 30.44);
+  const anos = Math.floor(totalDias / 365);
+  const dias = totalDias % 365;
+  if (anos === 0) return `${dias} dias`;
+  return `${anos} ${anos === 1 ? "ano" : "anos"} e ${dias} dias`;
+}
 
 function RankingList({
   titulo,
@@ -37,7 +44,7 @@ function RankingList({
         {rows.map((r, i) => (
           <li key={r.nome} className="flex items-center gap-3 px-4 py-2 text-sm">
             <span className="w-7 shrink-0 text-center text-muted-foreground tabular-nums">
-              {MEDAL[i] ?? i + 1}
+              {i + 1}
             </span>
             <div className="min-w-0 flex-1">
               <p className="flex items-center gap-1.5 truncate font-medium">
@@ -103,7 +110,7 @@ export default async function RankingPage() {
               titulo="Top tempo de casa"
               icon={Clock}
               rows={data.porTempo}
-              valor={(r) => `${r.meses_ativos} meses`}
+              valor={(r) => tempoDeCasa(r.meses_ativos)}
             />
           </div>
         </>
