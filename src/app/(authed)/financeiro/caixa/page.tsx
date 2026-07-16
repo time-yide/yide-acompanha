@@ -69,9 +69,9 @@ export default async function FluxoCaixaPage() {
   if (user.role !== "socio") redirect("/");
 
   // Só os meses que têm dado de caixa (pagamento marcado ou aporte). Meses sem
-  // marcação dariam recebido 0 + saídas cheias = prejuízo fantasma. Limita aos
-  // últimos 12 meses com dado.
-  const mesesComDado = (await getMesesComCaixa()).slice(-12);
+  // marcação dariam recebido 0 + saídas cheias = prejuízo fantasma. Inclui o
+  // histórico importado (caixa_mensal, 2024/2025); limita aos últimos 36 meses.
+  const mesesComDado = (await getMesesComCaixa()).slice(-36);
 
   const [series, aportes, socios] = await Promise.all([
     getFluxoCaixa(mesesComDado),
