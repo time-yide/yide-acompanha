@@ -55,7 +55,7 @@ export function FluxoCaixaChart({ series }: Props) {
                   : "bg-muted text-muted-foreground hover:bg-muted-foreground/20")
               }
             >
-              {p === "tudo" ? "Tudo" : p}
+              {p === "tudo" ? "Todo o período" : p}
             </button>
           ))}
         </div>
