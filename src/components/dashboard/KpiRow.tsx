@@ -1,4 +1,4 @@
-import { Wallet, Users, TrendingDown, Percent, Sparkles, DollarSign, Receipt, Infinity as InfinityIcon } from "lucide-react";
+import { Wallet, Users, TrendingDown, Percent, Sparkles, DollarSign, Receipt, Clock } from "lucide-react";
 import { KpiCard } from "./KpiCard";
 import { Money, Count } from "./HiddenValuesContext";
 import type { KpiData } from "@/lib/dashboard/queries";
@@ -19,13 +19,13 @@ export function KpiRow({ kpis }: { kpis: KpiData }) {
   // Mês atual no fuso da app (Cuiabá UTC-4) - usado no link de drill-down "Churn do mês"
   const mesAtual = getCurrentMonthYM();
 
-  // LTV helpers - quando não tem churn no mês, valor é null. Mostramos "-"
-  // com helper explicando, em vez de um número infinito ou confuso.
-  const ltvDisplay = kpis.ltv.valor === null
-    ? { node: "-" as React.ReactNode, helper: "Sem churn no mês - LTV indefinido" }
+  // Tempo médio de casa = 1 / churn mensal (em meses). Sem churn no mês → indefinido.
+  const churnPct = kpis.ltv.churnRatePct;
+  const tempoDisplay = churnPct <= 0
+    ? { node: "-" as React.ReactNode, helper: "Sem churn no mês" }
     : {
-        node: <Money value={kpis.ltv.valor} noDecimals />,
-        helper: `Churn mensal: ${kpis.ltv.churnRatePct.toFixed(1)}%`,
+        node: `${Math.round(100 / churnPct)} meses` as React.ReactNode,
+        helper: `Churn mensal: ${churnPct.toFixed(1)}%`,
       };
 
   return (
@@ -53,10 +53,10 @@ export function KpiRow({ kpis }: { kpis: KpiData }) {
         icon={Receipt}
       />
       <KpiCard
-        label="LTV"
-        valor={ltvDisplay.node}
-        helperText={ltvDisplay.helper}
-        icon={InfinityIcon}
+        label="Tempo médio de casa"
+        valor={tempoDisplay.node}
+        helperText={tempoDisplay.helper}
+        icon={Clock}
       />
       <KpiCard
         label="Churn do mês"
