@@ -3,13 +3,22 @@ import { redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth/session";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getFluxoCaixa, listAportes, getMesesComCaixa, type FluxoCaixaPonto } from "@/lib/financeiro/caixa";
+import { getProjecaoCaixaMes, calcularReserva } from "@/lib/financeiro/projecao";
+import { getInadimplencia } from "@/lib/financeiro/inadimplencia";
 import { FluxoCaixaChart } from "@/components/financeiro/FluxoCaixaChart";
+import { ProjecaoCaixaMes } from "@/components/financeiro/ProjecaoCaixaMes";
+import { ReservaCaixaCard } from "@/components/financeiro/ReservaCaixaCard";
 import { AporteForm } from "@/components/financeiro/AporteForm";
 import { AporteTable } from "@/components/financeiro/AporteTable";
 import { Button } from "@/components/ui/button";
 import { monthLabel } from "@/lib/dashboard/date-utils";
 
 const BRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+function currentMesRef(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
 
 async function getSocios(): Promise<Array<{ id: string; nome: string }>> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -73,11 +82,14 @@ export default async function FluxoCaixaPage() {
   // histórico importado (caixa_mensal, 2024/2025); limita aos últimos 36 meses.
   const mesesComDado = (await getMesesComCaixa()).slice(-36);
 
-  const [series, aportes, socios] = await Promise.all([
+  const [series, aportes, socios, projecao, inad] = await Promise.all([
     getFluxoCaixa(mesesComDado),
     listAportes(),
     getSocios(),
+    getProjecaoCaixaMes(currentMesRef()),
+    getInadimplencia(),
   ]);
+  const reserva = calcularReserva(projecao, inad.totalEmAberto);
 
   return (
     <div className="space-y-5">
@@ -117,6 +129,10 @@ export default async function FluxoCaixaPage() {
           <FluxoTable series={series} />
         </>
       )}
+
+      <ReservaCaixaCard data={reserva} />
+
+      <ProjecaoCaixaMes data={projecao} />
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Aportes de capital</h2>
