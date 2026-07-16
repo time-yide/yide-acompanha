@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth/session";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { getFluxoCaixa, listAportes, type FluxoCaixaPonto } from "@/lib/financeiro/caixa";
+import { getFluxoCaixa, listAportes, getMesesComCaixa, type FluxoCaixaPonto } from "@/lib/financeiro/caixa";
 import { FluxoCaixaChart } from "@/components/financeiro/FluxoCaixaChart";
 import { AporteForm } from "@/components/financeiro/AporteForm";
 import { AporteTable } from "@/components/financeiro/AporteTable";
@@ -10,17 +10,6 @@ import { Button } from "@/components/ui/button";
 import { monthLabel } from "@/lib/dashboard/date-utils";
 
 const BRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-
-function currentMesRef(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
-
-function shiftMes(mesRef: string, delta: number): string {
-  const [y, m] = mesRef.split("-").map(Number);
-  const d = new Date(y, m - 1 + delta, 1);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
 
 async function getSocios(): Promise<Array<{ id: string; nome: string }>> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -79,11 +68,13 @@ export default async function FluxoCaixaPage() {
   const user = await requireAuth();
   if (user.role !== "socio") redirect("/");
 
-  const mesRef = currentMesRef();
-  const meses12 = Array.from({ length: 12 }, (_, i) => shiftMes(mesRef, -(11 - i)));
+  // Só os meses que têm dado de caixa (pagamento marcado ou aporte). Meses sem
+  // marcação dariam recebido 0 + saídas cheias = prejuízo fantasma. Limita aos
+  // últimos 12 meses com dado.
+  const mesesComDado = (await getMesesComCaixa()).slice(-12);
 
   const [series, aportes, socios] = await Promise.all([
-    getFluxoCaixa(meses12),
+    getFluxoCaixa(mesesComDado),
     listAportes(),
     getSocios(),
   ]);
@@ -103,17 +94,29 @@ export default async function FluxoCaixaPage() {
       </header>
 
       <div className="rounded-xl border border-dashed bg-card p-3 text-xs text-muted-foreground">
-        <span className="font-medium text-foreground">Sobre o &quot;recebido&quot;:</span> só
-        aparece nos meses com pagamentos marcados em{" "}
+        <span className="font-medium text-foreground">Sobre o &quot;recebido&quot;:</span> mostra
+        só os meses com pagamento marcado em{" "}
         <Link href="/financeiro/pagamentos" className="underline">
           Pagamentos
-        </Link>
-        . Meses sem marcação mostram recebido zero — foque na janela recente.
+        </Link>{" "}
+        ou com aporte. O faturamento histórico de 2024/2025 não está no sistema (vive nas
+        planilhas), por isso não aparece aqui.
       </div>
 
-      <FluxoCaixaChart series={series} />
-
-      <FluxoTable series={series} />
+      {series.length === 0 ? (
+        <div className="rounded-xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">
+          Ainda não há meses com pagamento marcado ou aporte. Marque pago/pendente em{" "}
+          <Link href="/financeiro/pagamentos" className="underline">
+            Pagamentos
+          </Link>{" "}
+          pra o fluxo de caixa aparecer.
+        </div>
+      ) : (
+        <>
+          <FluxoCaixaChart series={series} />
+          <FluxoTable series={series} />
+        </>
+      )}
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Aportes de capital</h2>

@@ -40,11 +40,13 @@ function mesBounds(mesRef: string): { inicio: string; fim: string } {
 }
 
 /**
- * Recebido por mês = soma de clients.valor_mensal dos clientes ativos comuns
- * cujo client_payments daquele mes_referencia está 'pago'. Resiliente: se a
- * tabela client_payments não existe, recebido = 0 pra todos os meses.
+ * Inadimplência por mês = soma de clients.valor_mensal dos clientes ativos
+ * comuns cujo client_payments daquele mes_referencia está 'pendente'. Usada pra
+ * derivar recebido = receita da carteira − pendente (mais fiel que pago×valor,
+ * que subestima quando nem todo cliente está marcado). Resiliente: sem tabela,
+ * pendente = 0 (assume tudo recebido).
  */
-async function getRecebidoPorMes(meses: string[]): Promise<Map<string, number>> {
+async function getPendentePorMes(meses: string[]): Promise<Map<string, number>> {
   const out = new Map<string, number>(meses.map((m) => [m, 0]));
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -53,9 +55,9 @@ async function getRecebidoPorMes(meses: string[]): Promise<Map<string, number>> 
     const { data: pagos, error } = await sb
       .from("client_payments")
       .select("client_id, mes_referencia, status")
-      .eq("status", "pago")
+      .eq("status", "pendente")
       .in("mes_referencia", meses);
-    if (error) return out; // tabela inexistente / schema cache → recebido 0
+    if (error) return out; // tabela inexistente / schema cache → pendente 0
 
     const pagosRows = (pagos ?? []) as Array<{ client_id: string; mes_referencia: string }>;
     if (pagosRows.length === 0) return out;
@@ -128,18 +130,20 @@ async function getAportesPorMes(meses: string[]): Promise<Map<string, number>> {
  * Entradas − Saídas; Saldo acumulado = soma corrente.
  */
 export async function getFluxoCaixa(meses: string[]): Promise<FluxoCaixaPonto[]> {
-  const [recebidoMap, aportesMap, dres] = await Promise.all([
-    getRecebidoPorMes(meses),
+  const [pendenteMap, aportesMap, dres] = await Promise.all([
+    getPendentePorMes(meses),
     getAportesPorMes(meses),
     Promise.all(meses.map((m) => getDRE(m))),
   ]);
 
   let acumulado = 0;
   return meses.map((mesRef, i) => {
-    const recebido = recebidoMap.get(mesRef) ?? 0;
+    const dre = dres[i];
+    // Recebido de caixa = receita da carteira do mês − inadimplência (pendente).
+    // Reusa a receita que o DRE calcula; desconta só o que ficou em aberto.
+    const recebido = Math.max(0, dre.receita_bruta - (pendenteMap.get(mesRef) ?? 0));
     const aportes = aportesMap.get(mesRef) ?? 0;
     const entradas = recebido + aportes;
-    const dre = dres[i];
     const saidas = dre.custo_servicos.total + dre.salarios + dre.total_despesas;
     const saldoMes = entradas - saidas;
     acumulado += saldoMes;
@@ -196,4 +200,40 @@ export async function listAportes(): Promise<AporteRow[]> {
   } catch {
     return [];
   }
+}
+
+/**
+ * Meses (YYYY-MM) que têm DADO de caixa: ou pagamento marcado em
+ * client_payments, ou aporte registrado. Serve pra a tela mostrar só a janela
+ * com dado real (meses sem marcação dariam recebido 0 e prejuízo fantasma).
+ * Resiliente: tabelas ausentes → ignoradas. Retorna ordenado, sem repetir.
+ */
+export async function getMesesComCaixa(): Promise<string[]> {
+  const set = new Set<string>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = createServiceRoleClient() as any;
+
+  try {
+    const { data, error } = await sb.from("client_payments").select("mes_referencia");
+    if (!error) {
+      for (const r of (data ?? []) as Array<{ mes_referencia: string }>) {
+        if (r.mes_referencia) set.add(r.mes_referencia);
+      }
+    }
+  } catch {
+    /* tabela ausente → ignora */
+  }
+
+  try {
+    const { data, error } = await sb.from("capital_aportes").select("data");
+    if (!error) {
+      for (const r of (data ?? []) as Array<{ data: string }>) {
+        if (r.data) set.add(String(r.data).slice(0, 7));
+      }
+    }
+  } catch {
+    /* tabela ausente → ignora */
+  }
+
+  return [...set].sort();
 }
