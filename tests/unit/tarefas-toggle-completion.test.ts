@@ -58,7 +58,12 @@ function setupMocks(
   options: { updateError?: { message: string } | null; assigneeRole?: string } = {},
 ) {
   const { updateError = null, assigneeRole = "assessor" } = options;
-  const updateEq = vi.fn().mockResolvedValue({ error: updateError });
+  // .update(...).eq(...).select("id") → { data, error }. A action checa data.length
+  // (0 linhas = deny de RLS silencioso), então o mock devolve 1 linha no sucesso.
+  const updateSelect = vi
+    .fn()
+    .mockResolvedValue({ data: updateError ? null : [{ id: "task-1" }], error: updateError });
+  const updateEq = vi.fn().mockReturnValue({ select: updateSelect });
   const update = vi.fn().mockReturnValue({ eq: updateEq });
   fromCookieMock.mockImplementation((table: string) => {
     if (table === "tasks") {
