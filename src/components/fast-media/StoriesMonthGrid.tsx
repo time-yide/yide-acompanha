@@ -1,11 +1,19 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Minus, Plus, Check } from "lucide-react";
+import { Minus, Plus, Check, Pencil, Trash2, ExternalLink } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { setStoryDayCountAction } from "@/lib/painel/stories-actions";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  setStoryDayCountAction,
+  updateClienteDiariaStoriesAction,
+  removeClienteStoriesAction,
+} from "@/lib/painel/stories-actions";
 import type { StoriesGridRow } from "@/lib/painel/stories-queries";
 import { cn } from "@/lib/utils";
 
@@ -54,6 +62,48 @@ function ClientStoryRow({
   const [editing, setEditing] = useState<{ dia: number; data: string } | null>(null);
   const [pending, startTransition] = useTransition();
 
+  const router = useRouter();
+  const [managing, setManaging] = useState(false);
+  const [diariaInput, setDiariaInput] = useState<string>(String(row.quantidade_diaria_stories));
+  const [confirmRemove, setConfirmRemove] = useState(false);
+
+  function saveDiaria() {
+    const n = Number(diariaInput);
+    if (!Number.isInteger(n) || n < 1 || n > 99) {
+      toast.error("Quantidade diária deve ser de 1 a 99");
+      return;
+    }
+    startTransition(async () => {
+      const fd = new FormData();
+      fd.set("client_id", row.client_id);
+      fd.set("quantidade_diaria", String(n));
+      const res = await updateClienteDiariaStoriesAction(fd);
+      if (res.error) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success("Quantidade diária atualizada");
+      setManaging(false);
+      router.refresh();
+    });
+  }
+
+  function removeFromGrid() {
+    startTransition(async () => {
+      const fd = new FormData();
+      fd.set("client_id", row.client_id);
+      const res = await removeClienteStoriesAction(fd);
+      if (res.error) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success("Cliente removido da grade");
+      setManaging(false);
+      setConfirmRemove(false);
+      router.refresh();
+    });
+  }
+
   const totalPostados = Object.values(counts).reduce((s, v) => s + v, 0);
   const pct = row.meta > 0 ? Math.min(100, (totalPostados / row.meta) * 100) : 0;
 
@@ -89,17 +139,41 @@ function ClientStoryRow({
     <div className="rounded-xl border bg-card p-3.5">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold">{row.client_nome}</p>
+          <Link
+            href={`/clientes/${row.client_id}`}
+            className="group inline-flex items-center gap-1 truncate text-sm font-semibold hover:underline"
+          >
+            <span className="truncate">{row.client_nome}</span>
+            <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground/50 opacity-0 transition-opacity group-hover:opacity-100" />
+          </Link>
           <p className="text-xs text-muted-foreground">
             {row.quantidade_diaria_stories}/dia
             {row.assessor_nome ? ` · ${row.assessor_nome}` : ""}
           </p>
         </div>
-        <p className="text-sm font-bold tabular-nums">
-          {totalPostados}
-          <span className="text-xs font-medium text-muted-foreground"> / {row.meta}</span>
-          <span className="ml-1.5 text-xs font-medium text-primary">{Math.round(pct)}%</span>
-        </p>
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-bold tabular-nums">
+            {totalPostados}
+            <span className="text-xs font-medium text-muted-foreground"> / {row.meta}</span>
+            <span className="ml-1.5 text-xs font-medium text-primary">{Math.round(pct)}%</span>
+          </p>
+          {canEdit && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground"
+              onClick={() => {
+                setDiariaInput(String(row.quantidade_diaria_stories));
+                setConfirmRemove(false);
+                setManaging(true);
+              }}
+              aria-label="Gerenciar cliente"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
@@ -213,6 +287,89 @@ function ClientStoryRow({
           <DialogFooter>
             <Button type="button" onClick={() => setEditing(null)}>
               Pronto
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Gerenciar cliente: editar diária / remover da grade */}
+      <Dialog
+        open={managing}
+        onOpenChange={(o) => {
+          if (!o) {
+            setManaging(false);
+            setConfirmRemove(false);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-xs">
+          <DialogHeader>
+            <DialogTitle>{row.client_nome}</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-1">
+            <div className="space-y-1.5">
+              <Label htmlFor={`diaria-${row.client_id}`}>Stories por dia</Label>
+              <Input
+                id={`diaria-${row.client_id}`}
+                type="number"
+                min={1}
+                max={99}
+                step={1}
+                value={diariaInput}
+                onChange={(e) => setDiariaInput(e.target.value)}
+                disabled={pending}
+              />
+            </div>
+
+            {confirmRemove ? (
+              <div className="space-y-2 rounded-md border border-rose-500/30 bg-rose-500/5 p-3">
+                <p className="text-xs text-muted-foreground">
+                  Remove o cliente da grade de stories. O histórico de marcações é
+                  mantido — se readicionar depois, os stories já marcados reaparecem.
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    disabled={pending}
+                    onClick={removeFromGrid}
+                  >
+                    {pending ? "Removendo..." : "Confirmar remoção"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={pending}
+                    onClick={() => setConfirmRemove(false)}
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-rose-600 hover:text-rose-700 dark:text-rose-400"
+                disabled={pending}
+                onClick={() => setConfirmRemove(true)}
+              >
+                <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                Remover da grade
+              </Button>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" disabled={pending} onClick={() => setManaging(false)}>
+              Fechar
+            </Button>
+            <Button type="button" disabled={pending} onClick={saveDiaria}>
+              {pending ? "Salvando..." : "Salvar"}
             </Button>
           </DialogFooter>
         </DialogContent>
