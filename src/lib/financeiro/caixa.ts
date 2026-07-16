@@ -125,26 +125,62 @@ async function getAportesPorMes(meses: string[]): Promise<Map<string, number>> {
 }
 
 /**
+ * Recebido/saídas históricos por mês, importados das planilhas (tabela
+ * caixa_mensal). Meses aqui têm o número real e NÃO são recalculados pelo
+ * sistema. Resiliente: sem tabela → mapa vazio (tudo cai no cálculo do sistema).
+ */
+async function getCaixaHistoricoMap(): Promise<Map<string, { recebido: number; saidas: number }>> {
+  const out = new Map<string, { recebido: number; saidas: number }>();
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = createServiceRoleClient() as any;
+    const { data, error } = await sb.from("caixa_mensal").select("mes_referencia, recebido, saidas");
+    if (error) return out;
+    for (const r of (data ?? []) as Array<{ mes_referencia: string; recebido: number | null; saidas: number | null }>) {
+      out.set(r.mes_referencia, { recebido: Number(r.recebido) || 0, saidas: Number(r.saidas) || 0 });
+    }
+    return out;
+  } catch {
+    return out;
+  }
+}
+
+/**
  * Fluxo de caixa por mês (ordem = ordem dos meses passados). Para cada mês:
- * Entradas = Recebido + Aportes; Saídas = custo total do DRE; Saldo do mês =
- * Entradas − Saídas; Saldo acumulado = soma corrente.
+ * - Se há registro histórico (caixa_mensal, importado das planilhas), usa o
+ *   recebido/saídas de lá (2024/2025).
+ * - Senão, calcula do sistema: Recebido = receita − inadimplência; Saídas =
+ *   custo total do DRE (meses recentes com dado no sistema).
+ * Entradas = Recebido + Aportes; Saldo do mês = Entradas − Saídas; acumulado.
  */
 export async function getFluxoCaixa(meses: string[]): Promise<FluxoCaixaPonto[]> {
-  const [pendenteMap, aportesMap, dres] = await Promise.all([
-    getPendentePorMes(meses),
+  const historico = await getCaixaHistoricoMap();
+  // Só calcula do sistema os meses SEM histórico (evita getDRE desnecessário).
+  const mesesLive = meses.filter((m) => !historico.has(m));
+
+  const [pendenteMap, aportesMap, liveDres] = await Promise.all([
+    getPendentePorMes(mesesLive),
     getAportesPorMes(meses),
-    Promise.all(meses.map((m) => getDRE(m))),
+    Promise.all(mesesLive.map((m) => getDRE(m))),
   ]);
+  const dreByMes = new Map(mesesLive.map((m, i) => [m, liveDres[i]]));
 
   let acumulado = 0;
-  return meses.map((mesRef, i) => {
-    const dre = dres[i];
-    // Recebido de caixa = receita da carteira do mês − inadimplência (pendente).
-    // Reusa a receita que o DRE calcula; desconta só o que ficou em aberto.
-    const recebido = Math.max(0, dre.receita_bruta - (pendenteMap.get(mesRef) ?? 0));
+  return meses.map((mesRef) => {
+    let recebido: number;
+    let saidas: number;
+    const h = historico.get(mesRef);
+    if (h) {
+      recebido = h.recebido;
+      saidas = h.saidas;
+    } else {
+      const dre = dreByMes.get(mesRef);
+      // Recebido de caixa = receita da carteira do mês − inadimplência (pendente).
+      recebido = dre ? Math.max(0, dre.receita_bruta - (pendenteMap.get(mesRef) ?? 0)) : 0;
+      saidas = dre ? dre.custo_servicos.total + dre.salarios + dre.total_despesas : 0;
+    }
     const aportes = aportesMap.get(mesRef) ?? 0;
     const entradas = recebido + aportes;
-    const saidas = dre.custo_servicos.total + dre.salarios + dre.total_despesas;
     const saldoMes = entradas - saidas;
     acumulado += saldoMes;
     return { mesRef, recebido, aportes, entradas, saidas, saldoMes, saldoAcumulado: acumulado };
@@ -229,6 +265,17 @@ export async function getMesesComCaixa(): Promise<string[]> {
     if (!error) {
       for (const r of (data ?? []) as Array<{ data: string }>) {
         if (r.data) set.add(String(r.data).slice(0, 7));
+      }
+    }
+  } catch {
+    /* tabela ausente → ignora */
+  }
+
+  try {
+    const { data, error } = await sb.from("caixa_mensal").select("mes_referencia");
+    if (!error) {
+      for (const r of (data ?? []) as Array<{ mes_referencia: string }>) {
+        if (r.mes_referencia) set.add(r.mes_referencia);
       }
     }
   } catch {

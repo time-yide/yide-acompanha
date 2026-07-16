@@ -15,7 +15,7 @@ import {
 import { monthLabel } from "@/lib/dashboard/date-utils";
 import type { FluxoCaixaPonto } from "@/lib/financeiro/caixa";
 
-type Periodo = "6m" | "12m";
+type Periodo = "6m" | "12m" | "tudo";
 
 interface Props {
   /** Série mensal de fluxo de caixa, mais antigo → mais recente. */
@@ -28,7 +28,8 @@ const BRL = (v: number) =>
 export function FluxoCaixaChart({ series }: Props) {
   const [periodo, setPeriodo] = useState<Periodo>("12m");
 
-  const recorte = periodo === "6m" ? series.slice(-6) : series;
+  const recorte =
+    periodo === "6m" ? series.slice(-6) : periodo === "12m" ? series.slice(-12) : series;
 
   const pontos = recorte.map((d) => ({
     mes: monthLabel(d.mesRef),
@@ -42,7 +43,7 @@ export function FluxoCaixaChart({ series }: Props) {
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-sm font-semibold">Fluxo de caixa</h2>
         <div className="flex items-center gap-1">
-          {(["6m", "12m"] as Periodo[]).map((p) => (
+          {(["6m", "12m", "tudo"] as Periodo[]).map((p) => (
             <button
               key={p}
               type="button"
@@ -54,7 +55,7 @@ export function FluxoCaixaChart({ series }: Props) {
                   : "bg-muted text-muted-foreground hover:bg-muted-foreground/20")
               }
             >
-              {p}
+              {p === "tudo" ? "Tudo" : p}
             </button>
           ))}
         </div>
