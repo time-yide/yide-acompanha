@@ -8,11 +8,12 @@ import { TabsSocialMedia } from "@/components/social-media/TabsSocialMedia";
 import { PainelTable } from "@/components/painel/PainelTable";
 import { PainelCardsList } from "@/components/painel/PainelCardsList";
 import { PainelKpis } from "@/components/painel/PainelKpis";
-import { AreaFilterChips } from "@/components/painel/AreaFilter";
+import { AreaFilterSelect } from "@/components/painel/AreaFilterSelect";
 import { TipoFilter } from "@/components/painel/TipoFilter";
 import { AssessorFilter } from "@/components/painel/AssessorFilter";
 import { ClientSearchInput } from "@/components/painel/ClientSearchInput";
 import { ViewToggle } from "@/components/painel/ViewToggle";
+import { LegendaPopover } from "@/components/painel/LegendaPopover";
 import { PACOTES_NO_PAINEL_MENSAL, type TipoPacote } from "@/lib/painel/pacote-matrix";
 import { parseArea, matchesArea } from "@/lib/painel/area-filter";
 import { getCurrentMonthYM } from "@/lib/datetime/timezone";
@@ -160,18 +161,17 @@ export default async function PainelPage({
 
       <PainelKpis checklists={checklists} />
 
-      <div className="space-y-3 rounded-lg border bg-card p-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <TipoFilter current={tipoFiltro} />
-          <div className="flex flex-wrap items-center gap-2">
-            <ClientSearchInput current={params.q ?? ""} />
-            {canFilterAssessor && (
-              <AssessorFilter current={assessorFiltro} options={assessoresOptions} />
-            )}
-            <ViewToggle current={view} />
-          </div>
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-lg border bg-card px-3 py-2.5">
+        <TipoFilter current={tipoFiltro} />
+        <div className="flex flex-wrap items-center gap-2">
+          <ClientSearchInput current={params.q ?? ""} />
+          <AreaFilterSelect current={areaFiltro} />
+          {canFilterAssessor && (
+            <AssessorFilter current={assessorFiltro} options={assessoresOptions} />
+          )}
+          <ViewToggle current={view} />
+          <LegendaPopover />
         </div>
-        <AreaFilterChips current={areaFiltro} />
       </div>
 
       {view === "cards" ? (
