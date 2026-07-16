@@ -14,7 +14,8 @@ import { AssessorFilter } from "@/components/painel/AssessorFilter";
 import { ClientSearchInput } from "@/components/painel/ClientSearchInput";
 import { ViewToggle } from "@/components/painel/ViewToggle";
 import { LegendaPopover } from "@/components/painel/LegendaPopover";
-import { PACOTES_NO_PAINEL_MENSAL, type TipoPacote } from "@/lib/painel/pacote-matrix";
+import { PostagemToggle } from "@/components/painel/PostagemToggle";
+import { PACOTES_NO_PAINEL_MENSAL, isApplicable, type TipoPacote } from "@/lib/painel/pacote-matrix";
 import { parseArea, matchesArea } from "@/lib/painel/area-filter";
 import { getCurrentMonthYM } from "@/lib/datetime/timezone";
 import { ensureMonthlyChecklistsImpl } from "@/lib/painel/ensure-checklists";
@@ -48,7 +49,7 @@ const PAINEL_PRIMEIRO_MES = "2026-05";
 export default async function PainelPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mes?: string; tipo?: string; area?: string; assessor?: string; view?: string; q?: string }>;
+  searchParams: Promise<{ mes?: string; tipo?: string; area?: string; assessor?: string; view?: string; q?: string; todos?: string }>;
 }) {
   const user = await requireAuth();
   if (!ALLOWED_ROLES.includes(user.role)) notFound();
@@ -65,6 +66,11 @@ export default async function PainelPage({
   // via ?view=cards no URL.
   const view: "cards" | "tabela" = params.view === "cards" ? "cards" : "tabela";
   const searchQuery = (params.q ?? "").trim().toLowerCase();
+  // Por padrão o painel mostra só clientes com postagem (têm cronograma).
+  // Tráfego puro (sem crono/design) fica oculto até clicar "incluir tráfego".
+  // Só se aplica na visão geral (tipo = todos); escolher um tipo específico
+  // respeita a escolha do usuário.
+  const soPostagem = params.todos !== "1";
 
   const canFilterAssessor = PRIVILEGED_ROLES.includes(user.role);
   const assessorFiltro = canFilterAssessor && params.assessor ? params.assessor : null;
@@ -134,6 +140,9 @@ export default async function PainelPage({
   const checklists = allChecklists
     .filter((c) => tipoFiltro === "todos" || c.client_tipo_pacote === tipoFiltro)
     .filter((c) => matchesArea(c.client_tipo_pacote as TipoPacote, areaFiltro))
+    // Só com postagem (crono aplicável) — só na visão geral; um tipo específico
+    // escolhido pelo usuário sempre é respeitado.
+    .filter((c) => !(soPostagem && tipoFiltro === "todos") || isApplicable(c.client_tipo_pacote as TipoPacote, "crono"))
     .filter((c) => searchQuery === "" || c.client_nome.toLowerCase().includes(searchQuery));
 
   // Cria proativamente os checklists do próximo mês (idempotente). Garante
@@ -165,6 +174,7 @@ export default async function PainelPage({
         <TipoFilter current={tipoFiltro} />
         <div className="flex flex-wrap items-center gap-2">
           <ClientSearchInput current={params.q ?? ""} />
+          {tipoFiltro === "todos" && <PostagemToggle soPostagem={soPostagem} />}
           <AreaFilterSelect current={areaFiltro} />
           {canFilterAssessor && (
             <AssessorFilter current={assessorFiltro} options={assessoresOptions} />
