@@ -10,6 +10,8 @@ import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 interface Props {
   isVideomaker: boolean;
+  /** Pode subir/entregar uma captação (videomaker/fast_midia + coord. audiovisual). */
+  canUpload?: boolean;
   canDelegate: boolean;
   canDelete?: boolean;
   pendentes: PendenteEvento[];
@@ -20,6 +22,7 @@ interface Props {
 
 export function CapturasAba({
   isVideomaker,
+  canUpload = false,
   canDelegate,
   canDelete = false,
   pendentes,
@@ -57,7 +60,7 @@ export function CapturasAba({
         </Card>
       )}
 
-      {isVideomaker && <CapturaForm clientes={clientes} pendentes={pendentes} />}
+      {canUpload && <CapturaForm clientes={clientes} pendentes={pendentes} />}
 
       <section className="space-y-4">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/80">
