@@ -1,4 +1,4 @@
--- supabase/migrations/20260717000000_freelayide_data_hora.sql
+-- supabase/migrations/20260717100000_freelayide_data_hora.sql
 -- Data+hora estruturada da oportunidade, pra reservar o slot na agenda de
 -- quem pegou. `horario` (texto livre) fica mantido por compatibilidade.
 alter table public.freela_oportunidades
