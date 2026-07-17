@@ -345,8 +345,17 @@ export async function uploadCronogramaAction(formData: FormData): Promise<Action
     const atribuidoA: string =
       cliente.designer_id ?? cliente.coordenador_id ?? actor.id;
 
+    // Nome da tarefa: "Cronograma AGOSTO - Nome do Cliente" (mês por extenso,
+    // derivado do mes_referencia "YYYY-MM").
+    const MESES_PT = [
+      "JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO",
+      "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO",
+    ];
+    const mesNumero = Number(parsed.data.mes_referencia.split("-")[1]);
+    const mesNome = MESES_PT[mesNumero - 1] ?? parsed.data.mes_referencia;
+
     const insertPayload = {
-      titulo: `Design — cronograma ${cliente.nome} (${parsed.data.mes_referencia})`,
+      titulo: `Cronograma ${mesNome} - ${cliente.nome}`,
       descricao: `Cronograma do mês: ${parsed.data.cronograma_url}\nDemanda: ${parsed.data.quantidade} arte(s) · ${parsed.data.quantidade_videos} vídeo(s)`,
       prioridade: "media" as const,
       tipo: "arte" as const,
