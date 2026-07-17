@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import type { CalendarEvent, SubCalendar } from "./schema";
 import { getAppTimezoneOffsetMs, getDatePartsInAppTz } from "@/lib/datetime/timezone";
+import type { FreelaAgendaRow } from "./freela-events";
 
 const HOUR = 60 * 60 * 1000;
 
@@ -453,6 +454,35 @@ export async function listBloqueiosAprovadosNoPeriodo(
     hora_fim: string;
     motivo: string;
   }[];
+}
+
+/**
+ * Oportunidades do FreelaYide que o usuário pegou e têm data_hora dentro do
+ * intervalo [inicioIso, fimIso). Escopo por usuário de propósito: cada pessoa
+ * só vê os próprios freelas na agenda. Fora do unstable_cache (seria per-user)
+ * — mesmo tratamento dos bloqueios. Ignora disponivel/perdida.
+ */
+export async function listMeusFreelasNoPeriodo(
+  userId: string,
+  inicioIso: string,
+  fimIso: string,
+): Promise<FreelaAgendaRow[]> {
+  const supabase = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase as any)
+    .from("freela_oportunidades")
+    .select("id, titulo, data_hora, duracao_min, status, tipo, valor_comissao, entrega_urgente")
+    .eq("pego_por", userId)
+    .not("data_hora", "is", null)
+    .gte("data_hora", inicioIso)
+    .lt("data_hora", fimIso)
+    .in("status", ["pega", "em_negociacao", "fechada"])
+    .is("deleted_at", null);
+  if (error) {
+    console.error("[calendario] freelas do usuário fetch failed:", error);
+    return [];
+  }
+  return (data ?? []) as FreelaAgendaRow[];
 }
 
 export async function getEventById(id: string) {
