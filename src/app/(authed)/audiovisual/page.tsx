@@ -53,6 +53,11 @@ export default async function AudiovisualPage({
   // Fast Mídia exerce a função de videomaker: mesma visão (só as próprias
   // captações, banner de atraso, aba "meus_bloqueios") que o videomaker.
   const isVideomaker = user.role === "videomaker" || user.role === "fast_midia";
+  // Quem pode subir/entregar uma captação: videomaker/fast_midia + coordenador
+  // audiovisual (audiovisual_chefe). A RLS de audiovisual_capturas já permite
+  // audiovisual_chefe inserir; aqui só liberamos o formulário na UI. A captura
+  // cai normalmente na fila do audiovisual (o coord pode delegar depois).
+  const canUpload = isVideomaker || user.role === "audiovisual_chefe";
   const isAssessor = user.role === "assessor";
   const canDelegate = ROLES_QUE_DELEGAM.includes(user.role);
   const canDelete = ROLES_QUE_EXCLUEM.includes(user.role);
@@ -140,6 +145,7 @@ export default async function AudiovisualPage({
     content = (
       <CapturasAba
         isVideomaker={isVideomaker}
+        canUpload={canUpload}
         canDelegate={canDelegate}
         canDelete={canDelete}
         pendentes={pendentes}
