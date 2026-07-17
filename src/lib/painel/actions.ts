@@ -336,7 +336,7 @@ export async function uploadCronogramaAction(formData: FormData): Promise<Action
   if (!existingTaskId) {
     const { data: cliente } = await sb
       .from("clients")
-      .select("id, nome, designer_id, coordenador_id")
+      .select("id, nome, designer_id, coordenador_id, assessor_id")
       .eq("id", parsed.data.client_id)
       .single();
 
@@ -344,6 +344,13 @@ export async function uploadCronogramaAction(formData: FormData): Promise<Action
 
     const atribuidoA: string =
       cliente.designer_id ?? cliente.coordenador_id ?? actor.id;
+
+    // Assessor do cliente entra como participante pra sempre poder ver,
+    // editar e mover a tarefa do cliente dele (sem tirar do executor).
+    const participantesIds: string[] =
+      cliente.assessor_id && cliente.assessor_id !== atribuidoA
+        ? [cliente.assessor_id]
+        : [];
 
     // Nome da tarefa: "Cronograma AGOSTO - Nome do Cliente" (mês por extenso,
     // derivado do mes_referencia "YYYY-MM").
@@ -362,6 +369,7 @@ export async function uploadCronogramaAction(formData: FormData): Promise<Action
       formatos: ["feed"],
       status_aprovacao: "pendente_envio" as const,
       atribuido_a: atribuidoA,
+      participantes_ids: participantesIds,
       client_id: parsed.data.client_id,
       criado_por: actor.id,
     };
