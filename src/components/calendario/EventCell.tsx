@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Video, User, UserPlus, Lock } from "lucide-react";
+import { Video, User, UserPlus, Lock, Briefcase } from "lucide-react";
 import type { CalendarEvent } from "@/lib/calendario/schema";
 import { formatBrtTime } from "@/lib/calendario/timezone";
 import { computaStatus } from "@/lib/briefing-gravacao/status";
@@ -40,6 +40,27 @@ export function EventCell({ event }: { event: CalendarEvent }) {
         </div>
       </div>
     );
+  }
+
+  // Freela reservado: bloco esmeralda com ícone Briefcase. Read-only pro slot
+  // (link leva pro /freela-yide). Distinto de gravação (fuchsia) e bloqueio
+  // (cinza tracejado). Sem emoji.
+  if (event.freela) {
+    const inner = (
+      <div className="rounded-md border-l-4 border-emerald-500 bg-emerald-100 p-2 text-xs leading-tight text-emerald-950 shadow-sm ring-1 ring-emerald-500/30 dark:bg-emerald-500/20 dark:text-emerald-100 sm:p-1.5 sm:text-[11px]">
+        <div className="flex items-center gap-1 truncate font-semibold">
+          <Briefcase className="h-3.5 w-3.5 flex-shrink-0 sm:h-3 sm:w-3" />
+          {event.freela.urgente && (
+            <span className="mr-1 inline-block h-2 w-2 flex-shrink-0 rounded-full bg-orange-500" title="Entrega urgente" />
+          )}
+          <span className="truncate">Freela — reservado</span>
+        </div>
+        <div className="opacity-80">
+          {formatBrtTime(event.inicio)} · {event.titulo}
+        </div>
+      </div>
+    );
+    return event.link ? <Link href={event.link}>{inner}</Link> : inner;
   }
 
   const isVm = event.sub_calendar === "videomakers";
