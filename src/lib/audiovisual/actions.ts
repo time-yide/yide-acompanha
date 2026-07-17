@@ -266,7 +266,7 @@ export async function delegateCapturaAction(formData: FormData): Promise<Delegat
       id, client_id, drive_url, qtd_videos, qtd_fotos,
       pontos_positivos, pontos_dificuldade, sugestoes, observacoes,
       task_id, data_captacao,
-      cliente:clients(id, nome)
+      cliente:clients(id, nome, assessor_id)
     `)
     .eq("id", capturaId)
     .maybeSingle();
@@ -304,12 +304,17 @@ export async function delegateCapturaAction(formData: FormData): Promise<Delegat
   const linksJson = linkAdicionalRaw
     ? [{ label: "Link adicional", url: linkAdicionalRaw }]
     : [];
-  // Auto-inclui coordenadores audiovisuais como participantes (exceto o
-  // editor designado e o criador da delegação) pra ficarem sempre atribuídos
-  // na entrega.
+  // Auto-inclui coordenadores audiovisuais + o assessor do cliente como
+  // participantes (exceto o editor designado e o criador da delegação) pra
+  // ficarem sempre atribuídos na entrega. O assessor entra pra sempre poder
+  // ver/editar/mover a tarefa do cliente dele.
   const coordenadoresAv = await getCoordenadoresAudiovisualIds();
-  const participantesAuto = coordenadoresAv.filter(
-    (id) => id !== editorId && id !== actor.id,
+  const assessorId: string | null = captura.cliente?.assessor_id ?? null;
+  const participantesAuto = [
+    ...coordenadoresAv,
+    ...(assessorId ? [assessorId] : []),
+  ].filter(
+    (id, i, arr) => id !== editorId && id !== actor.id && arr.indexOf(id) === i,
   );
   const { data: createdTask, error: taskErr } = await sb
     .from("tasks")
