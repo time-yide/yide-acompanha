@@ -2779,6 +2779,7 @@ export type Database = {
         | "chat_mensagem"
         | "task_alteracao_solicitada"
         | "freela_nova_oportunidade"
+        | "freela_reservada"
         | "bloqueio_agenda_solicitado"
         | "bloqueio_agenda_respondido"
       satisfaction_color: "verde" | "amarelo" | "vermelho"
@@ -3029,6 +3030,7 @@ export const Constants = {
         "chat_mensagem",
         "task_alteracao_solicitada",
         "freela_nova_oportunidade",
+        "freela_reservada",
         "bloqueio_agenda_solicitado",
         "bloqueio_agenda_respondido",
       ],
