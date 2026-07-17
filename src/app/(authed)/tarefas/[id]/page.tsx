@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, CheckCircle2, History, Pencil, SearchX, Trash2 } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import type { CurrentUser } from "@/lib/auth/session";
+import { canManageAnyTask } from "@/lib/auth/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { getTaskById, listTaskRevisoes, listTaskComments, type TaskAprovacao, type TaskFormato, type TaskStatus } from "@/lib/tarefas/queries";
 import { updateTaskAction, deleteTaskAction } from "@/lib/tarefas/actions";
@@ -85,7 +86,7 @@ export default async function TarefaPage({
     );
   }
 
-  const canEdit = task.criado_por === user.id || task.atribuido_a === user.id || isPrivileged(user);
+  const canEdit = task.criado_por === user.id || task.atribuido_a === user.id || canManageAnyTask(user);
   const canDelete = task.criado_por === user.id || isPrivileged(user);
   const isEditing = edit === "1" && canEdit;
 
@@ -95,7 +96,7 @@ export default async function TarefaPage({
     task.criado_por === user.id ||
     task.atribuido_a === user.id ||
     (Array.isArray(task.participantes_ids) && task.participantes_ids.includes(user.id)) ||
-    isPrivileged(user);
+    canManageAnyTask(user);
 
   const [{ data: profiles = [] }, { data: clientes = [] }, revisoes, comments] = await Promise.all([
     supabase.from("profiles").select("id, nome, role").eq("ativo", true).order("nome"),
@@ -109,7 +110,7 @@ export default async function TarefaPage({
   const isExecutor =
     task.atribuido_a === user.id ||
     (Array.isArray(task.participantes_ids) && task.participantes_ids.includes(user.id));
-  const isApprover = task.criado_por === user.id || isPrivileged(user);
+  const isApprover = task.criado_por === user.id || canManageAnyTask(user);
   const canMarkPosted = isMember; // qualquer um da tarefa pode marcar como postado
 
   async function deleteTask() {

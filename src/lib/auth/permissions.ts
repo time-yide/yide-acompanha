@@ -30,6 +30,27 @@ export function roleLabel(role: string): string {
   return ROLE_LABELS[role] ?? role;
 }
 
+/**
+ * Roles de "gestão operacional": gerenciam QUALQUER tarefa (editar, mover
+ * status, concluir, aprovar/pedir ajustes) mesmo sem ser criador ou atribuído.
+ * Adm/sócio + coordenador + assessor + audiovisual_chefe — assessor e coord
+ * mexem nos cards um do outro pra coordenar entregas. Espelha a RLS de UPDATE
+ * de tasks. NOTA: delete continua restrito (ver isPrivileged nos call-sites).
+ *
+ * Fonte única pra UI (páginas de tarefa) e server actions não divergirem — a
+ * divergência UI (isPrivileged, sem assessor) vs server (com assessor) era o
+ * que travava o assessor de editar tarefa do coordenador audiovisual.
+ */
+export function canManageAnyTask(user: { role: string }): boolean {
+  return (
+    user.role === "adm" ||
+    user.role === "socio" ||
+    user.role === "coordenador" ||
+    user.role === "assessor" ||
+    user.role === "audiovisual_chefe"
+  );
+}
+
 export type Action =
   // Gestão de usuários
   | "manage:users"
