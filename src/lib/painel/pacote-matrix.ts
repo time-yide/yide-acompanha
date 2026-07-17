@@ -76,6 +76,20 @@ export const PACOTES_NO_PAINEL_MENSAL: readonly TipoPacote[] = [
   "ecommerce",
 ];
 
+// Pacotes considerados "com postagem" pelo filtro padrão do painel.
+// Lista explícita (não derivável da matriz de colunas): audiovisual tem
+// cronograma mas não posta, e e-commerce é idêntico ao Yide 360 na matriz —
+// decisão da Yasmin é ocultar ambos, deixando só os pacotes de social media.
+export const PACOTES_COM_POSTAGEM: readonly TipoPacote[] = [
+  "trafego_estrategia",
+  "estrategia",
+  "yide_360",
+];
+
+export function temPostagem(pacote: TipoPacote): boolean {
+  return PACOTES_COM_POSTAGEM.includes(pacote);
+}
+
 export function isApplicable(pacote: TipoPacote, coluna: ColumnKey): boolean {
   return PACOTE_COLUMNS[pacote][coluna] === 1;
 }

@@ -15,7 +15,7 @@ import { ClientSearchInput } from "@/components/painel/ClientSearchInput";
 import { ViewToggle } from "@/components/painel/ViewToggle";
 import { LegendaPopover } from "@/components/painel/LegendaPopover";
 import { PostagemToggle } from "@/components/painel/PostagemToggle";
-import { PACOTES_NO_PAINEL_MENSAL, isApplicable, type TipoPacote } from "@/lib/painel/pacote-matrix";
+import { PACOTES_NO_PAINEL_MENSAL, temPostagem, type TipoPacote } from "@/lib/painel/pacote-matrix";
 import { parseArea, matchesArea } from "@/lib/painel/area-filter";
 import { getCurrentMonthYM } from "@/lib/datetime/timezone";
 import { ensureMonthlyChecklistsImpl } from "@/lib/painel/ensure-checklists";
@@ -140,9 +140,10 @@ export default async function PainelPage({
   const checklists = allChecklists
     .filter((c) => tipoFiltro === "todos" || c.client_tipo_pacote === tipoFiltro)
     .filter((c) => matchesArea(c.client_tipo_pacote as TipoPacote, areaFiltro))
-    // Só com postagem (crono aplicável) — só na visão geral; um tipo específico
-    // escolhido pelo usuário sempre é respeitado.
-    .filter((c) => !(soPostagem && tipoFiltro === "todos") || isApplicable(c.client_tipo_pacote as TipoPacote, "crono"))
+    // Só com postagem — só na visão geral; um tipo específico escolhido pelo
+    // usuário sempre é respeitado. Oculta tráfego puro, audiovisual e
+    // e-commerce (ver PACOTES_COM_POSTAGEM).
+    .filter((c) => !(soPostagem && tipoFiltro === "todos") || temPostagem(c.client_tipo_pacote as TipoPacote))
     .filter((c) => searchQuery === "" || c.client_nome.toLowerCase().includes(searchQuery));
 
   // Cria proativamente os checklists do próximo mês (idempotente). Garante
