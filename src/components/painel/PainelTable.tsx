@@ -71,7 +71,10 @@ export function PainelTable({ checklists, userRole, userId }: Props) {
           <tbody>
             {checklists.map((row) => {
               const pacote = row.client_tipo_pacote as TipoPacote;
-              const canEditCommon = isPrivileged(userRole);
+              // Assessor preenche o painel dos SEUS clientes (sobe cronograma,
+              // marca TPG/TPM/GMN). A página já filtra o assessor pros próprios
+              // clientes e a RLS reforça a posse, então liberar por role é seguro.
+              const canEditCommon = isPrivileged(userRole) || userRole === "assessor";
               const cronoStep = findStep(row.steps, "cronograma");
               const edicaoStep = findStep(row.steps, "edicao");
               const reuniaoStep = findStep(row.steps, "reuniao");
