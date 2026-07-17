@@ -12,6 +12,7 @@ import type { OportunidadeRow } from "@/lib/freela-yide/queries";
 export function OportunidadeFormFields({ op }: { op?: OportunidadeRow }) {
   const [tipo, setTipo] = useState<string>(op?.tipo ?? "captacao");
   const prazoDefault = op?.prazo_entrega ? utcIsoToBrtInputValue(op.prazo_entrega) : "";
+  const dataHoraDefault = op?.data_hora ? utcIsoToBrtInputValue(op.data_hora) : "";
   return (
     <>
       <div className="space-y-1.5"><Label htmlFor="titulo">Título</Label><Input id="titulo" name="titulo" required maxLength={160} defaultValue={op?.titulo ?? ""} /></div>
@@ -29,6 +30,16 @@ export function OportunidadeFormFields({ op }: { op?: OportunidadeRow }) {
       </div>
       <div className="space-y-1.5"><Label htmlFor="contato">Contato</Label><Input id="contato" name="contato" placeholder="telefone, @, e-mail..." defaultValue={op?.contato ?? ""} /></div>
       <div className="space-y-1.5"><Label htmlFor="horario">Horário</Label><Input id="horario" name="horario" placeholder="Ex: 20/06 às 14h" defaultValue={op?.horario ?? ""} /></div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label htmlFor="data_hora">Data e hora (agenda)</Label>
+          <Input id="data_hora" name="data_hora" type="datetime-local" defaultValue={dataHoraDefault} />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="duracao_min">Duração (min)</Label>
+          <Input id="duracao_min" name="duracao_min" type="number" min={15} max={600} step={15} defaultValue={op?.duracao_min ?? 60} />
+        </div>
+      </div>
       {tipo === "edicao" && (
         <div className="space-y-2 rounded-md border border-orange-500/30 bg-orange-500/5 p-3">
           <label className="flex items-center gap-2 text-sm font-medium">

@@ -9,6 +9,13 @@ export const criarOportunidadeSchema = z.object({
   cliente_nome: z.string().trim().max(160).optional().nullable(),
   contato: z.string().trim().max(160).optional().nullable(),
   horario: z.string().trim().max(120).optional().nullable(),
+    data_hora: z
+      .string()
+      .trim()
+      .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/, "Data/hora inválida")
+      .optional()
+      .nullable(),
+    duracao_min: z.coerce.number().int().min(15).max(600).default(60),
   valor_comissao: z.coerce.number().min(0).max(1_000_000),
   tipo: z.enum(TIPO_OP).default("captacao"),
   entrega_urgente: z.coerce.boolean().default(false),

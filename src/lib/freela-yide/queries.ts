@@ -10,6 +10,8 @@ export interface OportunidadeRow {
   cliente_nome: string | null;
   contato: string | null;
   horario: string | null;
+  data_hora: string | null;
+  duracao_min: number;
   valor_comissao: number;
   status: StatusOp;
   tipo: TipoOp;
@@ -82,7 +84,7 @@ export interface FreelaStats {
 }
 
 const SELECT =
-  "id, titulo, descricao, cliente_nome, contato, horario, valor_comissao, status, tipo, entrega_urgente, prazo_entrega, pego_por, pego_em, negociacao_em, fechada_em, created_at, responsavel:profiles!freela_oportunidades_pego_por_fkey(nome)";
+  "id, titulo, descricao, cliente_nome, contato, horario, data_hora, duracao_min, valor_comissao, status, tipo, entrega_urgente, prazo_entrega, pego_por, pego_em, negociacao_em, fechada_em, created_at, responsavel:profiles!freela_oportunidades_pego_por_fkey(nome)";
 
 function mapRow(row: Record<string, unknown>): OportunidadeRow {
   const status = row.status as StatusOp;
@@ -94,6 +96,8 @@ function mapRow(row: Record<string, unknown>): OportunidadeRow {
     cliente_nome: (row.cliente_nome as string | null) ?? null,
     contato: (row.contato as string | null) ?? null,
     horario: (row.horario as string | null) ?? null,
+    data_hora: (row.data_hora as string | null) ?? null,
+    duracao_min: Number(row.duracao_min ?? 60),
     valor_comissao,
     status,
     tipo: (row.tipo as TipoOp) ?? "captacao",
