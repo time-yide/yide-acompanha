@@ -321,6 +321,16 @@ export async function uploadCronogramaAction(formData: FormData): Promise<Action
 
   const existingTaskId: string | null = existing?.design_task_id ?? null;
 
+  // organization_id é NOT NULL em client_monthly_checklist. No caminho de INSERT
+  // (cliente ainda sem linha do mês) o upsert precisa mandar a org do cliente,
+  // igual o ensure-checklists faz — senão quebra o not-null constraint.
+  const { data: clienteOrg } = await sb
+    .from("clients")
+    .select("organization_id")
+    .eq("id", parsed.data.client_id)
+    .single();
+  if (!clienteOrg?.organization_id) return { error: "Cliente sem organização" };
+
   // Cria a tarefa do designer só na primeira vez (evita duplicar no re-upload).
   let designTaskId: string | null = existingTaskId;
   if (!existingTaskId) {
@@ -370,6 +380,7 @@ export async function uploadCronogramaAction(formData: FormData): Promise<Action
   // Upsert do checklist com o link + quantidade (+ design_task_id na 1ª vez).
   const checklistPayload: Record<string, unknown> = {
     client_id: parsed.data.client_id,
+    organization_id: clienteOrg.organization_id,
     mes_referencia: parsed.data.mes_referencia,
     cronograma_url: parsed.data.cronograma_url,
     pacote_post: parsed.data.quantidade,
