@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Video, Lock } from "lucide-react";
+import { Video, Lock, Briefcase } from "lucide-react";
 import type { CalendarEvent } from "@/lib/calendario/schema";
 import { formatBrtDateOnly, formatBrtTime } from "@/lib/calendario/timezone";
 import { getDatePartsInAppTz, getTodayDate } from "@/lib/datetime/timezone";
@@ -118,6 +118,28 @@ export function MonthView({ gridStart, refMonth, events }: Props) {
                         <Lock className="h-2.5 w-2.5 flex-shrink-0" />
                         <span className="truncate">🔒 {b.motivo}</span>
                       </div>
+                    );
+                  }
+                  if (e.freela) {
+                    const inner = (
+                      <div
+                        className="flex items-center gap-1 rounded border-l-2 border-emerald-500 bg-emerald-500/80 px-1.5 py-0.5 text-[10px] font-medium leading-tight text-white"
+                        title={`${formatBrtTime(e.inicio)} · Freela: ${e.titulo}`}
+                      >
+                        <Briefcase className="h-2.5 w-2.5 flex-shrink-0" />
+                        {e.freela.urgente && (
+                          <span className="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-orange-300" />
+                        )}
+                        <span className="tabular-nums opacity-90">{formatBrtTime(e.inicio)}</span>
+                        <span className="truncate">{e.titulo}</span>
+                      </div>
+                    );
+                    return e.link ? (
+                      <Link key={e.id} href={e.link} className="block">
+                        {inner}
+                      </Link>
+                    ) : (
+                      <div key={e.id}>{inner}</div>
                     );
                   }
                   const isVm = e.sub_calendar === "videomakers";

@@ -5,7 +5,9 @@ import {
   listBloqueiosAprovadosNoPeriodo,
   getWeekRange,
   getMonthGridRange,
+  listMeusFreelasNoPeriodo,
 } from "@/lib/calendario/queries";
+import { freelaRowsToEvents } from "@/lib/calendario/freela-events";
 import { brtInputToUtcIso } from "@/lib/calendario/timezone";
 import {
   getClientIdsForActiveUnit,
@@ -117,9 +119,9 @@ export default async function CalendarioPage({
   ]);
 
   if (view === "month") {
-    return renderMonth({ params, subQuery, sub, applySubFilter, unitClientIds, unitProfileIds });
+    return renderMonth({ params, subQuery, sub, applySubFilter, unitClientIds, unitProfileIds, userId: user.id });
   }
-  return renderWeek({ params, subQuery, sub, applySubFilter, unitClientIds, unitProfileIds });
+  return renderWeek({ params, subQuery, sub, applySubFilter, unitClientIds, unitProfileIds, userId: user.id });
 }
 
 // ─── Week view ─────────────────────────────────────────────────────────────
@@ -131,6 +133,7 @@ async function renderWeek({
   applySubFilter,
   unitClientIds,
   unitProfileIds,
+  userId,
 }: {
   params: { week?: string };
   subQuery: string;
@@ -138,6 +141,7 @@ async function renderWeek({
   applySubFilter: (events: CalendarEvent[]) => CalendarEvent[];
   unitClientIds: string[] | null;
   unitProfileIds: string[] | null;
+  userId: string;
 }) {
   // Anchor a data ao meio-dia UTC pra evitar shift de timezone:
   // `new Date("2026-05-19")` = UTC midnight, que em Cuiabá (UTC-4) é
@@ -149,15 +153,20 @@ async function renderWeek({
   const todayStart = getWeekRange(new Date()).start;
   const isOnTodayWeek = start.getTime() === todayStart.getTime();
 
-  const [rawEvents, bloqueios] = await Promise.all([
+  const [rawEvents, bloqueios, freelas] = await Promise.all([
     listEventsForWeek(start, end, unitClientIds, unitProfileIds),
     listBloqueiosAprovadosNoPeriodo(
       start.toISOString().slice(0, 10),
       new Date(end.getTime() - 1).toISOString().slice(0, 10),
       unitProfileIds,
     ),
+    listMeusFreelasNoPeriodo(userId, start.toISOString(), end.toISOString()),
   ]);
-  const events = applySubFilter([...rawEvents, ...bloqueiosToEvents(bloqueios)]);
+  const events = applySubFilter([
+    ...rawEvents,
+    ...bloqueiosToEvents(bloqueios),
+    ...freelaRowsToEvents(freelas, userId),
+  ]);
 
   const prevWeek = new Date(start);
   prevWeek.setUTCDate(prevWeek.getUTCDate() - 7);
@@ -198,6 +207,7 @@ async function renderMonth({
   applySubFilter,
   unitClientIds,
   unitProfileIds,
+  userId,
 }: {
   params: { month?: string };
   subQuery: string;
@@ -205,6 +215,7 @@ async function renderMonth({
   applySubFilter: (events: CalendarEvent[]) => CalendarEvent[];
   unitClientIds: string[] | null;
   unitProfileIds: string[] | null;
+  userId: string;
 }) {
   // `month` param é "YYYY-MM" - âncora qualquer dia do meio do mês pra evitar
   // problema de timezone com dia 1.
@@ -216,15 +227,20 @@ async function renderMonth({
   const isOnTodayMonth =
     grid.year === todayGrid.year && grid.month === todayGrid.month;
 
-  const [rawEvents, bloqueios] = await Promise.all([
+  const [rawEvents, bloqueios, freelas] = await Promise.all([
     listEventsForWeek(grid.start, grid.end, unitClientIds, unitProfileIds),
     listBloqueiosAprovadosNoPeriodo(
       grid.start.toISOString().slice(0, 10),
       new Date(grid.end.getTime() - 1).toISOString().slice(0, 10),
       unitProfileIds,
     ),
+    listMeusFreelasNoPeriodo(userId, grid.start.toISOString(), grid.end.toISOString()),
   ]);
-  const events = applySubFilter([...rawEvents, ...bloqueiosToEvents(bloqueios)]);
+  const events = applySubFilter([
+    ...rawEvents,
+    ...bloqueiosToEvents(bloqueios),
+    ...freelaRowsToEvents(freelas, userId),
+  ]);
 
   const prevMonth = grid.month === 1 ? 12 : grid.month - 1;
   const prevYear = grid.month === 1 ? grid.year - 1 : grid.year;

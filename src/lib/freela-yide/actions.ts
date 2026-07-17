@@ -7,7 +7,7 @@ import { transicaoValida } from "./pontos";
 import type { StatusOp } from "./tipos";
 import { criarOportunidadeSchema, editarOportunidadeSchema, moverStatusSchema, definirMetaSchema, normalizeUrgencia } from "./schema";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
-import { brtInputToUtcIso } from "@/lib/calendario/timezone";
+import { brtInputToUtcIso, formatBrtDate, formatBrtTime } from "@/lib/calendario/timezone";
 
 interface Ok { success: true }
 interface Err { error: string }
@@ -43,6 +43,8 @@ export async function criarOportunidadeAction(formData: FormData): Promise<Resul
     cliente_nome: fd(formData, "cliente_nome"),
     contato: fd(formData, "contato"),
     horario: fd(formData, "horario"),
+    data_hora: fd(formData, "data_hora"),
+    duracao_min: fd(formData, "duracao_min") ?? 60,
     valor_comissao: fd(formData, "valor_comissao") ?? 0,
     tipo: fd(formData, "tipo") ?? "captacao",
     entrega_urgente: formData.get("entrega_urgente") === "on",
@@ -65,6 +67,8 @@ export async function criarOportunidadeAction(formData: FormData): Promise<Resul
     cliente_nome: parsed.data.cliente_nome,
     contato: parsed.data.contato,
     horario: parsed.data.horario,
+    data_hora: parsed.data.data_hora ? brtInputToUtcIso(parsed.data.data_hora) : null,
+    duracao_min: parsed.data.duracao_min,
     valor_comissao: parsed.data.valor_comissao,
     tipo: parsed.data.tipo,
     entrega_urgente: urg.entrega_urgente,
@@ -104,6 +108,8 @@ export async function editarOportunidadeAction(formData: FormData): Promise<Resu
     cliente_nome: fd(formData, "cliente_nome"),
     contato: fd(formData, "contato"),
     horario: fd(formData, "horario"),
+    data_hora: fd(formData, "data_hora"),
+    duracao_min: fd(formData, "duracao_min") ?? 60,
     valor_comissao: fd(formData, "valor_comissao") ?? 0,
     tipo: fd(formData, "tipo") ?? "captacao",
     entrega_urgente: formData.get("entrega_urgente") === "on",
@@ -127,6 +133,8 @@ export async function editarOportunidadeAction(formData: FormData): Promise<Resu
       cliente_nome: parsed.data.cliente_nome,
       contato: parsed.data.contato,
       horario: parsed.data.horario,
+      data_hora: parsed.data.data_hora ? brtInputToUtcIso(parsed.data.data_hora) : null,
+      duracao_min: parsed.data.duracao_min,
       valor_comissao: parsed.data.valor_comissao,
       tipo: parsed.data.tipo,
       entrega_urgente: urg.entrega_urgente,
@@ -147,7 +155,7 @@ export async function pegarOportunidadeAction(id: string): Promise<Result> {
   const supabase = await createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
-  const { data: op } = await sb.from("freela_oportunidades").select("status, pego_por").eq("id", id).single();
+  const { data: op } = await sb.from("freela_oportunidades").select("status, pego_por, titulo, data_hora").eq("id", id).single();
   if (!op) return { error: "Oportunidade não encontrada" };
   if (op.status !== "disponivel") return { error: "Essa oportunidade já foi pega" };
 
@@ -156,6 +164,23 @@ export async function pegarOportunidadeAction(id: string): Promise<Result> {
     .eq("id", id).eq("status", "disponivel").select("id");
   if (error) return { error: error.message };
   if (!upd || upd.length === 0) return { error: "Alguém pegou primeiro" }; // corrida (RLS update silencioso)
+
+  // Confirma pra própria pessoa que o horário foi reservado na agenda dela.
+  // Só quando há data_hora (sem horário não há slot). Best-effort.
+  if (op.data_hora) {
+    try {
+      await dispatchNotification({
+        evento_tipo: "freela_reservada",
+        titulo: `Você reservou: ${op.titulo}`,
+        mensagem: `Reservado na sua agenda para ${formatBrtDate(op.data_hora)} às ${formatBrtTime(op.data_hora)}. Abra o calendário.`,
+        link: "/calendario",
+        user_ids_extras: [actor.id],
+      });
+    } catch (e) {
+      console.error("[freelayide] dispatch freela_reservada falhou:", e);
+    }
+  }
+
   revalidatePath("/freela-yide");
   return { success: true };
 }
