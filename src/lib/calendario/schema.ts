@@ -70,7 +70,7 @@ export type EditEventInput = z.infer<typeof editEventSchema>;
 
 export interface CalendarEvent {
   id: string;
-  origem: "manual" | "lead_prospeccao" | "lead_marco_zero" | "client_birthday" | "colab_birthday" | "client_date" | "bloqueio_agenda";
+  origem: "manual" | "lead_prospeccao" | "lead_marco_zero" | "client_birthday" | "colab_birthday" | "client_date" | "bloqueio_agenda" | "freela";
   titulo: string;
   descricao: string | null;
   inicio: string;
@@ -106,5 +106,17 @@ export interface CalendarEvent {
     hora_fim: string;
     /** Motivo informado na solicitação. */
     motivo: string;
+  };
+  /** Oportunidade do FreelaYide reservada na agenda de quem pegou. Read-only,
+   * renderizado por ramo dedicado no EventCell/MonthView (cor esmeralda). */
+  freela?: {
+    /** disponivel|pega|em_negociacao|fechada|perdida (string livre pra não
+     * acoplar o tipo do calendário ao do FreelaYide). */
+    status: string;
+    /** captacao|modelo|edicao. */
+    tipo: string;
+    valor_comissao: number;
+    /** true = edição urgente (mostra pontinho laranja). */
+    urgente: boolean;
   };
 }
