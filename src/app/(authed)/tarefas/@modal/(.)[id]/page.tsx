@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ExternalLink, History } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
-import type { CurrentUser } from "@/lib/auth/session";
+import { canManageAnyTask } from "@/lib/auth/permissions";
 import {
   getTaskById,
   listTaskComments,
@@ -20,10 +20,6 @@ import { TaskRealtimeWatcher } from "@/components/tarefas/TaskRealtimeWatcher";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Linkify } from "@/lib/utils/linkify";
-
-function isPrivileged(user: CurrentUser): boolean {
-  return user.role === "adm" || user.role === "socio" || user.role === "audiovisual_chefe";
-}
 
 const STATUS_LABEL: Record<string, string> = {
   aberta: "A fazer",
@@ -79,17 +75,17 @@ export default async function TarefaModalPage({
   }
 
   const canEdit =
-    task.criado_por === user.id || task.atribuido_a === user.id || isPrivileged(user);
+    task.criado_por === user.id || task.atribuido_a === user.id || canManageAnyTask(user);
   const isApprovalTask = task.tipo === "video" || task.tipo === "arte";
   const isMember =
     task.criado_por === user.id ||
     task.atribuido_a === user.id ||
     (Array.isArray(task.participantes_ids) && task.participantes_ids.includes(user.id)) ||
-    isPrivileged(user);
+    canManageAnyTask(user);
   const isExecutor =
     task.atribuido_a === user.id ||
     (Array.isArray(task.participantes_ids) && task.participantes_ids.includes(user.id));
-  const isApprover = task.criado_por === user.id || isPrivileged(user);
+  const isApprover = task.criado_por === user.id || canManageAnyTask(user);
 
   const [revisoes, comments] = await Promise.all([
     isApprovalTask ? listTaskRevisoes(id) : Promise.resolve([]),

@@ -4,6 +4,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth, requirePermission, type CurrentUser } from "@/lib/auth/session";
+import { canManageAnyTask } from "@/lib/auth/permissions";
 import { logAudit } from "@/lib/audit/log";
 import { logActivityInternal } from "@/lib/produtividade/actions";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
@@ -40,24 +41,10 @@ function isPrivileged(user: CurrentUser): boolean {
   );
 }
 
-/**
- * Roles que podem gerenciar QUALQUER tarefa (alterar info, status, responsável,
- * concluir/aprovar/etc.) - mesmo sem ser criador ou atribuído. Adm/sócio (sempre)
- * + coordenador + assessor + audiovisual_chefe (gestão operacional - assessor e
- * coordenador audiovisual mexem nos cards um do outro pra coordenar entregas).
- *
- * NOTA: delete fica com criador + adm/socio + audiovisual_chefe (isPrivileged).
- * Soft delete vai pra /lixeira por 30 dias, dá pra restaurar.
- */
-function canManageAnyTask(user: CurrentUser): boolean {
-  return (
-    user.role === "adm" ||
-    user.role === "socio" ||
-    user.role === "coordenador" ||
-    user.role === "assessor" ||
-    user.role === "audiovisual_chefe"
-  );
-}
+// canManageAnyTask: fonte única em @/lib/auth/permissions (mesma lógica usada
+// nas páginas de tarefa, pra UI e server não divergirem). Delete continua com
+// isPrivileged (criador + adm/socio + audiovisual_chefe); soft delete vai pra
+// /lixeira por 30 dias, dá pra restaurar.
 
 async function getProfileNameAndActive(supabase: Awaited<ReturnType<typeof createClient>>, profileId: string) {
   const { data } = await supabase.from("profiles").select("nome, ativo").eq("id", profileId).single();
