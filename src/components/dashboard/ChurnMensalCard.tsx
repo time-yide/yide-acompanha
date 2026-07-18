@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Clock, X } from "lucide-react";
 import { KpiCard } from "./KpiCard";
 import { Money } from "./HiddenValuesContext";
@@ -18,6 +18,15 @@ export function ChurnMensalCard({ tempoNode, helper, historico }: Props) {
   // Mais recente no topo.
   const linhas = [...historico].reverse();
 
+  // Esc fecha a modal. Listener no window porque o overlay (div) não recebe foco
+  // sozinho — onKeyDown num div não-focável nunca dispararia.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
   return (
     <>
       <KpiCard
@@ -31,7 +40,6 @@ export function ChurnMensalCard({ tempoNode, helper, historico }: Props) {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
           onClick={() => setOpen(false)}
-          onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); }}
         >
           <div
             role="dialog"

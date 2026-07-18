@@ -66,11 +66,14 @@ async function _getChurnMensalHistoricoImpl(
 ): Promise<ChurnMensalPoint[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
+  // NÃO filtra tipo_relacao no SQL: `= 'comum'` não casaria linhas com
+  // tipo_relacao NULL, mas o KPI (getKpis) trata NULL como comum no JS. Pra a %
+  // do mês corrente bater com o card, deixamos `ehComum` (em computeChurnMensal)
+  // fazer o filtro — mesma semântica do KPI. Mesmos SQL filters que _getKpisImpl.
   let q = sb
     .from("clients")
     .select("data_entrada, data_churn, valor_mensal, modalidade, tipo_relacao")
     .is("deleted_at", null)
-    .eq("tipo_relacao", "comum")
     .neq("status", "em_onboarding");
   // Mesmo escopo multi-tenant/assessor que buildClientFilterQuery (privado em queries.ts).
   if (filter?.unitId) q = q.eq("unit_id", filter.unitId);
