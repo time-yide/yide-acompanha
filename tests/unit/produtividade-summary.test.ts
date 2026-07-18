@@ -17,47 +17,72 @@ function row(over: Partial<ColaboradorStatusRow> = {}): ColaboradorStatusRow {
     tarefas_atrasadas: 0,
     capturas_atrasadas: 0,
     custo_hora: null,
-    custo_dia: null,
-    horas_esperadas_periodo: 8,
-    lucro_periodo: null,
+    custo_periodo: null,
+    entregas_periodo: 0,
+    custo_por_entrega: null,
     ...over,
   };
 }
 
-describe("summarizeStatus — lucro do período", () => {
-  it("soma lucro de cada linha pro total do summary", () => {
+describe("summarizeStatus — custo do período", () => {
+  it("soma o custo do salário fixo de cada linha", () => {
     const rows = [
-      row({ user_id: "a", lucro_periodo: 100 }),
-      row({ user_id: "b", lucro_periodo: -200 }),
-      row({ user_id: "c", lucro_periodo: 50 }),
+      row({ user_id: "a", custo_periodo: 100 }),
+      row({ user_id: "b", custo_periodo: 250 }),
+      row({ user_id: "c", custo_periodo: null }),
     ];
     const s = summarizeStatus(rows);
-    expect(s.lucro_periodo_total).toBe(-50);
-    expect(s.horas_esperadas_periodo).toBe(8);
+    expect(s.custo_periodo_total).toBe(350);
   });
 
-  it("ignora nulos (sem dados de salário) sem quebrar a soma", () => {
+  it("custo/hora médio ignora quem não tem fixo cadastrado", () => {
     const rows = [
-      row({ user_id: "a", lucro_periodo: 100 }),
-      row({ user_id: "b", lucro_periodo: null }),
+      row({ user_id: "a", custo_hora: 20, custo_periodo: 100 }),
+      row({ user_id: "b", custo_hora: 30, custo_periodo: 100 }),
+      row({ user_id: "c", custo_hora: null }),
     ];
     const s = summarizeStatus(rows);
-    expect(s.lucro_periodo_total).toBe(100);
+    expect(s.custo_hora_medio).toBe(25);
   });
+});
 
-  it("expõe horas_esperadas pegando da 1ª row (vale pra todo time)", () => {
+describe("summarizeStatus — custo por entrega", () => {
+  it("soma entregas e divide o custo total pelo total de entregas", () => {
     const rows = [
-      row({ user_id: "a", horas_esperadas_periodo: 40, lucro_periodo: -500 }),
-      row({ user_id: "b", horas_esperadas_periodo: 40, lucro_periodo: 200 }),
+      row({ user_id: "a", custo_periodo: 300, entregas_periodo: 6 }),
+      row({ user_id: "b", custo_periodo: 100, entregas_periodo: 4 }),
     ];
     const s = summarizeStatus(rows);
-    expect(s.horas_esperadas_periodo).toBe(40);
-    expect(s.lucro_periodo_total).toBe(-300);
+    expect(s.entregas_total).toBe(10);
+    // (300 + 100) / 10 = 40
+    expect(s.custo_por_entrega).toBe(40);
   });
 
-  it("horas_esperadas é 0 quando time está vazio", () => {
+  it("custo por entrega é null quando não houve entregas (sem divisão por zero)", () => {
+    const rows = [
+      row({ user_id: "a", custo_periodo: 300, entregas_periodo: 0 }),
+    ];
+    const s = summarizeStatus(rows);
+    expect(s.entregas_total).toBe(0);
+    expect(s.custo_por_entrega).toBeNull();
+  });
+
+  it("custo por entrega é null quando ninguém tem custo (só fixo zero)", () => {
+    const rows = [
+      row({ user_id: "a", custo_periodo: null, entregas_periodo: 5 }),
+    ];
+    const s = summarizeStatus(rows);
+    expect(s.entregas_total).toBe(5);
+    expect(s.custo_por_entrega).toBeNull();
+  });
+});
+
+describe("summarizeStatus — time vazio", () => {
+  it("não quebra e zera os totais", () => {
     const s = summarizeStatus([]);
-    expect(s.horas_esperadas_periodo).toBe(0);
-    expect(s.lucro_periodo_total).toBe(0);
+    expect(s.custo_periodo_total).toBe(0);
+    expect(s.entregas_total).toBe(0);
+    expect(s.custo_por_entrega).toBeNull();
+    expect(s.custo_hora_medio).toBeNull();
   });
 });
