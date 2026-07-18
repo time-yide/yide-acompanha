@@ -1,9 +1,12 @@
 import { notFound } from "next/navigation";
+import { Code2 } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import { getOrganizationId } from "@/lib/gerador-leads/queries";
 import { canAccessProgramacao } from "@/lib/programacao/access";
 import { listClientesAtivos, listLancamentos, veTudo } from "@/lib/programacao/queries";
+import { resumoLancamentos } from "@/lib/programacao/resumo";
 import { NovoLancamentoButton } from "@/components/programacao/NovoLancamentoButton";
+import { ResumoProgramacao } from "@/components/programacao/ResumoProgramacao";
 import { LancamentosList } from "@/components/programacao/LancamentosList";
 import { FiltroPeriodo } from "@/components/programacao/FiltroPeriodo";
 
@@ -37,15 +40,20 @@ export default async function ProgramacaoPage({
     listClientesAtivos(orgId),
     listLancamentos(orgId, user.role, user.id, { de, ate }),
   ]);
+  const resumo = resumoLancamentos(lancamentos);
 
   return (
     <div className="space-y-5">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Programação</h1>
-          <p className="text-sm text-muted-foreground">
-            Registre CRM conectados, usuários criados e sistemas feitos por cliente.
-          </p>
+      <header
+        className="relative flex flex-wrap items-center justify-between gap-3 overflow-hidden rounded-2xl border border-white/10 p-6"
+        style={{ background: "radial-gradient(120% 140% at 0% 0%, rgba(20,184,166,.28), transparent 55%), radial-gradient(120% 140% at 100% 0%, rgba(6,182,212,.18), transparent 55%), linear-gradient(180deg,#07110f,#0b1a17)" }}
+      >
+        <div className="min-w-0">
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-teal-400/40 bg-teal-500/15 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-teal-200">
+            <Code2 className="h-3.5 w-3.5" /> Programação
+          </div>
+          <h1 className="mt-3 bg-gradient-to-r from-white via-teal-200 to-cyan-300 bg-clip-text text-4xl font-extrabold tracking-tight text-transparent">Programação</h1>
+          <p className="mt-1 text-sm text-white/70">Registre CRM conectados, usuários criados e sistemas feitos por cliente.</p>
         </div>
         <NovoLancamentoButton clientes={clientes} />
       </header>
@@ -55,6 +63,8 @@ export default async function ProgramacaoPage({
           Nenhum cliente ativo cadastrado ainda.
         </p>
       )}
+
+      <ResumoProgramacao resumo={resumo} />
 
       <FiltroPeriodo de={de} ate={ate} />
 
