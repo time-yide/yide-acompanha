@@ -4,7 +4,7 @@
 import { unstable_cache } from "next/cache";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { formatIsoDate, getAppTimezoneOffsetMs } from "@/lib/datetime/timezone";
-import { computeSince, type PeriodoRange } from "./queries";
+import { type Periodo } from "./queries";
 import {
   resolveMetricaPessoa,
   pctNoPrazo,
@@ -57,11 +57,12 @@ function valorChaveSetor(setor: Setor, p: PessoaSetor): number {
   }
 }
 
-async function _getProdutividadeSetorImpl(range: PeriodoRange): Promise<ProdutividadeSetorResult> {
+async function _getProdutividadeSetorImpl(periodo: Periodo): Promise<ProdutividadeSetorResult> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
-  const today = formatIsoDate(new Date());
-  const since = computeSince(range, today);
+  const hoje = formatIsoDate(new Date()); // real, pros atrasados (estado atual)
+  const today = periodo.ate;
+  const since = periodo.de;
   const offsetHours = getAppTimezoneOffsetMs() / (60 * 60 * 1000);
   const sinceStartUtc = new Date(`${since}T${String(offsetHours).padStart(2, "0")}:00:00.000Z`).toISOString();
   const tomorrowDate = new Date(`${today}T00:00:00.000Z`);
@@ -91,7 +92,7 @@ async function _getProdutividadeSetorImpl(range: PeriodoRange): Promise<Produtiv
       .eq("status", "postada").gte("completed_at", sinceStartUtc).lt("completed_at", tomorrowStartUtc)
       .not("atribuido_a", "is", null),
     sb.from("tasks").select("atribuido_a")
-      .is("deleted_at", null).neq("status", "postada").lt("due_date", today)
+      .is("deleted_at", null).neq("status", "postada").lt("due_date", hoje)
       .not("atribuido_a", "is", null),
     sb.from("social_media_posts").select("criado_por")
       .is("archived_at", null).eq("status", "publicado")
@@ -171,11 +172,11 @@ async function _getProdutividadeSetorImpl(range: PeriodoRange): Promise<Produtiv
 }
 
 /** Produtividade por setor no período (cacheado 5min, tag dashboard). */
-export async function getProdutividadeSetor(range: PeriodoRange = "dia"): Promise<ProdutividadeSetorResult> {
+export async function getProdutividadeSetor(periodo: Periodo): Promise<ProdutividadeSetorResult> {
   const cached = unstable_cache(
-    async (r: string) => _getProdutividadeSetorImpl(r as PeriodoRange),
-    ["produtividade-setor-v2"],
+    async (de: string, ate: string) => _getProdutividadeSetorImpl({ de, ate }),
+    ["produtividade-setor-v3"], // v3: passou a receber período (de/ate) em vez de range
     { revalidate: 300, tags: ["dashboard"] },
   );
-  return cached(range);
+  return cached(periodo.de, periodo.ate);
 }

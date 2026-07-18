@@ -11,9 +11,12 @@ import {
   getConsistencia,
   summarizeStatus,
   listRecentEvents,
+  resolvePeriodoRange,
   PERIODO_LABEL,
   type PeriodoRange,
+  type Periodo,
 } from "@/lib/produtividade/queries";
+import { formatIsoDate } from "@/lib/datetime/timezone";
 import { PrazoAgilidadeSection } from "@/components/produtividade/PrazoAgilidadeSection";
 import { QualidadeSetorSection } from "@/components/produtividade/QualidadeSetorSection";
 import { ConversaoComercialSection } from "@/components/produtividade/ConversaoComercialSection";
@@ -37,25 +40,34 @@ const VALID_RANGES: PeriodoRange[] = ["dia", "semana", "mes"];
 export default async function ProdutividadePage({
   searchParams,
 }: {
-  searchParams: Promise<{ range?: string }>;
+  searchParams: Promise<{ range?: string; de?: string; ate?: string }>;
 }) {
   const user = await requireAuth();
   if (!ROLES_PERMITIDOS.includes(user.role)) redirect("/");
 
-  const { range: rangeParam } = await searchParams;
+  const { range: rangeParam, de: deParam, ate: ateParam } = await searchParams;
   const range: PeriodoRange = VALID_RANGES.includes(rangeParam as PeriodoRange)
     ? (rangeParam as PeriodoRange)
     : "dia";
 
+  // Período: datas custom (De/Até válidas) têm prioridade; senão o botão rápido.
+  const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+  const customValido = !!(deParam && ateParam && DATE_RE.test(deParam) && DATE_RE.test(ateParam) && deParam <= ateParam);
+  const periodo: Periodo = customValido
+    ? { de: deParam!, ate: ateParam! }
+    : resolvePeriodoRange(range, formatIsoDate(new Date()));
+  const fmtBr = (iso: string) => iso.split("-").reverse().join("/");
+  const periodoLabel = customValido ? `${fmtBr(periodo.de)} – ${fmtBr(periodo.ate)}` : PERIODO_LABEL[range];
+
   const [statusResult, entregaMaterial, events, setorResult, prazoAgilidade, qualidade, conversao, consistencia] = await Promise.all([
-    getColaboradoresStatus(range),
-    getEntregaMaterialStats(range),
+    getColaboradoresStatus(periodo),
+    getEntregaMaterialStats(periodo),
     listRecentEvents(30),
-    getProdutividadeSetor(range),
-    getPrazoAgilidade(range),
-    getQualidadeSetor(range),
-    getConversaoComercial(range),
-    getConsistencia(range),
+    getProdutividadeSetor(periodo),
+    getPrazoAgilidade(periodo),
+    getQualidadeSetor(periodo),
+    getConversaoComercial(periodo),
+    getConsistencia(periodo),
   ]);
   const { rows, faturamento_periodo, time_audiovisual } = statusResult;
   const summary = summarizeStatus(rows, faturamento_periodo);
@@ -79,14 +91,14 @@ export default async function ProdutividadePage({
             </p>
           </div>
         </div>
-        <PeriodoFilter current={range} />
+        <PeriodoFilter range={range} de={customValido ? periodo.de : undefined} ate={customValido ? periodo.ate : undefined} />
       </header>
 
-      <ProdutividadeSummaryCards summary={summary} periodoLabel={PERIODO_LABEL[range]} mostrarFinanceiro={mostrarFinanceiro} />
+      <ProdutividadeSummaryCards summary={summary} periodoLabel={periodoLabel} mostrarFinanceiro={mostrarFinanceiro} />
 
       <section>
         <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-          Colaboradores · {PERIODO_LABEL[range]}
+          Colaboradores · {periodoLabel}
         </h2>
         {mostrarFinanceiro && time_audiovisual && (
           <div className="mb-3">
