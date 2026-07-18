@@ -171,7 +171,7 @@ function diasUteisDecorridos(sinceIso: string, todayIso: string): number {
  *   - semana: segunda-feira da semana atual
  *   - mes: dia 1 do mês atual
  */
-function computeSince(range: PeriodoRange, todayIso: string): string {
+export function computeSince(range: PeriodoRange, todayIso: string): string {
   if (range === "dia") return todayIso;
   // todayIso é "YYYY-MM-DD" no fuso de Cuiabá; parseando como UTC dá uma data
   // estável pra fazer aritmética. Pega weekday/mês em UTC mesmo (sem TZ

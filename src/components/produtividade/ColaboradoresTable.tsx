@@ -5,12 +5,16 @@ import { Circle, ArrowUp, ArrowDown, Trophy, AlertTriangle, Video } from "lucide
 import type { ColaboradorStatusRow } from "@/lib/produtividade/queries";
 import { formatHours, formatBRL } from "./ProdutividadeSummaryCards";
 import { roleLabel } from "@/lib/auth/permissions";
+import type { MetricaPessoa } from "@/lib/produtividade/setor-metricas";
+import { isRoleAudiovisual } from "@/lib/produtividade/setor-metricas";
 
 interface Props {
   rows: ColaboradorStatusRow[];
+  produtividade: Record<string, MetricaPessoa>;
+  mostrarFinanceiro: boolean;
 }
 
-type SortKey = "nome" | "ativo" | "tempo" | "eventos" | "custo_periodo" | "custo_hora" | "atrasados" | "entregas" | "receita" | "lucro";
+type SortKey = "nome" | "ativo" | "tempo" | "eventos" | "custo_periodo" | "custo_hora" | "atrasados" | "entregas" | "receita" | "lucro" | "produtividade";
 type SortDir = "asc" | "desc";
 
 function StatusDot({ online, ativo }: { online: boolean; ativo: boolean }) {
@@ -28,7 +32,7 @@ function StatusDot({ online, ativo }: { online: boolean; ativo: boolean }) {
   );
 }
 
-export function ColaboradoresTable({ rows }: Props) {
+export function ColaboradoresTable({ rows, produtividade, mostrarFinanceiro }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>("tempo");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
@@ -71,11 +75,17 @@ export function ColaboradoresTable({ rows }: Props) {
         case "lucro":
           cmp = (b.lucro_periodo ?? 0) - (a.lucro_periodo ?? 0);
           break;
+        case "produtividade": {
+          const va = produtividade[a.user_id]?.valor ?? (isRoleAudiovisual(a.role) ? a.entregas_periodo : -1);
+          const vb = produtividade[b.user_id]?.valor ?? (isRoleAudiovisual(b.role) ? b.entregas_periodo : -1);
+          cmp = vb - va;
+          break;
+        }
       }
       return sortDir === "asc" ? -cmp : cmp;
     });
     return list;
-  }, [rows, sortKey, sortDir]);
+  }, [rows, sortKey, sortDir, produtividade]);
 
   // Identifica top 3 em tempo ativo (mostra troféu)
   const topByTime = useMemo(() => {
@@ -92,6 +102,13 @@ export function ColaboradoresTable({ rows }: Props) {
       setSortKey(k);
       setSortDir("desc");
     }
+  }
+
+  function rotuloProdutividade(r: ColaboradorStatusRow): string {
+    const m = produtividade[r.user_id];
+    if (m && m.rotulo !== "—") return m.rotulo;
+    if (isRoleAudiovisual(r.role)) return `${r.entregas_periodo} ${r.entregas_periodo === 1 ? "entrega" : "entregas"}`;
+    return "—";
   }
 
   return (
@@ -116,32 +133,43 @@ export function ColaboradoresTable({ rows }: Props) {
                 <SortBtn label="Atrasados" k="atrasados" sortKey={sortKey} sortDir={sortDir} toggle={toggleSort} />
               </th>
               <th className="px-4 py-2.5 text-right">
-                <SortBtn label="Custo/h" k="custo_hora" sortKey={sortKey} sortDir={sortDir} toggle={toggleSort} />
+                <SortBtn label="Produtividade" k="produtividade" sortKey={sortKey} sortDir={sortDir} toggle={toggleSort} />
               </th>
-              <th
-                className="px-4 py-2.5 text-right"
-                title="Salário fixo no período: (salário mensal ÷ 22 dias úteis) × dias úteis decorridos. É o que se paga, independente de atividade."
-              >
-                <SortBtn label="Custo salário" k="custo_periodo" sortKey={sortKey} sortDir={sortDir} toggle={toggleSort} />
-              </th>
+              {mostrarFinanceiro && (
+                <th className="px-4 py-2.5 text-right">
+                  <SortBtn label="Custo/h" k="custo_hora" sortKey={sortKey} sortDir={sortDir} toggle={toggleSort} />
+                </th>
+              )}
+              {mostrarFinanceiro && (
+                <th
+                  className="px-4 py-2.5 text-right"
+                  title="Salário fixo no período: (salário mensal ÷ 22 dias úteis) × dias úteis decorridos. É o que se paga, independente de atividade."
+                >
+                  <SortBtn label="Custo salário" k="custo_periodo" sortKey={sortKey} sortDir={sortDir} toggle={toggleSort} />
+                </th>
+              )}
               <th
                 className="px-4 py-2.5 text-right"
                 title="Entregas no período (tarefas postadas). Abaixo: quanto de salário fixo cada entrega custou."
               >
                 <SortBtn label="Entregas" k="entregas" sortKey={sortKey} sortDir={sortDir} toggle={toggleSort} />
               </th>
-              <th
-                className="px-4 py-2.5 text-right"
-                title="Receita atribuída: valor médio por entrega × entregas da pessoa."
-              >
-                <SortBtn label="Receita" k="receita" sortKey={sortKey} sortDir={sortDir} toggle={toggleSort} />
-              </th>
-              <th
-                className="px-4 py-2.5 text-right"
-                title="Lucro no período: receita atribuída − custo do salário."
-              >
-                <SortBtn label="Lucro" k="lucro" sortKey={sortKey} sortDir={sortDir} toggle={toggleSort} />
-              </th>
+              {mostrarFinanceiro && (
+                <th
+                  className="px-4 py-2.5 text-right"
+                  title="Receita atribuída: valor médio por entrega × entregas da pessoa."
+                >
+                  <SortBtn label="Receita" k="receita" sortKey={sortKey} sortDir={sortDir} toggle={toggleSort} />
+                </th>
+              )}
+              {mostrarFinanceiro && (
+                <th
+                  className="px-4 py-2.5 text-right"
+                  title="Lucro no período: receita atribuída − custo do salário."
+                >
+                  <SortBtn label="Lucro" k="lucro" sortKey={sortKey} sortDir={sortDir} toggle={toggleSort} />
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -194,36 +222,47 @@ export function ColaboradoresTable({ rows }: Props) {
                   <td className="px-4 py-3 text-right">
                     <AtrasadosBadge tarefas={r.tarefas_atrasadas} capturas={r.capturas_atrasadas} />
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums text-xs text-muted-foreground">
-                    {r.custo_hora !== null
-                      ? formatBRL(r.custo_hora)
-                      : <span className="text-muted-foreground/50">-</span>}
-                  </td>
                   <td className="px-4 py-3 text-right tabular-nums font-medium">
-                    {r.custo_periodo !== null && r.custo_periodo > 0
-                      ? formatBRL(r.custo_periodo)
-                      : <span className="text-muted-foreground/50">-</span>}
+                    {rotuloProdutividade(r)}
                   </td>
+                  {mostrarFinanceiro && (
+                    <td className="px-4 py-3 text-right tabular-nums text-xs text-muted-foreground">
+                      {r.custo_hora !== null
+                        ? formatBRL(r.custo_hora)
+                        : <span className="text-muted-foreground/50">-</span>}
+                    </td>
+                  )}
+                  {mostrarFinanceiro && (
+                    <td className="px-4 py-3 text-right tabular-nums font-medium">
+                      {r.custo_periodo !== null && r.custo_periodo > 0
+                        ? formatBRL(r.custo_periodo)
+                        : <span className="text-muted-foreground/50">-</span>}
+                    </td>
+                  )}
                   <td className="px-4 py-3 text-right tabular-nums">
                     <EntregasCell
                       entregas={r.entregas_periodo}
-                      custoPorEntrega={r.custo_por_entrega}
+                      custoPorEntrega={mostrarFinanceiro ? r.custo_por_entrega : null}
                     />
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums text-xs text-muted-foreground">
-                    {r.receita_periodo !== null
-                      ? formatBRL(r.receita_periodo)
-                      : <span className="text-muted-foreground/50">—</span>}
-                  </td>
-                  <td className="px-4 py-3 text-right tabular-nums font-semibold">
-                    {r.lucro_periodo !== null ? (
-                      <span className={r.lucro_periodo >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}>
-                        {formatBRL(r.lucro_periodo)}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground/50">—</span>
-                    )}
-                  </td>
+                  {mostrarFinanceiro && (
+                    <td className="px-4 py-3 text-right tabular-nums text-xs text-muted-foreground">
+                      {r.receita_periodo !== null
+                        ? formatBRL(r.receita_periodo)
+                        : <span className="text-muted-foreground/50">—</span>}
+                    </td>
+                  )}
+                  {mostrarFinanceiro && (
+                    <td className="px-4 py-3 text-right tabular-nums font-semibold">
+                      {r.lucro_periodo !== null ? (
+                        <span className={r.lucro_periodo >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}>
+                          {formatBRL(r.lucro_periodo)}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground/50">—</span>
+                      )}
+                    </td>
+                  )}
                 </tr>
               );
             })}
