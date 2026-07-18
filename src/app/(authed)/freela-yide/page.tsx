@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth/session";
-import { getOrganizationId, listOportunidades, listMinhas, listCriadasPorMim, getRanking, getHistorico, getMetaAtual, getStats } from "@/lib/freela-yide/queries";
+import { getOrganizationId, listOportunidades, listMinhas, getRanking, getHistorico, getMetaAtual, getStats } from "@/lib/freela-yide/queries";
 import { FreelaHero } from "@/components/freela-yide/FreelaHero";
 import { MetaCard } from "@/components/freela-yide/MetaCard";
 import { OportunidadesGrid } from "@/components/freela-yide/OportunidadesGrid";
@@ -25,10 +25,10 @@ export default async function FreelaYidePage() {
   const podeCriar = PODE_CRIAR.includes(user.role);
   const podePegar = user.role !== "adm"; // adm não pega freela
 
-  const [todas, minhas, criadas, ranking, historico, meta, stats] = await Promise.all([
+  const [todas, minhas, todasLancadas, ranking, historico, meta, stats] = await Promise.all([
     listOportunidades(orgId, true),
     listMinhas(orgId, user.id),
-    podeCriar ? listCriadasPorMim(orgId, user.id) : Promise.resolve([]),
+    podeCriar ? listOportunidades(orgId, false) : Promise.resolve([]),
     getRanking(orgId),
     getHistorico(orgId),
     getMetaAtual(orgId),
@@ -56,9 +56,9 @@ export default async function FreelaYidePage() {
 
           {podeCriar && (
             <section className="space-y-2">
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Que eu subi</h2>
-              <ResumoSubidos ops={criadas} />
-              <OportunidadesGrid ops={criadas} gestao podePegar={podePegar} />
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Todas lançadas</h2>
+              <ResumoSubidos ops={todasLancadas} />
+              <OportunidadesGrid ops={todasLancadas} gestao={gestao} podePegar={podePegar} />
             </section>
           )}
         </div>

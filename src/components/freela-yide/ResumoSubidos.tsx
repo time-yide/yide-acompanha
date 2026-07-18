@@ -3,7 +3,7 @@ import type { OportunidadeRow } from "@/lib/freela-yide/queries";
 
 const fmt = (n: number) => `R$ ${n.toLocaleString("pt-BR")}`;
 
-/** Totais em R$ dos freelas que o usuário subiu: total, concluído (fechadas)
+/** Totais em R$ das oportunidades lançadas (equipe): total, concluído (fechadas)
  * e em andamento (disponível/pega/em negociação). Cancelados ficam de fora do
  * total (não viram faturamento). */
 export function ResumoSubidos({ ops }: { ops: OportunidadeRow[] }) {
@@ -24,7 +24,7 @@ export function ResumoSubidos({ ops }: { ops: OportunidadeRow[] }) {
   return (
     <Card className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3">
       <div>
-        <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Total subido</p>
+        <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Total lançado</p>
         <p className="text-xl font-bold tabular-nums text-fuchsia-400">{fmt(total)}</p>
         <p className="text-[11px] text-muted-foreground">{nConcluido + nAndamento} freela(s)</p>
       </div>
