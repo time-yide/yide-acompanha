@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import { getOrganizationId, getPagamentosPorMes } from "@/lib/freela-yide/queries";
 import { Card } from "@/components/ui/card";
+import { PagamentoColaboradorRow } from "@/components/freela-yide/PagamentoColaboradorRow";
 import { ROLES_GESTAO } from "@/lib/freela-yide/acesso";
 
 export default async function PagamentosPage() {
@@ -35,13 +36,7 @@ export default async function PagamentosPage() {
             </div>
             <ul className="divide-y">
               {mes.colaboradores.map((c) => (
-                <li key={c.user_id} className="flex items-center justify-between gap-3 px-4 py-2.5">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{c.nome}</p>
-                    <p className="text-[11px] text-muted-foreground">{c.qtd} freela{c.qtd === 1 ? "" : "s"}</p>
-                  </div>
-                  <span className="shrink-0 text-sm font-semibold tabular-nums">R$ {c.total.toLocaleString("pt-BR")}</span>
-                </li>
+                <PagamentoColaboradorRow key={c.user_id} c={c} />
               ))}
             </ul>
           </Card>
