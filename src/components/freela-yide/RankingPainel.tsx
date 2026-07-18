@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight, Trophy } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { Podio } from "./Podio";
 import { STATUS_OP_DEFS } from "@/lib/freela-yide/tipos";
 import type { FreelaHistorico, RankingEntry, RankingGeralEntry, RankingItem } from "@/lib/freela-yide/queries";
 
@@ -89,8 +90,9 @@ export function RankingPainel({ historico, meId }: { historico: FreelaHistorico;
             <Card className="p-6 text-center text-sm text-muted-foreground">Ninguém no ranking neste mês ainda.</Card>
           ) : (
             <div className="space-y-1.5">
-              {mesAtual.ranking.map((r: RankingEntry, i) => (
-                <LinhaRanking key={r.user_id} pos={i + 1} nome={r.nome} ehVoce={r.user_id === meId}
+              <Podio top3={mesAtual.ranking.slice(0, 3)} meId={meId} />
+              {mesAtual.ranking.slice(3).map((r: RankingEntry, i) => (
+                <LinhaRanking key={r.user_id} pos={i + 4} nome={r.nome} ehVoce={r.user_id === meId}
                   sub={`R$ ${(r.valorPego ?? 0).toLocaleString("pt-BR")} pego · ${r.fechamentos} fechada(s)`}
                   destaque={`${r.pontos} pts`} itens={r.itens} />
               ))}
