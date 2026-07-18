@@ -5,6 +5,7 @@ import { requireAuth } from "@/lib/auth/session";
 import { TabsColaboradores } from "@/components/colaboradores/TabsColaboradores";
 import {
   getColaboradoresStatus,
+  getEntregaMaterialStats,
   summarizeStatus,
   listRecentEvents,
   PERIODO_LABEL,
@@ -12,6 +13,7 @@ import {
 } from "@/lib/produtividade/queries";
 import { ProdutividadeSummaryCards } from "@/components/produtividade/ProdutividadeSummaryCards";
 import { ColaboradoresTable } from "@/components/produtividade/ColaboradoresTable";
+import { EntregaMaterialSection } from "@/components/produtividade/EntregaMaterialSection";
 import { RecentEventsFeed } from "@/components/produtividade/RecentEventsFeed";
 import { AutoRefresh } from "@/components/produtividade/AutoRefresh";
 import { PeriodoFilter } from "@/components/produtividade/PeriodoFilter";
@@ -35,8 +37,9 @@ export default async function ProdutividadePage({
     ? (rangeParam as PeriodoRange)
     : "dia";
 
-  const [rows, events] = await Promise.all([
+  const [rows, entregaMaterial, events] = await Promise.all([
     getColaboradoresStatus(range),
+    getEntregaMaterialStats(range),
     listRecentEvents(30),
   ]);
   const summary = summarizeStatus(rows);
@@ -132,6 +135,8 @@ export default async function ProdutividadePage({
         <ColaboradoresTable rows={rows} />
       </section>
 
+      <EntregaMaterialSection rows={entregaMaterial} />
+
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <RecentEventsFeed events={events} />
@@ -155,8 +160,13 @@ export default async function ProdutividadePage({
               <strong className="text-foreground">Tempo ativo:</strong> presença
               real medida pelo heartbeat (cada minuto com a aba aberta e em foco
               conta){" "}
-              <strong className="text-fuchsia-600 dark:text-fuchsia-400">+ duração das captações externas</strong>{" "}
-              de videomakers (escala como tempo produtivo).
+              <strong className="text-fuchsia-600 dark:text-fuchsia-400">+ duração das gravações</strong>{" "}
+              (creditada a todos que foram na captura, como tempo produtivo).
+            </p>
+            <p>
+              <strong className="text-foreground">Tempo pra entregar:</strong>{" "}
+              tempo entre o fim da gravação e a pessoa subir o material no Drive —
+              média, mais lenta e pendentes (gravou e não subiu).
             </p>
             <p>
               <strong className="text-foreground">Atrasados:</strong> tarefas
