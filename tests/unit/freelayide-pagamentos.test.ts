@@ -2,14 +2,14 @@ import { describe, it, expect } from "vitest";
 import { agregarPagamentos } from "@/lib/freela-yide/pagamentos";
 import type { PagamentoInput } from "@/lib/freela-yide/pagamentos";
 
-const row = (pego_por: string, nome: string, valor: number, pego_em: string): PagamentoInput =>
-  ({ pego_por, nome, valor_comissao: valor, pego_em });
+const row = (pego_por: string, nome: string, valor: number, pego_em: string, titulo = "Freela"): PagamentoInput =>
+  ({ pego_por, nome, titulo, cliente_nome: null, valor_comissao: valor, pego_em });
 
 describe("agregarPagamentos", () => {
   it("agrupa por mês e colaborador, somando valor e contando freelas", () => {
     const rows = [
-      row("u1", "Ana", 150, "2026-07-05T12:00:00.000Z"),
-      row("u1", "Ana", 100, "2026-07-20T12:00:00.000Z"),
+      row("u1", "Ana", 150, "2026-07-05T12:00:00.000Z", "Captação A"),
+      row("u1", "Ana", 100, "2026-07-20T12:00:00.000Z", "Captação B"),
       row("u2", "Beto", 500, "2026-07-10T12:00:00.000Z"),
     ];
     const [jul] = agregarPagamentos(rows);
@@ -20,6 +20,9 @@ describe("agregarPagamentos", () => {
     const ana = jul.colaboradores.find((c) => c.nome === "Ana")!;
     expect(ana.qtd).toBe(2);
     expect(ana.total).toBe(250);
+    // itens: as 2 freelas da Ana, recentes primeiro (20/07 antes de 05/07)
+    expect(ana.itens.map((i) => i.titulo)).toEqual(["Captação B", "Captação A"]);
+    expect(ana.itens.map((i) => i.valor)).toEqual([100, 150]);
   });
 
   it("meses ordenados do mais recente pro mais antigo", () => {

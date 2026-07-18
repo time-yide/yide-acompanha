@@ -10,7 +10,16 @@ const MESES_PT = [
 export interface PagamentoInput {
   pego_por: string;
   nome: string;
+  titulo: string;
+  cliente_nome: string | null;
   valor_comissao: number;
+  pego_em: string; // ISO
+}
+
+export interface PagamentoItem {
+  titulo: string;
+  cliente_nome: string | null;
+  valor: number;
   pego_em: string; // ISO
 }
 
@@ -19,6 +28,7 @@ export interface PagamentoColaborador {
   nome: string;
   qtd: number;
   total: number;
+  itens: PagamentoItem[]; // freelas que somam o total, recentes primeiro
 }
 
 export interface MesPagamentos {
@@ -50,15 +60,19 @@ export function agregarPagamentos(rows: PagamentoInput[]): MesPagamentos[] {
     const chave = chaveMes(r.pego_em);
     if (!porMes.has(chave)) porMes.set(chave, new Map());
     const m = porMes.get(chave)!;
-    const cur = m.get(r.pego_por) ?? { user_id: r.pego_por, nome: r.nome, qtd: 0, total: 0 };
+    const valor = Number(r.valor_comissao ?? 0);
+    const cur = m.get(r.pego_por) ?? { user_id: r.pego_por, nome: r.nome, qtd: 0, total: 0, itens: [] };
     cur.qtd += 1;
-    cur.total += Number(r.valor_comissao ?? 0);
+    cur.total += valor;
+    cur.itens.push({ titulo: r.titulo, cliente_nome: r.cliente_nome, valor, pego_em: r.pego_em });
     m.set(r.pego_por, cur);
   }
   return [...porMes.entries()]
     .sort((a, b) => b[0].localeCompare(a[0]))
     .map(([chave, m]) => {
-      const colaboradores = [...m.values()].sort((a, b) => b.total - a.total || a.nome.localeCompare(b.nome));
+      const colaboradores = [...m.values()]
+        .map((c) => ({ ...c, itens: c.itens.sort((a, b) => b.pego_em.localeCompare(a.pego_em)) }))
+        .sort((a, b) => b.total - a.total || a.nome.localeCompare(b.nome));
       return {
         chave,
         label: labelMes(chave),

@@ -294,7 +294,7 @@ export async function getStats(orgId: string, userId: string): Promise<FreelaSta
 export async function getPagamentosPorMes(orgId: string): Promise<MesPagamentos[]> {
   const sb = createServiceRoleClient() as any; // eslint-disable-line @typescript-eslint/no-explicit-any
   const { data, error } = await sb.from("freela_oportunidades")
-    .select("pego_por, valor_comissao, pego_em, responsavel:profiles!freela_oportunidades_pego_por_fkey(nome)")
+    .select("pego_por, titulo, cliente_nome, valor_comissao, pego_em, responsavel:profiles!freela_oportunidades_pego_por_fkey(nome)")
     .eq("organization_id", orgId).is("deleted_at", null)
     .not("pego_por", "is", null).not("pego_em", "is", null)
     .neq("status", "perdida");
@@ -302,6 +302,8 @@ export async function getPagamentosPorMes(orgId: string): Promise<MesPagamentos[
   const rows: PagamentoInput[] = (data ?? []).map((r: Record<string, unknown>) => ({
     pego_por: r.pego_por as string,
     nome: ((r.responsavel as { nome?: string } | null) ?? null)?.nome ?? "—",
+    titulo: (r.titulo as string | null) ?? "Freela",
+    cliente_nome: (r.cliente_nome as string | null) ?? null,
     valor_comissao: Number(r.valor_comissao ?? 0),
     pego_em: r.pego_em as string,
   }));
