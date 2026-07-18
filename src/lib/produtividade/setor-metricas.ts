@@ -1,9 +1,7 @@
-// A parte de cálculo/rotulagem é pura e testável. O fetch (getProdutividadeSetor)
-// vive no fim, usa service-role.
-import { unstable_cache } from "next/cache";
-import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { formatIsoDate, getAppTimezoneOffsetMs } from "@/lib/datetime/timezone";
-import { computeSince, type PeriodoRange } from "./queries";
+// Módulo PURO e client-safe — só cálculo/rotulagem por setor, sem imports de
+// server (service-role/next-cache). O fetch (getProdutividadeSetor) vive em
+// setor-metricas-server.ts pra não vazar código de servidor em client components
+// (a ColaboradoresTable importa isRoleAudiovisual daqui).
 
 export type Setor = "comercial" | "ecommerce" | "assessoria" | "design" | "audiovisual";
 
@@ -79,7 +77,3 @@ export function resolveMetricaPessoa(
       return { setor, valor: null, unidade: "contagem", rotulo: "—" };
   }
 }
-
-// Exports used by unstable_cache and service-role fetch in Task 2:
-export { unstable_cache, createServiceRoleClient, formatIsoDate, getAppTimezoneOffsetMs };
-export type { PeriodoRange };
