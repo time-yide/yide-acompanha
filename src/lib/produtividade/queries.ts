@@ -24,6 +24,7 @@ import {
   type RetrabalhoRow,
 } from "./qualidade-setor";
 import { computeConversao, type ConversaoRow } from "./conversao-comercial";
+import { computeConsistencia, diasUteisEntre, type ConsistenciaRow } from "./consistencia";
 
 const DESIGN_STATUS_APROVADA = ["aprovado", "agendado", "publicado"];
 import {
@@ -972,4 +973,53 @@ export async function getConversaoComercial(range: PeriodoRange = "dia"): Promis
   }));
 
   return computeConversao(rows).map((p) => ({ ...p, nome: nomes.get(p.user_id) ?? "—" }));
+}
+
+export interface ConsistenciaResult {
+  pessoas: ConsistenciaRow[];
+  diasUteis: number;
+}
+
+/**
+ * Consistência no período: em quantos dias úteis distintos cada pessoa concluiu
+ * ao menos uma tarefa. Pega quem entrega distribuído vs quem some e acumula.
+ */
+export async function getConsistencia(range: PeriodoRange = "dia"): Promise<ConsistenciaResult> {
+  const admin = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = admin as any;
+  const today = formatIsoDate(new Date());
+  const since = computeSince(range, today);
+  const offsetMs = getAppTimezoneOffsetMs();
+  const offsetHours = offsetMs / (60 * 60 * 1000);
+  const sinceStartUtc = new Date(`${since}T${String(offsetHours).padStart(2, "0")}:00:00.000Z`).toISOString();
+  const tomorrowDate = new Date(`${today}T00:00:00.000Z`);
+  tomorrowDate.setUTCDate(tomorrowDate.getUTCDate() + 1);
+  const tomorrow = formatIsoDate(tomorrowDate);
+  const tomorrowStartUtc = new Date(`${tomorrow}T${String(offsetHours).padStart(2, "0")}:00:00.000Z`).toISOString();
+
+  const [{ data: tasksData }, { data: profilesData }] = await Promise.all([
+    sb.from("tasks")
+      .select("atribuido_a, completed_at")
+      .in("status", ["concluida", "postada"])
+      .gte("completed_at", sinceStartUtc)
+      .lt("completed_at", tomorrowStartUtc)
+      .not("atribuido_a", "is", null)
+      .is("deleted_at", null),
+    sb.from("profiles").select("id, nome").eq("ativo", true),
+  ]);
+
+  const nomes = new Map<string, string>();
+  for (const p of (profilesData ?? []) as Array<{ id: string; nome: string }>) nomes.set(p.id, p.nome);
+
+  const rows = ((tasksData ?? []) as Array<Record<string, unknown>>)
+    .filter((r) => r.completed_at)
+    .map((r) => ({
+      atribuido_a: r.atribuido_a as string,
+      // data LOCAL (BRT) da conclusão: UTC menos o offset do app.
+      dataLocal: new Date(new Date(r.completed_at as string).getTime() - offsetMs).toISOString().slice(0, 10),
+    }));
+
+  const pessoas: ConsistenciaRow[] = computeConsistencia(rows).map((p) => ({ ...p, nome: nomes.get(p.user_id) ?? "—" }));
+  return { pessoas, diasUteis: diasUteisEntre(since, today) };
 }

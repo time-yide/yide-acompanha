@@ -9,6 +9,7 @@ import {
   getPrazoAgilidade,
   getQualidadeSetor,
   getConversaoComercial,
+  getConsistencia,
   summarizeStatus,
   listRecentEvents,
   PERIODO_LABEL,
@@ -17,6 +18,7 @@ import {
 import { PrazoAgilidadeSection } from "@/components/produtividade/PrazoAgilidadeSection";
 import { QualidadeSetorSection } from "@/components/produtividade/QualidadeSetorSection";
 import { ConversaoComercialSection } from "@/components/produtividade/ConversaoComercialSection";
+import { ConsistenciaSection } from "@/components/produtividade/ConsistenciaSection";
 import { ProdutividadeSummaryCards } from "@/components/produtividade/ProdutividadeSummaryCards";
 import { ColaboradoresTable } from "@/components/produtividade/ColaboradoresTable";
 import { getProdutividadeSetor } from "@/lib/produtividade/setor-metricas-server";
@@ -46,7 +48,7 @@ export default async function ProdutividadePage({
     ? (rangeParam as PeriodoRange)
     : "dia";
 
-  const [statusResult, entregaMaterial, events, setorResult, prazoAgilidade, qualidade, conversao] = await Promise.all([
+  const [statusResult, entregaMaterial, events, setorResult, prazoAgilidade, qualidade, conversao, consistencia] = await Promise.all([
     getColaboradoresStatus(range),
     getEntregaMaterialStats(range),
     listRecentEvents(30),
@@ -54,6 +56,7 @@ export default async function ProdutividadePage({
     getPrazoAgilidade(range),
     getQualidadeSetor(range),
     getConversaoComercial(range),
+    getConsistencia(range),
   ]);
   const { rows, faturamento_periodo, time_audiovisual } = statusResult;
   const summary = summarizeStatus(rows, faturamento_periodo);
@@ -161,6 +164,8 @@ export default async function ProdutividadePage({
       <QualidadeSetorSection assessoria={qualidade.assessoria} design={qualidade.design} />
 
       <ConversaoComercialSection pessoas={conversao} />
+
+      <ConsistenciaSection pessoas={consistencia.pessoas} diasUteis={consistencia.diasUteis} />
 
       <ProdutividadeSetorSection setores={setorResult.setores} />
       <EntregaMaterialSection rows={entregaMaterial} />
