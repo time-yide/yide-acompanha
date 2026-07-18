@@ -5,6 +5,7 @@ interface Props {
   summary: ProdutividadeSummary;
   /** Label do período ativo - ex.: "Hoje", "Últimos 7 dias". */
   periodoLabel?: string;
+  mostrarFinanceiro?: boolean;
 }
 
 function formatHours(seconds: number): string {
@@ -71,6 +72,7 @@ const CARDS = [
     label: "Custo do período",
     icon: DollarSign,
     tone: "amber",
+    financeiro: true,
     getValue: (s: ProdutividadeSummary) => formatBRL(s.custo_periodo_total),
     getHint: (s: ProdutividadeSummary) =>
       s.custo_hora_medio !== null
@@ -81,6 +83,7 @@ const CARDS = [
     label: "Custo por entrega",
     icon: Package,
     tone: "violet",
+    financeiro: true,
     getValue: (s: ProdutividadeSummary) =>
       s.custo_por_entrega !== null ? formatBRL(s.custo_por_entrega) : "—",
     getHint: (s: ProdutividadeSummary) =>
@@ -92,6 +95,7 @@ const CARDS = [
     label: "Faturamento do período",
     icon: DollarSign,
     tone: "emerald",
+    financeiro: true,
     getValue: (s: ProdutividadeSummary) => formatBRL(s.faturamento_periodo),
     getHint: () => "carteira ativa pró-rata dos dias úteis",
   },
@@ -99,6 +103,7 @@ const CARDS = [
     label: "Lucro do time",
     icon: TrendingUp,
     tone: "emerald",
+    financeiro: true,
     getValue: (s: ProdutividadeSummary) =>
       s.lucro_total !== null ? formatBRL(s.lucro_total) : "—",
     getHint: (s: ProdutividadeSummary) =>
@@ -106,7 +111,7 @@ const CARDS = [
         ? `${formatBRL(s.receita_total)} receita − ${formatBRL(s.custo_periodo_total)} custo`
         : "sem entregas no período pra atribuir receita",
   },
-] as const;
+];
 
 const TONE_CLASSES: Record<string, { bg: string; text: string; border: string }> = {
   emerald: {
@@ -136,7 +141,7 @@ const TONE_CLASSES: Record<string, { bg: string; text: string; border: string }>
   },
 };
 
-export function ProdutividadeSummaryCards({ summary, periodoLabel }: Props) {
+export function ProdutividadeSummaryCards({ summary, periodoLabel, mostrarFinanceiro = true }: Props) {
   return (
     <div className="space-y-2">
       {periodoLabel && (
@@ -148,7 +153,7 @@ export function ProdutividadeSummaryCards({ summary, periodoLabel }: Props) {
         </p>
       )}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
-        {CARDS.map((card) => {
+        {CARDS.filter((c) => mostrarFinanceiro || !("financeiro" in c && c.financeiro)).map((card) => {
         const Icon = card.icon;
         const tone = TONE_CLASSES[card.tone];
         return (
