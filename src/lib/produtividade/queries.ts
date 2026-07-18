@@ -227,15 +227,17 @@ export async function getColaboradoresStatus(
       .gte("completed_at", sinceStartUtc)
       .lt("completed_at", tomorrowStartUtc)
       .not("atribuido_a", "is", null),
-    // Tarefas atrasadas: due_date < hoje e ainda não está em estado terminal.
-    // Estado terminal agora é "postada" (Postado/Entregue) — task em "concluida"
-    // operacional mas sem postar ainda conta como atrasada se prazo passou.
+    // Tarefas atrasadas — MESMA definição de countOverdueTasksForUser
+    // (tarefas/queries.ts): prazo vencido, não deletada/arquivada e ainda não
+    // finalizada. Exclui "concluida" (pessoa já entregou) e "postada", e ignora
+    // tarefas com deleted_at — senão o contador infla com tarefas mortas/antigas.
     sb
       .from("tasks")
       .select("atribuido_a")
-      .neq("status", "postada")
+      .is("deleted_at", null)
+      .not("status", "in", "(concluida,postada)")
       .lt("due_date", today)
-      .not("due_date", "is", null),
+      .not("atribuido_a", "is", null),
     // Capturas potencialmente atrasadas: scheduled, no passado, deadline pode ter passado
     sb
       .from("calendar_events")
