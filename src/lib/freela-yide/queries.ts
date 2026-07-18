@@ -308,7 +308,11 @@ export async function getPagamentosPorMes(orgId: string): Promise<MesPagamentos[
   return agregarPagamentos(rows);
 }
 
-/** Totais acumulados do colaborador pra derivar conquistas. */
+/**
+ * Totais acumulados do colaborador pra derivar conquistas.
+ * Sem filtro de org de propósito: um profile pertence a uma única organização e só
+ * pega freelas da própria org, então `pego_por = userId` já é naturalmente escopado.
+ */
 export async function getConquistaStats(userId: string): Promise<ConquistaStats> {
   const sb = createServiceRoleClient() as any; // eslint-disable-line @typescript-eslint/no-explicit-any
   const { data, error } = await sb.from("freela_oportunidades")

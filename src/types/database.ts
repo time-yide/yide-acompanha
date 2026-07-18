@@ -2780,9 +2780,9 @@ export type Database = {
         | "task_alteracao_solicitada"
         | "freela_nova_oportunidade"
         | "freela_reservada"
-        | "conquista_desbloqueada"
         | "bloqueio_agenda_solicitado"
         | "bloqueio_agenda_respondido"
+        | "conquista_desbloqueada"
       satisfaction_color: "verde" | "amarelo" | "vermelho"
       snapshot_item_tipo:
         | "fixo"
@@ -3032,9 +3032,9 @@ export const Constants = {
         "task_alteracao_solicitada",
         "freela_nova_oportunidade",
         "freela_reservada",
-        "conquista_desbloqueada",
         "bloqueio_agenda_solicitado",
         "bloqueio_agenda_respondido",
+        "conquista_desbloqueada",
       ],
       satisfaction_color: ["verde", "amarelo", "vermelho"],
       snapshot_item_tipo: [
