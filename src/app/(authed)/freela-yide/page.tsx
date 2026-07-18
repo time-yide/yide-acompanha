@@ -1,4 +1,6 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import { getOrganizationId, listOportunidades, listMinhas, getRanking, getHistorico, getMetaAtual, getStats } from "@/lib/freela-yide/queries";
 import { FreelaHero } from "@/components/freela-yide/FreelaHero";
@@ -6,7 +8,6 @@ import { calcularRival } from "@/lib/freela-yide/rivalidade";
 import { MetaCard } from "@/components/freela-yide/MetaCard";
 import { OportunidadesGrid } from "@/components/freela-yide/OportunidadesGrid";
 import { MinhasOportunidades } from "@/components/freela-yide/MinhasOportunidades";
-import { ResumoSubidos } from "@/components/freela-yide/ResumoSubidos";
 import { RankingPainel } from "@/components/freela-yide/RankingPainel";
 import { NovaOportunidadeButton } from "@/components/freela-yide/NovaOportunidadeButton";
 import { DefinirMetaButton } from "@/components/freela-yide/DefinirMetaButton";
@@ -22,10 +23,9 @@ export default async function FreelaYidePage() {
   const podeCriar = ROLES_PODE_CRIAR.includes(user.role);
   const podePegar = user.role !== "adm"; // adm não pega freela
 
-  const [todas, minhas, todasLancadas, ranking, historico, meta, stats] = await Promise.all([
+  const [todas, minhas, ranking, historico, meta, stats] = await Promise.all([
     listOportunidades(orgId, true),
     listMinhas(orgId, user.id),
-    podeCriar ? listOportunidades(orgId, false) : Promise.resolve([]),
     getRanking(orgId),
     getHistorico(orgId),
     getMetaAtual(orgId),
@@ -44,9 +44,16 @@ export default async function FreelaYidePage() {
       <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
         <div className="space-y-6">
           <section className="space-y-2">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Oportunidades disponíveis</h2>
-              {podeCriar && <NovaOportunidadeButton />}
+              {podeCriar && (
+                <div className="flex items-center gap-2">
+                  <Link href="/freela-yide/lancadas" className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted/40 hover:text-foreground">
+                    Todas lançadas <ArrowRight className="h-4 w-4" />
+                  </Link>
+                  <NovaOportunidadeButton />
+                </div>
+              )}
             </div>
             <OportunidadesGrid ops={todas} gestao={gestao} podePegar={podePegar} />
           </section>
@@ -55,14 +62,6 @@ export default async function FreelaYidePage() {
             <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Minhas oportunidades</h2>
             <MinhasOportunidades ops={minhas} />
           </section>
-
-          {podeCriar && (
-            <section className="space-y-2">
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Todas lançadas</h2>
-              <ResumoSubidos ops={todasLancadas} />
-              <OportunidadesGrid ops={todasLancadas} gestao={gestao} podePegar={podePegar} />
-            </section>
-          )}
         </div>
 
         <div className="space-y-4">
