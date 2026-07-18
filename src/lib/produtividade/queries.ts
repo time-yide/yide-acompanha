@@ -11,6 +11,13 @@ import {
 import { formatIsoDate, getAppTimezoneOffsetMs } from "@/lib/datetime/timezone";
 import { isTarefaAtrasadaParaCargo } from "@/lib/tarefas/overdue-rules";
 import {
+  computePrazoAgilidade,
+  resumoPrazoAgilidade,
+  type PrazoAgilidadeRow,
+  type ResumoPrazoAgilidade,
+  type TaskPrazoRow,
+} from "./prazo-agilidade";
+import {
   aggregateEntregaMaterial,
   type EntregaMaterialStats,
   type EntregueInput,
@@ -805,4 +812,61 @@ export async function listRecentEvents(limit = 30): Promise<RecentEventRow[]> {
     metadata: r.metadata ?? {},
     created_at: r.created_at,
   }));
+}
+
+export interface PrazoAgilidadeResult {
+  pessoas: PrazoAgilidadeRow[];
+  resumo: ResumoPrazoAgilidade;
+}
+
+/**
+ * Prazo & agilidade das TAREFAS no período: % concluído no prazo e tempo médio
+ * de entrega (criação → conclusão) por pessoa. On-time = data de conclusão <= due_date.
+ */
+export async function getPrazoAgilidade(range: PeriodoRange = "dia"): Promise<PrazoAgilidadeResult> {
+  const admin = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = admin as any;
+  const today = formatIsoDate(new Date());
+  const since = computeSince(range, today);
+  const offsetHours = getAppTimezoneOffsetMs() / (60 * 60 * 1000);
+  const sinceStartUtc = new Date(`${since}T${String(offsetHours).padStart(2, "0")}:00:00.000Z`).toISOString();
+  const tomorrowDate = new Date(`${today}T00:00:00.000Z`);
+  tomorrowDate.setUTCDate(tomorrowDate.getUTCDate() + 1);
+  const tomorrow = formatIsoDate(tomorrowDate);
+  const tomorrowStartUtc = new Date(`${tomorrow}T${String(offsetHours).padStart(2, "0")}:00:00.000Z`).toISOString();
+
+  const [{ data: tasksData }, { data: profilesData }] = await Promise.all([
+    sb.from("tasks")
+      .select("atribuido_a, created_at, completed_at, due_date")
+      .in("status", ["concluida", "postada"])
+      .gte("completed_at", sinceStartUtc)
+      .lt("completed_at", tomorrowStartUtc)
+      .not("atribuido_a", "is", null)
+      .is("deleted_at", null),
+    sb.from("profiles").select("id, nome").eq("ativo", true),
+  ]);
+
+  const rows = ((tasksData ?? []) as Array<Record<string, unknown>>)
+    .filter((r) => r.completed_at)
+    .map((r) => ({
+      atribuido_a: r.atribuido_a as string,
+      created_at: r.created_at as string,
+      completed_at: r.completed_at as string,
+      due_date: (r.due_date as string | null) ?? null,
+    })) as TaskPrazoRow[];
+
+  const nomes = new Map<string, string>();
+  for (const p of (profilesData ?? []) as Array<{ id: string; nome: string }>) nomes.set(p.id, p.nome);
+
+  const pessoas: PrazoAgilidadeRow[] = computePrazoAgilidade(rows)
+    .map((p) => ({ ...p, nome: nomes.get(p.user_id) ?? "—" }))
+    .sort((a, b) => {
+      // Quem tem prazo primeiro (por % desc); depois por volume de entregas.
+      const pa = a.com_prazo > 0 ? a.no_prazo / a.com_prazo : -1;
+      const pb = b.com_prazo > 0 ? b.no_prazo / b.com_prazo : -1;
+      return pb - pa || b.entregues - a.entregues || a.nome.localeCompare(b.nome);
+    });
+
+  return { pessoas, resumo: resumoPrazoAgilidade(pessoas) };
 }

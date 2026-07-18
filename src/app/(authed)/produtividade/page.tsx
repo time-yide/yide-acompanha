@@ -6,11 +6,13 @@ import { TabsColaboradores } from "@/components/colaboradores/TabsColaboradores"
 import {
   getColaboradoresStatus,
   getEntregaMaterialStats,
+  getPrazoAgilidade,
   summarizeStatus,
   listRecentEvents,
   PERIODO_LABEL,
   type PeriodoRange,
 } from "@/lib/produtividade/queries";
+import { PrazoAgilidadeSection } from "@/components/produtividade/PrazoAgilidadeSection";
 import { ProdutividadeSummaryCards } from "@/components/produtividade/ProdutividadeSummaryCards";
 import { ColaboradoresTable } from "@/components/produtividade/ColaboradoresTable";
 import { getProdutividadeSetor } from "@/lib/produtividade/setor-metricas-server";
@@ -40,11 +42,12 @@ export default async function ProdutividadePage({
     ? (rangeParam as PeriodoRange)
     : "dia";
 
-  const [statusResult, entregaMaterial, events, setorResult] = await Promise.all([
+  const [statusResult, entregaMaterial, events, setorResult, prazoAgilidade] = await Promise.all([
     getColaboradoresStatus(range),
     getEntregaMaterialStats(range),
     listRecentEvents(30),
     getProdutividadeSetor(range),
+    getPrazoAgilidade(range),
   ]);
   const { rows, faturamento_periodo, time_audiovisual } = statusResult;
   const summary = summarizeStatus(rows, faturamento_periodo);
@@ -146,6 +149,8 @@ export default async function ProdutividadePage({
         )}
         <ColaboradoresTable rows={rows} produtividade={setorResult.porUsuario} mostrarFinanceiro={mostrarFinanceiro} />
       </section>
+
+      <PrazoAgilidadeSection pessoas={prazoAgilidade.pessoas} resumo={prazoAgilidade.resumo} />
 
       <ProdutividadeSetorSection setores={setorResult.setores} />
       <EntregaMaterialSection rows={entregaMaterial} />
