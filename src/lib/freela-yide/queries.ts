@@ -1,6 +1,7 @@
 // SERVER ONLY
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { calcularPontos } from "./pontos";
+import { agregarPagamentos, type MesPagamentos, type PagamentoInput } from "./pagamentos";
 import type { StatusOp, TipoOp } from "./tipos";
 
 export interface OportunidadeRow {
@@ -283,4 +284,25 @@ export async function getStats(orgId: string, userId: string): Promise<FreelaSta
     meuRank: idx >= 0 ? idx + 1 : null,
     totalNoRanking: ranking.length,
   };
+}
+
+/**
+ * Pagamento por colaborador por mês: soma o valor de tudo que a pessoa pegou (por
+ * pego_em), EXCETO canceladas (status = perdida), pra a gestão saber quanto pagar.
+ */
+export async function getPagamentosPorMes(orgId: string): Promise<MesPagamentos[]> {
+  const sb = createServiceRoleClient() as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  const { data, error } = await sb.from("freela_oportunidades")
+    .select("pego_por, valor_comissao, pego_em, responsavel:profiles!freela_oportunidades_pego_por_fkey(nome)")
+    .eq("organization_id", orgId).is("deleted_at", null)
+    .not("pego_por", "is", null).not("pego_em", "is", null)
+    .neq("status", "perdida");
+  if (error) { console.error("[freelayide] getPagamentosPorMes", error.message); return []; }
+  const rows: PagamentoInput[] = (data ?? []).map((r: Record<string, unknown>) => ({
+    pego_por: r.pego_por as string,
+    nome: ((r.responsavel as { nome?: string } | null) ?? null)?.nome ?? "—",
+    valor_comissao: Number(r.valor_comissao ?? 0),
+    pego_em: r.pego_em as string,
+  }));
+  return agregarPagamentos(rows);
 }
