@@ -12,6 +12,8 @@ import { formatIsoDate, getAppTimezoneOffsetMs } from "@/lib/datetime/timezone";
 import { isTarefaAtrasadaParaCargo } from "@/lib/tarefas/overdue-rules";
 import {
   aggregateEntregaMaterial,
+  EMPTY_ENTREGA_STATS,
+  isRoleCaptura,
   type EntregaMaterialStats,
   type EntregueInput,
   type PendenteInput,
@@ -615,22 +617,30 @@ export async function getEntregaMaterialStats(
 
   const statsByUser = aggregateEntregaMaterial(entreguesInput, pendentesInput, now);
 
+  // Mostra o time de captura INTEIRO (videomaker/fast_midia), mesmo zerado, +
+  // qualquer outro que tenha tido entrega/pendência no período.
+  const userIds = new Set<string>(statsByUser.keys());
+  for (const p of profiles) {
+    if (isRoleCaptura(p.role)) userIds.add(p.id);
+  }
+
   const rows: EntregaMaterialUserRow[] = [];
-  for (const [user_id, stats] of statsByUser) {
+  for (const user_id of userIds) {
     const prof = profileById.get(user_id);
     rows.push({
       user_id,
       nome: prof?.nome ?? "(usuário removido)",
       role: prof?.role ?? "",
-      ...stats,
+      ...(statsByUser.get(user_id) ?? EMPTY_ENTREGA_STATS),
     });
   }
-  // Pendentes mais críticas primeiro, depois quem entregou mais.
+  // Pendentes mais críticas primeiro, depois quem entregou mais, depois nome.
   rows.sort(
     (a, b) =>
       b.pendentes - a.pendentes ||
       (b.pendente_mais_antiga_seg ?? 0) - (a.pendente_mais_antiga_seg ?? 0) ||
-      b.entregues - a.entregues,
+      b.entregues - a.entregues ||
+      a.nome.localeCompare(b.nome, "pt-BR"),
   );
   return rows;
 }

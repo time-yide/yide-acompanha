@@ -22,6 +22,27 @@ export interface EntregaMaterialStats {
   pendente_mais_antiga_seg: number | null;
 }
 
+/**
+ * Cargos que vão pra gravação e sobem material (equipe de captura). Aparecem
+ * SEMPRE na tabela de "tempo pra entregar", mesmo zerados no período — assim a
+ * coordenação vê o time todo, não só quem tem pendência. fast_midia funciona
+ * como videomaker, por isso entra junto.
+ */
+export const ROLES_CAPTURA = ["videomaker", "fast_midia"] as const;
+
+export function isRoleCaptura(role: string | null | undefined): boolean {
+  return (ROLES_CAPTURA as readonly string[]).includes(role ?? "");
+}
+
+/** Stats zeradas — pra quem é da captura mas não teve entrega/pendência. */
+export const EMPTY_ENTREGA_STATS: EntregaMaterialStats = {
+  entregues: 0,
+  turnaround_medio_seg: null,
+  mais_lenta_seg: null,
+  pendentes: 0,
+  pendente_mais_antiga_seg: null,
+};
+
 export interface EntregueInput {
   user_id: string;
   /** ISO — audiovisual_capturas.created_at (quando subiu o material). */
