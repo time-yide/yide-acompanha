@@ -23,6 +23,7 @@ import {
   type AprovacaoRow,
   type RetrabalhoRow,
 } from "./qualidade-setor";
+import { computeConversao, type ConversaoRow } from "./conversao-comercial";
 
 const DESIGN_STATUS_APROVADA = ["aprovado", "agendado", "publicado"];
 import {
@@ -933,4 +934,42 @@ export async function getQualidadeSetor(range: PeriodoRange = "dia"): Promise<Qu
   const design: AprovacaoRow[] = computeAprovacaoDesign(artesRows).map((p) => ({ ...p, nome: nomes.get(p.user_id) ?? "—" }));
 
   return { assessoria, design };
+}
+
+/**
+ * Conversão comercial no período: ligações de saída → leads gerados, por assessor.
+ * "lead" = ligação com lead_gerado_id preenchido.
+ */
+export async function getConversaoComercial(range: PeriodoRange = "dia"): Promise<ConversaoRow[]> {
+  const admin = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = admin as any;
+  const today = formatIsoDate(new Date());
+  const since = computeSince(range, today);
+  const offsetHours = getAppTimezoneOffsetMs() / (60 * 60 * 1000);
+  const sinceStartUtc = new Date(`${since}T${String(offsetHours).padStart(2, "0")}:00:00.000Z`).toISOString();
+  const tomorrowDate = new Date(`${today}T00:00:00.000Z`);
+  tomorrowDate.setUTCDate(tomorrowDate.getUTCDate() + 1);
+  const tomorrow = formatIsoDate(tomorrowDate);
+  const tomorrowStartUtc = new Date(`${tomorrow}T${String(offsetHours).padStart(2, "0")}:00:00.000Z`).toISOString();
+
+  const [{ data: ligacoesData }, { data: profilesData }] = await Promise.all([
+    sb.from("ligacoes")
+      .select("colaborador_id, lead_gerado_id")
+      .eq("direcao", "saida")
+      .gte("iniciada_em", sinceStartUtc)
+      .lt("iniciada_em", tomorrowStartUtc)
+      .not("colaborador_id", "is", null),
+    sb.from("profiles").select("id, nome").eq("ativo", true),
+  ]);
+
+  const nomes = new Map<string, string>();
+  for (const p of (profilesData ?? []) as Array<{ id: string; nome: string }>) nomes.set(p.id, p.nome);
+
+  const rows = ((ligacoesData ?? []) as Array<Record<string, unknown>>).map((r) => ({
+    colaborador_id: (r.colaborador_id as string | null) ?? null,
+    temLead: r.lead_gerado_id != null,
+  }));
+
+  return computeConversao(rows).map((p) => ({ ...p, nome: nomes.get(p.user_id) ?? "—" }));
 }
