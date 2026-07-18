@@ -19,7 +19,7 @@ describe("roleParaSetor", () => {
     expect(roleParaSetor("videomaker")).toBe("audiovisual");
     expect(roleParaSetor("adm")).toBeNull();
     expect(roleParaSetor("socio")).toBeNull();
-    expect(roleParaSetor("programacao")).toBeNull();
+    expect(roleParaSetor("programacao")).toBe("programacao");
   });
 });
 
@@ -44,7 +44,8 @@ describe("resolveMetricaPessoa", () => {
   const crua = (over: Partial<MetricaCrua>): MetricaCrua => ({
     ligacoes_feitas: 0, ligacoes_atendidas: 0, anuncios: 0,
     tarefas_entregues: 0, tarefas_no_prazo: 0, tarefas_com_prazo: 0,
-    tarefas_atrasadas: 0, postagens: 0, artes: 0, ...over,
+    tarefas_atrasadas: 0, postagens: 0, artes: 0,
+    prog_crm: 0, prog_usuarios: 0, prog_sistemas: 0, prog_total: 0, ...over,
   });
 
   it("comercial → ligações", () => {
@@ -75,6 +76,10 @@ describe("resolveMetricaPessoa", () => {
     const m = resolveMetricaPessoa("adm", null, crua({}));
     expect(m.setor).toBeNull();
     expect(m.rotulo).toBe("—");
+  });
+  it("programacao → total de entregas", () => {
+    expect(resolveMetricaPessoa("programacao", null, crua({ prog_total: 12 })).rotulo).toBe("12 entregas");
+    expect(resolveMetricaPessoa("programacao", null, crua({ prog_total: 1 })).rotulo).toBe("1 entrega");
   });
   it("singular: 1 ligação / 1 arte / 1 anúncio", () => {
     expect(resolveMetricaPessoa("comercial", null, crua({ ligacoes_feitas: 1 })).rotulo).toBe("1 ligação");
