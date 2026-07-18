@@ -78,9 +78,18 @@ export function AnunciosList({ anuncios, clientes, mostrarAssessor, podeArquivar
                   <span className="tabular-nums">{formatarDataBR(a.data)}</span>
                   {mostrarAssessor && a.colaborador_nome ? (
                     <span className="inline-flex items-center gap-1.5">
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/15 text-[9px] font-semibold text-primary">
-                        {iniciais(a.colaborador_nome)}
-                      </span>
+                      {a.colaborador_avatar_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={a.colaborador_avatar_url}
+                          alt={a.colaborador_nome}
+                          className="h-5 w-5 shrink-0 rounded-full object-cover"
+                        />
+                      ) : (
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[9px] font-semibold text-primary">
+                          {iniciais(a.colaborador_nome)}
+                        </span>
+                      )}
                       <span className="truncate">{a.colaborador_nome}</span>
                     </span>
                   ) : null}

@@ -38,6 +38,7 @@ export async function listClientesEcommerce(
 export interface AnuncioRow extends AnuncioAggRow {
   id: string;
   observacao: string | null;
+  colaborador_avatar_url: string | null;
   created_at: string;
 }
 
@@ -64,7 +65,7 @@ export async function listAnuncios(
     .from("anuncios_ecommerce")
     .select(
       "id, data, quantidade, marketplace, observacao, colaborador_id, client_id, created_at, " +
-        "colaborador:profiles!anuncios_ecommerce_colaborador_id_fkey(nome), " +
+        "colaborador:profiles!anuncios_ecommerce_colaborador_id_fkey(nome, avatar_url), " +
         "client:clients!anuncios_ecommerce_client_id_fkey(nome)",
     )
     .eq("organization_id", orgId)
@@ -94,6 +95,8 @@ export async function listAnuncios(
     colaborador_id: (r.colaborador_id as string | null) ?? null,
     colaborador_nome:
       ((r.colaborador as { nome?: string } | null) ?? null)?.nome ?? null,
+    colaborador_avatar_url:
+      ((r.colaborador as { avatar_url?: string | null } | null) ?? null)?.avatar_url ?? null,
     client_id: r.client_id as string,
     client_nome: ((r.client as { nome?: string } | null) ?? null)?.nome ?? null,
     created_at: r.created_at as string,
