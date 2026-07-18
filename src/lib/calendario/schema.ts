@@ -76,7 +76,7 @@ export interface CalendarEvent {
   inicio: string;
   fim: string;
   sub_calendar: SubCalendar;
-  link?: string;
+  link?: string | null;
   cor?: string;
   localizacao_endereco?: string | null;
   localizacao_maps_url?: string | null;
@@ -118,5 +118,9 @@ export interface CalendarEvent {
     valor_comissao: number;
     /** true = edição urgente (mostra pontinho laranja). */
     urgente: boolean;
+    /** true quando o freela é de OUTRA pessoa (renderiza como "Indisponível", sem detalhe). */
+    reservadoDeOutro?: boolean;
+    /** nome de quem reservou (usado quando reservadoDeOutro). */
+    dono_nome?: string | null;
   };
 }

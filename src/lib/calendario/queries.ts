@@ -485,6 +485,60 @@ export async function listMeusFreelasNoPeriodo(
   return (data ?? []) as FreelaAgendaRow[];
 }
 
+export interface FreelaReservadoRow {
+  id: string;
+  titulo: string;
+  data_hora: string | null;
+  duracao_min: number;
+  status: string;
+  tipo: string;
+  valor_comissao: number;
+  entrega_urgente: boolean;
+  pego_por: string;
+  pego_por_nome: string | null;
+  pego_por_role: string | null;
+}
+
+/** Todos os freelas reservados (pega/em_negociacao/fechada, com data_hora) da unidade
+ *  no período. Traz quem pegou (nome + role) pro mapper decidir visibilidade. */
+export async function listFreelasReservadosNoPeriodo(
+  inicioIso: string,
+  fimIso: string,
+  unitProfileIds: string[] | null = null,
+): Promise<FreelaReservadoRow[]> {
+  if (unitProfileIds !== null && unitProfileIds.length === 0) return [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = createServiceRoleClient() as any;
+  let q = sb
+    .from("freela_oportunidades")
+    .select("id, titulo, data_hora, duracao_min, status, tipo, valor_comissao, entrega_urgente, pego_por, taker:profiles!freela_oportunidades_pego_por_fkey(nome, role)")
+    .not("pego_por", "is", null)
+    .not("data_hora", "is", null)
+    .gte("data_hora", inicioIso)
+    .lt("data_hora", fimIso)
+    .in("status", ["pega", "em_negociacao", "fechada"])
+    .is("deleted_at", null);
+  if (unitProfileIds !== null) q = q.in("pego_por", unitProfileIds);
+  const { data, error } = await q;
+  if (error) {
+    console.error("[calendario] listFreelasReservadosNoPeriodo", error.message);
+    return [];
+  }
+  return ((data ?? []) as Array<Record<string, unknown>>).map((r) => ({
+    id: r.id as string,
+    titulo: r.titulo as string,
+    data_hora: (r.data_hora as string | null) ?? null,
+    duracao_min: Number(r.duracao_min ?? 60),
+    status: r.status as string,
+    tipo: r.tipo as string,
+    valor_comissao: Number(r.valor_comissao ?? 0),
+    entrega_urgente: !!r.entrega_urgente,
+    pego_por: r.pego_por as string,
+    pego_por_nome: ((r.taker as { nome?: string } | null) ?? null)?.nome ?? null,
+    pego_por_role: ((r.taker as { role?: string } | null) ?? null)?.role ?? null,
+  }));
+}
+
 export async function getEventById(id: string) {
   const supabase = await createClient();
   const { data, error } = await supabase

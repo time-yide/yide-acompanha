@@ -5,9 +5,9 @@ import {
   listBloqueiosAprovadosNoPeriodo,
   getWeekRange,
   getMonthGridRange,
-  listMeusFreelasNoPeriodo,
+  listFreelasReservadosNoPeriodo,
 } from "@/lib/calendario/queries";
-import { freelaRowsToEvents } from "@/lib/calendario/freela-events";
+import { freelaReservadoToEvents } from "@/lib/calendario/freela-events";
 import { brtInputToUtcIso } from "@/lib/calendario/timezone";
 import {
   getClientIdsForActiveUnit,
@@ -160,12 +160,12 @@ async function renderWeek({
       new Date(end.getTime() - 1).toISOString().slice(0, 10),
       unitProfileIds,
     ),
-    listMeusFreelasNoPeriodo(userId, start.toISOString(), end.toISOString()),
+    listFreelasReservadosNoPeriodo(start.toISOString(), end.toISOString(), unitProfileIds),
   ]);
   const events = applySubFilter([
     ...rawEvents,
     ...bloqueiosToEvents(bloqueios),
-    ...freelaRowsToEvents(freelas, userId),
+    ...freelaReservadoToEvents(freelas, userId),
   ]);
 
   const prevWeek = new Date(start);
@@ -234,12 +234,12 @@ async function renderMonth({
       new Date(grid.end.getTime() - 1).toISOString().slice(0, 10),
       unitProfileIds,
     ),
-    listMeusFreelasNoPeriodo(userId, grid.start.toISOString(), grid.end.toISOString()),
+    listFreelasReservadosNoPeriodo(grid.start.toISOString(), grid.end.toISOString(), unitProfileIds),
   ]);
   const events = applySubFilter([
     ...rawEvents,
     ...bloqueiosToEvents(bloqueios),
-    ...freelaRowsToEvents(freelas, userId),
+    ...freelaReservadoToEvents(freelas, userId),
   ]);
 
   const prevMonth = grid.month === 1 ? 12 : grid.month - 1;

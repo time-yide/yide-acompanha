@@ -2,6 +2,7 @@
 // Mapper puro: linha de freela_oportunidades -> CalendarEvent, pra a agenda de
 // quem pegou. Sem IO (testável). A query fica em queries.ts.
 import type { CalendarEvent } from "./schema";
+import type { FreelaReservadoRow } from "./queries";
 
 export interface FreelaAgendaRow {
   id: string;
@@ -12,6 +13,47 @@ export interface FreelaAgendaRow {
   tipo: string;
   valor_comissao: number;
   entrega_urgente: boolean;
+}
+
+const ROLES_VIDEOMAKER = new Set(["videomaker", "fast_midia"]);
+
+/**
+ * Freelas reservados → eventos de calendário, por espectador:
+ *  - dono → detalhe "Freela — reservado" (título, valor, link).
+ *  - outro + taker videomaker/fast_midia → "Indisponível — Freela" (nome, sem valor/link).
+ *  - outro + taker de outro cargo → omitido (privado ao dono).
+ */
+export function freelaReservadoToEvents(rows: FreelaReservadoRow[], viewerId: string): CalendarEvent[] {
+  const out: CalendarEvent[] = [];
+  for (const r of rows) {
+    if (!r.data_hora) continue;
+    const dono = r.pego_por === viewerId;
+    const ehVideomaker = ROLES_VIDEOMAKER.has(r.pego_por_role ?? "");
+    if (!dono && !ehVideomaker) continue;
+    const dur = r.duracao_min && r.duracao_min > 0 ? r.duracao_min : 60;
+    const inicio = new Date(r.data_hora);
+    const fim = new Date(inicio.getTime() + dur * 60_000);
+    out.push({
+      id: `freela-${r.id}`,
+      origem: "freela",
+      titulo: dono ? r.titulo : "Reservado (freela)",
+      descricao: null,
+      inicio: inicio.toISOString(),
+      fim: fim.toISOString(),
+      sub_calendar: "videomakers",
+      participantes_ids: [r.pego_por],
+      link: dono ? "/freela-yide" : null,
+      freela: {
+        status: r.status,
+        tipo: r.tipo,
+        valor_comissao: dono ? r.valor_comissao : 0,
+        urgente: !!r.entrega_urgente,
+        reservadoDeOutro: !dono,
+        dono_nome: dono ? null : r.pego_por_nome,
+      },
+    });
+  }
+  return out;
 }
 
 /**

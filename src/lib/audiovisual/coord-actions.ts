@@ -7,6 +7,7 @@ import { logAudit } from "@/lib/audit/log";
 import { logActivityInternal } from "@/lib/produtividade/actions";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 import { brtInputToUtcIso } from "@/lib/calendario/timezone";
+import { checarFreelaVideomaker } from "@/lib/calendario/freela-check";
 
 interface ActionResult { success?: boolean; error?: string }
 
@@ -108,6 +109,14 @@ export async function delegateVideomakerAction(
       error: `${videomaker.nome} já tem captação "${conflict.titulo}" às ${inicioBR}`,
     };
   }
+
+  const freelaMsg = await checarFreelaVideomaker({
+    videomakerId,
+    nome: videomaker.nome,
+    inicioUtc: event.inicio,
+    fimUtc: event.fim,
+  });
+  if (freelaMsg) return { error: freelaMsg };
 
   // 4) Adiciona o videomaker em participantes_ids (sem duplicar) pra
   //    notificações/agenda funcionarem normalmente
@@ -271,6 +280,13 @@ export async function updateDelegacaoAction(
         error: `${vm.nome} já tem captação "${conflict.titulo}" às ${inicioBR}`,
       };
     }
+    const freelaMsg = await checarFreelaVideomaker({
+      videomakerId: newVideomakerId,
+      nome: vm.nome,
+      inicioUtc: event.inicio,
+      fimUtc: event.fim,
+    });
+    if (freelaMsg) return { error: freelaMsg };
     updates.videomaker_assigned_id = newVideomakerId;
     videomakerChanged = true;
     novoVideomakerNome = vm.nome;
