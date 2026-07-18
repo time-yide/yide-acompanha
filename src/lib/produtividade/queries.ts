@@ -10,6 +10,12 @@ import {
 } from "./schema";
 import { formatIsoDate, getAppTimezoneOffsetMs } from "@/lib/datetime/timezone";
 import { isTarefaAtrasadaParaCargo } from "@/lib/tarefas/overdue-rules";
+import {
+  aggregateEntregaMaterial,
+  type EntregaMaterialStats,
+  type EntregueInput,
+  type PendenteInput,
+} from "./entrega-material";
 
 export interface ColaboradorStatusRow {
   user_id: string;
@@ -69,7 +75,8 @@ interface EventRow {
 }
 
 interface VideomakerCaptureRow {
-  videomaker_assigned_id: string;
+  videomaker_assigned_id: string | null;
+  participantes_ids: string[] | null;
   inicio: string;
   fim: string;
   videomaker_status: string;
@@ -211,15 +218,15 @@ export async function getColaboradoresStatus(
       .gte("event_date", since)
       .lte("event_date", today)
       .order("created_at", { ascending: true }),
-    // Capturas externas de videomaker no período (conta como tempo produtivo)
+    // Gravações no período (conta como tempo produtivo pra TODOS que foram —
+    // participantes_ids, não só o videomaker atribuído).
     sb
       .from("calendar_events")
-      .select("videomaker_assigned_id, inicio, fim, videomaker_status")
+      .select("videomaker_assigned_id, participantes_ids, inicio, fim, videomaker_status")
       .eq("sub_calendar", "videomakers")
       .in("videomaker_status", ["scheduled", "completed"])
       .gte("inicio", sinceStartUtc)
-      .lt("inicio", tomorrowStartUtc)
-      .not("videomaker_assigned_id", "is", null),
+      .lt("inicio", tomorrowStartUtc),
     // Entregas no período: tarefas que viraram "postada" (completed_at é
     // carimbado no momento em que vira postada — ver tarefas/actions.ts).
     sb
@@ -313,18 +320,24 @@ export async function getColaboradoresStatus(
     eventsByUser.set(e.user_id, arr);
   }
 
-  // Tempo de captação externa por videomaker (segundos)
+  // Tempo de gravação (segundos) creditado a TODOS que foram na captura. Usa
+  // participantes_ids; se vier vazio, cai no videomaker atribuído.
   const tempoExternoByUser = new Map<string, number>();
   for (const c of captures) {
-    if (!c.videomaker_assigned_id) continue;
     const dur = Math.max(
       0,
       Math.floor((new Date(c.fim).getTime() - new Date(c.inicio).getTime()) / 1000),
     );
-    tempoExternoByUser.set(
-      c.videomaker_assigned_id,
-      (tempoExternoByUser.get(c.videomaker_assigned_id) ?? 0) + dur,
-    );
+    if (dur === 0) continue;
+    const foram =
+      c.participantes_ids && c.participantes_ids.length > 0
+        ? c.participantes_ids
+        : c.videomaker_assigned_id
+          ? [c.videomaker_assigned_id]
+          : [];
+    for (const uid of foram) {
+      tempoExternoByUser.set(uid, (tempoExternoByUser.get(uid) ?? 0) + dur);
+    }
   }
 
   // Tarefas atrasadas por user_id — critério por cargo (operacional entrega em
@@ -489,6 +502,137 @@ export function summarizeStatus(rows: ColaboradorStatusRow[]): ProdutividadeSumm
     capturas_atrasadas_total,
     colaboradores_com_atraso,
   };
+}
+
+export interface EntregaMaterialUserRow extends EntregaMaterialStats {
+  user_id: string;
+  nome: string;
+  role: string;
+}
+
+/** Janela pra trás pra procurar gravações ainda não entregues (pendentes). */
+const PENDENTE_JANELA_DIAS = 60;
+
+/**
+ * "Tempo pra entregar" por pessoa: turnaround entre o fim da gravação e a
+ * subida do material (audiovisual_capturas.created_at). Retorna quem teve
+ * entrega OU pendência no período. Independente do range de `getColaboradoresStatus`.
+ */
+export async function getEntregaMaterialStats(
+  range: PeriodoRange = "dia",
+): Promise<EntregaMaterialUserRow[]> {
+  const admin = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = admin as any;
+  const now = Date.now();
+  const nowIso = new Date(now).toISOString();
+  const today = formatIsoDate(new Date());
+  const since = computeSince(range, today);
+  const offsetHours = getAppTimezoneOffsetMs() / (60 * 60 * 1000);
+  const sinceStartUtc = new Date(`${since}T${String(offsetHours).padStart(2, "0")}:00:00.000Z`).toISOString();
+  const tomorrowDate = new Date(`${today}T00:00:00.000Z`);
+  tomorrowDate.setUTCDate(tomorrowDate.getUTCDate() + 1);
+  const tomorrow = formatIsoDate(tomorrowDate);
+  const tomorrowStartUtc = new Date(`${tomorrow}T${String(offsetHours).padStart(2, "0")}:00:00.000Z`).toISOString();
+  const pendenteDesdeUtc = new Date(now - PENDENTE_JANELA_DIAS * 24 * 60 * 60 * 1000).toISOString();
+
+  const [
+    { data: entreguesData },
+    { data: pendentesEventsData },
+    { data: entregasAllData },
+    { data: profilesData },
+  ] = await Promise.all([
+    // Entregues no período (created_at = quando subiu o material)
+    sb
+      .from("audiovisual_capturas")
+      .select("event_id, videomaker_id, created_at")
+      .gte("created_at", sinceStartUtc)
+      .lt("created_at", tomorrowStartUtc)
+      .not("event_id", "is", null)
+      .not("videomaker_id", "is", null),
+    // Gravações já ocorridas (janela) candidatas a pendente de entrega
+    sb
+      .from("calendar_events")
+      .select("id, videomaker_assigned_id, participantes_ids, inicio, fim")
+      .eq("sub_calendar", "videomakers")
+      .in("videomaker_status", ["scheduled", "completed"])
+      .lt("inicio", nowIso)
+      .gte("inicio", pendenteDesdeUtc)
+      .not("videomaker_assigned_id", "is", null),
+    // Todos os event_ids já entregues (pra excluir das pendentes)
+    sb.from("audiovisual_capturas").select("event_id").not("event_id", "is", null),
+    sb.from("profiles").select("id, nome, role").eq("ativo", true),
+  ]);
+
+  const entregues = (entreguesData ?? []) as Array<{
+    event_id: string;
+    videomaker_id: string;
+    created_at: string;
+  }>;
+  const pendentesEvents = (pendentesEventsData ?? []) as Array<{
+    id: string;
+    videomaker_assigned_id: string;
+    participantes_ids: string[] | null;
+    inicio: string;
+    fim: string | null;
+  }>;
+  const jaEntregueEventIds = new Set(
+    ((entregasAllData ?? []) as Array<{ event_id: string | null }>)
+      .map((e) => e.event_id)
+      .filter((id): id is string => id !== null),
+  );
+  const profiles = (profilesData ?? []) as Array<{ id: string; nome: string; role: string }>;
+  const profileById = new Map(profiles.map((p) => [p.id, p]));
+
+  // Precisa do fim da gravação das capturas entregues (a captura só guarda a
+  // data, não o horário) — busca os eventos por id.
+  const entregEventIds = [...new Set(entregues.map((e) => e.event_id))];
+  const fimById = new Map<string, string>();
+  if (entregEventIds.length > 0) {
+    const { data: eventosData } = await sb
+      .from("calendar_events")
+      .select("id, inicio, fim")
+      .in("id", entregEventIds);
+    for (const ev of (eventosData ?? []) as Array<{ id: string; inicio: string; fim: string | null }>) {
+      fimById.set(ev.id, ev.fim ?? ev.inicio);
+    }
+  }
+
+  const entreguesInput: EntregueInput[] = entregues
+    .map((e) => {
+      const ref = fimById.get(e.event_id);
+      if (!ref) return null;
+      return { user_id: e.videomaker_id, entrega_at: e.created_at, gravacao_ref: ref };
+    })
+    .filter((x): x is EntregueInput => x !== null);
+
+  const pendentesInput: PendenteInput[] = pendentesEvents
+    .filter((ev) => !jaEntregueEventIds.has(ev.id))
+    .map((ev) => ({
+      user_id: ev.videomaker_assigned_id,
+      gravacao_ref: ev.fim ?? ev.inicio,
+    }));
+
+  const statsByUser = aggregateEntregaMaterial(entreguesInput, pendentesInput, now);
+
+  const rows: EntregaMaterialUserRow[] = [];
+  for (const [user_id, stats] of statsByUser) {
+    const prof = profileById.get(user_id);
+    rows.push({
+      user_id,
+      nome: prof?.nome ?? "(usuário removido)",
+      role: prof?.role ?? "",
+      ...stats,
+    });
+  }
+  // Pendentes mais críticas primeiro, depois quem entregou mais.
+  rows.sort(
+    (a, b) =>
+      b.pendentes - a.pendentes ||
+      (b.pendente_mais_antiga_seg ?? 0) - (a.pendente_mais_antiga_seg ?? 0) ||
+      b.entregues - a.entregues,
+  );
+  return rows;
 }
 
 export interface RecentEventRow {
