@@ -20,6 +20,8 @@ function row(over: Partial<ColaboradorStatusRow> = {}): ColaboradorStatusRow {
     custo_periodo: null,
     entregas_periodo: 0,
     custo_por_entrega: null,
+    receita_periodo: null,
+    lucro_periodo: null,
     ...over,
   };
 }

@@ -16,6 +16,17 @@ import {
   type EntregueInput,
   type PendenteInput,
 } from "./entrega-material";
+import {
+  agregarTimeAudiovisual,
+  contaComoEntrega,
+  faturamentoPeriodo,
+  isRoleExcluido,
+  isRoleTimeAudiovisual,
+  lucroPeriodo,
+  receitaAtribuida,
+  valorPorEntrega,
+  type TimeAudiovisualAgg,
+} from "./lucro";
 
 export interface ColaboradorStatusRow {
   user_id: string;
@@ -53,6 +64,26 @@ export interface ColaboradorStatusRow {
    * fixo cada entrega custou. Null quando não há custo ou 0 entregas.
    */
   custo_por_entrega: number | null;
+  /** Receita atribuída no período: valor por entrega × entregas. Null se indefinido. */
+  receita_periodo: number | null;
+  /** Lucro no período: receita_periodo − custo_periodo. Null se faltar parte. */
+  lucro_periodo: number | null;
+}
+
+export interface TimeAudiovisualCard extends TimeAudiovisualAgg {
+  coordenador_user_id: string;
+  coordenador_nome: string;
+}
+
+export interface ColaboradoresStatusResult {
+  /** Linhas individuais (sem coordenador geral, sócia nem o coord de audiovisual). */
+  rows: ColaboradorStatusRow[];
+  /** Faturamento pró-rata do período (carteira ativa ÷ 22 × dias úteis). */
+  faturamento_periodo: number;
+  /** Valor de 1 entrega no período. Null se 0 entregas. */
+  valor_por_entrega: number | null;
+  /** Card do coordenador de audiovisual medido pelo time. Null se não há coord ativo. */
+  time_audiovisual: TimeAudiovisualCard | null;
 }
 
 interface ProfileRow {
@@ -67,6 +98,7 @@ interface ProfileRow {
 
 interface DeliveryRow {
   atribuido_a: string;
+  status: string;
 }
 
 interface EventRow {
@@ -164,7 +196,7 @@ function computeSince(range: PeriodoRange, todayIso: string): string {
  *  (não dependem do range). */
 export async function getColaboradoresStatus(
   range: PeriodoRange = "dia",
-): Promise<ColaboradorStatusRow[]> {
+): Promise<ColaboradoresStatusResult> {
   const admin = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = admin as any;
@@ -191,6 +223,8 @@ export async function getColaboradoresStatus(
     { data: overdueTasksData },
     { data: scheduledCapturesData },
     { data: capturesEntregasData },
+    { data: clientsData },
+    { data: capturasEntreguesData },
   ] = await Promise.all([
     // O filtro antigo `.neq("role", "cliente")` quebrava a query inteira:
     // "cliente" não existe no enum `user_role`, então Postgres rejeitava com
@@ -227,12 +261,14 @@ export async function getColaboradoresStatus(
       .in("videomaker_status", ["scheduled", "completed"])
       .gte("inicio", sinceStartUtc)
       .lt("inicio", tomorrowStartUtc),
-    // Entregas no período: tarefas que viraram "postada" (completed_at é
-    // carimbado no momento em que vira postada — ver tarefas/actions.ts).
+    // Entregas no período: tarefas que viraram "concluida" (Concluído
+    // Operacional) OU "postada". A regra POR CARGO é aplicada em JS via
+    // contaComoEntrega (operacional entrega em concluida; resto só em postada).
+    // completed_at é carimbado ao entrar em concluida/postada (ver tarefas/actions.ts).
     sb
       .from("tasks")
-      .select("atribuido_a")
-      .eq("status", "postada")
+      .select("atribuido_a, status")
+      .in("status", ["concluida", "postada"])
       .gte("completed_at", sinceStartUtc)
       .lt("completed_at", tomorrowStartUtc)
       .not("atribuido_a", "is", null),
@@ -261,6 +297,17 @@ export async function getColaboradoresStatus(
       .from("audiovisual_capturas")
       .select("event_id")
       .not("event_id", "is", null),
+    // Carteira mensal (MRR) — faturamento base. valor_mensal já é 0 pra
+    // parceria/permuta (forçado na escrita), então soma direto os ativos.
+    sb.from("clients").select("status, valor_mensal").is("deleted_at", null),
+    // Capturas entregues no período (material subido) — entrega de gravação do
+    // videomaker. created_at = quando subiu. Some às entregas dele.
+    sb
+      .from("audiovisual_capturas")
+      .select("videomaker_id, created_at")
+      .gte("created_at", sinceStartUtc)
+      .lt("created_at", tomorrowStartUtc)
+      .not("videomaker_id", "is", null),
   ]);
 
   if (profilesError) {
@@ -284,6 +331,12 @@ export async function getColaboradoresStatus(
   // (fixo ÷ dias úteis do mês) × dias decorridos. Pra "dia" dá 1; "semana"/
   // "mes" variam com o calendário.
   const diasUteis = diasUteisDecorridos(since, today);
+  // Faturamento pró-rata do período: carteira ativa ÷ 22 dias úteis × dias
+  // decorridos — mesma base do custo, pra numerador e denominador baterem.
+  const carteiraMensal = ((clientsData ?? []) as Array<{ status: string; valor_mensal: number | string }>)
+    .filter((c) => c.status === "ativo")
+    .reduce((acc, c) => acc + Number(c.valor_mensal), 0);
+  const faturamento_periodo = faturamentoPeriodo(carteiraMensal, diasUteis, DIAS_UTEIS_MES);
 
   // Tempo ativo real = presença por heartbeat (segundos por user), agregada em
   // Postgres. Se a RPC não existir ainda (migration manual pendente),
@@ -303,13 +356,19 @@ export async function getColaboradoresStatus(
     presenceByUser.set(p.user_id, p.seconds !== null ? Number(p.seconds) : 0);
   }
 
-  // Entregas por user_id (tarefas postadas no período)
+  // Entregas por user_id. Tarefas: aplica regra por cargo (concluida p/
+  // operacional; postada p/ resto). Depois soma capturas entregues (videomaker).
   const entregasByUser = new Map<string, number>();
   for (const t of entregas) {
-    entregasByUser.set(
-      t.atribuido_a,
-      (entregasByUser.get(t.atribuido_a) ?? 0) + 1,
-    );
+    if (!contaComoEntrega(t.status, roleByUser.get(t.atribuido_a))) continue;
+    entregasByUser.set(t.atribuido_a, (entregasByUser.get(t.atribuido_a) ?? 0) + 1);
+  }
+  const capturasEntregues = (capturasEntreguesData ?? []) as Array<{
+    videomaker_id: string;
+    created_at: string;
+  }>;
+  for (const c of capturasEntregues) {
+    entregasByUser.set(c.videomaker_id, (entregasByUser.get(c.videomaker_id) ?? 0) + 1);
   }
 
   // Eventos por user_id pra cálculo de sessões
@@ -382,7 +441,9 @@ export async function getColaboradoresStatus(
     return Math.floor(total / 1000);
   }
 
-  return profiles.map((p) => {
+  // Passada 1: métricas base por perfil (sem receita/lucro ainda — precisam do
+  // valor por entrega, que depende do total de entregas dos produtores).
+  const baseRows = profiles.map((p) => {
     const lastSeen = p.last_seen_at ? new Date(p.last_seen_at).getTime() : 0;
     const lastActive = p.last_active_event_at
       ? new Date(p.last_active_event_at).getTime()
@@ -391,22 +452,16 @@ export async function getColaboradoresStatus(
     const ativo = lastActive > 0 && now - lastActive < ATIVO_WINDOW_SECONDS * 1000;
 
     const userEvents = eventsByUser.get(p.id) ?? [];
-    // Presença real do heartbeat. Sem a migration, presenceAvailable=false e
-    // usamos a reconstrução por eventos (pior, mas não quebra a página).
     const tempoPresenca = presenceAvailable
       ? (presenceByUser.get(p.id) ?? 0)
       : tempoAtivoFromEvents(userEvents);
     const tempoExterno = tempoExternoByUser.get(p.id) ?? 0;
     const tempo_ativo_seg_hoje = tempoPresenca + tempoExterno;
 
-    // Custo = salário fixo real. custo/hora = fixo ÷ 176h; custo do período =
-    // (fixo ÷ dias úteis do mês) × dias úteis decorridos. Independe da atividade.
     const fixo = p.fixo_mensal !== null ? Number(p.fixo_mensal) : 0;
     const custo_hora = fixo > 0 ? Number((fixo / HORAS_UTEIS_MES).toFixed(2)) : null;
     const custo_periodo =
-      fixo > 0
-        ? Number(((fixo / DIAS_UTEIS_MES) * diasUteis).toFixed(2))
-        : null;
+      fixo > 0 ? Number(((fixo / DIAS_UTEIS_MES) * diasUteis).toFixed(2)) : null;
 
     const entregas_periodo = entregasByUser.get(p.id) ?? 0;
     const custo_por_entrega =
@@ -432,8 +487,41 @@ export async function getColaboradoresStatus(
       custo_periodo,
       entregas_periodo,
       custo_por_entrega,
+      receita_periodo: null as number | null,
+      lucro_periodo: null as number | null,
     };
   });
+
+  // Denominador do valor por entrega: entregas dos indivíduos que produzem —
+  // exclui cargos de gestão/dona (coordenador, socio) e o coord de audiovisual
+  // (audiovisual_chefe, que não produz direto; ele é medido pelo time).
+  const individuais = baseRows.filter(
+    (r) => !isRoleExcluido(r.role) && r.role !== "audiovisual_chefe",
+  );
+  const totalEntregas = individuais.reduce((acc, r) => acc + r.entregas_periodo, 0);
+  const valor_por_entrega = valorPorEntrega(faturamento_periodo, totalEntregas);
+
+  // Preenche receita/lucro nas linhas base (usado tanto nas individuais quanto
+  // no agregado do time — produtores são um subconjunto das individuais).
+  for (const r of baseRows) {
+    r.receita_periodo = receitaAtribuida(valor_por_entrega, r.entregas_periodo);
+    r.lucro_periodo = lucroPeriodo(r.receita_periodo, r.custo_periodo);
+  }
+
+  const rows: ColaboradorStatusRow[] = individuais;
+
+  // Card do time audiovisual: agrega os produtores + salário do coordenador.
+  const produtores = baseRows.filter((r) => isRoleTimeAudiovisual(r.role));
+  const coord = baseRows.find((r) => r.role === "audiovisual_chefe");
+  const time_audiovisual: TimeAudiovisualCard | null = coord
+    ? {
+        coordenador_user_id: coord.user_id,
+        coordenador_nome: coord.nome,
+        ...agregarTimeAudiovisual(produtores, coord.custo_periodo),
+      }
+    : null;
+
+  return { rows, faturamento_periodo, valor_por_entrega, time_audiovisual };
 }
 
 export interface ProdutividadeSummary {
@@ -453,12 +541,21 @@ export interface ProdutividadeSummary {
    * salário fixo cada entrega custou no período. Null se 0 entregas ou 0 custo.
    */
   custo_por_entrega: number | null;
+  /** Faturamento pró-rata do período (carteira ativa). */
+  faturamento_periodo: number;
+  /** Receita atribuída somada das linhas individuais. */
+  receita_total: number;
+  /** Lucro do time individual: receita_total − custo_periodo_total. */
+  lucro_total: number;
   tarefas_atrasadas_total: number;
   capturas_atrasadas_total: number;
   colaboradores_com_atraso: number;
 }
 
-export function summarizeStatus(rows: ColaboradorStatusRow[]): ProdutividadeSummary {
+export function summarizeStatus(
+  rows: ColaboradorStatusRow[],
+  faturamento = 0,
+): ProdutividadeSummary {
   const online_agora = rows.filter((r) => r.online).length;
   const ativos_agora = rows.filter((r) => r.ativo).length;
   const tempo_ativo_total_seg_hoje = rows.reduce(
@@ -472,6 +569,10 @@ export function summarizeStatus(rows: ColaboradorStatusRow[]): ProdutividadeSumm
     entregas_total > 0 && custo_periodo_total > 0
       ? Number((custo_periodo_total / entregas_total).toFixed(2))
       : null;
+  const receita_total = Number(
+    rows.reduce((acc, r) => acc + (r.receita_periodo ?? 0), 0).toFixed(2),
+  );
+  const lucro_total = Number((receita_total - custo_periodo_total).toFixed(2));
   const tarefas_atrasadas_total = rows.reduce((acc, r) => acc + r.tarefas_atrasadas, 0);
   const capturas_atrasadas_total = rows.reduce((acc, r) => acc + r.capturas_atrasadas, 0);
   const colaboradores_com_atraso = rows.filter(
@@ -498,6 +599,9 @@ export function summarizeStatus(rows: ColaboradorStatusRow[]): ProdutividadeSumm
     custo_hora_medio,
     entregas_total,
     custo_por_entrega,
+    faturamento_periodo: Number(faturamento.toFixed(2)),
+    receita_total,
+    lucro_total,
     tarefas_atrasadas_total,
     capturas_atrasadas_total,
     colaboradores_com_atraso,
