@@ -11,6 +11,7 @@ import {
 import { aggregateAnuncios } from "@/lib/ecommerce/aggregate";
 import { NovoAnuncioButton } from "@/components/ecommerce/NovoAnuncioButton";
 import { AnunciosList } from "@/components/ecommerce/AnunciosList";
+import { AnunciosResumo } from "@/components/ecommerce/AnunciosResumo";
 import { PainelEcommerce } from "@/components/ecommerce/PainelEcommerce";
 import { FiltroPeriodo } from "@/components/ecommerce/FiltroPeriodo";
 import { canAccessEcommerce } from "@/lib/ecommerce/access";
@@ -112,12 +113,15 @@ export default async function EcommercePage({
       {tab === "painel" && chefia ? (
         <PainelEcommerce agg={agg} />
       ) : (
-        <AnunciosList
-          anuncios={anuncios}
-          clientes={clientes}
-          mostrarAssessor={chefia}
-          podeArquivar={true}
-        />
+        <div className="space-y-5">
+          <AnunciosResumo agg={agg} lancamentos={anuncios.length} />
+          <AnunciosList
+            anuncios={anuncios}
+            clientes={clientes}
+            mostrarAssessor={chefia}
+            podeArquivar={true}
+          />
+        </div>
       )}
     </div>
   );
