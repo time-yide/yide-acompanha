@@ -124,7 +124,7 @@ export function MonthView({ gridStart, refMonth, events }: Props) {
                     if (e.freela?.reservadoDeOutro) {
                       return (
                         <div key={e.id} className="truncate rounded border border-dashed border-muted-foreground/50 bg-muted/60 px-1 text-[10px] text-muted-foreground" title="Indisponível — freela">
-                          🔒 {e.freela.dono_nome ?? "Freela"}
+                          Indisp. — {e.freela.dono_nome ?? "Freela"}
                         </div>
                       );
                     }

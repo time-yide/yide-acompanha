@@ -15,7 +15,7 @@ export async function checarFreelaVideomaker(params: {
 }): Promise<string | null> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
-  const { data } = await sb
+  const { data, error } = await sb
     .from("freela_oportunidades")
     .select("titulo, data_hora, duracao_min")
     .eq("pego_por", params.videomakerId)
@@ -23,6 +23,11 @@ export async function checarFreelaVideomaker(params: {
     .not("data_hora", "is", null)
     .is("deleted_at", null)
     .lt("data_hora", params.fimUtc);
+  // Fail-safe: se a checagem falhar, BLOQUEIA (não deixa passar calado num gate rígido).
+  if (error) {
+    console.error("[freela-check] checarFreelaVideomaker", error.message);
+    return `Não foi possível verificar a agenda de ${params.nome} (freela). Tente de novo.`;
+  }
   const hit = freelaColidente(
     (data ?? []) as { titulo: string; data_hora: string; duracao_min: number }[],
     params.inicioUtc,
