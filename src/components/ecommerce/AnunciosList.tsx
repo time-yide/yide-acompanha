@@ -92,6 +92,7 @@ export function AnunciosList({ anuncios, clientes, mostrarAssessor, podeArquivar
 
       {editando && (
         <AnuncioFormModal
+          key={editando.id}
           clientes={clientes}
           titulo="Editar lançamento"
           initial={{
