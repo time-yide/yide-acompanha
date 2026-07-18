@@ -1,6 +1,5 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Activity, Info, AlertTriangle, ChevronRight } from "lucide-react";
+import { Activity, Info } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import { TabsColaboradores } from "@/components/colaboradores/TabsColaboradores";
 import {
@@ -63,15 +62,6 @@ export default async function ProdutividadePage({
   // Coordenador de audiovisual não vê nada financeiro (custo/receita/lucro).
   const mostrarFinanceiro = user.role !== "audiovisual_chefe";
 
-  // Top 5 com mais atrasados - destaque pra coord agir
-  const comAtraso = rows
-    .filter((r) => r.tarefas_atrasadas + r.capturas_atrasadas > 0)
-    .sort(
-      (a, b) =>
-        b.tarefas_atrasadas + b.capturas_atrasadas - (a.tarefas_atrasadas + a.capturas_atrasadas),
-    )
-    .slice(0, 5);
-
   return (
     <div className="space-y-6">
       <TabsColaboradores active="produtividade" canSeeProdutividade />
@@ -93,59 +83,6 @@ export default async function ProdutividadePage({
       </header>
 
       <ProdutividadeSummaryCards summary={summary} periodoLabel={PERIODO_LABEL[range]} mostrarFinanceiro={mostrarFinanceiro} />
-
-      {comAtraso.length > 0 && (
-        <section className="rounded-xl border border-rose-500/30 bg-rose-500/[0.04] p-4">
-          <div className="mb-3 flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-rose-600 dark:text-rose-400" />
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-rose-700 dark:text-rose-300">
-              Quem está com atrasos
-            </h2>
-          </div>
-          <ul className="space-y-1.5">
-            {comAtraso.map((r) => {
-              const total = r.tarefas_atrasadas + r.capturas_atrasadas;
-              // Link "principal" da linha aponta pro recurso com mais atraso -
-              // tarefas tem URL filtrável por usuário; capturas tem só a aba.
-              const primaryHref =
-                r.tarefas_atrasadas >= r.capturas_atrasadas
-                  ? `/tarefas?aba=todas&view=list&atribuido=${r.user_id}`
-                  : `/audiovisual?tab=pendente_entrega`;
-              return (
-                <li key={r.user_id}>
-                  <Link
-                    href={primaryHref}
-                    className="group flex items-center justify-between gap-3 rounded-md bg-card/60 px-3 py-2 text-sm transition-colors hover:bg-card"
-                  >
-                    <span className="font-medium">{r.nome}</span>
-                    <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                      {r.tarefas_atrasadas > 0 && (
-                        <span className="underline-offset-2 group-hover:underline">
-                          {r.tarefas_atrasadas} tarefa{r.tarefas_atrasadas === 1 ? "" : "s"}
-                        </span>
-                      )}
-                      {r.capturas_atrasadas > 0 && (
-                        <span className="underline-offset-2 group-hover:underline">
-                          {r.capturas_atrasadas} captura{r.capturas_atrasadas === 1 ? "" : "s"}
-                        </span>
-                      )}
-                    </span>
-                    <span className="inline-flex items-center gap-1">
-                      <span className="inline-flex h-6 min-w-[24px] items-center justify-center rounded-full bg-rose-500/20 px-2 text-xs font-bold tabular-nums text-rose-700 dark:text-rose-300">
-                        {total}
-                      </span>
-                      <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60 transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-          <p className="mt-2 text-[10px] text-muted-foreground">
-            Clica numa linha pra abrir as tarefas atrasadas dessa pessoa (ou aba de capturas pendentes).
-          </p>
-        </section>
-      )}
 
       <section>
         <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
