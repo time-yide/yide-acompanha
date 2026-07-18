@@ -9,6 +9,7 @@ import {
   SESSAO_GAP_SECONDS,
 } from "./schema";
 import { formatIsoDate, getAppTimezoneOffsetMs } from "@/lib/datetime/timezone";
+import { isTarefaAtrasadaParaCargo } from "@/lib/tarefas/overdue-rules";
 
 export interface ColaboradorStatusRow {
   user_id: string;
@@ -76,6 +77,7 @@ interface VideomakerCaptureRow {
 
 interface OverdueTaskRow {
   atribuido_a: string;
+  status: string;
 }
 
 interface OverdueCaptureRow {
@@ -227,15 +229,15 @@ export async function getColaboradoresStatus(
       .gte("completed_at", sinceStartUtc)
       .lt("completed_at", tomorrowStartUtc)
       .not("atribuido_a", "is", null),
-    // Tarefas atrasadas — MESMA definição de countOverdueTasksForUser
-    // (tarefas/queries.ts): prazo vencido, não deletada/arquivada e ainda não
-    // finalizada. Exclui "concluida" (pessoa já entregou) e "postada", e ignora
-    // tarefas com deleted_at — senão o contador infla com tarefas mortas/antigas.
+    // Candidatas a atrasada: prazo vencido, não deletada, ainda não postada
+    // (postada é entregue pra todo cargo). O critério final é POR CARGO —
+    // aplicado em JS via isTarefaAtrasadaParaCargo (operacional entrega em
+    // "concluida"; assessor/adm/etc só em "postada"). Traz status pra decidir.
     sb
       .from("tasks")
-      .select("atribuido_a")
+      .select("atribuido_a, status")
       .is("deleted_at", null)
-      .not("status", "in", "(concluida,postada)")
+      .neq("status", "postada")
       .lt("due_date", today)
       .not("atribuido_a", "is", null),
     // Capturas potencialmente atrasadas: scheduled, no passado, deadline pode ter passado
@@ -258,6 +260,8 @@ export async function getColaboradoresStatus(
     console.error("[produtividade/queries] profiles select failed:", profilesError);
   }
   const profiles = (profilesData ?? []) as ProfileRow[];
+  // Cargo por user — o critério de "atrasada" depende dele (ver overdue-rules).
+  const roleByUser = new Map<string, string>(profiles.map((p) => [p.id, p.role]));
   const events = (eventsData ?? []) as EventRow[];
   const captures = (capturesData ?? []) as VideomakerCaptureRow[];
   const entregas = (entregasData ?? []) as DeliveryRow[];
@@ -323,9 +327,13 @@ export async function getColaboradoresStatus(
     );
   }
 
-  // Tarefas atrasadas por user_id
+  // Tarefas atrasadas por user_id — critério por cargo (operacional entrega em
+  // "concluida"; assessor/adm/etc só em "postada").
   const tarefasAtrasadasByUser = new Map<string, number>();
   for (const t of overdueTasks) {
+    if (!isTarefaAtrasadaParaCargo(t.status, roleByUser.get(t.atribuido_a))) {
+      continue;
+    }
     tarefasAtrasadasByUser.set(
       t.atribuido_a,
       (tarefasAtrasadasByUser.get(t.atribuido_a) ?? 0) + 1,
