@@ -27,6 +27,9 @@ export interface MetricaPessoa {
 const AUDIOVISUAL = new Set(["videomaker", "editor", "fast_midia", "audiovisual_chefe"]);
 const ECOMMERCE = new Set(["assessor_ecommerce", "assistente_ecommerce"]);
 
+/** Produtores audiovisuais individuais. EXCLUI `audiovisual_chefe` de propósito:
+ *  o coordenador entra no setor "audiovisual" (roleParaSetor) mas NÃO usa o
+ *  fallback de "entregas" na tabela. NÃO troque por `AUDIOVISUAL.has(role)`. */
 export function isRoleAudiovisual(role: string): boolean {
   return role === "videomaker" || role === "editor" || role === "fast_midia";
 }

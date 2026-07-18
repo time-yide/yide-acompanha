@@ -73,7 +73,7 @@ export default async function ProdutividadePage({
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Produtividade</h1>
             <p className="text-sm text-muted-foreground">
-              Atividade em tempo real, ranking e custo da equipe - atualiza a cada 30s.
+              Atividade em tempo real, ranking e produtividade da equipe - atualiza a cada 30s.
             </p>
           </div>
         </div>
@@ -186,24 +186,28 @@ export default async function ProdutividadePage({
               não concluídas com prazo vencido + capturas de videomaker que
               passaram da deadline (D+1 às 9h) sem entrega.
             </p>
-            <p>
-              <strong className="text-foreground">Custo do período:</strong>{" "}
-              salário fixo que se paga de fato —{" "}
-              <code>(fixo_mensal ÷ 22 dias úteis) × dias úteis decorridos</code>,
-              independente de atividade.
-            </p>
-            <p>
-              <strong className="text-foreground">Receita / Lucro:</strong>{" "}
-              faturamento do período (carteira ativa pró-rata) ÷ total de entregas
-              = valor por entrega. Receita = valor × entregas da pessoa; lucro =
-              receita − custo do salário.
-            </p>
-            <p>
-              <strong className="text-foreground">Time Audiovisual:</strong>{" "}
-              o coordenador é medido pelo time — lucro = receita dos produtores −
-              (custo deles + salário do coordenador). Coordenador geral e sócia
-              ficam fora do cálculo.
-            </p>
+            {mostrarFinanceiro && (
+              <>
+                <p>
+                  <strong className="text-foreground">Custo do período:</strong>{" "}
+                  salário fixo que se paga de fato —{" "}
+                  <code>(fixo_mensal ÷ 22 dias úteis) × dias úteis decorridos</code>,
+                  independente de atividade.
+                </p>
+                <p>
+                  <strong className="text-foreground">Receita / Lucro:</strong>{" "}
+                  faturamento do período (carteira ativa pró-rata) ÷ total de entregas
+                  = valor por entrega. Receita = valor × entregas da pessoa; lucro =
+                  receita − custo do salário.
+                </p>
+                <p>
+                  <strong className="text-foreground">Time Audiovisual:</strong>{" "}
+                  o coordenador é medido pelo time — lucro = receita dos produtores −
+                  (custo deles + salário do coordenador). Coordenador geral e sócia
+                  ficam fora do cálculo.
+                </p>
+              </>
+            )}
             <p className="mt-2 rounded-md bg-muted/40 p-2 text-[10px]">
               Monitoramento de apps do desktop, mouse/teclado e ociosidade
               exige app nativo (Tauri/Electron) - Fase 3 do roadmap.
