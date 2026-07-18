@@ -7,6 +7,7 @@ import { transicaoValida } from "./pontos";
 import type { StatusOp } from "./tipos";
 import { criarOportunidadeSchema, editarOportunidadeSchema, moverStatusSchema, definirMetaSchema, normalizeUrgencia } from "./schema";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
+import { verificarConquistas } from "./verificar-conquistas";
 import { brtInputToUtcIso, formatBrtDate, formatBrtTime } from "@/lib/calendario/timezone";
 
 interface Ok { success: true }
@@ -181,6 +182,8 @@ export async function pegarOportunidadeAction(id: string): Promise<Result> {
     }
   }
 
+  await verificarConquistas(actor.id); // best-effort (não lança)
+
   revalidatePath("/freela-yide");
   return { success: true };
 }
@@ -208,6 +211,10 @@ export async function moverStatusAction(formData: FormData): Promise<Result> {
 
   const { error } = await sb.from("freela_oportunidades").update(patch).eq("id", parsed.data.id);
   if (error) return { error: error.message };
+
+  // Crédito da conquista vai pra quem PEGOU a freela, mesmo que a gestão que moveu.
+  if (op.pego_por) await verificarConquistas(op.pego_por as string); // best-effort
+
   revalidatePath("/freela-yide");
   return { success: true };
 }

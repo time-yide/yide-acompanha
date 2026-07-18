@@ -2,6 +2,7 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { calcularPontos } from "./pontos";
 import { agregarPagamentos, type MesPagamentos, type PagamentoInput } from "./pagamentos";
+import type { ConquistaStats } from "./conquistas";
 import type { StatusOp, TipoOp } from "./tipos";
 
 export interface OportunidadeRow {
@@ -305,4 +306,41 @@ export async function getPagamentosPorMes(orgId: string): Promise<MesPagamentos[
     pego_em: r.pego_em as string,
   }));
   return agregarPagamentos(rows);
+}
+
+/**
+ * Totais acumulados do colaborador pra derivar conquistas.
+ * Sem filtro de org de propósito: um profile pertence a uma única organização e só
+ * pega freelas da própria org, então `pego_por = userId` já é naturalmente escopado.
+ */
+export async function getConquistaStats(userId: string): Promise<ConquistaStats> {
+  const sb = createServiceRoleClient() as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  const { data, error } = await sb.from("freela_oportunidades")
+    .select("status, valor_comissao")
+    .eq("pego_por", userId).is("deleted_at", null);
+  if (error) { console.error("[freelayide] getConquistaStats", error.message); return { pegas: 0, fechamentos: 0, pequenasFechadas: 0, valorFechado: 0 }; }
+  let pegas = 0, fechamentos = 0, pequenasFechadas = 0, valorFechado = 0;
+  for (const r of (data ?? []) as Array<Record<string, unknown>>) {
+    pegas += 1;
+    if (r.status === "fechada") {
+      const valor = Number(r.valor_comissao ?? 0);
+      fechamentos += 1;
+      valorFechado += valor;
+      if (valor <= 100) pequenasFechadas += 1;
+    }
+  }
+  return { pegas, fechamentos, pequenasFechadas, valorFechado };
+}
+
+/** Conquistas já desbloqueadas pelo usuário: mapa conquista_key -> unlocked_at (ISO). */
+export async function getConquistasDesbloqueadas(userId: string): Promise<Record<string, string>> {
+  const sb = createServiceRoleClient() as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  const { data, error } = await sb.from("freela_conquistas")
+    .select("conquista_key, unlocked_at").eq("user_id", userId);
+  if (error) { console.error("[freelayide] getConquistasDesbloqueadas", error.message); return {}; }
+  const map: Record<string, string> = {};
+  for (const r of (data ?? []) as Array<Record<string, unknown>>) {
+    map[r.conquista_key as string] = r.unlocked_at as string;
+  }
+  return map;
 }
