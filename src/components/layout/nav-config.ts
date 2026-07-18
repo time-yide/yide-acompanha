@@ -97,6 +97,7 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
       { type: "link", href: "/freela-yide", icon: Zap, label: "FreelaYide", roles: ["adm", "socio", "comercial", "coordenador", "assessor", "designer", "videomaker", "fast_midia", "editor", "audiovisual_chefe"], badgeKey: null },
       { type: "link", href: "/ecommerce", icon: ShoppingCart, label: "E-commerce", roles: ["adm", "socio", "assessor_ecommerce", "assistente_ecommerce"], badgeKey: null },
       { type: "link", href: "/programacao", icon: Code2, label: "Programação", roles: ["adm", "socio", "programacao"], badgeKey: null },
+      { type: "link", href: "/programacao/clientes", icon: Users, label: "Clientes", roles: ["programacao"], badgeKey: null },
       // Label "Estratégia" — engloba Painel Mensal + Agendamento de Post + Design + Apresenta Yide.
       // URL /social-media preservada (redirect pro /painel).
       { type: "link", href: "/social-media", icon: Share2, label: "Estratégia", roles: ["adm", "socio", "coordenador", "assessor", "designer", "videomaker", "fast_midia", "editor", "audiovisual_chefe"], badgeKey: null },

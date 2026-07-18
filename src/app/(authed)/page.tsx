@@ -13,6 +13,7 @@ import { DashboardFastMidia } from "@/components/dashboard/DashboardFastMidia";
 import { DashboardDesigner } from "@/components/dashboard/DashboardDesigner";
 import { DashboardEditor } from "@/components/dashboard/DashboardEditor";
 import { DashboardAudiovisualChefe } from "@/components/dashboard/DashboardAudiovisualChefe";
+import { DashboardProgramacao } from "@/components/dashboard/DashboardProgramacao";
 import { StubGreeting } from "@/components/dashboard/StubGreeting";
 import { ImpersonateBar } from "@/components/dashboard/ImpersonateBar";
 import { UnitDashboardBanner } from "@/components/units/UnitDashboardBanner";
@@ -77,6 +78,9 @@ function renderDashboardForRole(
   }
   if (target.role === "audiovisual_chefe") {
     return <DashboardAudiovisualChefe userId={target.id} nome={target.nome} periodo={periodo} />;
+  }
+  if (target.role === "programacao") {
+    return <DashboardProgramacao userId={target.id} nome={target.nome} />;
   }
   return <StubGreeting nome={target.nome} />;
 }

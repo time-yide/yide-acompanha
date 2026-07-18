@@ -95,3 +95,35 @@ export async function listLancamentos(
     created_at: r.created_at as string,
   }));
 }
+
+export interface ClienteAssessorRow {
+  id: string;
+  nome: string;
+  assessor_nome: string | null;
+}
+
+/** Clientes da org (não deletados) + nome do assessor responsável. Busca por nome. */
+export async function listClientesComAssessor(
+  orgId: string,
+  q?: string | null,
+): Promise<ClienteAssessorRow[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = createServiceRoleClient() as any;
+  let query = sb
+    .from("clients")
+    .select("id, nome, assessor:profiles!clients_assessor_id_fkey(nome)")
+    .eq("organization_id", orgId)
+    .is("deleted_at", null);
+  if (q) query = query.ilike("nome", `%${q}%`);
+  query = query.order("nome");
+  const { data, error } = await query;
+  if (error) {
+    console.error("[programacao] listClientesComAssessor", error.message);
+    return [];
+  }
+  return ((data ?? []) as Array<Record<string, unknown>>).map((r) => ({
+    id: r.id as string,
+    nome: r.nome as string,
+    assessor_nome: ((r.assessor as { nome?: string } | null) ?? null)?.nome ?? null,
+  }));
+}
