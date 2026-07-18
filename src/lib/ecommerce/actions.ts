@@ -10,15 +10,12 @@ import {
   updateAnuncioSchema,
   arquivarAnuncioSchema,
 } from "./schema";
+import { canAccessEcommerce } from "./access";
 
 interface Ok { success: true }
 interface Err { error: string }
 type Result = Ok | Err;
 
-const ROLES_LANCAM = ["adm", "socio", "assessor_ecommerce", "assistente_ecommerce"] as const;
-function podeLancar(role: string) {
-  return (ROLES_LANCAM as readonly string[]).includes(role);
-}
 function fd(f: FormData, k: string): string | null {
   const v = f.get(k);
   if (typeof v !== "string") return null;
@@ -28,7 +25,7 @@ function fd(f: FormData, k: string): string | null {
 
 export async function criarAnuncioAction(formData: FormData): Promise<Result> {
   const actor = await requireAuth();
-  if (!podeLancar(actor.role)) return { error: "Sem permissão" };
+  if (!canAccessEcommerce(actor.role, actor.especialidade)) return { error: "Sem permissão" };
   const parsed = criarAnuncioSchema.safeParse({
     client_id: fd(formData, "client_id"),
     data: fd(formData, "data"),
@@ -69,7 +66,7 @@ export async function criarAnuncioAction(formData: FormData): Promise<Result> {
 
 export async function updateAnuncioAction(formData: FormData): Promise<Result> {
   const actor = await requireAuth();
-  if (!podeLancar(actor.role)) return { error: "Sem permissão" };
+  if (!canAccessEcommerce(actor.role, actor.especialidade)) return { error: "Sem permissão" };
   const parsed = updateAnuncioSchema.safeParse({
     id: fd(formData, "id"),
     client_id: fd(formData, "client_id"),
@@ -107,7 +104,7 @@ export async function updateAnuncioAction(formData: FormData): Promise<Result> {
 
 export async function arquivarAnuncioAction(formData: FormData): Promise<Result> {
   const actor = await requireAuth();
-  if (!podeLancar(actor.role)) return { error: "Sem permissão" };
+  if (!canAccessEcommerce(actor.role, actor.especialidade)) return { error: "Sem permissão" };
   const parsed = arquivarAnuncioSchema.safeParse({ id: fd(formData, "id") });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const orgId = await getOrganizationId(actor.id);
