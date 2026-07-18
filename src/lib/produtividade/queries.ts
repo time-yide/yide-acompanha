@@ -57,7 +57,8 @@ export interface ColaboradorStatusRow {
    * de atividade. Null quando não há fixo cadastrado.
    */
   custo_periodo: number | null;
-  /** Entregas no período: tarefas que viraram "postada" no range. */
+  /** Entregas no período por cargo: operacional conta "concluida"/"postada",
+   *  demais só "postada"; videomaker soma capturas entregues (audiovisual_capturas). */
   entregas_periodo: number;
   /**
    * Custo por entrega: custo_periodo ÷ entregas_periodo. Quanto de salário
@@ -299,7 +300,7 @@ export async function getColaboradoresStatus(
       .not("event_id", "is", null),
     // Carteira mensal (MRR) — faturamento base. valor_mensal já é 0 pra
     // parceria/permuta (forçado na escrita), então soma direto os ativos.
-    sb.from("clients").select("status, valor_mensal").is("deleted_at", null),
+    sb.from("clients").select("valor_mensal").eq("status", "ativo").is("deleted_at", null),
     // Capturas entregues no período (material subido) — entrega de gravação do
     // videomaker. created_at = quando subiu. Some às entregas dele.
     sb
@@ -333,8 +334,7 @@ export async function getColaboradoresStatus(
   const diasUteis = diasUteisDecorridos(since, today);
   // Faturamento pró-rata do período: carteira ativa ÷ 22 dias úteis × dias
   // decorridos — mesma base do custo, pra numerador e denominador baterem.
-  const carteiraMensal = ((clientsData ?? []) as Array<{ status: string; valor_mensal: number | string }>)
-    .filter((c) => c.status === "ativo")
+  const carteiraMensal = ((clientsData ?? []) as Array<{ valor_mensal: number | string }>)
     .reduce((acc, c) => acc + Number(c.valor_mensal), 0);
   const faturamento_periodo = faturamentoPeriodo(carteiraMensal, diasUteis, DIAS_UTEIS_MES);
 
@@ -360,7 +360,11 @@ export async function getColaboradoresStatus(
   // operacional; postada p/ resto). Depois soma capturas entregues (videomaker).
   const entregasByUser = new Map<string, number>();
   for (const t of entregas) {
-    if (!contaComoEntrega(t.status, roleByUser.get(t.atribuido_a))) continue;
+    const role = roleByUser.get(t.atribuido_a);
+    // Gestão/dona e o coord de audiovisual não produzem entrega individual —
+    // ficam fora da contagem (e do denominador do valor por entrega).
+    if (isRoleExcluido(role) || role === "audiovisual_chefe") continue;
+    if (!contaComoEntrega(t.status, role)) continue;
     entregasByUser.set(t.atribuido_a, (entregasByUser.get(t.atribuido_a) ?? 0) + 1);
   }
   const capturasEntregues = (capturasEntreguesData ?? []) as Array<{
@@ -545,8 +549,10 @@ export interface ProdutividadeSummary {
   faturamento_periodo: number;
   /** Receita atribuída somada das linhas individuais. */
   receita_total: number;
-  /** Lucro do time individual: receita_total − custo_periodo_total. */
-  lucro_total: number;
+  /** Lucro do time individual: receita_total − custo_periodo_total. Null quando
+   *  não há receita computável (sem entregas ou sem faturamento) — evita mostrar
+   *  prejuízo fictício. */
+  lucro_total: number | null;
   tarefas_atrasadas_total: number;
   capturas_atrasadas_total: number;
   colaboradores_com_atraso: number;
@@ -572,7 +578,10 @@ export function summarizeStatus(
   const receita_total = Number(
     rows.reduce((acc, r) => acc + (r.receita_periodo ?? 0), 0).toFixed(2),
   );
-  const lucro_total = Number((receita_total - custo_periodo_total).toFixed(2));
+  const lucro_total =
+    receita_total === 0
+      ? null
+      : Number((receita_total - custo_periodo_total).toFixed(2));
   const tarefas_atrasadas_total = rows.reduce((acc, r) => acc + r.tarefas_atrasadas, 0);
   const capturas_atrasadas_total = rows.reduce((acc, r) => acc + r.capturas_atrasadas, 0);
   const colaboradores_com_atraso = rows.filter(
