@@ -13,6 +13,8 @@ import {
 } from "@/lib/produtividade/queries";
 import { ProdutividadeSummaryCards } from "@/components/produtividade/ProdutividadeSummaryCards";
 import { ColaboradoresTable } from "@/components/produtividade/ColaboradoresTable";
+import { getProdutividadeSetor } from "@/lib/produtividade/setor-metricas-server";
+import { ProdutividadeSetorSection } from "@/components/produtividade/ProdutividadeSetorSection";
 import { TimeAudiovisualCard } from "@/components/produtividade/TimeAudiovisualCard";
 import { EntregaMaterialSection } from "@/components/produtividade/EntregaMaterialSection";
 import { RecentEventsFeed } from "@/components/produtividade/RecentEventsFeed";
@@ -38,13 +40,16 @@ export default async function ProdutividadePage({
     ? (rangeParam as PeriodoRange)
     : "dia";
 
-  const [statusResult, entregaMaterial, events] = await Promise.all([
+  const [statusResult, entregaMaterial, events, setorResult] = await Promise.all([
     getColaboradoresStatus(range),
     getEntregaMaterialStats(range),
     listRecentEvents(30),
+    getProdutividadeSetor(range),
   ]);
   const { rows, faturamento_periodo, time_audiovisual } = statusResult;
   const summary = summarizeStatus(rows, faturamento_periodo);
+  // Coordenador de audiovisual não vê nada financeiro (custo/receita/lucro).
+  const mostrarFinanceiro = user.role !== "audiovisual_chefe";
 
   // Top 5 com mais atrasados - destaque pra coord agir
   const comAtraso = rows
@@ -75,7 +80,7 @@ export default async function ProdutividadePage({
         <PeriodoFilter current={range} />
       </header>
 
-      <ProdutividadeSummaryCards summary={summary} periodoLabel={PERIODO_LABEL[range]} />
+      <ProdutividadeSummaryCards summary={summary} periodoLabel={PERIODO_LABEL[range]} mostrarFinanceiro={mostrarFinanceiro} />
 
       {comAtraso.length > 0 && (
         <section className="rounded-xl border border-rose-500/30 bg-rose-500/[0.04] p-4">
@@ -134,14 +139,15 @@ export default async function ProdutividadePage({
         <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
           Colaboradores · {PERIODO_LABEL[range]}
         </h2>
-        {time_audiovisual && (
+        {mostrarFinanceiro && time_audiovisual && (
           <div className="mb-3">
             <TimeAudiovisualCard time={time_audiovisual} />
           </div>
         )}
-        <ColaboradoresTable rows={rows} />
+        <ColaboradoresTable rows={rows} produtividade={setorResult.porUsuario} mostrarFinanceiro={mostrarFinanceiro} />
       </section>
 
+      <ProdutividadeSetorSection setores={setorResult.setores} />
       <EntregaMaterialSection rows={entregaMaterial} />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
