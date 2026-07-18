@@ -10,14 +10,18 @@ const DEGRAUS = [
 
 export function Podio({ top3, meId }: { top3: RankingEntry[]; meId: string }) {
   if (top3.length === 0) return null;
-  // Ordem visual do pódio: 2º à esquerda, 1º no centro (maior), 3º à direita.
-  const ordem: Array<{ pos: number; entry: RankingEntry }> = [];
-  if (top3[1]) ordem.push({ pos: 2, entry: top3[1] });
-  if (top3[0]) ordem.push({ pos: 1, entry: top3[0] });
-  if (top3[2]) ordem.push({ pos: 3, entry: top3[2] });
+  // Slots fixos (2º esquerda, 1º centro maior, 3º direita) com placeholder pros
+  // ausentes, pra o 1º ficar sempre centralizado mesmo com 1 ou 2 pessoas.
+  const slots: Array<{ pos: number; entry: RankingEntry } | null> = [
+    top3[1] ? { pos: 2, entry: top3[1] } : null,
+    top3[0] ? { pos: 1, entry: top3[0] } : null,
+    top3[2] ? { pos: 3, entry: top3[2] } : null,
+  ];
   return (
     <div className="flex items-end justify-center gap-2 rounded-xl border bg-card p-3">
-      {ordem.map(({ pos, entry }) => {
+      {slots.map((slot, i) => {
+        if (!slot) return <div key={`vazio-${i}`} className="flex-1" aria-hidden />;
+        const { pos, entry } = slot;
         const d = DEGRAUS[pos - 1];
         const ehVoce = entry.user_id === meId;
         return (
