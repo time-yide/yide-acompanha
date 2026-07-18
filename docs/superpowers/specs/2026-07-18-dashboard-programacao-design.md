@@ -40,6 +40,15 @@ Importa `DashboardProgramacao` e adiciona, ANTES do `return <StubGreeting .../>`
   }
 ```
 
+## Parte B — página de Clientes (`/programacao/clientes`)
+
+A programadora precisa consultar **quem é o assessor responsável** por cada cliente. Página própria, só-leitura, sem financeiro.
+
+- **Rota:** `src/app/(authed)/programacao/clientes/page.tsx`. Guarda `canAccessProgramacao(user.role)` senão `notFound()`; `getOrganizationId` senão `notFound()`.
+- **Conteúdo:** título "Clientes" + campo de busca por nome (`?q=`, server-side) + lista **nome do cliente · assessor responsável**. Sem `valor_mensal`/status/financeiro.
+- **Query** (nova em `src/lib/programacao/queries.ts`): `listClientesComAssessor(orgId, q?)` — `clients` (`deleted_at is null`, `nome ilike %q%` quando `q`), embed do assessor (`clients.assessor_id` → `profiles.nome`), ordenado por nome. Retorna `{ id, nome, assessor_nome: string | null }[]`. Sem assessor → mostra "—".
+- **Menu:** item "Clientes" (ícone `Users`) apontando pra `/programacao/clientes`, `roles: ["programacao"]` (adm/sócio já têm o `/clientes` real). Como o cargo `programacao` só vê links que listam `"programacao"`, aparece só pra ela.
+
 ## Casos de borda
 
 - Migration `lancamentos_programacao` não aplicada / sem org → `listLancamentos` cai em `[]` (catch + log); cards mostram 0 e "Nenhum lançamento este mês". Não quebra.
@@ -53,8 +62,8 @@ Importa `DashboardProgramacao` e adiciona, ANTES do `return <StubGreeting .../>`
 
 ## Arquivos
 
-- **Novos:** `src/components/dashboard/DashboardProgramacao.tsx`; a função pura `resumoLancamentos` + seu teste (em `src/lib/programacao/resumo.ts` + `resumo.test.ts`, ou co-localizada — ver plano).
-- **Editado:** `src/app/(authed)/page.tsx` (caso do cargo `programacao`).
+- **Novos:** `src/components/dashboard/DashboardProgramacao.tsx`; função pura `resumoLancamentos` + teste (`src/lib/programacao/resumo.ts` + `resumo.test.ts`); página `src/app/(authed)/programacao/clientes/page.tsx`.
+- **Editados:** `src/app/(authed)/page.tsx` (caso do cargo `programacao`); `src/lib/programacao/queries.ts` (`listClientesComAssessor`); `src/components/layout/nav-config.ts` (item "Clientes" pra programacao).
 - **Sem migration.**
 
 ## Fora de escopo
