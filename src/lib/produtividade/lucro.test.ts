@@ -20,6 +20,10 @@ describe("contaComoEntrega", () => {
     expect(contaComoEntrega("concluida", "assessor")).toBe(false);
     expect(contaComoEntrega("postada", "assessor")).toBe(true);
   });
+  it("audiovisual_chefe/coordenador herdam operacional (o denominador os filtra fora na query)", () => {
+    expect(contaComoEntrega("concluida", "audiovisual_chefe")).toBe(true);
+    expect(contaComoEntrega("concluida", "coordenador")).toBe(true);
+  });
 });
 
 describe("faturamentoPeriodo", () => {

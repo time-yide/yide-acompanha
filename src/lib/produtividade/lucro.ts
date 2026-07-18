@@ -35,7 +35,8 @@ export function faturamentoPeriodo(
   diasUteisMes: number,
 ): number {
   if (diasUteisMes <= 0) return 0;
-  return Number(((carteiraMensal / diasUteisMes) * diasUteis).toFixed(2));
+  const dias = Math.max(0, diasUteis);
+  return Number(((carteiraMensal / diasUteisMes) * dias).toFixed(2));
 }
 
 /** Valor de 1 entrega no período. Null se não há entregas ou faturamento. */
