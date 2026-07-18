@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth/session";
 import { getOrganizationId, listOportunidades, listMinhas, getRanking, getHistorico, getMetaAtual, getStats } from "@/lib/freela-yide/queries";
 import { FreelaHero } from "@/components/freela-yide/FreelaHero";
+import { calcularRival } from "@/lib/freela-yide/rivalidade";
 import { MetaCard } from "@/components/freela-yide/MetaCard";
 import { OportunidadesGrid } from "@/components/freela-yide/OportunidadesGrid";
 import { MinhasOportunidades } from "@/components/freela-yide/MinhasOportunidades";
@@ -35,9 +36,14 @@ export default async function FreelaYidePage() {
     getStats(orgId, user.id),
   ]);
 
+  // XP do nível = pontos acumulados de todos os tempos (historico.geral). 0 se ainda não pontuou.
+  const xpTotal = historico.geral.find((g) => g.user_id === user.id)?.pontos ?? 0;
+  // Rivalidade: quem está logo acima no ranking do mês corrente.
+  const rival = calcularRival(ranking, user.id);
+
   return (
     <div className="space-y-6">
-      <FreelaHero stats={stats} />
+      <FreelaHero stats={stats} xpTotal={xpTotal} rival={rival} />
 
       <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
         <div className="space-y-6">
