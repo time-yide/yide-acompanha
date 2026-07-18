@@ -1,5 +1,7 @@
-import { Wallet, Users, TrendingDown, Percent, Sparkles, DollarSign, Receipt, Clock } from "lucide-react";
+import { Wallet, Users, TrendingDown, Percent, Sparkles, DollarSign, Receipt } from "lucide-react";
 import { KpiCard } from "./KpiCard";
+import { ChurnMensalCard } from "./ChurnMensalCard";
+import type { ChurnMensalPoint } from "@/lib/dashboard/churn-historico";
 import { Money, Count } from "./HiddenValuesContext";
 import type { KpiData } from "@/lib/dashboard/queries";
 import { getCurrentMonthYM } from "@/lib/datetime/timezone";
@@ -14,7 +16,7 @@ function formatDeltaCount(v: number): { valor: React.ReactNode; direction: "up" 
   return { valor: <Count value={Math.abs(v)} />, direction: v > 0 ? "up" : "down" };
 }
 
-export function KpiRow({ kpis }: { kpis: KpiData }) {
+export function KpiRow({ kpis, churnHistorico }: { kpis: KpiData; churnHistorico: ChurnMensalPoint[] }) {
   const pontuais = kpis.servicosPontuais;
   // Mês atual no fuso da app (Cuiabá UTC-4) - usado no link de drill-down "Churn do mês"
   const mesAtual = getCurrentMonthYM();
@@ -52,11 +54,10 @@ export function KpiRow({ kpis }: { kpis: KpiData }) {
         helperText="por mensal ativo"
         icon={Receipt}
       />
-      <KpiCard
-        label="Tempo médio de casa"
-        valor={tempoDisplay.node}
-        helperText={tempoDisplay.helper}
-        icon={Clock}
+      <ChurnMensalCard
+        tempoNode={tempoDisplay.node}
+        helper={tempoDisplay.helper}
+        historico={churnHistorico}
       />
       <KpiCard
         label="Churn do mês"

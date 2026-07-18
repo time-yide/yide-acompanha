@@ -11,9 +11,11 @@ interface Props {
   helperText?: ReactNode;
   /** Quando passado, o card vira link clicável. */
   href?: string;
+  /** Quando passado (e sem href), o card vira um botão clicável que dispara isto. */
+  onClick?: () => void;
 }
 
-export function KpiCard({ label, valor, delta, icon: Icon, helperText, href }: Props) {
+export function KpiCard({ label, valor, delta, icon: Icon, helperText, href, onClick }: Props) {
   const deltaColor =
     delta?.direction === "up"
       ? "text-green-600 dark:text-green-400"
@@ -22,7 +24,7 @@ export function KpiCard({ label, valor, delta, icon: Icon, helperText, href }: P
         : "text-muted-foreground";
 
   const containerClasses = `rounded-xl border bg-card p-3 space-y-1 sm:p-4 ${
-    href ? "transition-colors hover:bg-muted/40 hover:border-primary/40 cursor-pointer" : ""
+    href || onClick ? "transition-colors hover:bg-muted/40 hover:border-primary/40 cursor-pointer" : ""
   }`;
 
   const content = (
@@ -45,6 +47,14 @@ export function KpiCard({ label, valor, delta, icon: Icon, helperText, href }: P
       )}
     </>
   );
+
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={`block w-full text-left ${containerClasses}`}>
+        {content}
+      </button>
+    );
+  }
 
   if (href) {
     return (
