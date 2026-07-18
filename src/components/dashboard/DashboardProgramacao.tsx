@@ -5,18 +5,19 @@ import { HiddenValuesProvider, HiddenValueToggle } from "./HiddenValuesContext";
 import { getOrganizationId } from "@/lib/gerador-leads/queries";
 import { listLancamentos } from "@/lib/programacao/queries";
 import { resumoLancamentos } from "@/lib/programacao/resumo";
+import { getCurrentMonthYM, getTodayDate } from "@/lib/datetime/timezone";
 
 interface Props {
   userId: string;
   nome: string;
 }
 
+// Datas no fuso da app (Cuiabá) — não usar UTC/local puro (erra no boundary de meia-noite).
 function inicioDoMes(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+  return `${getCurrentMonthYM()}-01`;
 }
 function hoje(): string {
-  return new Date().toISOString().slice(0, 10);
+  return getTodayDate();
 }
 function formatarDataBR(iso: string): string {
   const [y, m, d] = iso.split("-");
