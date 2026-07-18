@@ -10,20 +10,16 @@ import { ResumoSubidos } from "@/components/freela-yide/ResumoSubidos";
 import { RankingPainel } from "@/components/freela-yide/RankingPainel";
 import { NovaOportunidadeButton } from "@/components/freela-yide/NovaOportunidadeButton";
 import { DefinirMetaButton } from "@/components/freela-yide/DefinirMetaButton";
-
-const ALLOWED = ["adm", "socio", "comercial", "coordenador", "assessor", "designer", "videomaker", "editor", "audiovisual_chefe"];
-const GESTAO = ["adm", "socio"];
-// Quem pode subir/criar freela: gestão + coordenador audiovisual + assessor.
-const PODE_CRIAR = ["adm", "socio", "audiovisual_chefe", "assessor"];
+import { ROLES_ALLOWED, ROLES_GESTAO, ROLES_PODE_CRIAR } from "@/lib/freela-yide/acesso";
 
 export default async function FreelaYidePage() {
   const user = await requireAuth();
-  if (!ALLOWED.includes(user.role)) notFound();
+  if (!ROLES_ALLOWED.includes(user.role)) notFound();
   const orgId = await getOrganizationId(user.id);
   if (!orgId) notFound();
 
-  const gestao = GESTAO.includes(user.role);
-  const podeCriar = PODE_CRIAR.includes(user.role);
+  const gestao = ROLES_GESTAO.includes(user.role);
+  const podeCriar = ROLES_PODE_CRIAR.includes(user.role);
   const podePegar = user.role !== "adm"; // adm não pega freela
 
   const [todas, minhas, todasLancadas, ranking, historico, meta, stats] = await Promise.all([
