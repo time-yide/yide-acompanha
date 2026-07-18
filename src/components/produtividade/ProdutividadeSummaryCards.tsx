@@ -102,7 +102,9 @@ const CARDS = [
     getValue: (s: ProdutividadeSummary) =>
       s.lucro_total !== null ? formatBRL(s.lucro_total) : "—",
     getHint: (s: ProdutividadeSummary) =>
-      `${formatBRL(s.receita_total)} receita − ${formatBRL(s.custo_periodo_total)} custo`,
+      s.lucro_total !== null
+        ? `${formatBRL(s.receita_total)} receita − ${formatBRL(s.custo_periodo_total)} custo`
+        : "sem entregas no período pra atribuir receita",
   },
 ] as const;
 

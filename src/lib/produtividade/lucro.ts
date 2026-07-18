@@ -21,6 +21,12 @@ export function isRoleTimeAudiovisual(role: string | null | undefined): boolean 
  * Uma tarefa conta como entrega da pessoa? Operacional (produção) entrega ao
  * chegar em "Concluído operacional" (`concluida`) — e `postada` implica que
  * passou por lá. Demais cargos só entregam em `postada`.
+ *
+ * Modela SÓ o status de entrega por cargo — NÃO a inclusão na produtividade.
+ * `audiovisual_chefe` e `coordenador` estão em `ROLES_ENTREGA_OPERACIONAL` (pra
+ * regra de atraso) e portanto retornam `true` aqui. Cabe ao CHAMADOR filtrar
+ * gestão/dona antes: `isRoleExcluido(role) || role === "audiovisual_chefe"`
+ * (ver getColaboradoresStatus). Não chame isto sem esse pré-filtro.
  */
 export function contaComoEntrega(status: string, role: string | null | undefined): boolean {
   const operacional = (ROLES_ENTREGA_OPERACIONAL as readonly string[]).includes(role ?? "");

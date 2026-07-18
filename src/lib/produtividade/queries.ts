@@ -371,6 +371,10 @@ export async function getColaboradoresStatus(
     videomaker_id: string;
     created_at: string;
   }>;
+  // Captura e edição são entregas DISTINTAS (a do videomaker = gravação +
+  // edição): capturas vivem em `audiovisual_capturas`, edições são tasks em
+  // `concluida` — somar as duas é intencional, não duplica. Sem guard de cargo
+  // aqui: quem não é produtor individual já é filtrado do denominador adiante.
   for (const c of capturasEntregues) {
     entregasByUser.set(c.videomaker_id, (entregasByUser.get(c.videomaker_id) ?? 0) + 1);
   }
@@ -578,6 +582,10 @@ export function summarizeStatus(
   const receita_total = Number(
     rows.reduce((acc, r) => acc + (r.receita_periodo ?? 0), 0).toFixed(2),
   );
+  // custo_periodo_total trata salário ausente como 0 (custo desconhecido), então
+  // o lucro do time pode ser um pouco maior que a soma dos lucros por linha
+  // (linhas sem salário mostram lucro "—" mas contribuem receita aqui). Escolha
+  // consciente: o agregado assume custo 0 pra quem não tem salário cadastrado.
   const lucro_total =
     receita_total === 0
       ? null
