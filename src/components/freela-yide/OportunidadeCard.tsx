@@ -4,6 +4,7 @@ import { Clock, Coins, Flame, Loader2, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { STATUS_OP_DEFS, TIPO_OP_DEFS } from "@/lib/freela-yide/tipos";
 import { pegarOportunidadeAction, excluirOportunidadeAction } from "@/lib/freela-yide/actions";
+import { bonusFechamento } from "@/lib/freela-yide/pontos";
 import type { OportunidadeRow } from "@/lib/freela-yide/queries";
 import { useRouter } from "next/navigation";
 import { EditarOportunidadeButton } from "./EditarOportunidadeButton";
@@ -62,7 +63,10 @@ export function OportunidadeCard({ op, gestao = false, podePegar = true }: { op:
         <div className="flex items-center gap-1 text-2xl font-bold tabular-nums text-fuchsia-400">
           <Coins className="h-5 w-5" /> R$ {op.valor_comissao.toLocaleString("pt-BR")}
         </div>
-        <span className="flex items-center gap-1 text-xs text-muted-foreground"><Flame className="h-3.5 w-3.5 text-orange-400" /> +{op.pontos} pts</span>
+        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+          <Flame className="h-3.5 w-3.5 text-orange-400" />
+          {op.status === "disponivel" ? `vale ${bonusFechamento(op.valor_comissao)} pts` : `+${op.pontos} pts`}
+        </span>
       </div>
       {op.status === "disponivel" && podePegar && (
         <button onClick={pegar} disabled={pending}
