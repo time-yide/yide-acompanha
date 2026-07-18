@@ -65,9 +65,14 @@ export default async function FreelaYidePage() {
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Ranking</h2>
-            {gestao && <DefinirMetaButton />}
+            <div className="flex items-center gap-2">
+              <Link href="/freela-yide/conquistas" className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted/40 hover:text-foreground">
+                Conquistas <ArrowRight className="h-4 w-4" />
+              </Link>
+              {gestao && <DefinirMetaButton />}
+            </div>
           </div>
           <MetaCard meta={meta} ranking={ranking} />
           <RankingPainel historico={historico} meId={user.id} />
