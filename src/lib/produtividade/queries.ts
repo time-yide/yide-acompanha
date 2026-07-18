@@ -3,6 +3,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import type { EventType } from "./schema";
 import {
   ATIVO_WINDOW_SECONDS,
+  DIAS_UTEIS_MES,
   HORAS_UTEIS_MES,
   ONLINE_WINDOW_SECONDS,
   SESSAO_GAP_SECONDS,
@@ -30,22 +31,21 @@ export interface ColaboradorStatusRow {
   tarefas_atrasadas: number;
   /** Capturas atrasadas (videomaker passou da deadline D+1 09h). */
   capturas_atrasadas: number;
-  /** Custo/hora calculado dinamicamente. Null se sem dados de fixo+comissão. */
+  /** Custo/hora do salário fixo: fixo_mensal ÷ 176h. Null se sem fixo. */
   custo_hora: number | null;
-  /** Custo do dia: custo_hora × (tempo_ativo_seg_hoje / 3600). */
-  custo_dia: number | null;
   /**
-   * Horas esperadas no período (8h × dias úteis decorridos). Base pra
-   * comparar com horas reais trabalhadas.
+   * Custo do salário fixo no período: (fixo_mensal ÷ dias úteis do mês) ×
+   * dias úteis decorridos no range. É o que se paga de fato, independente
+   * de atividade. Null quando não há fixo cadastrado.
    */
-  horas_esperadas_periodo: number;
+  custo_periodo: number | null;
+  /** Entregas no período: tarefas que viraram "postada" no range. */
+  entregas_periodo: number;
   /**
-   * Diferença em R$ entre horas trabalhadas e esperadas, valorado pelo
-   * custo/hora: (horas_reais − horas_esperadas) × custo_hora.
-   * Positivo = trabalhou mais que esperado. Negativo = pagou por horas
-   * não entregues. Null quando custo_hora é null.
+   * Custo por entrega: custo_periodo ÷ entregas_periodo. Quanto de salário
+   * fixo cada entrega custou. Null quando não há custo ou 0 entregas.
    */
-  lucro_periodo: number | null;
+  custo_por_entrega: number | null;
 }
 
 interface ProfileRow {
@@ -58,11 +58,8 @@ interface ProfileRow {
   fixo_mensal: number | null;
 }
 
-interface CommissionRow {
-  user_id: string;
-  valor_total: number | string | null;
-  mes_referencia: string;
-  status: string;
+interface DeliveryRow {
+  atribuido_a: string;
 }
 
 interface EventRow {
@@ -107,11 +104,6 @@ export const PERIODO_LABEL: Record<PeriodoRange, string> = {
   semana: "Esta semana",
   mes: "Este mês",
 };
-
-// Jornada esperada por dia útil (8h). Base do cálculo de lucro/prejuízo:
-// horas reais - horas esperadas × custo/hora. Negativo = pagamos por
-// horas que não foram entregues.
-const HORAS_POR_DIA_UTIL = 8;
 
 /**
  * Conta dias úteis (segunda a sexta) entre `since` e `today` inclusive.
@@ -181,15 +173,12 @@ export async function getColaboradoresStatus(
   const tomorrow = formatIsoDate(tomorrowDate);
   const tomorrowStartUtc = new Date(`${tomorrow}T${String(offsetHours).padStart(2, "0")}:00:00.000Z`).toISOString();
 
-  // Últimos 3 meses de commission_snapshots pra média
-  const tresMesesAtras = new Date(now - 90 * 24 * 60 * 60 * 1000);
-  const mesAtras = `${tresMesesAtras.getFullYear()}-${String(tresMesesAtras.getMonth() + 1).padStart(2, "0")}`;
-
   const [
     { data: profilesData, error: profilesError },
-    { data: commissionData },
+    { data: presenceData, error: presenceError },
     { data: eventsData },
     { data: capturesData },
+    { data: entregasData },
     { data: overdueTasksData },
     { data: scheduledCapturesData },
     { data: capturesEntregasData },
@@ -206,11 +195,14 @@ export async function getColaboradoresStatus(
       )
       .eq("ativo", true)
       .order("nome"),
-    sb
-      .from("commission_snapshots")
-      .select("user_id, valor_total, mes_referencia, status")
-      .gte("mes_referencia", mesAtras)
-      .in("status", ["paid", "approved"]),
+    // Tempo ativo real = presença por heartbeat, agregada em Postgres (segundos
+    // por user). Se a migration ainda não rodou, a RPC não existe e cai no
+    // fallback de eventos abaixo (presenceError !== null).
+    sb.rpc("presence_seconds_by_user", {
+      p_since: sinceStartUtc,
+      p_until: tomorrowStartUtc,
+    }),
+    // Eventos do período: contagem exibida + fallback de tempo ativo pré-migration.
     sb
       .from("activity_events")
       .select("user_id, created_at")
@@ -226,6 +218,15 @@ export async function getColaboradoresStatus(
       .gte("inicio", sinceStartUtc)
       .lt("inicio", tomorrowStartUtc)
       .not("videomaker_assigned_id", "is", null),
+    // Entregas no período: tarefas que viraram "postada" (completed_at é
+    // carimbado no momento em que vira postada — ver tarefas/actions.ts).
+    sb
+      .from("tasks")
+      .select("atribuido_a")
+      .eq("status", "postada")
+      .gte("completed_at", sinceStartUtc)
+      .lt("completed_at", tomorrowStartUtc)
+      .not("atribuido_a", "is", null),
     // Tarefas atrasadas: due_date < hoje e ainda não está em estado terminal.
     // Estado terminal agora é "postada" (Postado/Entregue) — task em "concluida"
     // operacional mas sem postar ainda conta como atrasada se prazo passou.
@@ -255,9 +256,9 @@ export async function getColaboradoresStatus(
     console.error("[produtividade/queries] profiles select failed:", profilesError);
   }
   const profiles = (profilesData ?? []) as ProfileRow[];
-  const commissions = (commissionData ?? []) as CommissionRow[];
   const events = (eventsData ?? []) as EventRow[];
   const captures = (capturesData ?? []) as VideomakerCaptureRow[];
+  const entregas = (entregasData ?? []) as DeliveryRow[];
   const overdueTasks = (overdueTasksData ?? []) as OverdueTaskRow[];
   const scheduledCaptures = (scheduledCapturesData ?? []) as OverdueCaptureRow[];
   const entregasEventIds = new Set(
@@ -266,20 +267,36 @@ export async function getColaboradoresStatus(
       .filter((id): id is string => id !== null),
   );
 
-  // Horas esperadas no período: 8h × dias úteis decorridos. Pra "dia"
-  // sempre dá 8 (1 dia útil = hoje). Pra "semana"/"mes" varia com o
-  // calendário (terça da semana = 2 dias úteis; dia 5 do mês = ~3-4).
+  // Dias úteis decorridos no período (seg–sex). Base do custo do salário fixo:
+  // (fixo ÷ dias úteis do mês) × dias decorridos. Pra "dia" dá 1; "semana"/
+  // "mes" variam com o calendário.
   const diasUteis = diasUteisDecorridos(since, today);
-  const horasEsperadasPeriodo = diasUteis * HORAS_POR_DIA_UTIL;
 
-  // Agrega comissão por user_id (média dos últimos 3 meses)
-  const commissionByUser = new Map<string, { soma: number; n: number }>();
-  for (const c of commissions) {
-    const v = c.valor_total !== null ? Number(c.valor_total) : 0;
-    const cur = commissionByUser.get(c.user_id) ?? { soma: 0, n: 0 };
-    cur.soma += v;
-    cur.n += 1;
-    commissionByUser.set(c.user_id, cur);
+  // Tempo ativo real = presença por heartbeat (segundos por user), agregada em
+  // Postgres. Se a RPC não existir ainda (migration manual pendente),
+  // presenceError vem preenchido e caímos no fallback de eventos.
+  const presenceAvailable = !presenceError;
+  if (presenceError) {
+    console.error(
+      "[produtividade/queries] presence_seconds_by_user indisponível — fallback de eventos:",
+      presenceError,
+    );
+  }
+  const presenceByUser = new Map<string, number>();
+  for (const p of (presenceData ?? []) as Array<{
+    user_id: string;
+    seconds: number | string | null;
+  }>) {
+    presenceByUser.set(p.user_id, p.seconds !== null ? Number(p.seconds) : 0);
+  }
+
+  // Entregas por user_id (tarefas postadas no período)
+  const entregasByUser = new Map<string, number>();
+  for (const t of entregas) {
+    entregasByUser.set(
+      t.atribuido_a,
+      (entregasByUser.get(t.atribuido_a) ?? 0) + 1,
+    );
   }
 
   // Eventos por user_id pra cálculo de sessões
@@ -342,8 +359,7 @@ export async function getColaboradoresStatus(
     return Math.floor(total / 1000);
   }
 
-  // 1º pass: monta tudo menos receita/lucro (que depende do tempo total do time)
-  const rowsBase = profiles.map((p) => {
+  return profiles.map((p) => {
     const lastSeen = p.last_seen_at ? new Date(p.last_seen_at).getTime() : 0;
     const lastActive = p.last_active_event_at
       ? new Date(p.last_active_event_at).getTime()
@@ -352,18 +368,27 @@ export async function getColaboradoresStatus(
     const ativo = lastActive > 0 && now - lastActive < ATIVO_WINDOW_SECONDS * 1000;
 
     const userEvents = eventsByUser.get(p.id) ?? [];
-    const tempoEventos = tempoAtivoFromEvents(userEvents);
+    // Presença real do heartbeat. Sem a migration, presenceAvailable=false e
+    // usamos a reconstrução por eventos (pior, mas não quebra a página).
+    const tempoPresenca = presenceAvailable
+      ? (presenceByUser.get(p.id) ?? 0)
+      : tempoAtivoFromEvents(userEvents);
     const tempoExterno = tempoExternoByUser.get(p.id) ?? 0;
-    const tempo_ativo_seg_hoje = tempoEventos + tempoExterno;
+    const tempo_ativo_seg_hoje = tempoPresenca + tempoExterno;
 
+    // Custo = salário fixo real. custo/hora = fixo ÷ 176h; custo do período =
+    // (fixo ÷ dias úteis do mês) × dias úteis decorridos. Independe da atividade.
     const fixo = p.fixo_mensal !== null ? Number(p.fixo_mensal) : 0;
-    const com = commissionByUser.get(p.id);
-    const mediaComissao = com && com.n > 0 ? com.soma / com.n : 0;
-    const custoMensal = fixo + mediaComissao;
-    const custo_hora = custoMensal > 0 ? Number((custoMensal / HORAS_UTEIS_MES).toFixed(2)) : null;
-    const custo_dia =
-      custo_hora !== null
-        ? Number(((tempo_ativo_seg_hoje / 3600) * custo_hora).toFixed(2))
+    const custo_hora = fixo > 0 ? Number((fixo / HORAS_UTEIS_MES).toFixed(2)) : null;
+    const custo_periodo =
+      fixo > 0
+        ? Number(((fixo / DIAS_UTEIS_MES) * diasUteis).toFixed(2))
+        : null;
+
+    const entregas_periodo = entregasByUser.get(p.id) ?? 0;
+    const custo_por_entrega =
+      custo_periodo !== null && entregas_periodo > 0
+        ? Number((custo_periodo / entregas_periodo).toFixed(2))
         : null;
 
     return {
@@ -381,23 +406,9 @@ export async function getColaboradoresStatus(
       tarefas_atrasadas: tarefasAtrasadasByUser.get(p.id) ?? 0,
       capturas_atrasadas: capturasAtrasadasByUser.get(p.id) ?? 0,
       custo_hora,
-      custo_dia,
-    };
-  });
-
-  // 2º pass: calcula lucro/prejuízo comparando horas trabalhadas com
-  // horas esperadas (8h/dia útil), valorado em R$ pelo custo/hora da pessoa.
-  return rowsBase.map((r) => {
-    let lucro_periodo: number | null = null;
-    if (r.custo_hora !== null) {
-      const horasReais = r.tempo_ativo_seg_hoje / 3600;
-      const diffHoras = horasReais - horasEsperadasPeriodo;
-      lucro_periodo = Number((diffHoras * r.custo_hora).toFixed(2));
-    }
-    return {
-      ...r,
-      horas_esperadas_periodo: horasEsperadasPeriodo,
-      lucro_periodo,
+      custo_periodo,
+      entregas_periodo,
+      custo_por_entrega,
     };
   });
 }
@@ -408,15 +419,17 @@ export interface ProdutividadeSummary {
   ativos_agora: number;
   tempo_ativo_total_seg_hoje: number;
   eventos_hoje: number;
-  custo_dia_total: number;
+  /** Custo do salário fixo do time no período (soma dos custo_periodo). */
+  custo_periodo_total: number;
+  /** Custo/hora médio (só quem tem fixo cadastrado). */
   custo_hora_medio: number | null;
-  /** Horas esperadas do período (8h × dias úteis decorridos). */
-  horas_esperadas_periodo: number;
+  /** Entregas do time no período (tarefas postadas). */
+  entregas_total: number;
   /**
-   * Soma do lucro/prejuízo de todos os colaboradores no período.
-   * Negativo = no agregado, time entregou menos horas do que custou.
+   * Custo por entrega agregado: custo_periodo_total ÷ entregas_total. Quanto de
+   * salário fixo cada entrega custou no período. Null se 0 entregas ou 0 custo.
    */
-  lucro_periodo_total: number;
+  custo_por_entrega: number | null;
   tarefas_atrasadas_total: number;
   capturas_atrasadas_total: number;
   colaboradores_com_atraso: number;
@@ -430,10 +443,12 @@ export function summarizeStatus(rows: ColaboradorStatusRow[]): ProdutividadeSumm
     0,
   );
   const eventos_hoje = rows.reduce((acc, r) => acc + r.eventos_hoje, 0);
-  const custo_dia_total = rows.reduce((acc, r) => acc + (r.custo_dia ?? 0), 0);
-  const lucro_periodo_total = rows.reduce((acc, r) => acc + (r.lucro_periodo ?? 0), 0);
-  // horas_esperadas_periodo é o mesmo pra todo mundo no mesmo run — pega da 1ª row.
-  const horas_esperadas_periodo = rows[0]?.horas_esperadas_periodo ?? 0;
+  const custo_periodo_total = rows.reduce((acc, r) => acc + (r.custo_periodo ?? 0), 0);
+  const entregas_total = rows.reduce((acc, r) => acc + r.entregas_periodo, 0);
+  const custo_por_entrega =
+    entregas_total > 0 && custo_periodo_total > 0
+      ? Number((custo_periodo_total / entregas_total).toFixed(2))
+      : null;
   const tarefas_atrasadas_total = rows.reduce((acc, r) => acc + r.tarefas_atrasadas, 0);
   const capturas_atrasadas_total = rows.reduce((acc, r) => acc + r.capturas_atrasadas, 0);
   const colaboradores_com_atraso = rows.filter(
@@ -456,10 +471,10 @@ export function summarizeStatus(rows: ColaboradorStatusRow[]): ProdutividadeSumm
     ativos_agora,
     tempo_ativo_total_seg_hoje,
     eventos_hoje,
-    custo_dia_total: Number(custo_dia_total.toFixed(2)),
+    custo_periodo_total: Number(custo_periodo_total.toFixed(2)),
     custo_hora_medio,
-    horas_esperadas_periodo,
-    lucro_periodo_total: Number(lucro_periodo_total.toFixed(2)),
+    entregas_total,
+    custo_por_entrega,
     tarefas_atrasadas_total,
     capturas_atrasadas_total,
     colaboradores_com_atraso,

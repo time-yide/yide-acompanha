@@ -1,4 +1,4 @@
-import { Users, Clock, DollarSign, Activity, TrendingUp, AlertTriangle } from "lucide-react";
+import { Users, Clock, DollarSign, Activity, TrendingUp, AlertTriangle, Package } from "lucide-react";
 import type { ProdutividadeSummary } from "@/lib/produtividade/queries";
 
 interface Props {
@@ -71,23 +71,22 @@ const CARDS = [
     label: "Custo do período",
     icon: DollarSign,
     tone: "amber",
-    getValue: (s: ProdutividadeSummary) => formatBRL(s.custo_dia_total),
+    getValue: (s: ProdutividadeSummary) => formatBRL(s.custo_periodo_total),
     getHint: (s: ProdutividadeSummary) =>
       s.custo_hora_medio !== null
-        ? `R$ ${s.custo_hora_medio.toFixed(2)}/h médio`
-        : "sem dados de custo",
+        ? `R$ ${s.custo_hora_medio.toFixed(2)}/h médio (fixo)`
+        : "sem salário fixo cadastrado",
   },
   {
-    label: "Lucro do período",
-    icon: TrendingUp,
-    // Tone calculado no render: emerald se lucro >= 0, rose se prejuízo.
-    tone: "lucro",
-    getValue: (s: ProdutividadeSummary) => {
-      const sinal = s.lucro_periodo_total >= 0 ? "+" : "−";
-      return `${sinal} ${formatBRL(Math.abs(s.lucro_periodo_total))}`;
-    },
+    label: "Custo por entrega",
+    icon: Package,
+    tone: "violet",
+    getValue: (s: ProdutividadeSummary) =>
+      s.custo_por_entrega !== null ? formatBRL(s.custo_por_entrega) : "—",
     getHint: (s: ProdutividadeSummary) =>
-      `Esperado: ${s.horas_esperadas_periodo}h por pessoa`,
+      s.entregas_total > 0
+        ? `${s.entregas_total.toLocaleString("pt-BR")} entrega${s.entregas_total === 1 ? "" : "s"} no período`
+        : "nenhuma entrega no período",
   },
 ] as const;
 
@@ -133,12 +132,7 @@ export function ProdutividadeSummaryCards({ summary, periodoLabel }: Props) {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
         {CARDS.map((card) => {
         const Icon = card.icon;
-        // Card de lucro escolhe cor dinamicamente baseado no sinal.
-        const resolvedTone =
-          card.tone === "lucro"
-            ? summary.lucro_periodo_total >= 0 ? "emerald" : "rose"
-            : card.tone;
-        const tone = TONE_CLASSES[resolvedTone];
+        const tone = TONE_CLASSES[card.tone];
         return (
           <div
             key={card.label}

@@ -152,8 +152,9 @@ export default async function ProdutividadePage({
               sistema (criar tarefa, mudar status, etc) nos últimos 5 min.
             </p>
             <p>
-              <strong className="text-foreground">Tempo ativo:</strong> soma das
-              sessões contínuas de eventos (gap de 10 min encerra sessão){" "}
+              <strong className="text-foreground">Tempo ativo:</strong> presença
+              real medida pelo heartbeat (cada minuto com a aba aberta e em foco
+              conta){" "}
               <strong className="text-fuchsia-600 dark:text-fuchsia-400">+ duração das captações externas</strong>{" "}
               de videomakers (escala como tempo produtivo).
             </p>
@@ -163,10 +164,15 @@ export default async function ProdutividadePage({
               passaram da deadline (D+1 às 9h) sem entrega.
             </p>
             <p>
-              <strong className="text-foreground">Custo/hora:</strong>{" "}
-              calculado de <code>fixo_mensal + média de comissão (3 meses)</code>{" "}
-              dividido por 176h (22 dias × 8h). Sem dados de comissão paga,
-              usa só o fixo.
+              <strong className="text-foreground">Custo do período:</strong>{" "}
+              salário fixo que se paga de fato —{" "}
+              <code>(fixo_mensal ÷ 22 dias úteis) × dias úteis decorridos</code>,
+              independente de atividade.
+            </p>
+            <p>
+              <strong className="text-foreground">Custo por entrega:</strong>{" "}
+              custo do período ÷ entregas (tarefas postadas no range) — quanto de
+              salário fixo cada entrega custou.
             </p>
             <p className="mt-2 rounded-md bg-muted/40 p-2 text-[10px]">
               Monitoramento de apps do desktop, mouse/teclado e ociosidade

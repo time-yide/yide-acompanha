@@ -10,7 +10,7 @@ interface Props {
   rows: ColaboradorStatusRow[];
 }
 
-type SortKey = "nome" | "ativo" | "tempo" | "eventos" | "custo_dia" | "custo_hora" | "atrasados" | "lucro";
+type SortKey = "nome" | "ativo" | "tempo" | "eventos" | "custo_periodo" | "custo_hora" | "atrasados" | "entregas";
 type SortDir = "asc" | "desc";
 
 function StatusDot({ online, ativo }: { online: boolean; ativo: boolean }) {
@@ -51,8 +51,8 @@ export function ColaboradoresTable({ rows }: Props) {
         case "eventos":
           cmp = b.eventos_hoje - a.eventos_hoje;
           break;
-        case "custo_dia":
-          cmp = (b.custo_dia ?? 0) - (a.custo_dia ?? 0);
+        case "custo_periodo":
+          cmp = (b.custo_periodo ?? 0) - (a.custo_periodo ?? 0);
           break;
         case "custo_hora":
           cmp = (b.custo_hora ?? 0) - (a.custo_hora ?? 0);
@@ -62,10 +62,8 @@ export function ColaboradoresTable({ rows }: Props) {
             (b.tarefas_atrasadas + b.capturas_atrasadas) -
             (a.tarefas_atrasadas + a.capturas_atrasadas);
           break;
-        case "lucro":
-          // Nulos vão pro fundo independente da direção (ordena por
-          // valor real primeiro, depois nulos).
-          cmp = (b.lucro_periodo ?? -Infinity) - (a.lucro_periodo ?? -Infinity);
+        case "entregas":
+          cmp = b.entregas_periodo - a.entregas_periodo;
           break;
       }
       return sortDir === "asc" ? -cmp : cmp;
@@ -114,14 +112,17 @@ export function ColaboradoresTable({ rows }: Props) {
               <th className="px-4 py-2.5 text-right">
                 <SortBtn label="Custo/h" k="custo_hora" sortKey={sortKey} sortDir={sortDir} toggle={toggleSort} />
               </th>
-              <th className="px-4 py-2.5 text-right">
-                <SortBtn label="Custo dia" k="custo_dia" sortKey={sortKey} sortDir={sortDir} toggle={toggleSort} />
+              <th
+                className="px-4 py-2.5 text-right"
+                title="Salário fixo no período: (fixo_mensal ÷ 22 dias úteis) × dias úteis decorridos. É o que se paga, independente de atividade."
+              >
+                <SortBtn label="Custo (per.)" k="custo_periodo" sortKey={sortKey} sortDir={sortDir} toggle={toggleSort} />
               </th>
               <th
                 className="px-4 py-2.5 text-right"
-                title="Receita do período (mensal × fator do range) distribuída pelo tempo ativo de cada um, menos o custo dele. Positivo = rendeu mais do que custou."
+                title="Entregas no período (tarefas postadas). Abaixo: quanto de salário fixo cada entrega custou."
               >
-                <SortBtn label="Lucro" k="lucro" sortKey={sortKey} sortDir={sortDir} toggle={toggleSort} />
+                <SortBtn label="Entregas" k="entregas" sortKey={sortKey} sortDir={sortDir} toggle={toggleSort} />
               </th>
             </tr>
           </thead>
@@ -181,15 +182,14 @@ export function ColaboradoresTable({ rows }: Props) {
                       : <span className="text-muted-foreground/50">-</span>}
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums font-medium">
-                    {r.custo_dia !== null && r.custo_dia > 0
-                      ? formatBRL(r.custo_dia)
+                    {r.custo_periodo !== null && r.custo_periodo > 0
+                      ? formatBRL(r.custo_periodo)
                       : <span className="text-muted-foreground/50">-</span>}
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums">
-                    <LucroCell
-                      lucro={r.lucro_periodo}
-                      horasReaisSeg={r.tempo_ativo_seg_hoje}
-                      horasEsperadas={r.horas_esperadas_periodo}
+                    <EntregasCell
+                      entregas={r.entregas_periodo}
+                      custoPorEntrega={r.custo_por_entrega}
                     />
                   </td>
                 </tr>
@@ -228,31 +228,28 @@ function SortBtn({
   );
 }
 
-function LucroCell({
-  lucro,
-  horasReaisSeg,
-  horasEsperadas,
+function EntregasCell({
+  entregas,
+  custoPorEntrega,
 }: {
-  lucro: number | null;
-  horasReaisSeg: number;
-  horasEsperadas: number;
+  entregas: number;
+  custoPorEntrega: number | null;
 }) {
-  if (lucro === null) {
+  if (entregas === 0) {
     return <span className="text-muted-foreground/50">-</span>;
   }
-  const horasReais = horasReaisSeg / 3600;
-  const diff = horasReais - horasEsperadas;
-  const positivo = lucro >= 0;
-  const tone = positivo
-    ? "text-emerald-600 dark:text-emerald-400"
-    : "text-rose-600 dark:text-rose-400";
-  const sinal = positivo ? "+" : "−";
-  const valor = Math.abs(lucro);
-  const tooltip = `Trabalhou ${horasReais.toFixed(1)}h · Esperado ${horasEsperadas}h · Diferença ${diff >= 0 ? "+" : ""}${diff.toFixed(1)}h`;
   return (
-    <span className={`font-semibold ${tone}`} title={tooltip}>
-      {sinal} {formatBRL(valor)}
-    </span>
+    <div className="flex flex-col items-end leading-tight">
+      <span className="font-semibold">{entregas}</span>
+      {custoPorEntrega !== null && (
+        <span
+          className="text-[10px] text-muted-foreground"
+          title="Custo de salário fixo por entrega no período"
+        >
+          {formatBRL(custoPorEntrega)}/entrega
+        </span>
+      )}
+    </div>
   );
 }
 

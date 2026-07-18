@@ -4,7 +4,10 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { logEventSchema, type LogEventInput, type EventType } from "./schema";
 
 /**
- * Registra heartbeat do browser. Atualiza profiles.last_seen_at.
+ * Registra heartbeat do browser. Atualiza profiles.last_seen_at e carimba
+ * presença no minuto atual (bucket de 1 min, upsert idempotente). O bucket é
+ * a base do "tempo ativo" real — cada minuto com ping vira 60s de presença,
+ * medindo tempo com o app aberto e em foco em vez de reconstruir de cliques.
  * Chamado por client component a cada ~30s enquanto a aba estiver aberta.
  */
 export async function heartbeatAction(): Promise<{ ok: boolean }> {
@@ -12,10 +15,28 @@ export async function heartbeatAction(): Promise<{ ok: boolean }> {
   const admin = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = admin as any;
-  await sb
-    .from("profiles")
-    .update({ last_seen_at: new Date().toISOString() })
-    .eq("id", user.id);
+  const now = Date.now();
+  const nowIso = new Date(now).toISOString();
+  // Trunca pro início do minuto — dois pings no mesmo minuto colidem na PK e o
+  // upsert ignora, mantendo 1 linha por (user, minuto).
+  const minuteIso = new Date(Math.floor(now / 60_000) * 60_000).toISOString();
+
+  await Promise.all([
+    sb.from("profiles").update({ last_seen_at: nowIso }).eq("id", user.id),
+    // presence_minutes pode não existir ainda (migration manual) — best-effort.
+    sb
+      .from("presence_minutes")
+      .upsert(
+        { user_id: user.id, minute: minuteIso },
+        { onConflict: "user_id,minute", ignoreDuplicates: true },
+      )
+      .then(
+        () => undefined,
+        (err: unknown) => {
+          console.error("[heartbeat] presence_minutes upsert failed:", err);
+        },
+      ),
+  ]);
   return { ok: true };
 }
 

@@ -67,6 +67,10 @@ export type LogEventInput = z.infer<typeof logEventSchema>;
 /** Horas úteis padrão por mês (22 dias × 8h). Usado pra calcular custo/hora. */
 export const HORAS_UTEIS_MES = 176;
 
+/** Dias úteis padrão por mês. Base pro custo diário do salário fixo
+ *  (fixo_mensal ÷ dias úteis = quanto você paga por dia útil). */
+export const DIAS_UTEIS_MES = 22;
+
 /** Janela considerada "online" - heartbeat há menos disso. */
 export const ONLINE_WINDOW_SECONDS = 120;
 
