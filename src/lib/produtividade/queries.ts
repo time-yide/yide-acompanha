@@ -739,10 +739,13 @@ export async function getEntregaMaterialStats(
   const rows: EntregaMaterialUserRow[] = [];
   for (const [user_id, stats] of statsByUser) {
     const prof = profileById.get(user_id);
+    // Pula quem não é mais perfil ativo (removido/inativo) — não mostra
+    // linha "(usuário removido)" na tabela de entrega de material.
+    if (!prof) continue;
     rows.push({
       user_id,
-      nome: prof?.nome ?? "(usuário removido)",
-      role: prof?.role ?? "",
+      nome: prof.nome,
+      role: prof.role,
       ...stats,
     });
   }
