@@ -23,6 +23,12 @@ const COLUNAS: Record<string, Coluna[]> = {
     { titulo: "Artes", valor: (p) => p.artes },
     { titulo: "No prazo", valor: (p) => (p.tarefas_com_prazo > 0 ? `${Math.round((p.tarefas_no_prazo / p.tarefas_com_prazo) * 100)}%` : "—") },
   ],
+  programacao: [
+    { titulo: "CRMs", valor: (p) => p.prog_crm },
+    { titulo: "Usuários", valor: (p) => p.prog_usuarios },
+    { titulo: "Sistemas", valor: (p) => p.prog_sistemas },
+    { titulo: "Total", valor: (p) => p.prog_total },
+  ],
 };
 
 export function ProdutividadeSetorSection({ setores }: { setores: BlocoSetor[] }) {

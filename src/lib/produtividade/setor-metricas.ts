@@ -3,7 +3,7 @@
 // setor-metricas-server.ts pra não vazar código de servidor em client components
 // (a ColaboradoresTable importa isRoleAudiovisual daqui).
 
-export type Setor = "comercial" | "ecommerce" | "assessoria" | "design" | "audiovisual";
+export type Setor = "comercial" | "ecommerce" | "assessoria" | "design" | "audiovisual" | "programacao";
 
 export interface MetricaCrua {
   ligacoes_feitas: number;
@@ -15,6 +15,10 @@ export interface MetricaCrua {
   tarefas_atrasadas: number;
   postagens: number;
   artes: number;
+  prog_crm: number;
+  prog_usuarios: number;
+  prog_sistemas: number;
+  prog_total: number;
 }
 
 export interface MetricaPessoa {
@@ -39,6 +43,7 @@ export function roleParaSetor(role: string, especialidade?: string | null): Seto
   if (ECOMMERCE.has(role)) return "ecommerce";
   if (role === "assessor") return especialidade === "ecommerce" ? "ecommerce" : "assessoria";
   if (role === "designer") return "design";
+  if (role === "programacao") return "programacao";
   if (AUDIOVISUAL.has(role)) return "audiovisual";
   return null;
 }
@@ -74,6 +79,8 @@ export function resolveMetricaPessoa(
     }
     case "design":
       return { setor, valor: c.artes, unidade: "contagem", rotulo: plural(c.artes, "arte", "artes") };
+    case "programacao":
+      return { setor, valor: c.prog_total, unidade: "contagem", rotulo: plural(c.prog_total, "entrega", "entregas") };
     default:
       // audiovisual usa "entregas" (renderizado na tabela via row.entregas_periodo);
       // gestão/programação/sem setor → "—".

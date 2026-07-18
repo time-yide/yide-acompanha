@@ -38,10 +38,11 @@ const TITULO_SETOR: Record<Setor, string> = {
   assessoria: "Assessoria",
   design: "Design",
   audiovisual: "Audiovisual",
+  programacao: "Programação",
 };
 
 // Setores mostrados no painel (audiovisual fica de fora — não pedido).
-const SETORES_PAINEL: Setor[] = ["comercial", "ecommerce", "assessoria", "design"];
+const SETORES_PAINEL: Setor[] = ["comercial", "ecommerce", "assessoria", "design", "programacao"];
 
 // Chave de ordenação DENTRO de um bloco — usa a métrica do setor do bloco
 // (não re-resolve por cargo, senão assessor+ecommerce ordenaria errado).
@@ -51,6 +52,7 @@ function valorChaveSetor(setor: Setor, p: PessoaSetor): number {
     case "ecommerce": return p.anuncios;
     case "assessoria": return pctNoPrazo(p.tarefas_no_prazo, p.tarefas_com_prazo) ?? -1;
     case "design": return p.artes;
+    case "programacao": return p.prog_total;
     default: return -1;
   }
 }
@@ -75,6 +77,7 @@ async function _getProdutividadeSetorImpl(range: PeriodoRange): Promise<Produtiv
     { data: atrasadasData },
     { data: postagensData },
     { data: artesData },
+    { data: progData },
   ] = await Promise.all([
     sb.from("profiles").select("id, nome, role, especialidade").eq("ativo", true).order("nome"),
     sb.from("ligacoes").select("colaborador_id, status, direcao")
@@ -98,6 +101,9 @@ async function _getProdutividadeSetorImpl(range: PeriodoRange): Promise<Produtiv
       .is("archived_at", null).eq("status", "aprovado")
       .gte("aprovado_em", sinceStartUtc).lt("aprovado_em", tomorrowStartUtc)
       .not("criado_por", "is", null),
+    sb.from("lancamentos_programacao").select("colaborador_id, tipo, quantidade")
+      .is("arquivado_em", null).gte("data", since).lte("data", today)
+      .not("colaborador_id", "is", null),
   ]);
 
   const profiles = (profilesData ?? []) as Array<{ id: string; nome: string; role: string; especialidade: string | null }>;
@@ -106,6 +112,7 @@ async function _getProdutividadeSetorImpl(range: PeriodoRange): Promise<Produtiv
     ligacoes_feitas: 0, ligacoes_atendidas: 0, anuncios: 0,
     tarefas_entregues: 0, tarefas_no_prazo: 0, tarefas_com_prazo: 0,
     tarefas_atrasadas: 0, postagens: 0, artes: 0,
+    prog_crm: 0, prog_usuarios: 0, prog_sistemas: 0, prog_total: 0,
   });
   const cruas = new Map<string, MetricaCrua>();
   const get = (id: string) => { let m = cruas.get(id); if (!m) { m = zero(); cruas.set(id, m); } return m; };
@@ -131,6 +138,14 @@ async function _getProdutividadeSetorImpl(range: PeriodoRange): Promise<Produtiv
   }
   for (const a of (artesData ?? []) as Array<{ criado_por: string }>) {
     get(a.criado_por).artes++;
+  }
+  for (const l of (progData ?? []) as Array<{ colaborador_id: string; tipo: string; quantidade: number }>) {
+    const m = get(l.colaborador_id);
+    const qtd = Number(l.quantidade ?? 0);
+    m.prog_total += qtd;
+    if (l.tipo === "crm_conectado") m.prog_crm += qtd;
+    else if (l.tipo === "usuario_criado") m.prog_usuarios += qtd;
+    else if (l.tipo === "sistema_feito") m.prog_sistemas += qtd;
   }
 
   const porUsuario: Record<string, MetricaPessoa> = {};
@@ -159,7 +174,7 @@ async function _getProdutividadeSetorImpl(range: PeriodoRange): Promise<Produtiv
 export async function getProdutividadeSetor(range: PeriodoRange = "dia"): Promise<ProdutividadeSetorResult> {
   const cached = unstable_cache(
     async (r: string) => _getProdutividadeSetorImpl(r as PeriodoRange),
-    ["produtividade-setor-v1"],
+    ["produtividade-setor-v2"],
     { revalidate: 300, tags: ["dashboard"] },
   );
   return cached(range);
