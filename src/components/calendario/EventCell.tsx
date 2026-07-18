@@ -46,6 +46,22 @@ export function EventCell({ event }: { event: CalendarEvent }) {
   // (link leva pro /freela-yide). Distinto de gravação (fuchsia) e bloqueio
   // (cinza tracejado). Sem emoji.
   if (event.freela) {
+    if (event.freela?.reservadoDeOutro) {
+      const nome = event.freela.dono_nome ?? "Videomaker";
+      return (
+        <div
+          className="rounded-md border border-dashed border-muted-foreground/50 bg-muted/40 p-2 text-xs"
+          title={`${nome} indisponível — freela`}
+        >
+          <div className="flex items-center gap-1 font-semibold">
+            <Briefcase className="h-3.5 w-3.5 flex-shrink-0 sm:h-3 sm:w-3" />
+            <span className="truncate">Indisponível — Freela</span>
+          </div>
+          <div className="opacity-80">{formatBrtTime(event.inicio)}</div>
+          <div className="mt-0.5 truncate font-medium opacity-90">{nome}</div>
+        </div>
+      );
+    }
     const inner = (
       <div className="rounded-md border-l-4 border-emerald-500 bg-emerald-100 p-2 text-xs leading-tight text-emerald-950 shadow-sm ring-1 ring-emerald-500/30 dark:bg-emerald-500/20 dark:text-emerald-100 sm:p-1.5 sm:text-[11px]">
         <div className="flex items-center gap-1 truncate font-semibold">
