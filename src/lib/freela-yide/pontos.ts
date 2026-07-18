@@ -1,6 +1,6 @@
 import type { StatusOp } from "./tipos";
 
-export const PONTOS = { pegar: 5, negociacao: 10, fechar: 50, porReal: 50 } as const;
+export const PONTOS = { pegar: 5, negociacao: 10 } as const;
 
 export interface OportunidadePontos {
   status: StatusOp;
@@ -9,14 +9,25 @@ export interface OportunidadePontos {
   valor_comissao: number;
 }
 
+/**
+ * Bônus de fechamento INVERSO ao valor: freela de comissão menor rende mais ponto,
+ * pra motivar o time a pegar as menos vantajosas (as gordas já atraem pelo R$).
+ */
+export function bonusFechamento(valorComissao: number): number {
+  const v = valorComissao ?? 0;
+  if (v <= 100) return 80;
+  if (v <= 300) return 55;
+  if (v <= 600) return 35;
+  if (v <= 1000) return 20;
+  return 10;
+}
+
 /** Pontos derivados do progresso da oportunidade. Acumulativo. */
 export function calcularPontos(o: OportunidadePontos): number {
   let p = 0;
   if (o.status !== "disponivel") p += PONTOS.pegar; // pegou
   if (o.negociacao_em) p += PONTOS.negociacao;
-  if (o.status === "fechada") {
-    p += PONTOS.fechar + Math.floor((o.valor_comissao ?? 0) / PONTOS.porReal);
-  }
+  if (o.status === "fechada") p += bonusFechamento(o.valor_comissao ?? 0);
   return p;
 }
 
