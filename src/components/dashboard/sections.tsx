@@ -17,6 +17,7 @@ import { getEffectiveUnitId } from "@/lib/units/session";
 import { getCurrentMonthYM } from "@/lib/datetime/timezone";
 import { getClientIdsForActiveUnit } from "@/lib/units/filter-helpers";
 import { getComissaoPrevista } from "@/lib/dashboard/comissao-prevista";
+import { getChurnMensalHistorico } from "@/lib/dashboard/churn-historico";
 import { KpiRow } from "./KpiRow";
 import { ChartCarteiraTimelineLazy } from "./ChartCarteiraTimelineLazy";
 import { ChartEntradaChurnLazy } from "./ChartEntradaChurnLazy";
@@ -83,8 +84,11 @@ export async function AlertaAprovacaoSection() {
 // MesSelector pra re-escopar KPIs/gráficos a um mês fechado.
 export async function KpiRowSection({ mes }: { mes?: string }) {
   const unitId = await getEffectiveUnitId();
-  const kpis = await getKpis({ unitId }, mes);
-  return <KpiRow kpis={kpis} />;
+  const [kpis, churnHistorico] = await Promise.all([
+    getKpis({ unitId }, mes),
+    getChurnMensalHistorico({ unitId }, mes),
+  ]);
+  return <KpiRow kpis={kpis} churnHistorico={churnHistorico} />;
 }
 
 export async function CarteiraTimelineSection({ mes }: { mes?: string }) {
