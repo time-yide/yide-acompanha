@@ -18,6 +18,14 @@ import {
   type TaskPrazoRow,
 } from "./prazo-agilidade";
 import {
+  computeAprovacaoDesign,
+  computeRetrabalho,
+  type AprovacaoRow,
+  type RetrabalhoRow,
+} from "./qualidade-setor";
+
+const DESIGN_STATUS_APROVADA = ["aprovado", "agendado", "publicado"];
+import {
   aggregateEntregaMaterial,
   type EntregaMaterialStats,
   type EntregueInput,
@@ -869,4 +877,60 @@ export async function getPrazoAgilidade(range: PeriodoRange = "dia"): Promise<Pr
     });
 
   return { pessoas, resumo: resumoPrazoAgilidade(pessoas) };
+}
+
+export interface QualidadeSetorResult {
+  assessoria: RetrabalhoRow[]; // retrabalho (ajustes solicitados) por pessoa
+  design: AprovacaoRow[];      // % de artes aprovadas por pessoa
+}
+
+/**
+ * Qualidade por setor no período:
+ * - Assessoria: nº de ajustes solicitados (task_revisoes tipo=ajustes), creditado ao
+ *   DONO da tarefa (não a quem pediu o ajuste).
+ * - Design: artes criadas vs aprovadas (aprovado/agendado/publicado).
+ */
+export async function getQualidadeSetor(range: PeriodoRange = "dia"): Promise<QualidadeSetorResult> {
+  const admin = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = admin as any;
+  const today = formatIsoDate(new Date());
+  const since = computeSince(range, today);
+  const offsetHours = getAppTimezoneOffsetMs() / (60 * 60 * 1000);
+  const sinceStartUtc = new Date(`${since}T${String(offsetHours).padStart(2, "0")}:00:00.000Z`).toISOString();
+  const tomorrowDate = new Date(`${today}T00:00:00.000Z`);
+  tomorrowDate.setUTCDate(tomorrowDate.getUTCDate() + 1);
+  const tomorrow = formatIsoDate(tomorrowDate);
+  const tomorrowStartUtc = new Date(`${tomorrow}T${String(offsetHours).padStart(2, "0")}:00:00.000Z`).toISOString();
+
+  const [{ data: revisoesData }, { data: artesData }, { data: profilesData }] = await Promise.all([
+    sb.from("task_revisoes")
+      .select("criado_em, task:tasks(atribuido_a)")
+      .eq("tipo", "ajustes")
+      .gte("criado_em", sinceStartUtc)
+      .lt("criado_em", tomorrowStartUtc),
+    sb.from("design_artes")
+      .select("criado_por, status")
+      .is("archived_at", null)
+      .gte("created_at", sinceStartUtc)
+      .lt("created_at", tomorrowStartUtc)
+      .not("criado_por", "is", null),
+    sb.from("profiles").select("id, nome").eq("ativo", true),
+  ]);
+
+  const nomes = new Map<string, string>();
+  for (const p of (profilesData ?? []) as Array<{ id: string; nome: string }>) nomes.set(p.id, p.nome);
+
+  const revisoesRows = ((revisoesData ?? []) as Array<Record<string, unknown>>).map((r) => ({
+    atribuido_a: ((r.task as { atribuido_a?: string | null } | null) ?? null)?.atribuido_a ?? null,
+  }));
+  const artesRows = ((artesData ?? []) as Array<Record<string, unknown>>).map((r) => ({
+    criado_por: (r.criado_por as string | null) ?? null,
+    aprovada: DESIGN_STATUS_APROVADA.includes(r.status as string),
+  }));
+
+  const assessoria: RetrabalhoRow[] = computeRetrabalho(revisoesRows).map((p) => ({ ...p, nome: nomes.get(p.user_id) ?? "—" }));
+  const design: AprovacaoRow[] = computeAprovacaoDesign(artesRows).map((p) => ({ ...p, nome: nomes.get(p.user_id) ?? "—" }));
+
+  return { assessoria, design };
 }
