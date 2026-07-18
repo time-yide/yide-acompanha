@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import type { Role } from "@/lib/auth/permissions";
 import { canAccessEcommerce } from "@/lib/ecommerce/access";
+import { canAccessProgramacao } from "@/lib/programacao/access";
 
 export type NavBadgeKey = "recados" | "escritorio" | "yoriProntos";
 
@@ -148,6 +149,8 @@ function isLinkVisible(role: Role, link: NavLink, especialidade?: string | null)
   // "ecommerce" também vê (mantém cargo + comissão de assessor). Ver
   // canAccessEcommerce (fonte única com a guarda da página).
   if (link.href === "/ecommerce") return canAccessEcommerce(role, especialidade);
+  // Programação: fonte única com a guarda da página (canAccessProgramacao).
+  if (link.href === "/programacao") return canAccessProgramacao(role);
   return link.roles === "all" || (Array.isArray(link.roles) && link.roles.includes(role));
 }
 
