@@ -114,6 +114,7 @@ export default async function EcommercePage({
       ) : (
         <AnunciosList
           anuncios={anuncios}
+          clientes={clientes}
           mostrarAssessor={chefia}
           podeArquivar={true}
         />
