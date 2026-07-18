@@ -19,6 +19,7 @@ import {
 } from "./schema";
 import { canRoleDelegateVideomaker, isVideomakerObrigatorioParaRole } from "@/lib/audiovisual/coord-roles";
 import { checarBloqueioVideomaker } from "./bloqueio-check";
+import { checarFreelaVideomaker } from "./freela-check";
 
 function fd(formData: FormData, key: string) {
   const v = formData.get(key);
@@ -127,6 +128,14 @@ async function validateVideomakerAssignment(
     });
     return { error: `${vm.nome} já tem captação "${conflict.titulo}" às ${inicioBR}` };
   }
+
+  const freelaMsg = await checarFreelaVideomaker({
+    videomakerId: params.videomakerId,
+    nome: vm.nome,
+    inicioUtc: params.inicioUtc,
+    fimUtc: params.fimUtc,
+  });
+  if (freelaMsg) return { error: freelaMsg };
 
   if (!params.ignorarBloqueio) {
     const warning = await checarBloqueioVideomaker(sb, {
