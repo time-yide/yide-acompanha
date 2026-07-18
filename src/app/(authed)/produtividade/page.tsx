@@ -13,6 +13,7 @@ import {
 } from "@/lib/produtividade/queries";
 import { ProdutividadeSummaryCards } from "@/components/produtividade/ProdutividadeSummaryCards";
 import { ColaboradoresTable } from "@/components/produtividade/ColaboradoresTable";
+import { TimeAudiovisualCard } from "@/components/produtividade/TimeAudiovisualCard";
 import { EntregaMaterialSection } from "@/components/produtividade/EntregaMaterialSection";
 import { RecentEventsFeed } from "@/components/produtividade/RecentEventsFeed";
 import { AutoRefresh } from "@/components/produtividade/AutoRefresh";
@@ -37,12 +38,13 @@ export default async function ProdutividadePage({
     ? (rangeParam as PeriodoRange)
     : "dia";
 
-  const [rows, entregaMaterial, events] = await Promise.all([
+  const [statusResult, entregaMaterial, events] = await Promise.all([
     getColaboradoresStatus(range),
     getEntregaMaterialStats(range),
     listRecentEvents(30),
   ]);
-  const summary = summarizeStatus(rows);
+  const { rows, faturamento_periodo, time_audiovisual } = statusResult;
+  const summary = summarizeStatus(rows, faturamento_periodo);
 
   // Top 5 com mais atrasados - destaque pra coord agir
   const comAtraso = rows
@@ -130,8 +132,13 @@ export default async function ProdutividadePage({
 
       <section>
         <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-          Colaboradores · hoje
+          Colaboradores · {PERIODO_LABEL[range]}
         </h2>
+        {time_audiovisual && (
+          <div className="mb-3">
+            <TimeAudiovisualCard time={time_audiovisual} />
+          </div>
+        )}
         <ColaboradoresTable rows={rows} />
       </section>
 
@@ -180,9 +187,16 @@ export default async function ProdutividadePage({
               independente de atividade.
             </p>
             <p>
-              <strong className="text-foreground">Custo por entrega:</strong>{" "}
-              custo do período ÷ entregas (tarefas postadas no range) — quanto de
-              salário fixo cada entrega custou.
+              <strong className="text-foreground">Receita / Lucro:</strong>{" "}
+              faturamento do período (carteira ativa pró-rata) ÷ total de entregas
+              = valor por entrega. Receita = valor × entregas da pessoa; lucro =
+              receita − custo do salário.
+            </p>
+            <p>
+              <strong className="text-foreground">Time Audiovisual:</strong>{" "}
+              o coordenador é medido pelo time — lucro = receita dos produtores −
+              (custo deles + salário do coordenador). Coordenador geral e sócia
+              ficam fora do cálculo.
             </p>
             <p className="mt-2 rounded-md bg-muted/40 p-2 text-[10px]">
               Monitoramento de apps do desktop, mouse/teclado e ociosidade

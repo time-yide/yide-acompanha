@@ -88,6 +88,24 @@ const CARDS = [
         ? `${s.entregas_total.toLocaleString("pt-BR")} entrega${s.entregas_total === 1 ? "" : "s"} no período`
         : "nenhuma entrega no período",
   },
+  {
+    label: "Faturamento do período",
+    icon: DollarSign,
+    tone: "emerald",
+    getValue: (s: ProdutividadeSummary) => formatBRL(s.faturamento_periodo),
+    getHint: () => "carteira ativa pró-rata dos dias úteis",
+  },
+  {
+    label: "Lucro do time",
+    icon: TrendingUp,
+    tone: "emerald",
+    getValue: (s: ProdutividadeSummary) =>
+      s.lucro_total !== null ? formatBRL(s.lucro_total) : "—",
+    getHint: (s: ProdutividadeSummary) =>
+      s.lucro_total !== null
+        ? `${formatBRL(s.receita_total)} receita − ${formatBRL(s.custo_periodo_total)} custo`
+        : "sem entregas no período pra atribuir receita",
+  },
 ] as const;
 
 const TONE_CLASSES: Record<string, { bg: string; text: string; border: string }> = {

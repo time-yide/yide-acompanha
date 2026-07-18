@@ -10,7 +10,7 @@ interface Props {
   rows: ColaboradorStatusRow[];
 }
 
-type SortKey = "nome" | "ativo" | "tempo" | "eventos" | "custo_periodo" | "custo_hora" | "atrasados" | "entregas";
+type SortKey = "nome" | "ativo" | "tempo" | "eventos" | "custo_periodo" | "custo_hora" | "atrasados" | "entregas" | "receita" | "lucro";
 type SortDir = "asc" | "desc";
 
 function StatusDot({ online, ativo }: { online: boolean; ativo: boolean }) {
@@ -65,6 +65,12 @@ export function ColaboradoresTable({ rows }: Props) {
         case "entregas":
           cmp = b.entregas_periodo - a.entregas_periodo;
           break;
+        case "receita":
+          cmp = (b.receita_periodo ?? 0) - (a.receita_periodo ?? 0);
+          break;
+        case "lucro":
+          cmp = (b.lucro_periodo ?? 0) - (a.lucro_periodo ?? 0);
+          break;
       }
       return sortDir === "asc" ? -cmp : cmp;
     });
@@ -114,15 +120,27 @@ export function ColaboradoresTable({ rows }: Props) {
               </th>
               <th
                 className="px-4 py-2.5 text-right"
-                title="Salário fixo no período: (fixo_mensal ÷ 22 dias úteis) × dias úteis decorridos. É o que se paga, independente de atividade."
+                title="Salário fixo no período: (salário mensal ÷ 22 dias úteis) × dias úteis decorridos. É o que se paga, independente de atividade."
               >
-                <SortBtn label="Custo (per.)" k="custo_periodo" sortKey={sortKey} sortDir={sortDir} toggle={toggleSort} />
+                <SortBtn label="Custo salário" k="custo_periodo" sortKey={sortKey} sortDir={sortDir} toggle={toggleSort} />
               </th>
               <th
                 className="px-4 py-2.5 text-right"
                 title="Entregas no período (tarefas postadas). Abaixo: quanto de salário fixo cada entrega custou."
               >
                 <SortBtn label="Entregas" k="entregas" sortKey={sortKey} sortDir={sortDir} toggle={toggleSort} />
+              </th>
+              <th
+                className="px-4 py-2.5 text-right"
+                title="Receita atribuída: valor médio por entrega × entregas da pessoa."
+              >
+                <SortBtn label="Receita" k="receita" sortKey={sortKey} sortDir={sortDir} toggle={toggleSort} />
+              </th>
+              <th
+                className="px-4 py-2.5 text-right"
+                title="Lucro no período: receita atribuída − custo do salário."
+              >
+                <SortBtn label="Lucro" k="lucro" sortKey={sortKey} sortDir={sortDir} toggle={toggleSort} />
               </th>
             </tr>
           </thead>
@@ -191,6 +209,20 @@ export function ColaboradoresTable({ rows }: Props) {
                       entregas={r.entregas_periodo}
                       custoPorEntrega={r.custo_por_entrega}
                     />
+                  </td>
+                  <td className="px-4 py-3 text-right tabular-nums text-xs text-muted-foreground">
+                    {r.receita_periodo !== null
+                      ? formatBRL(r.receita_periodo)
+                      : <span className="text-muted-foreground/50">—</span>}
+                  </td>
+                  <td className="px-4 py-3 text-right tabular-nums font-semibold">
+                    {r.lucro_periodo !== null ? (
+                      <span className={r.lucro_periodo >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}>
+                        {formatBRL(r.lucro_periodo)}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground/50">—</span>
+                    )}
                   </td>
                 </tr>
               );
