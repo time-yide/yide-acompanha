@@ -1,22 +1,25 @@
 "use client";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { arquivarAnuncioAction } from "@/lib/ecommerce/actions";
+import { arquivarAnuncioAction, updateAnuncioAction } from "@/lib/ecommerce/actions";
 import { formatarDataBR } from "@/lib/ecommerce/format";
 import { marketplaceLabel } from "@/lib/ecommerce/marketplaces";
 import type { AnuncioRow } from "@/lib/ecommerce/queries";
+import { AnuncioFormModal } from "./AnuncioFormModal";
 
 interface Props {
   anuncios: AnuncioRow[];
+  clientes: { id: string; nome: string }[];
   mostrarAssessor: boolean;
   podeArquivar: boolean;
 }
 
-export function AnunciosList({ anuncios, mostrarAssessor, podeArquivar }: Props) {
+export function AnunciosList({ anuncios, clientes, mostrarAssessor, podeArquivar }: Props) {
   const router = useRouter();
   const [pending, start] = useTransition();
+  const [editando, setEditando] = useState<AnuncioRow | null>(null);
 
   function arquivar(id: string) {
     if (!confirm("Arquivar este lançamento?")) return;
@@ -62,19 +65,49 @@ export function AnunciosList({ anuncios, mostrarAssessor, podeArquivar }: Props)
             ) : null}
           </div>
           {podeArquivar && (
-            <Button
-              type="button"
-              size="icon"
-              variant="ghost"
-              disabled={pending}
-              onClick={() => arquivar(a.id)}
-              aria-label="Arquivar"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                onClick={() => setEditando(a)}
+                aria-label="Editar"
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                disabled={pending}
+                onClick={() => arquivar(a.id)}
+                aria-label="Arquivar"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
           )}
         </div>
       ))}
+
+      {editando && (
+        <AnuncioFormModal
+          key={editando.id}
+          clientes={clientes}
+          titulo="Editar lançamento"
+          initial={{
+            id: editando.id,
+            client_id: editando.client_id,
+            data: editando.data,
+            quantidade: editando.quantidade,
+            marketplace: editando.marketplace,
+            observacao: editando.observacao,
+          }}
+          action={updateAnuncioAction}
+          onClose={() => setEditando(null)}
+          onDone={() => { setEditando(null); router.refresh(); }}
+        />
+      )}
     </div>
   );
 }
