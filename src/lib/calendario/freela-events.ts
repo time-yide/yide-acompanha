@@ -15,21 +15,19 @@ export interface FreelaAgendaRow {
   entrega_urgente: boolean;
 }
 
-const ROLES_VIDEOMAKER = new Set(["videomaker", "fast_midia"]);
-
 /**
  * Freelas reservados → eventos de calendário, por espectador:
  *  - dono → detalhe "Freela — reservado" (título, valor, link).
- *  - outro + taker videomaker/fast_midia → "Indisponível — Freela" (nome, sem valor/link).
- *  - outro + taker de outro cargo → omitido (privado ao dono).
+ *  - outro (qualquer cargo do taker) → "Indisponível — Freela" (nome, sem valor/link).
+ *
+ * Um freela pego trava aquele horário na agenda de quem pegou, então o time
+ * inteiro vê o bloco reservado independentemente do cargo do taker.
  */
 export function freelaReservadoToEvents(rows: FreelaReservadoRow[], viewerId: string): CalendarEvent[] {
   const out: CalendarEvent[] = [];
   for (const r of rows) {
     if (!r.data_hora) continue;
     const dono = r.pego_por === viewerId;
-    const ehVideomaker = ROLES_VIDEOMAKER.has(r.pego_por_role ?? "");
-    if (!dono && !ehVideomaker) continue;
     const dur = r.duracao_min && r.duracao_min > 0 ? r.duracao_min : 60;
     const inicio = new Date(r.data_hora);
     const fim = new Date(inicio.getTime() + dur * 60_000);

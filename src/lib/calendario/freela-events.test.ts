@@ -22,9 +22,13 @@ describe("freelaReservadoToEvents", () => {
     expect(ev.freela?.dono_nome).toBe("Ryan");
     expect(ev.freela?.valor_comissao).toBe(0);
   });
-  it("freela de não-videomaker de outra pessoa é privado (não aparece)", () => {
+  it("freela de qualquer cargo aparece pro time como 'Indisponível'", () => {
     const assessor = { ...base, pego_por: "u3", pego_por_role: "assessor" };
-    expect(freelaReservadoToEvents([assessor], "u2")).toEqual([]);
+    const [ev] = freelaReservadoToEvents([assessor], "u2");
+    expect(ev.link).toBeNull();
+    expect(ev.freela?.reservadoDeOutro).toBe(true);
+    expect(ev.freela?.dono_nome).toBe("Ryan");
+    expect(ev.freela?.valor_comissao).toBe(0);
   });
   it("mas o próprio dono não-videomaker vê o seu", () => {
     const assessor = { ...base, pego_por: "u3", pego_por_role: "assessor" };
