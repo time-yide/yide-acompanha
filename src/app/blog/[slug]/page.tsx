@@ -7,6 +7,7 @@ import { ArrowLeft } from "lucide-react";
 import { getOrgPadraoBlog, getPostPublicadoPorSlug } from "@/lib/blog/queries";
 import { metaDoPost, jsonLdArtigo, type PostSeoInput } from "@/lib/blog/seo";
 import { registrarVisitaPorSlug } from "@/lib/blog/views";
+import { tempoLeituraMin } from "@/lib/blog/leitura";
 import { Markdown } from "@/components/blog/Markdown";
 import { SITE_URL } from "@/lib/blog/config";
 
@@ -69,12 +70,16 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
       </Link>
 
       <header className="mt-6">
-        {categoria && <p className="text-[11px] font-semibold uppercase tracking-wider text-teal-600">{categoria}</p>}
-        <h1 className="mt-2 text-3xl font-bold leading-[1.15] tracking-tight [font-family:var(--font-display)] sm:text-[2.6rem]">
+        {categoria && (
+          <span className="inline-flex items-center rounded-full bg-teal-600/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-teal-700">
+            {categoria}
+          </span>
+        )}
+        <h1 className="mt-3 text-3xl font-bold leading-[1.12] tracking-tight [font-family:var(--font-display)] sm:text-[2.6rem]">
           {post.titulo}
         </h1>
-        <p className="mt-3 text-sm text-neutral-500">
-          {fmtData(post.published_at)}{post.autor_nome ? ` · ${post.autor_nome}` : ""}
+        <p className="mt-4 text-sm text-neutral-500">
+          {fmtData(post.published_at)} · {tempoLeituraMin(post.conteudo_md)} min de leitura{post.autor_nome ? ` · ${post.autor_nome}` : ""}
         </p>
       </header>
 
