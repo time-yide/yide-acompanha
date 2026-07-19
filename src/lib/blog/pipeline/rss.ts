@@ -15,6 +15,16 @@ export function ordenarPorData(itens: NoticiaItem[]): NoticiaItem[] {
   return [...itens].sort((a, b) => (b.publicadoEm ?? "").localeCompare(a.publicadoEm ?? ""));
 }
 
+/** Só notícias "quentes": publicadas nos últimos `dias`. Sem data → mantém (best-effort). */
+export function apenasRecentes(itens: NoticiaItem[], dias: number, agoraMs: number): NoticiaItem[] {
+  const limite = agoraMs - dias * 86_400_000;
+  return itens.filter((it) => {
+    if (!it.publicadoEm) return true;
+    const t = Date.parse(it.publicadoEm);
+    return Number.isNaN(t) ? true : t >= limite;
+  });
+}
+
 /** Remove notícias cujo link já foi usado (dedup contra fonte_url dos posts). */
 export function filtrarNovas(itens: NoticiaItem[], jaUsados: Set<string>): NoticiaItem[] {
   const vistos = new Set<string>();
