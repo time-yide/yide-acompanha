@@ -10,6 +10,7 @@ import {
 } from "./schema";
 import { formatIsoDate, getAppTimezoneOffsetMs } from "@/lib/datetime/timezone";
 import { isTarefaAtrasadaParaCargo } from "@/lib/tarefas/overdue-rules";
+import { getComissaoPrevista } from "@/lib/dashboard/comissao-prevista";
 import {
   computePrazoAgilidade,
   resumoPrazoAgilidade,
@@ -255,6 +256,7 @@ export async function getColaboradoresStatus(
     { data: capturesEntregasData },
     { data: clientsData },
     { data: capturasEntreguesData },
+    { data: agendamentosData },
   ] = await Promise.all([
     // O filtro antigo `.neq("role", "cliente")` quebrava a query inteira:
     // "cliente" não existe no enum `user_role`, então Postgres rejeitava com
@@ -338,6 +340,16 @@ export async function getColaboradoresStatus(
       .gte("created_at", sinceStartUtc)
       .lt("created_at", tomorrowStartUtc)
       .not("videomaker_id", "is", null),
+    // Agendamentos de gravação criados no período — quem criou (assessor) ganha
+    // isso como entrega dele (o trabalho de agendar pro time). Conta por `inicio`
+    // no período, igual as demais entregas de audiovisual.
+    sb
+      .from("calendar_events")
+      .select("criado_por")
+      .eq("sub_calendar", "videomakers")
+      .gte("inicio", sinceStartUtc)
+      .lt("inicio", tomorrowStartUtc)
+      .not("criado_por", "is", null),
   ]);
 
   if (profilesError) {
@@ -407,6 +419,28 @@ export async function getColaboradoresStatus(
   for (const c of capturasEntregues) {
     entregasByUser.set(c.videomaker_id, (entregasByUser.get(c.videomaker_id) ?? 0) + 1);
   }
+  // Agendamentos de gravação criados pelo ASSESSOR contam como entrega dele.
+  for (const a of (agendamentosData ?? []) as Array<{ criado_por: string | null }>) {
+    const criador = a.criado_por;
+    if (!criador || roleByUser.get(criador) !== "assessor") continue;
+    entregasByUser.set(criador, (entregasByUser.get(criador) ?? 0) + 1);
+  }
+
+  // Comissão prevista do assessor entra no CUSTO (custo real = salário + comissão).
+  // Valor mensal; prorateado igual ao salário no cálculo do custo do período.
+  const comissaoByUser = new Map<string, number>();
+  const assessoresIds = [...roleByUser.entries()].filter(([, r]) => r === "assessor").map(([id]) => id);
+  await Promise.all(
+    assessoresIds.map(async (id) => {
+      try {
+        const c = await getComissaoPrevista(id, "assessor");
+        // `.valorVariavel` = só a comissão (`.valor` já inclui o salário fixo — não usar).
+        comissaoByUser.set(id, Number(c.valorVariavel ?? 0));
+      } catch (e) {
+        console.error("[produtividade/queries] getComissaoPrevista falhou:", e);
+      }
+    }),
+  );
 
   // Eventos por user_id pra cálculo de sessões
   const eventsByUser = new Map<string, EventRow[]>();
@@ -496,9 +530,13 @@ export async function getColaboradoresStatus(
     const tempo_ativo_seg_hoje = tempoPresenca + tempoExterno;
 
     const fixo = p.fixo_mensal !== null ? Number(p.fixo_mensal) : 0;
-    const custo_hora = fixo > 0 ? Number((fixo / HORAS_UTEIS_MES).toFixed(2)) : null;
+    // Custo mensal base = salário fixo + comissão prevista (assessor). Comissão é 0
+    // pra quem não é assessor. custo_hora e custo_periodo derivam da MESMA base
+    // (pra baterem entre si), prorateados por horas/dias úteis.
+    const custoMensalBase = fixo + (comissaoByUser.get(p.id) ?? 0);
+    const custo_hora = custoMensalBase > 0 ? Number((custoMensalBase / HORAS_UTEIS_MES).toFixed(2)) : null;
     const custo_periodo =
-      fixo > 0 ? Number(((fixo / DIAS_UTEIS_MES) * diasUteis).toFixed(2)) : null;
+      custoMensalBase > 0 ? Number(((custoMensalBase / DIAS_UTEIS_MES) * diasUteis).toFixed(2)) : null;
 
     const entregas_periodo = entregasByUser.get(p.id) ?? 0;
     const custo_por_entrega =
