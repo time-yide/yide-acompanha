@@ -7,6 +7,7 @@ import { podeGerenciarBlog } from "@/lib/blog/acesso";
 import { listPostsAdmin } from "@/lib/blog/queries";
 import { NovoPostButton } from "@/components/blog/NovoPostButton";
 import { GerarRascunhosButton } from "@/components/blog/GerarRascunhosButton";
+import { AprovarPublicarButton } from "@/components/blog/AprovarPublicarButton";
 
 export const dynamic = "force-dynamic";
 
@@ -56,7 +57,8 @@ export default async function BlogAdminPage() {
                 <th className="px-4 py-2 text-left font-medium">Título</th>
                 <th className="px-3 py-2 text-left font-medium">Status</th>
                 <th className="px-3 py-2 text-left font-medium">Autor</th>
-                <th className="px-4 py-2 text-right font-medium">Atualizado</th>
+                <th className="px-3 py-2 text-right font-medium">Atualizado</th>
+                <th className="px-4 py-2 text-right font-medium">Aprovar</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -72,8 +74,14 @@ export default async function BlogAdminPage() {
                         {publicado ? "Publicado" : "Rascunho"}
                       </span>
                     </td>
-                    <td className="px-3 py-2.5 text-muted-foreground">{p.autor_nome ?? "—"}</td>
-                    <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">{fmtData(p.updated_at)}</td>
+                    <td className="px-3 py-2.5 text-muted-foreground">{p.autor_nome ?? "Gerado por IA"}</td>
+                    <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground">{fmtData(p.updated_at)}</td>
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center justify-end gap-2">
+                        <Link href={`/programacao/blog/${p.id}`} className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline">Revisar</Link>
+                        <AprovarPublicarButton id={p.id} publicado={publicado} />
+                      </div>
+                    </td>
                   </tr>
                 );
               })}
