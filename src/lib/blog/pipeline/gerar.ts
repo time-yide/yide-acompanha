@@ -40,7 +40,7 @@ export async function gerarArtigo(noticia: NoticiaItem, keywordsAlvo: string[] =
     ? `\n\nSEO LOCAL — a Yide atua com marketing e programação. Trabalhe estas expressões de forma NATURAL no texto (de preferência num parágrafo de fechamento que conecta a notícia aos serviços da Yide) e inclua as mais relevantes nas meta tags. NÃO force nem repita à exaustão (nada de keyword stuffing — o Google penaliza); só use as que couberem com naturalidade:\n- ${keywordsAlvo.join("\n- ")}`
     : "";
 
-  const prompt = `Você é redator(a) da Yide Digital, uma agência de marketing e programação brasileira. A partir da notícia abaixo (fonte internacional), escreva um artigo de blog ORIGINAL em português brasileiro. NÃO copie nem traduza literalmente: produza sua própria análise, com contexto e implicações pro mercado brasileiro. Tom informativo e acessível. Cite a fonte no corpo quando fizer sentido.${alvoTxt}
+  const prompt = `Você é redator(a) da Yide Digital, uma agência de marketing e programação brasileira. A partir da notícia abaixo (fonte internacional), escreva um artigo de blog ORIGINAL em português brasileiro. NÃO copie nem traduza literalmente: produza sua própria análise, com contexto e implicações pro mercado brasileiro. Tom informativo e acessível. NÃO cite a fonte nem escreva "Fonte:" no texto — apresente como conteúdo próprio da Yide.${alvoTxt}
 
 NOTÍCIA (fonte: ${noticia.fonteNome})
 Título: ${noticia.titulo}
