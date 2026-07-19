@@ -7,7 +7,7 @@
 // SW_VERSION diferente → o navegador detecta o sw.js novo, troca o SW e o
 // PWARegister recarrega a página sozinho. É o que faz toda atualização
 // aparecer pra todo mundo sem precisar limpar cache.
-const SW_VERSION = "__DEPLOY__";
+const SW_VERSION = "local-1784427274010";
 // Cache versionado pelo SW_VERSION. Bumpar a versão = novo cache + limpeza do
 // antigo no activate. É o kill-switch: qualquer deploy zera o cache antigo.
 const STATIC_CACHE = `static-${SW_VERSION}`;
