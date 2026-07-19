@@ -72,15 +72,6 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
       )}
 
       <Markdown>{post.conteudo_md}</Markdown>
-
-      {post.fonte_url && (
-        <p className="border-t pt-4 text-xs text-muted-foreground">
-          Fonte:{" "}
-          <a href={post.fonte_url} target="_blank" rel="noopener noreferrer nofollow" className="underline underline-offset-2">
-            {post.fonte_nome || post.fonte_url}
-          </a>
-        </p>
-      )}
     </article>
   );
 }
