@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowUpRight, BarChart3, Code2, Share2, Database, Megaphone, Sparkles, MapPin } from "lucide-react";
+import { ArrowUpRight, BarChart3, Code2, Share2, Database, Megaphone, Sparkles, MapPin, Video } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { getOrgPadrao, listServicosOuSeed } from "@/lib/seo/queries";
 import { Reveal } from "@/components/site/Reveal";
@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: "Serviços · Yide Digital",
   description: "Marketing, tráfego, sites e IA para empresas em Cuiabá, Salvador, Vila Velha e região.",
   alternates: { canonical: "/servicos" } };
 
-const ICONS: LucideIcon[] = [BarChart3, Code2, Share2, Database, Megaphone, Sparkles];
+const ICONS: LucideIcon[] = [BarChart3, Code2, Share2, Database, Video, Megaphone, Sparkles];
 // Bento: 1º card grande, 4º ocupa 2 colunas — mesmo ritmo da home.
 const SPANS = ["sm:col-span-2 sm:row-span-2", "", "", "sm:col-span-2", "", ""];
 const PRACAS = ["Cuiabá", "Várzea Grande", "Salvador", "Vila Velha"];

@@ -1,7 +1,7 @@
 "use client";
 import { useRef } from "react";
 import Link from "next/link";
-import { ArrowUpRight, BarChart3, Code2, Share2, Sparkles, Megaphone, Database } from "lucide-react";
+import { ArrowUpRight, BarChart3, Code2, Share2, Sparkles, Megaphone, Database, Video } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useRevealOnView } from "./useRevealOnView";
 
@@ -15,7 +15,7 @@ interface ServicosBentoProps {
   servicos: Servico[];
 }
 
-const ICONS: LucideIcon[] = [BarChart3, Code2, Share2, Database, Megaphone, Sparkles];
+const ICONS: LucideIcon[] = [BarChart3, Code2, Share2, Database, Video, Megaphone, Sparkles];
 // Padrão de span do bento (repete pra qualquer quantidade).
 const SPANS = ["sm:col-span-2 sm:row-span-2", "", "", "sm:col-span-2", "", ""];
 
