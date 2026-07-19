@@ -392,6 +392,17 @@ export async function uploadCronogramaAction(formData: FormData): Promise<Action
       user_ids_extras: [atribuidoA],
       source_user_id: actor.id,
     });
+  } else {
+    // Re-envio (correção): mantém a MESMA tarefa, mas sincroniza a descrição com o
+    // link/quantidades novos — senão o designer ficava com os valores antigos.
+    await sb
+      .from("tasks")
+      .update({
+        descricao: `Cronograma do mês: ${parsed.data.cronograma_url}\nDemanda: ${parsed.data.quantidade} arte(s) · ${parsed.data.quantidade_videos} vídeo(s)`,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", existingTaskId)
+      .is("deleted_at", null);
   }
 
   // Upsert do checklist com o link + quantidade (+ design_task_id na 1ª vez).
@@ -414,6 +425,62 @@ export async function uploadCronogramaAction(formData: FormData): Promise<Action
   if (!upserted || upserted.length === 0) {
     return { error: "Sem permissão pra salvar o cronograma" };
   }
+
+  revalidatePath("/painel");
+  revalidateTag(PAINEL_CACHE_TAG, "default");
+  revalidateTag("tasks", "default");
+  return { success: true };
+}
+
+const removerCronogramaSchema = z.object({
+  client_id: uuidLike,
+  mes_referencia: z.string().regex(/^\d{4}-\d{2}$/, "Formato esperado YYYY-MM"),
+});
+
+/**
+ * Remove o cronograma do mês (caso tenha subido errado):
+ *  - soft-delete da tarefa de design vinculada (se houver),
+ *  - limpa cronograma_url/pacote_post/pacote_video/design_task_id do checklist
+ *    (volta pro estado "Add link").
+ * Mesmo gate do upload (createClient + RLS). Sem exclusão permanente.
+ */
+export async function removerCronogramaAction(formData: FormData): Promise<ActionResult> {
+  await requireAuth();
+  const parsed = removerCronogramaSchema.safeParse({
+    client_id: formData.get("client_id"),
+    mes_referencia: formData.get("mes_referencia"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+
+  const { data: existing } = await sb
+    .from("client_monthly_checklist")
+    .select("id, design_task_id")
+    .eq("client_id", parsed.data.client_id)
+    .eq("mes_referencia", parsed.data.mes_referencia)
+    .maybeSingle();
+  if (!existing) return { error: "Cronograma não encontrado" };
+
+  // Soft-delete da tarefa do designer (padrão do sistema; não é exclusão permanente).
+  if (existing.design_task_id) {
+    await sb
+      .from("tasks")
+      .update({ deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .eq("id", existing.design_task_id)
+      .is("deleted_at", null);
+  }
+
+  const { data: upd, error: updErr } = await sb
+    .from("client_monthly_checklist")
+    .update({ cronograma_url: null, pacote_post: null, pacote_video: null, design_task_id: null })
+    .eq("id", existing.id)
+    .select("id");
+  if (updErr) return { error: updErr.message };
+  // RLS deny em UPDATE é silencioso (0 linhas) — convenção do projeto.
+  if (!upd || upd.length === 0) return { error: "Sem permissão pra remover o cronograma" };
 
   revalidatePath("/painel");
   revalidateTag(PAINEL_CACHE_TAG, "default");
