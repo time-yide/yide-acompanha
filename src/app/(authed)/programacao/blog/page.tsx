@@ -6,6 +6,7 @@ import { getOrganizationId } from "@/lib/gerador-leads/queries";
 import { podeGerenciarBlog } from "@/lib/blog/acesso";
 import { listPostsAdmin } from "@/lib/blog/queries";
 import { NovoPostButton } from "@/components/blog/NovoPostButton";
+import { GerarRascunhosButton } from "@/components/blog/GerarRascunhosButton";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,7 @@ export default async function BlogAdminPage() {
           <Link href="/blog" target="_blank" className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted/40 hover:text-foreground">
             Ver blog <ExternalLink className="h-4 w-4" />
           </Link>
+          <GerarRascunhosButton />
           <NovoPostButton />
         </div>
       </div>

@@ -8,6 +8,7 @@ import { getOrganizationId } from "@/lib/gerador-leads/queries";
 import { podeGerenciarBlog } from "./acesso";
 import { slugify, slugUnico } from "./slug";
 import { slugsExistentes } from "./queries";
+import { executarPipelineBlog } from "./pipeline/executar";
 
 interface Ok { success: true; id?: string }
 interface Err { error: string }
@@ -135,6 +136,16 @@ export async function publicarPostAction(formData: FormData): Promise<Result> {
   if (!data || data.length === 0) return { error: "Post não encontrado" };
   revalida((data[0] as { slug: string }).slug);
   return { success: true };
+}
+
+interface GerarOk { success: true; gerados: number; semNovas: boolean }
+export async function gerarRascunhosAgoraAction(): Promise<GerarOk | Err> {
+  const g = await gate();
+  if ("error" in g) return g;
+  // Manual = 1 rascunho (rápido, pra testar). O cron diário gera 2–3.
+  const r = await executarPipelineBlog(g.orgId, 1);
+  revalida();
+  return { success: true, gerados: r.gerados, semNovas: r.semNovas };
 }
 
 export async function arquivarPostAction(id: string): Promise<Result> {
