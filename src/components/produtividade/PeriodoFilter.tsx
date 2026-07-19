@@ -15,9 +15,11 @@ interface Props {
   range: Range;
   de?: string;
   ate?: string;
+  /** Rota base pra onde o filtro navega (default /produtividade). */
+  basePath?: string;
 }
 
-export function PeriodoFilter({ range, de, ate }: Props) {
+export function PeriodoFilter({ range, de, ate, basePath = "/produtividade" }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [pending, startTransition] = useTransition();
@@ -26,7 +28,7 @@ export function PeriodoFilter({ range, de, ate }: Props) {
 
   function push(sp: URLSearchParams) {
     const qs = sp.toString();
-    startTransition(() => router.push(`/produtividade${qs ? `?${qs}` : ""}`));
+    startTransition(() => router.push(`${basePath}${qs ? `?${qs}` : ""}`));
   }
 
   function selectRange(r: Range) {
