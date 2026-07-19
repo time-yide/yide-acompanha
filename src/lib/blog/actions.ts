@@ -10,6 +10,7 @@ import { parseBoolCampo } from "./form";
 import { slugify, slugUnico } from "./slug";
 import { slugsExistentes } from "./queries";
 import { executarPipelineBlog } from "./pipeline/executar";
+import { gerarTendencias, gerarRascunhoDeTema } from "./pipeline/tendencias";
 
 interface Ok { success: true; id?: string }
 interface Err { error: string }
@@ -147,6 +148,27 @@ export async function gerarRascunhosAgoraAction(): Promise<GerarOk | Err> {
   const r = await executarPipelineBlog(g.orgId, 1);
   revalida();
   return { success: true, gerados: r.gerados, semNovas: r.semNovas };
+}
+
+export async function atualizarTendenciasAction(): Promise<{ success: true; total: number } | Err> {
+  const g = await gate();
+  if ("error" in g) return g;
+  const r = await gerarTendencias(g.orgId);
+  revalidatePath("/programacao/blog/insights");
+  if (!r.ok) return { error: "Não consegui atualizar as tendências agora. Tente de novo em instantes." };
+  return { success: true, total: r.total };
+}
+
+export async function gerarRascunhoDeTemaAction(formData: FormData): Promise<Ok | Err> {
+  const g = await gate();
+  if ("error" in g) return g;
+  const tema = String(formData.get("tema") ?? "").trim();
+  const angulo = String(formData.get("angulo") ?? "").trim();
+  if (!tema) return { error: "Tema vazio" };
+  const id = await gerarRascunhoDeTema(g.orgId, tema, angulo);
+  revalida();
+  if (!id) return { error: "Não consegui gerar o rascunho agora. Tente de novo." };
+  return { success: true, id };
 }
 
 export async function arquivarPostAction(id: string): Promise<Result> {

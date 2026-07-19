@@ -1,15 +1,24 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Eye, FileCheck2, CalendarDays, CalendarRange, TrendingUp } from "lucide-react";
+import { ArrowLeft, Eye, FileCheck2, CalendarDays, CalendarRange, TrendingUp, Flame } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import { getOrganizationId } from "@/lib/gerador-leads/queries";
 import { podeGerenciarBlog } from "@/lib/blog/acesso";
 import { getBlogInsights } from "@/lib/blog/insights";
+import { listarTendencias } from "@/lib/blog/pipeline/tendencias";
+import { AtualizarTendenciasButton } from "@/components/blog/AtualizarTendenciasButton";
+import { GerarDeTemaButton } from "@/components/blog/GerarDeTemaButton";
 
 export const dynamic = "force-dynamic";
 
 function fmtNum(n: number): string {
   return n.toLocaleString("pt-BR");
+}
+
+function fmtQuando(iso: string | null): string {
+  if (!iso) return "";
+  const dt = new Date(iso);
+  return Number.isNaN(dt.getTime()) ? "" : dt.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
 function diaCurto(dia: string): string {
@@ -33,7 +42,7 @@ export default async function BlogInsightsPage() {
   const orgId = await getOrganizationId(user.id);
   if (!orgId) notFound();
 
-  const d = await getBlogInsights(orgId);
+  const [d, trend] = await Promise.all([getBlogInsights(orgId), listarTendencias(orgId)]);
   const maxDia = Math.max(1, ...d.porDia.map((x) => x.total));
   const maxKw = Math.max(1, ...d.keywords.map((x) => x.total));
 
@@ -47,6 +56,44 @@ export default async function BlogInsightsPage() {
         <p className="text-sm text-muted-foreground">
           Métricas do blog público. As visitas contam acessos reais às páginas de post (bots são ignorados; inclui navegação interna).
         </p>
+      </div>
+
+      {/* Assuntos em alta */}
+      <div className="rounded-xl border border-teal-500/30 bg-teal-500/[0.04] p-4">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="flex items-center gap-1.5 text-sm font-semibold">
+              <Flame className="h-4 w-4 text-orange-500" /> Assuntos em alta
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Temas quentes das fontes que o robô monitora — clique em &quot;Gerar rascunho&quot; pra criar um post sobre o assunto.
+              {trend.atualizadoEm ? ` Atualizado ${fmtQuando(trend.atualizadoEm)}.` : ""}
+            </p>
+          </div>
+          <AtualizarTendenciasButton />
+        </div>
+
+        {trend.itens.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            Ainda sem ranking. Clique em &quot;Atualizar&quot; pra gerar os assuntos em alta do momento.
+          </p>
+        ) : (
+          <ol className="space-y-2">
+            {trend.itens.map((t) => (
+              <li key={t.posicao} className="flex items-start gap-3 rounded-lg border bg-background/40 p-3">
+                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-teal-500/15 text-xs font-bold text-teal-600 tabular-nums dark:text-teal-400">
+                  {t.posicao}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold">{t.tema}</p>
+                  {t.motivo && <p className="mt-0.5 text-xs text-muted-foreground">{t.motivo}</p>}
+                  {t.angulo && <p className="mt-1 text-xs text-teal-700 dark:text-teal-400"><span className="font-medium">Ângulo:</span> {t.angulo}</p>}
+                </div>
+                <GerarDeTemaButton tema={t.tema} angulo={t.angulo} />
+              </li>
+            ))}
+          </ol>
+        )}
       </div>
 
       {/* Cards */}

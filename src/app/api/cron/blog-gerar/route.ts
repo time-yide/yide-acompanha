@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getOrgPadraoBlog } from "@/lib/blog/queries";
 import { executarPipelineBlog } from "@/lib/blog/pipeline/executar";
+import { gerarTendencias } from "@/lib/blog/pipeline/tendencias";
 
 /**
  * Cron: gera 2–3 rascunhos de blog por dia a partir de notícias (RSS) via IA
@@ -24,5 +25,10 @@ export async function GET(request: NextRequest) {
   if (!orgId) return NextResponse.json({ error: "sem organização" }, { status: 500 });
 
   const r = await executarPipelineBlog(orgId);
-  return NextResponse.json({ ok: true, ...r });
+  // Atualiza o ranking de "Assuntos em alta" (best-effort; não derruba o cron).
+  const trend = await gerarTendencias(orgId).catch((e) => {
+    console.error("[cron blog] tendências:", e);
+    return { ok: false, total: 0 };
+  });
+  return NextResponse.json({ ok: true, ...r, tendencias: trend.total });
 }
