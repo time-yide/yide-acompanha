@@ -4,7 +4,7 @@
 
 export const ROLES_ALLOWED = [
   "adm", "socio", "comercial", "coordenador", "assessor",
-  "designer", "videomaker", "editor", "audiovisual_chefe",
+  "designer", "videomaker", "fast_midia", "editor", "audiovisual_chefe",
 ];
 
 export const ROLES_GESTAO = ["adm", "socio"];
