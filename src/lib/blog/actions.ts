@@ -6,6 +6,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { requireAuth } from "@/lib/auth/session";
 import { getOrganizationId } from "@/lib/gerador-leads/queries";
 import { podeGerenciarBlog } from "./acesso";
+import { parseBoolCampo } from "./form";
 import { slugify, slugUnico } from "./slug";
 import { slugsExistentes } from "./queries";
 import { executarPipelineBlog } from "./pipeline/executar";
@@ -112,12 +113,12 @@ export async function atualizarPostAction(formData: FormData): Promise<Result> {
   return { success: true, id: d.id };
 }
 
-const publicarSchema = z.object({ id: uuidLike, publicar: z.coerce.boolean() });
+const publicarSchema = z.object({ id: uuidLike, publicar: z.boolean() });
 
 export async function publicarPostAction(formData: FormData): Promise<Result> {
   const g = await gate();
   if ("error" in g) return g;
-  const parsed = publicarSchema.safeParse({ id: formData.get("id"), publicar: formData.get("publicar") });
+  const parsed = publicarSchema.safeParse({ id: formData.get("id"), publicar: parseBoolCampo(formData.get("publicar")) });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
   const sb = sbAdmin();
