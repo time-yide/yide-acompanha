@@ -2,6 +2,7 @@
 import { useLayoutEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useRevealOnView } from "./useRevealOnView";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -12,6 +13,8 @@ interface SobreProps {
 
 export function Sobre({ titulo, texto }: SobreProps) {
   const rootRef = useRef<HTMLDivElement>(null);
+
+  useRevealOnView(rootRef, "[data-reveal]");
 
   useLayoutEffect(() => {
     const root = rootRef.current;
@@ -28,15 +31,6 @@ export function Sobre({ titulo, texto }: SobreProps) {
           ease: "none",
           scrollTrigger: { trigger: root, start: "top bottom", end: "bottom top", scrub: true },
         });
-      });
-
-      gsap.from(root.querySelectorAll<HTMLElement>("[data-reveal]"), {
-        y: 30,
-        opacity: 0,
-        stagger: 0.12,
-        duration: 0.8,
-        ease: "power3.out",
-        scrollTrigger: { trigger: root, start: "top 75%", once: true },
       });
     }, root);
 

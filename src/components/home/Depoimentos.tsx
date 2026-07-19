@@ -1,10 +1,7 @@
 "use client";
-import { useLayoutEffect, useRef } from "react";
+import { useRef } from "react";
 import { Quote } from "lucide-react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-
-gsap.registerPlugin(ScrollTrigger);
+import { useRevealOnView } from "./useRevealOnView";
 
 interface Depoimento {
   texto: string;
@@ -18,25 +15,7 @@ interface DepoimentosProps {
 export function Depoimentos({ depoimentos }: DepoimentosProps) {
   const rootRef = useRef<HTMLDivElement>(null);
 
-  useLayoutEffect(() => {
-    const root = rootRef.current;
-    if (!root) return;
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduced) return;
-
-    const ctx = gsap.context(() => {
-      gsap.from(root.querySelectorAll<HTMLElement>("[data-depo]"), {
-        y: 40,
-        opacity: 0,
-        stagger: 0.12,
-        duration: 0.7,
-        ease: "power3.out",
-        scrollTrigger: { trigger: root, start: "top 80%", once: true },
-      });
-    }, root);
-
-    return () => ctx.revert();
-  }, []);
+  useRevealOnView(rootRef, "[data-depo]");
 
   if (depoimentos.length === 0) return null;
 
