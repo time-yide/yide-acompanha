@@ -2,7 +2,8 @@ import type { MetadataRoute } from "next";
 import { getOrgPadraoBlog, listPostsPublicados } from "@/lib/blog/queries";
 import { SITE_URL } from "@/lib/blog/config";
 
-export const revalidate = 300;
+// Dinâmica (não gera no build): usa service-role, cuja env só existe em runtime.
+export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const orgId = await getOrgPadraoBlog();

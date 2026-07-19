@@ -7,7 +7,8 @@ import { metaDoPost, jsonLdArtigo, type PostSeoInput } from "@/lib/blog/seo";
 import { Markdown } from "@/components/blog/Markdown";
 import { SITE_URL } from "@/lib/blog/config";
 
-export const revalidate = 300;
+// Dinâmica (não pré-renderiza no build): usa service-role, cuja env só existe em runtime.
+export const dynamic = "force-dynamic";
 
 function fmtData(iso: string | null): string {
   if (!iso) return "";

@@ -2,7 +2,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { getOrgPadraoBlog, listPostsPublicados } from "@/lib/blog/queries";
 
-export const revalidate = 300;
+// Dinâmica (não pré-renderiza no build): usa service-role, cuja env só existe em runtime.
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Blog · Yide Digital",
