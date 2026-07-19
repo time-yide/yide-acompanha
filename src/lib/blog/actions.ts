@@ -10,6 +10,7 @@ import { parseBoolCampo } from "./form";
 import { slugify, slugUnico } from "./slug";
 import { slugsExistentes } from "./queries";
 import { executarPipelineBlog } from "./pipeline/executar";
+import { executarPipelineEstrategico } from "./pipeline/executar-estrategico";
 import { gerarTendencias, gerarRascunhoDeTema } from "./pipeline/tendencias";
 
 interface Ok { success: true; id?: string }
@@ -148,6 +149,14 @@ export async function gerarRascunhosAgoraAction(): Promise<GerarOk | Err> {
   const r = await executarPipelineBlog(g.orgId, 1);
   revalida();
   return { success: true, gerados: r.gerados, semNovas: r.semNovas };
+}
+
+export async function gerarEstrategicosAgoraAction(): Promise<{ success: true; gerados: number } | Err> {
+  const g = await gate();
+  if ("error" in g) return g;
+  const r = await executarPipelineEstrategico(g.orgId, 3);
+  revalida();
+  return { success: true, gerados: r.gerados };
 }
 
 export async function atualizarTendenciasAction(): Promise<{ success: true; total: number } | Err> {
