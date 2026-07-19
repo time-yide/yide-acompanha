@@ -1,11 +1,8 @@
 "use client";
-import { useLayoutEffect, useRef } from "react";
+import { useRef } from "react";
 import { ArrowRight, Mail, MapPin, Phone } from "lucide-react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { YIDE_NAP } from "@/lib/seo/config";
-
-gsap.registerPlugin(ScrollTrigger);
+import { useRevealOnView } from "./useRevealOnView";
 
 interface CtaContatoProps {
   titulo: string;
@@ -14,25 +11,7 @@ interface CtaContatoProps {
 export function CtaContato({ titulo }: CtaContatoProps) {
   const rootRef = useRef<HTMLDivElement>(null);
 
-  useLayoutEffect(() => {
-    const root = rootRef.current;
-    if (!root) return;
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduced) return;
-
-    const ctx = gsap.context(() => {
-      gsap.from(root.querySelectorAll<HTMLElement>("[data-reveal]"), {
-        y: 30,
-        opacity: 0,
-        stagger: 0.1,
-        duration: 0.8,
-        ease: "power3.out",
-        scrollTrigger: { trigger: root, start: "top 80%", once: true },
-      });
-    }, root);
-
-    return () => ctx.revert();
-  }, []);
+  useRevealOnView(rootRef, "[data-reveal]");
 
   return (
     <section id="contato" className="bg-[#faf9f7]">
