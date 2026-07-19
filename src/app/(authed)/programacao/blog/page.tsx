@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ExternalLink, FileText } from "lucide-react";
+import { ArrowLeft, ExternalLink, FileText, BarChart3 } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import { getOrganizationId } from "@/lib/gerador-leads/queries";
 import { podeGerenciarBlog } from "@/lib/blog/acesso";
@@ -35,6 +35,9 @@ export default async function BlogAdminPage() {
           <p className="text-sm text-muted-foreground">Conteúdo da Yide pra SEO e autoridade. Rascunhos ficam privados; publicados vão pro blog público.</p>
         </div>
         <div className="flex items-center gap-2">
+          <Link href="/programacao/blog/insights" className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted/40 hover:text-foreground">
+            <BarChart3 className="h-4 w-4" /> Insights
+          </Link>
           <Link href="/blog" target="_blank" className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted/40 hover:text-foreground">
             Ver blog <ExternalLink className="h-4 w-4" />
           </Link>
