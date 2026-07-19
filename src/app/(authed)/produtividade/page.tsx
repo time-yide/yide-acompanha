@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { Activity, Info } from "lucide-react";
+import Link from "next/link";
+import { Activity, Info, Gauge, ArrowRight } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import { TabsColaboradores } from "@/components/colaboradores/TabsColaboradores";
 import {
@@ -91,7 +92,15 @@ export default async function ProdutividadePage({
             </p>
           </div>
         </div>
-        <PeriodoFilter range={range} de={customValido ? periodo.de : undefined} ate={customValido ? periodo.ate : undefined} />
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/produtividade/capacidade"
+            className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+          >
+            <Gauge className="h-4 w-4" /> Capacidade <ArrowRight className="h-4 w-4" />
+          </Link>
+          <PeriodoFilter range={range} de={customValido ? periodo.de : undefined} ate={customValido ? periodo.ate : undefined} />
+        </div>
       </header>
 
       <ProdutividadeSummaryCards summary={summary} periodoLabel={periodoLabel} mostrarFinanceiro={mostrarFinanceiro} />

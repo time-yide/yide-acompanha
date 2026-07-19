@@ -26,6 +26,8 @@ import {
 } from "./qualidade-setor";
 import { computeConversao, type ConversaoRow } from "./conversao-comercial";
 import { computeConsistencia, diasUteisEntre, type ConsistenciaRow } from "./consistencia";
+import { agregarCarga, agregarGargalos, concentracaoEntregas, type CapacidadePessoa, type GargaloSetor, type Concentracao } from "./capacidade";
+import { roleParaSetor } from "./setor-metricas";
 
 const DESIGN_STATUS_APROVADA = ["aprovado", "agendado", "publicado"];
 import {
@@ -1072,4 +1074,70 @@ export async function getConsistencia(periodo: Periodo): Promise<ConsistenciaRes
 
   const pessoas: ConsistenciaRow[] = computeConsistencia(rows).map((p) => ({ ...p, nome: nomes.get(p.user_id) ?? "—" }));
   return { pessoas, diasUteis: diasUteisEntre(since, today) };
+}
+
+export interface CapacidadeResult {
+  pessoas: CapacidadePessoa[];
+  gargalos: GargaloSetor[];
+  concentracao: Concentracao;
+  diasParados: number;
+}
+
+const CAPACIDADE_DIAS_PARADO = 5;
+
+/**
+ * Capacidade do time: carga (WIP), trabalho parado, gargalos por setor e
+ * concentração. WIP/parado são estado ATUAL; entregas usam o período.
+ */
+export async function getCapacidade(periodo: Periodo): Promise<CapacidadeResult> {
+  const admin = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = admin as any;
+  const today = periodo.ate;
+  const since = periodo.de;
+  const offsetHours = getAppTimezoneOffsetMs() / (60 * 60 * 1000);
+  const sinceStartUtc = new Date(`${since}T${String(offsetHours).padStart(2, "0")}:00:00.000Z`).toISOString();
+  const tomorrowDate = new Date(`${today}T00:00:00.000Z`);
+  tomorrowDate.setUTCDate(tomorrowDate.getUTCDate() + 1);
+  const tomorrow = formatIsoDate(tomorrowDate);
+  const tomorrowStartUtc = new Date(`${tomorrow}T${String(offsetHours).padStart(2, "0")}:00:00.000Z`).toISOString();
+
+  const [{ data: abertasData }, { data: concluidasData }, { data: profilesData }] = await Promise.all([
+    // WIP = tarefas em aberto atribuídas (estado atual).
+    sb.from("tasks")
+      .select("atribuido_a, updated_at")
+      .in("status", ["aberta", "em_andamento", "alteracao"])
+      .is("deleted_at", null)
+      .not("atribuido_a", "is", null),
+    // Throughput = tarefas concluídas no período.
+    sb.from("tasks")
+      .select("atribuido_a")
+      .in("status", ["concluida", "postada"])
+      .gte("completed_at", sinceStartUtc)
+      .lt("completed_at", tomorrowStartUtc)
+      .is("deleted_at", null)
+      .not("atribuido_a", "is", null),
+    sb.from("profiles").select("id, nome, role, especialidade").eq("ativo", true).order("nome"),
+  ]);
+
+  const entreguesByUser = new Map<string, number>();
+  for (const t of (concluidasData ?? []) as Array<{ atribuido_a: string }>) {
+    entreguesByUser.set(t.atribuido_a, (entreguesByUser.get(t.atribuido_a) ?? 0) + 1);
+  }
+
+  // Só cargos produtivos (com setor) entram na visão de capacidade.
+  const pessoasProd = ((profilesData ?? []) as Array<{ id: string; nome: string; role: string; especialidade: string | null }>)
+    .filter((p) => roleParaSetor(p.role, p.especialidade) !== null)
+    .map((p) => ({ user_id: p.id, nome: p.nome, role: p.role }));
+
+  const abertas = (abertasData ?? []) as Array<{ atribuido_a: string; updated_at: string }>;
+  const carga = agregarCarga(abertas, pessoasProd, entreguesByUser, Date.now(), CAPACIDADE_DIAS_PARADO);
+
+  return {
+    // Esconde quem não tem nada no radar (sem WIP e sem entrega no período).
+    pessoas: carga.filter((p) => p.wip > 0 || p.entregues > 0),
+    gargalos: agregarGargalos(carga),
+    concentracao: concentracaoEntregas(carga, 2),
+    diasParados: CAPACIDADE_DIAS_PARADO,
+  };
 }
