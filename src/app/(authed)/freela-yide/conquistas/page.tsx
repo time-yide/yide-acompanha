@@ -3,12 +3,17 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import { getConquistaStats, getConquistasDesbloqueadas } from "@/lib/freela-yide/queries";
+import { verificarConquistas } from "@/lib/freela-yide/verificar-conquistas";
 import { ConquistasGrid } from "@/components/freela-yide/ConquistasGrid";
 import { ROLES_ALLOWED } from "@/lib/freela-yide/acesso";
 
 export default async function ConquistasPage() {
   const user = await requireAuth();
   if (!ROLES_ALLOWED.includes(user.role)) notFound();
+
+  // Backfill silencioso: abrir a página já desbloqueia o que a pessoa bateu no
+  // histórico (sem notificar). Best-effort — não quebra a página se falhar.
+  await verificarConquistas(user.id, { notify: false });
 
   const [stats, desbloqueadas] = await Promise.all([
     getConquistaStats(user.id),
