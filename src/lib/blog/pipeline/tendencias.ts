@@ -6,6 +6,7 @@ import { buscarNoticias, apenasRecentes, type NoticiaItem } from "./rss";
 import { gerarArtigo, gerarCapa, extrairJson } from "./gerar";
 import { selecionarKeywordsAlvo } from "./keywords";
 import { slugify, slugUnico } from "../slug";
+import { semTravessao } from "../texto";
 
 const BLOG_MODEL = "claude-haiku-4-5";
 const DIAS_QUENTE = 5;
@@ -35,6 +36,8 @@ Agrupe-as em ATÉ ${MAX_TENDENCIAS} "assuntos em alta" (temas) relevantes pro p�
 MANCHETES:
 ${manchetes}
 
+REGRA DE PONTUAÇÃO: NUNCA use travessão nem meia-risca ("—" ou "–") em nenhum campo. Use vírgula, dois-pontos, ponto ou parênteses.
+
 Responda SOMENTE com um JSON válido (sem cercas de código, sem texto fora do JSON):
 {"tendencias": [{"tema": "assunto curto em pt-br", "motivo": "por que está em alta, 1 frase", "angulo": "ângulo sugerido pra Yide escrever, conectando ao público e a marketing/programação (use SEO local de Cuiabá quando fizer sentido)", "fontes": 3}]}
 O campo "fontes" é quantas manchetes da lista se relacionam ao tema (número inteiro).`;
@@ -50,9 +53,9 @@ export function parseTendencias(raw: Record<string, unknown> | null): TendenciaG
     const tema = typeof o.tema === "string" ? o.tema.trim() : "";
     if (!tema) continue;
     out.push({
-      tema: tema.slice(0, 120),
-      motivo: typeof o.motivo === "string" ? o.motivo.trim().slice(0, 240) : "",
-      angulo: typeof o.angulo === "string" ? o.angulo.trim().slice(0, 300) : "",
+      tema: semTravessao(tema).slice(0, 120),
+      motivo: typeof o.motivo === "string" ? semTravessao(o.motivo.trim()).slice(0, 240) : "",
+      angulo: typeof o.angulo === "string" ? semTravessao(o.angulo.trim()).slice(0, 300) : "",
       fontes: Number.isFinite(Number(o.fontes)) ? Math.max(0, Math.trunc(Number(o.fontes))) : 0,
     });
   }

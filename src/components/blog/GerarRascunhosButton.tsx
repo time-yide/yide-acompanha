@@ -15,7 +15,7 @@ export function GerarRascunhosButton() {
       const r = await gerarRascunhosAgoraAction();
       if ("error" in r) { toast.error(r.error); return; }
       if (r.semNovas) toast.info("Nenhuma notícia nova pra gerar agora.");
-      else toast.success(`${r.gerados} rascunho(s) gerado(s) — revise e publique.`);
+      else toast.success(`${r.gerados} rascunho(s) gerado(s). Revise e publique.`);
       router.refresh();
     });
   }
