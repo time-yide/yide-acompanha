@@ -51,3 +51,17 @@ export function jsonLdArtigo(p: PostSeoInput, url: string): Record<string, unkno
   if (p.autor_nome) jsonld.author = { "@type": "Person", name: p.autor_nome };
   return jsonld;
 }
+
+/** JSON-LD schema.org/FAQPage — rich results de FAQ no Google e respostas de IA. Null se vazio. */
+export function jsonLdFaq(faq: { pergunta: string; resposta: string }[]): object | null {
+  if (!faq || faq.length === 0) return null;
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faq.map((f) => ({
+      "@type": "Question",
+      name: f.pergunta,
+      acceptedAnswer: { "@type": "Answer", text: f.resposta },
+    })),
+  };
+}

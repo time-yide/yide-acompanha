@@ -5,10 +5,11 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { ArrowLeft } from "lucide-react";
 import { getOrgPadraoBlog, getPostPublicadoPorSlug } from "@/lib/blog/queries";
-import { metaDoPost, jsonLdArtigo, type PostSeoInput } from "@/lib/blog/seo";
+import { metaDoPost, jsonLdArtigo, jsonLdFaq, type PostSeoInput } from "@/lib/blog/seo";
 import { registrarVisitaPorSlug } from "@/lib/blog/views";
 import { tempoLeituraMin } from "@/lib/blog/leitura";
 import { Markdown } from "@/components/blog/Markdown";
+import { Faq } from "@/components/seo/Faq";
 import { SITE_URL } from "@/lib/blog/config";
 
 // Dinâmica (não pré-renderiza no build): usa service-role, cuja env só existe em runtime.
@@ -59,11 +60,14 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
   const url = `${SITE_URL}/blog/${post.slug}`;
   // JSON-LD: escapa `<` pra impedir quebra de </script>.
   const jsonldStr = JSON.stringify(jsonLdArtigo(post as PostSeoInput, url)).replace(/</g, "\\u003c");
+  const faqLd = jsonLdFaq(post.faq);
+  const faqLdStr = faqLd ? JSON.stringify(faqLd).replace(/</g, "\\u003c") : null;
   const categoria = post.keywords[0];
 
   return (
     <article className="mx-auto max-w-2xl">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonldStr }} />
+      {faqLdStr && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: faqLdStr }} />}
 
       <Link href="/blog" className="inline-flex items-center gap-1 text-sm font-medium text-neutral-500 transition-colors hover:text-neutral-900">
         <ArrowLeft className="h-4 w-4" /> Novidades
@@ -91,6 +95,13 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
       <div className="mt-8">
         <Markdown light>{post.conteudo_md}</Markdown>
       </div>
+
+      {post.faq.length > 0 && (
+        <section className="mt-12">
+          <h2 className="mb-4 text-xl font-bold tracking-tight [font-family:var(--font-display)]">Perguntas frequentes</h2>
+          <Faq itens={post.faq} />
+        </section>
+      )}
 
       <div className="mt-12 rounded-2xl border border-neutral-200 bg-white p-6 text-center">
         <p className="text-lg font-semibold [font-family:var(--font-display)]">Gostou do conteúdo?</p>
