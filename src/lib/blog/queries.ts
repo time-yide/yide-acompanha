@@ -1,6 +1,8 @@
 // SERVER ONLY — leitura de posts do blog (admin + público). Service-role.
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
+export interface FaqItem { pergunta: string; resposta: string }
+
 export interface BlogPostRow {
   id: string;
   slug: string;
@@ -19,6 +21,10 @@ export interface BlogPostRow {
   published_at: string | null;
   created_at: string;
   updated_at: string;
+  // Colunas do blog estratégico (default seguro; preenchidas via query secundária
+  // resiliente na página do post, pra não quebrar antes da migration rodar).
+  faq: FaqItem[];
+  tipo: string;
 }
 
 export type BlogPostPublic = Omit<BlogPostRow, "id" | "status" | "autor_id" | "created_at">;
@@ -45,6 +51,8 @@ function mapRow(r: Record<string, unknown>): BlogPostRow {
     published_at: (r.published_at as string | null) ?? null,
     created_at: r.created_at as string,
     updated_at: r.updated_at as string,
+    faq: Array.isArray(r.faq) ? (r.faq as FaqItem[]) : [],
+    tipo: (r.tipo as string | null) ?? "noticia",
   };
 }
 
@@ -93,7 +101,17 @@ export async function getPostPublicadoPorSlug(orgId: string, slug: string): Prom
   const sb = createServiceRoleClient() as any;
   const { data } = await sb.from("blog_posts").select(SELECT_FULL)
     .eq("organization_id", orgId).eq("slug", slug).eq("status", "publicado").maybeSingle();
-  return data ? mapRow(data as Record<string, unknown>) : null;
+  if (!data) return null;
+  const post = mapRow(data as Record<string, unknown>);
+  // Busca faq/tipo à parte, resiliente: se as colunas ainda não existem
+  // (pré-migration), o `error` é ignorado e ficam os defaults ([], "noticia").
+  const { data: extra, error: extraErr } = await sb.from("blog_posts").select("faq, tipo")
+    .eq("organization_id", orgId).eq("slug", slug).eq("status", "publicado").maybeSingle();
+  if (!extraErr && extra) {
+    post.faq = Array.isArray((extra as { faq?: unknown }).faq) ? ((extra as { faq: FaqItem[] }).faq) : [];
+    post.tipo = ((extra as { tipo?: string }).tipo) ?? "noticia";
+  }
+  return post;
 }
 
 /** Slugs já usados na org — pra garantir unicidade ao criar/editar. */
