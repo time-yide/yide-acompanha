@@ -32,4 +32,17 @@ describe("montarPromptPresenca", () => {
     expect(montarPromptPresenca("gmn", "promoção", ["marketing em Cuiabá"])).toContain("Google Meu Negócio");
     expect(montarPromptPresenca("linkedin", "", ["marketing em Cuiabá"])).toContain("LinkedIn");
   });
+  it("cobre os 9 canais com o nome e o formato de JSON certo", () => {
+    const canais = ["gmn", "linkedin", "instagram", "tiktok", "youtube", "threads", "facebook", "pinterest", "medium"] as const;
+    for (const c of canais) {
+      const p = montarPromptPresenca(c, "tema", ["marketing em Cuiabá"]);
+      expect(p).toContain("SOMENTE com JSON");
+      expect(p).toContain("NUNCA use travessão");
+    }
+    // canais sem hashtags devem trazer array vazio no exemplo de JSON
+    expect(montarPromptPresenca("gmn", "", [])).toContain(`"hashtags": []`);
+    expect(montarPromptPresenca("pinterest", "", [])).toContain(`"hashtags": []`);
+    // canais com hashtags devem trazer exemplo com #
+    expect(montarPromptPresenca("instagram", "", [])).toContain(`"hashtags": ["#exemplo"]`);
+  });
 });

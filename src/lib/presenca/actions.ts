@@ -12,7 +12,7 @@ import { gerarPostPresenca } from "./pipeline";
 interface Err { error: string }
 type Result = { success: true } | Err;
 const uuidLike = z.string().regex(/^[0-9a-fA-F-]{36}$/, "ID inválido");
-const canalSchema = z.enum(["gmn", "linkedin"]);
+const canalSchema = z.enum(["gmn", "linkedin", "instagram", "tiktok", "youtube", "threads", "facebook", "pinterest", "medium"]);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function sb(): any { return createServiceRoleClient(); }
 async function gate(): Promise<{ orgId: string } | Err> {
