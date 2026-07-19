@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Blog · Yide Digital",
-  description: "Marketing, tecnologia e inteligência artificial — o que importa, direto ao ponto, pela Yide Digital.",
+  description: "Marketing, tecnologia e inteligência artificial: o que importa, direto ao ponto, pela Yide Digital.",
   alternates: { canonical: "/blog" },
   openGraph: { title: "Blog · Yide Digital", description: "Marketing, tecnologia e IA.", type: "website" },
 };
@@ -55,7 +55,7 @@ export default async function BlogIndex() {
         <p className="relative text-[11px] font-semibold uppercase tracking-[0.22em] text-teal-600">Blog da Yide Digital</p>
         <h1 className="relative mt-4 text-5xl font-bold leading-[1] tracking-tight [font-family:var(--font-display)] sm:text-7xl">Novidades</h1>
         <p className="relative mt-4 max-w-md text-base leading-relaxed text-neutral-600 sm:text-lg">
-          Marketing, tecnologia e inteligência artificial — o que importa, direto ao ponto.
+          Marketing, tecnologia e inteligência artificial: o que importa, direto ao ponto.
         </p>
       </header>
 

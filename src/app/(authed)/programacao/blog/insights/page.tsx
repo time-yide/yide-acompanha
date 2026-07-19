@@ -66,7 +66,7 @@ export default async function BlogInsightsPage() {
               <Flame className="h-4 w-4 text-orange-500" /> Assuntos em alta
             </h2>
             <p className="text-xs text-muted-foreground">
-              Temas quentes das fontes que o robô monitora — clique em &quot;Gerar rascunho&quot; pra criar um post sobre o assunto.
+              Temas quentes das fontes que o robô monitora. Clique em &quot;Gerar rascunho&quot; pra criar um post sobre o assunto.
               {trend.atualizadoEm ? ` Atualizado ${fmtQuando(trend.atualizadoEm)}.` : ""}
             </p>
           </div>

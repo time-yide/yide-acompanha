@@ -2,6 +2,7 @@
 import { getAnthropicClient } from "@/lib/ai/client";
 import { gerarImagemOpenAI } from "@/lib/design/image-gen/openai";
 import { uploadCapaBlog } from "./storage";
+import { semTravessao } from "../texto";
 import type { NoticiaItem } from "./rss";
 
 const BLOG_MODEL = "claude-haiku-4-5";
@@ -37,10 +38,12 @@ export async function gerarArtigo(noticia: NoticiaItem, keywordsAlvo: string[] =
   if (!client) { console.error("[blog-pipeline] Anthropic não configurado"); return null; }
 
   const alvoTxt = keywordsAlvo.length
-    ? `\n\nSEO LOCAL — a Yide atua com marketing e programação. Trabalhe estas expressões de forma NATURAL no texto (de preferência num parágrafo de fechamento que conecta a notícia aos serviços da Yide) e inclua as mais relevantes nas meta tags. NÃO force nem repita à exaustão (nada de keyword stuffing — o Google penaliza); só use as que couberem com naturalidade:\n- ${keywordsAlvo.join("\n- ")}`
+    ? `\n\nSEO LOCAL: a Yide atua com marketing e programação. Trabalhe estas expressões de forma NATURAL no texto (de preferência num parágrafo de fechamento que conecta a notícia aos serviços da Yide) e inclua as mais relevantes nas meta tags. NÃO force nem repita à exaustão (nada de keyword stuffing, o Google penaliza); só use as que couberem com naturalidade:\n- ${keywordsAlvo.join("\n- ")}`
     : "";
 
-  const prompt = `Você é redator(a) da Yide Digital, uma agência de marketing e programação brasileira. A partir da notícia abaixo (fonte internacional), escreva um artigo de blog ORIGINAL em português brasileiro. NÃO copie nem traduza literalmente: produza sua própria análise, com contexto e implicações pro mercado brasileiro. Tom informativo e acessível. NÃO cite a fonte nem escreva "Fonte:" no texto — apresente como conteúdo próprio da Yide.${alvoTxt}
+  const prompt = `Você é redator(a) da Yide Digital, uma agência de marketing e programação brasileira. A partir da notícia abaixo (fonte internacional), escreva um artigo de blog ORIGINAL em português brasileiro. NÃO copie nem traduza literalmente: produza sua própria análise, com contexto e implicações pro mercado brasileiro. Tom informativo e acessível. NÃO cite a fonte nem escreva "Fonte:" no texto; apresente como conteúdo próprio da Yide.
+
+REGRA DE PONTUAÇÃO: NUNCA use travessão nem meia-risca ("—" ou "–") em nenhum lugar (título, resumo, corpo, meta tags). No lugar, use vírgula, dois-pontos, ponto ou parênteses.${alvoTxt}
 
 NOTÍCIA (fonte: ${noticia.fonteNome})
 Título: ${noticia.titulo}
@@ -59,14 +62,14 @@ Responda SOMENTE com um JSON válido (sem cercas de código, sem texto fora do J
     const txt = res.content.map((c) => ("text" in c ? c.text : "")).join("").trim();
     const json = extrairJson(txt);
     if (!json || typeof json.titulo !== "string" || typeof json.conteudo_md !== "string") return null;
-    const titulo = String(json.titulo).trim();
+    const titulo = semTravessao(String(json.titulo).trim());
     return {
       titulo,
-      resumo: json.resumo != null ? String(json.resumo).trim() : "",
-      conteudo_md: String(json.conteudo_md).trim(),
+      resumo: json.resumo != null ? semTravessao(String(json.resumo).trim()) : "",
+      conteudo_md: semTravessao(String(json.conteudo_md).trim()),
       keywords: Array.isArray(json.keywords) ? json.keywords.map((k) => String(k).trim()).filter(Boolean).slice(0, 8) : [],
-      meta_title: json.meta_title != null ? String(json.meta_title).trim().slice(0, 70) : titulo,
-      meta_description: json.meta_description != null ? String(json.meta_description).trim().slice(0, 160) : "",
+      meta_title: json.meta_title != null ? semTravessao(String(json.meta_title).trim()).slice(0, 70) : titulo,
+      meta_description: json.meta_description != null ? semTravessao(String(json.meta_description).trim()).slice(0, 160) : "",
     };
   } catch (e) {
     console.error("[blog-pipeline] gerarArtigo:", e);
