@@ -60,7 +60,12 @@ As páginas públicas são **serviço × localidade**. Seed inicial = 4 serviço
   - **JSON-LD**: `Service` (nome, provider = Yide, `areaServed` = cidade [`City`] ou estado [`AdministrativeArea`]) + `LocalBusiness`/`ProfessionalService` (NAP da Yide) + `BreadcrumbList` + `FAQPage` (da FAQ).
   - Corpo em markdown (reusa `Markdown light`), FAQ renderizada, CTA "Falar com a Yide".
 - `force-dynamic` (service-role só existe em runtime, igual ao blog).
-- Design: shell claro/editorial consistente com o blog (mesma paleta/tipografia), header/rodapé pretos com logo.
+
+### Direção visual (REQUISITO: design bem moderno)
+- Padrão de qualidade alto, sem cara genérica de "template de IA". Consistente com o visual novo do blog: masthead/rodapé pretos com o logo ciano, tipografia **Sora** (títulos) + **IBM Plex Sans** (corpo), acentos teal/cyan, fundo claro quente (`#faf9f7`).
+- Cada página-serviço com **hero** forte (headline grande, subtítulo, CTA, e a localidade em destaque), seções com **cards de profundidade** (sombra + hover), blocos de benefícios com ícones, prova social (depoimentos/clientes), FAQ em acordeão elegante e CTA final marcante.
+- Espaçamento generoso, ritmo visual claro, microinterações sutis (hover/transições). Responsivo. Acessível (contraste, headings semânticos).
+- Índice `/servicos` e âncora `/servicos/[servico]` também modernos (grade de cards, hero).
 
 ### Anti-conteúdo-raso (mitigações)
 - Texto + FAQ distintos por localidade (IA varia gancho, exemplos, perguntas).
