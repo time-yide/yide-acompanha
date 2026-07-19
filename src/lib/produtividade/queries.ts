@@ -209,11 +209,22 @@ export function computeSince(range: PeriodoRange, todayIso: string): string {
   return `${sy}-${sm}-${sd}`;
 }
 
+/** Período resolvido: intervalo de datas (YYYY-MM-DD) inclusivo em ambas as pontas. */
+export interface Periodo {
+  de: string;
+  ate: string;
+}
+
+/** Período dos botões rápidos (dia/semana/mês): de = início do range, até = hoje. */
+export function resolvePeriodoRange(range: PeriodoRange, todayIso: string): Periodo {
+  return { de: computeSince(range, todayIso), ate: todayIso };
+}
+
 /** Retorna o status de cada colaborador ativo no período pedido: tempo ativo,
  *  eventos, custo. `online/ativo` e `atrasados` são sempre estado atual
  *  (não dependem do range). */
 export async function getColaboradoresStatus(
-  range: PeriodoRange = "dia",
+  periodo: Periodo,
 ): Promise<ColaboradoresStatusResult> {
   const admin = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -222,8 +233,9 @@ export async function getColaboradoresStatus(
   // `event_date` é coluna `date` calculada server-side com
   // `now() at time zone 'America/Cuiaba'` - filtrar por igualdade (1 dia) ou
   // gte (semana/mês) resolve o boundary de timezone corretamente.
-  const today = formatIsoDate(new Date());
-  const since = computeSince(range, today);
+  const hoje = formatIsoDate(new Date()); // data real de hoje — pros atrasados (estado atual)
+  const today = periodo.ate;              // fim do período (pode ser passado num range custom)
+  const since = periodo.de;               // início do período
   // Início/fim do range em UTC pra queries de calendar_events.
   const offsetHours = getAppTimezoneOffsetMs() / (60 * 60 * 1000);
   const sinceStartUtc = new Date(`${since}T${String(offsetHours).padStart(2, "0")}:00:00.000Z`).toISOString();
@@ -299,7 +311,7 @@ export async function getColaboradoresStatus(
       .select("atribuido_a, status")
       .is("deleted_at", null)
       .neq("status", "postada")
-      .lt("due_date", today)
+      .lt("due_date", hoje)
       .not("atribuido_a", "is", null),
     // Capturas potencialmente atrasadas: scheduled, no passado, deadline pode ter passado
     sb
@@ -657,15 +669,15 @@ const PENDENTE_JANELA_DIAS = 60;
  * entrega OU pendência no período. Independente do range de `getColaboradoresStatus`.
  */
 export async function getEntregaMaterialStats(
-  range: PeriodoRange = "dia",
+  periodo: Periodo,
 ): Promise<EntregaMaterialUserRow[]> {
   const admin = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = admin as any;
   const now = Date.now();
   const nowIso = new Date(now).toISOString();
-  const today = formatIsoDate(new Date());
-  const since = computeSince(range, today);
+  const today = periodo.ate;
+  const since = periodo.de;
   const offsetHours = getAppTimezoneOffsetMs() / (60 * 60 * 1000);
   const sinceStartUtc = new Date(`${since}T${String(offsetHours).padStart(2, "0")}:00:00.000Z`).toISOString();
   const tomorrowDate = new Date(`${today}T00:00:00.000Z`);
@@ -833,12 +845,12 @@ export interface PrazoAgilidadeResult {
  * Prazo & agilidade das TAREFAS no período: % concluído no prazo e tempo médio
  * de entrega (criação → conclusão) por pessoa. On-time = data de conclusão <= due_date.
  */
-export async function getPrazoAgilidade(range: PeriodoRange = "dia"): Promise<PrazoAgilidadeResult> {
+export async function getPrazoAgilidade(periodo: Periodo): Promise<PrazoAgilidadeResult> {
   const admin = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = admin as any;
-  const today = formatIsoDate(new Date());
-  const since = computeSince(range, today);
+  const today = periodo.ate;
+  const since = periodo.de;
   const offsetHours = getAppTimezoneOffsetMs() / (60 * 60 * 1000);
   const sinceStartUtc = new Date(`${since}T${String(offsetHours).padStart(2, "0")}:00:00.000Z`).toISOString();
   const tomorrowDate = new Date(`${today}T00:00:00.000Z`);
@@ -892,12 +904,12 @@ export interface QualidadeSetorResult {
  *   DONO da tarefa (não a quem pediu o ajuste).
  * - Design: artes criadas vs aprovadas (aprovado/agendado/publicado).
  */
-export async function getQualidadeSetor(range: PeriodoRange = "dia"): Promise<QualidadeSetorResult> {
+export async function getQualidadeSetor(periodo: Periodo): Promise<QualidadeSetorResult> {
   const admin = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = admin as any;
-  const today = formatIsoDate(new Date());
-  const since = computeSince(range, today);
+  const today = periodo.ate;
+  const since = periodo.de;
   const offsetHours = getAppTimezoneOffsetMs() / (60 * 60 * 1000);
   const sinceStartUtc = new Date(`${since}T${String(offsetHours).padStart(2, "0")}:00:00.000Z`).toISOString();
   const tomorrowDate = new Date(`${today}T00:00:00.000Z`);
@@ -941,12 +953,12 @@ export async function getQualidadeSetor(range: PeriodoRange = "dia"): Promise<Qu
  * Conversão comercial no período: ligações de saída → leads gerados, por assessor.
  * "lead" = ligação com lead_gerado_id preenchido.
  */
-export async function getConversaoComercial(range: PeriodoRange = "dia"): Promise<ConversaoRow[]> {
+export async function getConversaoComercial(periodo: Periodo): Promise<ConversaoRow[]> {
   const admin = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = admin as any;
-  const today = formatIsoDate(new Date());
-  const since = computeSince(range, today);
+  const today = periodo.ate;
+  const since = periodo.de;
   const offsetHours = getAppTimezoneOffsetMs() / (60 * 60 * 1000);
   const sinceStartUtc = new Date(`${since}T${String(offsetHours).padStart(2, "0")}:00:00.000Z`).toISOString();
   const tomorrowDate = new Date(`${today}T00:00:00.000Z`);
@@ -984,12 +996,12 @@ export interface ConsistenciaResult {
  * Consistência no período: em quantos dias úteis distintos cada pessoa concluiu
  * ao menos uma tarefa. Pega quem entrega distribuído vs quem some e acumula.
  */
-export async function getConsistencia(range: PeriodoRange = "dia"): Promise<ConsistenciaResult> {
+export async function getConsistencia(periodo: Periodo): Promise<ConsistenciaResult> {
   const admin = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = admin as any;
-  const today = formatIsoDate(new Date());
-  const since = computeSince(range, today);
+  const today = periodo.ate;
+  const since = periodo.de;
   const offsetMs = getAppTimezoneOffsetMs();
   const offsetHours = offsetMs / (60 * 60 * 1000);
   const sinceStartUtc = new Date(`${since}T${String(offsetHours).padStart(2, "0")}:00:00.000Z`).toISOString();
