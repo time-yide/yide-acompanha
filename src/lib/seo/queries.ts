@@ -65,15 +65,16 @@ export async function listServicosComPaginas(orgId: string) {
   return (await listServicos(orgId)).filter((s) => s.ativo);
 }
 
-// Serviços do banco; se ainda não houver (antes de rodar migration/seed), cai
-// nos 4 serviços padrão (constante) pra o site nunca aparecer vazio.
+// Serviços do banco MESCLADOS com os padrão (seed): o banco tem prioridade por
+// slug, mas serviços padrão ainda não cadastrados (ex.: um serviço novo) também
+// aparecem. Ordenado por `ordem`. Nunca deixa o site vazio.
 export async function listServicosOuSeed(orgId: string | null): Promise<Servico[]> {
   const db = orgId ? await listServicosComPaginas(orgId) : [];
-  if (db.length) return db;
-  return SEED_SERVICOS.map((s) => ({
-    id: `seed-${s.slug}`, nome: s.nome, slug: s.slug,
-    descricao_base: s.descricao_base, ordem: s.ordem, ativo: true,
-  }));
+  const slugs = new Set(db.map((s) => s.slug));
+  const faltando: Servico[] = SEED_SERVICOS
+    .filter((s) => !slugs.has(s.slug))
+    .map((s) => ({ id: `seed-${s.slug}`, nome: s.nome, slug: s.slug, descricao_base: s.descricao_base, ordem: s.ordem, ativo: true }));
+  return [...db, ...faltando].sort((a, b) => a.ordem - b.ordem);
 }
 
 // Um serviço pelo slug (banco); fallback nos serviços padrão. Devolve null se
