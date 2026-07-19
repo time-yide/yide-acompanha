@@ -6,7 +6,13 @@ import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 import { getConquistaStats, getOrganizationId } from "./queries";
 import { CONQUISTAS, conquistasAtingidas } from "./conquistas";
 
-export async function verificarConquistas(userId: string): Promise<void> {
+/**
+ * Verifica e desbloqueia conquistas do colaborador. `notify` (default true) dispara
+ * a notificação por medalha nova — passe `false` no backfill ao abrir a página de
+ * conquistas (desbloqueia o histórico sem spammar notificação retroativa).
+ */
+export async function verificarConquistas(userId: string, opts: { notify?: boolean } = {}): Promise<void> {
+  const notify = opts.notify !== false;
   try {
     const stats = await getConquistaStats(userId);
     const atingidas = new Set(conquistasAtingidas(stats));
@@ -30,6 +36,7 @@ export async function verificarConquistas(userId: string): Promise<void> {
     if (error) { console.error("[freelayide] verificarConquistas upsert", error.message); return; }
 
     const novasKeys = new Set(((inseridas ?? []) as Array<{ conquista_key: string }>).map((r) => r.conquista_key));
+    if (!notify) return; // backfill silencioso (só desbloqueia, sem notificar)
     for (const c of CONQUISTAS) {
       if (!novasKeys.has(c.key)) continue;
       try {
