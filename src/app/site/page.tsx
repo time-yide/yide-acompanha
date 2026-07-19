@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getOrgPadrao, listServicosComPaginas } from "@/lib/seo/queries";
+import { getOrgPadrao, listServicosOuSeed } from "@/lib/seo/queries";
 import { listCasesPublicados } from "@/lib/seo/case-queries";
 import { getHomeConfig } from "@/lib/seo/home-queries";
 import { HOME_DEFAULTS } from "@/lib/seo/home-config";
@@ -17,7 +17,7 @@ export default async function SitePage() {
   const orgId = await getOrgPadrao();
   const [config, servicos, cases] = await Promise.all([
     orgId ? getHomeConfig(orgId) : Promise.resolve(HOME_DEFAULTS),
-    orgId ? listServicosComPaginas(orgId) : Promise.resolve([]),
+    listServicosOuSeed(orgId),
     orgId ? listCasesPublicados(orgId) : Promise.resolve([]),
   ]);
 

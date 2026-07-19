@@ -1,4 +1,5 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { SEED_SERVICOS } from "./config";
 
 export interface Servico { id: string; nome: string; slug: string; descricao_base: string; ordem: number; ativo: boolean }
 export interface Localidade { id: string; nome: string; tipo: "cidade" | "estado"; uf: string; slug: string; ativo: boolean }
@@ -62,4 +63,26 @@ export async function listPaginasPublicadasDoServico(orgId: string, servicoSlug:
 }
 export async function listServicosComPaginas(orgId: string) {
   return (await listServicos(orgId)).filter((s) => s.ativo);
+}
+
+// Serviços do banco; se ainda não houver (antes de rodar migration/seed), cai
+// nos 4 serviços padrão (constante) pra o site nunca aparecer vazio.
+export async function listServicosOuSeed(orgId: string | null): Promise<Servico[]> {
+  const db = orgId ? await listServicosComPaginas(orgId) : [];
+  if (db.length) return db;
+  return SEED_SERVICOS.map((s) => ({
+    id: `seed-${s.slug}`, nome: s.nome, slug: s.slug,
+    descricao_base: s.descricao_base, ordem: s.ordem, ativo: true,
+  }));
+}
+
+// Um serviço pelo slug (banco); fallback nos serviços padrão. Devolve null se
+// o slug não existe em lugar nenhum (aí a página-âncora dá 404 mesmo).
+export async function getServicoOuSeed(orgId: string | null, slug: string): Promise<{ id: string; nome: string; slug: string; descricao_base: string } | null> {
+  if (orgId) {
+    const s = await getServicoPublicado(orgId, slug);
+    if (s) return s as { id: string; nome: string; slug: string; descricao_base: string };
+  }
+  const seed = SEED_SERVICOS.find((s) => s.slug === slug);
+  return seed ? { id: `seed-${seed.slug}`, nome: seed.nome, slug: seed.slug, descricao_base: seed.descricao_base } : null;
 }

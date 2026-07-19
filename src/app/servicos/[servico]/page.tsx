@@ -2,13 +2,13 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { MapPin, ArrowUpRight } from "lucide-react";
-import { getOrgPadrao, getServicoPublicado, listPaginasPublicadasDoServico } from "@/lib/seo/queries";
+import { getOrgPadrao, getServicoOuSeed, listPaginasPublicadasDoServico } from "@/lib/seo/queries";
 import { Reveal } from "@/components/site/Reveal";
 export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: { params: Promise<{ servico: string }> }): Promise<Metadata> {
   const { servico } = await params;
   const orgId = await getOrgPadrao();
-  const s = orgId ? await getServicoPublicado(orgId, servico) : null;
+  const s = await getServicoOuSeed(orgId, servico);
   if (!s) return { title: "Serviço não encontrado · Yide Digital" };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sv = s as any;
@@ -17,11 +17,10 @@ export async function generateMetadata({ params }: { params: Promise<{ servico: 
 export default async function ServicoAncora({ params }: { params: Promise<{ servico: string }> }) {
   const { servico } = await params;
   const orgId = await getOrgPadrao();
-  const s = orgId ? await getServicoPublicado(orgId, servico) : null;
+  const s = await getServicoOuSeed(orgId, servico);
   if (!s) notFound();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sv = s as any;
-  const paginas = await listPaginasPublicadasDoServico(orgId!, servico);
+  const sv = s;
+  const paginas = orgId ? await listPaginasPublicadasDoServico(orgId, servico) : [];
   const cidades = paginas.filter((p) => p.tipo === "cidade");
   const estados = paginas.filter((p) => p.tipo === "estado");
   const grupos: [string, typeof paginas][] = [["Cidades", cidades], ["Estados", estados]];
