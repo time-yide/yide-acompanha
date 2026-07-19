@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
-import { Code2 } from "lucide-react";
+import Link from "next/link";
+import { Code2, Newspaper, ArrowRight } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import { getOrganizationId } from "@/lib/gerador-leads/queries";
 import { canAccessProgramacao } from "@/lib/programacao/access";
+import { podeGerenciarBlog } from "@/lib/blog/acesso";
 import { listClientesAtivos, listLancamentos, veTudo } from "@/lib/programacao/queries";
 import { resumoLancamentos } from "@/lib/programacao/resumo";
 import { NovoLancamentoButton } from "@/components/programacao/NovoLancamentoButton";
@@ -55,7 +57,14 @@ export default async function ProgramacaoPage({
           <h1 className="mt-3 bg-gradient-to-r from-white via-teal-200 to-cyan-300 bg-clip-text text-4xl font-extrabold tracking-tight text-transparent">Programação</h1>
           <p className="mt-1 text-sm text-white/70">Registre CRM conectados, usuários criados e sistemas feitos por cliente.</p>
         </div>
-        <NovoLancamentoButton clientes={clientes} />
+        <div className="flex flex-wrap items-center gap-2">
+          {podeGerenciarBlog(user.role) && (
+            <Link href="/programacao/blog" className="inline-flex items-center gap-1 rounded-md border border-white/20 bg-white/5 px-3 py-1.5 text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white">
+              <Newspaper className="h-4 w-4" /> Blog <ArrowRight className="h-4 w-4" />
+            </Link>
+          )}
+          <NovoLancamentoButton clientes={clientes} />
+        </div>
       </header>
 
       {clientes.length === 0 && (
