@@ -7,7 +7,7 @@ export const HOME_DEFAULTS: HomeConfig = {
   hero_titulo: "Marketing e tecnologia que fazem sua empresa crescer",
   hero_sub: "Tráfego, sites, redes sociais e IA para negócios de Cuiabá, Salvador, Vila Velha e todo o Brasil.",
   stats: [
-    { valor: "+100", rotulo: "clientes atendidos" },
+    { valor: "+100", rotulo: "clientes ativos" },
     { valor: "4", rotulo: "praças no Brasil" },
     { valor: "5+", rotulo: "anos de estrada" },
     { valor: "24/7", rotulo: "acompanhamento" },
