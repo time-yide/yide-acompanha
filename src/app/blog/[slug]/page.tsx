@@ -1,9 +1,12 @@
 import { notFound } from "next/navigation";
+import { after } from "next/server";
+import { headers } from "next/headers";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { ArrowLeft } from "lucide-react";
 import { getOrgPadraoBlog, getPostPublicadoPorSlug } from "@/lib/blog/queries";
 import { metaDoPost, jsonLdArtigo, type PostSeoInput } from "@/lib/blog/seo";
+import { registrarVisitaPorSlug } from "@/lib/blog/views";
 import { Markdown } from "@/components/blog/Markdown";
 import { SITE_URL } from "@/lib/blog/config";
 
@@ -18,12 +21,13 @@ function fmtData(iso: string | null): string {
 
 async function carregar(slug: string) {
   const orgId = await getOrgPadraoBlog();
-  return orgId ? getPostPublicadoPorSlug(orgId, slug) : null;
+  const post = orgId ? await getPostPublicadoPorSlug(orgId, slug) : null;
+  return { orgId, post };
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const post = await carregar(slug);
+  const { post } = await carregar(slug);
   if (!post) return { title: "Post não encontrado · Yide Blog" };
   const { title, description } = metaDoPost(post as PostSeoInput);
   return {
@@ -43,8 +47,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function PostPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const post = await carregar(slug);
+  const { orgId, post } = await carregar(slug);
   if (!post) notFound();
+
+  // Registra a visita depois da resposta (não atrasa a página). Lê o UA agora,
+  // pois Request APIs não podem ser chamadas dentro do callback do `after`.
+  const ua = (await headers()).get("user-agent") ?? "";
+  if (orgId) after(() => registrarVisitaPorSlug(orgId, post.slug, ua));
 
   const url = `${SITE_URL}/blog/${post.slug}`;
   // JSON-LD: escapa `<` pra impedir quebra de </script>.
