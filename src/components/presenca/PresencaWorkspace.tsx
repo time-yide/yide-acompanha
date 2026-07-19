@@ -1,8 +1,9 @@
 "use client";
 import { useState } from "react";
-import { MapPin, Briefcase, Info } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { MapPin, Briefcase, Camera, Music2, Video, AtSign, Users, Image, PenTool, Info } from "lucide-react";
 import type { Canal } from "@/lib/presenca/config";
-import { checklistDoCanal } from "@/lib/presenca/config";
+import { CANAIS, checklistDoCanal } from "@/lib/presenca/config";
 import { progressoChecklist } from "@/lib/presenca/core";
 import type { PostRow } from "@/lib/presenca/queries";
 import { ChecklistItem } from "./ChecklistItem";
@@ -11,7 +12,25 @@ import { CopyButton } from "./CopyButton";
 import { ArquivarPostButton } from "./ArquivarPostButton";
 
 interface CanalData { posts: PostRow[]; feitos: string[] }
-interface Props { gmn: CanalData; linkedin: CanalData }
+interface Props { dados: Record<Canal, CanalData> }
+
+const ICONE_CANAL: Record<Canal, LucideIcon> = {
+  gmn: MapPin,
+  linkedin: Briefcase,
+  instagram: Camera,
+  tiktok: Music2,
+  youtube: Video,
+  threads: AtSign,
+  facebook: Users,
+  pinterest: Image,
+  medium: PenTool,
+};
+
+function avisoDoCanal(canal: Canal, label: string): string {
+  return canal === "gmn"
+    ? "Cole no seu Google Meu Negócio."
+    : `Copie e publique no ${label} (publicação automática em breve).`;
+}
 
 function formatarData(iso: string): string {
   const d = new Date(iso);
@@ -84,37 +103,38 @@ function Painel({ canal, dados, aviso }: { canal: Canal; dados: CanalData; aviso
   );
 }
 
-/** Workspace com abas GMN / LinkedIn: checklist + gerador/lista de posts em cada. */
-export function PresencaWorkspace({ gmn, linkedin }: Props) {
-  const [aba, setAba] = useState<Canal>("gmn");
+/** Workspace com abas dinâmicas por canal: checklist + gerador/lista de posts em cada. */
+export function PresencaWorkspace({ dados }: Props) {
+  const [aba, setAba] = useState<Canal>(CANAIS[0].value);
+  const abaAtual = CANAIS.find((c) => c.value === aba) ?? CANAIS[0];
   return (
     <div className="space-y-4">
-      <div className="inline-flex rounded-lg border bg-muted/30 p-1">
-        <button
-          type="button"
-          onClick={() => setAba("gmn")}
-          className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-            aba === "gmn" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <MapPin className="h-4 w-4" /> Google Meu Negócio
-        </button>
-        <button
-          type="button"
-          onClick={() => setAba("linkedin")}
-          className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-            aba === "linkedin" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <Briefcase className="h-4 w-4" /> LinkedIn
-        </button>
+      <div className="overflow-x-auto">
+        <div className="inline-flex gap-1 rounded-lg border bg-muted/30 p-1">
+          {CANAIS.map(({ value, label }) => {
+            const Icone = ICONE_CANAL[value];
+            const ativo = aba === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setAba(value)}
+                className={`inline-flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  ativo ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Icone className="h-4 w-4" /> {label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {aba === "gmn" ? (
-        <Painel canal="gmn" dados={gmn} aviso="Cole no seu Google Meu Negócio." />
-      ) : (
-        <Painel canal="linkedin" dados={linkedin} aviso="Copie e publique no LinkedIn (publicação automática em breve)." />
-      )}
+      <Painel
+        canal={abaAtual.value}
+        dados={dados[abaAtual.value]}
+        aviso={avisoDoCanal(abaAtual.value, abaAtual.label)}
+      />
     </div>
   );
 }
