@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ExternalLink, Globe, Trophy } from "lucide-react";
+import { ArrowLeft, ExternalLink, Globe, Home, Trophy } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import { getOrganizationId } from "@/lib/gerador-leads/queries";
 import { podeGerenciarBlog } from "@/lib/blog/acesso";
@@ -40,6 +40,9 @@ export default async function SeoAdminPage() {
           <p className="text-sm text-muted-foreground">Uma página por serviço × localidade. Gere com IA, revise e publique. {publicadas} de {totalCelulas} publicada(s).</p>
         </div>
         <div className="flex items-center gap-2">
+          <Link href="/programacao/seo/home" className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted/40 hover:text-foreground">
+            Home <Home className="h-4 w-4" />
+          </Link>
           <Link href="/programacao/seo/cases" className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted/40 hover:text-foreground">
             Cases <Trophy className="h-4 w-4" />
           </Link>
