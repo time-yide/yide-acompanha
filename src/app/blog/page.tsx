@@ -43,20 +43,27 @@ export default async function BlogIndex() {
   return (
     <div className="space-y-14">
       {/* Hero */}
-      <header className="relative overflow-hidden rounded-[1.75rem] border border-teal-100/80 bg-gradient-to-br from-teal-50 via-cyan-50/50 to-[#faf9f7] px-7 py-14 sm:px-12 sm:py-20">
-        <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-teal-400/15 blur-3xl" />
+      <header className="relative overflow-hidden rounded-[1.75rem] border border-teal-100/70 bg-gradient-to-br from-teal-50 via-white to-cyan-50/40 px-7 py-16 shadow-sm sm:px-14 sm:py-24">
+        <div className="pointer-events-none absolute -right-20 -top-24 h-80 w-80 rounded-full bg-teal-400/20 blur-[110px]" />
+        <div className="pointer-events-none absolute -bottom-24 -left-16 h-72 w-72 rounded-full bg-cyan-300/20 blur-[110px]" />
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/brand/logo-yide.png"
           alt=""
           aria-hidden
-          className="pointer-events-none absolute -bottom-10 -right-6 w-56 select-none opacity-[0.05] sm:w-80"
+          className="pointer-events-none absolute -bottom-12 -right-8 w-60 select-none opacity-[0.06] sm:w-96"
         />
-        <p className="relative text-[11px] font-semibold uppercase tracking-[0.22em] text-teal-600">Blog da Yide Digital</p>
-        <h1 className="relative mt-4 text-5xl font-bold leading-[1] tracking-tight [font-family:var(--font-display)] sm:text-7xl">Novidades</h1>
-        <p className="relative mt-4 max-w-md text-base leading-relaxed text-neutral-600 sm:text-lg">
-          Marketing, tecnologia e inteligência artificial: o que importa, direto ao ponto.
-        </p>
+        <div className="relative">
+          <span className="inline-flex items-center gap-2 rounded-full border border-teal-200/80 bg-white/70 px-3.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-teal-700 backdrop-blur">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-teal-500" />
+            Blog da Yide Digital
+          </span>
+          <h1 className="mt-5 text-6xl font-bold leading-[0.95] tracking-tight [font-family:var(--font-display)] sm:text-8xl">Novidades</h1>
+          <div className="mt-5 h-1 w-24 rounded-full bg-gradient-to-r from-teal-500 to-cyan-400" />
+          <p className="mt-5 max-w-lg text-base leading-relaxed text-neutral-600 sm:text-lg">
+            Marketing, tecnologia e inteligência artificial: o que importa, direto ao ponto.
+          </p>
+        </div>
       </header>
 
       {posts.length === 0 ? (
