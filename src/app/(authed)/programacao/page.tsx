@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Code2, Newspaper, ArrowRight, Globe } from "lucide-react";
+import { Code2, Newspaper, ArrowRight, Globe, Megaphone } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import { getOrganizationId } from "@/lib/gerador-leads/queries";
 import { canAccessProgramacao } from "@/lib/programacao/access";
@@ -66,6 +66,11 @@ export default async function ProgramacaoPage({
           {podeGerenciarBlog(user.role) && (
             <Link href="/programacao/seo" className="inline-flex items-center gap-1 rounded-md border border-white/20 bg-white/5 px-3 py-1.5 text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white">
               <Globe className="h-4 w-4" /> Serviços & SEO Local <ArrowRight className="h-4 w-4" />
+            </Link>
+          )}
+          {podeGerenciarBlog(user.role) && (
+            <Link href="/programacao/presenca" className="inline-flex items-center gap-1 rounded-md border border-white/20 bg-white/5 px-3 py-1.5 text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white">
+              <Megaphone className="h-4 w-4" /> Presença & Autoridade <ArrowRight className="h-4 w-4" />
             </Link>
           )}
           <NovoLancamentoButton clientes={clientes} />
