@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { uploadCronogramaAction } from "@/lib/painel/actions";
+import { uploadCronogramaAction, removerCronogramaAction } from "@/lib/painel/actions";
 
 interface Props {
   open: boolean;
@@ -30,6 +30,7 @@ export function CronogramaModal({
   const [videos, setVideos] = useState(String(initialVideos));
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const editando = !!initialUrl;
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -46,7 +47,25 @@ export function CronogramaModal({
         setError(r.error);
         return;
       }
-      toast.success("Cronograma salvo — tarefa de design criada");
+      toast.success(editando ? "Cronograma atualizado — tarefa do designer sincronizada" : "Cronograma salvo — tarefa de design criada");
+      onOpenChange(false);
+      router.refresh();
+    });
+  }
+
+  function onRemover() {
+    if (!window.confirm("Excluir o cronograma deste mês? A tarefa criada pro designer também será removida.")) return;
+    setError(null);
+    const fd = new FormData();
+    fd.set("client_id", clientId);
+    fd.set("mes_referencia", mesReferencia);
+    startTransition(async () => {
+      const r = await removerCronogramaAction(fd);
+      if ("error" in r) {
+        setError(r.error);
+        return;
+      }
+      toast.success("Cronograma removido — tarefa do designer excluída");
       onOpenChange(false);
       router.refresh();
     });
@@ -98,6 +117,17 @@ export function CronogramaModal({
           {error && <p className="text-sm text-destructive">{error}</p>}
 
           <DialogFooter>
+            {editando && (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={onRemover}
+                disabled={pending}
+                className="mr-auto text-destructive hover:text-destructive"
+              >
+                Excluir cronograma
+              </Button>
+            )}
             <Button
               type="button"
               variant="outline"
@@ -107,7 +137,7 @@ export function CronogramaModal({
               Cancelar
             </Button>
             <Button type="submit" disabled={pending}>
-              {pending ? "Salvando..." : "Salvar"}
+              {pending ? "Salvando..." : editando ? "Salvar correção" : "Salvar"}
             </Button>
           </DialogFooter>
         </form>

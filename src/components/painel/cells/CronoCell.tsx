@@ -43,7 +43,11 @@ export function CronoCell({
     qtdVideos > 0 ? `${qtdVideos} vídeo${qtdVideos > 1 ? "s" : ""}` : null,
   ].filter(Boolean);
 
-  const postsLabel = partes.length > 0 ? (
+  const temLabel = partes.length > 0;
+  // Mostra o rótulo (que abre o modal de editar/excluir) quando há quantidades OU,
+  // pra quem pode editar, sempre que já existe cronograma — assim ajustar/excluir
+  // fica acessível mesmo sem quantidades preenchidas.
+  const postsLabel = temLabel || (canEdit && hasLink) ? (
     <button
       type="button"
       onClick={() => canEdit && setOpen(true)}
@@ -53,7 +57,7 @@ export function CronoCell({
         canEdit && "hover:text-foreground hover:underline",
       )}
     >
-      {partes.join(" · ")}
+      {temLabel ? partes.join(" · ") : "editar"}
     </button>
   ) : null;
 
