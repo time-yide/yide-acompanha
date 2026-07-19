@@ -31,9 +31,20 @@ export default async function BlogIndex() {
 
   return (
     <div className="space-y-12">
-      <header className="border-b border-neutral-200/80 pb-6">
-        <h1 className="text-4xl font-bold tracking-tight [font-family:var(--font-display)] sm:text-5xl">Novidades</h1>
-        <p className="mt-2 text-neutral-500">Marketing, tecnologia e IA — o que importa, direto ao ponto.</p>
+      <header className="relative overflow-hidden rounded-3xl border border-teal-100 bg-gradient-to-br from-teal-50 via-cyan-50/60 to-[#faf9f7] px-7 py-12 sm:px-10 sm:py-16">
+        {/* marca d'água */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/brand/logo-yide.png"
+          alt=""
+          aria-hidden
+          className="pointer-events-none absolute -right-8 -top-6 w-64 select-none opacity-[0.07] sm:-right-4 sm:w-96"
+        />
+        <p className="relative text-[11px] font-semibold uppercase tracking-[0.2em] text-teal-600">Blog da Yide Digital</p>
+        <h1 className="relative mt-3 text-4xl font-bold leading-[1.05] tracking-tight [font-family:var(--font-display)] sm:text-6xl">Novidades</h1>
+        <p className="relative mt-3 max-w-md text-base text-neutral-600 sm:text-lg">
+          Marketing, tecnologia e inteligência artificial — o que importa, direto ao ponto.
+        </p>
       </header>
 
       {posts.length === 0 ? (
