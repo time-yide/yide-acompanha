@@ -10,6 +10,8 @@ export const SEED_SERVICOS: SeedServico[] = [
     descricao_base: "Gestão de conteúdo e perfis (Instagram, etc.), calendário editorial e crescimento de audiência." },
   { nome: "CRM, IA e Dados", slug: "crm-ia-dados", ordem: 4,
     descricao_base: "Automação comercial, CRM, inteligência de dados e IA para escalar o comercial." },
+  { nome: "Audiovisual e Produção de Vídeo", slug: "audiovisual", ordem: 5,
+    descricao_base: "Produção de vídeos, reels, gravações e edição para redes sociais e campanhas, do roteiro à entrega." },
 ];
 
 export const SEED_LOCALIDADES: SeedLocalidade[] = [
