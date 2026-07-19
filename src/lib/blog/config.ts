@@ -1,2 +1,4 @@
-// URL pública base do site (pro canonical, JSON-LD e sitemap). Ajustável por env.
-export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://sistemaacompanha.yidedigital.com.br").replace(/\/+$/, "");
+// URL pública base do blog (pro canonical, JSON-LD e sitemap). O blog é servido no
+// domínio da marca (subdomínio blog.yidedigital.com → aponta pra este projeto Vercel).
+// Ajustável por env NEXT_PUBLIC_SITE_URL se o domínio mudar.
+export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://blog.yidedigital.com").replace(/\/+$/, "");
