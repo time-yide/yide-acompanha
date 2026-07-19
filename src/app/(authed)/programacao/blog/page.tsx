@@ -7,6 +7,7 @@ import { podeGerenciarBlog } from "@/lib/blog/acesso";
 import { listPostsAdmin } from "@/lib/blog/queries";
 import { NovoPostButton } from "@/components/blog/NovoPostButton";
 import { GerarRascunhosButton } from "@/components/blog/GerarRascunhosButton";
+import { GerarEstrategicosButton } from "@/components/blog/GerarEstrategicosButton";
 import { AprovarPublicarButton } from "@/components/blog/AprovarPublicarButton";
 
 export const dynamic = "force-dynamic";
@@ -42,6 +43,7 @@ export default async function BlogAdminPage() {
             Ver blog <ExternalLink className="h-4 w-4" />
           </Link>
           <GerarRascunhosButton />
+          <GerarEstrategicosButton />
           <NovoPostButton />
         </div>
       </div>
