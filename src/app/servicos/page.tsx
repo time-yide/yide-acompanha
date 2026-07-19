@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { ArrowUpRight, BarChart3, Code2, Share2, Database, Megaphone, Sparkles, MapPin } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { getOrgPadrao, listServicosComPaginas } from "@/lib/seo/queries";
+import { getOrgPadrao, listServicosOuSeed } from "@/lib/seo/queries";
 import { Reveal } from "@/components/site/Reveal";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Serviços · Yide Digital",
@@ -16,7 +16,7 @@ const PRACAS = ["Cuiabá", "Várzea Grande", "Salvador", "Vila Velha"];
 
 export default async function ServicosIndex() {
   const orgId = await getOrgPadrao();
-  const servicos = orgId ? await listServicosComPaginas(orgId) : [];
+  const servicos = await listServicosOuSeed(orgId);
   return (
     <div className="space-y-16 sm:space-y-24">
       {/* Hero */}
