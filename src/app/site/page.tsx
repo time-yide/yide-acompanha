@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Yide Digital · Marketing, tecnologia e IA",
   description: HOME_DEFAULTS.hero_sub,
-  alternates: { canonical: "/site" },
+  alternates: { canonical: "/" },
 };
 
 export default async function SitePage() {

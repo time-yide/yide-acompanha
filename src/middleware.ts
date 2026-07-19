@@ -17,8 +17,19 @@ function isClientPortalPath(pathname: string): boolean {
 const LEGACY_HOST = "yide-acompanha.vercel.app";
 const CANONICAL_HOST = "sistemaacompanha.yidedigital.com.br";
 
+// Site institucional público (marketing). NÃO exige login e é indexável.
+const MARKETING_APEX = "yidedigital.com.br";
+const MARKETING_WWW = "www.yidedigital.com.br";
+const PUBLIC_MARKETING_PREFIXES = ["/site", "/servicos", "/cases", "/blog", "/sitemap", "/robots"];
+
+function isMarketingPath(pathname: string): boolean {
+  return PUBLIC_MARKETING_PREFIXES.some((p) => pathname === p || pathname.startsWith(p));
+}
+
 export async function middleware(request: NextRequest) {
-  if (request.headers.get("host") === LEGACY_HOST) {
+  const host = request.headers.get("host") ?? "";
+
+  if (host === LEGACY_HOST) {
     const url = new URL(
       request.nextUrl.pathname + request.nextUrl.search,
       `https://${CANONICAL_HOST}`,
@@ -27,6 +38,26 @@ export async function middleware(request: NextRequest) {
   }
 
   const { pathname } = request.nextUrl;
+
+  // Domínio institucional (yidedigital.com.br): serve o site público.
+  if (host === MARKETING_WWW) {
+    // www -> apex (canônico sem www)
+    const url = new URL(request.nextUrl.pathname + request.nextUrl.search, `https://${MARKETING_APEX}`);
+    return NextResponse.redirect(url, { status: 308 });
+  }
+  if (host === MARKETING_APEX && pathname === "/") {
+    // Home do domínio = /site (reescrita interna, sem mudar a URL exibida).
+    const url = request.nextUrl.clone();
+    url.pathname = "/site";
+    return NextResponse.rewrite(url);
+  }
+
+  // Páginas públicas de marketing liberam sem auth em qualquer host
+  // (senão o Google/visitante deslogado cai no /login e nada é indexado).
+  if (isMarketingPath(pathname)) {
+    return NextResponse.next();
+  }
+
   const isPublic = PUBLIC_PATHS.some(p => pathname.startsWith(p));
 
   // Expõe o pathname pra server components do (authed) layout poderem
