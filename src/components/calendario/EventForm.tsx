@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Video, MapPin, Link as LinkIcon, Users as UsersIcon } from "lucide-react";
 import { RoteiroToggle } from "./RoteiroToggle";
+import { RecurrenceFields } from "@/components/calendario/RecurrenceFields";
 import { SELECTABLE_SUBS, type SelectableSub } from "@/lib/calendario/schema";
 import { cn } from "@/lib/utils";
 
@@ -45,6 +46,8 @@ interface Props {
   /** Escolher o videomaker é obrigatório (só o coordenador audiovisual). */
   videomakerRequired: boolean;
   submitLabel?: string;
+  /** id do <form>, pra RecurrenceScopeControls submeter injetando o escopo. */
+  formId?: string;
 }
 
 const SUB_LABELS: Record<SelectableSub, string> = {
@@ -61,7 +64,7 @@ const SUB_DESC: Record<SelectableSub, string> = {
   coordenadores: "Reunião de coordenação.",
 };
 
-export function EventForm({ action, defaults = {}, profiles, clientes, videomakers, canCreateVideomaker, canDelegateVideomaker, videomakerRequired, submitLabel = "Salvar" }: Props) {
+export function EventForm({ action, defaults = {}, profiles, clientes, videomakers, canCreateVideomaker, canDelegateVideomaker, videomakerRequired, submitLabel = "Salvar", formId }: Props) {
   const [state, formAction, pending] = useActionState(action, undefined);
   const formRef = useRef<HTMLFormElement>(null);
   const [ignorar, setIgnorar] = useState(false);
@@ -87,7 +90,7 @@ export function EventForm({ action, defaults = {}, profiles, clientes, videomake
   }
 
   return (
-    <form ref={formRef} action={formAction} className="space-y-5">
+    <form id={formId} ref={formRef} action={formAction} className="space-y-5">
       <input type="hidden" name="ignorar_bloqueio" value={ignorar ? "true" : "false"} />
       {defaults.id && <input type="hidden" name="id" value={defaults.id} />}
 
@@ -146,6 +149,10 @@ export function EventForm({ action, defaults = {}, profiles, clientes, videomake
           <Input id="fim" name="fim" type="datetime-local" required defaultValue={defaults.fim ?? ""} onChange={() => setIgnorar(false)} />
         </div>
       </div>
+
+      {/* Recorrência só na criação (!defaults.id) e fora de gravação. Editar uma
+          série usa o escopo (RecurrenceScopeControls), não recria a regra aqui. */}
+      {!defaults.id && !isVideomaker && <RecurrenceFields />}
 
       {/* Cliente — disponível pra todos os tipos. Em reunião de assessoria,
           vincular o cliente faz a reunião aparecer no painel mensal dele. */}
