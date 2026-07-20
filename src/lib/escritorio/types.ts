@@ -82,6 +82,7 @@ const ALL_ROLES = [
   "audiovisual_chefe",
   "assessor_ecommerce",
   "assistente_ecommerce",
+  "programacao",
 ] as const;
 
 export const CHANNEL_KIND_TO_ROLES: Record<ChannelKind, readonly string[]> = {
