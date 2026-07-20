@@ -47,8 +47,8 @@ export function SyncMetaButton({ clientId, hasAdAccount, lastSyncAt, lastSyncErr
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<
-    | { kind: "success"; campaigns: number; metrics: number }
-    | { kind: "error"; message: string }
+    | { kind: "success"; campaigns: number; metrics: number; debug?: string }
+    | { kind: "error"; message: string; debug?: string }
     | null
   >(null);
 
@@ -60,16 +60,19 @@ export function SyncMetaButton({ clientId, hasAdAccount, lastSyncAt, lastSyncErr
     startTransition(async () => {
       const res = await syncMetaForClientAction(fd);
       if ("error" in res) {
-        setFeedback({ kind: "error", message: res.error });
+        setFeedback({ kind: "error", message: res.error, debug: res.debug });
       } else {
         setFeedback({
           kind: "success",
           campaigns: res.campaigns_upserted,
           metrics: res.metrics_upserted,
+          debug: res.debug,
         });
         router.refresh();
-        // Auto-some o feedback de sucesso depois de 5s
-        setTimeout(() => setFeedback(null), 5000);
+        // NÃO auto-some quando há diagnóstico (a usuária precisa ler/printar).
+        if (!res.debug) {
+          setTimeout(() => setFeedback(null), 5000);
+        }
       }
     });
   }
@@ -118,6 +121,13 @@ export function SyncMetaButton({ clientId, hasAdAccount, lastSyncAt, lastSyncErr
         <div className="inline-flex items-center gap-1.5 rounded-full bg-red-500/10 px-2 py-0.5 text-[11px] text-red-700 dark:text-red-300">
           <AlertCircle className="h-3 w-3" />
           {feedback.message}
+        </div>
+      )}
+
+      {/* Diagnóstico do Meta (o que a Graph API retornou) — pra ler/printar */}
+      {feedback?.debug && (
+        <div className="max-w-xs whitespace-pre-wrap break-words rounded-md border border-border bg-muted/50 px-2 py-1 text-left font-mono text-xs text-muted-foreground">
+          {feedback.debug}
         </div>
       )}
 

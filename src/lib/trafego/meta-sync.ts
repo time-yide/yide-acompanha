@@ -9,8 +9,10 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import {
   listCampaigns,
+  debugListCampaigns,
   getCampaignInsights,
   MetaApiError,
+  normalizeAdAccountId,
   type MetaCampaign,
   type MetaInsightDay,
 } from "./meta-api";
@@ -24,6 +26,8 @@ export interface SyncResult {
   metrics_upserted: number;
   error?: string;
   error_kind?: string;
+  /** Diagnóstico legível do que a Graph API retornou (contagens + amostra). */
+  debug?: string;
 }
 
 /** Métricas básicas que o sistema sincroniza (Fase 2). */
@@ -133,6 +137,28 @@ export async function syncMetaForClient(
     return result;
   }
   result.campaigns_found = metaCampaigns.length;
+
+  // 2b) Diagnóstico: SEMPRE popula result.debug com o que a Graph API retornou
+  // (contagem com/sem filtro + amostra). Nunca expõe o token. Se o diagnóstico
+  // em si falhar, registra o motivo — mas não aborta o sync.
+  const accountLabel = normalizeAdAccountId(cliente.meta_ad_account_id);
+  try {
+    const diag = await debugListCampaigns(cliente.meta_ad_account_id);
+    if (diag.comFiltro === 0 && diag.semFiltro === 0) {
+      result.debug = `Meta retornou 0 campanhas pra a conta ${accountLabel} (com e sem filtro).`;
+    } else {
+      const amostraStr =
+        diag.amostra.length > 0
+          ? diag.amostra.map((c) => `${c.name} [${c.effective_status}]`).join(", ")
+          : "—";
+      result.debug =
+        `Meta: ${diag.comFiltro} campanhas com filtro, ${diag.semFiltro} sem filtro. ` +
+        `Amostra: ${amostraStr}`;
+    }
+  } catch (e) {
+    const motivo = e instanceof MetaApiError ? `${e.kind}: ${e.message}` : String(e);
+    result.debug = `Diagnóstico do Meta falhou pra a conta ${accountLabel}: ${motivo}`;
+  }
 
   // 3) Upsert campanhas (matching por external_campaign_id)
   // Pega as campanhas internas que JÁ existem pra esse cliente
