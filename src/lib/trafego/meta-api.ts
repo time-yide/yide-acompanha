@@ -672,6 +672,70 @@ export async function getAccountInsights(
   };
 }
 
+/** Um ponto da série diária de uma conta (spend + resultados no dia). */
+export interface MetaAccountDailyPoint {
+  /** YYYY-MM-DD */
+  data: string;
+  spend: number;
+  /** Leads + conversões do dia (o que a conta reporta em `actions`). */
+  resultados?: number;
+}
+
+interface DailyInsightsRow {
+  date_start?: string;
+  spend?: string;
+  actions?: Array<{ action_type: string; value: string }>;
+}
+
+interface DailyInsightsResponse {
+  data: DailyInsightsRow[];
+  paging?: { next?: string; cursors?: { after?: string } };
+}
+
+/**
+ * Série diária da conta pra o range: uma linha por dia (`time_increment=1`)
+ * com spend e resultados (leads + conversões extraídos de `actions`). Usada
+ * pelo gráfico de evolução do relatório. Retorna [] quando não há dados.
+ */
+export async function getAccountDailyInsights(
+  adAccountId: string,
+  sinceISO: string,
+  untilISO: string,
+): Promise<MetaAccountDailyPoint[]> {
+  const account = normalizeAdAccountId(adAccountId);
+  const fields = ["spend", "actions"].join(",");
+  const out: MetaAccountDailyPoint[] = [];
+  let cursor: string | undefined;
+  let pages = 0;
+  do {
+    const params: Record<string, string> = {
+      fields,
+      time_increment: "1",
+      time_range: JSON.stringify({ since: sinceISO, until: untilISO }),
+      level: "account",
+      limit: "100",
+    };
+    if (cursor) params.after = cursor;
+    const res: DailyInsightsResponse = await metaFetch(`/${account}/insights`, params);
+    for (const row of res.data) {
+      if (!row.date_start) continue;
+      const resultados = pickAction(row.actions, [
+        ...LEAD_ACTION_TYPES,
+        ...CONVERSION_ACTION_TYPES,
+      ]);
+      out.push({
+        data: row.date_start,
+        spend: row.spend ? Number(row.spend) : 0,
+        resultados,
+      });
+    }
+    cursor = res.paging?.cursors?.after && res.paging?.next ? res.paging.cursors.after : undefined;
+    pages += 1;
+  } while (cursor && pages < 12); // cap: ~1200 dias
+
+  return out;
+}
+
 export interface MetaTopCampaign {
   name: string;
   spend: number;

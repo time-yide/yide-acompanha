@@ -1,7 +1,7 @@
 // src/lib/trafego/relatorios/meta-fetch.ts
 import "server-only";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { getAccountInsights, getTopCampaigns } from "@/lib/trafego/meta-api";
+import { getAccountInsights, getTopCampaigns, getAccountDailyInsights } from "@/lib/trafego/meta-api";
 import type { DadosTrafego } from "./tipos";
 
 export interface MetaFetchResult {
@@ -32,6 +32,9 @@ export async function fetchDadosMeta(
   try {
     const dados = await fetchInsightsRange(accountId, inicio, fim);
 
+    // Série diária pro gráfico de evolução (não quebra se a API falhar aqui).
+    const serie = await getAccountDailyInsights(accountId, inicio, fim).catch(() => []);
+
     // Período anterior de mesma duração, imediatamente antes.
     const duracaoMs = new Date(fim).getTime() - new Date(inicio).getTime();
     const anteriorFim = new Date(new Date(inicio).getTime() - 86400_000);
@@ -46,6 +49,9 @@ export async function fetchDadosMeta(
       ok: true,
       dados: {
         ...dados,
+        serie_diaria: serie.length > 0
+          ? serie.map((p) => ({ data: p.data, spend: p.spend, resultados: p.resultados }))
+          : undefined,
         periodo_anterior: anterior ? {
           spend: anterior.spend,
           cliques: anterior.cliques,

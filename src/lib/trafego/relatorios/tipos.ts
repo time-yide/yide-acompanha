@@ -122,6 +122,11 @@ export interface DadosTrafego {
     conversoes?: number;
     leads?: number;
   };
+  /**
+   * Série diária do período pro gráfico de evolução (dashboard Reportei).
+   * Guardada dentro do próprio `dados_meta` JSONB — sem migration.
+   */
+  serie_diaria?: Array<{ data: string; spend: number; resultados?: number }>;
 }
 
 // ─── Validação runtime ─────────────────────────────────────────────────
