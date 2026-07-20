@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Video, User, Users, Briefcase, Cake, KanbanSquare, Building2, LayoutGrid } from "lucide-react";
+import { Video, User, Users, Briefcase, Cake, KanbanSquare, Building2, LayoutGrid, Code2 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 interface ChipMeta {
@@ -21,6 +21,7 @@ const labels: Record<string, ChipMeta> = {
   videomakers: { label: "Videomakers", color: "bg-fuchsia-500", icon: Video, highlight: true },
   assessores: { label: "Assessores", color: "bg-amber-500", icon: Users },
   coordenadores: { label: "Coordenadores", color: "bg-orange-500", icon: Briefcase },
+  programacao: { label: "Programação", color: "bg-cyan-500", icon: Code2 },
   agencia: { label: "Agência", color: "bg-violet-500", icon: Building2 },
   onboarding: { label: "Onboarding", color: "bg-blue-500", icon: KanbanSquare },
   aniversarios: { label: "Aniversários", color: "bg-pink-500", icon: Cake },
@@ -32,6 +33,7 @@ const ORDER = [
   "videomakers",
   "assessores",
   "coordenadores",
+  "programacao",
   "agencia",
   "onboarding",
   "aniversarios",

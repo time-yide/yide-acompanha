@@ -15,6 +15,7 @@ const subClass: Record<string, string> = {
     "bg-fuchsia-200 text-fuchsia-950 dark:bg-fuchsia-500/25 dark:text-fuchsia-100 border-l-4 border-fuchsia-500 ring-1 ring-fuchsia-500/40 shadow-sm",
   assessores: "bg-amber-100 text-amber-950 dark:bg-amber-500/15 dark:text-amber-200 border-l-2 border-amber-500",
   coordenadores: "bg-orange-100 text-orange-950 dark:bg-orange-500/15 dark:text-orange-200 border-l-2 border-orange-500",
+  programacao: "bg-cyan-100 text-cyan-950 dark:bg-cyan-500/15 dark:text-cyan-200 border-l-2 border-cyan-500",
 };
 
 export function EventCell({ event }: { event: CalendarEvent }) {

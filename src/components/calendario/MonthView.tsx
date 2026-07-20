@@ -14,6 +14,7 @@ const subBar: Record<string, string> = {
   videomakers: "bg-fuchsia-500 text-white shadow-sm",
   assessores: "bg-amber-500/80 text-white",
   coordenadores: "bg-orange-500/80 text-white",
+  programacao: "bg-cyan-500/80 text-white",
 };
 
 interface Props {
