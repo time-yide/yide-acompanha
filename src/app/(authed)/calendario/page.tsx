@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { requireAuth } from "@/lib/auth/session";
+import { canAccess } from "@/lib/auth/permissions";
+import { TemperaturaSection } from "@/components/calendario/temperatura/TemperaturaSection";
 import {
   listEventsForWeek,
   listBloqueiosAprovadosNoPeriodo,
@@ -118,10 +120,24 @@ export default async function CalendarioPage({
     getProfileIdsForActiveUnit(),
   ]);
 
+  // Seção "Temperatura de agenda": só coordenador e coordenador audiovisual.
+  // Gate no server (server component + RPC service-role). Renderizada só na
+  // week view, onde o recorte semanal (`ref`) casa com a métrica.
+  const podeVerTemperatura = canAccess(user.role, "view:agenda_temperature");
+
   if (view === "month") {
     return renderMonth({ params, subQuery, sub, applySubFilter, unitClientIds, unitProfileIds, userId: user.id });
   }
-  return renderWeek({ params, subQuery, sub, applySubFilter, unitClientIds, unitProfileIds, userId: user.id });
+  return renderWeek({
+    params,
+    subQuery,
+    sub,
+    applySubFilter,
+    unitClientIds,
+    unitProfileIds,
+    userId: user.id,
+    podeVerTemperatura,
+  });
 }
 
 // ─── Week view ─────────────────────────────────────────────────────────────
@@ -134,6 +150,7 @@ async function renderWeek({
   unitClientIds,
   unitProfileIds,
   userId,
+  podeVerTemperatura,
 }: {
   params: { week?: string };
   subQuery: string;
@@ -142,6 +159,7 @@ async function renderWeek({
   unitClientIds: string[] | null;
   unitProfileIds: string[] | null;
   userId: string;
+  podeVerTemperatura: boolean;
 }) {
   // Anchor a data ao meio-dia UTC pra evitar shift de timezone:
   // `new Date("2026-05-19")` = UTC midnight, que em Cuiabá (UTC-4) é
@@ -192,6 +210,7 @@ async function renderWeek({
         prevLabel="Semana anterior"
         nextLabel="Próxima semana"
       />
+      {podeVerTemperatura && <TemperaturaSection coordinatorId={userId} weekRef={ref} />}
       <SubCalendarChips current={sub} />
       <WeekView weekStart={start} events={events} />
     </div>
