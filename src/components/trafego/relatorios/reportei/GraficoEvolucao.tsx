@@ -15,8 +15,10 @@ interface Props {
   serie?: Array<Ponto>;
 }
 
-const AZUL = "#3DC4BC"; // teal Yide (barras)
-const LARANJA = "#f59e0b"; // resultados (linha)
+const TEAL = "#14b8a6"; // teal Yide (barras, base do gradiente)
+const CYAN = "#22d3ee"; // topo do gradiente das barras
+const LINHA = "#0f766e"; // resultados (linha) — teal escuro pra contrastar
+const FONT_CORPO = "'IBM Plex Sans', sans-serif";
 
 // Dimensões do viewBox (SVG escala responsivamente via width=100%).
 const W = 900;
@@ -35,13 +37,16 @@ export function GraficoEvolucao({ serie }: Props) {
     return (
       <div
         style={{
-          border: "1px dashed #d1d5db",
-          borderRadius: 14,
+          border: "1px dashed #d6d3d1",
+          borderRadius: 18,
           padding: 32,
           textAlign: "center",
-          color: "#9ca3af",
+          color: "#a3a3a3",
           fontSize: 14,
-          background: "#fafafa",
+          fontFamily: FONT_CORPO,
+          background: "#ffffff",
+          WebkitPrintColorAdjust: "exact",
+          printColorAdjust: "exact",
         }}
       >
         Sem série diária disponível para este período.
@@ -75,19 +80,35 @@ export function GraficoEvolucao({ serie }: Props) {
   const grid = [0.25, 0.5, 0.75, 1];
 
   return (
-    <div style={{ background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 14, padding: 20 }}>
+    <div
+      style={{
+        background: "#ffffff",
+        border: "1px solid #ececec",
+        borderRadius: 18,
+        padding: 22,
+        fontFamily: FONT_CORPO,
+        WebkitPrintColorAdjust: "exact",
+        printColorAdjust: "exact",
+      }}
+    >
       <div style={{ display: "flex", alignItems: "center", gap: 18, marginBottom: 10, flexWrap: "wrap" }}>
-        <LegendaItem cor={AZUL} texto="Investimento (R$)" />
-        {temResultados && <LegendaItem cor={LARANJA} texto="Resultados" linha />}
+        <LegendaItem cor={TEAL} texto="Investimento (R$)" />
+        {temResultados && <LegendaItem cor={LINHA} texto="Resultados" linha />}
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Evolução diária" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <linearGradient id="grafBarGrad" x1="0" y1="1" x2="0" y2="0">
+            <stop offset="0%" stopColor={TEAL} />
+            <stop offset="100%" stopColor={CYAN} />
+          </linearGradient>
+        </defs>
         {/* Grade + rótulos do eixo Y de spend */}
         {grid.map((g, i) => {
           const y = PAD_T + PLOT_H - g * PLOT_H;
           return (
             <g key={i}>
-              <line x1={PAD_L} y1={y} x2={W - PAD_R} y2={y} stroke="#f0f0f0" strokeWidth={1} />
-              <text x={PAD_L - 8} y={y + 4} textAnchor="end" fontSize={11} fill="#9ca3af">
+              <line x1={PAD_L} y1={y} x2={W - PAD_R} y2={y} stroke="#f0ede9" strokeWidth={1} />
+              <text x={PAD_L - 8} y={y + 4} textAnchor="end" fontSize={11} fill="#a3a3a3" fontFamily={FONT_CORPO}>
                 {fmtMoeda(maxSpend * g, 0)}
               </text>
             </g>
@@ -106,9 +127,9 @@ export function GraficoEvolucao({ serie }: Props) {
               y={y.toFixed(1)}
               width={barW.toFixed(1)}
               height={Math.max(0, h).toFixed(1)}
-              rx={2}
-              fill={AZUL}
-              opacity={0.9}
+              rx={3}
+              fill="url(#grafBarGrad)"
+              opacity={0.95}
             />
           );
         })}
@@ -116,9 +137,9 @@ export function GraficoEvolucao({ serie }: Props) {
         {/* Linha de resultados */}
         {temResultados && (
           <>
-            <path d={linePath} fill="none" stroke={LARANJA} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
+            <path d={linePath} fill="none" stroke={LINHA} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
             {pontos.map((p, i) => (
-              <circle key={i} cx={xCenter(i).toFixed(1)} cy={yResult(p.resultados ?? 0).toFixed(1)} r={3} fill={LARANJA} />
+              <circle key={i} cx={xCenter(i).toFixed(1)} cy={yResult(p.resultados ?? 0).toFixed(1)} r={3.2} fill={LINHA} />
             ))}
           </>
         )}
@@ -132,7 +153,8 @@ export function GraficoEvolucao({ serie }: Props) {
               y={H - PAD_B + 18}
               textAnchor="middle"
               fontSize={11}
-              fill="#6b7280"
+              fill="#525252"
+              fontFamily={FONT_CORPO}
             >
               {fmtDataCurta(p.data)}
             </text>
@@ -144,7 +166,7 @@ export function GraficoEvolucao({ serie }: Props) {
           grid.map((g, i) => {
             const y = PAD_T + PLOT_H - g * PLOT_H;
             return (
-              <text key={i} x={W - PAD_R + 8} y={y + 4} textAnchor="start" fontSize={11} fill={LARANJA}>
+              <text key={i} x={W - PAD_R + 8} y={y + 4} textAnchor="start" fontSize={11} fill={LINHA} fontFamily={FONT_CORPO}>
                 {fmtNumero(maxResultados * g)}
               </text>
             );
@@ -156,7 +178,7 @@ export function GraficoEvolucao({ serie }: Props) {
 
 function LegendaItem({ cor, texto, linha }: { cor: string; texto: string; linha?: boolean }) {
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#374151", fontWeight: 600 }}>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#525252", fontWeight: 600, fontFamily: FONT_CORPO }}>
       <span
         style={{
           display: "inline-block",
@@ -164,6 +186,8 @@ function LegendaItem({ cor, texto, linha }: { cor: string; texto: string; linha?
           height: linha ? 3 : 12,
           borderRadius: linha ? 2 : 3,
           background: cor,
+          WebkitPrintColorAdjust: "exact",
+          printColorAdjust: "exact",
         }}
       />
       {texto}
