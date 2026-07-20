@@ -140,10 +140,15 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
   { type: "link", href: "/lixeira", icon: Trash2, label: "Lixeira", roles: ["adm", "socio", "coordenador", "assessor"], badgeKey: null },
 ];
 
+// Links `roles:"all"` que a Programação também deve ver. O cargo começa sem os
+// itens "all" (ver isLinkVisible), então cada um é liberado aqui explicitamente.
+const PROGRAMACAO_ALL_ALLOWED = new Set<string>(["/recados", "/calendario"]);
+
 function isLinkVisible(role: Role, link: NavLink, especialidade?: string | null): boolean {
-  // Programação (cargo técnico) começa SEM acessos: nem os itens "all".
-  // Cada área é liberada explicitamente quando o módulo dela for construído.
+  // Programação (cargo técnico) começa SEM acessos: nem os itens "all", exceto
+  // os liberados explicitamente em PROGRAMACAO_ALL_ALLOWED.
   if (role === "programacao") {
+    if (link.roles === "all") return PROGRAMACAO_ALL_ALLOWED.has(link.href);
     return Array.isArray(link.roles) && link.roles.includes(role);
   }
   // E-commerce: além dos cargos dedicados, assessor comum com especialidade
