@@ -1,8 +1,10 @@
 import "server-only";
 import { unstable_cache } from "next/cache";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { getDatePartsInAppTz } from "@/lib/datetime/timezone";
+import { getAppTimezoneOffsetMs, getDatePartsInAppTz } from "@/lib/datetime/timezone";
 import { getWeekRange } from "./queries";
+
+export type TempPeriod = "week" | "month" | "quarter";
 
 export interface TempEvent {
   inicio: string;
@@ -20,8 +22,8 @@ export interface PersonLoad {
 export interface Temperatura {
   byWeekday: number[]; // length 7, 0=seg..6=dom
   byPerson: PersonLoad[]; // ordenado por count desc, depois minutes desc
-  peak: number[][]; // 7 x 3  [dia][faixa] faixa: 0=manhã,1=tarde,2=noite
-  totalThisWeek: number;
+  peakByHour: number[][]; // 7 x 24  [dia][hora] hora: 0..23
+  total: number;
 }
 
 export interface Trend {
@@ -41,11 +43,41 @@ function weekdayMondayZero(iso: string): number {
   return (getDatePartsInAppTz(iso).weekday + 6) % 7;
 }
 
-function hourBucket(iso: string): 0 | 1 | 2 {
-  const h = parseInt(getDatePartsInAppTz(iso).hour, 10);
-  if (h < 12) return 0;
-  if (h < 18) return 1;
-  return 2;
+/** Hora cheia (0..23) do evento, lida no fuso da app (Cuiabá UTC-4). */
+export function hourOf(iso: string): number {
+  return parseInt(getDatePartsInAppTz(iso).hour, 10);
+}
+
+export interface PeriodRange {
+  start: Date;
+  end: Date;
+}
+
+/**
+ * Range de um período (semana/mês/trimestre) calculado NO FUSO DA APP e
+ * retornado em UTC (pra usar como bound do query Postgres). Espelha o padrão
+ * de `getWeekRange` — usa getDatePartsInAppTz + getAppTimezoneOffsetMs.
+ */
+export function getPeriodRange(period: TempPeriod, reference: Date = new Date()): PeriodRange {
+  if (period === "week") return getWeekRange(reference);
+
+  const parts = getDatePartsInAppTz(reference);
+  const y = parseInt(parts.year, 10);
+  const m = parseInt(parts.month, 10); // 1..12
+  const offsetMs = getAppTimezoneOffsetMs(reference);
+
+  if (period === "month") {
+    // 1º dia do mês 00:00 (fuso app) → 1º dia do mês seguinte.
+    const startUtcMs = Date.UTC(y, m - 1, 1, 0, 0, 0, 0) + offsetMs;
+    const endUtcMs = Date.UTC(y, m, 1, 0, 0, 0, 0) + offsetMs;
+    return { start: new Date(startUtcMs), end: new Date(endUtcMs) };
+  }
+
+  // quarter: mês inicial do trimestre e +3 meses.
+  const startMonth = Math.floor((m - 1) / 3) * 3 + 1; // 1,4,7,10
+  const startUtcMs = Date.UTC(y, startMonth - 1, 1, 0, 0, 0, 0) + offsetMs;
+  const endUtcMs = Date.UTC(y, startMonth - 1 + 3, 1, 0, 0, 0, 0) + offsetMs;
+  return { start: new Date(startUtcMs), end: new Date(endUtcMs) };
 }
 
 function involvedTeamMembers(e: TempEvent, teamSet: Set<string>): string[] {
@@ -55,11 +87,11 @@ function involvedTeamMembers(e: TempEvent, teamSet: Set<string>): string[] {
   return [...ids];
 }
 
-/** Agrega os eventos de UMA semana nas 4 métricas, restrito ao time. */
+/** Agrega os eventos de UM período nas 4 métricas, restrito ao time. */
 export function aggregateTemperatura(events: TempEvent[], teamMemberIds: string[]): Temperatura {
   const teamSet = new Set(teamMemberIds);
   const byWeekday = [0, 0, 0, 0, 0, 0, 0];
-  const peak: number[][] = Array.from({ length: 7 }, () => [0, 0, 0]);
+  const peakByHour: number[][] = Array.from({ length: 7 }, () => Array(24).fill(0));
   const personMap = new Map<string, PersonLoad>();
   let total = 0;
 
@@ -69,7 +101,7 @@ export function aggregateTemperatura(events: TempEvent[], teamMemberIds: string[
 
     const wd = weekdayMondayZero(e.inicio);
     byWeekday[wd] += 1;
-    peak[wd][hourBucket(e.inicio)] += 1;
+    peakByHour[wd][hourOf(e.inicio)] += 1;
     total += 1;
 
     const minutes = Math.max(0, Math.round((new Date(e.fim).getTime() - new Date(e.inicio).getTime()) / 60000));
@@ -82,7 +114,7 @@ export function aggregateTemperatura(events: TempEvent[], teamMemberIds: string[
   }
 
   const byPerson = [...personMap.values()].sort((a, b) => b.count - a.count || b.minutes - a.minutes);
-  return { byWeekday, byPerson, peak, totalThisWeek: total };
+  return { byWeekday, byPerson, peakByHour, total };
 }
 
 /** Tendência: total atual vs. média das semanas anteriores. */
@@ -143,47 +175,70 @@ async function fetchTeamEventsInRange(start: Date, end: Date): Promise<TempEvent
 }
 
 export interface TemperaturaResult {
-  week: { start: string; end: string };
+  range: { start: string; end: string };
+  period: TempPeriod;
   temperatura: Temperatura;
   trend: Trend;
   teamMemberIds: string[];
 }
 
-async function _getTemperaturaImpl(coordinatorId: string, weekRefIso: string): Promise<TemperaturaResult> {
+async function _getTemperaturaImpl(
+  coordinatorId: string,
+  refIso: string,
+  period: TempPeriod,
+): Promise<TemperaturaResult> {
   const teamMemberIds = await fetchTeamMemberIds(coordinatorId);
-  const { start, end } = getWeekRange(new Date(weekRefIso));
+  const range = getPeriodRange(period, new Date(refIso));
 
-  const events = await fetchTeamEventsInRange(start, end);
+  const events = await fetchTeamEventsInRange(range.start, range.end);
   const temperatura = aggregateTemperatura(events, teamMemberIds);
 
-  // 4 semanas anteriores para a tendência.
+  // 4 períodos anteriores para a tendência. Iteramos a partir do início do
+  // período atual e voltamos um período por vez usando getPeriodRange no
+  // instante imediatamente anterior ao início — assim funciona pra mês/
+  // trimestre sem depender do tamanho fixo do período.
   const previousTotals: number[] = [];
+  let cursorStart = range.start;
   for (let i = 1; i <= 4; i++) {
-    const s = new Date(start);
-    s.setUTCDate(s.getUTCDate() - 7 * i);
-    const e = new Date(end);
-    e.setUTCDate(e.getUTCDate() - 7 * i);
-    const evs = await fetchTeamEventsInRange(s, e);
-    previousTotals.push(aggregateTemperatura(evs, teamMemberIds).totalThisWeek);
+    const prevRef = new Date(cursorStart.getTime() - 1);
+    const prev = getPeriodRange(period, prevRef);
+    const evs = await fetchTeamEventsInRange(prev.start, prev.end);
+    previousTotals.push(aggregateTemperatura(evs, teamMemberIds).total);
+    cursorStart = prev.start;
   }
 
-  const trend = computeTrend(temperatura.totalThisWeek, previousTotals);
-  return { week: { start: start.toISOString(), end: end.toISOString() }, temperatura, trend, teamMemberIds };
+  const trend = computeTrend(temperatura.total, previousTotals);
+  return {
+    range: { start: range.start.toISOString(), end: range.end.toISOString() },
+    period,
+    temperatura,
+    trend,
+    teamMemberIds,
+  };
 }
 
 /**
- * Versão cacheada por (coordenador + semana). Service-role only (roda dentro
- * de unstable_cache, sem request context). Tag "calendar" — invalida junto
- * com as mutations de evento.
+ * Versão cacheada por (coordenador + referência + período). Service-role only
+ * (roda dentro de unstable_cache, sem request context). Tag "calendar" —
+ * invalida junto com as mutations de evento.
  */
-export async function getTemperaturaForCoordinator(coordinatorId: string, weekRef: Date): Promise<TemperaturaResult> {
+export async function getTemperaturaForCoordinator(
+  coordinatorId: string,
+  ref: Date,
+  period: TempPeriod,
+): Promise<TemperaturaResult> {
   const cached = unstable_cache(
     async (paramsJson: string) => {
-      const { coord, week } = JSON.parse(paramsJson) as { coord: string; week: string };
-      return _getTemperaturaImpl(coord, week);
+      const { coord, ref: refIso, period: p } = JSON.parse(paramsJson) as {
+        coord: string;
+        ref: string;
+        period: TempPeriod;
+      };
+      return _getTemperaturaImpl(coord, refIso, p);
     },
-    ["calendario-temperatura-v1"],
+    // v2: shape mudou (peakByHour 7x24, total, range/period) + suporte a período.
+    ["calendario-temperatura-v2"],
     { revalidate: 300, tags: ["calendar"] },
   );
-  return cached(JSON.stringify({ coord: coordinatorId, week: weekRef.toISOString() }));
+  return cached(JSON.stringify({ coord: coordinatorId, ref: ref.toISOString(), period }));
 }

@@ -1,7 +1,6 @@
 import { Card } from "@/components/ui/card";
 
 const DIAS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
-const FAIXAS = ["Manhã", "Tarde", "Noite"];
 
 function intensity(count: number, max: number): string {
   if (count === 0) return "bg-muted";
@@ -11,8 +10,37 @@ function intensity(count: number, max: number): string {
   return "bg-primary/30";
 }
 
-export function HorariosDePico({ peak }: { peak: number[][] }) {
-  const max = Math.max(1, ...peak.flat());
+/**
+ * Mapa de calor hora-a-hora (dia × hora), adaptativo. `peakByHour` é 7×24
+ * [dia][hora], já bucketizado no fuso da app. A faixa de horas renderizada é
+ * a menor janela que cobre todos os eventos, com piso 8h–18h pra o grid não
+ * ficar vazio num dia tranquilo.
+ */
+export function HorariosDePico({ peakByHour }: { peakByHour: number[][] }) {
+  // Faixa ativa: menor e maior hora com algum evento (em qualquer dia).
+  let minComEvento = 24;
+  let maxComEvento = -1;
+  for (let h = 0; h < 24; h++) {
+    let temEvento = false;
+    for (let d = 0; d < 7; d++) {
+      if ((peakByHour[d]?.[h] ?? 0) > 0) {
+        temEvento = true;
+        break;
+      }
+    }
+    if (temEvento) {
+      if (h < minComEvento) minComEvento = h;
+      if (h > maxComEvento) maxComEvento = h;
+    }
+  }
+
+  // Clamp pra cobrir no mínimo 8h–18h; sem nenhum evento, usa 8..18.
+  const startH = maxComEvento < 0 ? 8 : Math.min(8, minComEvento);
+  const endH = maxComEvento < 0 ? 18 : Math.max(18, maxComEvento);
+  const horas = Array.from({ length: endH - startH + 1 }, (_, i) => startH + i);
+
+  const max = Math.max(1, ...peakByHour.flat());
+
   return (
     <Card className="space-y-3 p-4">
       <h3 className="text-sm font-semibold">Horários de pico</h3>
@@ -23,27 +51,31 @@ export function HorariosDePico({ peak }: { peak: number[][] }) {
             {d}
           </div>
         ))}
-        {FAIXAS.map((faixa, f) => (
-          <FaixaRow key={faixa} faixa={faixa} f={f} peak={peak} max={max} />
+        {horas.map((h) => (
+          <HoraRow key={h} hora={h} peakByHour={peakByHour} max={max} />
         ))}
       </div>
     </Card>
   );
 }
 
-function FaixaRow({ faixa, f, peak, max }: { faixa: string; f: number; peak: number[][]; max: number }) {
+function HoraRow({ hora, peakByHour, max }: { hora: number; peakByHour: number[][]; max: number }) {
+  const label = `${String(hora).padStart(2, "0")}h`;
   return (
     <>
-      <div className="flex items-center text-muted-foreground">{faixa}</div>
-      {peak.map((dia, d) => (
-        <div
-          key={d}
-          className={`flex h-7 items-center justify-center rounded ${intensity(dia[f], max)}`}
-          title={`${faixa}: ${dia[f]} evento(s)`}
-        >
-          {dia[f] > 0 ? dia[f] : ""}
-        </div>
-      ))}
+      <div className="flex items-center pr-1 text-muted-foreground tabular-nums">{label}</div>
+      {DIAS.map((dia, d) => {
+        const count = peakByHour[d]?.[hora] ?? 0;
+        return (
+          <div
+            key={d}
+            className={`flex h-6 items-center justify-center rounded ${intensity(count, max)}`}
+            title={`${dia} ${label}: ${count} evento(s)`}
+          >
+            {count > 0 ? count : ""}
+          </div>
+        );
+      })}
     </>
   );
 }
