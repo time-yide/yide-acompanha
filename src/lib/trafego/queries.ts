@@ -214,6 +214,84 @@ export async function getClienteTrafego(clientId: string): Promise<ClienteTrafeg
 }
 
 /**
+ * Agregados por campanha a partir de `trafego_metricas_diarias`.
+ *
+ * Soma as métricas somáveis (spend, impressions, reach, clicks, leads,
+ * conversions) por campanha e deriva as de taxa/custo:
+ *   ctr = clicks/impressions*100, cpc = spend/clicks, cpm = spend/impressions*1000,
+ *   cost_per_lead = spend/leads, cost_per_conversion = spend/conversions.
+ * Derivadas com denominador 0 são omitidas (não vira 0 nem Infinity).
+ *
+ * Retorno: { [campanhaId]: { [metricKey]: valor } } — consumido pela página
+ * /trafego/[clientId] e passado ao componente de listagem.
+ */
+export async function getAgregadosByCliente(
+  clientId: string,
+): Promise<Record<string, Record<string, number>>> {
+  const supabase = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+
+  // 1) Campanhas do cliente (não arquivadas)
+  const { data: campanhasData } = await sb
+    .from("trafego_campanhas")
+    .select("id")
+    .eq("client_id", clientId)
+    .is("archived_at", null);
+  const campanhaIds = ((campanhasData ?? []) as Array<{ id: string }>).map((c) => c.id);
+  if (campanhaIds.length === 0) return {};
+
+  // 2) Todas as métricas diárias dessas campanhas
+  const { data: metricasData } = await sb
+    .from("trafego_metricas_diarias")
+    .select("campanha_id, metrica_key, valor_numerico")
+    .in("campanha_id", campanhaIds);
+
+  const rows = (metricasData ?? []) as Array<{
+    campanha_id: string;
+    metrica_key: string;
+    valor_numerico: number | string | null;
+  }>;
+
+  // Chaves que somamos direto; as derivadas (ctr/cpc/cpm/cost_per_*) são recalculadas.
+  const SOMAVEIS = new Set(["spend", "impressions", "reach", "clicks", "leads", "conversions"]);
+
+  // 3) Soma por campanha
+  const somasPorCampanha = new Map<string, Record<string, number>>();
+  for (const r of rows) {
+    if (!SOMAVEIS.has(r.metrica_key)) continue;
+    const v = typeof r.valor_numerico === "string" ? Number(r.valor_numerico) : r.valor_numerico;
+    if (v == null || !Number.isFinite(v)) continue;
+    const acc = somasPorCampanha.get(r.campanha_id) ?? {};
+    acc[r.metrica_key] = (acc[r.metrica_key] ?? 0) + v;
+    somasPorCampanha.set(r.campanha_id, acc);
+  }
+
+  // 4) Deriva taxas/custos (protegendo divisão por zero → omite a chave)
+  const out: Record<string, Record<string, number>> = {};
+  for (const [campanhaId, s] of somasPorCampanha) {
+    const spend = s.spend ?? 0;
+    const impressions = s.impressions ?? 0;
+    const clicks = s.clicks ?? 0;
+    const leads = s.leads ?? 0;
+    const conversions = s.conversions ?? 0;
+
+    const m: Record<string, number> = { ...s };
+    if (impressions > 0) {
+      m.ctr = (clicks / impressions) * 100;
+      m.cpm = (spend / impressions) * 1000;
+    }
+    if (clicks > 0) m.cpc = spend / clicks;
+    if (leads > 0) m.cost_per_lead = spend / leads;
+    if (conversions > 0) m.cost_per_conversion = spend / conversions;
+
+    out[campanhaId] = m;
+  }
+
+  return out;
+}
+
+/**
  * Métricas visíveis configuradas pelo usuário. Quando array vazio/null,
  * retorna o default (kit padrão de agência). UI pode chamar essa função
  * em qualquer page.

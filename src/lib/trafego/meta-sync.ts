@@ -11,6 +11,9 @@ import {
   listCampaigns,
   debugListCampaigns,
   getCampaignInsights,
+  pickAction,
+  LEAD_ACTION_TYPES,
+  CONVERSION_ACTION_TYPES,
   MetaApiError,
   normalizeAdAccountId,
   type MetaCampaign,
@@ -30,7 +33,7 @@ export interface SyncResult {
   debug?: string;
 }
 
-/** Métricas básicas que o sistema sincroniza (Fase 2). */
+/** Métricas básicas (numéricas diretas) que o sistema sincroniza (Fase 2). */
 const METRICAS_KEYS = [
   "spend",
   "impressions",
@@ -41,6 +44,22 @@ const METRICAS_KEYS = [
   "cpm",
   "frequency",
 ] as const;
+
+/** Quantos anos pra trás usar como `since` quando a campanha não tem data_inicio. */
+const FALLBACK_LOOKBACK_YEARS = 2;
+
+/** Data ISO (YYYY-MM-DD) de N anos atrás. */
+function yearsAgoISO(n: number): string {
+  const now = new Date();
+  now.setUTCFullYear(now.getUTCFullYear() - n);
+  return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}-${String(now.getUTCDate()).padStart(2, "0")}`;
+}
+
+/** Menor (mais antiga) entre duas datas ISO; ignora null. Strings YYYY-MM-DD comparam lexicograficamente. */
+function minISO(a: string, b: string | null): string {
+  if (!b) return a;
+  return a <= b ? a : b;
+}
 
 function todayISO(): string {
   const now = new Date();
@@ -174,10 +193,17 @@ export async function syncMetaForClient(
   }
 
   const nowIso = new Date().toISOString();
-  const localCampaignIds: Array<{ local_id: string; external_id: string }> = [];
+  const localCampaignIds: Array<{
+    local_id: string;
+    external_id: string;
+    data_inicio: string | null;
+    data_fim: string | null;
+  }> = [];
 
   for (const meta of metaCampaigns) {
     const status = mapMetaStatus(meta);
+    const dataInicio = meta.start_time?.slice(0, 10) ?? null;
+    const dataFim = meta.stop_time?.slice(0, 10) ?? null;
     const payload = {
       client_id: clientId,
       organization_id: cliente.organization_id,
@@ -189,8 +215,8 @@ export async function syncMetaForClient(
       external_campaign_id: meta.id,
       budget_diario: parseBudget(meta.daily_budget),
       budget_total: parseBudget(meta.lifetime_budget),
-      data_inicio: meta.start_time?.slice(0, 10) ?? null,
-      data_fim: meta.stop_time?.slice(0, 10) ?? null,
+      data_inicio: dataInicio,
+      data_fim: dataFim,
       meta_synced_at: nowIso,
     };
 
@@ -202,7 +228,7 @@ export async function syncMetaForClient(
         .eq("id", existingId);
       if (!error) {
         result.campaigns_upserted++;
-        localCampaignIds.push({ local_id: existingId, external_id: meta.id });
+        localCampaignIds.push({ local_id: existingId, external_id: meta.id, data_inicio: dataInicio, data_fim: dataFim });
       }
     } else {
       const { data: inserted, error } = await sb
@@ -212,19 +238,26 @@ export async function syncMetaForClient(
         .single();
       if (!error && inserted) {
         result.campaigns_upserted++;
-        localCampaignIds.push({ local_id: inserted.id, external_id: meta.id });
+        localCampaignIds.push({ local_id: inserted.id, external_id: meta.id, data_inicio: dataInicio, data_fim: dataFim });
       }
     }
   }
 
-  // 4) Pra cada campanha, busca insights e faz upsert das métricas
-  const sinceISO = daysAgoISO(daysBack);
-  const untilISO = todayISO();
+  // 4) Pra cada campanha, busca insights DIÁRIOS no PERÍODO dela e faz upsert.
+  //    since = data_inicio da campanha (ou ~2 anos atrás se null); until = data_fim (ou hoje).
+  //    Isso faz campanhas antigas trazerem números (o daysBack fixo perdia o histórico).
+  //    `daysBack`, quando passado, ainda funciona como piso: garante que os últimos
+  //    N dias entrem mesmo pra campanhas sem data_inicio/com início muito recente.
+  const untilDefault = todayISO();
+  const daysBackFloor = daysBack != null ? daysAgoISO(daysBack) : null;
 
-  for (const { local_id, external_id } of localCampaignIds) {
+  for (const { local_id, external_id, data_inicio, data_fim } of localCampaignIds) {
+    const since = minISO(data_inicio ?? yearsAgoISO(FALLBACK_LOOKBACK_YEARS), daysBackFloor);
+    const until = data_fim ?? untilDefault;
+
     let insights: MetaInsightDay[];
     try {
-      insights = await getCampaignInsights(external_id, sinceISO, untilISO);
+      insights = await getCampaignInsights(external_id, since, until);
     } catch (e) {
       // Se uma campanha falhar, continua com as outras (não aborta o sync)
       console.warn(`[meta-sync] insights failed for ${external_id}:`, e);
@@ -232,6 +265,7 @@ export async function syncMetaForClient(
     }
 
     for (const day of insights) {
+      // Métricas numéricas diretas
       for (const key of METRICAS_KEYS) {
         const raw = day[key];
         if (raw === undefined || raw === null) continue;
@@ -244,6 +278,26 @@ export async function syncMetaForClient(
             data: day.date_start,
             metrica_key: key,
             valor_numerico: numeric,
+            fonte: "meta",
+          },
+          { onConflict: "campanha_id,data,metrica_key" },
+        );
+        if (!error) result.metrics_upserted++;
+      }
+
+      // Leads/conversões: extraídos de actions via pickAction, gravados por dia
+      const derived: Array<[string, number | undefined]> = [
+        ["leads", pickAction(day.actions, LEAD_ACTION_TYPES)],
+        ["conversions", pickAction(day.actions, CONVERSION_ACTION_TYPES)],
+      ];
+      for (const [key, value] of derived) {
+        if (value === undefined || !Number.isFinite(value)) continue;
+        const { error } = await sb.from("trafego_metricas_diarias").upsert(
+          {
+            campanha_id: local_id,
+            data: day.date_start,
+            metrica_key: key,
+            valor_numerico: value,
             fonte: "meta",
           },
           { onConflict: "campanha_id,data,metrica_key" },

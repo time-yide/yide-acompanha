@@ -6,7 +6,10 @@ import {
   getClienteTrafego,
   listCampanhasByCliente,
   getMetricasVisiveisDoUsuario,
+  getAgregadosByCliente,
 } from "@/lib/trafego/queries";
+
+export const dynamic = "force-dynamic";
 
 const ALLOWED_ROLES = ["adm", "socio", "coordenador", "assessor", "comercial"];
 const ROLES_QUE_GERENCIAM = ["adm", "socio", "comercial", "coordenador", "assessor"];
@@ -30,16 +33,14 @@ export default async function TrafegoClientePage({
   const user = await requireAuth();
   if (!ALLOWED_ROLES.includes(user.role)) notFound();
 
-  const [cliente, campanhas, metricasVisiveis] = await Promise.all([
+  const [cliente, campanhas, metricasVisiveis, agregados] = await Promise.all([
     getClienteTrafego(clientId),
     listCampanhasByCliente(clientId),
     getMetricasVisiveisDoUsuario(user.id),
+    getAgregadosByCliente(clientId),
   ]);
 
   if (!cliente) notFound();
-
-  // Fase 1: agregados vazios. Fase 2 vai popular agregando trafego_metricas_diarias.
-  const agregados: Record<string, Record<string, number>> = {};
 
   const canManage = ROLES_QUE_GERENCIAM.includes(user.role);
 
