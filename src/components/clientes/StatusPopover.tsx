@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { churnClienteAction, reactivateClienteAction } from "@/lib/clientes/actions";
+import { CHURN_MOTIVOS } from "@/lib/clientes/schema";
 import { getTodayDate } from "@/lib/datetime/timezone";
 
 interface Props {
@@ -41,6 +42,7 @@ const TODAY = () => getTodayDate();
 
 export function StatusPopover({ clienteId, current }: Props) {
   const [open, setOpen] = useState(false);
+  const [categoria, setCategoria] = useState("");
   const [motivo, setMotivo] = useState("");
   const [dataChurn, setDataChurn] = useState(TODAY());
   const [error, setError] = useState<string | null>(null);
@@ -50,13 +52,14 @@ export function StatusPopover({ clienteId, current }: Props) {
 
   function handleChurn() {
     setError(null);
-    if (motivo.trim().length < 3) {
-      setError("Informe o motivo (mín. 3 caracteres)");
+    if (!categoria) {
+      setError("Selecione o motivo do churn");
       return;
     }
     const fd = new FormData();
     fd.set("id", clienteId);
-    fd.set("motivo_churn", motivo.trim());
+    fd.set("motivo_churn_categoria", categoria);
+    if (motivo.trim()) fd.set("motivo_churn", motivo.trim());
     if (dataChurn) fd.set("data_churn", dataChurn);
     startTransition(async () => {
       const result = await churnClienteAction(fd);
@@ -82,6 +85,7 @@ export function StatusPopover({ clienteId, current }: Props) {
 
   function handleOpenChange(next: boolean) {
     if (!next) {
+      setCategoria("");
       setMotivo("");
       setDataChurn(TODAY());
       setError(null);
@@ -106,12 +110,26 @@ export function StatusPopover({ clienteId, current }: Props) {
             <div className="text-sm font-medium text-foreground">Marcar como churn</div>
             <label className="block space-y-1">
               <span className="text-xs text-muted-foreground">Motivo do churn</span>
+              <select
+                value={categoria}
+                onChange={(e) => setCategoria(e.target.value)}
+                disabled={pending}
+                className="w-full rounded-md border border-input bg-card px-2 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <option value="" disabled>Selecione…</option>
+                {CHURN_MOTIVOS.map((m) => (
+                  <option key={m.slug} value={m.slug}>{m.label}</option>
+                ))}
+              </select>
+            </label>
+            <label className="block space-y-1">
+              <span className="text-xs text-muted-foreground">Detalhar (opcional)</span>
               <textarea
                 value={motivo}
                 onChange={(e) => setMotivo(e.target.value)}
                 disabled={pending}
-                rows={3}
-                placeholder="Ex.: Cliente decidiu pausar..."
+                rows={2}
+                placeholder="Ex.: foi pra agência X, achou caro depois do reajuste..."
                 className="w-full rounded-md border border-input bg-card px-2 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
               />
             </label>

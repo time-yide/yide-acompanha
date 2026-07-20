@@ -3,6 +3,7 @@ import { unstable_cache } from "next/cache";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getCurrentMonthYM, getTodayDate } from "@/lib/datetime/timezone";
 import { isInMonth, monthRange, lastDayOfMonth, previousMonthYM } from "./date-utils";
+import { CHURN_MOTIVOS, churnMotivoLabel } from "@/lib/clientes/schema";
 
 interface ClientRow {
   id: string;
@@ -406,6 +407,95 @@ export async function getEntradaChurn(months = 6, filter?: ClientFilter, ateMes?
     // fix bug em_onboarding contado como entrada.
     // v4: filter ganhou unitId (multi-tenant)
     ["dashboard-entrada-churn-v4"],
+    { revalidate: 300, tags: ["dashboard"] },
+  );
+  return cached(JSON.stringify({ months, filter: filter ?? null, ateMes: ateMes ?? null }));
+}
+
+// ─── getChurnMotivos ─────────────────────────────────────────────────────────
+
+export interface ChurnMotivoPoint {
+  /** slug do enum churn_motivo, ou null pros churns antigos sem categoria. */
+  motivo: string | null;
+  /** label PT (ou "Sem categoria"). */
+  label: string;
+  /** nº de clientes que deram churn com esse motivo na janela. */
+  quantidade: number;
+  /** R$ perdido = soma valor_mensal, só de tipo_relacao comum/null (não infla com permuta/parceria). */
+  valorPerdido: number;
+}
+
+export async function _getChurnMotivosImpl(
+  months: number,
+  filter?: ClientFilter,
+  ateMes?: string,
+): Promise<ChurnMotivoPoint[]> {
+  const supabase = createServiceRoleClient();
+  const ancora = ateMes ? new Date(`${lastDayOfMonth(ateMes)}T12:00:00Z`) : new Date();
+  const meses = monthRange(months, ancora);
+
+  // Universo: todos os clientes com data_churn dentro da janela (qualquer
+  // modalidade/relação — churn é churn). O R$ é que fica restrito a 'comum'.
+  // Cast `as any`: motivo_churn_categoria ainda não está nos types gerados
+  // (pós-migration `npm run db:types`). Padrão usado em _getEntradaChurnImpl.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  let clientsQuery = sb
+    .from("clients")
+    .select("id, valor_mensal, data_churn, tipo_relacao, motivo_churn_categoria, assessor_id, coordenador_id")
+    .is("deleted_at", null)
+    .not("data_churn", "is", null);
+  clientsQuery = buildClientFilterQuery(clientsQuery as never, filter) as never;
+
+  const { data: clientsData, error } = await clientsQuery;
+  // Janela deploy→migration: se a coluna ainda não existe, o Supabase erra.
+  // Retorna vazio pra não derrubar o dashboard (a migration é manual pós-merge).
+  if (error) return [];
+
+  const clients = (clientsData ?? []) as Array<{
+    valor_mensal: number;
+    data_churn: string | null;
+    tipo_relacao?: string | null;
+    motivo_churn_categoria?: string | null;
+  }>;
+
+  const naJanela = clients.filter((c) => meses.some((m) => isInMonth(c.data_churn, m)));
+
+  // Agrega por categoria. Semeia os 7 slugs conhecidos com zero pra ordem/
+  // presença estável; o bucket null nasce só se houver churn sem categoria.
+  const buckets = new Map<string | null, { quantidade: number; valorPerdido: number }>();
+  for (const m of CHURN_MOTIVOS) buckets.set(m.slug, { quantidade: 0, valorPerdido: 0 });
+
+  for (const c of naJanela) {
+    const key = c.motivo_churn_categoria ?? null;
+    const b = buckets.get(key) ?? { quantidade: 0, valorPerdido: 0 };
+    b.quantidade += 1;
+    if (!c.tipo_relacao || c.tipo_relacao === "comum") b.valorPerdido += Number(c.valor_mensal ?? 0);
+    buckets.set(key, b);
+  }
+
+  const pontos: ChurnMotivoPoint[] = [...buckets.entries()].map(([motivo, b]) => ({
+    motivo,
+    label: churnMotivoLabel(motivo),
+    quantidade: b.quantidade,
+    valorPerdido: b.valorPerdido,
+  }));
+
+  // Ordena por quantidade desc; "Sem categoria" (null) sempre por último.
+  return pontos.sort((a, b) => {
+    if (a.motivo === null) return 1;
+    if (b.motivo === null) return -1;
+    return b.quantidade - a.quantidade;
+  });
+}
+
+export async function getChurnMotivos(months = 6, filter?: ClientFilter, ateMes?: string): Promise<ChurnMotivoPoint[]> {
+  const cached = unstable_cache(
+    async (paramsJson: string) => {
+      const { months: m, filter: f, ateMes: a } = JSON.parse(paramsJson) as { months: number; filter: ClientFilter | null; ateMes: string | null };
+      return _getChurnMotivosImpl(m, f ?? undefined, a ?? undefined);
+    },
+    ["dashboard-churn-motivos-v1"],
     { revalidate: 300, tags: ["dashboard"] },
   );
   return cached(JSON.stringify({ months, filter: filter ?? null, ateMes: ateMes ?? null }));

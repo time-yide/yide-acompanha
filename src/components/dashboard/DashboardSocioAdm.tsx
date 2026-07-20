@@ -8,6 +8,7 @@ import {
   KpiRowSection,
   CarteiraTimelineSection,
   EntradaChurnSection,
+  MotivosChurnSection,
   CarteiraPorAssessorSection,
   RankingSection,
   ProximosEventosSection,
@@ -85,6 +86,9 @@ export function DashboardSocioAdm({ userId, nome, mes, mesAtual, meses }: Props)
           </Suspense>
           <Suspense fallback={<ChartSkeleton />}>
             <EntradaChurnSection mes={mes} />
+          </Suspense>
+          <Suspense fallback={<ChartSkeleton />}>
+            <MotivosChurnSection mes={mes} />
           </Suspense>
         </div>
 
