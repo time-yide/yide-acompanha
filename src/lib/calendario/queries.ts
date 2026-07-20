@@ -397,7 +397,8 @@ export async function listEventsForWeek(
       return _listEventsForWeekImpl(from, to, uc, up);
     },
     // v5: shape ganhou roteiro_tipo, videomaker_leu_em, videomaker_imprimiu_em (badge de status no card)
-    ["calendario-week-events-v5"],
+    // v6: recorrência — mutations agora inserem múltiplas linhas; bump evita servir cache antigo entre deploy e migration
+    ["calendario-week-events-v6"],
     { revalidate: 60, tags: ["calendar"] },
   );
   return cached(
