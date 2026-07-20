@@ -74,6 +74,7 @@ export type Action =
   | "create:tasks"
   | "create:calendar_event"
   | "customize:notification_recipients"
+  | "view:agenda_temperature"
   // Satisfação
   | "feed:satisfaction"
   // Tráfego
@@ -119,6 +120,7 @@ const matrix: Record<Role, Action[]> = {
     "create:tasks", "create:calendar_event", "customize:notification_recipients",
     "feed:satisfaction",
     "manage:trafego_relatorios",
+    "view:agenda_temperature",
   ],
   assessor: [
     "view:all_clients",
@@ -151,6 +153,7 @@ const matrix: Record<Role, Action[]> = {
     "view:own_commission",
     "create:tasks", "create:calendar_event", "customize:notification_recipients",
     "feed:satisfaction",
+    "view:agenda_temperature",
   ],
   // Conjunto mínimo intencional: assessor de e-commerce não participa do fluxo
   // de satisfação (sem feed:satisfaction) nem de aprovações/financeiro.
