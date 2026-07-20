@@ -6,13 +6,19 @@ import type { Canal } from "@/lib/presenca/config";
 import { CANAIS, checklistDoCanal } from "@/lib/presenca/config";
 import { progressoChecklist } from "@/lib/presenca/core";
 import type { PostRow } from "@/lib/presenca/queries";
+import type { ContaCanal } from "@/lib/presenca/contas";
 import { ChecklistItem } from "./ChecklistItem";
 import { GerarPostButton } from "./GerarPostButton";
 import { CopyButton } from "./CopyButton";
 import { ArquivarPostButton } from "./ArquivarPostButton";
+import { ContaAnaliseCard } from "./ContaAnaliseCard";
 
 interface CanalData { posts: PostRow[]; feitos: string[] }
-interface Props { dados: Record<Canal, CanalData> }
+interface Props {
+  dados: Record<Canal, CanalData>;
+  contasPorCanal: Record<Canal, ContaCanal>;
+  semClienteYide: boolean;
+}
 
 const ICONE_CANAL: Record<Canal, LucideIcon> = {
   gmn: MapPin,
@@ -42,12 +48,28 @@ function textoParaCopiar(post: PostRow): string {
   return post.hashtags.length ? `${post.conteudo}\n\n${post.hashtags.join(" ")}` : post.conteudo;
 }
 
-function Painel({ canal, dados, aviso }: { canal: Canal; dados: CanalData; aviso: string }) {
+function Painel({
+  canal,
+  label,
+  dados,
+  aviso,
+  conta,
+  semClienteYide,
+}: {
+  canal: Canal;
+  label: string;
+  dados: CanalData;
+  aviso: string;
+  conta: ContaCanal | null;
+  semClienteYide: boolean;
+}) {
   const itens = checklistDoCanal(canal);
   const prog = progressoChecklist(itens, dados.feitos);
   const feitosSet = new Set(dados.feitos);
   return (
-    <div className="grid gap-5 lg:grid-cols-2">
+    <div className="space-y-5">
+      <ContaAnaliseCard conta={conta} label={label} semCliente={semClienteYide} />
+      <div className="grid gap-5 lg:grid-cols-2">
       {/* Checklist */}
       <section className="space-y-3">
         <div className="space-y-1.5">
@@ -99,12 +121,13 @@ function Painel({ canal, dados, aviso }: { canal: Canal; dados: CanalData; aviso
           </div>
         )}
       </section>
+      </div>
     </div>
   );
 }
 
 /** Workspace com abas dinâmicas por canal: checklist + gerador/lista de posts em cada. */
-export function PresencaWorkspace({ dados }: Props) {
+export function PresencaWorkspace({ dados, contasPorCanal, semClienteYide }: Props) {
   const [aba, setAba] = useState<Canal>(CANAIS[0].value);
   const abaAtual = CANAIS.find((c) => c.value === aba) ?? CANAIS[0];
   return (
@@ -132,8 +155,11 @@ export function PresencaWorkspace({ dados }: Props) {
 
       <Painel
         canal={abaAtual.value}
+        label={abaAtual.label}
         dados={dados[abaAtual.value]}
         aviso={avisoDoCanal(abaAtual.value, abaAtual.label)}
+        conta={contasPorCanal[abaAtual.value] ?? null}
+        semClienteYide={semClienteYide}
       />
     </div>
   );
