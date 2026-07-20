@@ -1,14 +1,16 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Pencil, ExternalLink, Archive, Plus, Settings2, LinkIcon } from "lucide-react";
+import { Pencil, ExternalLink, Archive, Plus, Settings2, LinkIcon, Megaphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { CampanhaFormModal } from "./CampanhaFormModal";
 import { ConfigMetricasModal } from "./ConfigMetricasModal";
 import { AdAccountsModal } from "./AdAccountsModal";
+import { PublicarMetaModal } from "./PublicarMetaModal";
 import { archiveCampanhaAction } from "@/lib/trafego/actions";
+import { objetivoParaMeta } from "@/lib/trafego/meta-create-map";
 import {
   STATUS_LABELS, STATUS_COLORS, OBJETIVOS,
   METRICA_BY_KEY, formatMetricaValor,
@@ -20,6 +22,7 @@ interface Props {
   clientNome: string;
   metaAdAccountId: string | null;
   googleAdsCustomerId: string | null;
+  facebookPageId: string | null;
   campanhas: CampanhaRow[];
   metricasVisiveis: string[];
   /** Por enquanto vazio (Fase 2 vai popular). Map: campanhaId → { metricKey: agregado }. */
@@ -32,7 +35,7 @@ const objetivosLabel: Record<string, string> = Object.fromEntries(
 );
 
 export function CampanhasList({
-  clientId, clientNome, metaAdAccountId, googleAdsCustomerId,
+  clientId, clientNome, metaAdAccountId, googleAdsCustomerId, facebookPageId,
   campanhas, metricasVisiveis, agregados, canManage,
 }: Props) {
   const [openForm, setOpenForm] = useState(false);
@@ -86,6 +89,8 @@ export function CampanhasList({
               metricasVisiveis={metricasVisiveis}
               agregado={agregados[c.id] ?? {}}
               canManage={canManage}
+              clientHasAdAccount={!!metaAdAccountId}
+              clientHasPage={!!facebookPageId}
               onEdit={() => editarCampanha(c)}
             />
           ))}
@@ -123,16 +128,47 @@ export function CampanhasList({
   );
 }
 
+/** Link pro Gerenciador de Anúncios de uma campanha já publicada. */
+function gerenciadorUrl(campaignId: string, accountId: string | null): string {
+  const act = (accountId ?? "").replace(/^act_/, "");
+  return `https://business.facebook.com/adsmanager/manage/campaigns?act=${act}&selected_campaign_ids=${campaignId}`;
+}
+
 function CampanhaCard({
-  campanha, metricasVisiveis, agregado, canManage, onEdit,
+  campanha, metricasVisiveis, agregado, canManage, clientHasAdAccount, clientHasPage, onEdit,
 }: {
   campanha: CampanhaRow;
   metricasVisiveis: string[];
   agregado: Record<string, number>;
   canManage: boolean;
+  clientHasAdAccount: boolean;
+  clientHasPage: boolean;
   onEdit: () => void;
 }) {
   const [pendingArchive, startArchive] = useTransition();
+  const [openPublicar, setOpenPublicar] = useState(false);
+
+  const jaPublicada = !!campanha.external_ad_id;
+  const objetivoSuportado = !!objetivoParaMeta(campanha.objetivo);
+  const temCriativo = !!campanha.criativo_url && !!campanha.link_destino;
+  const podePublicar =
+    canManage &&
+    campanha.plataforma === "meta" &&
+    !jaPublicada &&
+    objetivoSuportado &&
+    temCriativo &&
+    clientHasAdAccount &&
+    clientHasPage;
+
+  // Motivo pra desabilitar (tooltip), quando é Meta e ainda não publicou.
+  let motivoBloqueio: string | null = null;
+  if (canManage && campanha.plataforma === "meta" && !jaPublicada) {
+    if (!objetivoSuportado) motivoBloqueio = "Objetivo não suportado (use Tráfego ou Engajamento)";
+    else if (!campanha.criativo_url) motivoBloqueio = "Adicione a URL do criativo (imagem)";
+    else if (!campanha.link_destino) motivoBloqueio = "Adicione o link de destino";
+    else if (!clientHasAdAccount) motivoBloqueio = "Cadastre a conta de anúncios do cliente";
+    else if (!clientHasPage) motivoBloqueio = "Cadastre a página do Facebook do cliente";
+  }
 
   function arquivar() {
     if (!confirm(`Arquivar a campanha "${campanha.nome}"?`)) return;
@@ -230,6 +266,46 @@ function CampanhaCard({
           </span>
         )}
       </div>
+
+      {/* Publicar no Meta (pausado) — só Meta */}
+      {campanha.plataforma === "meta" && canManage && (
+        <div className="flex flex-wrap items-center gap-2">
+          {jaPublicada ? (
+            <a
+              href={gerenciadorUrl(campanha.external_campaign_id ?? "", campanha.external_account_id)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[11px] font-medium text-amber-700 hover:bg-amber-500/20 dark:text-amber-300"
+            >
+              <Megaphone className="h-3.5 w-3.5" /> Publicado (pausado) — abrir no Gerenciador
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          ) : (
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!podePublicar}
+                title={motivoBloqueio ?? undefined}
+                onClick={() => setOpenPublicar(true)}
+              >
+                <Megaphone className="h-4 w-4" /> Publicar no Meta
+              </Button>
+              {motivoBloqueio && (
+                <span className="text-[11px] text-muted-foreground">{motivoBloqueio}</span>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {openPublicar && (
+        <PublicarMetaModal
+          open={openPublicar}
+          onOpenChange={setOpenPublicar}
+          campanha={campanha}
+        />
+      )}
 
       {/* Métricas */}
       {metricasVisiveis.length > 0 && (

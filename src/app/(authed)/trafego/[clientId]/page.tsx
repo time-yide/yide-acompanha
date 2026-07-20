@@ -95,6 +95,7 @@ export default async function TrafegoClientePage({
         clientNome={cliente.nome}
         metaAdAccountId={cliente.meta_ad_account_id}
         googleAdsCustomerId={cliente.google_ads_customer_id}
+        facebookPageId={cliente.facebook_page_id}
         campanhas={campanhas}
         metricasVisiveis={metricasVisiveis}
         agregados={agregados}
