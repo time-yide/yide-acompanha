@@ -5,7 +5,7 @@ import { canAccess } from "@/lib/auth/permissions";
 import { TemperaturaSection } from "@/components/calendario/temperatura/TemperaturaSection";
 import { getPeriodRange, type TempPeriod } from "@/lib/calendario/temperatura";
 import { buttonVariants } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Thermometer } from "lucide-react";
 import { APP_TIMEZONE, formatIsoDate } from "@/lib/datetime/timezone";
 
 const PERIODS: { key: TempPeriod; label: string }[] = [
@@ -70,7 +70,10 @@ export default async function TemperaturaPage({
       <header className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">🌡️ Temperatura de agenda</h1>
+            <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
+              <Thermometer className="h-6 w-6 text-primary" />
+              Temperatura de agenda
+            </h1>
             <p className="text-sm text-muted-foreground">
               {rangeLabel} · visível só para coordenação
             </p>
