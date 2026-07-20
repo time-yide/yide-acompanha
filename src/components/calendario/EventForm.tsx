@@ -55,6 +55,7 @@ const SUB_LABELS: Record<SelectableSub, string> = {
   videomakers: "Videomaker (gravação)",
   assessores: "Assessores",
   coordenadores: "Coordenadores",
+  programacao: "Programação",
 };
 
 const SUB_DESC: Record<SelectableSub, string> = {
@@ -62,6 +63,7 @@ const SUB_DESC: Record<SelectableSub, string> = {
   videomakers: "Gravação. Todos os campos extras são opcionais, preenche o que tiver.",
   assessores: "Reunião de assessoria.",
   coordenadores: "Reunião de coordenação.",
+  programacao: "Agenda do time de Programação.",
 };
 
 export function EventForm({ action, defaults = {}, profiles, clientes, videomakers, canCreateVideomaker, canDelegateVideomaker, videomakerRequired, submitLabel = "Salvar", formId }: Props) {
