@@ -86,6 +86,39 @@ function canCreateVideomaker(role: string): boolean {
   return (ROLES_PODEM_CRIAR_VIDEOMAKER as readonly string[]).includes(role);
 }
 
+type EditScope = "one" | "following" | "all";
+
+function parseScope(formData: FormData): EditScope {
+  const raw = String(formData.get("scope") ?? "one");
+  return raw === "following" || raw === "all" ? raw : "one";
+}
+
+/**
+ * Aplica um patch a uma série conforme o escopo.
+ * - one: só a linha atual.
+ * - following: linhas da série com inicio >= inicio do evento atual.
+ * - all: todas as linhas da série.
+ * Retorna as linhas afetadas (pra checar RLS/permissão). Usa o mesmo client.
+ * `sb` é o client `any`-cast (RLS aplicada como o usuário logado).
+ */
+async function applyScopedUpdate(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  sb: any,
+  params: { id: string; seriesId: string | null; inicioAtualUtc: string; scope: EditScope; patch: Record<string, unknown> },
+): Promise<{ error?: string; rows?: unknown[] }> {
+  const { id, seriesId, inicioAtualUtc, scope, patch } = params;
+
+  if (!seriesId || scope === "one") {
+    const { data, error } = await sb.from("calendar_events").update(patch).eq("id", id).select("id");
+    return { error: error?.message, rows: data ?? undefined };
+  }
+
+  let q = sb.from("calendar_events").update(patch).eq("series_id", seriesId);
+  if (scope === "following") q = q.gte("inicio", inicioAtualUtc);
+  const { data, error } = await q.select("id");
+  return { error: error?.message, rows: data ?? undefined };
+}
+
 /**
  * Valida que `videomakerId` é um videomaker ativo e não tem captação scheduled
  * com horário sobreposto a [inicioUtc, fimUtc]. `excludeEventId` ignora o
@@ -550,33 +583,51 @@ export async function updateEventAction(_prevState: ActionResult, formData: Form
     (updatePayload as { reminded_30min_at?: string | null }).reminded_30min_at = null;
   }
 
+  // Escopo de recorrência (só este / este e os seguintes / todos). Sem
+  // series_id, tudo se comporta como "one".
+  const scope = parseScope(formData);
+  const seriesId: string | null = (before as unknown as { series_id: string | null }).series_id ?? null;
+  const inicioAtualUtc: string = (before as unknown as { inicio: string }).inicio;
+
+  // "following"/"all" NÃO sobrescrevem o horário de cada ocorrência (senão todas
+  // cairiam no mesmo dia/hora do evento editado). Só o "one" muda data/hora.
+  const buildScopedPatch = (payload: Record<string, unknown>): Record<string, unknown> => {
+    if (scope === "one") return payload;
+    const rest = { ...payload };
+    delete rest.inicio;
+    delete rest.fim;
+    delete rest.reminded_30min_at;
+    return rest;
+  };
+
   // .select() + check de linhas afetadas: a RLS pode negar o UPDATE
   // silenciosamente (error:null, 0 rows). Sem isso, reportaríamos sucesso falso.
-  let { data: updatedRows, error } = await sbUpd
-    .from("calendar_events")
-    .update(updatePayload)
-    .eq("id", id)
-    .select("id");
+  let { error, rows: updatedRows } = await applyScopedUpdate(sbUpd, {
+    id, seriesId, inicioAtualUtc, scope, patch: buildScopedPatch(updatePayload),
+  });
   // Fallback: migration cliente_avulso ainda não aplicada → atualiza sem o campo.
-  if (error && String(error.message ?? "").includes("cliente_avulso")) {
+  if (error && String(error ?? "").includes("cliente_avulso")) {
     console.warn("[calendario] migration cliente_avulso não aplicada - update sem o campo");
     const semAvulso = { ...updatePayload } as Record<string, unknown>;
     delete semAvulso.cliente_avulso;
-    ({ data: updatedRows, error } = await sbUpd
-      .from("calendar_events")
-      .update(semAvulso)
-      .eq("id", id)
-      .select("id"));
+    ({ error, rows: updatedRows } = await applyScopedUpdate(sbUpd, {
+      id, seriesId, inicioAtualUtc, scope, patch: buildScopedPatch(semAvulso),
+    }));
   }
   if (error) {
-    const msg = String(error.message ?? "");
-    if (msg.includes("no_videomaker_overlap")) {
+    if (error.includes("no_videomaker_overlap")) {
       return { error: "Esse videomaker já tem outra captação nesse horário. Recarregue e tente de novo." };
     }
-    return { error: error.message };
+    return { error };
   }
   if (!updatedRows || updatedRows.length === 0) {
     return { error: "Você não tem permissão para editar este evento." };
+  }
+
+  // Editar "só este" numa série desliga o vínculo de regra da linha (vira
+  // exceção): não deve mais ser estendida nem carregar a regra mestre.
+  if (seriesId && scope === "one") {
+    await sbUpd.from("calendar_events").update({ recurrence_rule: null, recurrence_end_kind: null }).eq("id", id);
   }
 
   await logAudit({
@@ -612,16 +663,40 @@ export async function updateEventAction(_prevState: ActionResult, formData: Form
   redirect("/calendario");
 }
 
-export async function deleteEventAction(eventId: string) {
+export async function deleteEventAction(eventId: string, scope: EditScope = "one") {
   const actor = await requireAuth();
   const supabase = await createClient();
-  const { error } = await supabase.from("calendar_events").delete().eq("id", eventId);
-  if (error) return { error: error.message };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+
+  // series_id ainda não está nos tipos gerados (migration manual pós-merge) →
+  // usa o client any-cast pra ler/filtrar por ela.
+  const { data: before } = await sb
+    .from("calendar_events")
+    .select("id, series_id, inicio")
+    .eq("id", eventId)
+    .single();
+
+  const seriesId = (before as { series_id: string | null } | null)?.series_id ?? null;
+  const inicioAtual = (before as { inicio: string } | null)?.inicio ?? "";
+
+  let delErr: string | undefined;
+  if (!seriesId || scope === "one") {
+    const { error } = await sb.from("calendar_events").delete().eq("id", eventId);
+    delErr = error?.message;
+  } else {
+    let q = sb.from("calendar_events").delete().eq("series_id", seriesId);
+    if (scope === "following") q = q.gte("inicio", inicioAtual);
+    const { error } = await q;
+    delErr = error?.message;
+  }
+  if (delErr) return { error: delErr };
 
   await logAudit({
     entidade: "calendar_events",
     entidade_id: eventId,
     acao: "soft_delete",
+    dados_depois: { escopo: scope, serie: seriesId } as unknown as Record<string, unknown>,
     ator_id: actor.id,
   });
 
