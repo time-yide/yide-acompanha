@@ -94,6 +94,7 @@ const matrix: Record<Role, Action[]> = {
     "create:tasks", "create:calendar_event", "customize:notification_recipients",
     "feed:satisfaction",
     "manage:trafego_relatorios",
+    "view:agenda_temperature",
   ],
   adm: [
     "manage:users", "edit:colaboradores",

@@ -114,7 +114,22 @@ async function fetchTeamMemberIds(coordinatorId: string): Promise<string[]> {
     typeof row === "string" ? row : row.recados_team_member_ids,
   );
   // Inclui o próprio coordenador na visão do time.
-  return [...new Set([coordinatorId, ...ids.filter(Boolean)])];
+  let teamIds = [...new Set([coordinatorId, ...ids.filter(Boolean)])];
+
+  // Fast Mídia exerce função de videomaker e integra o time audiovisual,
+  // mas não está no retorno da RPC compartilhada (recados_team_member_ids,
+  // usada também pelos recados — NÃO alterar). Aumentamos o time só aqui.
+  const { data: coordinator } = await supabase
+    .from("profiles").select("role").eq("id", coordinatorId).maybeSingle();
+  if (coordinator?.role === "audiovisual_chefe") {
+    const { data: fastMidia } = await supabase
+      .from("profiles").select("id").eq("ativo", true)
+      .eq("role", "fast_midia" as never); // 'fast_midia' pode não estar no enum tipado
+    const extra = (fastMidia ?? []).map((r) => r.id);
+    teamIds = [...new Set([...teamIds, ...extra])];
+  }
+
+  return teamIds;
 }
 
 async function fetchTeamEventsInRange(start: Date, end: Date): Promise<TempEvent[]> {
