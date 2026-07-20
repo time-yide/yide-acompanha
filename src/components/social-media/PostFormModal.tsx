@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useRef, type ComponentType } from "react";
 import {
-  Upload, X, Sparkles, Check,
+  Upload, X, Check,
   LayoutGrid, GalleryHorizontalEnd, Circle, Clapperboard, ImagePlus,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -15,7 +15,6 @@ import { cn } from "@/lib/utils";
 import {
   createSocialPostAction, updateSocialPostAction,
   prepareSocialMidiaUploadAction, finalizeSocialMidiaUploadAction,
-  gerarLegendaIaAction,
 } from "@/lib/social-media/actions";
 import { createClient } from "@/lib/supabase/client";
 import { REDES, FORMATOS, STATUS_DEFS } from "@/lib/social-media/tipos";
@@ -71,9 +70,6 @@ const REDE_ICON: Record<string, IconType> = {
   ),
 };
 
-/** Rótulo curto pros tiles (o nome cheio não cabe). */
-const REDE_LABEL_CURTO: Record<string, string> = { gmn: "Google" };
-
 /** Ícone por formato de post. */
 const FORMATO_ICON: Record<string, IconType> = {
   feed: LayoutGrid,
@@ -113,8 +109,6 @@ export function PostFormModal({ open, onOpenChange, clientId, post, defaultDate 
   const [redes, setRedes] = useState<string[]>(post?.redes ?? ["instagram"]);
   const [legenda, setLegenda] = useState<string>(post?.legenda ?? "");
   const [hashtags, setHashtags] = useState<string>(post?.hashtags ?? "");
-  const [briefIa, setBriefIa] = useState<string>("");
-  const [gerandoIa, setGerandoIa] = useState(false);
   const [midias, setMidias] = useState<string[]>(post?.midias ?? []);
   const [agendar, setAgendar] = useState<string>(
     isoToDatetimeLocal(post?.agendar_para) || (defaultDate ? `${defaultDate}T10:00` : ""),
@@ -217,27 +211,6 @@ export function PostFormModal({ open, onOpenChange, clientId, post, defaultDate 
     setMidias((prev) => prev.filter((_, i) => i !== idx));
   }
 
-  async function onGerarIa(modo: "gerar" | "melhorar") {
-    setError(null);
-    setGerandoIa(true);
-    try {
-      const r = await gerarLegendaIaAction({
-        client_id: clientId,
-        brief: modo === "gerar" ? briefIa : null,
-        rascunho: modo === "melhorar" ? legenda : null,
-        formato,
-        redes,
-      });
-      if ("error" in r) {
-        setError(r.error);
-        return;
-      }
-      setLegenda(r.legenda);
-      setHashtags(r.hashtags);
-    } finally {
-      setGerandoIa(false);
-    }
-  }
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -348,7 +321,7 @@ export function PostFormModal({ open, onOpenChange, clientId, post, defaultDate 
           {/* Formato como chips visuais */}
           <div className="space-y-2">
             <Label>Formato</Label>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-2">
               {FORMATOS.map((f) => {
                 const Icon = FORMATO_ICON[f.value];
                 const active = formato === f.value;
@@ -358,16 +331,19 @@ export function PostFormModal({ open, onOpenChange, clientId, post, defaultDate 
                     type="button"
                     onClick={() => setFormato(f.value)}
                     className={cn(
-                      "flex flex-col items-start gap-1 rounded-xl border p-2.5 text-left transition-all",
+                      "flex items-center gap-2 rounded-xl border p-2.5 text-left transition-all",
                       active
                         ? "border-primary bg-primary/10 ring-1 ring-inset ring-primary/30"
                         : "border-border bg-card hover:bg-muted/40",
                     )}
                   >
-                    <span className={cn("flex items-center gap-1.5 text-sm font-medium", active ? "text-primary" : "text-foreground")}>
-                      {Icon && <Icon className="h-4 w-4" />} {f.label}
+                    {Icon && <Icon className={cn("h-5 w-5 shrink-0", active ? "text-primary" : "text-muted-foreground")} />}
+                    <span className="min-w-0">
+                      <span className={cn("block text-sm font-medium leading-tight", active ? "text-primary" : "text-foreground")}>
+                        {f.label}
+                      </span>
+                      <span className="block truncate text-[10px] text-muted-foreground">{f.descricao}</span>
                     </span>
-                    <span className="text-[10px] text-muted-foreground">{f.descricao}</span>
                   </button>
                 );
               })}
@@ -400,10 +376,10 @@ export function PostFormModal({ open, onOpenChange, clientId, post, defaultDate 
             </div>
           </div>
 
-          {/* Redes: tiles com ícone da marca */}
+          {/* Redes: pílulas com ícone da marca (quebram linha, sem amontoar) */}
           <div className="space-y-2">
             <Label>Publicar em *</Label>
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+            <div className="flex flex-wrap gap-2">
               {REDES.map((r) => {
                 const Icon = REDE_ICON[r.value];
                 const active = redes.includes(r.value);
@@ -414,21 +390,17 @@ export function PostFormModal({ open, onOpenChange, clientId, post, defaultDate 
                     onClick={() => toggleRede(r.value)}
                     aria-pressed={active}
                     className={cn(
-                      "relative flex flex-col items-center gap-1.5 rounded-xl border p-3 text-xs font-medium transition-all",
+                      "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-all",
                       active
                         ? cn(r.color, "ring-1 ring-inset")
                         : "border-border bg-card text-muted-foreground hover:bg-muted/40",
                     )}
                   >
-                    {Icon && <Icon className="h-5 w-5" />}
-                    <span className="leading-none">{REDE_LABEL_CURTO[r.value] ?? r.label}</span>
-                    {active && (
-                      <span className="absolute -right-1.5 -top-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
-                        <Check className="h-2.5 w-2.5" />
-                      </span>
-                    )}
+                    {Icon && <Icon className="h-4 w-4 shrink-0" />}
+                    <span className="whitespace-nowrap">{r.label}</span>
+                    {active && <Check className="h-3.5 w-3.5 shrink-0" />}
                     {r.comingSoon && (
-                      <span className="absolute -bottom-1.5 rounded-full border border-amber-500/40 bg-amber-500/10 px-1 text-[8px] leading-tight text-amber-600 dark:text-amber-300">
+                      <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 text-[9px] leading-tight text-amber-600 dark:text-amber-300">
                         Fase 4
                       </span>
                     )}
@@ -506,33 +478,6 @@ export function PostFormModal({ open, onOpenChange, clientId, post, defaultDate 
               )}
             </div>
           )}
-
-          {/* IA: gerar/melhorar legenda */}
-          <div className="space-y-2 rounded-md border border-primary/30 bg-primary/5 p-3">
-            <div className="flex items-center gap-1.5 text-xs font-medium text-primary">
-              <Sparkles className="h-3.5 w-3.5" /> Gerar com IA
-            </div>
-            <Input
-              value={briefIa}
-              onChange={(e) => setBriefIa(e.target.value)}
-              placeholder="Conte a ideia. Ex: promoção de Dia das Mães, 20% off até domingo"
-              maxLength={500}
-              disabled={gerandoIa}
-            />
-            <div className="flex flex-wrap gap-2">
-              <Button type="button" size="sm" onClick={() => onGerarIa("gerar")} disabled={gerandoIa || !briefIa.trim()}>
-                {gerandoIa ? "Gerando..." : "✨ Gerar legenda"}
-              </Button>
-              {legenda.trim() && (
-                <Button type="button" size="sm" variant="outline" onClick={() => onGerarIa("melhorar")} disabled={gerandoIa}>
-                  {gerandoIa ? "Gerando..." : "Melhorar rascunho"}
-                </Button>
-              )}
-            </div>
-            <p className="text-[10px] text-muted-foreground">
-              Usa o tom de voz do cliente. Você edita o resultado à vontade.
-            </p>
-          </div>
 
           {/* Legenda */}
           <div className="space-y-1.5">
