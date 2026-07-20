@@ -14,6 +14,7 @@ export const criarRecadoSchema = z
     permanente: z.boolean().default(false),
     privado: z.boolean().default(false),
     destinatarios: z.array(z.string().uuid("Destinatário inválido")).default([]),
+    attachment_urls: z.array(z.string().url()).max(4, "Máx. 4 fotos").default([]),
   })
   .refine((d) => !d.privado || d.destinatarios.length >= 1, {
     message: "Selecione ao menos um destinatário",

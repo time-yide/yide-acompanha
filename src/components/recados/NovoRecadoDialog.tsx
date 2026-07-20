@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Plus } from "lucide-react";
+import { Plus, ImagePlus, X } from "lucide-react";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -22,7 +23,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { criarRecadoAction, editarRecadoAction } from "@/lib/recados/actions";
+import { criarRecadoAction, editarRecadoAction, prepareRecadoAttachmentUpload } from "@/lib/recados/actions";
+import { createClient } from "@/lib/supabase/client";
+
+const MAX_FOTOS = 4;
 
 type Person = { id: string; nome: string };
 
@@ -56,12 +60,42 @@ export function NovoRecadoDialog(props: Props) {
   const [permanente, setPermanente] = useState(false);
   const [privado, setPrivado] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [fotos, setFotos] = useState<string[]>([]);
+  const [uploading, startUpload] = useTransition();
   const people = !isEdit ? props.people : [];
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   function togglePerson(id: string) {
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }
+
+  function onPickFotos(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    if (files.length === 0) return;
+    if (fotos.length + files.length > MAX_FOTOS) {
+      toast.error(`Máx. ${MAX_FOTOS} fotos`);
+      return;
+    }
+    startUpload(async () => {
+      const supabase = createClient();
+      for (const file of files) {
+        const prep = await prepareRecadoAttachmentUpload(file.name, file.type, file.size);
+        if ("error" in prep) {
+          toast.error(prep.error);
+          return;
+        }
+        const { error: upErr } = await supabase.storage
+          .from("recado-attachments")
+          .uploadToSignedUrl(prep.path, prep.token, file, { contentType: file.type });
+        if (upErr) {
+          toast.error(`Falha no upload: ${upErr.message}`);
+          return;
+        }
+        setFotos((prev) => [...prev, prep.url]);
+      }
+    });
   }
 
   function reset() {
@@ -71,6 +105,7 @@ export function NovoRecadoDialog(props: Props) {
     setPermanente(false);
     setPrivado(false);
     setSelectedIds([]);
+    setFotos([]);
     setError(null);
   }
 
@@ -93,6 +128,7 @@ export function NovoRecadoDialog(props: Props) {
         fd.set("privado", privado ? "true" : "false");
         if (privado) fd.set("destinatarios", JSON.stringify(selectedIds));
         if (!privado && permanente) fd.set("permanente", "on");
+        if (fotos.length > 0) fd.set("attachment_urls", JSON.stringify(fotos));
         result = await criarRecadoAction(fd);
       }
 
@@ -149,6 +185,42 @@ export function NovoRecadoDialog(props: Props) {
             />
             <p className="text-[11px] text-muted-foreground">{corpo.length}/2000</p>
           </div>
+
+          {!isEdit && (
+            <div className="space-y-2">
+              <Label>Fotos (opcional)</Label>
+              <div className="flex flex-wrap items-center gap-2">
+                {fotos.map((url) => (
+                  <div key={url} className="relative h-16 w-16 overflow-hidden rounded-md border bg-muted">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={url} alt="foto" className="h-full w-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setFotos((prev) => prev.filter((u) => u !== url))}
+                      className="absolute right-0.5 top-0.5 rounded-full bg-black/60 p-0.5 text-white hover:bg-black/80"
+                      aria-label="Remover foto"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+                {fotos.length < MAX_FOTOS && (
+                  <label className="flex h-16 w-16 cursor-pointer flex-col items-center justify-center gap-1 rounded-md border border-dashed text-muted-foreground hover:bg-muted">
+                    <ImagePlus className="h-4 w-4" />
+                    <span className="text-[9px]">{uploading ? "..." : "Foto"}</span>
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/gif"
+                      multiple
+                      className="hidden"
+                      disabled={uploading}
+                      onChange={onPickFotos}
+                    />
+                  </label>
+                )}
+              </div>
+            </div>
+          )}
 
           {!isEdit && (
             <div className="flex items-center gap-2">
@@ -227,8 +299,8 @@ export function NovoRecadoDialog(props: Props) {
             <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={pending}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={pending}>
-              {pending ? "Salvando..." : isEdit ? "Salvar" : "Postar"}
+            <Button type="submit" disabled={pending || uploading}>
+              {pending ? "Salvando..." : uploading ? "Enviando foto..." : isEdit ? "Salvar" : "Postar"}
             </Button>
           </DialogFooter>
         </form>

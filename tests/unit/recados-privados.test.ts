@@ -21,6 +21,7 @@ function row(over: Partial<PrivadoRow>): PrivadoRow {
     privado: true,
     criado_em: "2026-06-14T00:00:00Z",
     atualizado_em: "2026-06-14T00:00:00Z",
+    attachment_urls: [],
     autor: { nome: "Autor", avatar_url: null },
     reacoes: [],
     destinatarios: [],
