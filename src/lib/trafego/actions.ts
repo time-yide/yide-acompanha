@@ -23,7 +23,7 @@ import {
   normalizeAdAccountId,
   listAdSets,
   listAds,
-  getInsightsAggregate,
+  getInsightsByObject,
   MetaApiError,
   type MetaInsightsAggregate,
 } from "./meta-api";
@@ -597,6 +597,14 @@ function budgetFromCents(raw: string | undefined): number | null {
   return Number.isNaN(cents) ? null : cents / 100;
 }
 
+/** Zeros pra objetos ausentes no breakdown de insights (UI mostra zeros). */
+function zeroMetricas(): MetaInsightsAggregate {
+  return {
+    spend: 0, impressions: 0, reach: 0, clicks: 0,
+    ctr: 0, cpc: 0, cpm: 0, frequency: 0,
+  };
+}
+
 interface CampanhaParaDrill {
   external_campaign_id: string;
   data_inicio: string | null;
@@ -671,19 +679,22 @@ export async function getCampanhaAdSetsAction(
 
   try {
     const adsets = await listAdSets(loaded.campanha.external_campaign_id);
-    const out: AdSetDrill[] = [];
-    for (const a of adsets) {
-      const metricas = await getInsightsAggregate(a.id, "adset", since, until);
-      out.push({
-        id: a.id,
-        nome: a.name,
-        status: a.status,
-        effective_status: a.effective_status,
-        optimization_goal: a.optimization_goal ?? null,
-        budget: budgetFromCents(a.daily_budget ?? a.lifetime_budget),
-        metricas,
-      });
-    }
+    // UMA chamada com breakdown por adset (em vez de 1 por conjunto).
+    const metricasPorAdset = await getInsightsByObject(
+      loaded.campanha.external_campaign_id,
+      "adset",
+      since,
+      until,
+    );
+    const out: AdSetDrill[] = adsets.map((a) => ({
+      id: a.id,
+      nome: a.name,
+      status: a.status,
+      effective_status: a.effective_status,
+      optimization_goal: a.optimization_goal ?? null,
+      budget: budgetFromCents(a.daily_budget ?? a.lifetime_budget),
+      metricas: metricasPorAdset.get(a.id) ?? zeroMetricas(),
+    }));
     return { adsets: out };
   } catch (e) {
     if (e instanceof MetaApiError) return { error: `Meta [${e.kind}]: ${e.message}` };
@@ -719,19 +730,25 @@ export async function getAdSetAdsAction(
   const { since, until } = periodoDaCampanha(loaded.campanha);
 
   try {
-    const ads = await listAds(externalAdsetId);
-    const out: AdDrill[] = [];
-    for (const ad of ads) {
-      const metricas = await getInsightsAggregate(ad.id, "ad", since, until);
-      out.push({
-        id: ad.id,
-        nome: ad.name,
-        status: ad.status,
-        effective_status: ad.effective_status,
-        thumbnailUrl: ad.thumbnail_url ?? ad.image_url,
-        metricas,
-      });
+    // Segurança: confirma que o adset pertence a ESTA campanha (única coisa
+    // isolada por org). Sem isso, um adset de outra org seria lido cru pelo
+    // System User token. Aborta ANTES de qualquer listAds/insights.
+    const adsetsDaCampanha = await listAdSets(loaded.campanha.external_campaign_id);
+    if (!adsetsDaCampanha.some((a) => a.id === externalAdsetId)) {
+      return { error: "Conjunto não encontrado nesta campanha" };
     }
+
+    const ads = await listAds(externalAdsetId);
+    // UMA chamada com breakdown por ad (em vez de 1 por anúncio).
+    const metricasPorAd = await getInsightsByObject(externalAdsetId, "ad", since, until);
+    const out: AdDrill[] = ads.map((ad) => ({
+      id: ad.id,
+      nome: ad.name,
+      status: ad.status,
+      effective_status: ad.effective_status,
+      thumbnailUrl: ad.thumbnail_url ?? ad.image_url,
+      metricas: metricasPorAd.get(ad.id) ?? zeroMetricas(),
+    }));
     return { ads: out };
   } catch (e) {
     if (e instanceof MetaApiError) return { error: `Meta [${e.kind}]: ${e.message}` };

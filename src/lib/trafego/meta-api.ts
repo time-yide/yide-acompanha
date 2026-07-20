@@ -455,6 +455,40 @@ interface ObjectAggregateResponse {
   data: ObjectAggregateRow[];
 }
 
+function insightNum(v: string | undefined): number {
+  const n = v ? Number(v) : 0;
+  return Number.isFinite(n) ? n : 0;
+}
+
+/**
+ * Converte uma linha de /insights num MetaInsightsAggregate. Compartilhado por
+ * `getInsightsAggregate` (1 objeto) e `getInsightsByObject` (breakdown por id).
+ */
+function parseInsightRow(row: ObjectAggregateRow): MetaInsightsAggregate {
+  return {
+    spend: insightNum(row.spend),
+    impressions: insightNum(row.impressions),
+    reach: insightNum(row.reach),
+    clicks: insightNum(row.clicks),
+    ctr: insightNum(row.ctr),
+    cpc: insightNum(row.cpc),
+    cpm: insightNum(row.cpm),
+    frequency: insightNum(row.frequency),
+    leads: pickAction(row.actions, LEAD_ACTION_TYPES),
+    conversions: pickAction(row.actions, CONVERSION_ACTION_TYPES),
+    cost_per_lead: pickAction(row.cost_per_action_type, LEAD_ACTION_TYPES),
+    cost_per_conversion: pickAction(row.cost_per_action_type, CONVERSION_ACTION_TYPES),
+  };
+}
+
+/** Zeros pra objetos sem linha de insight no período. */
+function zeroAggregate(): MetaInsightsAggregate {
+  return {
+    spend: 0, impressions: 0, reach: 0, clicks: 0,
+    ctr: 0, cpc: 0, cpm: 0, frequency: 0,
+  };
+}
+
 /**
  * Insights agregados (única linha) de UM objeto — campanha, conjunto ou anúncio —
  * num período. Retorna zeros quando não há dados. Extrai leads/conversões de
@@ -487,36 +521,69 @@ export async function getInsightsAggregate(
 
   const res: ObjectAggregateResponse = await metaFetch(`/${objectId}/insights`, params);
   const row = res.data[0];
-  const num = (v: string | undefined): number => {
-    const n = v ? Number(v) : 0;
-    return Number.isFinite(n) ? n : 0;
-  };
-  if (!row) {
-    return {
-      spend: 0, impressions: 0, reach: 0, clicks: 0,
-      ctr: 0, cpc: 0, cpm: 0, frequency: 0,
+  if (!row) return zeroAggregate();
+  return parseInsightRow(row);
+}
+
+interface BreakdownRow extends ObjectAggregateRow {
+  adset_id?: string;
+  ad_id?: string;
+}
+
+interface BreakdownResponse {
+  data: BreakdownRow[];
+  paging?: { next?: string; cursors?: { after?: string } };
+}
+
+/**
+ * UMA chamada a /{parentId}/insights com `level` (adset|ad) que devolve uma linha
+ * POR objeto filho no período. Substitui o loop de N chamadas por objeto (que
+ * estourava o rate-limit do Meta). Indexa por `adset_id`/`ad_id`.
+ *
+ * Objetos sem linha de insight simplesmente não estão no Map → a UI mostra zeros.
+ */
+export async function getInsightsByObject(
+  parentId: string,
+  level: "adset" | "ad",
+  sinceISO: string,
+  untilISO: string,
+): Promise<Map<string, MetaInsightsAggregate>> {
+  const idField = level === "adset" ? "adset_id" : "ad_id";
+  const fields = [
+    idField,
+    "spend",
+    "impressions",
+    "reach",
+    "clicks",
+    "ctr",
+    "cpc",
+    "cpm",
+    "frequency",
+    "actions",
+    "cost_per_action_type",
+  ].join(",");
+
+  const out = new Map<string, MetaInsightsAggregate>();
+  let cursor: string | undefined;
+  let pages = 0;
+  do {
+    const params: Record<string, string> = {
+      fields,
+      time_range: JSON.stringify({ since: sinceISO, until: untilISO }),
+      level,
+      limit: "500",
     };
-  }
+    if (cursor) params.after = cursor;
+    const res: BreakdownResponse = await metaFetch(`/${parentId}/insights`, params);
+    for (const row of res.data) {
+      const id = level === "adset" ? row.adset_id : row.ad_id;
+      if (id) out.set(id, parseInsightRow(row));
+    }
+    cursor = res.paging?.cursors?.after && res.paging?.next ? res.paging.cursors.after : undefined;
+    pages += 1;
+  } while (cursor && pages < 10); // cap de segurança
 
-  const leads = pickAction(row.actions, LEAD_ACTION_TYPES);
-  const conversions = pickAction(row.actions, CONVERSION_ACTION_TYPES);
-  const cost_per_lead = pickAction(row.cost_per_action_type, LEAD_ACTION_TYPES);
-  const cost_per_conversion = pickAction(row.cost_per_action_type, CONVERSION_ACTION_TYPES);
-
-  return {
-    spend: num(row.spend),
-    impressions: num(row.impressions),
-    reach: num(row.reach),
-    clicks: num(row.clicks),
-    ctr: num(row.ctr),
-    cpc: num(row.cpc),
-    cpm: num(row.cpm),
-    frequency: num(row.frequency),
-    leads,
-    conversions,
-    cost_per_lead,
-    cost_per_conversion,
-  };
+  return out;
 }
 
 // ─── Insights agregados (para relatórios mensais) ───────────────────────────

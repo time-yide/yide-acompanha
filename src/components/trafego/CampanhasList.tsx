@@ -51,24 +51,21 @@ function objetivoLabel(valor: string): string {
 }
 
 /** Abas que separam campanhas por situação. */
-type AbaId = "ativas" | "finalizadas" | "arquivadas";
+type AbaId = "ativas" | "finalizadas";
 
 const ABAS: { id: AbaId; label: string }[] = [
   { id: "ativas", label: "Ativas" },
   { id: "finalizadas", label: "Finalizadas" },
-  { id: "arquivadas", label: "Arquivadas" },
 ];
 
 /**
  * Classifica uma campanha numa das abas.
  * - Ativas: rascunho, ativa ou pausada.
  * - Finalizadas: finalizada ou rejeitada.
- * - Arquivadas: `archived_at` != null (a lista atual já filtra arquivadas fora,
- *   então essa aba tende a ficar vazia — mantida por consistência visual).
+ * (A lista já vem filtrada por `archived_at is null`, então não há aba de
+ * arquivadas — arquivar remove a campanha da listagem.)
  */
 function abaDaCampanha(c: CampanhaRow): AbaId {
-  const arquivada = (c as { archived_at?: string | null }).archived_at;
-  if (arquivada) return "arquivadas";
   if (c.status === "finalizada" || c.status === "rejeitada") return "finalizadas";
   return "ativas";
 }
@@ -110,7 +107,7 @@ export function CampanhasList({
 
   // Contagem por aba (independe dos filtros de busca/data).
   const contagens = useMemo(() => {
-    const acc: Record<AbaId, number> = { ativas: 0, finalizadas: 0, arquivadas: 0 };
+    const acc: Record<AbaId, number> = { ativas: 0, finalizadas: 0 };
     for (const c of campanhas) acc[abaDaCampanha(c)] += 1;
     return acc;
   }, [campanhas]);
