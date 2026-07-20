@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { Pencil, ExternalLink, Archive, Plus, Settings2, LinkIcon, Megaphone } from "lucide-react";
+import { useState, useMemo, useTransition } from "react";
+import { Pencil, ExternalLink, Archive, Plus, Settings2, LinkIcon, Megaphone, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -34,6 +34,47 @@ const objetivosLabel: Record<string, string> = Object.fromEntries(
   OBJETIVOS.map((o) => [o.value, o.label]),
 );
 
+/** Objetivos crus do Meta (sincronizados) → rótulo pt-br. */
+const META_OBJETIVO_LABEL: Record<string, string> = {
+  OUTCOME_TRAFFIC: "Tráfego",
+  OUTCOME_ENGAGEMENT: "Engajamento",
+  OUTCOME_LEADS: "Leads",
+  OUTCOME_SALES: "Vendas/Conversões",
+  OUTCOME_AWARENESS: "Reconhecimento",
+  OUTCOME_APP_PROMOTION: "App",
+};
+
+function objetivoLabel(valor: string): string {
+  return objetivosLabel[valor] ?? META_OBJETIVO_LABEL[valor] ?? valor;
+}
+
+/** Opções do filtro de status na barra. */
+const STATUS_FILTRO: { value: string; label: string }[] = [
+  { value: "", label: "Todos" },
+  { value: "ativa", label: "Ativa" },
+  { value: "pausada", label: "Pausada" },
+  { value: "finalizada", label: "Finalizada" },
+  { value: "rascunho", label: "Rascunho" },
+];
+
+/** [aInicio,aFim] intercepta [bDe,bAte]? Datas em "YYYY-MM-DD" comparáveis como string. */
+function intervaloIntercepta(
+  aInicio: string | null,
+  aFim: string | null,
+  bDe: string,
+  bAte: string,
+): boolean {
+  // Sem filtro de data: sempre passa.
+  if (!bDe && !bAte) return true;
+  // Campanha sem nenhuma data e há filtro ativo: não inclui.
+  if (!aInicio && !aFim) return false;
+  const ini = (aInicio ?? aFim!).slice(0, 10);
+  const fim = (aFim ?? aInicio!).slice(0, 10);
+  if (bDe && fim < bDe) return false;
+  if (bAte && ini > bAte) return false;
+  return true;
+}
+
 export function CampanhasList({
   clientId, clientNome, metaAdAccountId, googleAdsCustomerId, facebookPageId,
   campanhas, metricasVisiveis, agregados, canManage,
@@ -42,6 +83,31 @@ export function CampanhasList({
   const [editing, setEditing] = useState<CampanhaRow | null>(null);
   const [openMetricas, setOpenMetricas] = useState(false);
   const [openAccounts, setOpenAccounts] = useState(false);
+
+  // Filtros client-side (a lista já vem toda carregada em props).
+  const [filtroDe, setFiltroDe] = useState("");
+  const [filtroAte, setFiltroAte] = useState("");
+  const [filtroStatus, setFiltroStatus] = useState("");
+  const [busca, setBusca] = useState("");
+
+  const temFiltro = !!(filtroDe || filtroAte || filtroStatus || busca.trim());
+
+  const campanhasFiltradas = useMemo(() => {
+    const termo = busca.trim().toLowerCase();
+    return campanhas.filter((c) => {
+      if (filtroStatus && c.status !== filtroStatus) return false;
+      if (termo && !c.nome.toLowerCase().includes(termo)) return false;
+      if (!intervaloIntercepta(c.data_inicio, c.data_fim, filtroDe, filtroAte)) return false;
+      return true;
+    });
+  }, [campanhas, filtroDe, filtroAte, filtroStatus, busca]);
+
+  function limparFiltros() {
+    setFiltroDe("");
+    setFiltroAte("");
+    setFiltroStatus("");
+    setBusca("");
+  }
 
   function novaCampanha() {
     setEditing(null);
@@ -72,17 +138,97 @@ export function CampanhasList({
           )}
         </div>
         <div className="text-xs text-muted-foreground">
-          {campanhas.length} campanha{campanhas.length === 1 ? "" : "s"}
+          {temFiltro
+            ? `${campanhasFiltradas.length} de ${campanhas.length} campanha${campanhas.length === 1 ? "" : "s"}`
+            : `${campanhas.length} campanha${campanhas.length === 1 ? "" : "s"}`}
         </div>
       </div>
+
+      {campanhas.length > 0 && (
+        <div className="flex flex-wrap items-end gap-3 rounded-md border bg-muted/20 p-3">
+          <div className="relative min-w-[180px] flex-1">
+            <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              Buscar
+            </label>
+            <Search className="pointer-events-none absolute left-2 top-[26px] h-3.5 w-3.5 text-muted-foreground" />
+            <input
+              type="text"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Nome da campanha"
+              className="h-8 w-full rounded-md border bg-card pl-7 pr-2 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              De
+            </label>
+            <input
+              type="date"
+              value={filtroDe}
+              onChange={(e) => setFiltroDe(e.target.value)}
+              className="h-8 rounded-md border bg-card px-2 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              Até
+            </label>
+            <input
+              type="date"
+              value={filtroAte}
+              onChange={(e) => setFiltroAte(e.target.value)}
+              className="h-8 rounded-md border bg-card px-2 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              Status
+            </label>
+            <select
+              value={filtroStatus}
+              onChange={(e) => setFiltroStatus(e.target.value)}
+              className="h-8 rounded-md border bg-card px-2 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              {STATUS_FILTRO.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          {temFiltro && (
+            <button
+              type="button"
+              onClick={limparFiltros}
+              className="inline-flex h-8 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-3.5 w-3.5" /> Limpar filtros
+            </button>
+          )}
+        </div>
+      )}
 
       {campanhas.length === 0 ? (
         <Card className="p-8 text-center text-sm text-muted-foreground">
           Nenhuma campanha cadastrada.{canManage && " Clica em \"Nova campanha\" pra começar."}
         </Card>
+      ) : campanhasFiltradas.length === 0 ? (
+        <Card className="p-8 text-center text-sm text-muted-foreground">
+          Nenhuma campanha para os filtros escolhidos.
+          {temFiltro && (
+            <button
+              type="button"
+              onClick={limparFiltros}
+              className="ml-1 underline underline-offset-2 hover:text-foreground"
+            >
+              Limpar filtros
+            </button>
+          )}
+        </Card>
       ) : (
         <div className="space-y-3">
-          {campanhas.map((c) => (
+          {campanhasFiltradas.map((c) => (
             <CampanhaCard
               key={c.id}
               campanha={c}
@@ -148,21 +294,22 @@ function CampanhaCard({
   const [pendingArchive, startArchive] = useTransition();
   const [openPublicar, setOpenPublicar] = useState(false);
 
-  const jaPublicada = !!campanha.external_ad_id;
+  // Existe no Meta (sincronizada OU criada por nós): tem id de campanha externo.
+  const jaNoMeta = !!campanha.external_campaign_id;
   const objetivoSuportado = !!objetivoParaMeta(campanha.objetivo);
   const temCriativo = !!campanha.criativo_url && !!campanha.link_destino;
   const podePublicar =
     canManage &&
     campanha.plataforma === "meta" &&
-    !jaPublicada &&
+    !jaNoMeta &&
     objetivoSuportado &&
     temCriativo &&
     clientHasAdAccount &&
     clientHasPage;
 
-  // Motivo pra desabilitar (tooltip), quando é Meta e ainda não publicou.
+  // Motivo pra desabilitar (tooltip), quando é Meta e ainda não foi pro Meta.
   let motivoBloqueio: string | null = null;
-  if (canManage && campanha.plataforma === "meta" && !jaPublicada) {
+  if (canManage && campanha.plataforma === "meta" && !jaNoMeta) {
     if (!objetivoSuportado) motivoBloqueio = "Objetivo não suportado (use Tráfego ou Engajamento)";
     else if (!campanha.criativo_url) motivoBloqueio = "Adicione a URL do criativo (imagem)";
     else if (!campanha.link_destino) motivoBloqueio = "Adicione o link de destino";
@@ -195,7 +342,7 @@ function CampanhaCard({
             </Badge>
             {campanha.objetivo && (
               <Badge variant="outline" className="text-[10px]">
-                {objetivosLabel[campanha.objetivo] ?? campanha.objetivo}
+                {objetivoLabel(campanha.objetivo)}
               </Badge>
             )}
           </div>
@@ -267,37 +414,34 @@ function CampanhaCard({
         )}
       </div>
 
-      {/* Publicar no Meta (pausado) — só Meta */}
-      {campanha.plataforma === "meta" && canManage && (
+      {/* Meta: já no Meta → link discreto pro Gerenciador; rascunho local → botão Publicar */}
+      {jaNoMeta ? (
         <div className="flex flex-wrap items-center gap-2">
-          {jaPublicada ? (
-            <a
-              href={gerenciadorUrl(campanha.external_campaign_id ?? "", campanha.external_account_id)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[11px] font-medium text-amber-700 hover:bg-amber-500/20 dark:text-amber-300"
-            >
-              <Megaphone className="h-3.5 w-3.5" /> Publicado (pausado) — abrir no Gerenciador
-              <ExternalLink className="h-3 w-3" />
-            </a>
-          ) : (
-            <>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={!podePublicar}
-                title={motivoBloqueio ?? undefined}
-                onClick={() => setOpenPublicar(true)}
-              >
-                <Megaphone className="h-4 w-4" /> Publicar no Meta
-              </Button>
-              {motivoBloqueio && (
-                <span className="text-[11px] text-muted-foreground">{motivoBloqueio}</span>
-              )}
-            </>
+          <a
+            href={gerenciadorUrl(campanha.external_campaign_id ?? "", campanha.external_account_id)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground"
+          >
+            <ExternalLink className="h-3 w-3" /> Abrir no Gerenciador
+          </a>
+        </div>
+      ) : campanha.plataforma === "meta" && canManage ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={!podePublicar}
+            title={motivoBloqueio ?? undefined}
+            onClick={() => setOpenPublicar(true)}
+          >
+            <Megaphone className="h-4 w-4" /> Publicar no Meta
+          </Button>
+          {motivoBloqueio && (
+            <span className="text-[11px] text-muted-foreground">{motivoBloqueio}</span>
           )}
         </div>
-      )}
+      ) : null}
 
       {openPublicar && (
         <PublicarMetaModal
@@ -307,8 +451,8 @@ function CampanhaCard({
         />
       )}
 
-      {/* Métricas */}
-      {metricasVisiveis.length > 0 && (
+      {/* Métricas — só quando há dados agregados */}
+      {metricasVisiveis.length > 0 && Object.keys(agregado).length > 0 && (
         <div className="rounded-md border bg-muted/20 p-3">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
             {metricasVisiveis.map((key) => {
@@ -330,12 +474,6 @@ function CampanhaCard({
               );
             })}
           </div>
-          {Object.keys(agregado).length === 0 && (
-            <p className="mt-3 text-[10px] text-muted-foreground italic">
-              Sem dados de métricas ainda. Na Fase 2 esses números serão preenchidos automaticamente
-              a partir das APIs do Meta/Google.
-            </p>
-          )}
         </div>
       )}
 
