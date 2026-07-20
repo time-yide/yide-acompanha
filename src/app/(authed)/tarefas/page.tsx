@@ -14,7 +14,7 @@ import { GroupBySelector } from "@/components/tarefas/GroupBySelector";
 import { TaskToastFlash } from "@/components/tarefas/TaskToastFlash";
 import { TasksRealtimeWatcher } from "@/components/tarefas/TasksRealtimeWatcher";
 import { buttonVariants } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, BarChart3 } from "lucide-react";
 
 type Aba = "minhas" | "criadas" | "todas";
 type View = "board" | "list" | "grafico";
@@ -122,13 +122,18 @@ export default async function TarefasPage({ searchParams }: { searchParams: Prom
             o problema forçando full page load, escapando da intercepção.
             Mesma técnica usada no botão "Editar / Ver página completa"
             dentro do modal. */}
-        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-        <a
-          href="/tarefas/nova"
-          className={buttonVariants()}
-        >
-          <Plus className="mr-2 h-4 w-4" />Nova tarefa
-        </a>
+        <div className="flex items-center gap-2">
+          {/* Hard nav (mesma razão do "Nova tarefa"): escapa da rota
+              interceptadora @modal/(.)[id] que captura segmentos-filho de /tarefas. */}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+          <a href="/tarefas/metricas" className={buttonVariants({ variant: "outline" })}>
+            <BarChart3 className="mr-2 h-4 w-4" />Métricas
+          </a>
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+          <a href="/tarefas/nova" className={buttonVariants()}>
+            <Plus className="mr-2 h-4 w-4" />Nova tarefa
+          </a>
+        </div>
       </header>
 
       <div className="flex flex-wrap items-center gap-3 text-sm">

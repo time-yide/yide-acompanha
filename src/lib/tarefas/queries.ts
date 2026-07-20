@@ -30,6 +30,7 @@ export interface TaskRow {
   status: TaskStatus;
   due_date: string | null;
   created_at?: string;
+  updated_at?: string | null;
   completed_at?: string | null;
   aprovada_em?: string | null;
   client_id: string | null;
@@ -152,7 +153,7 @@ async function _listTasksImpl(filters?: TaskFilters): Promise<TaskRow[]> {
   let query = supabase
     .from("tasks")
     .select(`
-      id, titulo, descricao, prioridade, status, due_date, created_at, completed_at, aprovada_em, client_id, criado_por, atribuido_a,
+      id, titulo, descricao, prioridade, status, due_date, created_at, updated_at, completed_at, aprovada_em, client_id, criado_por, atribuido_a,
       participantes_ids, links, attachment_urls, tipo, formatos, status_aprovacao, drive_link, entrega_observacoes,
       atribuido:profiles!tasks_atribuido_a_fkey(id, nome, role),
       criador:profiles!tasks_criado_por_fkey(id, nome),
