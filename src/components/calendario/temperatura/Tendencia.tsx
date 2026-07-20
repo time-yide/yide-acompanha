@@ -21,7 +21,7 @@ export function Tendencia({ trend }: { trend: Trend }) {
           {trend.deltaPct}% vs. média ({Math.round(trend.avgPrevious * 10) / 10})
         </span>
       </div>
-      <p className="text-[11px] text-muted-foreground">Eventos desta semana vs. média das 4 anteriores.</p>
+      <p className="text-[11px] text-muted-foreground">Eventos deste período vs. média dos 4 anteriores.</p>
     </Card>
   );
 }

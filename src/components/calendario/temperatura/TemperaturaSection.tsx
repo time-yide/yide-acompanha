@@ -1,12 +1,24 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { getTemperaturaForCoordinator } from "@/lib/calendario/temperatura";
+import { getTemperaturaForCoordinator, type TempPeriod } from "@/lib/calendario/temperatura";
 import { DiasMaisCheios } from "./DiasMaisCheios";
 import { CargaPorPessoa } from "./CargaPorPessoa";
 import { HorariosDePico } from "./HorariosDePico";
 import { Tendencia } from "./Tendencia";
 
-export async function TemperaturaSection({ coordinatorId, weekRef }: { coordinatorId: string; weekRef: Date }) {
-  const { temperatura, trend, teamMemberIds } = await getTemperaturaForCoordinator(coordinatorId, weekRef);
+export async function TemperaturaSection({
+  coordinatorId,
+  refDate,
+  period,
+}: {
+  coordinatorId: string;
+  refDate: Date;
+  period: TempPeriod;
+}) {
+  const { temperatura, trend, teamMemberIds } = await getTemperaturaForCoordinator(
+    coordinatorId,
+    refDate,
+    period,
+  );
 
   // Nomes dos membros do time (fora do cache — só para exibição).
   const supabase = createServiceRoleClient();
@@ -18,17 +30,11 @@ export async function TemperaturaSection({ coordinatorId, weekRef }: { coordinat
   for (const p of profs ?? []) nomes[p.id] = p.nome;
 
   return (
-    <section className="space-y-3 rounded-lg border bg-muted/20 p-4">
-      <div className="flex items-center gap-2">
-        <h2 className="text-lg font-semibold">🌡️ Temperatura de agenda</h2>
-        <span className="text-xs text-muted-foreground">visível só para você (coordenação)</span>
-      </div>
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-        <DiasMaisCheios byWeekday={temperatura.byWeekday} />
-        <Tendencia trend={trend} />
-        <CargaPorPessoa byPerson={temperatura.byPerson} nomes={nomes} />
-        <HorariosDePico peak={temperatura.peak} />
-      </div>
-    </section>
+    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+      <DiasMaisCheios byWeekday={temperatura.byWeekday} />
+      <Tendencia trend={trend} />
+      <CargaPorPessoa byPerson={temperatura.byPerson} nomes={nomes} />
+      <HorariosDePico peakByHour={temperatura.peakByHour} />
+    </div>
   );
 }

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { requireAuth } from "@/lib/auth/session";
 import { canAccess } from "@/lib/auth/permissions";
-import { TemperaturaSection } from "@/components/calendario/temperatura/TemperaturaSection";
 import {
   listEventsForWeek,
   listBloqueiosAprovadosNoPeriodo,
@@ -21,7 +20,7 @@ import { MonthView, formatMonthLabel } from "@/components/calendario/MonthView";
 import { SubCalendarChips } from "@/components/calendario/SubCalendarChips";
 import { ViewSwitch } from "@/components/calendario/ViewSwitch";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Thermometer } from "lucide-react";
 import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 import type { CalendarEvent } from "@/lib/calendario/schema";
 
@@ -120,13 +119,22 @@ export default async function CalendarioPage({
     getProfileIdsForActiveUnit(),
   ]);
 
-  // Seção "Temperatura de agenda": só coordenador e coordenador audiovisual.
-  // Gate no server (server component + RPC service-role). Renderizada só na
-  // week view, onde o recorte semanal (`ref`) casa com a métrica.
+  // "Temperatura de agenda": só coordenador e coordenador audiovisual. Gate no
+  // server. Agora vive na subpágina /calendario/temperatura — aqui só exibimos
+  // o link de acesso no header pra quem pode ver.
   const podeVerTemperatura = canAccess(user.role, "view:agenda_temperature");
 
   if (view === "month") {
-    return renderMonth({ params, subQuery, sub, applySubFilter, unitClientIds, unitProfileIds, userId: user.id });
+    return renderMonth({
+      params,
+      subQuery,
+      sub,
+      applySubFilter,
+      unitClientIds,
+      unitProfileIds,
+      userId: user.id,
+      podeVerTemperatura,
+    });
   }
   return renderWeek({
     params,
@@ -209,8 +217,8 @@ async function renderWeek({
         view="week"
         prevLabel="Semana anterior"
         nextLabel="Próxima semana"
+        podeVerTemperatura={podeVerTemperatura}
       />
-      {podeVerTemperatura && <TemperaturaSection coordinatorId={userId} weekRef={ref} />}
       <SubCalendarChips current={sub} />
       <WeekView weekStart={start} events={events} />
     </div>
@@ -227,6 +235,7 @@ async function renderMonth({
   unitClientIds,
   unitProfileIds,
   userId,
+  podeVerTemperatura,
 }: {
   params: { month?: string };
   subQuery: string;
@@ -235,6 +244,7 @@ async function renderMonth({
   unitClientIds: string[] | null;
   unitProfileIds: string[] | null;
   userId: string;
+  podeVerTemperatura: boolean;
 }) {
   // `month` param é "YYYY-MM" - âncora qualquer dia do meio do mês pra evitar
   // problema de timezone com dia 1.
@@ -283,6 +293,7 @@ async function renderMonth({
         view="month"
         prevLabel="Mês anterior"
         nextLabel="Próximo mês"
+        podeVerTemperatura={podeVerTemperatura}
       />
       <SubCalendarChips current={sub} />
       <MonthView
@@ -306,6 +317,7 @@ function Header({
   view,
   prevLabel,
   nextLabel,
+  podeVerTemperatura,
 }: {
   title: string;
   subtitle: string;
@@ -316,6 +328,7 @@ function Header({
   view: View;
   prevLabel: string;
   nextLabel: string;
+  podeVerTemperatura?: boolean;
 }) {
   return (
     <header className="flex flex-wrap items-center justify-between gap-3">
@@ -351,6 +364,15 @@ function Header({
           <ChevronRight className="h-4 w-4" />
         </Link>
         <ViewSwitch current={view} />
+        {podeVerTemperatura && (
+          <Link
+            href="/calendario/temperatura"
+            className={buttonVariants({ variant: "outline" })}
+          >
+            <Thermometer className="mr-2 h-4 w-4" />
+            Temperatura
+          </Link>
+        )}
         <Link href="/calendario/novo" className={buttonVariants()}>
           <Plus className="mr-2 h-4 w-4" />
           Novo evento
