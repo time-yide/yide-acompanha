@@ -1,3 +1,8 @@
+import "server-only";
+import { unstable_cache } from "next/cache";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { getWeekRange } from "./queries";
+
 export interface TempEvent {
   inicio: string;
   fim: string;
@@ -88,4 +93,75 @@ export function computeTrend(current: number, previousTotals: number[]): Trend {
         : "flat";
   const deltaPct = avgPrevious === 0 ? 0 : Math.round(((current - avgPrevious) / avgPrevious) * 100);
   return { current, avgPrevious, direction, deltaPct };
+}
+
+// ---- Camada server ----
+
+async function fetchTeamMemberIds(coordinatorId: string): Promise<string[]> {
+  const supabase = createServiceRoleClient();
+  const { data, error } = await supabase.rpc("recados_team_member_ids", { autor: coordinatorId });
+  if (error || !data) return [];
+  // A RPC retorna setof uuid → nos tipos gerados vem como uuid[]; defensivamente
+  // trata também o formato de linhas ({ recados_team_member_ids: uuid }).
+  const ids = (data as unknown as Array<string | { recados_team_member_ids: string }>).map((row) =>
+    typeof row === "string" ? row : row.recados_team_member_ids,
+  );
+  // Inclui o próprio coordenador na visão do time.
+  return [...new Set([coordinatorId, ...ids.filter(Boolean)])];
+}
+
+async function fetchTeamEventsInRange(start: Date, end: Date): Promise<TempEvent[]> {
+  const supabase = createServiceRoleClient();
+  const { data } = await supabase
+    .from("calendar_events")
+    .select("inicio, fim, criado_por, participantes_ids")
+    .gte("inicio", start.toISOString())
+    .lt("inicio", end.toISOString());
+  return (data ?? []) as TempEvent[];
+}
+
+export interface TemperaturaResult {
+  week: { start: string; end: string };
+  temperatura: Temperatura;
+  trend: Trend;
+  teamMemberIds: string[];
+}
+
+async function _getTemperaturaImpl(coordinatorId: string, weekRefIso: string): Promise<TemperaturaResult> {
+  const teamMemberIds = await fetchTeamMemberIds(coordinatorId);
+  const { start, end } = getWeekRange(new Date(weekRefIso));
+
+  const events = await fetchTeamEventsInRange(start, end);
+  const temperatura = aggregateTemperatura(events, teamMemberIds);
+
+  // 4 semanas anteriores para a tendência.
+  const previousTotals: number[] = [];
+  for (let i = 1; i <= 4; i++) {
+    const s = new Date(start);
+    s.setUTCDate(s.getUTCDate() - 7 * i);
+    const e = new Date(end);
+    e.setUTCDate(e.getUTCDate() - 7 * i);
+    const evs = await fetchTeamEventsInRange(s, e);
+    previousTotals.push(aggregateTemperatura(evs, teamMemberIds).totalThisWeek);
+  }
+
+  const trend = computeTrend(temperatura.totalThisWeek, previousTotals);
+  return { week: { start: start.toISOString(), end: end.toISOString() }, temperatura, trend, teamMemberIds };
+}
+
+/**
+ * Versão cacheada por (coordenador + semana). Service-role only (roda dentro
+ * de unstable_cache, sem request context). Tag "calendar" — invalida junto
+ * com as mutations de evento.
+ */
+export async function getTemperaturaForCoordinator(coordinatorId: string, weekRef: Date): Promise<TemperaturaResult> {
+  const cached = unstable_cache(
+    async (paramsJson: string) => {
+      const { coord, week } = JSON.parse(paramsJson) as { coord: string; week: string };
+      return _getTemperaturaImpl(coord, week);
+    },
+    ["calendario-temperatura-v1"],
+    { revalidate: 300, tags: ["calendar"] },
+  );
+  return cached(JSON.stringify({ coord: coordinatorId, week: weekRef.toISOString() }));
 }
