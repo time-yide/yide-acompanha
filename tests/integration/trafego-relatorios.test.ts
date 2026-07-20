@@ -82,7 +82,8 @@ describe("trafego_relatorios fluxo", () => {
     expect("redirect" in r ? r.redirect : null).toBe("/trafego/relatorios/rel-1");
     const insertArg = insertMock.mock.calls[0][0];
     expect(insertArg.fonte_dados).toBe("meta_api");
-    expect(insertArg.status).toBe("rascunho");
+    // Relatório estilo Reportei nasce "pronta" (sem etapa de slides de IA).
+    expect(insertArg.status).toBe("pronta");
   });
 
   it("publicarRelatorioAction: bloqueia se status != pronta", async () => {
