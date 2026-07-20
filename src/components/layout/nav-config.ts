@@ -121,7 +121,7 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
     items: [
       // Yide Academy virou aba dentro do Manual (TabsManual); Produtividade virou
       // aba dentro de Colaboradores (TabsColaboradores). URLs preservadas.
-      { type: "link", href: "/manual", icon: BookOpen, label: "Manual da Yide", roles: "all", badgeKey: null },
+      { type: "link", href: "/manual", icon: BookOpen, label: "Bastidores", roles: "all", badgeKey: null },
       { type: "link", href: "/colaboradores", icon: UserCog, label: "Colaboradores", roles: "all", badgeKey: null },
       { type: "link", href: "/unidades", icon: Layers, label: "Unidades", roles: ["adm", "socio"], badgeKey: null },
     ],

@@ -15,7 +15,7 @@ export function ManualBreadcrumb({ current }: Props) {
       <Link href="/manual" className="inline-flex items-center gap-1 hover:text-foreground">
         <ChevronLeft className="h-3 w-3" />
         <BookOpen className="h-3 w-3" />
-        Manual da Yide
+        Bastidores
       </Link>
       <span>/</span>
       <span className="font-medium text-foreground">{current}</span>

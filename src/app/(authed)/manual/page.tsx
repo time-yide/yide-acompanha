@@ -55,7 +55,7 @@ export default async function ManualPage() {
             <BookOpen className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Manual da Yide</h1>
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Bastidores</h1>
             <p className="text-sm text-muted-foreground">
               Tudo que você precisa saber pra trabalhar bem aqui
             </p>

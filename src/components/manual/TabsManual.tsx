@@ -7,10 +7,10 @@ interface Props {
   active: ManualTabKey;
 }
 
-/** Barra de abas: Manual da Yide + Yide Academy (que saiu do menu lateral). */
+/** Barra de abas: Bastidores + Yide Academy (que saiu do menu lateral). */
 export function TabsManual({ active }: Props) {
   const tabs = [
-    { key: "manual" as const, label: "Manual da Yide", href: "/manual", Icon: BookOpen },
+    { key: "manual" as const, label: "Bastidores", href: "/manual", Icon: BookOpen },
     { key: "academy" as const, label: "Yide Academy", href: "/academy", Icon: GraduationCap },
   ];
 
