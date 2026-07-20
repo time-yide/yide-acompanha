@@ -64,6 +64,12 @@ export async function gerarAuthUrl(
   if (platform === "instagram") {
     body.platform_data = { instagram: { connection_type: "instagram" } };
   }
+  // LinkedIn também exige connection_type. Como usamos as credenciais fornecidas
+  // pelo Post for Me (app gerenciado, sem App Review), o valor tem que ser
+  // "organization" — senão o link vem incompleto e a aba dá erro de página.
+  if (platform === "linkedin") {
+    body.platform_data = { linkedin: { connection_type: "organization" } };
+  }
   return pfmFetch<{ url: string }>("/social-accounts/auth-url", {
     method: "POST",
     body,
