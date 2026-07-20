@@ -4,8 +4,9 @@ import Link from "next/link";
 import { useState } from "react";
 import { ArrowLeft, FileDown, Loader2 } from "lucide-react";
 import { baixarPdfClienteAction } from "@/lib/trafego/relatorios/actions";
-import { SlidePreviewTrafego } from "@/components/trafego/relatorios/SlidePreviewTrafego";
+import { RelatorioReportei, temDadosReportei } from "@/components/trafego/relatorios/RelatorioReportei";
 import { Card } from "@/components/ui/card";
+import { dadosEfetivos } from "@/lib/trafego/relatorios/tipos";
 import type { RelatorioRow } from "@/lib/trafego/relatorios/tipos";
 
 function formatBR(iso: string): string {
@@ -34,8 +35,11 @@ export function RelatorioTrafegoVisualizador({ relatorio, clienteNome }: Props) 
     }
   }
 
+  const dados = dadosEfetivos(relatorio);
+  const temDados = temDadosReportei(dados);
+
   return (
-    <div className="mx-auto max-w-4xl space-y-4 px-4 py-6 sm:py-8">
+    <div className="mx-auto max-w-5xl space-y-4 px-4 py-6 sm:py-8">
       <Link
         href="/cliente/relatorios-trafego"
         className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
@@ -68,13 +72,21 @@ export function RelatorioTrafegoVisualizador({ relatorio, clienteNome }: Props) 
         </Card>
       )}
 
-      <div className="space-y-4">
-        {relatorio.slides.map((slide, i) => (
-          <div key={i} className="overflow-hidden rounded-lg border">
-            <SlidePreviewTrafego slide={slide} />
-          </div>
-        ))}
-      </div>
+      {temDados && dados ? (
+        <div className="overflow-hidden rounded-xl border">
+          <RelatorioReportei
+            dados={dados}
+            clienteNome={clienteNome}
+            periodoInicio={relatorio.periodo_inicio}
+            periodoFim={relatorio.periodo_fim}
+          />
+        </div>
+      ) : (
+        <Card className="p-6 text-sm text-muted-foreground">
+          Este relatório ainda não está disponível para visualização.
+          {relatorio.pdf_storage_path ? " Você pode baixar o PDF acima." : ""}
+        </Card>
+      )}
     </div>
   );
 }

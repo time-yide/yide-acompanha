@@ -1,7 +1,6 @@
 // src/lib/trafego/relatorios/actions.ts
 "use server";
 
-import Anthropic from "@anthropic-ai/sdk";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { requireAuth } from "@/lib/auth/session";
 import { canAccess } from "@/lib/auth/permissions";
@@ -19,15 +18,11 @@ import {
 } from "./schema";
 import { isValidSlide } from "./tipos";
 import { fetchDadosMeta } from "./meta-fetch";
-import { SYSTEM_PROMPT, buildUserPrompt } from "./prompt";
-import { LineDelimitedSlideParser } from "./stream-parser";
 import type { FonteDados, Slide } from "./tipos";
 import {
   RELATORIO_TRAFEGO_TAG_PREFIX,
   RELATORIOS_TRAFEGO_LIST_TAG,
 } from "./queries";
-
-const CLAUDE_MODEL = "claude-opus-4-7";
 
 type ActionErr = { error: string };
 type ActionRedirect = { redirect: string };
@@ -85,8 +80,10 @@ export async function criarRelatorioAction(
       fonte_dados: fonteDados,
       dados_meta: metaResult.ok ? metaResult.dados : null,
       dados_manuais: parsed.data.dados_manuais ?? null,
+      // Sem geração de IA: o dashboard Reportei renderiza direto de
+      // dados_meta/dados_manuais. Já nasce "pronta" pra habilitar PDF/publicação.
       slides: [],
-      status: "rascunho",
+      status: "pronta",
       criado_por: actor.id,
     })
     .select("id")
@@ -105,109 +102,6 @@ export async function criarRelatorioAction(
   revalidateTag(RELATORIOS_TRAFEGO_LIST_TAG, "default");
   revalidatePath("/trafego/relatorios");
   return { redirect: `/trafego/relatorios/${(created as { id: string }).id}` };
-}
-
-/**
- * Dispara streaming Claude pra popular `slides` JSONB. Salva incrementalmente
- * a cada slide pra robustez se a conexão cair. Idempotente: se status='pronta'
- * retorna sucesso sem regerar. Em erro, marca status='erro' permitindo retry.
- */
-export async function gerarSlidesAction(id: string): Promise<ActionErr | { success: true }> {
-  const actor = await requireAuth();
-  if (!canAccess(actor.role, "manage:trafego_relatorios")) {
-    return { error: "Sem permissão" };
-  }
-
-  const env = getServerEnv();
-  if (!env.ANTHROPIC_API_KEY) return { error: "ANTHROPIC_API_KEY não configurada" };
-
-  const supabase = createServiceRoleClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sb = supabase as any;
-  const { data: rel } = await sb
-    .from("trafego_relatorios")
-    .select("status, dados_meta, dados_manuais, periodo_inicio, periodo_fim, objetivo, cliente_id")
-    .eq("id", id)
-    .single();
-  if (!rel) return { error: "Relatório não encontrado" };
-  if (rel.status === "pronta") return { success: true };
-
-  const { data: cliente } = await sb
-    .from("clients")
-    .select("nome")
-    .eq("id", rel.cliente_id)
-    .single();
-  const clienteNome = (cliente as { nome: string } | null)?.nome ?? "Cliente";
-
-  await sb
-    .from("trafego_relatorios")
-    .update({ status: "gerando", slides: [] })
-    .eq("id", id);
-
-  // Manuais sobrescrevem meta quando ambos existem.
-  const dadosFinal = { ...(rel.dados_meta ?? {}), ...(rel.dados_manuais ?? {}) };
-
-  const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
-  const parser = new LineDelimitedSlideParser();
-  const collected: Slide[] = [];
-
-  try {
-    const stream = client.messages.stream({
-      model: CLAUDE_MODEL,
-      max_tokens: 8192,
-      system: SYSTEM_PROMPT,
-      messages: [{
-        role: "user",
-        content: buildUserPrompt({
-          cliente_nome: clienteNome,
-          periodo_inicio: rel.periodo_inicio,
-          periodo_fim: rel.periodo_fim,
-          objetivo: rel.objetivo,
-          dados: dadosFinal,
-        }),
-      }],
-    });
-
-    for await (const evt of stream) {
-      if (evt.type === "content_block_delta" && evt.delta.type === "text_delta") {
-        const novos = parser.feed(evt.delta.text);
-        for (const s of novos) {
-          collected.push(s);
-          await sb
-            .from("trafego_relatorios")
-            .update({ slides: collected })
-            .eq("id", id);
-        }
-      }
-    }
-
-    for (const s of parser.flush()) {
-      collected.push(s);
-    }
-
-    await sb
-      .from("trafego_relatorios")
-      .update({ status: "pronta", slides: collected })
-      .eq("id", id);
-
-    await logAudit({
-      entidade: "trafego_relatorios",
-      entidade_id: id,
-      acao: "update",
-      dados_depois: { slides_gerados: collected.length, status: "pronta" },
-      ator_id: actor.id,
-      justificativa: "Streaming Claude concluído",
-    });
-  } catch (e) {
-    await sb
-      .from("trafego_relatorios")
-      .update({ status: "erro" })
-      .eq("id", id);
-    return { error: (e as Error).message };
-  }
-
-  revalidatePath(`/trafego/relatorios/${id}`);
-  return { success: true };
 }
 
 export async function excluirRelatorioAction(formData: FormData): Promise<ActionErr | { success: true }> {

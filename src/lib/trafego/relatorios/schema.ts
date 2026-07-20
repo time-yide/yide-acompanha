@@ -30,6 +30,11 @@ export const dadosTrafegoSchema = z.object({
     conversoes: z.coerce.number().int().min(0).optional(),
     leads: z.coerce.number().int().min(0).optional(),
   }).optional(),
+  serie_diaria: z.array(z.object({
+    data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    spend: z.coerce.number().min(0),
+    resultados: z.coerce.number().min(0).optional(),
+  })).max(400).optional(),
 });
 
 export const criarRelatorioSchema = z.object({

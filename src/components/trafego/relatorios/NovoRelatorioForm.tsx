@@ -131,8 +131,8 @@ export function NovoRelatorioForm({ clientes }: { clientes: Cliente[] }) {
           <FileText className="h-6 w-6 text-primary" /> Novo relatório
         </h1>
         <p className="text-sm text-muted-foreground">
-          Escolha cliente e período. Se houver integração Meta, vamos puxar os números.
-          Você pode editar antes de gerar.
+          Escolha cliente e período. Se houver integração Meta, vamos puxar os números
+          e montar o dashboard. Você pode ajustar antes de gerar.
         </p>
       </header>
 
@@ -233,7 +233,7 @@ export function NovoRelatorioForm({ clientes }: { clientes: Cliente[] }) {
           Números do período
         </h2>
         <p className="text-xs text-muted-foreground">
-          Deixe em branco o que não tem. A IA omite slides sem dados.
+          Deixe em branco o que não tem. O dashboard esconde métricas sem dados.
         </p>
 
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -263,7 +263,7 @@ export function NovoRelatorioForm({ clientes }: { clientes: Cliente[] }) {
           className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
           {pending && <Loader2 className="h-4 w-4 animate-spin" />}
-          Gerar relatório com IA
+          Gerar relatório
         </button>
       </div>
     </form>
