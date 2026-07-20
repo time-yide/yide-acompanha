@@ -389,9 +389,13 @@ export async function prepareSocialMidiaUploadAction(
 }
 
 /**
- * Gera a signed URL de leitura (7 dias) depois que o browser já subiu o arquivo
- * via `uploadToSignedUrl`. Separado da preparação porque `createSignedUrl` exige
- * que o objeto já exista no bucket.
+ * Devolve a URL pública permanente depois que o browser já subiu o arquivo via
+ * `uploadToSignedUrl`. Precisa ser pública e sem expiração: o Post for Me/Meta
+ * baixam a mídia por essa URL na hora de publicar (inclusive posts agendados
+ * pra dias depois), e o editor exibe o preview/capa por tempo indefinido. Antes
+ * era uma signed URL de 7 dias, que expirava e quebrava preview, capa de reels
+ * e a publicação. O path tem UUID aleatório (não enumerável). Bucket tornado
+ * público na migration social_media_creatives_public.
  */
 export async function finalizeSocialMidiaUploadAction(
   path: string,
@@ -402,12 +406,10 @@ export async function finalizeSocialMidiaUploadAction(
   const supabase = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
-  const { data: signed } = await sb.storage
-    .from(CREATIVES_BUCKET)
-    .createSignedUrl(path, 7 * 24 * 60 * 60);
-  if (!signed?.signedUrl) return { error: "Erro ao gerar URL" };
+  const { data: pub } = sb.storage.from(CREATIVES_BUCKET).getPublicUrl(path);
+  if (!pub?.publicUrl) return { error: "Erro ao gerar URL" };
 
-  return { url: signed.signedUrl };
+  return { url: pub.publicUrl };
 }
 
 // ===========================================================================
