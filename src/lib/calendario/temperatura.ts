@@ -1,0 +1,91 @@
+export interface TempEvent {
+  inicio: string;
+  fim: string;
+  criado_por?: string | null;
+  participantes_ids?: string[] | null;
+}
+
+export interface PersonLoad {
+  userId: string;
+  count: number;
+  minutes: number;
+}
+
+export interface Temperatura {
+  byWeekday: number[]; // length 7, 0=seg..6=dom
+  byPerson: PersonLoad[]; // ordenado por count desc, depois minutes desc
+  peak: number[][]; // 7 x 3  [dia][faixa] faixa: 0=manhã,1=tarde,2=noite
+  totalThisWeek: number;
+}
+
+export interface Trend {
+  current: number;
+  avgPrevious: number;
+  direction: "up" | "down" | "flat";
+  deltaPct: number;
+}
+
+function weekdayMondayZero(iso: string): number {
+  return (new Date(iso).getUTCDay() + 6) % 7;
+}
+
+function hourBucket(iso: string): 0 | 1 | 2 {
+  const h = new Date(iso).getUTCHours();
+  if (h < 12) return 0;
+  if (h < 18) return 1;
+  return 2;
+}
+
+function involvedTeamMembers(e: TempEvent, teamSet: Set<string>): string[] {
+  const ids = new Set<string>();
+  if (e.criado_por && teamSet.has(e.criado_por)) ids.add(e.criado_por);
+  for (const p of e.participantes_ids ?? []) if (teamSet.has(p)) ids.add(p);
+  return [...ids];
+}
+
+/** Agrega os eventos de UMA semana nas 4 métricas, restrito ao time. */
+export function aggregateTemperatura(events: TempEvent[], teamMemberIds: string[]): Temperatura {
+  const teamSet = new Set(teamMemberIds);
+  const byWeekday = [0, 0, 0, 0, 0, 0, 0];
+  const peak: number[][] = Array.from({ length: 7 }, () => [0, 0, 0]);
+  const personMap = new Map<string, PersonLoad>();
+  let total = 0;
+
+  for (const e of events) {
+    const members = involvedTeamMembers(e, teamSet);
+    if (members.length === 0) continue; // evento sem ninguém do time não conta
+
+    const wd = weekdayMondayZero(e.inicio);
+    byWeekday[wd] += 1;
+    peak[wd][hourBucket(e.inicio)] += 1;
+    total += 1;
+
+    const minutes = Math.max(0, Math.round((new Date(e.fim).getTime() - new Date(e.inicio).getTime()) / 60000));
+    for (const m of members) {
+      const cur = personMap.get(m) ?? { userId: m, count: 0, minutes: 0 };
+      cur.count += 1;
+      cur.minutes += minutes;
+      personMap.set(m, cur);
+    }
+  }
+
+  const byPerson = [...personMap.values()].sort((a, b) => b.count - a.count || b.minutes - a.minutes);
+  return { byWeekday, byPerson, peak, totalThisWeek: total };
+}
+
+/** Tendência: total atual vs. média das semanas anteriores. */
+export function computeTrend(current: number, previousTotals: number[]): Trend {
+  const avgPrevious = previousTotals.length
+    ? previousTotals.reduce((s, n) => s + n, 0) / previousTotals.length
+    : 0;
+  // Sem semanas anteriores não há base de comparação → sem tendência ("flat").
+  const direction: Trend["direction"] = !previousTotals.length
+    ? "flat"
+    : current > avgPrevious
+      ? "up"
+      : current < avgPrevious
+        ? "down"
+        : "flat";
+  const deltaPct = avgPrevious === 0 ? 0 : Math.round(((current - avgPrevious) / avgPrevious) * 100);
+  return { current, avgPrevious, direction, deltaPct };
+}
