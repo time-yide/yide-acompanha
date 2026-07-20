@@ -3,7 +3,6 @@ import {
   montarContasPorCanal,
   type ClienteYide,
   type PostformeAccountRow,
-  type OutstandAccountRow,
   type MetricaRow,
   type PostRedeRow,
 } from "@/lib/presenca/contas";
