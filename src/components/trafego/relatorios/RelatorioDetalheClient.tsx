@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft, Loader2, Sparkles, FileDown, Send, Trash2, AlertCircle, RefreshCw,
+  ArrowLeft, Loader2, FileDown, Send, Trash2, AlertCircle, Info,
 } from "lucide-react";
 import {
-  gerarSlidesAction,
   gerarPdfRelatorioAction,
   publicarRelatorioAction,
   excluirRelatorioAction,
@@ -14,8 +13,8 @@ import {
 } from "@/lib/trafego/relatorios/actions";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { SlidePreviewTrafego } from "./SlidePreviewTrafego";
-import { SlideEditorInline } from "./SlideEditorInline";
+import { RelatorioReportei, temDadosReportei } from "./RelatorioReportei";
+import { dadosEfetivos } from "@/lib/trafego/relatorios/tipos";
 import type { RelatorioRow } from "@/lib/trafego/relatorios/tipos";
 
 function formatBR(iso: string): string {
@@ -30,31 +29,13 @@ interface Props {
 
 export function RelatorioDetalheClient({ relatorio, clienteNome }: Props) {
   const router = useRouter();
-  const [editandoIndex, setEditandoIndex] = useState<number | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [publicando, setPublicando] = useState(false);
+  const [excluindo, setExcluindo] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [, startGerar] = useTransition();
-  const [, startPublicar] = useTransition();
-  const [, startExcluir] = useTransition();
 
-  // Autodispara geração se ainda não tem slides.
-  useEffect(() => {
-    if (relatorio.status === "rascunho" && relatorio.slides.length === 0) {
-      startGerar(async () => {
-        const r = await gerarSlidesAction(relatorio.id);
-        if ("error" in r) setActionError(r.error);
-        router.refresh();
-      });
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Polling enquanto status='gerando'.
-  useEffect(() => {
-    if (relatorio.status !== "gerando") return;
-    const t = setInterval(() => router.refresh(), 2000);
-    return () => clearInterval(t);
-  }, [relatorio.status, router]);
+  const dados = dadosEfetivos(relatorio);
+  const temDados = temDadosReportei(dados);
 
   async function handleGerarPdf() {
     setActionError(null);
@@ -81,39 +62,35 @@ export function RelatorioDetalheClient({ relatorio, clienteNome }: Props) {
 
   async function handlePublicar() {
     setActionError(null);
+    setPublicando(true);
     const fd = new FormData();
     fd.set("id", relatorio.id);
-    startPublicar(async () => {
+    try {
       const r = await publicarRelatorioAction(fd);
       if ("error" in r) setActionError(r.error);
       else router.refresh();
-    });
+    } finally {
+      setPublicando(false);
+    }
   }
 
   async function handleExcluir() {
     if (!confirm("Excluir este relatório? Não dá pra desfazer.")) return;
     setActionError(null);
+    setExcluindo(true);
     const fd = new FormData();
     fd.set("id", relatorio.id);
-    startExcluir(async () => {
+    try {
       const r = await excluirRelatorioAction(fd);
-      if ("error" in r) setActionError(r.error);
-      else router.push("/trafego/relatorios");
-    });
-  }
-
-  async function handleRetentarGerar() {
-    setActionError(null);
-    startGerar(async () => {
-      const r = await gerarSlidesAction(relatorio.id);
-      if ("error" in r) setActionError(r.error);
-      router.refresh();
-    });
-  }
-
-  function onSlideAtualizado() {
-    setEditandoIndex(null);
-    router.refresh();
+      if ("error" in r) {
+        setActionError(r.error);
+        setExcluindo(false);
+      } else {
+        router.push("/trafego/relatorios");
+      }
+    } catch {
+      setExcluindo(false);
+    }
   }
 
   return (
@@ -131,15 +108,14 @@ export function RelatorioDetalheClient({ relatorio, clienteNome }: Props) {
           </h1>
           <p className="text-sm text-muted-foreground">
             Período: {formatBR(relatorio.periodo_inicio)} a {formatBR(relatorio.periodo_fim)}{" "}
-            · Fonte: <Badge variant="outline">{relatorio.fonte_dados}</Badge>{" "}
-            · Status: <Badge variant="outline">{relatorio.status}</Badge>
+            · Fonte: <Badge variant="outline">{relatorio.fonte_dados}</Badge>
             {relatorio.publicado_em && (
               <> · <span className="text-emerald-700 dark:text-emerald-300">Publicado</span></>
             )}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {relatorio.status === "pronta" && !relatorio.pdf_storage_path && (
+          {temDados && !relatorio.pdf_storage_path && (
             <button
               onClick={handleGerarPdf}
               disabled={pdfLoading}
@@ -158,20 +134,22 @@ export function RelatorioDetalheClient({ relatorio, clienteNome }: Props) {
               Baixar PDF
             </button>
           )}
-          {relatorio.status === "pronta" && relatorio.pdf_storage_path && !relatorio.publicado_em && (
+          {relatorio.pdf_storage_path && !relatorio.publicado_em && (
             <button
               onClick={handlePublicar}
-              className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              disabled={publicando}
+              className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
-              <Send className="h-4 w-4" />
+              {publicando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               Publicar pro cliente
             </button>
           )}
           <button
             onClick={handleExcluir}
-            className="inline-flex h-9 items-center gap-2 rounded-md border border-red-500/40 bg-red-500/10 px-3 text-sm text-red-700 hover:bg-red-500/20 dark:text-red-300"
+            disabled={excluindo}
+            className="inline-flex h-9 items-center gap-2 rounded-md border border-red-500/40 bg-red-500/10 px-3 text-sm text-red-700 hover:bg-red-500/20 disabled:opacity-50 dark:text-red-300"
           >
-            <Trash2 className="h-4 w-4" />
+            {excluindo ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
             Excluir
           </button>
         </div>
@@ -186,59 +164,24 @@ export function RelatorioDetalheClient({ relatorio, clienteNome }: Props) {
         </Card>
       )}
 
-      {relatorio.status === "gerando" && (
-        <Card className="p-6 text-center text-sm text-muted-foreground">
-          <Sparkles className="mx-auto mb-2 h-6 w-6 animate-pulse text-primary" />
-          Gerando relatório com IA… (slides aparecem aqui conforme chegam)
-        </Card>
-      )}
-
-      {relatorio.status === "erro" && (
-        <Card className="border-red-500/40 bg-red-500/10 p-4 text-sm">
-          <p className="mb-2 text-red-700 dark:text-red-300">
-            Falha na geração. Tente novamente.
-          </p>
-          <button
-            onClick={handleRetentarGerar}
-            className="inline-flex h-9 items-center gap-2 rounded-md border bg-card px-3 text-sm hover:bg-muted"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Tentar de novo
-          </button>
-        </Card>
-      )}
-
-      {relatorio.slides.length > 0 && (
-        <div className="space-y-4">
-          {relatorio.slides.map((slide, i) => (
-            <div key={i} className="space-y-2">
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Slide {i + 1} · {slide.template}</span>
-                {relatorio.status === "pronta" && !relatorio.publicado_em && (
-                  <button
-                    onClick={() => setEditandoIndex(i)}
-                    className="text-primary hover:underline"
-                  >
-                    Editar
-                  </button>
-                )}
-              </div>
-              <div className="overflow-hidden rounded-lg border">
-                <SlidePreviewTrafego slide={slide} />
-              </div>
-            </div>
-          ))}
+      {temDados && dados ? (
+        <div className="overflow-hidden rounded-xl border">
+          <RelatorioReportei
+            dados={dados}
+            clienteNome={clienteNome}
+            periodoInicio={relatorio.periodo_inicio}
+            periodoFim={relatorio.periodo_fim}
+          />
         </div>
-      )}
-
-      {editandoIndex !== null && (
-        <SlideEditorInline
-          relatorioId={relatorio.id}
-          index={editandoIndex}
-          slide={relatorio.slides[editandoIndex]}
-          onClose={() => setEditandoIndex(null)}
-          onSaved={onSlideAtualizado}
-        />
+      ) : (
+        <Card className="flex items-start gap-2 p-6 text-sm text-muted-foreground">
+          <Info className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>
+            Este relatório não tem dados de tráfego suficientes para exibir o dashboard.
+            Isso costuma acontecer com relatórios antigos (formato de slides) ou com períodos
+            sem investimento na Meta. Crie um novo relatório para o período desejado.
+          </span>
+        </Card>
       )}
     </div>
   );

@@ -129,6 +129,20 @@ export interface DadosTrafego {
   serie_diaria?: Array<{ data: string; spend: number; resultados?: number }>;
 }
 
+/**
+ * Dados efetivos pra renderizar o dashboard Reportei: mescla `dados_meta`
+ * com `dados_manuais` (manuais sobrescrevem, como no fonte_dados=hibrido).
+ * Retorna null quando nenhum dos dois existe.
+ */
+export function dadosEfetivos(
+  rel: Pick<RelatorioRow, "dados_meta" | "dados_manuais">,
+): DadosTrafego | null {
+  const meta = rel.dados_meta;
+  const manuais = rel.dados_manuais;
+  if (!meta && !manuais) return null;
+  return { ...(meta ?? {}), ...(manuais ?? {}) } as DadosTrafego;
+}
+
 // ─── Validação runtime ─────────────────────────────────────────────────
 
 const TEMPLATES: readonly SlideTemplate[] = [
