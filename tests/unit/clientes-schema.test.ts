@@ -29,18 +29,28 @@ describe("createClienteSchema", () => {
 });
 
 describe("churnClienteSchema", () => {
-  it("exige motivo", () => {
-    const r = churnClienteSchema.safeParse({
-      id: "00000000-0000-0000-0000-000000000000",
-      motivo_churn: "ab",
-    });
+  const ID = "00000000-0000-0000-0000-000000000000";
+
+  it("exige categoria de motivo", () => {
+    const r = churnClienteSchema.safeParse({ id: ID, motivo_churn: "detalhe" });
     expect(r.success).toBe(false);
   });
 
-  it("aceita churn com motivo", () => {
+  it("rejeita categoria fora das opções", () => {
+    const r = churnClienteSchema.safeParse({ id: ID, motivo_churn_categoria: "xyz" });
+    expect(r.success).toBe(false);
+  });
+
+  it("aceita churn só com a categoria (detalhe opcional)", () => {
+    const r = churnClienteSchema.safeParse({ id: ID, motivo_churn_categoria: "preco" });
+    expect(r.success).toBe(true);
+  });
+
+  it("aceita categoria + detalhe de texto", () => {
     const r = churnClienteSchema.safeParse({
-      id: "00000000-0000-0000-0000-000000000000",
-      motivo_churn: "Cliente saiu por preço",
+      id: ID,
+      motivo_churn_categoria: "concorrente",
+      motivo_churn: "foi pra agência X",
     });
     expect(r.success).toBe(true);
   });
