@@ -1,6 +1,7 @@
 import "server-only";
 import { unstable_cache } from "next/cache";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { getDatePartsInAppTz } from "@/lib/datetime/timezone";
 import { getWeekRange } from "./queries";
 
 export interface TempEvent {
@@ -30,12 +31,18 @@ export interface Trend {
   deltaPct: number;
 }
 
+// Os eventos são gravados em UTC representando o horário local do app (Cuiabá,
+// UTC-4). Um evento às 20:00 de Cuiabá está gravado como 00:00 UTC do dia
+// seguinte. Por isso dia-da-semana e hora precisam ser lidos NO FUSO DO APP,
+// não em UTC cru — senão os buckets vazam pro dia/faixa errado nas bordas.
+
 function weekdayMondayZero(iso: string): number {
-  return (new Date(iso).getUTCDay() + 6) % 7;
+  // getDatePartsInAppTz.weekday: 0=Dom..6=Sab → converte pra 0=Seg..6=Dom.
+  return (getDatePartsInAppTz(iso).weekday + 6) % 7;
 }
 
 function hourBucket(iso: string): 0 | 1 | 2 {
-  const h = new Date(iso).getUTCHours();
+  const h = parseInt(getDatePartsInAppTz(iso).hour, 10);
   if (h < 12) return 0;
   if (h < 18) return 1;
   return 2;
