@@ -8,7 +8,7 @@ import { requireAuth } from "@/lib/auth/session";
 import { logAudit } from "@/lib/audit/log";
 import { logActivityInternal } from "@/lib/produtividade/actions";
 import { PAINEL_CACHE_TAG } from "@/lib/painel/queries";
-import { createClienteSchema, editClienteSchema, churnClienteSchema, inferTipoPacote, TIPOS_RELACAO } from "./schema";
+import { createClienteSchema, editClienteSchema, churnClienteSchema, churnMotivoLabel, inferTipoPacote, TIPOS_RELACAO } from "./schema";
 import { getTodayDate } from "@/lib/datetime/timezone";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -245,29 +245,37 @@ export async function churnClienteAction(formData: FormData) {
 
   const parsed = churnClienteSchema.safeParse({
     id: fd(formData, "id"),
+    motivo_churn_categoria: fd(formData, "motivo_churn_categoria"),
     motivo_churn: fd(formData, "motivo_churn"),
     data_churn: fd(formData, "data_churn"),
   });
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
+  const detalhe = parsed.data.motivo_churn?.trim() || null;
   const supabase = await createClient();
   const updatePayload = {
     status: "churn" as const,
-    motivo_churn: parsed.data.motivo_churn,
+    motivo_churn_categoria: parsed.data.motivo_churn_categoria,
+    motivo_churn: detalhe,
     data_churn: parsed.data.data_churn || getTodayDate(),
   };
 
-  const { error } = await supabase.from("clients").update(updatePayload).eq("id", parsed.data.id);
+  // Cast: os types gerados do Supabase ainda não conhecem motivo_churn_categoria
+  // (gerado após `npm run db:types` pós-migration). Padrão do repo.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await supabase.from("clients").update(updatePayload as any).eq("id", parsed.data.id);
   if (error) return { error: error.message };
 
+  // Justificativa legível no audit: label da categoria + detalhe (se houver).
+  const labelCategoria = churnMotivoLabel(parsed.data.motivo_churn_categoria);
   await logAudit({
     entidade: "clients",
     entidade_id: parsed.data.id,
     acao: "soft_delete",
     dados_depois: updatePayload,
     ator_id: actor.id,
-    justificativa: parsed.data.motivo_churn,
+    justificativa: detalhe ? `${labelCategoria} — ${detalhe}` : labelCategoria,
   });
 
   revalidatePath("/clientes");
@@ -288,7 +296,9 @@ export async function reactivateClienteAction(id: string) {
   const supabase = await createClient();
   const { error } = await supabase
     .from("clients")
-    .update({ status: "ativo", motivo_churn: null, data_churn: null })
+    // Cast: motivo_churn_categoria ainda não está nos types gerados.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .update({ status: "ativo", motivo_churn: null, motivo_churn_categoria: null, data_churn: null } as any)
     .eq("id", id);
   if (error) return { error: error.message };
 

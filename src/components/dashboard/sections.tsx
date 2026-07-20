@@ -8,6 +8,7 @@ import {
   getKpis,
   getCarteiraTimeline,
   getEntradaChurn,
+  getChurnMotivos,
   getCarteiraPorAssessor,
   getRankingSatisfacao,
   getProximosEventos,
@@ -21,6 +22,7 @@ import { getChurnMensalHistorico } from "@/lib/dashboard/churn-historico";
 import { KpiRow } from "./KpiRow";
 import { ChartCarteiraTimelineLazy } from "./ChartCarteiraTimelineLazy";
 import { ChartEntradaChurnLazy } from "./ChartEntradaChurnLazy";
+import { ChartChurnMotivosLazy } from "./ChartChurnMotivosLazy";
 import { CarteiraPorAssessorList } from "./CarteiraPorAssessorList";
 import { RankingResumo } from "./RankingResumo";
 import { ProximosEventosList } from "./ProximosEventosList";
@@ -116,6 +118,16 @@ export async function EntradaChurnSection({ mes }: { mes?: string }) {
   return (
     <Section title="Entrada vs Churn" subtitle="Por ano">
       <ChartEntradaChurnLazy porAno={porAno} />
+    </Section>
+  );
+}
+
+export async function MotivosChurnSection({ mes }: { mes?: string }) {
+  const unitId = await getEffectiveUnitId();
+  const data = await getChurnMotivos(6, { unitId }, mes);
+  return (
+    <Section title="Motivos de churn" subtitle="Últimos 6 meses">
+      <ChartChurnMotivosLazy data={data} />
     </Section>
   );
 }
