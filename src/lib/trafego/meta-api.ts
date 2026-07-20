@@ -91,6 +91,32 @@ async function metaFetch<T>(path: string, params: Record<string, string> = {}): 
   return body as T;
 }
 
+/**
+ * POST na Graph API (application/x-www-form-urlencoded). Objetos aninhados
+ * (targeting, object_story_spec, creative) devem ser passados JÁ como JSON
+ * string no campo correspondente. `access_token` é injetado no body.
+ */
+async function metaPost<T>(path: string, params: Record<string, string> = {}): Promise<T> {
+  const form = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    form.set(k, v);
+  }
+  form.set("access_token", getToken());
+
+  const res = await fetch(`${getApiBase()}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: form.toString(),
+    cache: "no-store",
+  });
+
+  const body = await res.json();
+  if (!res.ok) {
+    throw classifyError(body as MetaErrorResponse, res.status);
+  }
+  return body as T;
+}
+
 // ─── Tipos das respostas ─────────────────────────────────────────────────────
 
 export interface MetaCampaign {
@@ -320,6 +346,125 @@ export async function getTopCampaigns(
       spend: r.spend ? Number(r.spend) : 0,
       results: pickAction(r.actions, ["lead", "leadgen.other", "offsite_conversion", "purchase"]),
     }));
+}
+
+// ─── Criação de anúncios (SEMPRE PAUSED) ─────────────────────────────────────
+//
+// Sequência: campanha → conjunto (ad set) → criativo → anúncio.
+// TUDO criado com status='PAUSED'. Não existe caminho pra ACTIVE aqui.
+
+interface MetaCreateResponse {
+  id: string;
+}
+
+/**
+ * Cria uma campanha PAUSADA. `special_ad_categories` é obrigatório (array vazio
+ * = sem categoria especial de anúncio).
+ */
+export async function criarCampanhaMeta(
+  adAccountId: string,
+  input: { nome: string; objective: string },
+): Promise<{ id: string }> {
+  const account = normalizeAdAccountId(adAccountId);
+  const res = await metaPost<MetaCreateResponse>(`/${account}/campaigns`, {
+    name: input.nome,
+    objective: input.objective,
+    status: "PAUSED",
+    special_ad_categories: "[]",
+  });
+  return { id: res.id };
+}
+
+/**
+ * Cria um conjunto de anúncios (ad set) PAUSADO com orçamento diário em
+ * centavos. `targeting` é um objeto que será serializado como JSON.
+ */
+export async function criarAdSetMeta(
+  adAccountId: string,
+  input: {
+    nome: string;
+    campaignId: string;
+    dailyBudgetCents: number;
+    optimizationGoal: string;
+    targeting: unknown;
+    startTime?: string;
+    endTime?: string;
+  },
+): Promise<{ id: string }> {
+  const account = normalizeAdAccountId(adAccountId);
+  const params: Record<string, string> = {
+    name: input.nome,
+    campaign_id: input.campaignId,
+    status: "PAUSED",
+    daily_budget: String(input.dailyBudgetCents),
+    billing_event: "IMPRESSIONS",
+    optimization_goal: input.optimizationGoal,
+    bid_strategy: "LOWEST_COST_WITHOUT_CAP",
+    targeting: JSON.stringify(input.targeting),
+  };
+  if (input.startTime) params.start_time = input.startTime;
+  if (input.endTime) params.end_time = input.endTime;
+
+  const res = await metaPost<MetaCreateResponse>(`/${account}/adsets`, params);
+  return { id: res.id };
+}
+
+/**
+ * Cria um criativo (ad creative) de imagem única. Usa a URL pública da imagem
+ * direto em `picture`. `instagramActorId` é opcional (pra veicular no IG).
+ */
+export async function criarCreativeMeta(
+  adAccountId: string,
+  input: {
+    nome: string;
+    pageId: string;
+    instagramActorId?: string | null;
+    mensagem: string;
+    link: string;
+    imagemUrl: string;
+    callToAction: string;
+  },
+): Promise<{ id: string }> {
+  const account = normalizeAdAccountId(adAccountId);
+
+  const linkData: Record<string, unknown> = {
+    message: input.mensagem,
+    link: input.link,
+    picture: input.imagemUrl,
+    call_to_action: {
+      type: input.callToAction,
+      value: { link: input.link },
+    },
+  };
+
+  const objectStorySpec: Record<string, unknown> = {
+    page_id: input.pageId,
+    link_data: linkData,
+  };
+  if (input.instagramActorId) {
+    objectStorySpec.instagram_actor_id = input.instagramActorId;
+  }
+
+  const res = await metaPost<MetaCreateResponse>(`/${account}/adcreatives`, {
+    name: input.nome,
+    object_story_spec: JSON.stringify(objectStorySpec),
+  });
+  return { id: res.id };
+}
+
+/** Cria o anúncio (ad) PAUSADO, ligando ad set + criativo. */
+export async function criarAdMeta(
+  adAccountId: string,
+  input: { nome: string; adsetId: string; creativeId: string },
+): Promise<{ id: string }> {
+  const account = normalizeAdAccountId(adAccountId);
+  const res = await metaPost<MetaCreateResponse>(`/${account}/ads`, {
+    name: input.nome,
+    adset_id: input.adsetId,
+    creative: JSON.stringify({ creative_id: input.creativeId }),
+    status: "PAUSED",
+  });
+  return { id: res.id };
 }
 
 /** Helper pra checar se a integração tá funcional (token + ad account válidos). */
