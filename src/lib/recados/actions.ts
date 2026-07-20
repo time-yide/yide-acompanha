@@ -74,6 +74,17 @@ export async function criarRecadoAction(formData: FormData) {
     }
   }
 
+  let attachmentUrls: string[] = [];
+  const rawAtt = fd(formData, "attachment_urls");
+  if (rawAtt) {
+    try {
+      const parsedAtt = JSON.parse(rawAtt);
+      if (Array.isArray(parsedAtt)) attachmentUrls = parsedAtt.map(String);
+    } catch {
+      return { error: "Anexos inválidos" };
+    }
+  }
+
   const parsed = criarRecadoSchema.safeParse({
     titulo: fd(formData, "titulo"),
     corpo: fd(formData, "corpo"),
@@ -81,21 +92,27 @@ export async function criarRecadoAction(formData: FormData) {
     permanente: wantsPrivado ? false : wantsPermanente,
     privado: wantsPrivado,
     destinatarios,
+    attachment_urls: attachmentUrls,
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
   const supabase = await createClient();
+  // Cast: types gerados do Supabase ainda não conhecem attachment_urls
+  // (gerado após `npm run db:types` pós-migration).
+  const insertPayload = {
+    autor_id: actor.id,
+    autor_role_snapshot: actor.role,
+    titulo: parsed.data.titulo,
+    corpo: parsed.data.corpo,
+    permanente: parsed.data.permanente,
+    privado: parsed.data.privado,
+    notif_scope: parsed.data.notif_scope,
+    attachment_urls: parsed.data.attachment_urls,
+  };
   const { data: created, error } = await supabase
     .from("recados")
-    .insert({
-      autor_id: actor.id,
-      autor_role_snapshot: actor.role,
-      titulo: parsed.data.titulo,
-      corpo: parsed.data.corpo,
-      permanente: parsed.data.permanente,
-      privado: parsed.data.privado,
-      notif_scope: parsed.data.notif_scope,
-    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .insert(insertPayload as any)
     .select("id, titulo")
     .single();
 
@@ -293,4 +310,38 @@ export async function marcarRecadosVistosAction() {
 
   revalidatePath("/", "layout");
   return { success: true };
+}
+
+const MAX_RECADO_ATTACHMENT_BYTES = 15 * 1024 * 1024; // 15 MB
+const ALLOWED_RECADO_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+
+/**
+ * Prepara upload de foto de recado direto do browser pro Storage (signed URL).
+ * O arquivo NÃO passa pelo Server Action (bodySizeLimit 2MB) — o browser sobe
+ * os bytes direto via `uploadToSignedUrl`. Mesmo padrão do escritório.
+ * Bucket público → já devolve a URL final.
+ */
+export async function prepareRecadoAttachmentUpload(
+  fileName: string,
+  fileType: string,
+  fileSize: number,
+): Promise<{ error: string } | { path: string; token: string; url: string }> {
+  await requireAuth();
+
+  if (!ALLOWED_RECADO_IMAGE_TYPES.includes(fileType)) {
+    return { error: "Só imagem (JPG, PNG, WebP ou GIF)" };
+  }
+  if (fileSize <= 0) return { error: "Arquivo vazio" };
+  if (fileSize > MAX_RECADO_ATTACHMENT_BYTES) return { error: "Máximo 15MB por foto" };
+
+  const ext = (fileName.split(".").pop() || "bin").toLowerCase();
+  const path = `recado/${crypto.randomUUID()}.${ext}`;
+
+  const admin = createServiceRoleClient();
+  const { data, error } = await admin.storage.from("recado-attachments").createSignedUploadUrl(path);
+  if (error || !data?.token) {
+    return { error: error?.message ?? "Erro ao preparar upload" };
+  }
+  const { data: pub } = admin.storage.from("recado-attachments").getPublicUrl(data.path ?? path);
+  return { path: data.path ?? path, token: data.token, url: pub.publicUrl };
 }

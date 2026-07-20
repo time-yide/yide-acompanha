@@ -161,6 +161,22 @@ export function RecadoCard({ recado, currentUserId, currentUserRole, destinatari
           )}
           <div className="font-semibold">{recado.titulo}</div>
           <p className="whitespace-pre-wrap text-sm text-muted-foreground">{recado.corpo}</p>
+          {recado.attachment_urls?.length > 0 && (
+            <div className="flex flex-wrap gap-2 pt-1">
+              {recado.attachment_urls.map((url) => (
+                <a
+                  key={url}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block h-28 w-28 overflow-hidden rounded-md border bg-muted"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={url} alt="anexo do recado" className="h-full w-full object-cover" />
+                </a>
+              ))}
+            </div>
+          )}
         </div>
 
         <footer className="flex flex-wrap items-center gap-1.5">

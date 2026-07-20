@@ -16,6 +16,7 @@ export interface RecadoRow {
   notif_scope: string;
   criado_em: string;
   atualizado_em: string;
+  attachment_urls: string[];
   autor: { nome: string; avatar_url: string | null } | null;
   reacoes: Array<{ emoji: string; user_id: string }>;
 }
@@ -29,6 +30,15 @@ async function _listRecadosImpl(
   const supabase = createServiceRoleClient();
 
   const fullSelect = `
+      id, autor_id, autor_role_snapshot, titulo, corpo, permanente, arquivado,
+      privado, notif_scope, criado_em, atualizado_em, attachment_urls,
+      autor:profiles!recados_autor_id_fkey(nome, avatar_url),
+      reacoes:recado_reacoes(emoji, user_id)
+    `;
+  // Fallback intermediário: coluna `attachment_urls` ainda não migrada, mas
+  // `privado` sim. Mantém o filtro de privado (senão vazaria privado no mural
+  // na janela deploy→migration). Sem attachment_urls.
+  const noAttachSelect = `
       id, autor_id, autor_role_snapshot, titulo, corpo, permanente, arquivado,
       privado, notif_scope, criado_em, atualizado_em,
       autor:profiles!recados_autor_id_fkey(nome, avatar_url),
@@ -61,13 +71,18 @@ async function _listRecadosImpl(
 
   let result = await build(fullSelect, true);
   if (result.error) {
-    const msg = String(result.error.message ?? "");
-    // Migration de privados ainda não aplicada: re-tenta sem a coluna `privado`
-    // pra não esvaziar o mural inteiro entre o deploy e o apply manual.
-    // Pré-migration todos os recados são do mural, então mostrar todos é correto.
-    if (msg.includes("privado") || msg.includes("schema cache")) {
-      console.warn("[recados/queries] fallback pro select legacy (migration de privados não aplicada):", msg);
-      result = await build(legacySelect, false);
+    // Qualquer erro do fullSelect → degrada PRIMEIRO só sem attachment_urls,
+    // mantendo o filtro de privado (nunca vaza privado no mural nesse passo).
+    console.warn("[recados/queries] fallback sem attachment_urls:", result.error.message);
+    result = await build(noAttachSelect, true);
+    if (result.error) {
+      const msg2 = String(result.error.message ?? "");
+      // Só relaxa o filtro de privado se a própria coluna `privado` não existe
+      // (ambiente pré-migration de privados — onde tudo é mural mesmo).
+      if (msg2.includes("privado") || msg2.includes("schema cache")) {
+        console.warn("[recados/queries] fallback pro select legacy (migration de privados não aplicada):", msg2);
+        result = await build(legacySelect, false);
+      }
     }
   }
 
@@ -75,9 +90,13 @@ async function _listRecadosImpl(
     console.error("[recados/queries] listRecados error:", result.error.message);
     return [];
   }
-  // Linhas legacy (pré-migration) não trazem `privado`; default false.
+  // Defaults pra linhas legacy (pré-migration): privado=false, sem anexos.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return ((result.data ?? []) as any[]).map((r) => ({ privado: false, ...r })) as unknown as RecadoRow[];
+  return ((result.data ?? []) as any[]).map((r) => ({
+    privado: false,
+    attachment_urls: [],
+    ...r,
+  })) as unknown as RecadoRow[];
 }
 
 export async function listRecados(
@@ -181,7 +200,7 @@ async function _listPrivadosImpl(
     .from("recados")
     .select(`
       id, autor_id, autor_role_snapshot, titulo, corpo, permanente, arquivado,
-      privado, notif_scope, criado_em, atualizado_em,
+      privado, notif_scope, criado_em, atualizado_em, attachment_urls,
       autor:profiles!recados_autor_id_fkey(nome, avatar_url),
       reacoes:recado_reacoes(emoji, user_id),
       destinatarios:recado_destinatarios(
@@ -210,6 +229,7 @@ async function _listPrivadosImpl(
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return ((data ?? []) as any[]).map((r) => ({
+    attachment_urls: [],
     ...r,
     destinatarios: (r.destinatarios ?? []).map(
       (d: { user_id: string; lido_em: string | null; profile: { nome: string; avatar_url: string | null } | null }) => ({
