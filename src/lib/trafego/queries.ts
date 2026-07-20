@@ -122,6 +122,8 @@ export interface CampanhaRow {
   observacoes: string | null;
   external_account_id: string | null;
   external_campaign_id: string | null;
+  external_adset_id: string | null;
+  external_ad_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -146,6 +148,7 @@ export interface ClienteTrafegoDetalhe {
   tipo_pacote: string;
   meta_ad_account_id: string | null;
   google_ads_customer_id: string | null;
+  facebook_page_id: string | null;
   valor_trafego_google: number | null;
   valor_trafego_meta: number | null;
   meta_last_sync_at: string | null;
@@ -159,6 +162,8 @@ export async function getClienteTrafego(clientId: string): Promise<ClienteTrafeg
     supabase.from("clients").select(selectStr).eq("id", clientId).maybeSingle();
 
   const SELECT_COMPLETO =
+    "id, nome, tipo_pacote, meta_ad_account_id, google_ads_customer_id, facebook_page_id, valor_trafego_google, valor_trafego_meta, meta_last_sync_at, meta_last_sync_error";
+  const SELECT_SEM_PAGE =
     "id, nome, tipo_pacote, meta_ad_account_id, google_ads_customer_id, valor_trafego_google, valor_trafego_meta, meta_last_sync_at, meta_last_sync_error";
   const SELECT_FALLBACK_META =
     "id, nome, tipo_pacote, meta_ad_account_id, google_ads_customer_id, valor_trafego_google, valor_trafego_meta";
@@ -167,11 +172,17 @@ export async function getClienteTrafego(clientId: string): Promise<ClienteTrafeg
   let resp = await buildQuery(SELECT_COMPLETO);
   if (resp.error) {
     const msg = resp.error.message ?? "";
-    if (msg.includes("meta_last_sync_at") || msg.includes("meta_last_sync_error")) {
-      // Migration de Fase 2 ainda não rodou - fallback pra select sem essas cols.
-      resp = await buildQuery(SELECT_FALLBACK_META);
-    } else if (msg.includes("meta_ad_account_id") || msg.includes("google_ads_customer_id") || msg.includes("schema cache")) {
-      resp = await buildQuery(SELECT_FALLBACK);
+    if (msg.includes("facebook_page_id")) {
+      resp = await buildQuery(SELECT_SEM_PAGE);
+    }
+    // Reavalia com o resultado do retry (page pode ter sido a única col faltante)
+    if (resp.error) {
+      const msg2 = resp.error.message ?? "";
+      if (msg2.includes("meta_last_sync_at") || msg2.includes("meta_last_sync_error")) {
+        resp = await buildQuery(SELECT_FALLBACK_META);
+      } else if (msg2.includes("meta_ad_account_id") || msg2.includes("google_ads_customer_id") || msg2.includes("schema cache")) {
+        resp = await buildQuery(SELECT_FALLBACK);
+      }
     }
   }
   if (!resp.data) return null;
@@ -182,6 +193,7 @@ export async function getClienteTrafego(clientId: string): Promise<ClienteTrafeg
     tipo_pacote: string;
     meta_ad_account_id?: string | null;
     google_ads_customer_id?: string | null;
+    facebook_page_id?: string | null;
     valor_trafego_google: number | null;
     valor_trafego_meta: number | null;
     meta_last_sync_at?: string | null;
@@ -193,6 +205,7 @@ export async function getClienteTrafego(clientId: string): Promise<ClienteTrafeg
     tipo_pacote: c.tipo_pacote,
     meta_ad_account_id: c.meta_ad_account_id ?? null,
     google_ads_customer_id: c.google_ads_customer_id ?? null,
+    facebook_page_id: c.facebook_page_id ?? null,
     valor_trafego_google: c.valor_trafego_google,
     valor_trafego_meta: c.valor_trafego_meta,
     meta_last_sync_at: c.meta_last_sync_at ?? null,

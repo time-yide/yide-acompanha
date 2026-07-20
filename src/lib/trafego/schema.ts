@@ -46,5 +46,18 @@ export const updateClienteAdAccountsSchema = z.object({
   google_ads_customer_id: z.string().trim().max(80).optional().nullable(),
 });
 
+// Fase 3: publicar campanha no Meta (sempre PAUSADO).
+export const publicarCampanhaMetaSchema = z.object({
+  campanha_id: uuidLike,
+  budget_diario: z.coerce.number().positive("Orçamento diário deve ser maior que zero"),
+  // Segmentação simples. Países ISO-2 (ex.: "BR"). Vazio → default BR na action.
+  paises: z.array(z.string().trim().min(2).max(2)).max(25).optional().default([]),
+  idade_min: z.coerce.number().int().min(13).max(65).optional().default(18),
+  idade_max: z.coerce.number().int().min(13).max(65).optional().default(65),
+  // 1=masculino, 2=feminino (formato Meta). Vazio/ambos → todos.
+  generos: z.array(z.coerce.number().int()).max(2).optional().default([]),
+});
+
 export type CreateCampanhaInput = z.infer<typeof createCampanhaSchema>;
 export type UpdateCampanhaInput = z.infer<typeof updateCampanhaSchema>;
+export type PublicarCampanhaMetaInput = z.infer<typeof publicarCampanhaMetaSchema>;

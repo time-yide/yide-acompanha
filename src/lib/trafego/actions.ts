@@ -4,15 +4,30 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/auth/session";
+import { getOrganizationId } from "@/lib/gerador-leads/queries";
 import {
   createCampanhaSchema,
   updateCampanhaSchema,
   archiveCampanhaSchema,
   updateMetricasVisiveisSchema,
   updateClienteAdAccountsSchema,
+  publicarCampanhaMetaSchema,
 } from "./schema";
 import { METRICA_KEYS } from "./metricas";
 import { syncMetaForClient } from "./meta-sync";
+import {
+  criarCampanhaMeta,
+  criarAdSetMeta,
+  criarCreativeMeta,
+  criarAdMeta,
+  normalizeAdAccountId,
+  MetaApiError,
+} from "./meta-api";
+import {
+  objetivoParaMeta,
+  reaisParaCents,
+  montarTargeting,
+} from "./meta-create-map";
 
 interface ActionOk { success: true }
 interface ActionErr { error: string }
@@ -282,5 +297,265 @@ export async function syncMetaForClientAction(
     campaigns_found: result.campaigns_found,
     campaigns_upserted: result.campaigns_upserted,
     metrics_upserted: result.metrics_upserted,
+  };
+}
+
+// ─── Fase 3: Publicar campanha no Meta (SEMPRE PAUSADO) ──────────────────────
+
+/** Passos da sequência de criação, pra reportar onde falhou. */
+type PassoMeta = "campanha" | "adset" | "creative" | "ad";
+
+interface PublicarMetaOk {
+  success: true;
+  ids: {
+    accountId: string;
+    campaignId: string;
+    adsetId: string;
+    creativeId: string;
+    adId: string;
+  };
+}
+interface PublicarMetaErr {
+  error: string;
+  passoQueFalhou?: PassoMeta | "validacao";
+}
+type PublicarMetaResult = PublicarMetaOk | PublicarMetaErr;
+
+export interface PublicarCampanhaMetaInputRaw {
+  campanha_id: string;
+  budget_diario: number;
+  paises?: string[];
+  idade_min?: number;
+  idade_max?: number;
+  generos?: number[];
+}
+
+/**
+ * Publica uma campanha local no Meta como PAUSADA, criando em sequência:
+ * campanha → conjunto → criativo → anúncio. Grava os IDs externos a CADA passo
+ * (pra não deixar órfãos silenciosos) e no fim marca status='pausada'.
+ *
+ * Nunca cria nada ACTIVE. Se qualquer passo falhar, retorna o erro do Meta
+ * de forma legível + o passo que falhou; os IDs já criados ficam persistidos.
+ */
+export async function publicarCampanhaNoMetaAction(
+  input: PublicarCampanhaMetaInputRaw,
+): Promise<PublicarMetaResult> {
+  const actor = await requireAuth();
+  if (!canManage(actor.role)) {
+    return { error: "Sem permissão pra publicar campanha", passoQueFalhou: "validacao" };
+  }
+
+  const parsed = publicarCampanhaMetaSchema.safeParse(input);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message, passoQueFalhou: "validacao" };
+  }
+
+  // Organização do ator — checagem explícita de multi-tenant (não confia só na RLS)
+  const orgId = await getOrganizationId(actor.id);
+  if (!orgId) return { error: "Campanha não encontrada", passoQueFalhou: "validacao" };
+
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+
+  // Carrega campanha
+  const { data: campanha } = await sb
+    .from("trafego_campanhas")
+    .select(
+      "id, client_id, organization_id, plataforma, nome, objetivo, link_destino, copy, criativo_url, data_inicio, data_fim, external_account_id, external_campaign_id, external_adset_id, external_ad_id",
+    )
+    .eq("id", parsed.data.campanha_id)
+    .is("archived_at", null)
+    .maybeSingle();
+  if (!campanha) return { error: "Campanha não encontrada", passoQueFalhou: "validacao" };
+
+  // Isolamento explícito: campanha tem que ser da org do ator (msg genérica, sem vazar)
+  if (campanha.organization_id !== orgId) {
+    return { error: "Campanha não encontrada", passoQueFalhou: "validacao" };
+  }
+
+  if (campanha.external_ad_id) {
+    return { error: "Campanha já publicada no Meta (pausada)", passoQueFalhou: "validacao" };
+  }
+  if (campanha.plataforma !== "meta") {
+    return { error: "Só campanhas do Meta podem ser publicadas aqui", passoQueFalhou: "validacao" };
+  }
+
+  // Valida objetivo suportado no v1
+  const objMap = objetivoParaMeta(campanha.objetivo);
+  if (!objMap) {
+    return {
+      error: "Objetivo não suportado nesta versão. Use Tráfego ou Engajamento.",
+      passoQueFalhou: "validacao",
+    };
+  }
+
+  // Valida criativo + link
+  const imagemUrl = (campanha.criativo_url ?? "").trim();
+  if (!imagemUrl) {
+    return { error: "Adicione a URL do criativo (imagem) na campanha antes de publicar", passoQueFalhou: "validacao" };
+  }
+  const link = (campanha.link_destino ?? "").trim();
+  if (!link) {
+    return { error: "Adicione o link de destino na campanha antes de publicar", passoQueFalhou: "validacao" };
+  }
+
+  // Carrega cliente (conta + página)
+  const { data: cliente } = await sb
+    .from("clients")
+    .select("id, nome, meta_ad_account_id, facebook_page_id, instagram_business_id")
+    .eq("id", campanha.client_id)
+    .maybeSingle();
+  if (!cliente) return { error: "Cliente não encontrado", passoQueFalhou: "validacao" };
+
+  const adAccountId = (cliente.meta_ad_account_id ?? "").trim();
+  const pageId = (cliente.facebook_page_id ?? "").trim();
+  if (!adAccountId) {
+    return { error: "Cadastre a conta de anúncios (Meta Ad Account) do cliente", passoQueFalhou: "validacao" };
+  }
+  if (!pageId) {
+    return { error: "Cadastre a página do Facebook do cliente", passoQueFalhou: "validacao" };
+  }
+  const instagramActorId = (cliente.instagram_business_id ?? "").trim() || null;
+
+  // Orçamento em centavos
+  let dailyBudgetCents: number;
+  try {
+    dailyBudgetCents = reaisParaCents(parsed.data.budget_diario);
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Orçamento inválido", passoQueFalhou: "validacao" };
+  }
+
+  if (
+    parsed.data.idade_min != null &&
+    parsed.data.idade_max != null &&
+    parsed.data.idade_min > parsed.data.idade_max
+  ) {
+    return { error: "Idade mínima não pode ser maior que a máxima", passoQueFalhou: "validacao" };
+  }
+
+  const targeting = montarTargeting({
+    paises: parsed.data.paises,
+    idadeMin: parsed.data.idade_min,
+    idadeMax: parsed.data.idade_max,
+    generos: parsed.data.generos,
+  });
+
+  const accountNormalized = normalizeAdAccountId(adAccountId);
+  const nomeBase = campanha.nome as string;
+  const copy = (campanha.copy ?? "").trim() || nomeBase;
+
+  const startTime = campanha.data_inicio
+    ? `${campanha.data_inicio}T00:00:00-0300`
+    : undefined;
+  const endTime = campanha.data_fim ? `${campanha.data_fim}T23:59:59-0300` : undefined;
+
+  // Grava external_account_id de cara
+  await sb
+    .from("trafego_campanhas")
+    .update({ external_account_id: accountNormalized })
+    .eq("id", campanha.id);
+
+  // Helper: reporta erro do Meta de forma legível
+  const metaErr = (e: unknown, passo: PassoMeta): PublicarMetaErr => {
+    if (e instanceof MetaApiError) {
+      return { error: `Meta [${e.kind}]: ${e.message}`, passoQueFalhou: passo };
+    }
+    return { error: `Falha ao criar ${passo} no Meta: ${String(e)}`, passoQueFalhou: passo };
+  };
+
+  // 1) Campanha — reusa o ID já persistido (retry após falha parcial não duplica)
+  const campanhaIdExistente = (campanha.external_campaign_id ?? "").trim() || null;
+  let campaignId: string;
+  if (campanhaIdExistente) {
+    campaignId = campanhaIdExistente;
+  } else {
+    try {
+      const r = await criarCampanhaMeta(adAccountId, { nome: nomeBase, objective: objMap.objective });
+      campaignId = r.id;
+    } catch (e) {
+      return metaErr(e, "campanha");
+    }
+    await sb
+      .from("trafego_campanhas")
+      .update({ external_campaign_id: campaignId })
+      .eq("id", campanha.id);
+  }
+
+  // 2) Ad set — reusa o ID já persistido (retry não duplica estrutura de gasto)
+  const adsetIdExistente = (campanha.external_adset_id ?? "").trim() || null;
+  let adsetId: string;
+  if (adsetIdExistente) {
+    adsetId = adsetIdExistente;
+  } else {
+    try {
+      const r = await criarAdSetMeta(adAccountId, {
+        nome: `${nomeBase} — Conjunto`,
+        campaignId,
+        dailyBudgetCents,
+        optimizationGoal: objMap.optimizationGoal,
+        targeting,
+        startTime,
+        endTime,
+      });
+      adsetId = r.id;
+    } catch (e) {
+      return metaErr(e, "adset");
+    }
+    await sb
+      .from("trafego_campanhas")
+      .update({ external_adset_id: adsetId })
+      .eq("id", campanha.id);
+  }
+
+  // 3) Criativo
+  let creativeId: string;
+  try {
+    const r = await criarCreativeMeta(adAccountId, {
+      nome: `${nomeBase} — Criativo`,
+      pageId,
+      instagramActorId,
+      mensagem: copy,
+      link,
+      imagemUrl,
+      callToAction: objMap.callToAction,
+    });
+    creativeId = r.id;
+  } catch (e) {
+    return metaErr(e, "creative");
+  }
+
+  // 4) Anúncio
+  let adId: string;
+  try {
+    const r = await criarAdMeta(adAccountId, {
+      nome: `${nomeBase} — Anúncio`,
+      adsetId,
+      creativeId,
+    });
+    adId = r.id;
+  } catch (e) {
+    return metaErr(e, "ad");
+  }
+
+  // Persiste ids finais + status pausada
+  await sb
+    .from("trafego_campanhas")
+    .update({ external_ad_id: adId, status: "pausada" })
+    .eq("id", campanha.id);
+
+  revalidatePath("/trafego");
+  revalidatePath(`/trafego/${campanha.client_id}`);
+
+  return {
+    success: true,
+    ids: {
+      accountId: accountNormalized,
+      campaignId,
+      adsetId,
+      creativeId,
+      adId,
+    },
   };
 }
