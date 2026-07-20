@@ -9,11 +9,13 @@ import { CampanhaFormModal } from "./CampanhaFormModal";
 import { ConfigMetricasModal } from "./ConfigMetricasModal";
 import { AdAccountsModal } from "./AdAccountsModal";
 import { PublicarMetaModal } from "./PublicarMetaModal";
+import { MetricaResumo, type ResumoFonte } from "./MetricaResumo";
+import { CampanhaDrill } from "./CampanhaDrill";
 import { archiveCampanhaAction } from "@/lib/trafego/actions";
 import { objetivoParaMeta } from "@/lib/trafego/meta-create-map";
 import {
   STATUS_LABELS, STATUS_COLORS, OBJETIVOS,
-  METRICA_BY_KEY, formatMetricaValor,
+  formatMetricaValor,
 } from "@/lib/trafego/metricas";
 import type { CampanhaRow } from "@/lib/trafego/queries";
 
@@ -48,14 +50,28 @@ function objetivoLabel(valor: string): string {
   return objetivosLabel[valor] ?? META_OBJETIVO_LABEL[valor] ?? valor;
 }
 
-/** Opções do filtro de status na barra. */
-const STATUS_FILTRO: { value: string; label: string }[] = [
-  { value: "", label: "Todos" },
-  { value: "ativa", label: "Ativa" },
-  { value: "pausada", label: "Pausada" },
-  { value: "finalizada", label: "Finalizada" },
-  { value: "rascunho", label: "Rascunho" },
+/** Abas que separam campanhas por situação. */
+type AbaId = "ativas" | "finalizadas" | "arquivadas";
+
+const ABAS: { id: AbaId; label: string }[] = [
+  { id: "ativas", label: "Ativas" },
+  { id: "finalizadas", label: "Finalizadas" },
+  { id: "arquivadas", label: "Arquivadas" },
 ];
+
+/**
+ * Classifica uma campanha numa das abas.
+ * - Ativas: rascunho, ativa ou pausada.
+ * - Finalizadas: finalizada ou rejeitada.
+ * - Arquivadas: `archived_at` != null (a lista atual já filtra arquivadas fora,
+ *   então essa aba tende a ficar vazia — mantida por consistência visual).
+ */
+function abaDaCampanha(c: CampanhaRow): AbaId {
+  const arquivada = (c as { archived_at?: string | null }).archived_at;
+  if (arquivada) return "arquivadas";
+  if (c.status === "finalizada" || c.status === "rejeitada") return "finalizadas";
+  return "ativas";
+}
 
 /** [aInicio,aFim] intercepta [bDe,bAte]? Datas em "YYYY-MM-DD" comparáveis como string. */
 function intervaloIntercepta(
@@ -84,28 +100,39 @@ export function CampanhasList({
   const [openMetricas, setOpenMetricas] = useState(false);
   const [openAccounts, setOpenAccounts] = useState(false);
 
-  // Filtros client-side (a lista já vem toda carregada em props).
+  // Aba ativa + filtros client-side (a lista já vem toda carregada em props).
+  const [aba, setAba] = useState<AbaId>("ativas");
   const [filtroDe, setFiltroDe] = useState("");
   const [filtroAte, setFiltroAte] = useState("");
-  const [filtroStatus, setFiltroStatus] = useState("");
   const [busca, setBusca] = useState("");
 
-  const temFiltro = !!(filtroDe || filtroAte || filtroStatus || busca.trim());
+  const temFiltro = !!(filtroDe || filtroAte || busca.trim());
+
+  // Contagem por aba (independe dos filtros de busca/data).
+  const contagens = useMemo(() => {
+    const acc: Record<AbaId, number> = { ativas: 0, finalizadas: 0, arquivadas: 0 };
+    for (const c of campanhas) acc[abaDaCampanha(c)] += 1;
+    return acc;
+  }, [campanhas]);
+
+  // Campanhas da aba ativa (antes dos filtros de busca/data).
+  const campanhasDaAba = useMemo(
+    () => campanhas.filter((c) => abaDaCampanha(c) === aba),
+    [campanhas, aba],
+  );
 
   const campanhasFiltradas = useMemo(() => {
     const termo = busca.trim().toLowerCase();
-    return campanhas.filter((c) => {
-      if (filtroStatus && c.status !== filtroStatus) return false;
+    return campanhasDaAba.filter((c) => {
       if (termo && !c.nome.toLowerCase().includes(termo)) return false;
       if (!intervaloIntercepta(c.data_inicio, c.data_fim, filtroDe, filtroAte)) return false;
       return true;
     });
-  }, [campanhas, filtroDe, filtroAte, filtroStatus, busca]);
+  }, [campanhasDaAba, filtroDe, filtroAte, busca]);
 
   function limparFiltros() {
     setFiltroDe("");
     setFiltroAte("");
-    setFiltroStatus("");
     setBusca("");
   }
 
@@ -139,10 +166,41 @@ export function CampanhasList({
         </div>
         <div className="text-xs text-muted-foreground">
           {temFiltro
-            ? `${campanhasFiltradas.length} de ${campanhas.length} campanha${campanhas.length === 1 ? "" : "s"}`
-            : `${campanhas.length} campanha${campanhas.length === 1 ? "" : "s"}`}
+            ? `${campanhasFiltradas.length} de ${campanhasDaAba.length} nesta aba`
+            : `${campanhas.length} campanha${campanhas.length === 1 ? "" : "s"} no total`}
         </div>
       </div>
+
+      {/* Legenda da hierarquia — pra quem nunca mexeu com anúncio */}
+      <div className="rounded-md border bg-muted/20 px-3 py-2 text-[11px] text-muted-foreground">
+        <strong className="text-foreground">Como funciona:</strong>{" "}
+        <span className="text-foreground">Campanha</span> (o objetivo) ›{" "}
+        <span className="text-foreground">Conjunto</span> (público e orçamento) ›{" "}
+        <span className="text-foreground">Anúncio</span> (o criativo que aparece pras pessoas).
+      </div>
+
+      {/* Abas por situação */}
+      {campanhas.length > 0 && (
+        <div className="flex flex-wrap gap-1 border-b">
+          {ABAS.map((t) => {
+            const ativa = aba === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setAba(t.id)}
+                className={`-mb-px border-b-2 px-3 py-2 text-xs font-medium transition-colors ${
+                  ativa
+                    ? "border-primary text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {t.label} ({contagens[t.id]})
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {campanhas.length > 0 && (
         <div className="flex flex-wrap items-end gap-3 rounded-md border bg-muted/20 p-3">
@@ -181,22 +239,6 @@ export function CampanhasList({
               className="h-8 rounded-md border bg-card px-2 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
             />
           </div>
-          <div>
-            <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-              Status
-            </label>
-            <select
-              value={filtroStatus}
-              onChange={(e) => setFiltroStatus(e.target.value)}
-              className="h-8 rounded-md border bg-card px-2 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              {STATUS_FILTRO.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </div>
           {temFiltro && (
             <button
               type="button"
@@ -215,7 +257,9 @@ export function CampanhasList({
         </Card>
       ) : campanhasFiltradas.length === 0 ? (
         <Card className="p-8 text-center text-sm text-muted-foreground">
-          Nenhuma campanha para os filtros escolhidos.
+          {temFiltro
+            ? "Nenhuma campanha para os filtros escolhidos."
+            : `Nenhuma campanha ${ABAS.find((t) => t.id === aba)?.label.toLowerCase()} por aqui.`}
           {temFiltro && (
             <button
               type="button"
@@ -232,7 +276,6 @@ export function CampanhasList({
             <CampanhaCard
               key={c.id}
               campanha={c}
-              metricasVisiveis={metricasVisiveis}
               agregado={agregados[c.id] ?? {}}
               canManage={canManage}
               clientHasAdAccount={!!metaAdAccountId}
@@ -280,11 +323,23 @@ function gerenciadorUrl(campaignId: string, accountId: string | null): string {
   return `https://business.facebook.com/adsmanager/manage/campaigns?act=${act}&selected_campaign_ids=${campaignId}`;
 }
 
+/** Extrai do agregado (Record chave→valor) só o que o MetricaResumo precisa. */
+function agregadoParaFonte(agregado: Record<string, number>): ResumoFonte {
+  return {
+    spend: agregado.spend,
+    reach: agregado.reach,
+    clicks: agregado.clicks,
+    leads: agregado.leads,
+    conversions: agregado.conversions,
+    cost_per_lead: agregado.cost_per_lead,
+    cost_per_conversion: agregado.cost_per_conversion,
+  };
+}
+
 function CampanhaCard({
-  campanha, metricasVisiveis, agregado, canManage, clientHasAdAccount, clientHasPage, onEdit,
+  campanha, agregado, canManage, clientHasAdAccount, clientHasPage, onEdit,
 }: {
   campanha: CampanhaRow;
-  metricasVisiveis: string[];
   agregado: Record<string, number>;
   canManage: boolean;
   clientHasAdAccount: boolean;
@@ -451,31 +506,11 @@ function CampanhaCard({
         />
       )}
 
-      {/* Métricas — só quando há dados agregados */}
-      {metricasVisiveis.length > 0 && Object.keys(agregado).length > 0 && (
-        <div className="rounded-md border bg-muted/20 p-3">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
-            {metricasVisiveis.map((key) => {
-              const def = METRICA_BY_KEY[key];
-              if (!def) return null;
-              const v = agregado[key];
-              return (
-                <div key={key} className="space-y-0.5">
-                  <p
-                    className="text-[10px] uppercase tracking-wider text-muted-foreground truncate"
-                    title={def.label}
-                  >
-                    {def.label}
-                  </p>
-                  <p className="text-sm font-semibold tabular-nums">
-                    {formatMetricaValor(v ?? null, def.unidade)}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      {/* Resumo visual dos principais números, com explicação pra iniciante */}
+      <MetricaResumo fonte={agregadoParaFonte(agregado)} />
+
+      {/* Drill-down: conjuntos → anúncios (só quando já existe no Meta) */}
+      {jaNoMeta && <CampanhaDrill campanhaId={campanha.id} />}
 
       {campanha.copy && (
         <details className="rounded-md border bg-muted/10 px-3 py-2">
