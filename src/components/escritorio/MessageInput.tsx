@@ -5,7 +5,8 @@ import { Paperclip, Send, X, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { sendChatMessageAction, uploadChatAttachmentAction } from "@/lib/escritorio/actions";
+import { sendChatMessageAction, prepareChatAttachmentUpload } from "@/lib/escritorio/actions";
+import { createClient } from "@/lib/supabase/client";
 import type { ChatMessage } from "@/lib/escritorio/types";
 
 interface Mentionable {
@@ -104,15 +105,23 @@ export function MessageInput({ channelId, mentionables, replyTo, onClearReply, c
     e.target.value = "";
 
     startUpload(async () => {
+      const supabase = createClient();
       for (const file of files) {
-        const fd = new FormData();
-        fd.set("file", file);
-        const r = await uploadChatAttachmentAction(fd);
-        if ("error" in r) {
-          toast.error(r.error);
+        // 1) prepara (só gera o token — arquivo não passa pelo Server Action)
+        const prep = await prepareChatAttachmentUpload(file.name, file.type, file.size);
+        if ("error" in prep) {
+          toast.error(prep.error);
           return;
         }
-        setAttachments((prev) => [...prev, r.url]);
+        // 2) sobe os bytes direto pro Storage (fura o limite de 2MB)
+        const { error: upErr } = await supabase.storage
+          .from("chat-attachments")
+          .uploadToSignedUrl(prep.path, prep.token, file, { contentType: file.type });
+        if (upErr) {
+          toast.error(`Falha no upload: ${upErr.message}`);
+          return;
+        }
+        setAttachments((prev) => [...prev, prep.url]);
       }
     });
   }

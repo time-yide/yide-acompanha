@@ -168,36 +168,44 @@ export async function markChannelReadAction(formData: FormData): Promise<ActionR
   return { success: true };
 }
 
-const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024; // 10 MB
+const MAX_ATTACHMENT_BYTES = 15 * 1024 * 1024; // 15 MB
 const ALLOWED_ATTACHMENT_TYPES = [
   "image/jpeg", "image/png", "image/webp", "image/gif",
   "application/pdf",
 ];
 
-export async function uploadChatAttachmentAction(
-  formData: FormData,
-): Promise<{ error: string } | { success: true; url: string }> {
+/**
+ * Prepara um upload de anexo direto do browser pro Storage.
+ *
+ * IMPORTANTE: o arquivo NÃO passa por Server Action. Server Actions têm teto de
+ * corpo (bodySizeLimit = 2MB neste projeto) — foto de celular (3-8MB) estourava
+ * e falhava o envio. Aqui só geramos um signed upload token (payload minúsculo);
+ * o browser envia os bytes direto pro Storage via `uploadToSignedUrl`. Mesmo
+ * padrão do social-media/editor-ia. Como o bucket é público e o path é
+ * determinístico, já devolvemos a URL pública final.
+ */
+export async function prepareChatAttachmentUpload(
+  fileName: string,
+  fileType: string,
+  fileSize: number,
+): Promise<{ error: string } | { path: string; token: string; url: string }> {
   await requireAuth();
 
-  const file = formData.get("file");
-  if (!(file instanceof File)) return { error: "Arquivo inválido" };
-  if (!ALLOWED_ATTACHMENT_TYPES.includes(file.type)) {
+  if (!ALLOWED_ATTACHMENT_TYPES.includes(fileType)) {
     return { error: "Tipo não suportado (use JPG, PNG, WebP, GIF ou PDF)" };
   }
-  if (file.size > MAX_ATTACHMENT_BYTES) return { error: "Máximo 10MB por arquivo" };
-  if (file.size === 0) return { error: "Arquivo vazio" };
+  if (fileSize <= 0) return { error: "Arquivo vazio" };
+  if (fileSize > MAX_ATTACHMENT_BYTES) return { error: "Máximo 15MB por arquivo" };
 
-  const ext = (file.name.split(".").pop() || "bin").toLowerCase();
-  const filename = `${crypto.randomUUID()}.${ext}`;
-  const path = `chat/${filename}`;
+  const ext = (fileName.split(".").pop() || "bin").toLowerCase();
+  const path = `chat/${crypto.randomUUID()}.${ext}`;
 
   const admin = createServiceRoleClient();
-  const arrayBuffer = await file.arrayBuffer();
-  const { error: upErr } = await admin.storage
-    .from("chat-attachments")
-    .upload(path, arrayBuffer, { contentType: file.type, upsert: false });
-  if (upErr) return { error: `Falha no upload: ${upErr.message}` };
+  const { data, error } = await admin.storage.from("chat-attachments").createSignedUploadUrl(path);
+  if (error || !data?.token) {
+    return { error: error?.message ?? "Erro ao preparar upload" };
+  }
 
-  const { data: pub } = admin.storage.from("chat-attachments").getPublicUrl(path);
-  return { success: true, url: pub.publicUrl };
+  const { data: pub } = admin.storage.from("chat-attachments").getPublicUrl(data.path ?? path);
+  return { path: data.path ?? path, token: data.token, url: pub.publicUrl };
 }
