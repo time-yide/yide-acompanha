@@ -9,7 +9,7 @@ import type { Role } from "@/lib/auth/permissions";
 import { canAccessEcommerce } from "@/lib/ecommerce/access";
 import { canAccessProgramacao } from "@/lib/programacao/access";
 
-export type NavBadgeKey = "recados" | "escritorio" | "yoriProntos";
+export type NavBadgeKey = "recados" | "escritorio" | "yoriProntos" | "solicitacoes";
 
 export interface NavLink {
   type: "link";
@@ -107,7 +107,7 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
       // "Estratégia" acima, que redireciona /social-media → /painel.
       { type: "link", href: "/painel-cliente", icon: IdCard, label: "Painel do cliente", roles: ["adm", "socio", "coordenador", "assessor", "audiovisual_chefe"], badgeKey: null },
       // "Satisfação" saiu do menu — agora aparece como aba dentro de Painel do cliente. URL /satisfacao preservada.
-      { type: "link", href: "/solicitacoes", icon: Inbox, label: "Solicitações", roles: ["adm", "socio", "coordenador", "assessor", "audiovisual_chefe"], badgeKey: null },
+      { type: "link", href: "/solicitacoes", icon: Inbox, label: "Solicitações", roles: ["adm", "socio", "coordenador", "assessor", "audiovisual_chefe"], badgeKey: "solicitacoes" },
       { type: "link", href: "/calendario", icon: Calendar, label: "Calendário Interno", roles: "all", badgeKey: null },
     ],
   },
