@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getEventById } from "@/lib/calendario/queries";
 import { updateEventAction, deleteEventAction } from "@/lib/calendario/actions";
 import { EventForm } from "@/components/calendario/EventForm";
+import { RecurrenceScopeControls } from "@/components/calendario/RecurrenceScopeControls";
 import { ROLES_PODEM_CRIAR_VIDEOMAKER, type SelectableSub, SELECTABLE_SUBS } from "@/lib/calendario/schema";
 import { listVideomakersAtivos } from "@/lib/audiovisual/coord-queries";
 import { canRoleDelegateVideomaker, isVideomakerObrigatorioParaRole } from "@/lib/audiovisual/coord-roles";
@@ -39,6 +40,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
   const canEdit = event.criado_por === user.id || ["adm", "socio"].includes(user.role);
   const canCreateVideomaker = (ROLES_PODEM_CRIAR_VIDEOMAKER as readonly string[]).includes(user.role);
   const isVideomaker = event.sub_calendar === "videomakers";
+  const seriesId: string | null = event.series_id ?? null;
 
   let roteiroUrl = "#";
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -57,9 +59,9 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
     canDelegateVideomaker ? listVideomakersAtivos() : Promise.resolve([]),
   ]);
 
-  async function deleteEvent() {
+  async function deleteEvent(scope: "one" | "following" | "all" = "one") {
     "use server";
-    const result = await deleteEventAction(id);
+    const result = await deleteEventAction(id, scope);
     if (result && "success" in result) redirect("/calendario");
   }
 
@@ -73,12 +75,15 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
         <h1 className="text-2xl font-bold tracking-tight">
           {canEdit ? "Editar evento" : "Evento"}
         </h1>
-        {canEdit && (
-          <form action={deleteEvent}>
+        {canEdit && !seriesId && (
+          <form action={deleteEvent as unknown as () => Promise<void>}>
             <Button type="submit" variant="ghost" size="sm" className="text-destructive">
               <Trash2 className="mr-1 h-4 w-4" />Excluir
             </Button>
           </form>
+        )}
+        {canEdit && seriesId && (
+          <RecurrenceScopeControls editFormId="event-edit-form" deleteAction={deleteEvent} />
         )}
       </header>
 
@@ -150,6 +155,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
         {canEdit ? (
           <EventForm
             action={updateEventAction}
+            formId="event-edit-form"
             defaults={{
               id: event.id,
               titulo: event.titulo,
