@@ -11,6 +11,7 @@ export interface SidebarBadges {
   recados?: number;
   escritorio?: number;
   yoriProntos?: number;
+  solicitacoes?: number;
 }
 
 export function Sidebar({ role, nome, badges, especialidade }: { role: Role; nome: string; badges?: SidebarBadges; especialidade?: string | null }) {

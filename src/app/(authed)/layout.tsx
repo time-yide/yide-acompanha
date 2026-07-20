@@ -14,22 +14,26 @@ import { getEffectiveUnitId, getUnitContext } from "@/lib/units/session";
 import { getProfileIdsForActiveUnit } from "@/lib/units/filter-helpers";
 import { countUndownloadedJobs } from "@/lib/yori/queries";
 import { isYoriEnabled } from "@/lib/yori/feature-flag";
+import { countRequestsAbertas } from "@/lib/portal-requests/queries";
 
 export default async function AuthedLayout({ children }: { children: React.ReactNode }) {
   const user = await requireAuth();
   const isVideomaker = user.role === "videomaker";
+  // Solicitações no menu só pra quem responde (mesmos cargos da página).
+  const veSolicitacoes = ["adm", "socio", "coordenador", "assessor", "audiovisual_chefe"].includes(user.role);
   // Multi-tenant: resolve filtros da unidade ativa pras contagens de badges.
   const [unitProfileIds, unitId] = await Promise.all([
     getProfileIdsForActiveUnit(),
     getEffectiveUnitId(),
   ]);
-  const [recadosNaoLidos, lockState, audiovisualPendentes, escritorioUnread, unitContext, yoriProntos] = await Promise.all([
+  const [recadosNaoLidos, lockState, audiovisualPendentes, escritorioUnread, unitContext, yoriProntos, solicitacoesAbertas] = await Promise.all([
     countRecadosNaoLidos(user.id, unitProfileIds),
     checkSatisfactionLock(user.id, user.role),
     isVideomaker ? listPendenteParaVideomaker(user.id) : Promise.resolve([]),
     countChannelsWithUnread(user.id, user.role, unitId).catch(() => 0),
     getUnitContext().catch(() => null),
     isYoriEnabled() ? countUndownloadedJobs(user.id).catch(() => 0) : Promise.resolve(0),
+    veSolicitacoes ? countRequestsAbertas().catch(() => 0) : Promise.resolve(0),
   ]);
   const audiovisualOverdue = audiovisualPendentes.filter((p) => p.isOverdue);
 
@@ -48,7 +52,7 @@ export default async function AuthedLayout({ children }: { children: React.React
 
   return (
     <div className="flex min-h-screen">
-      <Sidebar role={user.role} nome={user.nome} especialidade={user.especialidade} badges={{ recados: recadosNaoLidos, escritorio: escritorioUnread, yoriProntos }} />
+      <Sidebar role={user.role} nome={user.nome} especialidade={user.especialidade} badges={{ recados: recadosNaoLidos, escritorio: escritorioUnread, yoriProntos, solicitacoes: solicitacoesAbertas }} />
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar
           userId={user.id}
@@ -56,7 +60,7 @@ export default async function AuthedLayout({ children }: { children: React.React
           email={user.email}
           avatarUrl={user.avatarUrl}
           role={user.role}
-          badges={{ recados: recadosNaoLidos, escritorio: escritorioUnread, yoriProntos }}
+          badges={{ recados: recadosNaoLidos, escritorio: escritorioUnread, yoriProntos, solicitacoes: solicitacoesAbertas }}
           unitContext={unitContext}
           especialidade={user.especialidade}
         />
