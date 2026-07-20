@@ -175,7 +175,8 @@ export async function getContasEAnalisesYide(orgId: string): Promise<ContasResul
       .from("clients")
       .select(sel)
       .eq("organization_id", orgId)
-      .ilike("nome", "yide")
+      // Tolerante: casa "Yide", "Yide Digital", "Yide 360" (começa com "yide").
+      .ilike("nome", "yide%")
       .order("created_at", { ascending: true })
       .limit(1);
 
