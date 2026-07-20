@@ -20,6 +20,13 @@ import {
 import { canRoleDelegateVideomaker, isVideomakerObrigatorioParaRole } from "@/lib/audiovisual/coord-roles";
 import { checarBloqueioVideomaker } from "./bloqueio-check";
 import { checarFreelaVideomaker } from "./freela-check";
+import {
+  expandRecurrence,
+  parseRecurrenceFromForm,
+  addMonthsUTC,
+  FOREVER_HORIZON_MONTHS,
+  type RecurrenceRule,
+} from "./recurrence";
 
 function fd(formData: FormData, key: string) {
   const v = formData.get(key);
@@ -268,6 +275,64 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
           videomaker_delegado_em: new Date().toISOString(),
         }
       : { ...basePayload, videomaker_status: "pending_delegation" as const };
+
+  // Recorrência: só vale fora do sub-calendário de gravação (videomakers). A
+  // expansão trabalha nas strings locais ingênuas do form ("YYYY-MM-DDTHH:mm")
+  // e cada ocorrência é convertida pra ISO UTC com brtInputToUtcIso — igual ao
+  // caminho de evento único (basePayload.inicio/fim já são UTC).
+  const recurrence: RecurrenceRule | null = isVideomaker
+    ? null
+    : parseRecurrenceFromForm(formData);
+
+  if (recurrence) {
+    const seriesId = crypto.randomUUID();
+    const horizon = addMonthsUTC(new Date(), FOREVER_HORIZON_MONTHS);
+    const occurrences = expandRecurrence(recurrence, parsed.data.inicio, parsed.data.fim, horizon);
+    if (occurrences.length === 0) return { error: "A recorrência não gerou nenhuma data" };
+
+    const rows = occurrences.map((o, idx) => ({
+      ...basePayload,
+      inicio: brtInputToUtcIso(o.inicio),
+      fim: brtInputToUtcIso(o.fim),
+      series_id: seriesId,
+      // Só a 1ª ocorrência (mestre) carrega a regra — usada pra estender "forever".
+      recurrence_rule: idx === 0 ? (recurrence as unknown as Record<string, unknown>) : null,
+      recurrence_end_kind: idx === 0 ? recurrence.endKind : null,
+    }));
+
+    const { data: createdRows, error: recErr } = await sb
+      .from("calendar_events")
+      .insert(rows)
+      .select("id")
+      .order("inicio", { ascending: true });
+    if (recErr || !createdRows || createdRows.length === 0) {
+      return { error: recErr?.message ?? "Falha ao criar a série de eventos" };
+    }
+    const masterId = createdRows[0].id;
+
+    await logAudit({
+      entidade: "calendar_events",
+      entidade_id: masterId,
+      acao: "create",
+      dados_depois: { serie: seriesId, ocorrencias: createdRows.length, regra: recurrence } as unknown as Record<string, unknown>,
+      ator_id: actor.id,
+    });
+
+    // Notifica os participantes uma vez (no evento mestre, não por ocorrência).
+    after(notifyCalendarParticipants({
+      eventId: masterId,
+      titulo: parsed.data.titulo,
+      inicio: inicioUtc,
+      participantesNovos: participantesFinais,
+      actorId: actor.id,
+      actorNome: actor.nome,
+    }));
+
+    revalidatePath("/calendario");
+    revalidateTag("calendar", "default");
+    revalidateTag("dashboard", "default");
+    redirect(`/calendario`);
+  }
 
   let createResult = await sb
     .from("calendar_events")
