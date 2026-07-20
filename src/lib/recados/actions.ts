@@ -129,6 +129,9 @@ export async function criarRecadoAction(formData: FormData) {
       link: `/recados?aba=privados#${created.id}`,
       user_ids_extras: parsed.data.destinatarios,
       source_user_id: actor.id,
+      // Privado é direcionado a você → alerta forte: som de alarme no sininho,
+      // destaque vermelho no item e push com requireInteraction.
+      prioridade: "urgente",
     });
   } else if (parsed.data.notif_scope !== "nenhum") {
     const recipientIds = await resolveRecipientIds(parsed.data.notif_scope, actor.id);
