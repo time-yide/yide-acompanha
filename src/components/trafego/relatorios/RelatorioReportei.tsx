@@ -57,6 +57,12 @@ export function RelatorioReportei({
   const resultadoAnterior = usaLeads ? ant?.leads : ant?.conversoes;
   const custoResultado = usaLeads ? dados.custo_por_lead : dados.custo_por_conversao;
   const custoLabel = usaLeads ? "Custo por lead" : "Custo por conversão";
+  // Custo por resultado do período anterior derivado de gasto ÷ resultados
+  // (o Meta não devolve o custo direto no período anterior).
+  const custoAnterior =
+    ant?.spend != null && resultadoAnterior != null && resultadoAnterior > 0
+      ? ant.spend / resultadoAnterior
+      : undefined;
 
   const cards = [
     {
@@ -75,8 +81,8 @@ export function RelatorioReportei({
       label: custoLabel,
       valor: custoResultado !== undefined ? fmtMoeda(custoResultado) : "—",
       cor: "#8b5cf6",
-      // Custo: menor é melhor. Sem base anterior direta → omite selo.
-      variacao: null,
+      // Custo: menor é melhor (menorMelhor=true → cair vira verde).
+      variacao: custoResultado !== undefined ? calcVariacao(custoResultado, custoAnterior, true) : null,
     },
     {
       label: "Alcance",
