@@ -268,6 +268,13 @@ interface SyncMetaResultOk {
   campaigns_found: number;
   campaigns_upserted: number;
   metrics_upserted: number;
+  /** Diagnóstico legível do que o Meta retornou (pra UI). */
+  debug?: string;
+}
+
+interface SyncMetaResultErr extends ActionErr {
+  /** Diagnóstico legível, mesmo em erro (quando disponível). */
+  debug?: string;
 }
 
 /**
@@ -279,7 +286,7 @@ interface SyncMetaResultOk {
  */
 export async function syncMetaForClientAction(
   formData: FormData,
-): Promise<SyncMetaResultOk | ActionErr> {
+): Promise<SyncMetaResultOk | SyncMetaResultErr> {
   const actor = await requireAuth();
   if (!canManage(actor.role)) return { error: "Sem permissão" };
 
@@ -288,7 +295,7 @@ export async function syncMetaForClientAction(
 
   const result = await syncMetaForClient(parsed.data.client_id, { daysBack: 7 });
   if (!result.ok) {
-    return { error: result.error ?? "Falha ao sincronizar" };
+    return { error: result.error ?? "Falha ao sincronizar", debug: result.debug };
   }
 
   revalidatePath(`/trafego/${parsed.data.client_id}`);
@@ -297,6 +304,7 @@ export async function syncMetaForClientAction(
     campaigns_found: result.campaigns_found,
     campaigns_upserted: result.campaigns_upserted,
     metrics_upserted: result.metrics_upserted,
+    debug: result.debug,
   };
 }
 

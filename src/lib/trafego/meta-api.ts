@@ -156,19 +156,54 @@ export async function listCampaigns(adAccountId: string): Promise<MetaCampaign[]
   // Por padrão o Meta esconde campanhas ARQUIVADAS (e às vezes as encerradas).
   // Passamos effective_status explícito pra trazer também as antigas/arquivadas
   // (tudo menos DELETED), senão contas com histórico voltam vazias no sync.
-  const effectiveStatus = JSON.stringify([
-    "ACTIVE",
-    "PAUSED",
-    "ARCHIVED",
-    "IN_PROCESS",
-    "WITH_ISSUES",
-  ]);
+  // A lista é ampla de propósito: alguns desses status só aparecem em contas
+  // com histórico de pausas/rejeições/pendências, e omitir qualquer um pode
+  // fazer a conta voltar vazia.
+  const effectiveStatus = JSON.stringify(CAMPAIGN_EFFECTIVE_STATUSES);
 
+  const withFilter = await fetchAllCampaigns(account, fields, effectiveStatus);
+  if (withFilter.length > 0) return withFilter;
+
+  // Fallback: se COM o filtro deu 0, tenta SEM effective_status (default do Meta).
+  // Se o filtro estiver excluindo tudo, o default resgata. Erros da API
+  // (ex.: filtro inválido) propagam como MetaApiError — não engolimos.
+  return fetchAllCampaigns(account, fields, undefined);
+}
+
+/**
+ * Status ampla passada em `effective_status`. Cobre tudo menos DELETED —
+ * inclui os status que o Meta só reporta em campanhas desativadas/pausadas
+ * com histórico (rejeição, revisão, pendência de billing, etc.).
+ */
+const CAMPAIGN_EFFECTIVE_STATUSES = [
+  "ACTIVE",
+  "PAUSED",
+  "ARCHIVED",
+  "IN_PROCESS",
+  "WITH_ISSUES",
+  "CAMPAIGN_PAUSED",
+  "ADSET_PAUSED",
+  "PENDING_REVIEW",
+  "DISAPPROVED",
+  "PREAPPROVED",
+  "PENDING_BILLING_INFO",
+] as const;
+
+/**
+ * Pagina todas as campanhas de uma conta. Se `effectiveStatus` for passado,
+ * filtra por effective_status; senão usa o default do Meta.
+ */
+async function fetchAllCampaigns(
+  account: string,
+  fields: string,
+  effectiveStatus: string | undefined,
+): Promise<MetaCampaign[]> {
   const out: MetaCampaign[] = [];
   // Paginação manual (Meta retorna 25 por padrão; pedimos 100)
   let cursor: string | undefined;
   do {
-    const params: Record<string, string> = { fields, limit: "100", effective_status: effectiveStatus };
+    const params: Record<string, string> = { fields, limit: "100" };
+    if (effectiveStatus) params.effective_status = effectiveStatus;
     if (cursor) params.after = cursor;
     const res: CampaignsListResponse = await metaFetch(`/${account}/campaigns`, params);
     out.push(...res.data);
@@ -176,6 +211,38 @@ export async function listCampaigns(adAccountId: string): Promise<MetaCampaign[]
   } while (cursor && out.length < 500); // hard cap de segurança
 
   return out;
+}
+
+/**
+ * Diagnóstico do sync: faz DUAS chamadas (com e sem effective_status) e
+ * devolve as contagens + uma amostra (até 10) de nome/status pra a gente ver
+ * exatamente o que a Graph API retorna. NÃO expõe o token.
+ */
+export async function debugListCampaigns(adAccountId: string): Promise<{
+  comFiltro: number;
+  semFiltro: number;
+  amostra: Array<{ name: string; status: string; effective_status: string }>;
+}> {
+  const account = normalizeAdAccountId(adAccountId);
+  const fields = ["id", "name", "status", "effective_status"].join(",");
+  const effectiveStatus = JSON.stringify(CAMPAIGN_EFFECTIVE_STATUSES);
+
+  const comFiltroList = await fetchAllCampaigns(account, fields, effectiveStatus);
+  const semFiltroList = await fetchAllCampaigns(account, fields, undefined);
+
+  // Amostra: prefere a lista maior (a que trouxe mais campanhas)
+  const base = semFiltroList.length >= comFiltroList.length ? semFiltroList : comFiltroList;
+  const amostra = base.slice(0, 10).map((c) => ({
+    name: c.name,
+    status: c.status,
+    effective_status: c.effective_status,
+  }));
+
+  return {
+    comFiltro: comFiltroList.length,
+    semFiltro: semFiltroList.length,
+    amostra,
+  };
 }
 
 // ─── Insights (métricas) ─────────────────────────────────────────────────────
