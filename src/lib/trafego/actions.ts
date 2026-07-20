@@ -21,7 +21,11 @@ import {
   criarCreativeMeta,
   criarAdMeta,
   normalizeAdAccountId,
+  listAdSets,
+  listAds,
+  getInsightsAggregate,
   MetaApiError,
+  type MetaInsightsAggregate,
 } from "./meta-api";
 import {
   objetivoParaMeta,
@@ -566,4 +570,171 @@ export async function publicarCampanhaNoMetaAction(
       adId,
     },
   };
+}
+
+// ─── Drill-down ao vivo: conjuntos e anúncios de uma campanha ────────────────
+//
+// Buscam direto no Meta (não persistem) pra a UI abrir a "árvore" campanha →
+// conjunto → anúncio com métricas do período. Nunca vazam o token.
+
+/** Nº de anos pra trás no fallback de período quando a campanha não tem data_inicio. */
+const DRILL_FALLBACK_YEARS = 2;
+
+function drillYearsAgoISO(n: number): string {
+  const d = new Date();
+  d.setUTCFullYear(d.getUTCFullYear() - n);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+}
+
+function drillTodayISO(): string {
+  const d = new Date();
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+}
+
+function budgetFromCents(raw: string | undefined): number | null {
+  if (!raw) return null;
+  const cents = parseInt(raw, 10);
+  return Number.isNaN(cents) ? null : cents / 100;
+}
+
+interface CampanhaParaDrill {
+  external_campaign_id: string;
+  data_inicio: string | null;
+  data_fim: string | null;
+}
+
+/**
+ * Carrega a campanha (com period) garantindo isolamento por organização.
+ * Retorna a campanha ou um erro legível (sem vazar dados de outras orgs).
+ */
+async function carregarCampanhaParaDrill(
+  campanhaId: string,
+): Promise<{ campanha: CampanhaParaDrill } | { error: string }> {
+  const orgId = await getOrganizationId((await requireAuth()).id);
+  if (!orgId) return { error: "Campanha não encontrada" };
+
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const { data: campanha } = await sb
+    .from("trafego_campanhas")
+    .select("id, organization_id, external_campaign_id, data_inicio, data_fim")
+    .eq("id", campanhaId)
+    .is("archived_at", null)
+    .maybeSingle();
+
+  if (!campanha) return { error: "Campanha não encontrada" };
+  if (campanha.organization_id !== orgId) return { error: "Campanha não encontrada" };
+  if (!campanha.external_campaign_id) return { error: "Campanha ainda não está no Meta" };
+
+  return {
+    campanha: {
+      external_campaign_id: campanha.external_campaign_id,
+      data_inicio: campanha.data_inicio ?? null,
+      data_fim: campanha.data_fim ?? null,
+    },
+  };
+}
+
+function periodoDaCampanha(c: CampanhaParaDrill): { since: string; until: string } {
+  return {
+    since: c.data_inicio ?? drillYearsAgoISO(DRILL_FALLBACK_YEARS),
+    until: c.data_fim ?? drillTodayISO(),
+  };
+}
+
+export interface AdSetDrill {
+  id: string;
+  nome: string;
+  status: string;
+  effective_status: string;
+  optimization_goal: string | null;
+  budget: number | null;
+  metricas: MetaInsightsAggregate;
+}
+
+interface GetAdSetsOk { adsets: AdSetDrill[] }
+
+/**
+ * Lista os conjuntos de anúncios de uma campanha local + métricas agregadas do
+ * período de cada um (busca ao vivo no Meta). Permissão + isolamento por org.
+ */
+export async function getCampanhaAdSetsAction(
+  campanhaId: string,
+): Promise<GetAdSetsOk | ActionErr> {
+  const actor = await requireAuth();
+  if (!canManage(actor.role)) return { error: "Sem permissão" };
+
+  const loaded = await carregarCampanhaParaDrill(campanhaId);
+  if ("error" in loaded) return loaded;
+  const { since, until } = periodoDaCampanha(loaded.campanha);
+
+  try {
+    const adsets = await listAdSets(loaded.campanha.external_campaign_id);
+    const out: AdSetDrill[] = [];
+    for (const a of adsets) {
+      const metricas = await getInsightsAggregate(a.id, "adset", since, until);
+      out.push({
+        id: a.id,
+        nome: a.name,
+        status: a.status,
+        effective_status: a.effective_status,
+        optimization_goal: a.optimization_goal ?? null,
+        budget: budgetFromCents(a.daily_budget ?? a.lifetime_budget),
+        metricas,
+      });
+    }
+    return { adsets: out };
+  } catch (e) {
+    if (e instanceof MetaApiError) return { error: `Meta [${e.kind}]: ${e.message}` };
+    return { error: "Falha ao buscar conjuntos no Meta" };
+  }
+}
+
+export interface AdDrill {
+  id: string;
+  nome: string;
+  status: string;
+  effective_status: string;
+  thumbnailUrl?: string;
+  metricas: MetaInsightsAggregate;
+}
+
+interface GetAdsOk { ads: AdDrill[] }
+
+/**
+ * Lista os anúncios de um conjunto (ad set) + métricas agregadas do período da
+ * campanha. `campanhaId` é a campanha local (usada pra período + isolamento por
+ * org); `externalAdsetId` é o ID do conjunto no Meta.
+ */
+export async function getAdSetAdsAction(
+  externalAdsetId: string,
+  campanhaId: string,
+): Promise<GetAdsOk | ActionErr> {
+  const actor = await requireAuth();
+  if (!canManage(actor.role)) return { error: "Sem permissão" };
+
+  const loaded = await carregarCampanhaParaDrill(campanhaId);
+  if ("error" in loaded) return loaded;
+  const { since, until } = periodoDaCampanha(loaded.campanha);
+
+  try {
+    const ads = await listAds(externalAdsetId);
+    const out: AdDrill[] = [];
+    for (const ad of ads) {
+      const metricas = await getInsightsAggregate(ad.id, "ad", since, until);
+      out.push({
+        id: ad.id,
+        nome: ad.name,
+        status: ad.status,
+        effective_status: ad.effective_status,
+        thumbnailUrl: ad.thumbnail_url ?? ad.image_url,
+        metricas,
+      });
+    }
+    return { ads: out };
+  } catch (e) {
+    if (e instanceof MetaApiError) return { error: `Meta [${e.kind}]: ${e.message}` };
+    return { error: "Falha ao buscar anúncios no Meta" };
+  }
 }
