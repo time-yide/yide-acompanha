@@ -153,11 +153,22 @@ export async function listCampaigns(adAccountId: string): Promise<MetaCampaign[]
     "created_time",
   ].join(",");
 
+  // Por padrão o Meta esconde campanhas ARQUIVADAS (e às vezes as encerradas).
+  // Passamos effective_status explícito pra trazer também as antigas/arquivadas
+  // (tudo menos DELETED), senão contas com histórico voltam vazias no sync.
+  const effectiveStatus = JSON.stringify([
+    "ACTIVE",
+    "PAUSED",
+    "ARCHIVED",
+    "IN_PROCESS",
+    "WITH_ISSUES",
+  ]);
+
   const out: MetaCampaign[] = [];
   // Paginação manual (Meta retorna 25 por padrão; pedimos 100)
   let cursor: string | undefined;
   do {
-    const params: Record<string, string> = { fields, limit: "100" };
+    const params: Record<string, string> = { fields, limit: "100", effective_status: effectiveStatus };
     if (cursor) params.after = cursor;
     const res: CampaignsListResponse = await metaFetch(`/${account}/campaigns`, params);
     out.push(...res.data);
