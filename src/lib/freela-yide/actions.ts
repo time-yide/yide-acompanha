@@ -8,6 +8,7 @@ import type { StatusOp } from "./tipos";
 import { criarOportunidadeSchema, editarOportunidadeSchema, moverStatusSchema, definirMetaSchema, normalizeUrgencia } from "./schema";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 import { verificarConquistas } from "./verificar-conquistas";
+import { ROLES_NAO_PEGA } from "./acesso";
 import { brtInputToUtcIso, formatBrtDate, formatBrtTime } from "@/lib/calendario/timezone";
 
 interface Ok { success: true }
@@ -152,7 +153,7 @@ export async function editarOportunidadeAction(formData: FormData): Promise<Resu
 
 export async function pegarOportunidadeAction(id: string): Promise<Result> {
   const actor = await requireAuth();
-  if (actor.role === "adm") return { error: "Adm não pega freela" };
+  if (ROLES_NAO_PEGA.includes(actor.role)) return { error: "Coordenação/gestão não pega freela" };
   const supabase = await createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;

@@ -11,7 +11,7 @@ import { MinhasOportunidades } from "@/components/freela-yide/MinhasOportunidade
 import { RankingPainel } from "@/components/freela-yide/RankingPainel";
 import { NovaOportunidadeButton } from "@/components/freela-yide/NovaOportunidadeButton";
 import { DefinirMetaButton } from "@/components/freela-yide/DefinirMetaButton";
-import { ROLES_ALLOWED, ROLES_GESTAO, ROLES_PODE_CRIAR } from "@/lib/freela-yide/acesso";
+import { ROLES_ALLOWED, ROLES_GESTAO, ROLES_PODE_CRIAR, ROLES_NAO_PEGA } from "@/lib/freela-yide/acesso";
 
 export default async function FreelaYidePage() {
   const user = await requireAuth();
@@ -21,7 +21,7 @@ export default async function FreelaYidePage() {
 
   const gestao = ROLES_GESTAO.includes(user.role);
   const podeCriar = ROLES_PODE_CRIAR.includes(user.role);
-  const podePegar = user.role !== "adm"; // adm não pega freela
+  const podePegar = !ROLES_NAO_PEGA.includes(user.role); // gestão + coordenador não pegam freela
 
   const [todas, minhas, ranking, historico, meta, stats] = await Promise.all([
     listOportunidades(orgId, true),

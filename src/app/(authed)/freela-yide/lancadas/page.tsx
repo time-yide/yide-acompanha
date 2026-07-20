@@ -5,7 +5,7 @@ import { requireAuth } from "@/lib/auth/session";
 import { getOrganizationId, listOportunidades } from "@/lib/freela-yide/queries";
 import { ResumoSubidos } from "@/components/freela-yide/ResumoSubidos";
 import { OportunidadesGrid } from "@/components/freela-yide/OportunidadesGrid";
-import { ROLES_ALLOWED, ROLES_GESTAO, ROLES_PODE_CRIAR } from "@/lib/freela-yide/acesso";
+import { ROLES_ALLOWED, ROLES_GESTAO, ROLES_PODE_CRIAR, ROLES_NAO_PEGA } from "@/lib/freela-yide/acesso";
 
 export default async function LancadasPage() {
   const user = await requireAuth();
@@ -14,7 +14,7 @@ export default async function LancadasPage() {
   if (!orgId) notFound();
 
   const gestao = ROLES_GESTAO.includes(user.role);
-  const podePegar = user.role !== "adm"; // adm não pega freela
+  const podePegar = !ROLES_NAO_PEGA.includes(user.role); // gestão + coordenador não pegam freela
   const todasLancadas = await listOportunidades(orgId, false);
 
   return (
