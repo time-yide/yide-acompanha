@@ -41,6 +41,21 @@ describe("aggregateTemperatura", () => {
     ]);
   });
 
+  it("evento com mais de 24h (bloco longo / erro de data) não conta como carga em horas", () => {
+    const events: TempEvent[] = [
+      // fim com ano errado → ~10 anos de duração. Não deve inflar as horas.
+      ev("2026-07-20T09:00:00Z", "2036-07-20T09:00:00Z", "ana", ["bruno"]),
+      ev("2026-07-21T09:00:00Z", "2026-07-21T10:00:00Z", "ana"), // 60min normal
+    ];
+    const t = aggregateTemperatura(events, team);
+    // ana: 2 eventos, mas só 60min de carga (o de 10 anos vira 0).
+    expect(t.byPerson).toContainEqual({ userId: "ana", count: 2, minutes: 60 });
+    // bruno: participou do evento longo → conta como 1 evento, 0 min.
+    expect(t.byPerson).toContainEqual({ userId: "bruno", count: 1, minutes: 0 });
+    // o evento longo ainda conta no total.
+    expect(t.total).toBe(2);
+  });
+
   it("ignora quem não é do time", () => {
     const events: TempEvent[] = [
       ev("2026-07-20T09:00:00Z", "2026-07-20T10:00:00Z", "estranho", ["outro"]),

@@ -104,7 +104,13 @@ export function aggregateTemperatura(events: TempEvent[], teamMemberIds: string[
     peakByHour[wd][hourOf(e.inicio)] += 1;
     total += 1;
 
-    const minutes = Math.max(0, Math.round((new Date(e.fim).getTime() - new Date(e.inicio).getTime()) / 60000));
+    // Duração em minutos para a "carga". Eventos com mais de 24h são blocos
+    // longos ou erros de data (ex.: fim com o ano errado) — não são carga de
+    // trabalho pontual e distorceriam a soma (um único evento de ~10 anos com o
+    // time todo inflaria a carga de todo mundo igual). Contam como evento, mas
+    // com 0 min de carga.
+    const durMs = new Date(e.fim).getTime() - new Date(e.inicio).getTime();
+    const minutes = durMs > 0 && durMs <= 24 * 60 * 60 * 1000 ? Math.round(durMs / 60000) : 0;
     for (const m of members) {
       const cur = personMap.get(m) ?? { userId: m, count: 0, minutes: 0 };
       cur.count += 1;
@@ -237,7 +243,7 @@ export async function getTemperaturaForCoordinator(
       return _getTemperaturaImpl(coord, refIso, p);
     },
     // v2: shape mudou (peakByHour 7x24, total, range/period) + suporte a período.
-    ["calendario-temperatura-v2"],
+    ["calendario-temperatura-v3"],
     { revalidate: 300, tags: ["calendar"] },
   );
   return cached(JSON.stringify({ coord: coordinatorId, ref: ref.toISOString(), period }));
