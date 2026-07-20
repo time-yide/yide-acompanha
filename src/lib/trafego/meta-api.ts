@@ -258,6 +258,9 @@ export interface MetaInsightDay {
   cpc?: string;
   cpm?: string;
   frequency?: string;
+  /** Ações (leads, conversões, etc.). Só vem quando pedimos `actions` nos fields. */
+  actions?: Array<{ action_type: string; value: string }>;
+  cost_per_action_type?: Array<{ action_type: string; value: string }>;
 }
 
 interface InsightsResponse {
@@ -265,7 +268,17 @@ interface InsightsResponse {
   paging?: { next?: string };
 }
 
-/** Busca insights diários de UMA campanha pra um range de datas. */
+/**
+ * Action types que consideramos "lead" e "conversão" ao extrair de `actions`.
+ * Reusado pelo sync e pelos agregados de drill-down.
+ */
+export const LEAD_ACTION_TYPES = ["lead", "leadgen.other"];
+export const CONVERSION_ACTION_TYPES = ["offsite_conversion", "purchase", "complete_registration"];
+
+/**
+ * Busca insights diários de UMA campanha pra um range de datas.
+ * Traz também `actions`/`cost_per_action_type` pra o sync extrair leads/conversões.
+ */
 export async function getCampaignInsights(
   campaignId: string,
   sinceISO: string,
@@ -280,6 +293,8 @@ export async function getCampaignInsights(
     "cpc",
     "cpm",
     "frequency",
+    "actions",
+    "cost_per_action_type",
   ].join(",");
 
   const out: MetaInsightDay[] = [];
@@ -295,6 +310,213 @@ export async function getCampaignInsights(
   const res: InsightsResponse = await metaFetch(`/${campaignId}/insights`, params);
   out.push(...res.data);
   return out;
+}
+
+// ─── Conjuntos de anúncios (ad sets) e anúncios (ads) ────────────────────────
+
+export interface MetaAdSet {
+  id: string;
+  name: string;
+  status: string;
+  effective_status: string;
+  daily_budget?: string; // centavos
+  lifetime_budget?: string; // centavos
+  optimization_goal?: string;
+  start_time?: string;
+  end_time?: string;
+}
+
+interface AdSetsListResponse {
+  data: MetaAdSet[];
+  paging?: { cursors?: { after?: string }; next?: string };
+}
+
+/** Lista os conjuntos de anúncios (ad sets) de uma campanha. */
+export async function listAdSets(campaignId: string): Promise<MetaAdSet[]> {
+  const fields = [
+    "id",
+    "name",
+    "status",
+    "effective_status",
+    "daily_budget",
+    "lifetime_budget",
+    "optimization_goal",
+    "start_time",
+    "end_time",
+  ].join(",");
+
+  const out: MetaAdSet[] = [];
+  let cursor: string | undefined;
+  do {
+    const params: Record<string, string> = { fields, limit: "100" };
+    if (cursor) params.after = cursor;
+    const res: AdSetsListResponse = await metaFetch(`/${campaignId}/adsets`, params);
+    out.push(...res.data);
+    cursor = res.paging?.cursors?.after && res.paging?.next ? res.paging.cursors.after : undefined;
+  } while (cursor && out.length < 500);
+
+  return out;
+}
+
+export interface MetaAd {
+  id: string;
+  name: string;
+  status: string;
+  effective_status: string;
+  creative?: {
+    id?: string;
+    thumbnail_url?: string;
+    image_url?: string;
+    body?: string;
+    title?: string;
+  };
+  /** Atalhos vindos do creative, quando houver. */
+  thumbnail_url?: string;
+  image_url?: string;
+}
+
+interface AdsListResponse {
+  data: Array<{
+    id: string;
+    name: string;
+    status: string;
+    effective_status: string;
+    creative?: {
+      id?: string;
+      thumbnail_url?: string;
+      image_url?: string;
+      body?: string;
+      title?: string;
+    };
+  }>;
+  paging?: { cursors?: { after?: string }; next?: string };
+}
+
+/** Lista os anúncios (ads) de um conjunto (ad set), com dados do criativo. */
+export async function listAds(adsetId: string): Promise<MetaAd[]> {
+  const fields = [
+    "id",
+    "name",
+    "status",
+    "effective_status",
+    "creative{id,thumbnail_url,image_url,body,title}",
+  ].join(",");
+
+  const out: MetaAd[] = [];
+  let cursor: string | undefined;
+  do {
+    const params: Record<string, string> = { fields, limit: "100" };
+    if (cursor) params.after = cursor;
+    const res: AdsListResponse = await metaFetch(`/${adsetId}/ads`, params);
+    for (const r of res.data) {
+      out.push({
+        ...r,
+        thumbnail_url: r.creative?.thumbnail_url,
+        image_url: r.creative?.image_url,
+      });
+    }
+    cursor = res.paging?.cursors?.after && res.paging?.next ? res.paging.cursors.after : undefined;
+  } while (cursor && out.length < 500);
+
+  return out;
+}
+
+// ─── Insights agregados por objeto (campaign|adset|ad) num período ───────────
+
+export interface MetaInsightsAggregate {
+  spend: number;
+  impressions: number;
+  reach: number;
+  clicks: number;
+  ctr: number;
+  cpc: number;
+  cpm: number;
+  frequency: number;
+  leads?: number;
+  conversions?: number;
+  cost_per_lead?: number;
+  cost_per_conversion?: number;
+}
+
+interface ObjectAggregateRow {
+  spend?: string;
+  impressions?: string;
+  reach?: string;
+  clicks?: string;
+  ctr?: string;
+  cpc?: string;
+  cpm?: string;
+  frequency?: string;
+  actions?: Array<{ action_type: string; value: string }>;
+  cost_per_action_type?: Array<{ action_type: string; value: string }>;
+}
+
+interface ObjectAggregateResponse {
+  data: ObjectAggregateRow[];
+}
+
+/**
+ * Insights agregados (única linha) de UM objeto — campanha, conjunto ou anúncio —
+ * num período. Retorna zeros quando não há dados. Extrai leads/conversões de
+ * `actions`/`cost_per_action_type` via `pickAction`.
+ */
+export async function getInsightsAggregate(
+  objectId: string,
+  level: "campaign" | "adset" | "ad",
+  sinceISO: string,
+  untilISO: string,
+): Promise<MetaInsightsAggregate> {
+  const fields = [
+    "spend",
+    "impressions",
+    "reach",
+    "clicks",
+    "ctr",
+    "cpc",
+    "cpm",
+    "frequency",
+    "actions",
+    "cost_per_action_type",
+  ].join(",");
+  const params: Record<string, string> = {
+    fields,
+    time_range: JSON.stringify({ since: sinceISO, until: untilISO }),
+    level,
+    limit: "1",
+  };
+
+  const res: ObjectAggregateResponse = await metaFetch(`/${objectId}/insights`, params);
+  const row = res.data[0];
+  const num = (v: string | undefined): number => {
+    const n = v ? Number(v) : 0;
+    return Number.isFinite(n) ? n : 0;
+  };
+  if (!row) {
+    return {
+      spend: 0, impressions: 0, reach: 0, clicks: 0,
+      ctr: 0, cpc: 0, cpm: 0, frequency: 0,
+    };
+  }
+
+  const leads = pickAction(row.actions, LEAD_ACTION_TYPES);
+  const conversions = pickAction(row.actions, CONVERSION_ACTION_TYPES);
+  const cost_per_lead = pickAction(row.cost_per_action_type, LEAD_ACTION_TYPES);
+  const cost_per_conversion = pickAction(row.cost_per_action_type, CONVERSION_ACTION_TYPES);
+
+  return {
+    spend: num(row.spend),
+    impressions: num(row.impressions),
+    reach: num(row.reach),
+    clicks: num(row.clicks),
+    ctr: num(row.ctr),
+    cpc: num(row.cpc),
+    cpm: num(row.cpm),
+    frequency: num(row.frequency),
+    leads,
+    conversions,
+    cost_per_lead,
+    cost_per_conversion,
+  };
 }
 
 // ─── Insights agregados (para relatórios mensais) ───────────────────────────
@@ -330,7 +552,7 @@ interface AggregateInsightsResponse {
   data: AggregateInsightsRow[];
 }
 
-function pickAction(rows: Array<{ action_type: string; value: string }> | undefined, types: string[]): number | undefined {
+export function pickAction(rows: Array<{ action_type: string; value: string }> | undefined, types: string[]): number | undefined {
   if (!rows) return undefined;
   let total = 0;
   let any = false;
