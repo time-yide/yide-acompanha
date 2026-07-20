@@ -1,0 +1,12 @@
+-- Torna o bucket de criativos de social público.
+--
+-- Motivo: a mídia dos posts (imagens/vídeos) era servida por signed URL de 7
+-- dias (createSignedUrl). Depois de 7 dias a URL expirava e quebrava: o preview
+-- no editor, a escolha de capa do reels e — pior — a publicação (o Post for Me
+-- e o Meta baixam a mídia por essa URL na hora de postar, inclusive em posts
+-- agendados pra dias depois). Com o bucket público a URL é permanente.
+--
+-- Os objetos têm path com UUID aleatório (org/cliente/<timestamp>-<uuid>.ext),
+-- então não são enumeráveis. Mesmo padrão dos buckets já públicos do projeto
+-- (avatars, blog, chat-attachments, task-attachments).
+update storage.buckets set public = true where id = 'social-media-creatives';
