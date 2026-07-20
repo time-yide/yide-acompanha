@@ -17,3 +17,10 @@ create index if not exists idx_calendar_events_series
 create index if not exists idx_calendar_events_forever_master
   on public.calendar_events(series_id)
   where recurrence_end_kind = 'forever';
+
+-- Idempotência por construção: impede ocorrência duplicada (mesmo series_id +
+-- inicio) num re-trigger/retry do cron de extensão. Parcial pra não afetar
+-- eventos únicos (series_id null).
+create unique index if not exists uq_calendar_events_series_inicio
+  on public.calendar_events(series_id, inicio)
+  where series_id is not null;

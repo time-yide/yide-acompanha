@@ -680,17 +680,25 @@ export async function deleteEventAction(eventId: string, scope: EditScope = "one
   const seriesId = (before as { series_id: string | null } | null)?.series_id ?? null;
   const inicioAtual = (before as { inicio: string } | null)?.inicio ?? "";
 
+  // .select("id") + check de linhas afetadas: a RLS pode negar o DELETE
+  // silenciosamente (error:null, 0 rows). Sem isso, reportaríamos sucesso falso.
   let delErr: string | undefined;
+  let deletedRows: unknown[] | undefined;
   if (!seriesId || scope === "one") {
-    const { error } = await sb.from("calendar_events").delete().eq("id", eventId);
+    const { data, error } = await sb.from("calendar_events").delete().eq("id", eventId).select("id");
     delErr = error?.message;
+    deletedRows = data ?? undefined;
   } else {
     let q = sb.from("calendar_events").delete().eq("series_id", seriesId);
     if (scope === "following") q = q.gte("inicio", inicioAtual);
-    const { error } = await q;
+    const { data, error } = await q.select("id");
     delErr = error?.message;
+    deletedRows = data ?? undefined;
   }
   if (delErr) return { error: delErr };
+  if (!deletedRows || deletedRows.length === 0) {
+    return { error: "Você não tem permissão para excluir este evento." };
+  }
 
   await logAudit({
     entidade: "calendar_events",

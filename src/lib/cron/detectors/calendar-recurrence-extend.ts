@@ -45,7 +45,7 @@ export async function runCalendarRecurrenceExtend() {
       .eq("series_id", m.series_id as string)
       .order("inicio", { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
     if (!last) continue;
 
     const lastInicioLocal = utcIsoToBrtInputValue(last.inicio as string);
