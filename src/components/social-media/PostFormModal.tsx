@@ -1,14 +1,17 @@
 "use client";
 
-import { useState, useTransition, useRef } from "react";
-import { Upload, X, Sparkles } from "lucide-react";
+import { useState, useTransition, useRef, type ComponentType } from "react";
+import {
+  Upload, X, Sparkles, Check,
+  LayoutGrid, GalleryHorizontalEnd, Circle, Clapperboard, ImagePlus,
+} from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
+import { cn } from "@/lib/utils";
 import {
   createSocialPostAction, updateSocialPostAction,
   prepareSocialMidiaUploadAction, finalizeSocialMidiaUploadAction,
@@ -27,6 +30,57 @@ interface Props {
   /** Pré-preenche data ao criar (do click no calendário). */
   defaultDate?: string;
 }
+
+type IconType = ComponentType<{ className?: string }>;
+
+/**
+ * Ícones de marca inline (SVG monocromático, herdam a cor via currentColor).
+ * O lucide desta versão não exporta glifos de marca (trademark), então usamos
+ * os paths do Simple Icons.
+ */
+function makeBrandIcon(path: string): IconType {
+  function BrandIcon({ className }: { className?: string }) {
+    return (
+      <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden="true">
+        <path d={path} />
+      </svg>
+    );
+  }
+  return BrandIcon;
+}
+
+/** Ícone por rede. */
+const REDE_ICON: Record<string, IconType> = {
+  instagram: makeBrandIcon(
+    "M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z",
+  ),
+  facebook: makeBrandIcon(
+    "M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z",
+  ),
+  linkedin: makeBrandIcon(
+    "M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.225 0z",
+  ),
+  tiktok: makeBrandIcon(
+    "M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z",
+  ),
+  youtube: makeBrandIcon(
+    "M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z",
+  ),
+  gmn: makeBrandIcon(
+    "M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z",
+  ),
+};
+
+/** Rótulo curto pros tiles (o nome cheio não cabe). */
+const REDE_LABEL_CURTO: Record<string, string> = { gmn: "Google" };
+
+/** Ícone por formato de post. */
+const FORMATO_ICON: Record<string, IconType> = {
+  feed: LayoutGrid,
+  carrossel: GalleryHorizontalEnd,
+  story: Circle,
+  reels: Clapperboard,
+};
 
 /**
  * Converte ISO UTC → string pra <input type=datetime-local>, sempre no fuso
@@ -227,61 +281,101 @@ export function PostFormModal({ open, onOpenChange, clientId, post, defaultDate 
           {/* Mídias primeiro */}
           <div className="space-y-2">
             <Label>Mídias *</Label>
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-              {midias.map((url, i) => (
-                <div key={i} className="relative aspect-square overflow-hidden rounded-md border bg-muted/40">
-                  {url.match(/\.(mp4|mov|webm)$/i) ? (
-                    // eslint-disable-next-line jsx-a11y/media-has-caption
-                    <video src={url} className="h-full w-full object-cover" />
-                  ) : (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={url} alt={`Mídia ${i + 1}`} className="h-full w-full object-cover" />
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => removerMidia(i)}
-                    className="absolute top-1 right-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-background/80 text-destructive hover:bg-destructive hover:text-white"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
-              <label className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-md border-2 border-dashed border-muted-foreground/30 bg-muted/20 text-[10px] text-muted-foreground hover:bg-muted/40">
-                {uploading ? <span>Enviando...</span> : <><Upload className="h-4 w-4" /><span>Enviar</span></>}
+            {midias.length === 0 ? (
+              // Vazio: dropzone grande e convidativo
+              <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-primary/30 bg-primary/[0.03] px-4 py-8 text-center transition-colors hover:border-primary/50 hover:bg-primary/[0.06]">
+                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  {uploading ? <Upload className="h-5 w-5 animate-pulse" /> : <ImagePlus className="h-5 w-5" />}
+                </span>
+                <span className="text-sm font-medium">
+                  {uploading ? "Enviando..." : "Arraste ou clique para enviar"}
+                </span>
+                <span className="text-[11px] text-muted-foreground">
+                  JPG/PNG/WebP/GIF/MP4/MOV · até 50MB · carrossel = várias imagens
+                </span>
                 <input type="file" multiple accept="image/*,video/*" className="hidden" onChange={onUpload} disabled={uploading} />
               </label>
-            </div>
-            <p className="text-[10px] text-muted-foreground">
-              JPG/PNG/WebP/GIF/MP4/MOV. Max 50MB. Carrossel = múltiplas imagens.
-            </p>
+            ) : (
+              <>
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+                  {midias.map((url, i) => (
+                    <div key={i} className="group relative aspect-square overflow-hidden rounded-lg border bg-muted/40">
+                      {url.match(/\.(mp4|mov|webm)$/i) ? (
+                        <video src={url} muted className="h-full w-full object-cover" />
+                      ) : (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={url} alt={`Mídia ${i + 1}`} className="h-full w-full object-cover" />
+                      )}
+                      {i === 0 && (
+                        <span className="absolute bottom-1 left-1 rounded bg-background/80 px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground">
+                          capa
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removerMidia(i)}
+                        className="absolute top-1 right-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-background/80 text-destructive opacity-0 transition-opacity hover:bg-destructive hover:text-white group-hover:opacity-100"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                  <label className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 text-[10px] text-muted-foreground transition-colors hover:border-primary/40 hover:bg-muted/40">
+                    {uploading ? <span>Enviando...</span> : <><Upload className="h-4 w-4" /><span>Adicionar</span></>}
+                    <input type="file" multiple accept="image/*,video/*" className="hidden" onChange={onUpload} disabled={uploading} />
+                  </label>
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  A 1ª mídia é a capa · JPG/PNG/WebP/GIF/MP4/MOV · até 50MB
+                </p>
+              </>
+            )}
           </div>
 
-          {/* Título interno + formato + status */}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <div className="space-y-1.5 sm:col-span-3">
-              <Label htmlFor="titulo">Título interno (opcional)</Label>
-              <Input
-                id="titulo"
-                name="titulo"
-                defaultValue={post?.titulo ?? ""}
-                placeholder="Ex.: BlackFriday Slide 1"
-                maxLength={200}
-              />
-              <p className="text-[10px] text-muted-foreground">Só pra você organizar, não vai aparecer no post.</p>
-            </div>
+          {/* Título interno */}
+          <div className="space-y-1.5">
+            <Label htmlFor="titulo">Título interno (opcional)</Label>
+            <Input
+              id="titulo"
+              name="titulo"
+              defaultValue={post?.titulo ?? ""}
+              placeholder="Ex.: BlackFriday Slide 1"
+              maxLength={200}
+            />
+            <p className="text-[10px] text-muted-foreground">Só pra você organizar, não vai aparecer no post.</p>
+          </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="formato">Formato</Label>
-              <Select value={formato} onValueChange={(v) => setFormato(v ?? "feed")}>
-                <SelectTrigger id="formato"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {FORMATOS.map((f) => (
-                    <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          {/* Formato como chips visuais */}
+          <div className="space-y-2">
+            <Label>Formato</Label>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {FORMATOS.map((f) => {
+                const Icon = FORMATO_ICON[f.value];
+                const active = formato === f.value;
+                return (
+                  <button
+                    key={f.value}
+                    type="button"
+                    onClick={() => setFormato(f.value)}
+                    className={cn(
+                      "flex flex-col items-start gap-1 rounded-xl border p-2.5 text-left transition-all",
+                      active
+                        ? "border-primary bg-primary/10 ring-1 ring-inset ring-primary/30"
+                        : "border-border bg-card hover:bg-muted/40",
+                    )}
+                  >
+                    <span className={cn("flex items-center gap-1.5 text-sm font-medium", active ? "text-primary" : "text-foreground")}>
+                      {Icon && <Icon className="h-4 w-4" />} {f.label}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">{f.descricao}</span>
+                  </button>
+                );
+              })}
             </div>
+          </div>
 
+          {/* Status + Data/hora */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="status">Status</Label>
               <Select value={status} onValueChange={(v) => setStatus(v ?? "rascunho")}>
@@ -299,33 +393,48 @@ export function PostFormModal({ open, onOpenChange, clientId, post, defaultDate 
               <Input
                 id="agendar_para"
                 type="datetime-local"
+                className="w-full"
                 value={agendar}
                 onChange={(e) => setAgendar(e.target.value)}
               />
             </div>
           </div>
 
-          {/* Redes */}
-          <div className="space-y-1.5">
+          {/* Redes: tiles com ícone da marca */}
+          <div className="space-y-2">
             <Label>Publicar em *</Label>
-            <div className="flex flex-wrap gap-2">
-              {REDES.map((r) => (
-                <label
-                  key={r.value}
-                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs cursor-pointer ${redes.includes(r.value) ? r.color : "border-border bg-card text-muted-foreground"}`}
-                >
-                  <Checkbox
-                    checked={redes.includes(r.value)}
-                    onCheckedChange={() => toggleRede(r.value)}
-                  />
-                  {r.label}
-                  {r.comingSoon && (
-                    <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 text-[9px] text-amber-700 dark:text-amber-300">
-                      Fase 4
-                    </span>
-                  )}
-                </label>
-              ))}
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+              {REDES.map((r) => {
+                const Icon = REDE_ICON[r.value];
+                const active = redes.includes(r.value);
+                return (
+                  <button
+                    key={r.value}
+                    type="button"
+                    onClick={() => toggleRede(r.value)}
+                    aria-pressed={active}
+                    className={cn(
+                      "relative flex flex-col items-center gap-1.5 rounded-xl border p-3 text-xs font-medium transition-all",
+                      active
+                        ? cn(r.color, "ring-1 ring-inset")
+                        : "border-border bg-card text-muted-foreground hover:bg-muted/40",
+                    )}
+                  >
+                    {Icon && <Icon className="h-5 w-5" />}
+                    <span className="leading-none">{REDE_LABEL_CURTO[r.value] ?? r.label}</span>
+                    {active && (
+                      <span className="absolute -right-1.5 -top-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
+                        <Check className="h-2.5 w-2.5" />
+                      </span>
+                    )}
+                    {r.comingSoon && (
+                      <span className="absolute -bottom-1.5 rounded-full border border-amber-500/40 bg-amber-500/10 px-1 text-[8px] leading-tight text-amber-600 dark:text-amber-300">
+                        Fase 4
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
