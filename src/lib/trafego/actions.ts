@@ -4,6 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/auth/session";
+import { getOrganizationId } from "@/lib/gerador-leads/queries";
 import {
   createCampanhaSchema,
   updateCampanhaSchema,
@@ -350,6 +351,10 @@ export async function publicarCampanhaNoMetaAction(
     return { error: parsed.error.issues[0].message, passoQueFalhou: "validacao" };
   }
 
+  // Organização do ator — checagem explícita de multi-tenant (não confia só na RLS)
+  const orgId = await getOrganizationId(actor.id);
+  if (!orgId) return { error: "Campanha não encontrada", passoQueFalhou: "validacao" };
+
   const supabase = await createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
@@ -358,12 +363,17 @@ export async function publicarCampanhaNoMetaAction(
   const { data: campanha } = await sb
     .from("trafego_campanhas")
     .select(
-      "id, client_id, plataforma, nome, objetivo, link_destino, copy, criativo_url, data_inicio, data_fim, external_ad_id",
+      "id, client_id, organization_id, plataforma, nome, objetivo, link_destino, copy, criativo_url, data_inicio, data_fim, external_account_id, external_campaign_id, external_adset_id, external_ad_id",
     )
     .eq("id", parsed.data.campanha_id)
     .is("archived_at", null)
     .maybeSingle();
   if (!campanha) return { error: "Campanha não encontrada", passoQueFalhou: "validacao" };
+
+  // Isolamento explícito: campanha tem que ser da org do ator (msg genérica, sem vazar)
+  if (campanha.organization_id !== orgId) {
+    return { error: "Campanha não encontrada", passoQueFalhou: "validacao" };
+  }
 
   if (campanha.external_ad_id) {
     return { error: "Campanha já publicada no Meta (pausada)", passoQueFalhou: "validacao" };
@@ -417,6 +427,14 @@ export async function publicarCampanhaNoMetaAction(
     return { error: e instanceof Error ? e.message : "Orçamento inválido", passoQueFalhou: "validacao" };
   }
 
+  if (
+    parsed.data.idade_min != null &&
+    parsed.data.idade_max != null &&
+    parsed.data.idade_min > parsed.data.idade_max
+  ) {
+    return { error: "Idade mínima não pode ser maior que a máxima", passoQueFalhou: "validacao" };
+  }
+
   const targeting = montarTargeting({
     paises: parsed.data.paises,
     idadeMin: parsed.data.idade_min,
@@ -447,39 +465,49 @@ export async function publicarCampanhaNoMetaAction(
     return { error: `Falha ao criar ${passo} no Meta: ${String(e)}`, passoQueFalhou: passo };
   };
 
-  // 1) Campanha
+  // 1) Campanha — reusa o ID já persistido (retry após falha parcial não duplica)
+  const campanhaIdExistente = (campanha.external_campaign_id ?? "").trim() || null;
   let campaignId: string;
-  try {
-    const r = await criarCampanhaMeta(adAccountId, { nome: nomeBase, objective: objMap.objective });
-    campaignId = r.id;
-  } catch (e) {
-    return metaErr(e, "campanha");
+  if (campanhaIdExistente) {
+    campaignId = campanhaIdExistente;
+  } else {
+    try {
+      const r = await criarCampanhaMeta(adAccountId, { nome: nomeBase, objective: objMap.objective });
+      campaignId = r.id;
+    } catch (e) {
+      return metaErr(e, "campanha");
+    }
+    await sb
+      .from("trafego_campanhas")
+      .update({ external_campaign_id: campaignId })
+      .eq("id", campanha.id);
   }
-  await sb
-    .from("trafego_campanhas")
-    .update({ external_campaign_id: campaignId })
-    .eq("id", campanha.id);
 
-  // 2) Ad set
+  // 2) Ad set — reusa o ID já persistido (retry não duplica estrutura de gasto)
+  const adsetIdExistente = (campanha.external_adset_id ?? "").trim() || null;
   let adsetId: string;
-  try {
-    const r = await criarAdSetMeta(adAccountId, {
-      nome: `${nomeBase} — Conjunto`,
-      campaignId,
-      dailyBudgetCents,
-      optimizationGoal: objMap.optimizationGoal,
-      targeting,
-      startTime,
-      endTime,
-    });
-    adsetId = r.id;
-  } catch (e) {
-    return metaErr(e, "adset");
+  if (adsetIdExistente) {
+    adsetId = adsetIdExistente;
+  } else {
+    try {
+      const r = await criarAdSetMeta(adAccountId, {
+        nome: `${nomeBase} — Conjunto`,
+        campaignId,
+        dailyBudgetCents,
+        optimizationGoal: objMap.optimizationGoal,
+        targeting,
+        startTime,
+        endTime,
+      });
+      adsetId = r.id;
+    } catch (e) {
+      return metaErr(e, "adset");
+    }
+    await sb
+      .from("trafego_campanhas")
+      .update({ external_adset_id: adsetId })
+      .eq("id", campanha.id);
   }
-  await sb
-    .from("trafego_campanhas")
-    .update({ external_adset_id: adsetId })
-    .eq("id", campanha.id);
 
   // 3) Criativo
   let creativeId: string;
