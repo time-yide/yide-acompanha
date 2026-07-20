@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, Share2, Sparkles } from "lucide-react";
+import { ArrowRight, Share2 } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import { listClientesSocial } from "@/lib/social-media/queries";
 import { getEffectiveUnitId } from "@/lib/units/session";
@@ -57,10 +57,8 @@ export default async function SocialMediaListPage({
             <Share2 className="h-6 w-6 text-primary" /> Agendamento de Post
           </h1>
           <p className="text-sm text-muted-foreground">
-            Gestão de postagens estilo mLabs. Calendário visual + agendamento
-            por cliente. Mostra só clientes com social media no pacote
-            (Tráfego+Estratégia, Estratégia, Yide 360°). Publicação automática
-            Meta chega na Fase 2.
+            Crie, agende e publique os posts de cada cliente. Clique num cliente
+            para abrir o calendário.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -70,17 +68,6 @@ export default async function SocialMediaListPage({
           <KpiTile label="Publicados" value={totalPublicados} accent="emerald" />
         </div>
       </header>
-
-      <Card className="border-primary/30 bg-primary/5 p-3 flex items-start gap-2 text-xs">
-        <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-        <div>
-          <strong className="text-foreground">Fase 1 (essa):</strong> calendário, criação e
-          agendamento manual. Status workflow completo.
-          {" "}
-          <strong className="text-foreground">Próxima fase:</strong> publicação automática
-          via Meta Graph API (Instagram Feed/Carrossel/Reels + Facebook Page).
-        </div>
-      </Card>
 
       <form method="get" className="flex gap-2">
         <input
@@ -123,23 +110,26 @@ export default async function SocialMediaListPage({
                   </div>
                   <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
                 </div>
-                <div className="mt-3 grid grid-cols-3 gap-1 text-center">
-                  <div>
-                    <p className="text-base font-bold tabular-nums">{c.total_posts}</p>
-                    <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Total</p>
-                  </div>
-                  <div>
-                    <p className="text-base font-bold tabular-nums text-violet-600 dark:text-violet-400">
-                      {c.posts_agendados}
-                    </p>
-                    <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Agendados</p>
-                  </div>
-                  <div>
-                    <p className="text-base font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
-                      {c.posts_publicados}
-                    </p>
-                    <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Publicados</p>
-                  </div>
+                <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                  {c.total_posts === 0 ? (
+                    <span className="text-muted-foreground">Sem posts ainda</span>
+                  ) : (
+                    <>
+                      <span className="font-medium tabular-nums">
+                        {c.total_posts} {c.total_posts === 1 ? "post" : "posts"}
+                      </span>
+                      {c.posts_agendados > 0 && (
+                        <span className="tabular-nums text-violet-600 dark:text-violet-400">
+                          {c.posts_agendados} agendado{c.posts_agendados > 1 ? "s" : ""}
+                        </span>
+                      )}
+                      {c.posts_publicados > 0 && (
+                        <span className="tabular-nums text-emerald-600 dark:text-emerald-400">
+                          {c.posts_publicados} publicado{c.posts_publicados > 1 ? "s" : ""}
+                        </span>
+                      )}
+                    </>
+                  )}
                 </div>
                 {temContas && (
                   <div className="mt-2 flex flex-wrap gap-1">
