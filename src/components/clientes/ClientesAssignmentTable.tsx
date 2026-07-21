@@ -16,6 +16,7 @@ import { AssignmentPopover } from "./AssignmentPopover";
 import { BulkAssignmentBar } from "./BulkAssignmentBar";
 import { StatusPopover } from "./StatusPopover";
 import { ServicoPopover } from "./ServicoPopover";
+import { MotivoChurnPopover } from "./MotivoChurnPopover";
 import { ValorMensalPopover } from "./ValorMensalPopover";
 import type { ClienteRow } from "@/lib/clientes/queries";
 
@@ -113,6 +114,7 @@ export function ClientesAssignmentTable({
             <TableHead>Serviço</TableHead>
             <TableHead>Assessor</TableHead>
             <TableHead>Coordenador</TableHead>
+            <TableHead>Motivo</TableHead>
             {canSeeMoney && (
               <TableHead className="text-right">Valor mensal</TableHead>
             )}
@@ -122,7 +124,7 @@ export function ClientesAssignmentTable({
           {filteredRows.length === 0 && (
             <TableRow>
               <TableCell
-                colSpan={canSeeMoney ? 7 : 6}
+                colSpan={canSeeMoney ? 8 : 7}
                 className="py-8 text-center text-sm text-muted-foreground"
               >
                 Nenhum cliente encontrado.
@@ -177,6 +179,17 @@ export function ClientesAssignmentTable({
                     currentId={r.coordenador_id ?? null}
                     options={coordenadores}
                   />
+                </TableCell>
+                <TableCell className="text-sm">
+                  {r.status === "churn" ? (
+                    <MotivoChurnPopover
+                      clienteId={r.id}
+                      currentCategoria={r.motivo_churn_categoria ?? null}
+                      currentDetalhe={r.motivo_churn ?? null}
+                    />
+                  ) : (
+                    <span className="text-muted-foreground/40">—</span>
+                  )}
                 </TableCell>
                 {canSeeMoney && (
                   <TableCell className="text-right">

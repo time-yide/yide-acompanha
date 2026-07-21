@@ -8,7 +8,7 @@ import { requireAuth } from "@/lib/auth/session";
 import { logAudit } from "@/lib/audit/log";
 import { logActivityInternal } from "@/lib/produtividade/actions";
 import { PAINEL_CACHE_TAG } from "@/lib/painel/queries";
-import { createClienteSchema, editClienteSchema, churnClienteSchema, churnMotivoLabel, inferTipoPacote, TIPOS_RELACAO } from "./schema";
+import { createClienteSchema, editClienteSchema, churnClienteSchema, churnMotivoLabel, CHURN_MOTIVO_SLUGS, inferTipoPacote, TIPOS_RELACAO } from "./schema";
 import { getTodayDate } from "@/lib/datetime/timezone";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -280,6 +280,69 @@ export async function churnClienteAction(formData: FormData) {
 
   revalidatePath("/clientes");
   revalidatePath(`/clientes/${parsed.data.id}`);
+  revalidatePath("/");
+  revalidateTag("dashboard", "default");
+  revalidateTag("clients", "default");
+  revalidateTag(PAINEL_CACHE_TAG, "default");
+  return { success: true as const };
+}
+
+/**
+ * Edição inline do motivo de churn direto na listagem de clientes.
+ * Categoria (enum churn_motivo) + detalhe opcional. Só clientes em churn.
+ * Espelha updateClienteFieldAction: adm/sócio, audit + revalidação (o motivo
+ * alimenta o gráfico "Churn por motivo" no dashboard).
+ */
+export async function updateClienteMotivoChurnAction(formData: FormData) {
+  const actor = await requireAuth();
+  if (!["adm", "socio"].includes(actor.role)) {
+    return { error: "Sem permissão" };
+  }
+
+  const clienteId = fd(formData, "cliente_id");
+  const categoria = fd(formData, "motivo_churn_categoria");
+  const detalheRaw = fd(formData, "motivo_churn");
+  if (!clienteId) return { error: "Cliente não informado" };
+  if (!categoria || !(CHURN_MOTIVO_SLUGS as readonly string[]).includes(categoria)) {
+    return { error: "Selecione um motivo válido" };
+  }
+  const detalhe = detalheRaw?.trim() || null;
+
+  const supabase = await createClient();
+  const { data: before, error: beforeErr } = await supabase
+    .from("clients")
+    .select("id, status, motivo_churn_categoria, motivo_churn")
+    .eq("id", clienteId)
+    .single();
+  if (beforeErr || !before) return { error: "Cliente não encontrado" };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const beforeAny = before as any;
+  if (beforeAny.status !== "churn") {
+    return { error: "Só dá pra definir motivo em cliente que está em churn" };
+  }
+
+  const { error: updErr } = await supabase
+    .from("clients")
+    // Cast: motivo_churn_categoria ainda não está nos types gerados.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .update({ motivo_churn_categoria: categoria, motivo_churn: detalhe } as any)
+    .eq("id", clienteId);
+  if (updErr) return { error: updErr.message };
+
+  const labelCategoria = churnMotivoLabel(categoria);
+  await logAudit({
+    entidade: "clients",
+    entidade_id: clienteId,
+    acao: "update",
+    dados_antes: { motivo_churn_categoria: beforeAny.motivo_churn_categoria, motivo_churn: beforeAny.motivo_churn },
+    dados_depois: { motivo_churn_categoria: categoria, motivo_churn: detalhe },
+    ator_id: actor.id,
+    justificativa: detalhe ? `${labelCategoria} — ${detalhe}` : labelCategoria,
+  });
+
+  revalidatePath("/clientes");
+  revalidatePath(`/clientes/${clienteId}`);
   revalidatePath("/");
   revalidateTag("dashboard", "default");
   revalidateTag("clients", "default");

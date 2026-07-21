@@ -16,6 +16,8 @@ export interface ClienteRow {
   tipo_relacao: "comum" | "parceria" | "permuta";
   modalidade?: "mensal" | "pontual" | null;
   data_churn?: string | null;
+  motivo_churn_categoria?: string | null;
+  motivo_churn?: string | null;
   assessor_nome?: string | null;
   coordenador_nome?: string | null;
   /** Multi-tenant Fase 2. */
@@ -52,6 +54,7 @@ async function _listClientesImpl(filters?: ListClientesFilters): Promise<Cliente
     .select(`
       id, nome, email, telefone, valor_mensal, servico_contratado, status, data_entrada,
       assessor_id, coordenador_id, tipo_relacao, modalidade, data_churn, unit_id,
+      motivo_churn_categoria, motivo_churn,
       assessor:profiles!clients_assessor_id_fkey(nome),
       coordenador:profiles!clients_coordenador_id_fkey(nome)
     `)
@@ -137,7 +140,8 @@ export async function listClientes(filters?: ListClientesFilters): Promise<Clien
       return _listClientesImpl(f);
     },
     // v3: shape ganhou unit_id + filtro novo (multi-tenant Fase 2)
-    ["clientes-list-v3"],
+    // v4: shape ganhou motivo_churn_categoria + motivo_churn (edição inline do motivo)
+    ["clientes-list-v4"],
     { revalidate: 60, tags: ["clients"] },
   );
   return cached(JSON.stringify(filters ?? null));
