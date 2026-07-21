@@ -289,6 +289,50 @@ export async function responderPesquisaAction(formData: FormData): Promise<Resul
   return { success: true };
 }
 
+/**
+ * Exclui a resposta de UMA pessoa numa pesquisa identificada e volta a marcá-la
+ * como pendente (respondeu_em = null) pra ela responder de novo. Só faz sentido
+ * com a pesquisa aberta — se estiver encerrada, a pessoa não conseguiria refazer.
+ */
+export async function excluirRespostaAction(pesquisaId: string, userId: string): Promise<Result> {
+  const actor = await requireAuth();
+  if (!requireManage(actor.role)) return { error: "Sem permissão" };
+  if (!pesquisaId || !userId) return { error: "Dados incompletos" };
+
+  const sb = createServiceRoleClient() as SB;
+  const { data: pesquisa } = await sb
+    .from("pesquisas")
+    .select("status, anonima")
+    .eq("id", pesquisaId)
+    .is("deleted_at", null)
+    .single();
+  if (!pesquisa) return { error: "Pesquisa não encontrada" };
+  if (pesquisa.anonima) return { error: "Pesquisa anônima não liga respostas a pessoas" };
+  if (pesquisa.status !== "aberta") return { error: "Só dá pra refazer com a pesquisa aberta" };
+
+  const { error: delErr } = await sb
+    .from("pesquisa_respostas")
+    .delete()
+    .eq("pesquisa_id", pesquisaId)
+    .eq("user_id", userId);
+  if (delErr) return { error: delErr.message };
+
+  // Volta a destinatário pendente. Checa length: RLS/UPDATE não-existente é silencioso.
+  const { data: rows, error: updErr } = await sb
+    .from("pesquisa_destinatarios")
+    .update({ respondeu_em: null })
+    .eq("pesquisa_id", pesquisaId)
+    .eq("user_id", userId)
+    .select("id");
+  if (updErr) return { error: updErr.message };
+  if (!rows || rows.length === 0) return { error: "Pessoa não é destinatária desta pesquisa" };
+
+  revalidatePath(`/pesquisas/${pesquisaId}`);
+  revalidatePath("/pesquisas");
+  revalidateTag("pesquisas", "default");
+  return { success: true };
+}
+
 /** Encerra manualmente. */
 export async function encerrarPesquisaAction(id: string): Promise<Result> {
   const actor = await requireAuth();
