@@ -56,8 +56,9 @@ export function ResponderForm({
   if (enviado) {
     return (
       <Card className="flex flex-col items-center gap-3 p-10 text-center">
-        <CheckCircle2 className="h-10 w-10 text-emerald-600" />
-        <p className="text-lg font-medium">Resposta enviada. Obrigada!</p>
+        <CheckCircle2 className="h-12 w-12 text-emerald-600" />
+        <p className="text-xl font-bold">Parabéns! Pesquisa finalizada 🎉</p>
+        <p className="text-sm text-muted-foreground">Obrigada por responder.</p>
         <Button variant="outline" onClick={() => router.push("/pesquisas")}>Voltar</Button>
       </Card>
     );
