@@ -124,7 +124,11 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
       // aba dentro de Colaboradores (TabsColaboradores). URLs preservadas.
       { type: "link", href: "/manual", icon: BookOpen, label: "Bastidores", roles: "all", badgeKey: null },
       { type: "link", href: "/colaboradores", icon: UserCog, label: "Colaboradores", roles: "all", badgeKey: null },
-      { type: "link", href: "/pesquisas", icon: ClipboardList, label: "Pesquisas", roles: ["adm", "socio", "coordenador", "audiovisual_chefe"], badgeKey: null },
+      // Todo colaborador pode ser destinatário de uma pesquisa (pesquisa_destinatarios
+      // é por pessoa, não por cargo), então o link é "all" — a página mostra só a aba
+      // "Responder" pra quem não gerencia. Gerenciar/criar continua protegido por
+      // canManage (manage:pesquisas) dentro da página.
+      { type: "link", href: "/pesquisas", icon: ClipboardList, label: "Pesquisas", roles: "all", badgeKey: null },
       { type: "link", href: "/unidades", icon: Layers, label: "Unidades", roles: ["adm", "socio"], badgeKey: null },
     ],
   },
