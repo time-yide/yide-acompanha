@@ -223,6 +223,27 @@ export async function getResultados(id: string): Promise<Resultados | null> {
   };
 }
 
+/**
+ * Pessoas ativas que ainda NÃO são destinatárias desta pesquisa (candidatas a
+ * serem adicionadas depois do disparo). Ordenado por nome.
+ */
+export async function listCandidatosAdicionar(
+  pesquisaId: string,
+): Promise<Array<{ id: string; nome: string }>> {
+  const sb = createServiceRoleClient() as SB;
+  const { data: dests } = await sb
+    .from("pesquisa_destinatarios")
+    .select("user_id")
+    .eq("pesquisa_id", pesquisaId);
+  const jaTem = new Set(((dests ?? []) as Array<{ user_id: string }>).map((d) => d.user_id));
+  const { data: pessoas } = await sb
+    .from("profiles")
+    .select("id, nome")
+    .eq("ativo", true)
+    .order("nome", { ascending: true });
+  return ((pessoas ?? []) as Array<{ id: string; nome: string }>).filter((p) => !jaTem.has(p.id));
+}
+
 /** O user pode responder? (é destinatário, pesquisa aberta, ainda não respondeu) */
 export async function podeResponder(pesquisaId: string, userId: string): Promise<boolean> {
   const sb = createServiceRoleClient() as SB;

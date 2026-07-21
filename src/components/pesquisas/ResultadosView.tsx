@@ -6,8 +6,12 @@ import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trash2 } from "lucide-react";
-import { encerrarPesquisaAction, excluirRespostaAction } from "@/lib/pesquisas/actions";
+import { Trash2, UserPlus } from "lucide-react";
+import {
+  encerrarPesquisaAction,
+  excluirRespostaAction,
+  adicionarDestinatariosAction,
+} from "@/lib/pesquisas/actions";
 import type { Resultados } from "@/lib/pesquisas/queries";
 import {
   ehQuizTemperamento,
@@ -31,10 +35,22 @@ function Barra({ label, valor, total }: { label: string; valor: number; total: n
   );
 }
 
-export function ResultadosView({ resultados, canManage }: { resultados: Resultados; canManage: boolean }) {
+export function ResultadosView({
+  resultados,
+  canManage,
+  candidatos = [],
+}: {
+  resultados: Resultados;
+  canManage: boolean;
+  candidatos?: Array<{ id: string; nome: string }>;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const { pesquisa, perguntas, total_destinatarios, total_respondidos, porPessoa, faltamResponder } = resultados;
+
+  const [addOpen, setAddOpen] = useState(false);
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
+  const [busca, setBusca] = useState("");
 
   const isQuiz = ehQuizTemperamento(
     perguntas.map((p) => ({ tipo: p.pergunta.tipo, opcoes: p.pergunta.opcoes })),
@@ -72,7 +88,36 @@ export function ResultadosView({ resultados, canManage }: { resultados: Resultad
     });
   }
 
+  function toggleSel(id: string) {
+    setSelecionados((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function adicionarPessoas() {
+    const ids = [...selecionados];
+    if (ids.length === 0) return;
+    startTransition(async () => {
+      const r = await adicionarDestinatariosAction(pesquisa.id, ids);
+      if (r?.error) toast.error(r.error);
+      else {
+        toast.success(`${ids.length} pessoa(s) adicionada(s) — já podem responder`);
+        setSelecionados(new Set());
+        setBusca("");
+        setAddOpen(false);
+        router.refresh();
+      }
+    });
+  }
+
   const podeRefazer = canManage && pesquisa.status === "aberta";
+  const podeAdicionar = canManage && pesquisa.status === "aberta";
+  const candidatosFiltrados = candidatos.filter((c) =>
+    c.nome.toLowerCase().includes(busca.trim().toLowerCase()),
+  );
 
   return (
     <div className="space-y-5">
@@ -117,6 +162,88 @@ export function ResultadosView({ resultados, canManage }: { resultados: Resultad
             </div>
           </Card>
         )
+      )}
+
+      {podeAdicionar && (
+        <Card className="space-y-3 p-4">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <p className="text-sm font-medium">Adicionar pessoas</p>
+              <p className="text-xs text-muted-foreground">
+                Inclui quem entrou no time depois do disparo e não recebeu a pesquisa.
+              </p>
+            </div>
+            {!addOpen && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setAddOpen(true)}
+                disabled={candidatos.length === 0}
+              >
+                <UserPlus className="mr-2 h-4 w-4" />
+                {candidatos.length === 0 ? "Todos já incluídos" : "Adicionar"}
+              </Button>
+            )}
+          </div>
+
+          {addOpen && (
+            <div className="space-y-3">
+              <input
+                type="text"
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                placeholder="Buscar pessoa…"
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              />
+              <div className="max-h-56 space-y-1 overflow-y-auto rounded-md border p-1">
+                {candidatosFiltrados.length === 0 ? (
+                  <p className="px-2 py-3 text-center text-xs text-muted-foreground">
+                    Ninguém encontrado.
+                  </p>
+                ) : (
+                  candidatosFiltrados.map((c) => (
+                    <label
+                      key={c.id}
+                      className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted/50"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selecionados.has(c.id)}
+                        onChange={() => toggleSel(c.id)}
+                        className="h-4 w-4"
+                      />
+                      {c.nome}
+                    </label>
+                  ))
+                )}
+              </div>
+              <div className="flex items-center justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setAddOpen(false);
+                    setSelecionados(new Set());
+                    setBusca("");
+                  }}
+                  disabled={pending}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={adicionarPessoas}
+                  disabled={pending || selecionados.size === 0}
+                >
+                  {pending ? "Adicionando…" : `Adicionar (${selecionados.size})`}
+                </Button>
+              </div>
+            </div>
+          )}
+        </Card>
       )}
 
       {isQuiz && (
