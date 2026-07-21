@@ -6,7 +6,8 @@ import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { encerrarPesquisaAction } from "@/lib/pesquisas/actions";
+import { Trash2 } from "lucide-react";
+import { encerrarPesquisaAction, excluirRespostaAction } from "@/lib/pesquisas/actions";
 import type { Resultados } from "@/lib/pesquisas/queries";
 import {
   ehQuizTemperamento,
@@ -43,7 +44,7 @@ export function ResultadosView({ resultados, canManage }: { resultados: Resultad
   // Temperamento por pessoa + resumo do time (só quiz identificado).
   const pessoasTemperamento =
     isQuiz && porPessoa
-      ? porPessoa.map((p) => ({ nome: p.nome, ...calcularTemperamento(p.escolhas) }))
+      ? porPessoa.map((p) => ({ userId: p.userId, nome: p.nome, ...calcularTemperamento(p.escolhas) }))
       : [];
   const resumo: Record<Letra, number> = { A: 0, B: 0, C: 0, D: 0 };
   for (const p of pessoasTemperamento) if (p.predominante) resumo[p.predominante]++;
@@ -58,6 +59,20 @@ export function ResultadosView({ resultados, canManage }: { resultados: Resultad
       }
     });
   }
+
+  function excluirResposta(userId: string, nome: string) {
+    if (!window.confirm(`Excluir a resposta de ${nome}? A pessoa volta a ficar pendente e pode responder de novo.`)) return;
+    startTransition(async () => {
+      const r = await excluirRespostaAction(pesquisa.id, userId);
+      if (r?.error) toast.error(r.error);
+      else {
+        toast.success(`Resposta de ${nome} excluída — já pode responder de novo`);
+        router.refresh();
+      }
+    });
+  }
+
+  const podeRefazer = canManage && pesquisa.status === "aberta";
 
   return (
     <div className="space-y-5">
@@ -137,6 +152,19 @@ export function ResultadosView({ resultados, canManage }: { resultados: Resultad
                           <Badge variant="outline" className="border-primary/40 bg-primary/10 text-primary">
                             {LETRA_TEMPERAMENTO[p.predominante]}
                           </Badge>
+                        )}
+                        {podeRefazer && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                            title="Excluir resposta pra refazer"
+                            disabled={pending}
+                            onClick={() => excluirResposta(p.userId, p.nome)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
                         )}
                       </div>
                     </div>
