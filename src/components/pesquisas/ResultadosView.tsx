@@ -34,7 +34,7 @@ function Barra({ label, valor, total }: { label: string; valor: number; total: n
 export function ResultadosView({ resultados, canManage }: { resultados: Resultados; canManage: boolean }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const { pesquisa, perguntas, total_destinatarios, total_respondidos, porPessoa } = resultados;
+  const { pesquisa, perguntas, total_destinatarios, total_respondidos, porPessoa, faltamResponder } = resultados;
 
   const isQuiz = ehQuizTemperamento(
     perguntas.map((p) => ({ tipo: p.pergunta.tipo, opcoes: p.pergunta.opcoes })),
@@ -96,6 +96,27 @@ export function ResultadosView({ resultados, canManage }: { resultados: Resultad
         <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
           Pesquisa anônima — só o resultado agregado, sem ligar respostas a pessoas.
         </p>
+      )}
+
+      {canManage && (
+        faltamResponder.length === 0 ? (
+          total_destinatarios > 0 && (
+            <p className="rounded-md border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-400">
+              🎉 Todo mundo já respondeu.
+            </p>
+          )
+        ) : (
+          <Card className="space-y-2 p-4">
+            <p className="text-sm font-medium">Faltam responder ({faltamResponder.length})</p>
+            <div className="flex flex-wrap gap-1.5">
+              {faltamResponder.map((nome, i) => (
+                <Badge key={i} variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400">
+                  {nome}
+                </Badge>
+              ))}
+            </div>
+          </Card>
+        )
       )}
 
       {isQuiz && (

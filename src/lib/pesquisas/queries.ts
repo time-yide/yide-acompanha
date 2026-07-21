@@ -134,6 +134,11 @@ export interface Resultados {
   total_respondidos: number;
   /** Respostas por pessoa — só em pesquisa identificada (null se anônima). */
   porPessoa: RespostaPessoa[] | null;
+  /**
+   * Nomes de quem ainda não respondeu. Vale até em pesquisa anônima: saber QUEM
+   * falta não revela O QUE alguém respondeu (respondeu_em fica no destinatário).
+   */
+  faltamResponder: string[];
 }
 
 export async function getResultados(id: string): Promise<Resultados | null> {
@@ -188,9 +193,22 @@ export async function getResultados(id: string): Promise<Resultados | null> {
 
   const { data: dests } = await sb
     .from("pesquisa_destinatarios")
-    .select("respondeu_em")
+    .select("user_id, respondeu_em")
     .eq("pesquisa_id", id);
-  const destArr = (dests ?? []) as Array<{ respondeu_em: string | null }>;
+  const destArr = (dests ?? []) as Array<{ user_id: string; respondeu_em: string | null }>;
+
+  // Nomes de quem ainda não respondeu (ordenado).
+  const pendentesIds = destArr.filter((d) => !d.respondeu_em).map((d) => d.user_id);
+  let faltamResponder: string[] = [];
+  if (pendentesIds.length > 0) {
+    const { data: profs } = await sb.from("profiles").select("id, nome").in("id", pendentesIds);
+    const nomeMap = new Map(
+      ((profs ?? []) as Array<{ id: string; nome: string }>).map((p) => [p.id, p.nome]),
+    );
+    faltamResponder = pendentesIds
+      .map((uid) => nomeMap.get(uid) ?? "—")
+      .sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }
 
   return {
     pesquisa: base.pesquisa,
@@ -201,6 +219,7 @@ export async function getResultados(id: string): Promise<Resultados | null> {
     total_destinatarios: destArr.length,
     total_respondidos: destArr.filter((d) => d.respondeu_em).length,
     porPessoa,
+    faltamResponder,
   };
 }
 
