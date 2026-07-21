@@ -80,12 +80,15 @@ export type Action =
   | "feed:satisfaction"
   // Tráfego
   | "manage:trafego_relatorios"
+  // Pesquisas internas
+  | "manage:pesquisas"
   // Sistema
   | "system:support";
 
 const matrix: Record<Role, Action[]> = {
   socio: [
     "manage:users", "create:colaboradores", "edit:commission_percent", "edit:colaboradores",
+    "manage:pesquisas",
     "view:all_clients", "view:client_money_all", "view:financial_consolidated",
     "view:own_commission", "view:other_commissions",
     "access:prospeccao",
@@ -99,6 +102,7 @@ const matrix: Record<Role, Action[]> = {
   ],
   adm: [
     "manage:users", "create:colaboradores", "edit:colaboradores",
+    "manage:pesquisas",
     "view:all_clients", "view:client_money_all", "view:financial_consolidated",
     "view:own_commission", "view:other_commissions",
     "access:prospeccao",
@@ -122,6 +126,7 @@ const matrix: Record<Role, Action[]> = {
     "create:tasks", "create:calendar_event", "customize:notification_recipients",
     "feed:satisfaction",
     "manage:trafego_relatorios",
+    "manage:pesquisas",
     "view:agenda_temperature",
   ],
   assessor: [
@@ -151,6 +156,7 @@ const matrix: Record<Role, Action[]> = {
   ],
   audiovisual_chefe: [
     "create:colaboradores",
+    "manage:pesquisas",
     "view:all_clients",
     "view:client_money_all",
     "view:own_commission",
