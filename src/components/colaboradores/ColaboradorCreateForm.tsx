@@ -29,10 +29,18 @@ async function createColaboradorActionWrapper(
   return createColaboradorAction(formData);
 }
 
-export function ColaboradorCreateForm({ canSetCommission }: { canSetCommission: boolean }) {
+export function ColaboradorCreateForm({
+  canSetCommission,
+  allowedRoles,
+}: {
+  canSetCommission: boolean;
+  /** Cargos que o criador pode atribuir (fonte: assignableRolesFor no server). */
+  allowedRoles: string[];
+}) {
   const [state, formAction, isPending] = useActionState(createColaboradorActionWrapper, null);
   const [role, setRole] = useState("");
   const router = useRouter();
+  const canAssign = (r: string) => allowedRoles.includes(r);
 
   const success = state && "success" in state ? state : null;
   const errorMsg = state && "error" in state ? state.error : null;
@@ -65,18 +73,18 @@ export function ColaboradorCreateForm({ canSetCommission }: { canSetCommission: 
                   como opção pra perfis novos. O que era "Sócio" virou
                   "Coordenador" no UI (role no banco continua `socio`).
                 */}
-                <SelectItem value="adm">Administrativo</SelectItem>
-                <SelectItem value="socio">Coordenador</SelectItem>
-                <SelectItem value="comercial">Comercial</SelectItem>
-                <SelectItem value="assessor">Assessor</SelectItem>
-                <SelectItem value="audiovisual_chefe">Coordenador audiovisual</SelectItem>
-                <SelectItem value="videomaker">Videomaker</SelectItem>
-                <SelectItem value="designer">Designer</SelectItem>
-                <SelectItem value="editor">Editor</SelectItem>
-                <SelectItem value="assessor_ecommerce">Assessor de e-commerce</SelectItem>
-                <SelectItem value="assistente_ecommerce">Assistente de e-commerce</SelectItem>
-                <SelectItem value="programacao">Programação</SelectItem>
-                <SelectItem value="fast_midia">Fast Mídia</SelectItem>
+                {canAssign("adm") && <SelectItem value="adm">Administrativo</SelectItem>}
+                {canAssign("socio") && <SelectItem value="socio">Coordenador</SelectItem>}
+                {canAssign("comercial") && <SelectItem value="comercial">Comercial</SelectItem>}
+                {canAssign("assessor") && <SelectItem value="assessor">Assessor</SelectItem>}
+                {canAssign("audiovisual_chefe") && <SelectItem value="audiovisual_chefe">Coordenador audiovisual</SelectItem>}
+                {canAssign("videomaker") && <SelectItem value="videomaker">Videomaker</SelectItem>}
+                {canAssign("designer") && <SelectItem value="designer">Designer</SelectItem>}
+                {canAssign("editor") && <SelectItem value="editor">Editor</SelectItem>}
+                {canAssign("assessor_ecommerce") && <SelectItem value="assessor_ecommerce">Assessor de e-commerce</SelectItem>}
+                {canAssign("assistente_ecommerce") && <SelectItem value="assistente_ecommerce">Assistente de e-commerce</SelectItem>}
+                {canAssign("programacao") && <SelectItem value="programacao">Programação</SelectItem>}
+                {canAssign("fast_midia") && <SelectItem value="fast_midia">Fast Mídia</SelectItem>}
               </SelectContent>
             </Select>
             <p className="text-[11px] text-muted-foreground">
