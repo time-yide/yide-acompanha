@@ -3,6 +3,7 @@ import {
   DollarSign, Calendar, UserCog, MessageSquare,
   TrendingUp, Video, Trash2, MessagesSquare, Share2, Radar, MessageCircle, Phone,
   IdCard, BookOpen, Inbox, Layers, Zap, MapPin, Target, ShoppingCart, Images, Code2,
+  ClipboardList,
   type LucideIcon,
 } from "lucide-react";
 import type { Role } from "@/lib/auth/permissions";
@@ -91,6 +92,7 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
       // D0 → D30 e Tráfego saíram do menu — agora são abas dentro da Estratégia
       // (TabsSocialMedia). URLs /d0-d30 e /trafego preservadas.
       { type: "link", href: "/tarefas", icon: ListChecks, label: "Tarefas", roles: "all", badgeKey: null },
+      { type: "link", href: "/pesquisas", icon: ClipboardList, label: "Pesquisas", roles: ["adm", "socio", "coordenador", "audiovisual_chefe"], badgeKey: null },
       { type: "link", href: "/audiovisual", icon: Video, label: "Audiovisual", roles: ["adm", "socio", "coordenador", "assessor", "videomaker", "fast_midia", "audiovisual_chefe"], badgeKey: null },
       { type: "link", href: "/fast-media", icon: Images, label: "Fast Mídia", roles: ["adm", "socio", "coordenador", "audiovisual_chefe", "fast_midia"], badgeKey: null },
       // Yori saiu do menu — fica só dentro do Audiovisual (botão de entrada lá). URL preservada.
