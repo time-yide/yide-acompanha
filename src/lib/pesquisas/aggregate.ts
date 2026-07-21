@@ -36,7 +36,10 @@ export function agregarPergunta(
     case "sim_nao": {
       let sim = 0;
       let nao = 0;
-      for (const v of valores) (v.sim_nao ? sim++ : nao++);
+      for (const v of valores) {
+        if (v.sim_nao) sim++;
+        else nao++;
+      }
       return { tipo: "sim_nao", sim, nao, total };
     }
     case "texto":
