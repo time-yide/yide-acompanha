@@ -156,7 +156,8 @@ const matrix: Record<Role, Action[]> = {
   ],
   audiovisual_chefe: [
     "create:colaboradores",
-    "manage:pesquisas",
+    // Sem manage:pesquisas: criar pesquisa e ver resultados é só da gestão
+    // (adm/sócio/coordenador). O coord audiovisual responde como qualquer um.
     "view:all_clients",
     "view:client_money_all",
     "view:own_commission",
