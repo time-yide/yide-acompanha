@@ -92,7 +92,6 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
       // D0 → D30 e Tráfego saíram do menu — agora são abas dentro da Estratégia
       // (TabsSocialMedia). URLs /d0-d30 e /trafego preservadas.
       { type: "link", href: "/tarefas", icon: ListChecks, label: "Tarefas", roles: "all", badgeKey: null },
-      { type: "link", href: "/pesquisas", icon: ClipboardList, label: "Pesquisas", roles: ["adm", "socio", "coordenador", "audiovisual_chefe"], badgeKey: null },
       { type: "link", href: "/audiovisual", icon: Video, label: "Audiovisual", roles: ["adm", "socio", "coordenador", "assessor", "videomaker", "fast_midia", "audiovisual_chefe"], badgeKey: null },
       { type: "link", href: "/fast-media", icon: Images, label: "Fast Mídia", roles: ["adm", "socio", "coordenador", "audiovisual_chefe", "fast_midia"], badgeKey: null },
       // Yori saiu do menu — fica só dentro do Audiovisual (botão de entrada lá). URL preservada.
@@ -125,6 +124,7 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
       // aba dentro de Colaboradores (TabsColaboradores). URLs preservadas.
       { type: "link", href: "/manual", icon: BookOpen, label: "Bastidores", roles: "all", badgeKey: null },
       { type: "link", href: "/colaboradores", icon: UserCog, label: "Colaboradores", roles: "all", badgeKey: null },
+      { type: "link", href: "/pesquisas", icon: ClipboardList, label: "Pesquisas", roles: ["adm", "socio", "coordenador", "audiovisual_chefe"], badgeKey: null },
       { type: "link", href: "/unidades", icon: Layers, label: "Unidades", roles: ["adm", "socio"], badgeKey: null },
     ],
   },
