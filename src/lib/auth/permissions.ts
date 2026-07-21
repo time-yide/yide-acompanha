@@ -54,6 +54,7 @@ export function canManageAnyTask(user: { role: string }): boolean {
 export type Action =
   // Gestão de usuários
   | "manage:users"
+  | "create:colaboradores"
   | "edit:commission_percent"
   | "edit:colaboradores"
   // Visualizações
@@ -84,7 +85,7 @@ export type Action =
 
 const matrix: Record<Role, Action[]> = {
   socio: [
-    "manage:users", "edit:commission_percent", "edit:colaboradores",
+    "manage:users", "create:colaboradores", "edit:commission_percent", "edit:colaboradores",
     "view:all_clients", "view:client_money_all", "view:financial_consolidated",
     "view:own_commission", "view:other_commissions",
     "access:prospeccao",
@@ -97,7 +98,7 @@ const matrix: Record<Role, Action[]> = {
     "view:agenda_temperature",
   ],
   adm: [
-    "manage:users", "edit:colaboradores",
+    "manage:users", "create:colaboradores", "edit:colaboradores",
     "view:all_clients", "view:client_money_all", "view:financial_consolidated",
     "view:own_commission", "view:other_commissions",
     "access:prospeccao",
@@ -149,6 +150,7 @@ const matrix: Record<Role, Action[]> = {
     "feed:satisfaction",
   ],
   audiovisual_chefe: [
+    "create:colaboradores",
     "view:all_clients",
     "view:client_money_all",
     "view:own_commission",
@@ -190,4 +192,32 @@ export function canAccess(role: Role | string, action: Action): boolean {
   const allowed = matrix[role as Role];
   if (!allowed) return false;
   return allowed.includes(action);
+}
+
+/**
+ * Cargos que o coordenador audiovisual pode atribuir ao criar colaborador:
+ * só a própria equipe audiovisual de execução. Impede que ele crie adm/sócio
+ * (escalonamento de privilégio) ou cargos de outras áreas.
+ */
+const AUDIOVISUAL_CHEFE_ASSIGNABLE_ROLES: Role[] = [
+  "videomaker",
+  "editor",
+  "designer",
+  "fast_midia",
+];
+
+/**
+ * Cargos que `creatorRole` pode atribuir ao criar um colaborador. Fonte única
+ * usada pela UI (filtra o seletor do form) E pelo server (valida antes de
+ * criar — nunca confiar só no client). Quem tem `manage:users` (adm/sócio) pode
+ * atribuir qualquer cargo; o coordenador audiovisual fica restrito à equipe.
+ */
+export function assignableRolesFor(creatorRole: Role | string): Role[] {
+  if (canAccess(creatorRole, "manage:users")) {
+    return Object.keys(matrix) as Role[];
+  }
+  if (creatorRole === "audiovisual_chefe") {
+    return AUDIOVISUAL_CHEFE_ASSIGNABLE_ROLES;
+  }
+  return [];
 }

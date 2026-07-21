@@ -3,7 +3,7 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth/session";
-import { canAccess } from "@/lib/auth/permissions";
+import { canAccess, assignableRolesFor, type Role } from "@/lib/auth/permissions";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { logAudit } from "@/lib/audit/log";
 import { createColaboradorSchema, editColaboradorSchema } from "./schema";
@@ -18,7 +18,7 @@ export async function createColaboradorAction(
   formData: FormData,
 ): Promise<CreateColaboradorResult> {
   const actor = await requireAuth();
-  if (!canAccess(actor.role, "manage:users")) {
+  if (!canAccess(actor.role, "create:colaboradores")) {
     return { error: "Sem permissão" };
   }
 
@@ -34,6 +34,13 @@ export async function createColaboradorAction(
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message };
+  }
+
+  // Trava de escalonamento: valida no server que o criador pode atribuir esse
+  // cargo (o coordenador audiovisual só cria a própria equipe; adm/sócio criam
+  // qualquer um). Nunca confiar só no filtro do form.
+  if (!assignableRolesFor(actor.role).includes(parsed.data.role as Role)) {
+    return { error: "Você não tem permissão para criar um colaborador com esse cargo" };
   }
 
   // Apenas sócio pode definir % de comissão

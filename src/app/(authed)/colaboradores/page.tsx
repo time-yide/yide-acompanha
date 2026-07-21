@@ -42,7 +42,7 @@ export default async function ColaboradoresPage({
 }) {
   const params = await searchParams;
   const user = await requireAuth();
-  const canManage = canAccess(user.role, "manage:users");
+  const canCreate = canAccess(user.role, "create:colaboradores");
   const canSeeFinance = canAccess(user.role, "view:other_commissions");
   const canEdit = canAccess(user.role, "edit:colaboradores");
   // Mesma permissão de editar - quem pode editar pode arquivar.
@@ -63,7 +63,7 @@ export default async function ColaboradoresPage({
           <h1 className="text-2xl font-bold tracking-tight">Colaboradores</h1>
           <p className="text-sm text-muted-foreground">{rows.length} resultado(s)</p>
         </div>
-        {canManage && (
+        {canCreate && (
           <Link
             href="/colaboradores/novo"
             className="group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-primary text-primary-foreground text-sm font-medium whitespace-nowrap transition-all outline-none select-none hover:bg-primary/80 h-8 gap-1.5 px-2.5"
