@@ -333,6 +333,59 @@ export async function excluirRespostaAction(pesquisaId: string, userId: string):
   return { success: true };
 }
 
+/**
+ * Adiciona novas pessoas a uma pesquisa JÁ ABERTA (ex.: quem entrou no time
+ * depois do disparo e por isso não recebeu). Vira destinatário pendente e é
+ * notificado. Ignora quem já é destinatário.
+ */
+export async function adicionarDestinatariosAction(
+  pesquisaId: string,
+  userIds: string[],
+): Promise<Result> {
+  const actor = await requireAuth();
+  if (!requireManage(actor.role)) return { error: "Sem permissão" };
+  if (!pesquisaId) return { error: "Pesquisa não informada" };
+  const ids = [...new Set((userIds ?? []).filter(Boolean))];
+  if (ids.length === 0) return { error: "Selecione ao menos uma pessoa" };
+
+  const sb = createServiceRoleClient() as SB;
+  const { data: pesquisa } = await sb
+    .from("pesquisas")
+    .select("id, titulo, status")
+    .eq("id", pesquisaId)
+    .is("deleted_at", null)
+    .single();
+  if (!pesquisa) return { error: "Pesquisa não encontrada" };
+  if (pesquisa.status !== "aberta") return { error: "Só dá pra adicionar em pesquisa aberta" };
+
+  const { error: insErr } = await sb
+    .from("pesquisa_destinatarios")
+    .upsert(
+      ids.map((uid) => ({ pesquisa_id: pesquisaId, user_id: uid })),
+      { onConflict: "pesquisa_id,user_id", ignoreDuplicates: true },
+    );
+  if (insErr) return { error: insErr.message };
+
+  try {
+    await dispatchNotification({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      evento_tipo: "pesquisa_disparada" as any,
+      titulo: "Nova pesquisa pra responder",
+      mensagem: `${actor.nome} te incluiu na pesquisa "${pesquisa.titulo}"`,
+      link: `/pesquisas/${pesquisaId}/responder`,
+      user_ids_extras: ids,
+      source_user_id: actor.id,
+    });
+  } catch {
+    // best-effort
+  }
+
+  revalidatePath(`/pesquisas/${pesquisaId}`);
+  revalidatePath("/pesquisas");
+  revalidateTag("pesquisas", "default");
+  return { success: true };
+}
+
 /** Encerra manualmente. */
 export async function encerrarPesquisaAction(id: string): Promise<Result> {
   const actor = await requireAuth();
