@@ -19,13 +19,15 @@ type Status =
   | "agendado"
   | "postada";
 
+// "Aprovado" não tem coluna própria: tarefas aprovadas (aguardando postagem)
+// vivem na coluna "Aprovação" (ver grouping abaixo) até serem marcadas como
+// postadas. Por isso "aprovada" fica fora da lista de colunas renderizadas.
 const STATUSES: Status[] = [
   "aberta",
   "em_andamento",
   "concluida",
   "em_aprovacao",
   "alteracao",
-  "aprovada",
   "agendado",
   "postada",
 ];
@@ -53,7 +55,10 @@ export function TasksBoard({ tasks, userRole }: { tasks: TaskRow[]; userRole: st
     postada: [],
   };
   for (const t of tasks) {
-    const s = (t.status as Status) ?? "aberta";
+    let s = (t.status as Status) ?? "aberta";
+    // Sem coluna "Aprovado": tarefa aprovada aguardando postagem aparece na
+    // coluna "Aprovação" até alguém marcar como postada.
+    if (s === "aprovada") s = "em_aprovacao";
     if (groups[s]) groups[s].push(t);
   }
 
