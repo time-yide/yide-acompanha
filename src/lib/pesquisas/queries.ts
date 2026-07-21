@@ -120,11 +120,20 @@ export interface ResultadoPergunta {
   agregacao: Agregacao;
 }
 
+export interface RespostaPessoa {
+  userId: string;
+  nome: string;
+  /** Textos das opções escolhidas (usado no cálculo de temperamento). */
+  escolhas: string[];
+}
+
 export interface Resultados {
   pesquisa: PesquisaRow;
   perguntas: ResultadoPergunta[];
   total_destinatarios: number;
   total_respondidos: number;
+  /** Respostas por pessoa — só em pesquisa identificada (null se anônima). */
+  porPessoa: RespostaPessoa[] | null;
 }
 
 export async function getResultados(id: string): Promise<Resultados | null> {
@@ -135,13 +144,46 @@ export async function getResultados(id: string): Promise<Resultados | null> {
 
   const { data: respostas } = await sb
     .from("pesquisa_respostas")
-    .select("pergunta_id, valor")
+    .select("pergunta_id, valor, user_id")
     .eq("pesquisa_id", id);
+  const respArr = (respostas ?? []) as Array<{
+    pergunta_id: string;
+    valor: Record<string, unknown>;
+    user_id: string | null;
+  }>;
   const byPergunta = new Map<string, Array<Record<string, unknown>>>();
-  for (const r of (respostas ?? []) as Array<{ pergunta_id: string; valor: Record<string, unknown> }>) {
+  for (const r of respArr) {
     const arr = byPergunta.get(r.pergunta_id) ?? [];
     arr.push(r.valor);
     byPergunta.set(r.pergunta_id, arr);
+  }
+
+  // Respostas por pessoa (só identificada). Junta o nome via profiles.
+  let porPessoa: RespostaPessoa[] | null = null;
+  if (!base.pesquisa.anonima) {
+    const escolhasByUser = new Map<string, string[]>();
+    for (const r of respArr) {
+      if (!r.user_id) continue;
+      const escolha = r.valor?.escolha;
+      if (typeof escolha !== "string") continue;
+      const arr = escolhasByUser.get(r.user_id) ?? [];
+      arr.push(escolha);
+      escolhasByUser.set(r.user_id, arr);
+    }
+    const userIds = [...escolhasByUser.keys()];
+    if (userIds.length > 0) {
+      const { data: profiles } = await sb.from("profiles").select("id, nome").in("id", userIds);
+      const nomeMap = new Map(
+        ((profiles ?? []) as Array<{ id: string; nome: string }>).map((p) => [p.id, p.nome]),
+      );
+      porPessoa = userIds.map((uid) => ({
+        userId: uid,
+        nome: nomeMap.get(uid) ?? "—",
+        escolhas: escolhasByUser.get(uid) ?? [],
+      }));
+    } else {
+      porPessoa = [];
+    }
   }
 
   const { data: dests } = await sb
@@ -158,6 +200,7 @@ export async function getResultados(id: string): Promise<Resultados | null> {
     })),
     total_destinatarios: destArr.length,
     total_respondidos: destArr.filter((d) => d.respondeu_em).length,
+    porPessoa,
   };
 }
 
