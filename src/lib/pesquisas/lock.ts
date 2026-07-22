@@ -27,8 +27,11 @@ export async function checkPesquisaLock(userId: string): Promise<PesquisaLockSta
   return cached(userId);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SB = any;
+
 async function _checkPesquisaLockImpl(userId: string): Promise<PesquisaLockState> {
-  const admin = createServiceRoleClient();
+  const admin = createServiceRoleClient() as SB;
 
   // 1) Destinatários pendentes do usuário, juntando a pesquisa (aberta + bloqueante).
   //    !inner garante que só volta linha se a pesquisa casar com os filtros.
