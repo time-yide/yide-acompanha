@@ -58,12 +58,13 @@ async function _checkPesquisaLockImpl(userId: string): Promise<PesquisaLockState
   const rows = (dests ?? []) as unknown as Row[];
   if (rows.length === 0) return EMPTY;
 
-  // Mais antiga primeiro (disparada_em asc; null por último).
-  rows.sort((a, b) => {
-    const da = a.pesquisas.disparada_em ?? "9999";
-    const db = b.pesquisas.disparada_em ?? "9999";
-    return da < db ? -1 : da > db ? 1 : 0;
-  });
+  // Mais antiga primeiro (disparada_em asc; null/inválido por último).
+  const ts = (v: string | null) => {
+    if (!v) return Infinity;
+    const t = new Date(v).getTime();
+    return Number.isNaN(t) ? Infinity : t;
+  };
+  rows.sort((a, b) => ts(a.pesquisas.disparada_em) - ts(b.pesquisas.disparada_em));
   const alvo = rows[0].pesquisas;
 
   // 2) Carrega as perguntas na ordem.
