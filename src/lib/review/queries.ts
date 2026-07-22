@@ -1,5 +1,5 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { urlPlaylist, urlThumbnail } from "@/lib/bunny/client";
+import { urlPlaylist, urlThumbnail, statusVideo, bunnyConfigurado } from "@/lib/bunny/client";
 import type { ReviewStatus, AutorTipo } from "./schema";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -38,6 +38,25 @@ export async function carregarReview(id: string): Promise<ReviewFull | null> {
     .order("numero", { ascending: true });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const vs = (versoes ?? []) as any[];
+
+  // Self-heal: versões ainda "processando" — checa no Bunny e atualiza se já ficaram prontas.
+  // (Cobre o caso do usuário recarregar antes do polling terminar.) Best-effort.
+  if (bunnyConfigurado()) {
+    await Promise.all(
+      vs.filter((v) => !v.pronto).map(async (v) => {
+        try {
+          const st = await statusVideo(v.bunny_video_id);
+          if (st.pronto) {
+            v.pronto = true;
+            await sb.from("review_versao").update({ pronto: true, duracao_seg: st.duracaoSeg }).eq("id", v.id);
+          }
+        } catch {
+          // ignora — segue como processando
+        }
+      }),
+    );
+  }
+
   const versaoIds = vs.map((v) => v.id);
   const { data: coments } = versaoIds.length
     ? await sb.from("review_comentario").select("id, versao_id, autor_tipo, autor_nome, tempo_seg, corpo, resolvido, created_at").in("versao_id", versaoIds).order("tempo_seg", { ascending: true })
