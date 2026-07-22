@@ -2,16 +2,19 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/lib/auth/session";
-import { canAccess } from "@/lib/auth/permissions";
+import { canAccess, canManageAnyTask } from "@/lib/auth/permissions";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { criarVideo, assinaturaUpload, statusVideo, type UploadTus } from "@/lib/bunny/client";
 import { podeTransicionar, type ReviewStatus } from "./schema";
+import { destravado } from "./gate";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SB = any;
 type Res<T> = T | { error: string };
 
 function pode(role: string) { return canAccess(role, "manage:review"); }
+/** Quem revisa/aprova: gestão de tarefa (assessor/coord/adm/sócio/audiovisual) OU quem gerencia review. */
+function podeRevisar(role: string) { return canManageAnyTask({ role }) || canAccess(role, "manage:review"); }
 
 /** Cria o review + o primeiro vídeo no Bunny; devolve os dados de upload TUS. */
 export async function criarReviewAction(titulo: string, clienteId: string | null): Promise<Res<{ reviewId: string; upload: UploadTus }>> {
@@ -106,7 +109,7 @@ export async function aprovarInternoAction(reviewId: string): Promise<Res<{ ok: 
 /** Pede alteração: manda o review pra "ajustes" — o editor vê e entra pra ler os comentários. */
 export async function pedirAlteracaoAction(reviewId: string): Promise<Res<{ ok: true }>> {
   const user = await requireAuth();
-  if (!pode(user.role)) return { error: "Sem permissão" };
+  if (!podeRevisar(user.role)) return { error: "Sem permissão" };
   const sb = createServiceRoleClient() as SB;
   const { data: rv } = await sb.from("review_video").select("status").eq("id", reviewId).maybeSingle();
   if (!rv) return { error: "Review não encontrado" };
@@ -114,6 +117,25 @@ export async function pedirAlteracaoAction(reviewId: string): Promise<Res<{ ok: 
   await sb.from("review_video").update({ status: "ajustes", updated_at: new Date().toISOString() }).eq("id", reviewId);
   revalidatePath(`/audiovisual/review/${reviewId}`);
   revalidatePath("/audiovisual/review");
+  return { ok: true };
+}
+
+/** Aprova UM vídeo (review) — status vira "aprovado". */
+export async function aprovarVideoAction(reviewId: string): Promise<Res<{ ok: true }>> {
+  const user = await requireAuth();
+  if (!podeRevisar(user.role)) return { error: "Sem permissão" };
+  const sb = createServiceRoleClient() as SB;
+  const { data: rv } = await sb.from("review_video").select("status").eq("id", reviewId).maybeSingle();
+  if (!rv) return { error: "Vídeo não encontrado" };
+  if (!podeTransicionar(rv.status as ReviewStatus, "aprovado")) return { error: "Não dá pra aprovar agora" };
+  // Trava: só aprova depois de assistir a versão atual até o fim (server-side).
+  const { data: ult } = await sb.from("review_versao").select("id").eq("review_video_id", reviewId).order("numero", { ascending: false }).limit(1).maybeSingle();
+  if (ult) {
+    const { data: a } = await sb.from("review_assistido").select("pct_max").eq("user_id", user.id).eq("versao_id", ult.id).maybeSingle();
+    if (!destravado((a?.pct_max as number | undefined) ?? 0)) return { error: "Assista o vídeo até o fim antes de aprovar." };
+  }
+  await sb.from("review_video").update({ status: "aprovado", updated_at: new Date().toISOString() }).eq("id", reviewId);
+  revalidatePath(`/audiovisual/review/${reviewId}`);
   return { ok: true };
 }
 

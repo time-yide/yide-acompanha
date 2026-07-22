@@ -16,7 +16,7 @@ import { ApprovalCard } from "@/components/tarefas/ApprovalCard";
 import { RevisionsTimeline } from "@/components/tarefas/RevisionsTimeline";
 import { CommentsPanel } from "@/components/tarefas/CommentsPanel";
 import { TaskRealtimeWatcher } from "@/components/tarefas/TaskRealtimeWatcher";
-import { getReviewDaTarefa } from "@/lib/review/tarefa-queries";
+import { getReviewsDaTarefa } from "@/lib/review/queries";
 import { VideoDaTarefa } from "@/components/review/VideoDaTarefa";
 import { Linkify } from "@/lib/utils/linkify";
 
@@ -94,7 +94,7 @@ export default async function TarefaPage({
 
   const supabase = await createClient();
   const isApprovalTask = task.tipo === "video" || task.tipo === "arte";
-  const reviewDaTarefa = task.tipo === "video" ? await getReviewDaTarefa(task.id, user.id) : null;
+  const videosDaTarefa = task.tipo === "video" ? await getReviewsDaTarefa(task.id, user.id) : [];
   const podeVideo = canAccess(user.role, "manage:review");
   const isMember =
     task.criado_por === user.id ||
@@ -261,17 +261,7 @@ export default async function TarefaPage({
           )}
 
           {task.tipo === "video" && (
-            <VideoDaTarefa
-              taskId={task.id}
-              review={reviewDaTarefa}
-              podeGerenciar={podeVideo}
-              statusAprovacao={task.status_aprovacao ?? null}
-              podeAprovar={isApprover}
-              podeEnviar={
-                task.atribuido_a === user.id ||
-                (Array.isArray(task.participantes_ids) && task.participantes_ids.includes(user.id))
-              }
-            />
+            <VideoDaTarefa taskId={task.id} videos={videosDaTarefa} podeGerenciar={podeVideo} />
           )}
 
           {task.drive_link && (
