@@ -15,11 +15,14 @@ export function ResponderForm({
   titulo,
   descricao,
   perguntas,
+  onSubmitted,
 }: {
   pesquisaId: string;
   titulo: string;
   descricao: string | null;
   perguntas: PerguntaRow[];
+  /** Se passada, é chamada no sucesso em vez de mostrar o card interno de sucesso. */
+  onSubmitted?: () => void;
 }) {
   const router = useRouter();
   const [respostas, setRespostas] = useState<Record<string, string>>({});
@@ -47,6 +50,10 @@ export function ResponderForm({
       const r = await responderPesquisaAction(fd);
       if (r?.error) {
         toast.error(r.error);
+        return;
+      }
+      if (onSubmitted) {
+        onSubmitted();
         return;
       }
       setEnviado(true);
