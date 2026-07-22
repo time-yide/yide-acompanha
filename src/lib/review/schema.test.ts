@@ -16,10 +16,14 @@ describe("podeTransicionar", () => {
     expect(podeTransicionar("aprovado", "revisao_interna")).toBe(false);
   });
   it("pulos inválidos são bloqueados", () => {
-    expect(podeTransicionar("revisao_interna", "aprovado")).toBe(false);
+    expect(podeTransicionar("aprovado", "ajustes")).toBe(false);
   });
   it("pedir alteração na revisão interna é válido; nova versão volta pra interna", () => {
     expect(podeTransicionar("revisao_interna", "ajustes")).toBe(true);
     expect(podeTransicionar("ajustes", "revisao_interna")).toBe(true);
+  });
+  it("aprovar vídeo direto da revisão interna é válido", () => {
+    expect(podeTransicionar("revisao_interna", "aprovado")).toBe(true);
+    expect(podeTransicionar("ajustes", "aprovado")).toBe(true);
   });
 });
