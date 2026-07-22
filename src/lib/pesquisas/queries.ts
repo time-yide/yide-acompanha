@@ -1,7 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { agregarPergunta, type Agregacao } from "./aggregate";
-import type { PesquisaRow, PerguntaRow } from "./schema";
+import type { PesquisaRow, PerguntaRow, PesquisaStatus } from "./schema";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SB = any;
@@ -102,7 +102,7 @@ export async function getPesquisaComPerguntas(
   const sb = createServiceRoleClient() as SB;
   const { data: pesquisa } = await sb
     .from("pesquisas")
-    .select("id, titulo, descricao, anonima, status, criado_por, disparada_em, prazo, encerrada_em, created_at")
+    .select("id, titulo, descricao, anonima, resultados_publicos, status, criado_por, disparada_em, prazo, encerrada_em, created_at")
     .eq("id", id)
     .is("deleted_at", null)
     .single();
@@ -261,4 +261,22 @@ export async function podeResponder(pesquisaId: string, userId: string): Promise
     .eq("user_id", userId)
     .maybeSingle();
   return !!dest && !dest.respondeu_em;
+}
+
+/**
+ * Pesquisas com resultados abertos ao time (não-rascunho, não deletadas). Usada na
+ * listagem pra qualquer usuário descobrir e abrir os resultados agregados.
+ */
+export async function listPesquisasPublicas(): Promise<
+  Array<{ id: string; titulo: string; status: PesquisaStatus }>
+> {
+  const sb = createServiceRoleClient() as SB;
+  const { data } = await sb
+    .from("pesquisas")
+    .select("id, titulo, status")
+    .eq("resultados_publicos", true)
+    .neq("status", "rascunho")
+    .is("deleted_at", null)
+    .order("disparada_em", { ascending: false });
+  return (data ?? []) as Array<{ id: string; titulo: string; status: PesquisaStatus }>;
 }
