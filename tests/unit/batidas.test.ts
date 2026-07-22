@@ -42,11 +42,11 @@ describe("config batidas", () => {
     expect(leadOnboardingDescartado("")).toBe(false);
   });
 
-  it("roleVeTudo: adm/socio/coordenador veem tudo", () => {
+  it("roleVeTudo: adm/socio/coordenador/comercial veem tudo; assessor só os seus", () => {
     expect(roleVeTudo("adm")).toBe(true);
     expect(roleVeTudo("socio")).toBe(true);
     expect(roleVeTudo("coordenador")).toBe(true);
-    expect(roleVeTudo("comercial")).toBe(false);
+    expect(roleVeTudo("comercial")).toBe(true);
     expect(roleVeTudo("assessor")).toBe(false);
   });
 });
