@@ -149,7 +149,7 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
 
 // Links `roles:"all"` que a Programação também deve ver. O cargo começa sem os
 // itens "all" (ver isLinkVisible), então cada um é liberado aqui explicitamente.
-const PROGRAMACAO_ALL_ALLOWED = new Set<string>(["/recados", "/calendario"]);
+const PROGRAMACAO_ALL_ALLOWED = new Set<string>(["/recados", "/calendario", "/time"]);
 
 function isLinkVisible(role: Role, link: NavLink, especialidade?: string | null): boolean {
   // Programação (cargo técnico) começa SEM acessos: nem os itens "all", exceto

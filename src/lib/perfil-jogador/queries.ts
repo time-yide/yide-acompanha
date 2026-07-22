@@ -1,6 +1,6 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { roleLabel } from "@/lib/auth/permissions";
-import { getTemperamentoDaPessoa, CLASSE_DESCRICAO } from "./classe";
+import { getTemperamentosDeVarios, CLASSE_DESCRICAO } from "./classe";
 import { rankSinergiaTrabalho, rankSinergiaHobbies } from "./sinergia";
 import type { CardData, PerfilJogador, Classe } from "./schema";
 
@@ -40,7 +40,8 @@ export async function listTime(): Promise<
   const userMap = new Map(
     ((cards ?? []) as Array<{ user_id: string; username: string | null }>).map((c) => [c.user_id, c.username]),
   );
-  // Classe por pessoa (sequencial simples; base pequena).
+  // Classe por pessoa (resolvida em lote: 1 query de respostas).
+  const classes = await getTemperamentosDeVarios(lista.map((p) => p.id));
   const out = [];
   for (const p of lista) {
     out.push({
@@ -49,7 +50,7 @@ export async function listTime(): Promise<
       cargoLabel: roleLabel(p.role),
       avatarUrl: p.avatar_url,
       username: userMap.get(p.id) ?? null,
-      classe: await getTemperamentoDaPessoa(p.id),
+      classe: classes.get(p.id) ?? null,
     });
   }
   return out;
@@ -71,8 +72,6 @@ export async function getCard(userId: string): Promise<CardData | null> {
     .eq("user_id", userId)
     .maybeSingle();
   const perfil = (perfilRow as PerfilJogador | null) ?? null;
-
-  const classe = await getTemperamentoDaPessoa(userId);
 
   // Pesquisas identificadas que a pessoa respondeu.
   const { data: dests } = await sb
@@ -103,13 +102,16 @@ export async function getCard(userId: string): Promise<CardData | null> {
   const hobbiesMap = new Map(
     ((cards ?? []) as Array<{ user_id: string; hobbies: string[] }>).map((c) => [c.user_id, c.hobbies ?? []]),
   );
+  // Classe do sujeito + colegas resolvida em lote (1 query de respostas).
+  const classes = await getTemperamentosDeVarios([userId, ...colegas.map((c) => c.id)]);
+  const classe = classes.get(userId) ?? null;
   const colegasFull = [];
   for (const c of colegas) {
     colegasFull.push({
       userId: c.id,
       nome: c.nome,
       avatarUrl: c.avatar_url,
-      classe: await getTemperamentoDaPessoa(c.id),
+      classe: classes.get(c.id) ?? null,
       hobbies: hobbiesMap.get(c.id) ?? [],
     });
   }

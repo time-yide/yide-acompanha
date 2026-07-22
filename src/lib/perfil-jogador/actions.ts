@@ -45,7 +45,7 @@ export async function salvarCardAction(targetUserId: string, formData: FormData)
     const { data: existente } = await sb
       .from("perfil_jogador")
       .select("user_id")
-      .ilike("username", username)
+      .eq("username", username)
       .neq("user_id", targetUserId)
       .maybeSingle();
     if (existente) return { error: "Esse username já está em uso." };
