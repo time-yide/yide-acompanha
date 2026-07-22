@@ -8,11 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Player, type PlayerHandle } from "./Player";
 import { Comentarios } from "./Comentarios";
 import { UploadVersao } from "./UploadVersao";
-import { aprovarInternoAction, novaVersaoAction } from "@/lib/review/actions";
+import { aprovarInternoAction, novaVersaoAction, pedirAlteracaoAction } from "@/lib/review/actions";
 import { STATUS_LABEL } from "@/lib/review/schema";
 import type { ReviewFull } from "@/lib/review/queries";
 import type { UploadTus } from "@/lib/bunny/client";
-import { ArrowLeft, CheckCircle2, Plus } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Plus, RotateCcw } from "lucide-react";
 
 export function ReviewView({ review, podeGerenciar }: { review: ReviewFull; podeGerenciar: boolean }) {
   const router = useRouter();
@@ -35,6 +35,13 @@ export function ReviewView({ review, podeGerenciar }: { review: ReviewFull; pode
       const r = await novaVersaoAction(review.id, review.titulo);
       if ("error" in r) { toast.error(r.error); return; }
       setUploadNova(r); router.refresh();
+    });
+  }
+  function pedirAlteracao() {
+    start(async () => {
+      const r = await pedirAlteracaoAction(review.id);
+      if ("error" in r) { toast.error(r.error); return; }
+      toast.success("Enviado pra alteração — o editor vai ver os comentários."); router.refresh();
     });
   }
 
@@ -69,9 +76,14 @@ export function ReviewView({ review, podeGerenciar }: { review: ReviewFull; pode
 
         <div className="ml-auto flex items-center gap-2">
           {podeGerenciar && review.status === "revisao_interna" && (
-            <Button type="button" size="sm" onClick={aprovar} disabled={pending}>
-              <CheckCircle2 className="mr-2 h-4 w-4" />Aprovar internamente
-            </Button>
+            <>
+              <Button type="button" size="sm" variant="outline" onClick={pedirAlteracao} disabled={pending} className="border-amber-500/40 bg-transparent text-amber-500 hover:bg-amber-500/10 hover:text-amber-400">
+                <RotateCcw className="mr-2 h-4 w-4" />Pedir alteração
+              </Button>
+              <Button type="button" size="sm" onClick={aprovar} disabled={pending}>
+                <CheckCircle2 className="mr-2 h-4 w-4" />Aprovar internamente
+              </Button>
+            </>
           )}
           {podeGerenciar && !uploadNova && (
             <Button type="button" size="sm" variant="outline" onClick={pedirNova} disabled={pending} className="border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white">

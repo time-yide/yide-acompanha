@@ -18,4 +18,8 @@ describe("podeTransicionar", () => {
   it("pulos inválidos são bloqueados", () => {
     expect(podeTransicionar("revisao_interna", "aprovado")).toBe(false);
   });
+  it("pedir alteração na revisão interna é válido; nova versão volta pra interna", () => {
+    expect(podeTransicionar("revisao_interna", "ajustes")).toBe(true);
+    expect(podeTransicionar("ajustes", "revisao_interna")).toBe(true);
+  });
 });
