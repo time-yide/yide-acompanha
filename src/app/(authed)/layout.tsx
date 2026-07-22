@@ -5,6 +5,8 @@ import { TopBar } from "@/components/layout/TopBar";
 import { countRecadosNaoLidos } from "@/lib/recados/queries";
 import { checkSatisfactionLock } from "@/lib/satisfacao/lock";
 import { SatisfactionLockGate } from "@/components/satisfacao/SatisfactionLockGate";
+import { checkPesquisaLock } from "@/lib/pesquisas/lock";
+import { PesquisaLockGate } from "@/components/pesquisas/PesquisaLockGate";
 import { listPendenteParaVideomaker } from "@/lib/audiovisual/queries";
 import { CapturaPendenteLockGate } from "@/components/audiovisual/CapturaPendenteLockGate";
 import { countChannelsWithUnread } from "@/lib/escritorio/queries";
@@ -26,7 +28,7 @@ export default async function AuthedLayout({ children }: { children: React.React
     getProfileIdsForActiveUnit(),
     getEffectiveUnitId(),
   ]);
-  const [recadosNaoLidos, lockState, audiovisualPendentes, escritorioUnread, unitContext, yoriProntos, solicitacoesAbertas] = await Promise.all([
+  const [recadosNaoLidos, lockState, audiovisualPendentes, escritorioUnread, unitContext, yoriProntos, solicitacoesAbertas, pesquisaLock] = await Promise.all([
     countRecadosNaoLidos(user.id, unitProfileIds),
     checkSatisfactionLock(user.id, user.role),
     isVideomaker ? listPendenteParaVideomaker(user.id) : Promise.resolve([]),
@@ -34,6 +36,7 @@ export default async function AuthedLayout({ children }: { children: React.React
     getUnitContext().catch(() => null),
     isYoriEnabled() ? countUndownloadedJobs(user.id).catch(() => 0) : Promise.resolve(0),
     veSolicitacoes ? countRequestsAbertas().catch(() => 0) : Promise.resolve(0),
+    checkPesquisaLock(user.id).catch(() => ({ blocked: false as const, pesquisa: null, perguntas: [] })),
   ]);
   const audiovisualOverdue = audiovisualPendentes.filter((p) => p.isOverdue);
 
@@ -76,6 +79,7 @@ export default async function AuthedLayout({ children }: { children: React.React
       </div>
       <SatisfactionLockGate state={lockState} />
       <CapturaPendenteLockGate overdue={audiovisualOverdue} clientes={clientesAtivos} />
+      <PesquisaLockGate state={pesquisaLock} />
       <HeartbeatProvider />
     </div>
   );
