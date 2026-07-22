@@ -26,7 +26,7 @@ export function ResultadosPublicosView({
         </p>
       </header>
       <p className="rounded-md border border-sky-500/40 bg-sky-500/10 px-3 py-2 text-xs text-sky-700 dark:text-sky-400">
-        Visão do time — resultados agregados, sem identificar quem respondeu.
+        Visão do time: resultados agregados, sem identificar quem respondeu.
       </p>
       <PerguntasAgregadas perguntas={perguntas} />
     </div>
