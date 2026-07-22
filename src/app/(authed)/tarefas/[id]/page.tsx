@@ -261,7 +261,17 @@ export default async function TarefaPage({
           )}
 
           {task.tipo === "video" && (
-            <VideoDaTarefa taskId={task.id} review={reviewDaTarefa} podeGerenciar={podeVideo} />
+            <VideoDaTarefa
+              taskId={task.id}
+              review={reviewDaTarefa}
+              podeGerenciar={podeVideo}
+              statusAprovacao={task.status_aprovacao ?? null}
+              podeAprovar={isApprover}
+              podeEnviar={
+                task.atribuido_a === user.id ||
+                (Array.isArray(task.participantes_ids) && task.participantes_ids.includes(user.id))
+              }
+            />
           )}
 
           {task.drive_link && (
