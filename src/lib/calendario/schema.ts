@@ -8,6 +8,7 @@ export const SUB_CALENDARS = [
   "assessores",
   "coordenadores",
   "programacao",
+  "comercial",
 ] as const;
 export type SubCalendar = typeof SUB_CALENDARS[number];
 
@@ -20,6 +21,7 @@ export const SELECTABLE_SUBS = [
   "assessores",
   "coordenadores",
   "programacao",
+  "comercial",
 ] as const;
 export type SelectableSub = typeof SELECTABLE_SUBS[number];
 
