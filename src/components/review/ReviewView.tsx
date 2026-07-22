@@ -54,8 +54,13 @@ export function ReviewView({ review, podeGerenciar }: { review: ReviewFull; pode
       ) : (
         <div className="grid gap-4 md:grid-cols-[2fr_1fr]">
           <div className="space-y-2">
-            {versao.pronto ? <Player ref={playerRef} playlistUrl={versao.playlistUrl} />
-              : <div className="flex aspect-video w-full items-center justify-center rounded-lg bg-muted text-sm text-muted-foreground">Processando o vídeo…</div>}
+            {versao.pronto && versao.playlistUrl ? (
+              <Player ref={playerRef} playlistUrl={versao.playlistUrl} />
+            ) : (
+              <div className="flex aspect-video w-full items-center justify-center rounded-lg bg-muted px-4 text-center text-sm text-muted-foreground">
+                {versao.playlistUrl ? "Processando o vídeo…" : "Player de vídeo (Bunny) ainda não configurado — veja docs/frame-interno-bunny-setup.md"}
+              </div>
+            )}
             <div className="flex flex-wrap gap-1">
               {review.versoes.map((v, i) => (
                 <Button key={v.id} type="button" size="sm" variant={i === ativa ? "default" : "outline"} onClick={() => setAtiva(i)}>v{v.numero}</Button>

@@ -58,9 +58,18 @@ export async function statusVideo(videoId: string): Promise<{ pronto: boolean; d
   return { pronto: data.status >= 4, duracaoSeg: Math.round(data.length ?? 0) };
 }
 
+/** true se as envs do Bunny estão setadas. Não lança. */
+export function bunnyConfigurado(): boolean {
+  try { creds(); return true; } catch { return false; }
+}
+
+/** URL do player HLS. String vazia se o Bunny não está configurado (sem lançar). */
 export function urlPlaylist(videoId: string): string {
+  if (!bunnyConfigurado()) return "";
   return `https://${creds().cdn}/${videoId}/playlist.m3u8`;
 }
+/** URL da miniatura. String vazia se o Bunny não está configurado (sem lançar). */
 export function urlThumbnail(videoId: string): string {
+  if (!bunnyConfigurado()) return "";
   return `https://${creds().cdn}/${videoId}/thumbnail.jpg`;
 }
