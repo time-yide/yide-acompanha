@@ -15,12 +15,17 @@ export function ResponderForm({
   titulo,
   descricao,
   perguntas,
+  onSubmitted,
 }: {
   pesquisaId: string;
   titulo: string;
   descricao: string | null;
   perguntas: PerguntaRow[];
+  /** Se passada, é chamada no sucesso em vez de mostrar o card interno de sucesso. */
+  onSubmitted?: () => void;
 }) {
+  // Usado só no modo padrão (card de sucesso interno com botão "Voltar").
+  // No modo lock gate, `onSubmitted` assume e o router não é usado.
   const router = useRouter();
   const [respostas, setRespostas] = useState<Record<string, string>>({});
   const [enviado, setEnviado] = useState(false);
@@ -47,6 +52,10 @@ export function ResponderForm({
       const r = await responderPesquisaAction(fd);
       if (r?.error) {
         toast.error(r.error);
+        return;
+      }
+      if (onSubmitted) {
+        onSubmitted();
         return;
       }
       setEnviado(true);
