@@ -2,7 +2,10 @@ import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth/session";
 import { canAccess } from "@/lib/auth/permissions";
 import { getCard } from "@/lib/perfil-jogador/queries";
+import { getConquistasDoUsuario } from "@/lib/conquistas/queries";
+import { sincronizarConquistasAction, type ConquistaNova } from "@/lib/conquistas/actions";
 import { CardJogador } from "@/components/perfil/CardJogador";
+import { ConquistaToast } from "@/components/perfil/ConquistaToast";
 
 export default async function PerfilPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -10,9 +13,18 @@ export default async function PerfilPage({ params }: { params: Promise<{ id: str
   const card = await getCard(id);
   if (!card) notFound();
   const podeEditar = user.id === id || canAccess(user.role, "manage:users");
+
+  // Dono: sincroniza (grava novas) e comemora. Precisa do role do DONO (id), não do viewer.
+  let novas: ConquistaNova[] = [];
+  if (user.id === id) novas = await sincronizarConquistasAction(id);
+
+  // Descobre o role do dono do card pra avaliar as conquistas certas.
+  const conquistas = await getConquistasDoUsuario(id, card.roleDoUsuario);
+
   return (
     <div className="mx-auto max-w-2xl">
-      <CardJogador card={card} podeEditar={podeEditar} />
+      {novas.length > 0 && <ConquistaToast novas={novas} />}
+      <CardJogador card={card} podeEditar={podeEditar} conquistas={conquistas} />
     </div>
   );
 }

@@ -20,6 +20,7 @@ export interface SinergiaItem {
 export interface CardData {
   userId: string;
   nome: string;
+  roleDoUsuario: string;
   cargoLabel: string;
   avatarUrl: string | null;
   tempoDeCasa: string | null; // ex.: "8 meses de casa"

@@ -126,6 +126,7 @@ export async function getCard(userId: string): Promise<CardData | null> {
   return {
     userId,
     nome: p.nome,
+    roleDoUsuario: p.role,
     cargoLabel: roleLabel(p.role),
     avatarUrl: p.avatar_url,
     tempoDeCasa: tempoDeCasa(p.data_admissao),

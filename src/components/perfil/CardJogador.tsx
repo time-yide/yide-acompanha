@@ -5,9 +5,11 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { PessoaLink } from "./PessoaLink";
 import {
-  Clock, Drama, BookOpen, Briefcase, Gamepad2, Handshake, Trophy, Zap, ClipboardList, Pencil,
+  Clock, Drama, BookOpen, Briefcase, Gamepad2, Handshake, Zap, ClipboardList, Pencil,
 } from "lucide-react";
 import type { CardData } from "@/lib/perfil-jogador/schema";
+import { ConquistasSecao } from "./ConquistasSecao";
+import type { ConquistaCard } from "@/lib/conquistas/queries";
 
 function initials(nome: string): string {
   return nome.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? "").join("");
@@ -22,7 +24,7 @@ function Secao({ icon, titulo, children }: { icon: React.ReactNode; titulo: stri
   );
 }
 
-export function CardJogador({ card, podeEditar }: { card: CardData; podeEditar: boolean }) {
+export function CardJogador({ card, podeEditar, conquistas }: { card: CardData; podeEditar: boolean; conquistas: ConquistaCard[] }) {
   const { perfil } = card;
   return (
     <div className="space-y-4">
@@ -124,17 +126,14 @@ export function CardJogador({ card, podeEditar }: { card: CardData; podeEditar: 
         </Secao>
       )}
 
-      {/* Conquistas + Skills (bloqueados) */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Card className="space-y-1 p-4 opacity-60">
-          <p className="flex items-center gap-2 text-sm font-medium"><Trophy className="h-4 w-4" />Conquistas</p>
-          <p className="text-xs text-muted-foreground">Em breve.</p>
-        </Card>
-        <Card className="space-y-1 p-4 opacity-60">
-          <p className="flex items-center gap-2 text-sm font-medium"><Zap className="h-4 w-4" />Skills</p>
-          <p className="text-xs text-muted-foreground">Em breve.</p>
-        </Card>
-      </div>
+      {/* Conquistas (Fase 2) */}
+      <ConquistasSecao conquistas={conquistas} />
+
+      {/* Skills (Fase 3 — em breve) */}
+      <Card className="space-y-1 p-4 opacity-60">
+        <p className="flex items-center gap-2 text-sm font-medium"><Zap className="h-4 w-4" />Skills</p>
+        <p className="text-xs text-muted-foreground">Em breve.</p>
+      </Card>
 
       {/* Resultados de pesquisas */}
       <Secao icon={<ClipboardList className="h-4 w-4" />} titulo="Resultados de pesquisas">
