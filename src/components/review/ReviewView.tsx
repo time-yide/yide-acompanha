@@ -125,7 +125,7 @@ export function ReviewView({ review, podeGerenciar, podeAprovar }: { review: Rev
           )}
           {podeAprovar && review.status !== "aprovado" && (
             <>
-              <Button type="button" size="sm" variant="outline" onClick={pedirAlteracao} disabled={pending || !liberado} className="border-amber-500/40 bg-transparent text-amber-500 hover:bg-amber-500/10 hover:text-amber-400">
+              <Button type="button" size="sm" variant="outline" onClick={pedirAlteracao} disabled={pending} className="border-amber-500/40 bg-transparent text-amber-500 hover:bg-amber-500/10 hover:text-amber-400">
                 <RotateCcw className="mr-2 h-4 w-4" />Pedir alteração
               </Button>
               <Button type="button" size="sm" onClick={aprovar} disabled={pending || !liberado}>
