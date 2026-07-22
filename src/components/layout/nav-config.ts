@@ -3,7 +3,7 @@ import {
   DollarSign, Calendar, UserCog, MessageSquare,
   TrendingUp, Video, Trash2, MessagesSquare, Share2, Radar, MessageCircle, Phone,
   IdCard, BookOpen, Inbox, Layers, Zap, MapPin, Target, ShoppingCart, Images, Code2,
-  ClipboardList,
+  ClipboardList, Gamepad2,
   type LucideIcon,
 } from "lucide-react";
 import type { Role } from "@/lib/auth/permissions";
@@ -124,6 +124,7 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
       // aba dentro de Colaboradores (TabsColaboradores). URLs preservadas.
       { type: "link", href: "/manual", icon: BookOpen, label: "Bastidores", roles: "all", badgeKey: null },
       { type: "link", href: "/colaboradores", icon: UserCog, label: "Colaboradores", roles: "all", badgeKey: null },
+      { type: "link", href: "/time", icon: Gamepad2, label: "Time", roles: "all", badgeKey: null },
       // Todo colaborador pode ser destinatário de uma pesquisa (pesquisa_destinatarios
       // é por pessoa, não por cargo), então o link é "all" — a página mostra só a aba
       // "Responder" pra quem não gerencia. Gerenciar/criar continua protegido por
