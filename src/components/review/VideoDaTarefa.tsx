@@ -24,6 +24,18 @@ export function VideoDaTarefa({ taskId, review, podeGerenciar }: { taskId: strin
   const [pctVisto, setPctVisto] = useState(review?.assistidoPctVersaoAtual ?? 0);
   const salvoRef = useRef(review?.assistidoPctVersaoAtual ?? 0);
 
+  // Rearma a trava quando muda a versão atual (nova versão = tem que assistir de novo).
+  // Padrão React: ajustar o estado durante o render ao detectar mudança de prop.
+  const [versaoAnterior, setVersaoAnterior] = useState(versao?.id);
+  if (versao?.id !== versaoAnterior) {
+    setVersaoAnterior(versao?.id);
+    setPctVisto(review?.assistidoPctVersaoAtual ?? 0);
+  }
+  // O "já salvo" acompanha a versão (ref só pode ser mexido fora do render).
+  useEffect(() => {
+    salvoRef.current = review?.assistidoPctVersaoAtual ?? 0;
+  }, [versao?.id, review?.assistidoPctVersaoAtual]);
+
   // Salva o progresso (máximo) de forma throttled quando cresce.
   useEffect(() => {
     if (!versao) return;

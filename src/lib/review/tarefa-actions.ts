@@ -37,6 +37,9 @@ export async function criarReviewDaTarefaAction(taskId: string): Promise<Res<{ r
   const { data: ult } = await sb.from("review_versao").select("numero").eq("review_video_id", reviewId).order("numero", { ascending: false }).limit(1);
   const prox = ((ult?.[0]?.numero as number | undefined) ?? 0) + 1;
   await sb.from("review_versao").insert({ review_video_id: reviewId, numero: prox, bunny_video_id: guid, criado_por: user.id });
+  // "Toca" a tarefa pra o TaskRealtimeWatcher atualizar a página do assessor
+  // (nova versão → a trava de assistir rearma automaticamente).
+  await sb.from("tasks").update({ updated_at: new Date().toISOString() }).eq("id", taskId);
   revalidatePath(`/tarefas/${taskId}`);
   return { reviewId, upload: assinaturaUpload(guid) };
 }
