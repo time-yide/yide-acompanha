@@ -47,6 +47,8 @@ export async function novaVersaoAction(reviewId: string, titulo: string): Promis
   try { guid = await criarVideo(`${titulo} v${prox}`); }
   catch (e) { return { error: msgBunny(e) }; }
   await sb.from("review_versao").insert({ review_video_id: reviewId, numero: prox, bunny_video_id: guid, criado_por: user.id });
+  // Se estava em "ajustes", subir nova versão devolve pra revisão interna.
+  await sb.from("review_video").update({ status: "revisao_interna", updated_at: new Date().toISOString() }).eq("id", reviewId).eq("status", "ajustes");
   revalidatePath(`/audiovisual/review/${reviewId}`);
   return assinaturaUpload(guid);
 }
@@ -96,6 +98,20 @@ export async function aprovarInternoAction(reviewId: string): Promise<Res<{ ok: 
   if (!rv) return { error: "Review não encontrado" };
   if (!podeTransicionar(rv.status as ReviewStatus, "revisao_cliente")) return { error: "Esse review não está em revisão interna" };
   await sb.from("review_video").update({ status: "revisao_cliente", updated_at: new Date().toISOString() }).eq("id", reviewId);
+  revalidatePath(`/audiovisual/review/${reviewId}`);
+  revalidatePath("/audiovisual/review");
+  return { ok: true };
+}
+
+/** Pede alteração: manda o review pra "ajustes" — o editor vê e entra pra ler os comentários. */
+export async function pedirAlteracaoAction(reviewId: string): Promise<Res<{ ok: true }>> {
+  const user = await requireAuth();
+  if (!pode(user.role)) return { error: "Sem permissão" };
+  const sb = createServiceRoleClient() as SB;
+  const { data: rv } = await sb.from("review_video").select("status").eq("id", reviewId).maybeSingle();
+  if (!rv) return { error: "Review não encontrado" };
+  if (!podeTransicionar(rv.status as ReviewStatus, "ajustes")) return { error: "Não dá pra pedir alteração agora" };
+  await sb.from("review_video").update({ status: "ajustes", updated_at: new Date().toISOString() }).eq("id", reviewId);
   revalidatePath(`/audiovisual/review/${reviewId}`);
   revalidatePath("/audiovisual/review");
   return { ok: true };

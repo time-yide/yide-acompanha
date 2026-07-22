@@ -9,9 +9,11 @@ export const STATUS_LABEL: Record<ReviewStatus, string> = {
 };
 
 const TRANSICOES: Record<ReviewStatus, ReviewStatus[]> = {
-  revisao_interna: ["revisao_cliente"],
+  // Da revisão interna: aprova (vai pro cliente) OU pede alteração (volta pro editor).
+  revisao_interna: ["revisao_cliente", "ajustes"],
   revisao_cliente: ["aprovado", "ajustes"],
-  ajustes: ["revisao_cliente"],
+  // Em ajustes: o editor sobe nova versão → volta pra revisão interna (ou cliente).
+  ajustes: ["revisao_interna", "revisao_cliente"],
   aprovado: [],
 };
 
