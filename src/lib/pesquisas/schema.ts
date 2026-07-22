@@ -23,6 +23,7 @@ export const createPesquisaSchema = z.object({
   titulo: z.string().min(2, "Título muito curto"),
   descricao: z.string().optional().nullable(),
   anonima: z.coerce.boolean().default(false),
+  resultados_publicos: z.coerce.boolean().default(false),
 });
 
 /** Uma pergunta no builder (antes de virar linha no banco). */
@@ -61,6 +62,7 @@ export interface PesquisaRow {
   titulo: string;
   descricao: string | null;
   anonima: boolean;
+  resultados_publicos: boolean;
   status: PesquisaStatus;
   criado_por: string | null;
   disparada_em: string | null;

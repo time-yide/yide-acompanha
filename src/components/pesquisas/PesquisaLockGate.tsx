@@ -27,7 +27,7 @@ export function PesquisaLockGate({ state }: Props) {
           <div className="space-y-1">
             <h2 className="text-xl font-bold tracking-tight">Pesquisa obrigatória</h2>
             <p className="text-sm text-muted-foreground">
-              Responda pra liberar o sistema — leva menos de 3 minutinhos. 💛
+              Responda pra liberar o sistema, leva menos de 3 minutinhos. 💛
             </p>
           </div>
         </div>

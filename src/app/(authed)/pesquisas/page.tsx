@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireAuth } from "@/lib/auth/session";
 import { canAccess } from "@/lib/auth/permissions";
-import { listMinhasPesquisas, listPesquisasPendentes } from "@/lib/pesquisas/queries";
+import { listMinhasPesquisas, listPesquisasPendentes, listPesquisasPublicas } from "@/lib/pesquisas/queries";
 import { PESQUISA_STATUS_LABEL } from "@/lib/pesquisas/schema";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -16,9 +16,10 @@ export default async function PesquisasPage({
   const user = await requireAuth();
   const canManage = canAccess(user.role, "manage:pesquisas");
 
-  const [minhas, pendentes] = await Promise.all([
+  const [minhas, pendentes, publicas] = await Promise.all([
     canManage ? listMinhasPesquisas(user.id) : Promise.resolve([]),
     listPesquisasPendentes(user.id),
+    listPesquisasPublicas(),
   ]);
 
   const aba = params.aba === "responder" || !canManage ? "responder" : "minhas";
@@ -88,6 +89,22 @@ export default async function PesquisasPage({
             ))
           )}
         </div>
+      )}
+
+      {publicas.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="text-sm font-semibold text-muted-foreground">Resultados abertos ao time</h2>
+          {publicas.map((p) => (
+            <Link
+              key={p.id}
+              href={`/pesquisas/${p.id}`}
+              className="flex items-center justify-between rounded-lg border bg-card p-4 hover:bg-muted/40"
+            >
+              <p className="truncate font-medium">{p.titulo}</p>
+              <StatusBadge status={p.status} />
+            </Link>
+          ))}
+        </section>
       )}
     </div>
   );

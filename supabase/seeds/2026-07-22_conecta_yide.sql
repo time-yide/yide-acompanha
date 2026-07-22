@@ -6,7 +6,7 @@ with nova as (
     (organization_id, titulo, descricao, anonima, bloqueante, status, criado_por, disparada_em)
   select
     p.organization_id,
-    'Conecta Yide — sua opinião conta 💛',
+    'Conecta Yide, sua opinião conta 💛',
     'Queremos muito saber como foi o nosso Conecta Yide pra você! São só 2 minutinhos e sua resposta ajuda a gente a fazer os próximos ainda melhores.',
     false, true, 'aberta', p.id, now()
   from public.profiles p

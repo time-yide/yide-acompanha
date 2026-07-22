@@ -38,6 +38,7 @@ export async function createPesquisaAction(formData: FormData): Promise<Result> 
     titulo: fd(formData, "titulo"),
     descricao: fd(formData, "descricao"),
     anonima: fd(formData, "anonima") === "true",
+    resultados_publicos: fd(formData, "resultados_publicos") === "true",
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
@@ -52,6 +53,7 @@ export async function createPesquisaAction(formData: FormData): Promise<Result> 
       titulo: parsed.data.titulo,
       descricao: parsed.data.descricao ?? null,
       anonima: parsed.data.anonima,
+      resultados_publicos: parsed.data.resultados_publicos,
       status: "rascunho",
       criado_por: actor.id,
     })
@@ -74,6 +76,7 @@ export async function updatePesquisaAction(formData: FormData): Promise<Result> 
     titulo: fd(formData, "titulo"),
     descricao: fd(formData, "descricao"),
     anonima: fd(formData, "anonima") === "true",
+    resultados_publicos: fd(formData, "resultados_publicos") === "true",
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
@@ -84,6 +87,7 @@ export async function updatePesquisaAction(formData: FormData): Promise<Result> 
       titulo: parsed.data.titulo,
       descricao: parsed.data.descricao ?? null,
       anonima: parsed.data.anonima,
+      resultados_publicos: parsed.data.resultados_publicos,
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)
