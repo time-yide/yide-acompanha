@@ -5,7 +5,7 @@ create type public.review_autor_tipo as enum ('time', 'cliente');
 create table public.review_video (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid not null references public.organizations(id),
-  cliente_id uuid references public.clientes(id),
+  cliente_id uuid references public.clients(id),
   titulo text not null,
   status public.review_status not null default 'revisao_interna',
   criado_por uuid references public.profiles(id),

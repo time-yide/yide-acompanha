@@ -14,12 +14,12 @@ export async function listarReviews(): Promise<ReviewListItem[]> {
   const sb = createServiceRoleClient() as SB;
   const { data } = await sb
     .from("review_video")
-    .select("id, titulo, status, created_at, clientes(nome)")
+    .select("id, titulo, status, created_at, clients(nome)")
     .order("created_at", { ascending: false });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return ((data ?? []) as any[]).map((r) => ({
     id: r.id, titulo: r.titulo, status: r.status, created_at: r.created_at,
-    clienteNome: r.clientes?.nome ?? null,
+    clienteNome: r.clients?.nome ?? null,
   }));
 }
 
@@ -27,7 +27,7 @@ export async function carregarReview(id: string): Promise<ReviewFull | null> {
   const sb = createServiceRoleClient() as SB;
   const { data: rv } = await sb
     .from("review_video")
-    .select("id, titulo, status, clientes(nome)")
+    .select("id, titulo, status, clients(nome)")
     .eq("id", id)
     .maybeSingle();
   if (!rv) return null;
@@ -51,7 +51,7 @@ export async function carregarReview(id: string): Promise<ReviewFull | null> {
   }
   return {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    id: rv.id, titulo: rv.titulo, status: rv.status, clienteNome: (rv as any).clientes?.nome ?? null,
+    id: rv.id, titulo: rv.titulo, status: rv.status, clienteNome: (rv as any).clients?.nome ?? null,
     versoes: vs.map((v) => ({
       id: v.id, numero: v.numero, bunny_video_id: v.bunny_video_id, pronto: v.pronto,
       playlistUrl: urlPlaylist(v.bunny_video_id), thumbUrl: urlThumbnail(v.bunny_video_id),

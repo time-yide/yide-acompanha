@@ -9,7 +9,7 @@ export default async function NovoReviewPage() {
   if (!canAccess(user.role, "manage:review")) redirect("/audiovisual");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
-  const { data } = await sb.from("clientes").select("id, nome").order("nome");
+  const { data } = await sb.from("clients").select("id, nome").order("nome");
   return (
     <div className="mx-auto max-w-lg space-y-5">
       <header><h1 className="text-2xl font-bold tracking-tight">Novo review</h1></header>

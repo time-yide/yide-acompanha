@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { podeTransicionar, type ReviewStatus } from "./schema";
+import { podeTransicionar } from "./schema";
 
 describe("podeTransicionar", () => {
   it("interno → cliente é válido (aprovação interna)", () => {
