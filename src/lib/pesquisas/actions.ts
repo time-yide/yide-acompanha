@@ -13,6 +13,7 @@ import {
   type PerguntaInput,
   type PerguntaTipo,
 } from "./schema";
+import { PESQUISA_LOCK_TAG } from "./lock";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SB = any;
@@ -285,7 +286,9 @@ export async function responderPesquisaAction(formData: FormData): Promise<Resul
     .eq("id", dest.id);
 
   revalidatePath("/pesquisas");
+  revalidatePath("/", "layout");
   revalidateTag("pesquisas", "default");
+  revalidateTag(PESQUISA_LOCK_TAG, "default");
   return { success: true };
 }
 
