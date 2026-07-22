@@ -1,20 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState, useTransition } from "react";
+import { useRef, useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Player, type PlayerHandle } from "./Player";
 import { Comentarios } from "./Comentarios";
 import { UploadVersao } from "./UploadVersao";
-import { aprovarInternoAction, novaVersaoAction, pedirAlteracaoAction } from "@/lib/review/actions";
+import { aprovarVideoAction, novaVersaoAction, pedirAlteracaoAction } from "@/lib/review/actions";
+import { registrarAssistidoAction, linkDownloadAction } from "@/lib/review/tarefa-actions";
+import { PCT_MINIMO, destravado } from "@/lib/review/gate";
 import { STATUS_LABEL } from "@/lib/review/schema";
 import type { ReviewFull } from "@/lib/review/queries";
 import type { UploadTus } from "@/lib/bunny/client";
-import { ArrowLeft, CheckCircle2, Plus, RotateCcw } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Download, Lock, Plus, RotateCcw } from "lucide-react";
 
-export function ReviewView({ review, podeGerenciar }: { review: ReviewFull; podeGerenciar: boolean }) {
+export function ReviewView({ review, podeGerenciar, podeAprovar }: { review: ReviewFull; podeGerenciar: boolean; podeAprovar: boolean }) {
   const router = useRouter();
   const playerRef = useRef<PlayerHandle>(null);
   const [ativa, setAtiva] = useState(Math.max(0, review.versoes.length - 1));
@@ -23,11 +25,42 @@ export function ReviewView({ review, podeGerenciar }: { review: ReviewFull; pode
   const [pending, start] = useTransition();
   const versao = review.versoes[ativa];
 
+  // Watch tracking: semente vinda do server pra a versão atual (última).
+  const [pctVisto, setPctVisto] = useState(review.assistidoPctVersaoAtual);
+  const salvoRef = useRef(review.assistidoPctVersaoAtual);
+
+  // Rearma a trava quando muda a versão ativa (nova versão = assistir de novo).
+  const [versaoAnterior, setVersaoAnterior] = useState(versao?.id);
+  if (versao?.id !== versaoAnterior) {
+    setVersaoAnterior(versao?.id);
+    // Só a versão atual (última) traz % semeado; versões anteriores começam do zero.
+    const ehAtual = ativa === review.versoes.length - 1;
+    setPctVisto(ehAtual ? review.assistidoPctVersaoAtual : 0);
+  }
+  useEffect(() => {
+    const ehAtual = ativa === review.versoes.length - 1;
+    salvoRef.current = ehAtual ? review.assistidoPctVersaoAtual : 0;
+  }, [versao?.id, ativa, review.versoes.length, review.assistidoPctVersaoAtual]);
+
+  // Salva o progresso (máximo) de forma throttled quando cresce.
+  useEffect(() => {
+    if (!versao) return;
+    if (pctVisto - salvoRef.current >= 5 || (pctVisto >= PCT_MINIMO && salvoRef.current < PCT_MINIMO)) {
+      salvoRef.current = pctVisto;
+      registrarAssistidoAction(versao.id, pctVisto);
+    }
+  }, [pctVisto, versao]);
+
+  function onTime(seg: number, dur: number) {
+    setTempo(seg);
+    if (dur > 0) setPctVisto((p) => Math.max(p, Math.round((seg / dur) * 100)));
+  }
+
   function aprovar() {
     start(async () => {
-      const r = await aprovarInternoAction(review.id);
+      const r = await aprovarVideoAction(review.id);
       if ("error" in r) { toast.error(r.error); return; }
-      toast.success("Aprovado internamente!"); router.refresh();
+      toast.success("Vídeo aprovado!"); router.refresh();
     });
   }
   function pedirNova() {
@@ -38,14 +71,24 @@ export function ReviewView({ review, podeGerenciar }: { review: ReviewFull; pode
     });
   }
   function pedirAlteracao() {
+    if (!window.confirm("Pedir alteração deste vídeo? O editor verá os comentários no vídeo.")) return;
     start(async () => {
       const r = await pedirAlteracaoAction(review.id);
       if ("error" in r) { toast.error(r.error); return; }
       toast.success("Enviado pra alteração — o editor vai ver os comentários."); router.refresh();
     });
   }
+  function baixar() {
+    if (!versao) return;
+    start(async () => {
+      const r = await linkDownloadAction(versao.id);
+      if ("error" in r) { toast.error(r.error); return; }
+      window.open(r.url, "_blank");
+    });
+  }
 
   const marcadores = versao ? versao.comentarios.map((c) => c.tempo_seg) : [];
+  const liberado = destravado(pctVisto);
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-neutral-950 text-white">
@@ -74,16 +117,26 @@ export function ReviewView({ review, podeGerenciar }: { review: ReviewFull; pode
           </div>
         )}
 
-        <div className="ml-auto flex items-center gap-2">
-          {podeGerenciar && review.status === "revisao_interna" && (
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          {!liberado && versao && (
+            <span className="flex items-center gap-1 text-xs text-amber-400">
+              <Lock className="h-3.5 w-3.5" />Assista até o fim ({pctVisto}%/{PCT_MINIMO}%)
+            </span>
+          )}
+          {podeAprovar && review.status !== "aprovado" && (
             <>
-              <Button type="button" size="sm" variant="outline" onClick={pedirAlteracao} disabled={pending} className="border-amber-500/40 bg-transparent text-amber-500 hover:bg-amber-500/10 hover:text-amber-400">
+              <Button type="button" size="sm" variant="outline" onClick={pedirAlteracao} disabled={pending || !liberado} className="border-amber-500/40 bg-transparent text-amber-500 hover:bg-amber-500/10 hover:text-amber-400">
                 <RotateCcw className="mr-2 h-4 w-4" />Pedir alteração
               </Button>
-              <Button type="button" size="sm" onClick={aprovar} disabled={pending}>
-                <CheckCircle2 className="mr-2 h-4 w-4" />Aprovar internamente
+              <Button type="button" size="sm" onClick={aprovar} disabled={pending || !liberado}>
+                <CheckCircle2 className="mr-2 h-4 w-4" />Aprovar
               </Button>
             </>
+          )}
+          {versao && (
+            <Button type="button" size="sm" variant="outline" onClick={baixar} disabled={pending || !liberado} className="border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white">
+              <Download className="mr-2 h-4 w-4" />Baixar
+            </Button>
           )}
           {podeGerenciar && !uploadNova && (
             <Button type="button" size="sm" variant="outline" onClick={pedirNova} disabled={pending} className="border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white">
@@ -112,7 +165,7 @@ export function ReviewView({ review, podeGerenciar }: { review: ReviewFull; pode
               ref={playerRef}
               playlistUrl={versao.playlistUrl}
               marcadores={marcadores}
-              onTime={(seg) => setTempo(seg)}
+              onTime={onTime}
               onMarcadorClick={(seg) => playerRef.current?.seek(seg)}
             />
           ) : (
