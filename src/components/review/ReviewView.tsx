@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -11,7 +12,7 @@ import { aprovarInternoAction, novaVersaoAction } from "@/lib/review/actions";
 import { STATUS_LABEL } from "@/lib/review/schema";
 import type { ReviewFull } from "@/lib/review/queries";
 import type { UploadTus } from "@/lib/bunny/client";
-import { CheckCircle2, Clapperboard, Plus } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Plus } from "lucide-react";
 
 export function ReviewView({ review, podeGerenciar }: { review: ReviewFull; podeGerenciar: boolean }) {
   const router = useRouter();
@@ -40,25 +41,25 @@ export function ReviewView({ review, podeGerenciar }: { review: ReviewFull; pode
   const marcadores = versao ? versao.comentarios.map((c) => c.tempo_seg) : [];
 
   return (
-    <div className="space-y-3">
-      {/* Barra do topo (breadcrumb + versões + ações) */}
-      <div className="flex flex-wrap items-center gap-3">
-        <Clapperboard className="h-5 w-5 text-muted-foreground" />
+    <div className="fixed inset-0 z-50 flex flex-col bg-neutral-950 text-white">
+      {/* Barra do topo */}
+      <div className="flex flex-wrap items-center gap-3 border-b border-white/10 px-4 py-2.5">
+        <Link href="/audiovisual/review" className="flex h-8 w-8 items-center justify-center rounded-md text-white/70 hover:bg-white/10 hover:text-white" aria-label="Voltar">
+          <ArrowLeft className="h-5 w-5" />
+        </Link>
         <div className="min-w-0">
-          <h1 className="truncate text-lg font-bold leading-tight">{review.titulo}</h1>
-          <p className="text-xs text-muted-foreground">
-            {review.clienteNome ?? "Sem cliente"} · {STATUS_LABEL[review.status]}
-          </p>
+          <h1 className="truncate text-sm font-semibold leading-tight">{review.titulo}</h1>
+          <p className="truncate text-[11px] text-white/45">{review.clienteNome ?? "Sem cliente"} · {STATUS_LABEL[review.status]}</p>
         </div>
 
         {review.versoes.length > 0 && (
-          <div className="flex items-center gap-1 rounded-lg border bg-card p-0.5">
+          <div className="flex items-center gap-1 rounded-lg bg-white/[0.06] p-0.5 ring-1 ring-white/10">
             {review.versoes.map((v, i) => (
               <button
                 key={v.id}
                 type="button"
                 onClick={() => setAtiva(i)}
-                className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${i === ativa ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
+                className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${i === ativa ? "bg-primary text-primary-foreground" : "text-white/60 hover:bg-white/10"}`}
               >
                 v{v.numero}
               </button>
@@ -72,64 +73,56 @@ export function ReviewView({ review, podeGerenciar }: { review: ReviewFull; pode
               <CheckCircle2 className="mr-2 h-4 w-4" />Aprovar internamente
             </Button>
           )}
-          {podeGerenciar && (
-            uploadNova ? null : (
-              <Button type="button" size="sm" variant="outline" onClick={pedirNova} disabled={pending}>
-                <Plus className="mr-2 h-4 w-4" />Nova versão
-              </Button>
-            )
+          {podeGerenciar && !uploadNova && (
+            <Button type="button" size="sm" variant="outline" onClick={pedirNova} disabled={pending} className="border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white">
+              <Plus className="mr-2 h-4 w-4" />Nova versão
+            </Button>
           )}
         </div>
       </div>
 
       {podeGerenciar && uploadNova && (
-        <div className="rounded-lg border bg-card p-3">
-          <p className="mb-2 text-sm text-muted-foreground">Envie o arquivo da nova versão:</p>
+        <div className="flex items-center gap-3 border-b border-white/10 bg-white/[0.03] px-4 py-2">
+          <span className="text-xs text-white/60">Envie o arquivo da nova versão:</span>
           <UploadVersao reviewId={review.id} upload={uploadNova} titulo={review.titulo} />
         </div>
       )}
 
-      {/* Painel principal estilo Frame */}
-      {review.versoes.length === 0 || !versao ? (
-        <div className="rounded-xl border bg-card p-10 text-center text-sm text-muted-foreground">
-          Nenhuma versão ainda. {podeGerenciar && "Clique em “Nova versão” pra enviar o vídeo."}
-        </div>
-      ) : (
-        <div className="overflow-hidden rounded-xl border border-white/10 bg-neutral-950">
-          <div className="grid lg:grid-cols-[1fr_340px]">
-            {/* Player */}
-            <div className="p-3">
-              {versao.pronto && versao.playlistUrl ? (
-                <Player
-                  ref={playerRef}
-                  playlistUrl={versao.playlistUrl}
-                  marcadores={marcadores}
-                  onTime={(seg) => setTempo(seg)}
-                  onMarcadorClick={(seg) => playerRef.current?.seek(seg)}
-                />
-              ) : (
-                <div className="flex aspect-video w-full items-center justify-center rounded-lg bg-neutral-900 px-4 text-center text-sm text-white/50">
-                  {versao.playlistUrl ? "Processando o vídeo…" : "Player de vídeo (Bunny) ainda não configurado — veja docs/frame-interno-bunny-setup.md"}
-                </div>
-              )}
+      {/* Corpo: player (grande) + comentários (lateral, altura cheia) */}
+      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+        <div className="min-h-0 flex-1 bg-black">
+          {review.versoes.length === 0 || !versao ? (
+            <div className="flex h-full items-center justify-center px-6 text-center text-sm text-white/45">
+              Nenhuma versão ainda. {podeGerenciar && "Clique em “Nova versão” pra enviar o vídeo."}
             </div>
+          ) : versao.pronto && versao.playlistUrl ? (
+            <Player
+              ref={playerRef}
+              playlistUrl={versao.playlistUrl}
+              marcadores={marcadores}
+              onTime={(seg) => setTempo(seg)}
+              onMarcadorClick={(seg) => playerRef.current?.seek(seg)}
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center px-6 text-center text-sm text-white/50">
+              {versao.playlistUrl ? "Processando o vídeo…" : "Player de vídeo (Bunny) ainda não configurado — veja docs/frame-interno-bunny-setup.md"}
+            </div>
+          )}
+        </div>
 
-            {/* Comentários */}
-            <div className="border-t border-white/10 lg:border-l lg:border-t-0">
-              <div className="h-[300px] lg:h-[520px]">
-                <Comentarios
-                  reviewId={review.id}
-                  versaoId={versao.id}
-                  comentarios={versao.comentarios}
-                  playerRef={playerRef}
-                  tempoAtual={tempo}
-                  podeComentar
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+        {versao && (
+          <aside className="flex h-[45vh] w-full shrink-0 flex-col border-t border-white/10 lg:h-auto lg:w-[360px] lg:border-l lg:border-t-0">
+            <Comentarios
+              reviewId={review.id}
+              versaoId={versao.id}
+              comentarios={versao.comentarios}
+              playerRef={playerRef}
+              tempoAtual={tempo}
+              podeComentar
+            />
+          </aside>
+        )}
+      </div>
     </div>
   );
 }

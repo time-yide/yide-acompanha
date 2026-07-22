@@ -77,13 +77,13 @@ export const Player = forwardRef<PlayerHandle, {
   const pct = dur > 0 ? (atual / dur) * 100 : 0;
 
   return (
-    <div ref={wrap} className="group relative overflow-hidden rounded-lg bg-black">
+    <div ref={wrap} className="group relative h-full w-full overflow-hidden bg-black">
       <video
         ref={video}
         playsInline
         preload="auto"
         controlsList="nodownload"
-        className="aspect-video w-full bg-black"
+        className="h-full w-full bg-black object-contain"
         onClick={playPause}
         onPlay={() => setTocando(true)}
         onPause={() => setTocando(false)}
