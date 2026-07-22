@@ -82,6 +82,8 @@ export type Action =
   | "manage:trafego_relatorios"
   // Pesquisas internas
   | "manage:pesquisas"
+  // Frame Interno (review de vídeo)
+  | "manage:review"
   // Sistema
   | "system:support";
 
@@ -99,6 +101,7 @@ const matrix: Record<Role, Action[]> = {
     "feed:satisfaction",
     "manage:trafego_relatorios",
     "view:agenda_temperature",
+    "manage:review",
   ],
   adm: [
     "manage:users", "create:colaboradores", "edit:colaboradores",
@@ -111,6 +114,7 @@ const matrix: Record<Role, Action[]> = {
     "create:tasks", "create:calendar_event", "customize:notification_recipients",
     "system:support",
     "manage:trafego_relatorios",
+    "manage:review",
   ],
   comercial: [
     "view:all_clients",
@@ -128,6 +132,7 @@ const matrix: Record<Role, Action[]> = {
     "manage:trafego_relatorios",
     "manage:pesquisas",
     "view:agenda_temperature",
+    "manage:review",
   ],
   assessor: [
     "view:all_clients",
@@ -141,18 +146,21 @@ const matrix: Record<Role, Action[]> = {
     "view:own_commission",
     "create:tasks", "create:calendar_event", "customize:notification_recipients",
     "feed:satisfaction",
+    "manage:review",
   ],
   designer: [
     "view:all_clients",
     "view:own_commission",
     "create:tasks", "create:calendar_event", "customize:notification_recipients",
     "feed:satisfaction",
+    "manage:review",
   ],
   editor: [
     "view:all_clients",
     "view:own_commission",
     "create:tasks", "create:calendar_event", "customize:notification_recipients",
     "feed:satisfaction",
+    "manage:review",
   ],
   audiovisual_chefe: [
     "create:colaboradores",
@@ -164,6 +172,7 @@ const matrix: Record<Role, Action[]> = {
     "create:tasks", "create:calendar_event", "customize:notification_recipients",
     "feed:satisfaction",
     "view:agenda_temperature",
+    "manage:review",
   ],
   // Conjunto mínimo intencional: assessor de e-commerce não participa do fluxo
   // de satisfação (sem feed:satisfaction) nem de aprovações/financeiro.
@@ -192,6 +201,7 @@ const matrix: Record<Role, Action[]> = {
     "view:own_commission",
     "create:tasks", "create:calendar_event", "customize:notification_recipients",
     "feed:satisfaction",
+    "manage:review",
   ],
 };
 
