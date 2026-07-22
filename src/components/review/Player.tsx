@@ -2,7 +2,7 @@
 
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 import Hls from "hls.js";
-import { Play, Pause, Volume2, VolumeX, Maximize, Gauge } from "lucide-react";
+import { Play, Pause, Volume2, VolumeX, Maximize, Gauge, MapPin } from "lucide-react";
 
 export interface PlayerHandle { seek: (seg: number) => void; tempoAtual: () => number }
 
@@ -24,7 +24,15 @@ export const Player = forwardRef<PlayerHandle, {
   marcadores?: number[];
   onTime?: (seg: number, dur: number) => void;
   onMarcadorClick?: (seg: number) => void;
-}>(function Player({ playlistUrl, marcadores = [], onTime, onMarcadorClick }, ref) {
+  /** Modo de marcação: clicar no vídeo posiciona o alfinete em vez de dar play. */
+  modoPino?: boolean;
+  /** Chamado ao posicionar o alfinete — coordenadas normalizadas (0..1). */
+  onPinPlace?: (x: number, y: number) => void;
+  /** Alfinete a renderizar sobre o vídeo (0..1). null = nenhum. */
+  pino?: { x: number; y: number } | null;
+  /** Texto do balão exibido junto do alfinete (comentário existente). */
+  pinoLabel?: string | null;
+}>(function Player({ playlistUrl, marcadores = [], onTime, onMarcadorClick, modoPino = false, onPinPlace, pino = null, pinoLabel = null }, ref) {
   const video = useRef<HTMLVideoElement>(null);
   const wrap = useRef<HTMLDivElement>(null);
   const [tocando, setTocando] = useState(false);
@@ -58,10 +66,26 @@ export const Player = forwardRef<PlayerHandle, {
     onTime?.(v.currentTime, v.duration || 0);
   }, [onTime]);
 
+  // Ao entrar no modo de marcação, pausa pra o quadro ficar parado enquanto
+  // se posiciona o alfinete.
+  useEffect(() => {
+    if (modoPino) video.current?.pause();
+  }, [modoPino]);
+
   function playPause() {
     const v = video.current;
     if (!v) return;
     if (v.paused) v.play().catch(() => {}); else v.pause();
+  }
+  function onVideoClick(e: React.MouseEvent<HTMLVideoElement>) {
+    if (modoPino) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+      const y = Math.min(1, Math.max(0, (e.clientY - rect.top) / rect.height));
+      onPinPlace?.(x, y);
+      return;
+    }
+    playPause();
   }
   function seekBar(e: React.MouseEvent<HTMLDivElement>) {
     const v = video.current;
@@ -83,16 +107,42 @@ export const Player = forwardRef<PlayerHandle, {
         playsInline
         preload="auto"
         controlsList="nodownload"
-        className="h-full w-full bg-black object-contain"
-        onClick={playPause}
+        className={`h-full w-full bg-black object-contain ${modoPino ? "cursor-crosshair" : ""}`}
+        onClick={onVideoClick}
         onPlay={() => setTocando(true)}
         onPause={() => setTocando(false)}
         onTimeUpdate={onTimeUpdate}
         onLoadedMetadata={() => setDur(video.current?.duration ?? 0)}
       />
 
+      {/* Alfinete/balão preso ao ponto (estilo Frame.io). A ponta do pin aponta
+          exatamente pra (x,y); o balão fica acima. pointer-events-none pra não
+          bloquear cliques de marcação/controles. */}
+      {pino && (
+        <div
+          className="pointer-events-none absolute z-20 flex -translate-x-1/2 -translate-y-full flex-col items-center"
+          style={{ left: `${pino.x * 100}%`, top: `${pino.y * 100}%` }}
+        >
+          {pinoLabel ? (
+            <div className="mb-1 max-w-[220px] rounded-lg bg-amber-400 px-2.5 py-1 text-[11px] font-medium leading-snug text-black shadow-lg">
+              {pinoLabel}
+            </div>
+          ) : null}
+          <MapPin className={`h-8 w-8 fill-amber-400 text-black drop-shadow-lg ${modoPino ? "animate-bounce" : ""}`} />
+        </div>
+      )}
+
+      {/* Dica no modo de marcação */}
+      {modoPino && !pino && (
+        <div className="pointer-events-none absolute inset-x-0 top-3 z-20 flex justify-center">
+          <span className="rounded-full bg-amber-400/95 px-3 py-1 text-xs font-medium text-black shadow-lg">
+            Clique no vídeo para marcar o ponto
+          </span>
+        </div>
+      )}
+
       {/* Play central quando pausado */}
-      {!tocando && (
+      {!tocando && !modoPino && (
         <button
           type="button"
           onClick={playPause}

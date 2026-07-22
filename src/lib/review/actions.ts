@@ -71,14 +71,26 @@ export async function confirmarProntoAction(reviewId: string, bunnyVideoId: stri
   return { pronto: st.pronto };
 }
 
-export async function comentarAction(reviewId: string, versaoId: string, tempoSeg: number, corpo: string): Promise<Res<{ ok: true }>> {
+export async function comentarAction(
+  reviewId: string,
+  versaoId: string,
+  tempoSeg: number,
+  corpo: string,
+  posX?: number | null,
+  posY?: number | null,
+): Promise<Res<{ ok: true }>> {
   const user = await requireAuth();
   if (!pode(user.role)) return { error: "Sem permissão" };
   if (!corpo.trim()) return { error: "Escreva um comentário" };
+  // Coordenadas do alfinete/balão (0..1). Só grava se as duas vierem válidas.
+  const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
+  const temPino = typeof posX === "number" && typeof posY === "number" && isFinite(posX) && isFinite(posY);
   const sb = createServiceRoleClient() as SB;
   await sb.from("review_comentario").insert({
     versao_id: versaoId, autor_tipo: "time", autor_id: user.id, autor_nome: user.nome,
     tempo_seg: Math.max(0, Math.round(tempoSeg)), corpo: corpo.trim(),
+    pos_x: temPino ? clamp01(posX as number) : null,
+    pos_y: temPino ? clamp01(posY as number) : null,
   });
   revalidatePath(`/audiovisual/review/${reviewId}`);
   return { ok: true };
