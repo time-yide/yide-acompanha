@@ -34,5 +34,5 @@ export function leadOnboardingDescartado(motivoPerdido: string | null): boolean 
 
 /** Papéis que enxergam todos os prospectos; os demais só os que são responsáveis. */
 export function roleVeTudo(role: string): boolean {
-  return role === "adm" || role === "socio" || role === "coordenador";
+  return role === "adm" || role === "socio" || role === "coordenador" || role === "comercial";
 }
