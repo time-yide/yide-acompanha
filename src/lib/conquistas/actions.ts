@@ -4,7 +4,7 @@ import { requireAuth } from "@/lib/auth/session";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { CATALOGO } from "./catalogo";
 import { avaliarConquistas } from "./avaliar";
-import { getStatsDoUsuario } from "./stats";
+import { getStatsDoUsuario, type StatsUsuario } from "./stats";
 import type { ConquistaCard } from "./queries";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -19,12 +19,13 @@ export interface ConquistaNova { key: string; titulo: string }
  */
 export async function sincronizarConquistasAction(
   userId: string,
+  stats?: StatsUsuario,
 ): Promise<{ novas: ConquistaNova[]; conquistas: ConquistaCard[] }> {
   const actor = await requireAuth();
   if (actor.id !== userId) return { novas: [], conquistas: [] };
 
-  const stats = await getStatsDoUsuario(userId, actor.role);
-  const avaliadas = avaliarConquistas(CATALOGO, stats, actor.role).filter((c) => c.aplicavel);
+  const statsUsados = stats ?? (await getStatsDoUsuario(userId, actor.role));
+  const avaliadas = avaliarConquistas(CATALOGO, statsUsados, actor.role).filter((c) => c.aplicavel);
   const desbloqueadas = avaliadas.filter((c) => c.desbloqueada);
 
   const sb = createServiceRoleClient() as SB;

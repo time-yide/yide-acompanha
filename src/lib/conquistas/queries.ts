@@ -1,7 +1,7 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { CATALOGO } from "./catalogo";
 import { avaliarConquistas, type ConquistaAvaliada } from "./avaliar";
-import { getStatsDoUsuario } from "./stats";
+import { getStatsDoUsuario, type StatsUsuario } from "./stats";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SB = any;
@@ -11,9 +11,9 @@ export interface ConquistaCard extends ConquistaAvaliada {
 }
 
 /** Lista as conquistas aplicáveis do usuário, já cruzadas com o que está gravado. */
-export async function getConquistasDoUsuario(userId: string, role: string): Promise<ConquistaCard[]> {
-  const stats = await getStatsDoUsuario(userId, role);
-  const avaliadas = avaliarConquistas(CATALOGO, stats, role).filter((c) => c.aplicavel);
+export async function getConquistasDoUsuario(userId: string, role: string, stats?: StatsUsuario): Promise<ConquistaCard[]> {
+  const statsUsados = stats ?? (await getStatsDoUsuario(userId, role));
+  const avaliadas = avaliarConquistas(CATALOGO, statsUsados, role).filter((c) => c.aplicavel);
 
   const sb = createServiceRoleClient() as SB;
   const { data: rows } = await sb

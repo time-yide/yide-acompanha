@@ -5,11 +5,13 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { PessoaLink } from "./PessoaLink";
 import {
-  Clock, Drama, BookOpen, Briefcase, Gamepad2, Handshake, Zap, ClipboardList, Pencil,
+  Clock, Drama, BookOpen, Briefcase, Gamepad2, Handshake, ClipboardList, Pencil,
 } from "lucide-react";
 import type { CardData } from "@/lib/perfil-jogador/schema";
 import { ConquistasSecao } from "./ConquistasSecao";
+import { SkillsSecao } from "./SkillsSecao";
 import type { ConquistaCard } from "@/lib/conquistas/queries";
+import type { SkillDerivada } from "@/lib/skills/derivar";
 
 function initials(nome: string): string {
   return nome.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? "").join("");
@@ -24,7 +26,7 @@ function Secao({ icon, titulo, children }: { icon: React.ReactNode; titulo: stri
   );
 }
 
-export function CardJogador({ card, podeEditar, conquistas }: { card: CardData; podeEditar: boolean; conquistas: ConquistaCard[] }) {
+export function CardJogador({ card, podeEditar, conquistas, skills }: { card: CardData; podeEditar: boolean; conquistas: ConquistaCard[]; skills: SkillDerivada[] }) {
   const { perfil } = card;
   return (
     <div className="space-y-4">
@@ -129,11 +131,8 @@ export function CardJogador({ card, podeEditar, conquistas }: { card: CardData; 
       {/* Conquistas (Fase 2) */}
       <ConquistasSecao conquistas={conquistas} />
 
-      {/* Skills (Fase 3 — em breve) */}
-      <Card className="space-y-1 p-4 opacity-60">
-        <p className="flex items-center gap-2 text-sm font-medium"><Zap className="h-4 w-4" />Skills</p>
-        <p className="text-xs text-muted-foreground">Em breve.</p>
-      </Card>
+      {/* Skills (Fase 3) */}
+      <SkillsSecao skills={skills} />
 
       {/* Resultados de pesquisas */}
       <Secao icon={<ClipboardList className="h-4 w-4" />} titulo="Resultados de pesquisas">
