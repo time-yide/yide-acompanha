@@ -488,11 +488,18 @@ async function _getRankingColaboradoresImpl(
     map.set(r.colaborador_id, cur);
   }
 
-  return [...map.values()].map((r) => ({
-    ...r,
-    duracao_media_seg: r.atendidas > 0 ? Math.round(r.duracao_total_seg / r.atendidas) : 0,
-    taxa_atendimento_pct: r.total > 0 ? Math.round((r.atendidas / r.total) * 1000) / 10 : 0,
-  })).sort((a, b) => b.total - a.total);
+  // Ranking de chamadas faz sentido só pro time comercial + coordenadores;
+  // assessores e demais cargos que eventualmente ligam ficam de fora.
+  const ROLES_NO_RANKING = new Set(["comercial", "coordenador"]);
+
+  return [...map.values()]
+    .filter((r) => ROLES_NO_RANKING.has(r.role))
+    .map((r) => ({
+      ...r,
+      duracao_media_seg: r.atendidas > 0 ? Math.round(r.duracao_total_seg / r.atendidas) : 0,
+      taxa_atendimento_pct: r.total > 0 ? Math.round((r.atendidas / r.total) * 1000) / 10 : 0,
+    }))
+    .sort((a, b) => b.total - a.total);
 }
 
 export async function getRankingColaboradores(
