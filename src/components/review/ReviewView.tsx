@@ -25,6 +25,14 @@ export function ReviewView({ review, podeGerenciar, podeAprovar }: { review: Rev
   const [pending, start] = useTransition();
   const versao = review.versoes[ativa];
 
+  // Anotação "alfinete/balão" no frame.
+  // modoPino: clicar no vídeo posiciona o alfinete do próximo comentário.
+  // pinoNovo: alfinete pendente (0..1) a anexar no comentário sendo escrito.
+  // pinoView: alfinete de um comentário existente que foi clicado (com balão).
+  const [modoPino, setModoPino] = useState(false);
+  const [pinoNovo, setPinoNovo] = useState<{ x: number; y: number } | null>(null);
+  const [pinoView, setPinoView] = useState<{ x: number; y: number; corpo: string } | null>(null);
+
   // Watch tracking: semente vinda do server pra a versão atual (última).
   const [pctVisto, setPctVisto] = useState(review.assistidoPctVersaoAtual);
   const salvoRef = useRef(review.assistidoPctVersaoAtual);
@@ -36,6 +44,10 @@ export function ReviewView({ review, podeGerenciar, podeAprovar }: { review: Rev
     // Só a versão atual (última) traz % semeado; versões anteriores começam do zero.
     const ehAtual = ativa === review.versoes.length - 1;
     setPctVisto(ehAtual ? review.assistidoPctVersaoAtual : 0);
+    // Zera a marcação ao trocar de versão (os pinos são por comentário/versão).
+    setModoPino(false);
+    setPinoNovo(null);
+    setPinoView(null);
   }
   useEffect(() => {
     const ehAtual = ativa === review.versoes.length - 1;
@@ -166,7 +178,11 @@ export function ReviewView({ review, podeGerenciar, podeAprovar }: { review: Rev
               playlistUrl={versao.playlistUrl}
               marcadores={marcadores}
               onTime={onTime}
-              onMarcadorClick={(seg) => playerRef.current?.seek(seg)}
+              onMarcadorClick={(seg) => { setPinoView(null); playerRef.current?.seek(seg); }}
+              modoPino={modoPino}
+              onPinPlace={(x, y) => setPinoNovo({ x, y })}
+              pino={modoPino ? pinoNovo : pinoView ? { x: pinoView.x, y: pinoView.y } : null}
+              pinoLabel={modoPino ? null : pinoView?.corpo ?? null}
             />
           ) : (
             <div className="flex h-full items-center justify-center px-6 text-center text-sm text-white/50">
@@ -184,6 +200,15 @@ export function ReviewView({ review, podeGerenciar, podeAprovar }: { review: Rev
               playerRef={playerRef}
               tempoAtual={tempo}
               podeComentar
+              modoPino={modoPino}
+              onToggglePino={() => { setPinoView(null); setModoPino((m) => { if (m) setPinoNovo(null); return !m; }); }}
+              pinoNovo={pinoNovo}
+              limparPino={() => { setModoPino(false); setPinoNovo(null); }}
+              onSelecionar={(c) => {
+                setModoPino(false);
+                playerRef.current?.seek(c.tempo_seg);
+                setPinoView(c.pos_x != null && c.pos_y != null ? { x: c.pos_x, y: c.pos_y, corpo: c.corpo } : null);
+              }}
             />
           </aside>
         )}

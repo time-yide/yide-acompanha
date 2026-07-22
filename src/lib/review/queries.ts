@@ -6,7 +6,7 @@ import type { ReviewStatus, AutorTipo } from "./schema";
 type SB = any;
 
 export interface ReviewListItem { id: string; titulo: string; status: ReviewStatus; clienteNome: string | null; created_at: string }
-export interface Comentario { id: string; autor_tipo: AutorTipo; autor_nome: string; tempo_seg: number; corpo: string; resolvido: boolean; created_at: string }
+export interface Comentario { id: string; autor_tipo: AutorTipo; autor_nome: string; tempo_seg: number; corpo: string; resolvido: boolean; created_at: string; pos_x: number | null; pos_y: number | null }
 export interface Versao { id: string; numero: number; bunny_video_id: string; pronto: boolean; playlistUrl: string; thumbUrl: string; comentarios: Comentario[] }
 export interface ReviewFull { id: string; titulo: string; status: ReviewStatus; clienteNome: string | null; taskId: string | null; assistidoPctVersaoAtual: number; versoes: Versao[] }
 
@@ -59,7 +59,7 @@ export async function carregarReview(id: string, userId: string): Promise<Review
 
   const versaoIds = vs.map((v) => v.id);
   const { data: coments } = versaoIds.length
-    ? await sb.from("review_comentario").select("id, versao_id, autor_tipo, autor_nome, tempo_seg, corpo, resolvido, created_at").in("versao_id", versaoIds).order("tempo_seg", { ascending: true })
+    ? await sb.from("review_comentario").select("id, versao_id, autor_tipo, autor_nome, tempo_seg, corpo, resolvido, created_at, pos_x, pos_y").in("versao_id", versaoIds).order("tempo_seg", { ascending: true })
     : { data: [] };
   const porVersao = new Map<string, Comentario[]>();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
