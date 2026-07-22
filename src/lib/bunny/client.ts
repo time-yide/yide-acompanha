@@ -73,3 +73,20 @@ export function urlThumbnail(videoId: string): string {
   if (!bunnyConfigurado()) return "";
   return `https://${creds().cdn}/${videoId}/thumbnail.jpg`;
 }
+
+/**
+ * URL do MP4 pra download da melhor resolução disponível. Requer "MP4 fallback"
+ * habilitado na library. Retorna null se o Bunny não está configurado ou sem MP4.
+ */
+export async function urlDownloadMp4(videoId: string): Promise<string | null> {
+  if (!bunnyConfigurado()) return null;
+  const { apiKey, libraryId, cdn } = creds();
+  const resp = await fetch(`${BASE}/library/${libraryId}/videos/${videoId}`, { headers: { AccessKey: apiKey } });
+  if (!resp.ok) return null;
+  const data = (await resp.json()) as { availableResolutions?: string | null };
+  const res = (data.availableResolutions ?? "").split(",").map((r) => r.trim()).filter(Boolean);
+  const ordem = ["2160p", "1440p", "1080p", "720p", "480p", "360p", "240p"];
+  const melhor = ordem.find((r) => res.includes(r)) ?? res[0];
+  if (!melhor) return null;
+  return `https://${cdn}/${videoId}/play_${melhor}.mp4`;
+}
