@@ -13,6 +13,7 @@ export function NovaPesquisaForm() {
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
   const [anonima, setAnonima] = useState(false);
+  const [resultadosPublicos, setResultadosPublicos] = useState(false);
   const [pending, startTransition] = useTransition();
 
   function handleSubmit(e: React.FormEvent) {
@@ -25,6 +26,7 @@ export function NovaPesquisaForm() {
     fd.set("titulo", titulo);
     fd.set("descricao", descricao);
     fd.set("anonima", anonima ? "true" : "false");
+    fd.set("resultados_publicos", resultadosPublicos ? "true" : "false");
     startTransition(async () => {
       // createPesquisaAction redireciona pro construtor em caso de sucesso.
       const r = await createPesquisaAction(fd);
@@ -48,6 +50,13 @@ export function NovaPesquisaForm() {
           <p className="text-xs text-muted-foreground">Você vê só o resultado agregado, sem ligar a resposta à pessoa.</p>
         </div>
         <Switch checked={anonima} onCheckedChange={setAnonima} />
+      </div>
+      <div className="flex items-center justify-between rounded-lg border p-3">
+        <div>
+          <p className="text-sm font-medium">Liberar resultados pro time</p>
+          <p className="text-xs text-muted-foreground">O time todo vê os resultados agregados (sem nomes). Desligado = só a gestão vê.</p>
+        </div>
+        <Switch checked={resultadosPublicos} onCheckedChange={setResultadosPublicos} />
       </div>
       <div className="flex justify-end">
         <Button type="submit" disabled={pending}>
