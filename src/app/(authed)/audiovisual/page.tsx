@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Clapperboard } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
+import { canAccess } from "@/lib/auth/permissions";
 import { createClient } from "@/lib/supabase/server";
 import {
   listCapturas,
@@ -226,6 +227,16 @@ export default async function AudiovisualPage({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {canAccess(user.role, "manage:review") && (
+            <Link
+              href="/audiovisual/review"
+              prefetch={false}
+              className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors"
+            >
+              <Clapperboard className="h-4 w-4" />
+              Reviews de vídeo
+            </Link>
+          )}
           {isEditorIaEnabled() && canUseEditorIa(user.role) && <EditorIaEntryButton />}
         </div>
       </header>
