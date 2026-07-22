@@ -83,6 +83,11 @@ const serverSchema = z.object({
   // Sem isso, o comando "gerar imagem" retorna erro amigável e o resto do
   // Studio continua funcionando. Gerar em platform.openai.com → API Keys.
   OPENAI_API_KEY: z.string().optional(),
+  // Frame Interno (review de vídeo) — Bunny Stream. Sem isso, /audiovisual/review
+  // mostra aviso de setup. Guia: docs/frame-interno-bunny-setup.md
+  BUNNY_STREAM_API_KEY: z.string().optional(),
+  BUNNY_STREAM_LIBRARY_ID: z.string().optional(),
+  BUNNY_STREAM_CDN_HOSTNAME: z.string().optional(),
 });
 
 const clientSchema = z.object({
