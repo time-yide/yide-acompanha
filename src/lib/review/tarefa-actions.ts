@@ -44,6 +44,23 @@ export async function criarReviewDaTarefaAction(taskId: string): Promise<Res<{ r
   return { reviewId, upload: assinaturaUpload(guid) };
 }
 
+export async function adicionarVideoAction(taskId: string, titulo: string): Promise<Res<{ reviewId: string; upload: UploadTus }>> {
+  const user = await requireAuth();
+  if (!pode(user.role)) return { error: "Sem permissão" };
+  const sb = createServiceRoleClient() as SB;
+  const { data: task } = await sb.from("tasks").select("id, titulo, client_id").eq("id", taskId).maybeSingle();
+  if (!task) return { error: "Tarefa não encontrada" };
+  const { data: org } = await sb.from("organizations").select("id").limit(1).single();
+  const nome = titulo.trim() || task.titulo;
+  const { data: rv, error } = await sb.from("review_video").insert({ organization_id: org?.id, cliente_id: task.client_id, task_id: taskId, titulo: nome, status: "revisao_interna", criado_por: user.id }).select("id").single();
+  if (error || !rv) return { error: "Falha ao criar o vídeo" };
+  let guid: string;
+  try { guid = await criarVideo(nome); } catch { return { error: "Falha ao criar vídeo no Bunny (configuração?)" }; }
+  await sb.from("review_versao").insert({ review_video_id: rv.id, numero: 1, bunny_video_id: guid, criado_por: user.id });
+  revalidatePath(`/tarefas/${taskId}`);
+  return { reviewId: rv.id, upload: assinaturaUpload(guid) };
+}
+
 /** Registra o progresso assistido (guarda o máximo). */
 export async function registrarAssistidoAction(versaoId: string, pct: number): Promise<{ ok: true } | { error: string }> {
   const user = await requireAuth();

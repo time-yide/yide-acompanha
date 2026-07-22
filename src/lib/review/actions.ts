@@ -117,6 +117,19 @@ export async function pedirAlteracaoAction(reviewId: string): Promise<Res<{ ok: 
   return { ok: true };
 }
 
+/** Aprova UM vídeo (review) — status vira "aprovado". */
+export async function aprovarVideoAction(reviewId: string): Promise<Res<{ ok: true }>> {
+  const user = await requireAuth();
+  if (!pode(user.role)) return { error: "Sem permissão" };
+  const sb = createServiceRoleClient() as SB;
+  const { data: rv } = await sb.from("review_video").select("status").eq("id", reviewId).maybeSingle();
+  if (!rv) return { error: "Vídeo não encontrado" };
+  if (!podeTransicionar(rv.status as ReviewStatus, "aprovado")) return { error: "Não dá pra aprovar agora" };
+  await sb.from("review_video").update({ status: "aprovado", updated_at: new Date().toISOString() }).eq("id", reviewId);
+  revalidatePath(`/audiovisual/review/${reviewId}`);
+  return { ok: true };
+}
+
 function msgBunny(e: unknown): string {
   const m = e instanceof Error ? e.message : String(e);
   if (m === "BUNNY_NAO_CONFIGURADO") return "Player de vídeo (Bunny) não configurado. Veja docs/frame-interno-bunny-setup.md.";
