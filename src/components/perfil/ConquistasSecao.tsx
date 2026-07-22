@@ -8,7 +8,8 @@ const ORDEM: CategoriaConquista[] = ["tempo", "produtividade", "engajamento", "a
 
 function Medalha({ c }: { c: ConquistaCard }) {
   const Icon = ICONES[c.icone] ?? Trophy;
-  const pct = c.alvo > 0 ? Math.min(100, Math.round((c.atual / c.alvo) * 100)) : (c.desbloqueada ? 100 : 0);
+  const atual = Math.max(0, c.atual);
+  const pct = c.alvo > 0 ? Math.min(100, Math.round((atual / c.alvo) * 100)) : (c.desbloqueada ? 100 : 0);
   return (
     <div className={`rounded-lg border p-3 ${c.desbloqueada ? "border-primary/40 bg-primary/5" : "opacity-70"}`}>
       <div className="flex items-center gap-2">
@@ -23,7 +24,7 @@ function Medalha({ c }: { c: ConquistaCard }) {
       {!c.desbloqueada && c.alvo > 1 && (
         <div className="mt-2">
           <div className="h-1.5 rounded-full bg-muted"><div className="h-1.5 rounded-full bg-primary" style={{ width: `${pct}%` }} /></div>
-          <p className="mt-1 text-[10px] text-muted-foreground">{c.atual}/{c.alvo}</p>
+          <p className="mt-1 text-[10px] text-muted-foreground">{atual}/{c.alvo}</p>
         </div>
       )}
     </div>
