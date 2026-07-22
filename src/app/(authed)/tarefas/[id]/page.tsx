@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, CheckCircle2, History, Pencil, SearchX, Trash2 } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import type { CurrentUser } from "@/lib/auth/session";
-import { canManageAnyTask } from "@/lib/auth/permissions";
+import { canManageAnyTask, canAccess } from "@/lib/auth/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { getTaskById, listTaskRevisoes, listTaskComments, type TaskAprovacao, type TaskFormato, type TaskStatus } from "@/lib/tarefas/queries";
 import { updateTaskAction, deleteTaskAction } from "@/lib/tarefas/actions";
@@ -16,6 +16,8 @@ import { ApprovalCard } from "@/components/tarefas/ApprovalCard";
 import { RevisionsTimeline } from "@/components/tarefas/RevisionsTimeline";
 import { CommentsPanel } from "@/components/tarefas/CommentsPanel";
 import { TaskRealtimeWatcher } from "@/components/tarefas/TaskRealtimeWatcher";
+import { getReviewDaTarefa } from "@/lib/review/tarefa-queries";
+import { VideoDaTarefa } from "@/components/review/VideoDaTarefa";
 import { Linkify } from "@/lib/utils/linkify";
 
 function isPrivileged(user: CurrentUser): boolean {
@@ -92,6 +94,8 @@ export default async function TarefaPage({
 
   const supabase = await createClient();
   const isApprovalTask = task.tipo === "video" || task.tipo === "arte";
+  const reviewDaTarefa = task.tipo === "video" ? await getReviewDaTarefa(task.id, user.id) : null;
+  const podeVideo = canAccess(user.role, "manage:review");
   const isMember =
     task.criado_por === user.id ||
     task.atribuido_a === user.id ||
@@ -254,6 +258,10 @@ export default async function TarefaPage({
               isApprover={isApprover}
               canMarkPosted={canMarkPosted}
             />
+          )}
+
+          {task.tipo === "video" && (
+            <VideoDaTarefa taskId={task.id} review={reviewDaTarefa} podeGerenciar={podeVideo} />
           )}
 
           {task.drive_link && (
