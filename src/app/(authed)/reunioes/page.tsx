@@ -4,16 +4,13 @@ import {
   Mic, BarChart3, Settings, Sparkles, Calendar, Search,
 } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
-import { listMeetings, getGoogleConnection } from "@/lib/reunioes/queries";
+import { listMeetings } from "@/lib/reunioes/queries";
 import { MEETING_STATUS_LABEL, type MeetingStatus } from "@/lib/reunioes/tipos";
 import { MeetingCard } from "@/components/reunioes/MeetingCard";
-import { ConnectGoogleBanner } from "@/components/reunioes/ConnectGoogleBanner";
 import { buttonVariants } from "@/components/ui/button";
 import { TabsOnboardingProspeccao } from "@/components/onboarding/TabsOnboardingProspeccao";
 
-// Reuniões agora é exclusiva do setor Comercial — pra reuniões online
-// de prospecção/onboarding. Outros roles não veem.
-const ALLOWED_ROLES = ["adm", "socio", "comercial"];
+const ALLOWED_ROLES = ["adm", "socio", "comercial", "coordenador", "assessor"];
 
 type Filtro = MeetingStatus | "todos";
 
@@ -37,13 +34,10 @@ export default async function ReunioesPage({
   const filtroAtivo: Filtro =
     (FILTROS.some((f) => f.id === params.filtro) ? (params.filtro as Filtro) : "todos");
 
-  const [meetings, gConnection] = await Promise.all([
-    listMeetings({
-      status: filtroAtivo === "todos" ? undefined : filtroAtivo,
-      searchQuery: params.q,
-    }),
-    getGoogleConnection(user.id),
-  ]);
+  const meetings = await listMeetings(user, {
+    status: filtroAtivo === "todos" ? undefined : filtroAtivo,
+    searchQuery: params.q,
+  });
 
   const proximas = meetings.filter((m) => m.status === "scheduled");
   const emAndamento = meetings.filter((m) => m.status === "in_progress" || m.status === "processing");
@@ -85,12 +79,6 @@ export default async function ReunioesPage({
           </Link>
         </div>
       </header>
-
-      {/* Banner conectar Google (ou estado conectado) */}
-      <ConnectGoogleBanner
-        connected={gConnection.connected}
-        googleEmail={gConnection.google_email}
-      />
 
       {/* KPI cards */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -169,9 +157,7 @@ export default async function ReunioesPage({
           <Mic className="mx-auto h-10 w-10 text-muted-foreground/40" />
           <p className="mt-3 text-sm font-medium">Nenhuma reunião por aqui ainda</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            {gConnection.connected
-              ? "Quando você tiver uma reunião no Google Meet, ela aparece aqui automaticamente."
-              : "Conecte sua conta Google pra começar a capturar reuniões."}
+            Grave uma reunião de cliente pra ela aparecer aqui.
           </p>
         </div>
       ) : (

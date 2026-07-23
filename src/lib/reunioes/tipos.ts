@@ -9,7 +9,7 @@ export type MeetingStatus =
   | "failed"
   | "cancelled";
 
-export type MeetingSource = "google_meet" | "zoom" | "teams" | "manual_upload";
+export type MeetingSource = "google_meet" | "zoom" | "teams" | "manual_upload" | "app_recording";
 
 export type ProcessingStep =
   | "recording"
@@ -161,6 +161,7 @@ export const MEETING_SOURCE_LABEL: Record<MeetingSource, string> = {
   zoom: "Zoom",
   teams: "Microsoft Teams",
   manual_upload: "Upload manual",
+  app_recording: "Gravada no app",
 };
 
 export const INSIGHT_TIPO_LABEL: Record<InsightTipo, string> = {

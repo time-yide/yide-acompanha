@@ -42,7 +42,7 @@ export default async function ReuniaoDetailPage({
   const user = await requireAuth();
   if (!ALLOWED_ROLES.includes(user.role)) notFound();
   const { id } = await params;
-  const meeting = await getMeetingById(id);
+  const meeting = await getMeetingById(user, id);
   if (!meeting) notFound();
 
   const tabs = [
