@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/lib/auth/session";
 import { canAccess } from "@/lib/auth/permissions";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { criarVideo, assinaturaUpload, urlDownloadMp4, type UploadTus } from "@/lib/bunny/client";
+import { criarVideo, assinaturaUpload, urlDownloadMp4, bunnyConfigurado, type UploadTus } from "@/lib/bunny/client";
 import { destravado } from "./gate";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -59,6 +59,12 @@ export async function adicionarVideoAction(taskId: string, titulo: string): Prom
   await sb.from("review_versao").insert({ review_video_id: rv.id, numero: 1, bunny_video_id: guid, criado_por: user.id });
   revalidatePath(`/tarefas/${taskId}`);
   return { reviewId: rv.id, upload: assinaturaUpload(guid) };
+}
+
+/** true se o Bunny está configurado — o modal usa pra decidir upload vs link do Drive. */
+export async function bunnyDisponivelAction(): Promise<boolean> {
+  await requireAuth();
+  return bunnyConfigurado();
 }
 
 /** Registra o progresso assistido (guarda o máximo). */

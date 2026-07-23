@@ -113,12 +113,14 @@ export const artesEntreguesSchema = z
  * Schema do modal "Registrar Entrega" - exigido pra editor, videomaker,
  * designer, audiovisual_chefe, coordenador e assessor ao mover tarefa pra
  * `concluida` (Concluído operacional) ou `em_aprovacao` (Aprovação).
- * Drive link e quantidade entregue obrigatórios; observações livres opcional.
+ * Quantidade entregue obrigatória. Drive link obrigatório só pra entrega que
+ * NÃO é vídeo (arte/geral); pra vídeo o material é o Frame — ver isVideoDelivery
+ * e concludeOperationalAction. Observações livres opcional.
  */
 export const concludeOperationalSchema = z.object({
   id: z.string().uuid(),
   to_status: z.enum(["concluida", "em_aprovacao"]).default("concluida"),
-  drive_link: z.string().url("Link do Drive inválido").max(500),
+  drive_link: z.string().url("Link do Drive inválido").max(500).optional(),
   artes_entregues: z.coerce
     .number()
     .int("Use número inteiro")
