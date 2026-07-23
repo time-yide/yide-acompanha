@@ -43,3 +43,27 @@ export const ROLES_ENTREGA_SEMPRE = [
 export function isRoleEntregaSempre(role: string | null | undefined): boolean {
   return (ROLES_ENTREGA_SEMPRE as readonly string[]).includes(role ?? "");
 }
+
+// Papéis cujo material entregue é VÍDEO (vai pro Frame em vez de link do Drive).
+// fast_midia funciona como videomaker (ver memória do projeto), então entra aqui.
+export const VIDEO_ROLES = [
+  "editor",
+  "videomaker",
+  "videomaker_mobile",
+  "fast_midia",
+  "audiovisual_chefe",
+] as const;
+
+/**
+ * Decide se a entrega de uma tarefa é de vídeo (sobe pro Frame) ou não (link do
+ * Drive). tipo 'video' → sempre; 'arte' → nunca; 'geral' → desempata pelo papel.
+ * Fonte única usada pelo modal (client) e por concludeOperationalAction (server).
+ */
+export function isVideoDelivery(
+  tipo: string | null | undefined,
+  role: string | null | undefined,
+): boolean {
+  if (tipo === "video") return true;
+  if (tipo === "arte") return false;
+  return (VIDEO_ROLES as readonly string[]).includes(role ?? "");
+}
