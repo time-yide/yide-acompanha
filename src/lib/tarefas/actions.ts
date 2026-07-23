@@ -9,7 +9,7 @@ import { logAudit } from "@/lib/audit/log";
 import { logActivityInternal } from "@/lib/produtividade/actions";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 import { getCoordenadoresAudiovisualIds } from "./client-team";
-import { isRoleQueEntrega, isRoleEntregaSempre } from "./delivery-roles";
+import { isRoleQueEntrega, isRoleEntregaSempre, isVideoDelivery } from "./delivery-roles";
 import {
   createTaskSchema,
   editTaskSchema,
@@ -960,7 +960,7 @@ export async function concludeOperationalAction(formData: FormData): Promise<{ e
   const parsed = concludeOperationalSchema.safeParse({
     id: formData.get("id"),
     to_status: formData.get("to_status") || "concluida",
-    drive_link: formData.get("drive_link"),
+    drive_link: formData.get("drive_link") || undefined,
     artes_entregues: formData.get("artes_entregues"),
     entrega_observacoes: formData.get("entrega_observacoes") || undefined,
   });
@@ -972,7 +972,7 @@ export async function concludeOperationalAction(formData: FormData): Promise<{ e
 
   const { data: task } = await sb
     .from("tasks")
-    .select("id, atribuido_a, status, criado_por, participantes_ids")
+    .select("id, tipo, atribuido_a, status, criado_por, participantes_ids")
     .eq("id", parsed.data.id)
     .single();
   if (!task) return { error: "Tarefa não encontrada" };
@@ -986,6 +986,13 @@ export async function concludeOperationalAction(formData: FormData): Promise<{ e
 
   if (!isRoleQueEntrega(assignee.role)) {
     return { error: "Esta tarefa não exige entrega via modal, use a movimentação normal" };
+  }
+
+  // Entrega de vídeo sobe pro Frame (drive_link opcional); as demais exigem link.
+  const videoDelivery = isVideoDelivery(task.tipo, assignee.role);
+  const driveLink = (parsed.data.drive_link ?? "").trim();
+  if (!videoDelivery && !driveLink) {
+    return { error: "Informe o link do Drive do material entregue" };
   }
 
   // Permissões alinhadas com canManageAnyTask (toggleTaskCompletionAction):
@@ -1007,7 +1014,7 @@ export async function concludeOperationalAction(formData: FormData): Promise<{ e
   const isConcluding = parsed.data.to_status === "concluida";
   const updatePayload: Record<string, unknown> = {
     status: parsed.data.to_status,
-    drive_link: parsed.data.drive_link,
+    drive_link: driveLink || null,
     artes_entregues: parsed.data.artes_entregues,
     entrega_observacoes: parsed.data.entrega_observacoes ?? null,
   };
@@ -1029,7 +1036,7 @@ export async function concludeOperationalAction(formData: FormData): Promise<{ e
     acao: isConcluding ? "complete" : "update",
     dados_depois: {
       status: parsed.data.to_status,
-      drive_link: parsed.data.drive_link,
+      drive_link: driveLink || null,
       artes_entregues: parsed.data.artes_entregues,
       entrega_observacoes: parsed.data.entrega_observacoes ?? null,
     } as unknown as Record<string, unknown>,
