@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import { canRecordMeeting, podeVerReuniao } from "./permissions";
 
 describe("canRecordMeeting", () => {
-  it("libera assessor, coordenador, comercial, socio, adm", () => {
-    for (const r of ["assessor", "coordenador", "comercial", "socio", "adm"]) {
+  it("libera assessor, coordenador, comercial, socio, adm, audiovisual_chefe", () => {
+    for (const r of ["assessor", "coordenador", "comercial", "socio", "adm", "audiovisual_chefe"]) {
       expect(canRecordMeeting(r)).toBe(true);
     }
   });

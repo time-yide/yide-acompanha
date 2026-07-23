@@ -1,7 +1,7 @@
 // Fonte única de permissões do módulo Reuniões.
 
 /** Roles que podem INICIAR uma gravação de reunião de cliente. */
-export const RECORD_ROLES = ["adm", "socio", "comercial", "coordenador", "assessor"] as const;
+export const RECORD_ROLES = ["adm", "socio", "comercial", "coordenador", "assessor", "audiovisual_chefe"] as const;
 
 /** Roles de gestão que veem QUALQUER reunião. */
 export const MANAGEMENT_ROLES = ["adm", "socio", "coordenador"] as const;
