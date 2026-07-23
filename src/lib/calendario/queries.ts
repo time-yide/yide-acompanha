@@ -135,13 +135,27 @@ async function _listEventsForWeekImpl(
 
   let manualResult = await buildManualQuery(fullSelect);
 
-  // Fallback: se a migration 20260603000000 (videomaker_status etc) ainda não
-  // foi aplicada nesse ambiente, o select dispara erro de coluna inexistente.
-  // Re-tenta sem as colunas novas pra não esvaziar o calendário inteiro.
+  // Fallback: se alguma das migrations que adicionam colunas opcionais ao
+  // calendar_events ainda não foi aplicada nesse ambiente, o select dispara
+  // erro de coluna inexistente. Re-tenta sem as colunas novas pra não
+  // esvaziar o calendário inteiro.
+  //
+  // Sempre que adicionar coluna nova ao `fullSelect`, adiciona o nome aqui
+  // — sem isso, um deploy à frente da migration zera o calendário em prod.
+  const OPTIONAL_COLUMNS = [
+    "videomaker_status",          // migration 20260603000000
+    "videomaker_assigned_id",     // migration 20260603000000
+    "roteiro_tipo",               // migration 20260528000000 (briefing)
+    "videomaker_leu_em",          // migration 20260528000000 (briefing)
+    "videomaker_imprimiu_em",     // migration 20260528000000 (briefing)
+  ];
   if (manualResult.error) {
     const msg = String(manualResult.error.message ?? "");
-    if (msg.includes("videomaker_status") || msg.includes("videomaker_assigned_id") || msg.includes("schema cache")) {
-      console.warn("[calendario] fallback pro select legacy (migration 20260603000000 não aplicada):", msg);
+    const isOptionalColumnError =
+      msg.includes("schema cache") ||
+      OPTIONAL_COLUMNS.some((c) => msg.includes(c));
+    if (isOptionalColumnError) {
+      console.warn("[calendario] fallback pro select legacy (migration pendente):", msg);
       manualResult = await buildManualQuery(legacySelect);
     } else {
       console.error("[calendario] manual events fetch failed:", manualResult.error);
