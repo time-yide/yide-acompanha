@@ -99,24 +99,42 @@ export function Comentarios({ reviewId, versaoId, comentarios, playerRef, tempoA
       </div>
 
       {podeComentar && (
-        <div className="space-y-1.5 border-t border-white/10 p-3">
-          <div className="flex items-center gap-2 rounded-lg bg-white/[0.06] px-2 py-1.5 ring-1 ring-white/10 focus-within:ring-primary/50">
-            <span className="rounded bg-primary/15 px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-primary">{fmtTempo(tempoAtual)}</span>
+        <div className="space-y-2 border-t border-white/10 p-3">
+          {/* Botão explícito: marcar um ponto (alfinete/balão) no vídeo. */}
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={onToggglePino}
-              title={pinoNovo ? "Ponto marcado — clique pra refazer" : "Marcar um ponto no vídeo"}
-              className={`rounded p-0.5 transition ${
+              className={`flex flex-1 items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition ${
                 modoPino
-                  ? "text-amber-400"
+                  ? "border-amber-400 bg-amber-400/15 text-amber-300"
                   : pinoNovo
-                    ? "text-amber-400/80 hover:text-amber-400"
-                    : "text-white/40 hover:text-white/80"
+                    ? "border-amber-400/60 bg-amber-400/10 text-amber-300"
+                    : "border-white/15 bg-white/[0.04] text-white/70 hover:bg-white/10 hover:text-white"
               }`}
-              aria-label="Marcar ponto no vídeo"
             >
-              <MapPin className={`h-4 w-4 ${pinoNovo || modoPino ? "fill-amber-400/30" : ""}`} />
+              <MapPin className={`h-4 w-4 shrink-0 ${modoPino || pinoNovo ? "fill-amber-400/40" : ""}`} />
+              <span className="truncate">
+                {modoPino
+                  ? "Clique no vídeo para marcar o ponto"
+                  : pinoNovo
+                    ? "Ponto marcado — clique pra refazer"
+                    : "Marcar um ponto no vídeo"}
+              </span>
             </button>
+            {(modoPino || pinoNovo) && (
+              <button
+                type="button"
+                onClick={limparPino}
+                className="shrink-0 rounded-lg border border-white/15 px-2.5 py-2 text-xs text-white/50 hover:bg-white/10 hover:text-white"
+              >
+                Remover
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 rounded-lg bg-white/[0.06] px-2 py-1.5 ring-1 ring-white/10 focus-within:ring-primary/50">
+            <span className="rounded bg-primary/15 px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-primary">{fmtTempo(tempoAtual)}</span>
             <input
               value={texto}
               onChange={(e) => setTexto(e.target.value)}
@@ -128,17 +146,6 @@ export function Comentarios({ reviewId, versaoId, comentarios, playerRef, tempoA
               <Send className="h-4 w-4" />
             </button>
           </div>
-          {(modoPino || pinoNovo) && (
-            <div className="flex items-center justify-between px-1 text-[11px] text-amber-400/90">
-              <span className="flex items-center gap-1">
-                <MapPin className="h-3 w-3" />
-                {pinoNovo ? "Ponto marcado no vídeo" : "Clique no vídeo pra marcar o ponto"}
-              </span>
-              <button type="button" onClick={limparPino} className="text-white/40 hover:text-white/70">
-                Remover
-              </button>
-            </div>
-          )}
         </div>
       )}
     </div>
