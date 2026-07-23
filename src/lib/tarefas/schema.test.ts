@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { concludeOperationalSchema } from "./schema";
 
-const base = { id: "11111111-1111-1111-1111-111111111111", to_status: "concluida", artes_entregues: 2 };
+const base = { id: "11111111-1111-4111-8111-111111111111", to_status: "concluida", artes_entregues: 2 };
 
 describe("concludeOperationalSchema", () => {
   it("aceita sem drive_link (caminho de vídeo)", () => {
