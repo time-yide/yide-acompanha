@@ -75,7 +75,7 @@ Terminado o **envio dos arquivos** de todos os vídeos:
 
 ## 6. Flag de "Bunny configurado" na UI
 
-O modal precisa saber, no cliente, se o Bunny está configurado pra decidir entre o fluxo de upload e o fallback de link do Drive. Passar um booleano `bunnyConfigured` do server component que renderiza o board/tarefa até o modal (derivado da mesma checagem que já deixa o módulo Frame "inerte" quando falta env). Sem chamada extra de rede no clique.
+O modal precisa saber, no cliente, se o Bunny está configurado pra decidir entre o fluxo de upload e o fallback de link do Drive. Em vez de passar um prop por toda a árvore (o modal é usado em vários pontos via `CompleteTaskButton`), o modal chama uma **server action leve `bunnyDisponivelAction()`** ao abrir (só quando a tarefa é de vídeo), reusando o helper `bunnyConfigurado()` que já existe em `src/lib/bunny/client.ts`. Assim `TasksBoard` e `CompleteTaskButton` ficam **intocados**.
 
 ---
 
