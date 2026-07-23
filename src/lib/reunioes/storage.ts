@@ -26,6 +26,14 @@ export async function getSignedPlaybackUrl(path: string, expiresInSeconds = 3600
   return data.signedUrl;
 }
 
+/** Baixa o arquivo do bucket como Buffer (pro worker transcrever). */
+export async function downloadRecording(path: string): Promise<Buffer | null> {
+  const sb = createServiceRoleClient();
+  const { data, error } = await sb.storage.from(BUCKET).download(path);
+  if (error || !data) return null;
+  return Buffer.from(await data.arrayBuffer());
+}
+
 export async function removeRecording(path: string): Promise<void> {
   const sb = createServiceRoleClient();
   await sb.storage.from(BUCKET).remove([path]);
