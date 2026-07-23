@@ -1,9 +1,11 @@
-import { ListChecks, Check, X, ExternalLink, User, Calendar } from "lucide-react";
+import { ListChecks, Check, ExternalLink, User, Calendar } from "lucide-react";
 import Link from "next/link";
 import { formatTimestamp, type MeetingExtractedTask } from "@/lib/reunioes/tipos";
+import { ExtractedTaskActions } from "./ExtractedTaskActions";
 
 interface Props {
   tasks: MeetingExtractedTask[];
+  podeAceitar?: boolean;
 }
 
 const ESTADO_CONFIG: Record<MeetingExtractedTask["estado"], { label: string; cor: string }> = {
@@ -18,7 +20,7 @@ function formatDateBR(iso: string): string {
   return new Date(y, m - 1, d).toLocaleDateString("pt-BR");
 }
 
-export function ExtractedTasksPanel({ tasks }: Props) {
+export function ExtractedTasksPanel({ tasks, podeAceitar = false }: Props) {
   if (tasks.length === 0) {
     return (
       <div className="rounded-lg border border-dashed bg-muted/20 p-6 text-center text-sm text-muted-foreground">
@@ -40,7 +42,7 @@ export function ExtractedTasksPanel({ tasks }: Props) {
             <ListChecks className="h-3.5 w-3.5" />
             Sugestões da IA · revisar
           </h4>
-          {sugeridas.map((t) => <TaskRow key={t.id} task={t} />)}
+          {sugeridas.map((t) => <TaskRow key={t.id} task={t} podeAceitar={podeAceitar} />)}
         </section>
       )}
 
@@ -51,7 +53,7 @@ export function ExtractedTasksPanel({ tasks }: Props) {
             <Check className="h-3.5 w-3.5" />
             Tarefas criadas
           </h4>
-          {aceitas.map((t) => <TaskRow key={t.id} task={t} />)}
+          {aceitas.map((t) => <TaskRow key={t.id} task={t} podeAceitar={podeAceitar} />)}
         </section>
       )}
 
@@ -62,7 +64,7 @@ export function ExtractedTasksPanel({ tasks }: Props) {
             Descartadas ({descartadas.length})
           </summary>
           <div className="mt-2 space-y-2">
-            {descartadas.map((t) => <TaskRow key={t.id} task={t} compact />)}
+            {descartadas.map((t) => <TaskRow key={t.id} task={t} compact podeAceitar={podeAceitar} />)}
           </div>
         </details>
       )}
@@ -70,7 +72,7 @@ export function ExtractedTasksPanel({ tasks }: Props) {
   );
 }
 
-function TaskRow({ task, compact }: { task: MeetingExtractedTask; compact?: boolean }) {
+function TaskRow({ task, compact, podeAceitar }: { task: MeetingExtractedTask; compact?: boolean; podeAceitar?: boolean }) {
   const estadoConfig = ESTADO_CONFIG[task.estado];
 
   return (
@@ -121,25 +123,8 @@ function TaskRow({ task, compact }: { task: MeetingExtractedTask; compact?: bool
             </blockquote>
           )}
         </div>
-        {task.estado === "sugerida" && !compact && (
-          <div className="flex shrink-0 gap-1">
-            <button
-              type="button"
-              className="rounded-md p-1.5 text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400"
-              title="Aceitar (em breve)"
-              disabled
-            >
-              <Check className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              className="rounded-md p-1.5 text-muted-foreground hover:bg-muted"
-              title="Descartar (em breve)"
-              disabled
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
+        {task.estado === "sugerida" && !compact && podeAceitar && (
+          <ExtractedTaskActions id={task.id} />
         )}
       </div>
     </article>
