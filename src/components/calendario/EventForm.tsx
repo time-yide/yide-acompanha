@@ -10,6 +10,7 @@ import { Video, MapPin, Link as LinkIcon, Users as UsersIcon } from "lucide-reac
 import { RoteiroToggle } from "./RoteiroToggle";
 import { RecurrenceFields } from "@/components/calendario/RecurrenceFields";
 import { SELECTABLE_SUBS, type SelectableSub } from "@/lib/calendario/schema";
+import { clienteObrigatorio } from "@/lib/calendario/reuniao-gravacao";
 import { cn } from "@/lib/utils";
 
 interface ProfileOption { id: string; nome: string; }
@@ -76,6 +77,7 @@ export function EventForm({ action, defaults = {}, profiles, clientes, videomake
   const [sub, setSub] = useState<SelectableSub>(defaults.sub_calendar ?? "agencia");
   const [clientId, setClientId] = useState<string | null>(defaults.client_id ?? null);
   const [avulsoOpen, setAvulsoOpen] = useState<boolean>(!!defaults.cliente_avulso);
+  const clienteReq = clienteObrigatorio(sub);
   const [videomakerId, setVideomakerId] = useState<string | null>(defaults.videomaker_assigned_id ?? null);
   const isVideomaker = sub === "videomakers";
 
@@ -163,7 +165,11 @@ export function EventForm({ action, defaults = {}, profiles, clientes, videomake
       <div className="space-y-2">
         <Label className="flex items-center gap-1.5">
           <UsersIcon className="h-3.5 w-3.5" /> Cliente{" "}
-          <span className="text-xs text-muted-foreground">(recomendado)</span>
+          {clienteReq ? (
+            <span className="text-red-500">*</span>
+          ) : (
+            <span className="text-xs text-muted-foreground">(recomendado)</span>
+          )}
         </Label>
         {!avulsoOpen ? (
           <>

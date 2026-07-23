@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { clienteObrigatorio } from "./reuniao-gravacao";
 
 export const SUB_CALENDARS = [
   "agencia",
@@ -51,8 +52,15 @@ const baseEventFields = {
 // O videomaker responsável é opcional no schema — a obrigatoriedade depende do
 // papel de quem cria (só o coordenador audiovisual é obrigado) e é validada na
 // server action, que conhece o role do ator.
-export const createEventSchema = z.object(baseEventFields);
-export const editEventSchema = z.object({ ...baseEventFields, id: z.string().uuid() });
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function refineClienteObrigatorio(data: any, ctx: z.RefinementCtx) {
+  if (clienteObrigatorio(data.sub_calendar) && !data.client_id) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["client_id"], message: "Selecione o cliente desta reunião" });
+  }
+}
+
+export const createEventSchema = z.object(baseEventFields).superRefine(refineClienteObrigatorio);
+export const editEventSchema = z.object({ ...baseEventFields, id: z.string().uuid() }).superRefine(refineClienteObrigatorio);
 
 /**
  * Garante que o videomaker designado esteja em participantes_ids (sem

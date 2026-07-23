@@ -18,6 +18,7 @@ import {
   SELECTABLE_SUBS,
 } from "./schema";
 import { canRoleDelegateVideomaker, isVideomakerObrigatorioParaRole } from "@/lib/audiovisual/coord-roles";
+import { requerGravacao } from "./reuniao-gravacao";
 import { checarBloqueioVideomaker } from "./bloqueio-check";
 import { checarFreelaVideomaker } from "./freela-check";
 import {
@@ -284,6 +285,7 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
     inicio: inicioUtc,
     fim: fimUtc,
     sub_calendar: parsed.data.sub_calendar,
+    requer_gravacao: requerGravacao(parsed.data.sub_calendar, "manual"),
     criado_por: actor.id,
     participantes_ids: participantesFinais,
     client_id: parsed.data.client_id || null,
@@ -553,6 +555,7 @@ export async function updateEventAction(_prevState: ActionResult, formData: Form
     inicio: inicioUtc,
     fim: fimUtc,
     sub_calendar: parsed.data.sub_calendar,
+    requer_gravacao: requerGravacao(parsed.data.sub_calendar, "manual"),
     participantes_ids: participantesFinais,
     client_id: parsed.data.client_id || null,
     cliente_avulso: parsed.data.cliente_avulso?.trim() || null,
