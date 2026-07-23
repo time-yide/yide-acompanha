@@ -13,10 +13,12 @@ que só sai gravando ou justificando. Liga a agenda ao módulo Reuniões já pro
 
 ## Decisões (do brainstorm)
 
-1. **O que é "reunião a gravar":** todo evento **manual** da agenda, EXCETO a
-   agenda de **gravação de vídeo (videomakers)** e os automáticos (aniversário,
-   bloqueio, freela, aniversário de cliente).
-2. **Cliente obrigatório** ao marcar, EXCETO na agenda **Comercial** (sem cliente).
+1. **O que é "reunião a gravar":** eventos **manuais** nas agendas
+   **Assessores**, **Coordenadores** e **Comercial**. Todas as outras (Agência,
+   Onboarding, Programação, Videomaker, aniversários, bloqueio, freela) ficam de
+   fora — sem cobrança, sem trava.
+2. **Cliente obrigatório** ao marcar em **Assessores** e **Coordenadores**;
+   **Comercial** é reunião a gravar mas **sem cliente**.
 3. **Trava:** aparece pra **quem marcou** o evento. Só sai **gravando** OU
    **justificando** (cancelada / remarcada→nova data / não vou gravar→motivo).
    Justificativa fica registrada pro gestor.
@@ -35,7 +37,8 @@ Novas colunas em `public.calendar_events` (migration manual):
   `lembrete_gravar_10min_em`, `lembrete_gravar_inicio_em` (timestamptz).
 
 `requer_gravacao` é derivado na criação: `true` quando `origem='manual'` e
-`sub_calendar <> 'videomakers'`. (Comercial = requer gravação, mas sem cliente.)
+`sub_calendar in ('assessores','coordenadores','comercial')`. Cliente obrigatório
+quando `sub_calendar in ('assessores','coordenadores')`; comercial sem cliente.
 
 ## Fluxo
 
@@ -107,8 +110,7 @@ Novas colunas em `public.calendar_events` (migration manual):
 - **C** — A trava (overlay) + gravar/justificar + vínculo com a gravação.
 
 ## Riscos / pontos a validar
-- "Todos os tipos menos videomaker exigem cliente" pode pegar eventos internos
-  (agência/onboarding) que às vezes não têm cliente. Se incomodar, a gente
-  restringe o conjunto no spec review.
+- Conjunto de agendas fechado: Assessores, Coordenadores, Comercial. Internos
+  (Agência/Onboarding/Programação) e Videomaker ficam de fora.
 - A trava é forte por design; a janela de 24h e o "justificar" evitam virar
   armadilha.
