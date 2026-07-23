@@ -21,24 +21,43 @@
 -- Isso atende a LGPD (gravação é o dado sensível, não a transcrição em texto
 -- que já passou por curadoria IA) e mantém o histórico útil pro time.
 
+-- retain_until NÃO pode ser generated column: `timestamptz + interval` é STABLE
+-- (depende do fuso), e generated columns exigem expressão IMMUTABLE — o Postgres
+-- recusa com "42P17: generation expression is not immutable". Usamos coluna
+-- normal + trigger que mantém a data.
 alter table public.meetings
-  add column if not exists retain_until timestamptz
-    generated always as (
-      case
-        when starts_at is null then null
-        else starts_at + interval '90 days'
-      end
-    ) stored;
+  add column if not exists retain_until timestamptz;
+
+-- Override manual da retenção (null = usar o default calculado pela trigger).
+alter table public.meetings
+  add column if not exists retencao_override timestamptz;
+
+-- Backfill das reuniões existentes.
+update public.meetings
+  set retain_until = starts_at + interval '90 days'
+  where retain_until is null and starts_at is not null;
+
+-- Trigger mantém retain_until = starts_at + 90 dias em insert/update de starts_at.
+create or replace function public.set_meeting_retain_until()
+returns trigger language plpgsql as $$
+begin
+  if new.starts_at is not null then
+    new.retain_until := new.starts_at + interval '90 days';
+  else
+    new.retain_until := null;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_meetings_retain_until on public.meetings;
+create trigger trg_meetings_retain_until
+  before insert or update of starts_at on public.meetings
+  for each row execute function public.set_meeting_retain_until();
 
 create index if not exists idx_meetings_retain_until
   on public.meetings(retain_until)
   where retain_until is not null;
-
--- Permite override manual: separa em coluna não-generated que sobrescreve.
--- Padrão: usa o generated; user pode escrever null (manter pra sempre) ou
--- uma data customizada (estender).
-alter table public.meetings
-  add column if not exists retencao_override timestamptz;
 
 -- View pro cron pegar facilmente recordings vencidos
 create or replace view public.meeting_recordings_to_cleanup as
