@@ -15,7 +15,7 @@ const DIAS_PT = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 export default async function MetricasReunioesPage() {
   const user = await requireAuth();
   if (!ALLOWED_ROLES.includes(user.role)) notFound();
-  const metrics = await getMeetingMetrics();
+  const metrics = await getMeetingMetrics(user);
 
   const maxRanking = Math.max(...metrics.porColaborador.map((c) => c.quantidade), 1);
   const maxDia = Math.max(...metrics.porDiaSemana.map((d) => d.total), 1);
