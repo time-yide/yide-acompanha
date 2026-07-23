@@ -26,10 +26,17 @@ liga na prática, estendendo o escopo de "prospecção do Comercial" para
 3. **Quem vê:** quem gravou (owner) + gestão (sócios/adm/coordenadores). Assessor
    NÃO vê reunião de cliente de outro assessor.
 4. **Quem grava:** assessor, coordenador, comercial, sócio, adm.
-5. **Transcrição:** Whisper (OpenAI) — mais barato/bom em PT-BR. Diarização
-   ("quem falou") inferida pela IA quando útil; não é requisito do MVP.
-6. **Storage do áudio:** bucket privado no Supabase Storage.
-7. **LGPD:** aviso "Esta reunião está sendo gravada" + consentimento antes de
+5. **Transcrição:** **Whisper-large-v3-turbo no Groq** — mesma qualidade do
+   Whisper em PT-BR, ~9x mais barato que a OpenAI (~US$0,04/h vs ~US$0,36/h). API
+   compatível com OpenAI. Diarização ("quem falou") inferida pela IA quando útil;
+   não é requisito do MVP.
+6. **IA (resumo/insights/tarefas):** **Claude Haiku** — modelo barato; suficiente
+   pra resumir transcrição. (Trocável por modelo maior se a qualidade pedir.)
+7. **Custo:** cortar via provedor barato (Groq) + Haiku + **comprimir o áudio**
+   (mono, bitrate baixo) antes de subir + **apagar áudio antigo automaticamente**
+   depois de X dias (mantém transcrição/resumo). Storage vira ~US$0.
+8. **Storage do áudio:** bucket privado no Supabase Storage.
+9. **LGPD:** aviso "Esta reunião está sendo gravada" + consentimento antes de
    iniciar; política de retenção herda a migration de retenção existente.
 
 ## O que o usuário vê / fluxo
@@ -57,11 +64,13 @@ liga na prática, estendendo o escopo de "prospecção do Comercial" para
   `summarization`/`insights`/`tasks_extraction`).
 
 ### Processamento (servidor, automático)
-- **Transcrição:** baixa o áudio, chama Whisper → grava `meeting_transcripts`
-  (texto + segmentos com timestamp), marca `transcript_ready`.
-  - Se o arquivo passar de 25MB (limite Whisper), comprime/particiona em blocos
-    e concatena os segmentos com offset de tempo.
-- **IA (Claude):** a partir da transcrição gera, em paralelo:
+- **Transcrição:** baixa o áudio, chama **Whisper-large-v3-turbo no Groq** (API
+  compatível com OpenAI) → grava `meeting_transcripts` (texto + segmentos com
+  timestamp), marca `transcript_ready`.
+  - O áudio é comprimido (mono, bitrate baixo) na gravação; se ainda passar do
+    limite de tamanho do provider, particiona em blocos e concatena os segmentos
+    com offset de tempo.
+- **IA (Claude Haiku):** a partir da transcrição gera, em paralelo:
   - `meeting_summaries` (resumo, decisões, próximos passos, tópicos) → `summary_ready`
   - insights (objeção/sinal de compra/risco/oportunidade/dúvida/decisão, com
     trecho + minuto) → `insights_ready`
@@ -85,8 +94,9 @@ liga na prática, estendendo o escopo de "prospecção do Comercial" para
     processa (robustez se a request estourar o tempo). Padrão de fila já previsto
     no schema.
 - **Libs a implementar** (hoje stub):
-  - `src/lib/reunioes/transcription/whisper.ts` → chamada real ao Whisper.
-  - `src/lib/reunioes/ai/summarizer.ts` → prompts Claude (resumo/insights/tasks).
+  - `src/lib/reunioes/transcription/whisper.ts` → chamada real ao Whisper via
+    Groq (API compatível com OpenAI; base URL do Groq + `GROQ_API_KEY`).
+  - `src/lib/reunioes/ai/summarizer.ts` → prompts Claude Haiku (resumo/insights/tasks).
   - `src/lib/reunioes/queries.ts` → trocar mock por SELECT real (Supabase
     service-role), aplicando a regra de visibilidade.
   - Novas server actions: criar reunião, assinar upload, registrar gravação,
@@ -123,15 +133,23 @@ Ajustes necessários (nova migration manual):
 
 ## Setup / .env (fora do código)
 
-- `OPENAI_API_KEY` — Whisper (nova conta/chave OpenAI + billing).
+- `GROQ_API_KEY` — Whisper-large-v3-turbo no Groq (conta nova, cadastro simples).
+- `ANTHROPIC_API_KEY` — já existe na stack (Claude Haiku pro resumo/insights/tasks).
 - Aplicar migrations manuais: a `20260513000000_reunioes_fase1.sql` (base, ainda
   não aplicada), a de retenção, e a nova (enum `app_recording` + bucket).
 - `npm run db:types` após aplicar, pra regenerar `src/types/database.ts`.
 
-## Custos estimados (~50 reuniões de 1h/mês)
+## Custos estimados (com Groq + Haiku)
 
-- Whisper: ~US$18 · Claude (resumo+insights+tasks): ~US$3 · Supabase Storage:
-  ~US$0,10 → **~US$21/mês**. (Recall.ai auto-join, se um dia, +~US$27.)
+Escala por hora de reunião (a transcrição é o gargalo):
+
+| Volume/mês | Transcrição (Groq turbo ~US$0,04/h) | IA (Haiku ~US$0,05/reunião) | Storage | Total |
+|---|---|---|---|---|
+| 100 reuniões de 1h | ~US$4 | ~US$5 | ~US$0 (comprime + apaga antigos) | **~US$9** |
+| 300 reuniões de 1h | ~US$12 | ~US$15 | ~US$0 | **~US$27** |
+
+Para comparação, com Whisper da OpenAI seria ~US$36 (100h) / ~US$108 (300h) só de
+transcrição. (Recall.ai auto-join, se um dia, entra à parte.)
 
 ## Fora de escopo (fases futuras)
 
