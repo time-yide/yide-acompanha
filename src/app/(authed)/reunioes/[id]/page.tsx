@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import { getMeetingById } from "@/lib/reunioes/queries";
+import { canRecordMeeting } from "@/lib/reunioes/permissions";
 import {
   formatDuracao,
   MEETING_SOURCE_LABEL,
@@ -94,7 +95,7 @@ export default async function ReuniaoDetailPage({
       label: "Tarefas",
       icon: ListChecks,
       badge: meeting.extracted_tasks.length,
-      content: <ExtractedTasksPanel tasks={meeting.extracted_tasks} />,
+      content: <ExtractedTasksPanel tasks={meeting.extracted_tasks} podeAceitar={canRecordMeeting(user.role)} />,
     },
   ];
 
