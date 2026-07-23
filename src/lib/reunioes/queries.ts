@@ -99,6 +99,14 @@ export async function getMeetingById(
   const base = mapMeetingRow(r);
   const { data: rec } = await sb.from("meeting_recordings").select("id, audio_url, video_url, duracao_segundos, size_bytes, formato, provider").eq("meeting_id", id).order("created_at", { ascending: false }).limit(1).maybeSingle();
 
+  const { data: tr } = await sb
+    .from("meeting_transcripts")
+    .select("texto_completo, segments, idioma, provider")
+    .eq("meeting_id", id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
   return {
     ...base,
     descricao: r.descricao ?? null,
@@ -107,7 +115,9 @@ export async function getMeetingById(
     recording: rec
       ? { id: rec.id, audio_url: rec.audio_url ?? null, video_url: rec.video_url ?? null, duracao_segundos: rec.duracao_segundos ?? null, size_bytes: rec.size_bytes ?? null, formato: rec.formato ?? null, provider: rec.provider ?? null }
       : null,
-    transcript: null,
+    transcript: tr
+      ? { texto_completo: tr.texto_completo, segments: (tr.segments ?? []) as unknown as import("./tipos").TranscriptSegment[], idioma: tr.idioma, provider: tr.provider }
+      : null,
     summary: null,
     extracted_tasks: [],
     processing_jobs: [],
