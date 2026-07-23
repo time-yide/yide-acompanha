@@ -82,12 +82,19 @@ export async function registrarGravacaoAction(input: {
   });
 
   await sb.from("meetings").update({
-    status: "completed",
+    status: "processing",
     recording_ready: true,
     duracao_segundos: Math.round(input.duracaoSeg) || null,
     ends_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   }).eq("id", input.meetingId);
+
+  // Enfileira a transcrição (worker /api/cron/reunioes-worker processa).
+  await sb.from("meeting_processing_jobs").insert({
+    meeting_id: input.meetingId,
+    step: "transcription",
+    status: "pending",
+  });
 
   revalidatePath(`/clientes/${mt.client_id}/reunioes`);
   revalidatePath("/reunioes");

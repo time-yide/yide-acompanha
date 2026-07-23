@@ -16,6 +16,7 @@
     { "path": "/api/cron/instagram-meta-alerts", "schedule": "0 12 * * *" },
     { "path": "/api/cron/yori-worker", "schedule": "*/1 * * * *" },
     { "path": "/api/cron/editor-ia-worker", "schedule": "*/1 * * * *" },
+    { "path": "/api/cron/reunioes-worker", "schedule": "*/2 * * * *" },
     { "path": "/api/cron/yori-cleanup", "schedule": "0 3 * * *" },
     { "path": "/api/cron/gravacoes-pendentes", "schedule": "*/5 * * * *" },
     { "path": "/api/cron/calendar-recurrence-extend", "schedule": "0 5 * * *" }
