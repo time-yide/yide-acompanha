@@ -107,6 +107,20 @@ export async function getMeetingById(
     .limit(1)
     .maybeSingle();
 
+  const { data: sm } = await sb
+    .from("meeting_summaries")
+    .select("resumo_geral, decisoes, proximos_passos, topicos, insights, sentimento_score, provider, modelo")
+    .eq("meeting_id", id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const { data: ets } = await sb
+    .from("meeting_extracted_tasks")
+    .select("id, titulo_sugerido, descricao_sugerida, atribuido_a_sugestao, due_date_sugestao, estado, task_id, citacao_origem, timestamp_origem_segundos")
+    .eq("meeting_id", id)
+    .order("created_at", { ascending: true });
+
   return {
     ...base,
     descricao: r.descricao ?? null,
@@ -118,8 +132,31 @@ export async function getMeetingById(
     transcript: tr
       ? { texto_completo: tr.texto_completo, segments: (tr.segments ?? []) as unknown as import("./tipos").TranscriptSegment[], idioma: tr.idioma, provider: tr.provider }
       : null,
-    summary: null,
-    extracted_tasks: [],
+    summary: sm
+      ? {
+          resumo_geral: sm.resumo_geral,
+          decisoes: sm.decisoes ?? [],
+          proximos_passos: sm.proximos_passos ?? [],
+          topicos: (sm.topicos ?? []) as import("./tipos").MeetingTopic[],
+          insights: (sm.insights ?? []) as import("./tipos").MeetingInsight[],
+          sentimento_score: sm.sentimento_score ?? null,
+          provider: sm.provider ?? "claude",
+          modelo: sm.modelo ?? null,
+        }
+      : null,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    extracted_tasks: ((ets ?? []) as any[]).map((e) => ({
+      id: e.id,
+      titulo_sugerido: e.titulo_sugerido,
+      descricao_sugerida: e.descricao_sugerida ?? null,
+      atribuido_a_sugestao: e.atribuido_a_sugestao ?? null,
+      atribuido_a_nome: null,
+      due_date_sugestao: e.due_date_sugestao ?? null,
+      estado: e.estado ?? "sugerida",
+      task_id: e.task_id ?? null,
+      citacao_origem: e.citacao_origem ?? null,
+      timestamp_origem_segundos: e.timestamp_origem_segundos ?? null,
+    })),
     processing_jobs: [],
   };
 }

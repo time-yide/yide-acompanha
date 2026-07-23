@@ -6,6 +6,7 @@ import { getServerEnv } from "@/lib/env";
 import { downloadRecording } from "@/lib/reunioes/storage";
 import { wordsToSegments } from "@/lib/reunioes/transcript";
 import { transcribeAudio } from "@/lib/yori/services/groq-whisper";
+import { summarizeMeeting } from "@/lib/reunioes/ai/summarizer";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -24,7 +25,7 @@ export async function GET(req: Request) {
   const { data: jobs } = await sb
     .from("meeting_processing_jobs")
     .select("id, meeting_id, step, status, attempts")
-    .eq("step", "transcription")
+    .in("step", ["transcription", "summarization"])
     .eq("status", "pending")
     .order("created_at", { ascending: true })
     .limit(3);
@@ -32,7 +33,7 @@ export async function GET(req: Request) {
   const results: Array<{ id: string; ok: boolean; msg: string }> = [];
   for (const job of (jobs ?? [])) {
     try {
-      const msg = await processarTranscricao(sb, job);
+      const msg = job.step === "summarization" ? await processarResumo(sb, job) : await processarTranscricao(sb, job);
       results.push({ id: job.id, ok: true, msg });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -85,11 +86,75 @@ async function processarTranscricao(sb: SB, job: any): Promise<string> {
   });
 
   await sb.from("meeting_processing_jobs").update({ status: "done", finished_at: new Date().toISOString() }).eq("id", job.id);
+
   await sb.from("meetings").update({
     transcript_ready: true,
+    updated_at: new Date().toISOString(),
+  }).eq("id", job.meeting_id);
+
+  await sb.from("meeting_processing_jobs").insert({
+    meeting_id: job.meeting_id,
+    step: "summarization",
+    status: "pending",
+  });
+
+  return "transcrito";
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function processarResumo(sb: SB, job: any): Promise<string> {
+  await sb.from("meeting_processing_jobs").update({ status: "running", started_at: new Date().toISOString() }).eq("id", job.id);
+
+  const { data: tr } = await sb.from("meeting_transcripts").select("texto_completo").eq("meeting_id", job.meeting_id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+  if (!tr?.texto_completo) throw new Error("sem transcrição pra resumir");
+
+  const { data: mt } = await sb.from("meetings").select("titulo, client:clients(nome)").eq("id", job.meeting_id).maybeSingle();
+
+  const result = await summarizeMeeting({
+    titulo: mt?.titulo ?? "Reunião",
+    clienteNome: mt?.client?.nome ?? null,
+    textoCompleto: tr.texto_completo,
+  });
+
+  if (result.skipped) {
+    await sb.from("meeting_processing_jobs").update({ status: "pending", started_at: null }).eq("id", job.id);
+    return "skip:anthropic-nao-configurado";
+  }
+  if (!result.ok || !result.data) throw new Error(result.error ?? "resumo falhou");
+
+  const d = result.data;
+  await sb.from("meeting_summaries").insert({
+    meeting_id: job.meeting_id,
+    provider: "claude",
+    modelo: "claude-haiku-4-5",
+    resumo_geral: d.resumo_geral || "(sem resumo)",
+    decisoes: d.decisoes,
+    proximos_passos: d.proximos_passos,
+    topicos: [],
+    insights: d.insights,
+    custo_estimado_centavos: result.custo_estimado_centavos,
+  });
+
+  if (d.tarefas.length > 0) {
+    await sb.from("meeting_extracted_tasks").insert(
+      d.tarefas.map((t) => ({
+        meeting_id: job.meeting_id,
+        titulo_sugerido: t.titulo,
+        descricao_sugerida: t.descricao,
+        estado: "sugerida",
+        citacao_origem: t.citacao,
+        timestamp_origem_segundos: t.timestamp_segundos,
+      })),
+    );
+  }
+
+  await sb.from("meeting_processing_jobs").update({ status: "done", finished_at: new Date().toISOString() }).eq("id", job.id);
+  await sb.from("meetings").update({
+    summary_ready: true,
+    insights_ready: true,
     status: "completed",
     updated_at: new Date().toISOString(),
   }).eq("id", job.meeting_id);
 
-  return "transcrito";
+  return "resumido";
 }
