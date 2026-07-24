@@ -71,6 +71,7 @@ export function ConcludeOperationalModal({ open, onOpenChange, taskId, taskTipo,
   const [files, setFiles] = useState<File[]>([]);
   const [progress, setProgress] = useState<Record<number, number>>({});
   const [sending, setSending] = useState(false);
+  const [finalizing, setFinalizing] = useState(false);
 
   // Ao abrir uma tarefa de vídeo, descobre se o Bunny está disponível.
   // (config global não muda entre aberturas → não precisa resetar pra null)
@@ -106,6 +107,9 @@ export function ConcludeOperationalModal({ open, onOpenChange, taskId, taskTipo,
           setProgress((p) => ({ ...p, [i]: pct })),
         );
       }
+      // Bytes enviados (100%). Falta o servidor concluir a tarefa — no 4G isso
+      // demora, então sinalizamos "Finalizando…" pra não parecer travado.
+      setFinalizing(true);
       const fd = new FormData();
       fd.set("id", taskId);
       fd.set("to_status", toStatus);
@@ -121,6 +125,7 @@ export function ConcludeOperationalModal({ open, onOpenChange, taskId, taskTipo,
       toast.error(e instanceof Error ? e.message : "Falha ao subir os vídeos");
     } finally {
       setSending(false);
+      setFinalizing(false);
     }
   }
 
@@ -244,7 +249,7 @@ export function ConcludeOperationalModal({ open, onOpenChange, taskId, taskTipo,
             onClick={useVideoFlow ? handleConfirmVideo : handleConfirmDrive}
             disabled={(useVideoFlow ? !videoValid : !driveValid) || sending || (isVideo && bunnyOk === null)}
           >
-            {sending ? "Enviando…" : toStatus === "em_aprovacao" ? "Enviar pra aprovação" : "Confirmar entrega"}
+            {sending ? (finalizing ? "Finalizando…" : "Enviando…") : toStatus === "em_aprovacao" ? "Enviar pra aprovação" : "Confirmar entrega"}
           </Button>
         </DialogFooter>
       </DialogContent>
