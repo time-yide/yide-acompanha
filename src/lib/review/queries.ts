@@ -5,7 +5,7 @@ import type { ReviewStatus, AutorTipo } from "./schema";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SB = any;
 
-export interface ReviewListItem { id: string; titulo: string; status: ReviewStatus; clienteNome: string | null; created_at: string }
+export interface ReviewListItem { id: string; titulo: string; status: ReviewStatus; clienteNome: string | null; taskId: string | null; created_at: string }
 export interface Comentario { id: string; autor_tipo: AutorTipo; autor_nome: string; tempo_seg: number; corpo: string; resolvido: boolean; created_at: string; pos_x: number | null; pos_y: number | null }
 export interface Versao { id: string; numero: number; bunny_video_id: string; pronto: boolean; playlistUrl: string; thumbUrl: string; comentarios: Comentario[] }
 export interface ReviewFull { id: string; titulo: string; status: ReviewStatus; clienteNome: string | null; taskId: string | null; assistidoPctVersaoAtual: number; versoes: Versao[] }
@@ -14,11 +14,12 @@ export async function listarReviews(): Promise<ReviewListItem[]> {
   const sb = createServiceRoleClient() as SB;
   const { data } = await sb
     .from("review_video")
-    .select("id, titulo, status, created_at, clients(nome)")
+    .select("id, titulo, status, task_id, created_at, clients(nome)")
     .order("created_at", { ascending: false });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return ((data ?? []) as any[]).map((r) => ({
     id: r.id, titulo: r.titulo, status: r.status, created_at: r.created_at,
+    taskId: r.task_id ?? null,
     clienteNome: r.clients?.nome ?? null,
   }));
 }
