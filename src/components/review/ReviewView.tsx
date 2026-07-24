@@ -16,7 +16,7 @@ import type { ReviewFull } from "@/lib/review/queries";
 import type { UploadTus } from "@/lib/bunny/client";
 import { ArrowLeft, CheckCircle2, Download, Lock, Plus, RotateCcw } from "lucide-react";
 
-export function ReviewView({ review, podeGerenciar, podeAprovar }: { review: ReviewFull; podeGerenciar: boolean; podeAprovar: boolean }) {
+export function ReviewView({ review, podeGerenciar, podeAprovar, onVoltar }: { review: ReviewFull; podeGerenciar: boolean; podeAprovar: boolean; onVoltar?: () => void }) {
   const router = useRouter();
   const playerRef = useRef<PlayerHandle>(null);
   const [ativa, setAtiva] = useState(Math.max(0, review.versoes.length - 1));
@@ -103,12 +103,18 @@ export function ReviewView({ review, podeGerenciar, podeAprovar }: { review: Rev
   const liberado = destravado(pctVisto);
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-neutral-950 text-white">
+    <div className="fixed inset-0 z-[70] flex flex-col bg-neutral-950 text-white">
       {/* Barra do topo */}
       <div className="flex flex-wrap items-center gap-3 border-b border-white/10 px-4 py-2.5">
-        <Link href="/audiovisual/review" className="flex h-8 w-8 items-center justify-center rounded-md text-white/70 hover:bg-white/10 hover:text-white" aria-label="Voltar">
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
+        {onVoltar ? (
+          <button type="button" onClick={onVoltar} className="flex h-8 w-8 items-center justify-center rounded-md text-white/70 hover:bg-white/10 hover:text-white" aria-label="Voltar">
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+        ) : (
+          <Link href="/audiovisual/review" className="flex h-8 w-8 items-center justify-center rounded-md text-white/70 hover:bg-white/10 hover:text-white" aria-label="Voltar">
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+        )}
         <div className="min-w-0">
           <h1 className="truncate text-sm font-semibold leading-tight">{review.titulo}</h1>
           <p className="truncate text-[11px] text-white/45">{review.clienteNome ?? "Sem cliente"} · {STATUS_LABEL[review.status]}</p>
