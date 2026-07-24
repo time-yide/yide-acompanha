@@ -30,19 +30,26 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  // Bloqueia cliente portal de entrar como colab. Mesmo que ele acidentalmente
-  // tenha cookie pra essa rota, getCurrentUser() retorna null → redirect /login.
-  if (await isAuthUserAClientPortalUser(user.id)) return null;
-
   // `especialidade` ainda não está nos tipos gerados do Supabase → cast via any.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
-  const { data: profile } = await sb
-    .from("profiles")
-    .select("id, email, role, nome, ativo, avatar_url, especialidade")
-    .eq("id", user.id)
-    .single();
 
+  // As duas checagens (é cliente-portal? + perfil interno) são independentes:
+  // roda EM PARALELO pra não pagar 2 round-trips sequenciais em toda página.
+  const [isPortal, profileRes] = await Promise.all([
+    isAuthUserAClientPortalUser(user.id),
+    sb
+      .from("profiles")
+      .select("id, email, role, nome, ativo, avatar_url, especialidade")
+      .eq("id", user.id)
+      .single(),
+  ]);
+
+  // Bloqueia cliente portal de entrar como colab. Mesmo que ele acidentalmente
+  // tenha cookie pra essa rota, getCurrentUser() retorna null → redirect /login.
+  if (isPortal) return null;
+
+  const profile = profileRes.data;
   if (!profile || !profile.ativo) return null;
 
   return {
