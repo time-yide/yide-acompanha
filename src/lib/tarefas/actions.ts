@@ -9,7 +9,7 @@ import { logAudit } from "@/lib/audit/log";
 import { logActivityInternal } from "@/lib/produtividade/actions";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 import { getCoordenadoresAudiovisualIds } from "./client-team";
-import { isRoleQueEntrega, isRoleEntregaSempre, isVideoDelivery } from "./delivery-roles";
+import { isRoleQueEntrega, isRoleEntregaSempre, isVideoDelivery, precisaModalDeEntrega } from "./delivery-roles";
 import {
   createTaskSchema,
   editTaskSchema,
@@ -465,34 +465,23 @@ export async function moveTaskStatusAction(formData: FormData) {
 
   // Guard: tarefas atribuídas a responsáveis de execução devem usar
   // concludeOperationalAction (com modal de entrega) pra ir pra
-  // "concluida" ou "em_aprovacao" - os 2 destinos exigem drive_link.
-  // Defense in depth caso o client burle o trigger do modal.
-  //
-  // Exceção 1: só cai no modal quem tem material pra entregar — tarefa vídeo/
-  // arte (qualquer responsável de entrega) OU responsável audiovisual de
-  // execução em qualquer tipo (inclui "geral"). Assessor em tarefa "geral"
-  // (reunião/follow-up) move direto, sem material.
-  // Exceção 2: se a tarefa JÁ tem drive_link salvo (caso de re-conclusão
-  // depois de alteração), bypass do modal - o link de entrega só precisa
-  // ser pedido uma vez por tarefa.
+  // "concluida" ou "em_aprovacao". Defense in depth caso o client burle o
+  // trigger do modal. Regra única em delivery-roles (precisaModalDeEntrega):
+  // - VÍDEO: sempre exige o modal (sobe pro Frame; ignora drive_link).
+  // - Arte/geral com material: exige se ainda não tem drive_link (pedido 1x).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const beforeDriveLink = (before as any).drive_link as string | null | undefined;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const beforeTipo = (before as any).tipo as string | null | undefined;
-  const tipoEntrega = beforeTipo === "video" || beforeTipo === "arte";
   const movendoPraEntrega =
     parsed.data.to_status === "concluida" || parsed.data.to_status === "em_aprovacao";
-  if (movendoPraEntrega && !beforeDriveLink) {
+  if (movendoPraEntrega) {
     const { data: assignee } = await supabase
       .from("profiles")
       .select("role")
       .eq("id", before.atribuido_a)
       .single();
-    const role = assignee?.role;
-    const requiresDelivery = tipoEntrega || isRoleEntregaSempre(role);
-    // Defense in depth: só bloqueia responsáveis de entrega (o client já
-    // deveria ter aberto o modal).
-    if (requiresDelivery && role && isRoleQueEntrega(role)) {
+    if (precisaModalDeEntrega(beforeTipo, assignee?.role, beforeDriveLink)) {
       return { error: "Use o modal de entrega pra mover essa tarefa" };
     }
   }
