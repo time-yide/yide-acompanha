@@ -126,6 +126,12 @@ export async function pedirAlteracaoAction(reviewId: string): Promise<Res<{ ok: 
   const { data: rv } = await sb.from("review_video").select("status").eq("id", reviewId).maybeSingle();
   if (!rv) return { error: "Review não encontrado" };
   if (!podeTransicionar(rv.status as ReviewStatus, "ajustes")) return { error: "Não dá pra pedir alteração agora" };
+  // Trava: só pede alteração depois de assistir a versão atual até o fim (server-side).
+  const { data: ult } = await sb.from("review_versao").select("id").eq("review_video_id", reviewId).order("numero", { ascending: false }).limit(1).maybeSingle();
+  if (ult) {
+    const { data: a } = await sb.from("review_assistido").select("pct_max").eq("user_id", user.id).eq("versao_id", ult.id).maybeSingle();
+    if (!destravado((a?.pct_max as number | undefined) ?? 0)) return { error: "Assista o vídeo até o fim antes de pedir alteração." };
+  }
   await sb.from("review_video").update({ status: "ajustes", updated_at: new Date().toISOString() }).eq("id", reviewId);
   revalidatePath(`/audiovisual/review/${reviewId}`);
   revalidatePath("/audiovisual/review");
