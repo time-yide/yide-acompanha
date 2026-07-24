@@ -5,6 +5,8 @@ import { requireAuth } from "@/lib/auth/session";
 import { canAccess } from "@/lib/auth/permissions";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { criarVideo, assinaturaUpload, urlDownloadMp4, bunnyConfigurado, type UploadTus } from "@/lib/bunny/client";
+import { carregarReview, type ReviewFull } from "@/lib/review/queries";
+import { podeVerReview, podeGerenciarReview, podeAprovarReview } from "@/lib/review/permissions";
 import { destravado } from "./gate";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -89,4 +91,30 @@ export async function linkDownloadAction(versaoId: string): Promise<Res<{ url: s
   const url = await urlDownloadMp4(v.bunny_video_id);
   if (!url) return { error: "Download indisponível — habilite o 'MP4 fallback' na biblioteca do Bunny." };
   return { url };
+}
+
+/**
+ * Carrega um review + permissões pro modal na tarefa. Espelha a lógica da
+ * tela /audiovisual/review/[id] via os helpers de permissão (fonte única).
+ */
+export async function carregarReviewAction(
+  reviewId: string,
+): Promise<Res<{ review: ReviewFull; podeGerenciar: boolean; podeAprovar: boolean }>> {
+  const user = await requireAuth();
+  if (!podeVerReview(user)) return { error: "Sem acesso ao review" };
+  const review = await carregarReview(reviewId, user.id);
+  if (!review) return { error: "Review não encontrado" };
+
+  let taskCriadoPor: string | null = null;
+  if (review.taskId) {
+    const sb = createServiceRoleClient() as SB;
+    const { data: t } = await sb.from("tasks").select("criado_por").eq("id", review.taskId).maybeSingle();
+    taskCriadoPor = t?.criado_por ?? null;
+  }
+
+  return {
+    review,
+    podeGerenciar: podeGerenciarReview(user.role),
+    podeAprovar: podeAprovarReview(user, taskCriadoPor),
+  };
 }

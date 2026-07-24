@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { UploadVersao } from "./UploadVersao";
+import { ReviewModal } from "./ReviewModal";
 import { adicionarVideoAction } from "@/lib/review/tarefa-actions";
 import { STATUS_LABEL } from "@/lib/review/schema";
 import type { VideoDoBloco } from "@/lib/review/queries";
@@ -17,6 +18,7 @@ export function VideoDaTarefa({ taskId, videos, podeGerenciar }: { taskId: strin
   const router = useRouter();
   const [pending, start] = useTransition();
   const [upload, setUpload] = useState<{ reviewId: string; upload: UploadTus } | null>(null);
+  const [reviewOpen, setReviewOpen] = useState<string | null>(null);
 
   function adicionar() {
     start(async () => {
@@ -41,7 +43,12 @@ export function VideoDaTarefa({ taskId, videos, podeGerenciar }: { taskId: strin
 
       <div className="grid gap-2 sm:grid-cols-2">
         {videos.map((v) => (
-          <Link key={v.reviewId} href={`/audiovisual/review/${v.reviewId}`} className="flex items-center gap-3 rounded-lg border p-2 hover:bg-muted/40">
+          <button
+            key={v.reviewId}
+            type="button"
+            onClick={() => setReviewOpen(v.reviewId)}
+            className="flex items-center gap-3 rounded-lg border p-2 text-left hover:bg-muted/40"
+          >
             <span className="relative flex h-12 w-20 shrink-0 items-center justify-center overflow-hidden rounded bg-black">
               {v.thumbUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -55,7 +62,8 @@ export function VideoDaTarefa({ taskId, videos, podeGerenciar }: { taskId: strin
                 {STATUS_LABEL[v.status]}
               </span>
             </span>
-          </Link>
+            <span className="shrink-0 rounded-md border px-2 py-1 text-xs font-medium">Review</span>
+          </button>
         ))}
       </div>
 
@@ -68,6 +76,12 @@ export function VideoDaTarefa({ taskId, videos, podeGerenciar }: { taskId: strin
       ) : (
         <Button type="button" size="sm" variant="outline" onClick={adicionar} disabled={pending}><Plus className="mr-2 h-4 w-4" />Adicionar vídeo</Button>
       ))}
+
+      <ReviewModal
+        reviewId={reviewOpen ?? ""}
+        open={reviewOpen !== null}
+        onOpenChange={(o) => { if (!o) setReviewOpen(null); }}
+      />
     </Card>
   );
 }
