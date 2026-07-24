@@ -106,7 +106,11 @@ export interface VideoDoBloco {
   assistidoPct: number;
 }
 
-/** Todos os vídeos (review_video) de uma tarefa/bloco, com o essencial pra listar. */
+/**
+ * Todos os vídeos (review_video) de uma tarefa/bloco, com o essencial pra listar.
+ * Batcheado em 3 queries (evita N+1): antes fazia 1+2·N — com 11 vídeos eram
+ * ~23 idas ao banco em sequência, o que deixava a tarefa lenta pra abrir.
+ */
 export async function getReviewsDaTarefa(taskId: string, userId: string): Promise<VideoDoBloco[]> {
   const sb = createServiceRoleClient() as SB;
   const { data: rvs } = await sb
@@ -115,25 +119,45 @@ export async function getReviewsDaTarefa(taskId: string, userId: string): Promis
     .eq("task_id", taskId)
     .order("created_at", { ascending: true });
   const lista = (rvs ?? []) as Array<{ id: string; titulo: string; status: ReviewStatus }>;
-  const out: VideoDoBloco[] = [];
-  for (const rv of lista) {
-    const { data: versoes } = await sb
-      .from("review_versao")
-      .select("id, bunny_video_id, pronto")
-      .eq("review_video_id", rv.id)
-      .order("numero", { ascending: false })
-      .limit(1);
-    const atual = (versoes ?? [])[0] as { id: string; bunny_video_id: string; pronto: boolean } | undefined;
-    let assistidoPct = 0;
-    if (atual) {
-      const { data: a } = await sb.from("review_assistido").select("pct_max").eq("user_id", userId).eq("versao_id", atual.id).maybeSingle();
-      assistidoPct = (a?.pct_max as number | undefined) ?? 0;
+  if (lista.length === 0) return [];
+  const reviewIds = lista.map((r) => r.id);
+
+  // Todas as versões de todos os reviews numa query só; a mais recente por review
+  // é a 1ª ocorrência (ordenado por numero desc).
+  const { data: versoesData } = await sb
+    .from("review_versao")
+    .select("id, review_video_id, bunny_video_id, pronto, numero")
+    .in("review_video_id", reviewIds)
+    .order("numero", { ascending: false });
+  const atualPorReview = new Map<string, { id: string; bunny_video_id: string; pronto: boolean }>();
+  for (const v of (versoesData ?? []) as Array<{ id: string; review_video_id: string; bunny_video_id: string; pronto: boolean; numero: number }>) {
+    if (!atualPorReview.has(v.review_video_id)) {
+      atualPorReview.set(v.review_video_id, { id: v.id, bunny_video_id: v.bunny_video_id, pronto: v.pronto });
     }
-    out.push({
+  }
+
+  // Progresso assistido do user pra todas as versões atuais numa query só.
+  const versaoIds = [...atualPorReview.values()].map((v) => v.id);
+  const assistidoPorVersao = new Map<string, number>();
+  if (versaoIds.length > 0) {
+    const { data: aData } = await sb
+      .from("review_assistido")
+      .select("versao_id, pct_max")
+      .eq("user_id", userId)
+      .in("versao_id", versaoIds);
+    for (const a of (aData ?? []) as Array<{ versao_id: string; pct_max: number }>) {
+      assistidoPorVersao.set(a.versao_id, (a.pct_max as number | undefined) ?? 0);
+    }
+  }
+
+  return lista.map((rv) => {
+    const atual = atualPorReview.get(rv.id);
+    return {
       reviewId: rv.id, titulo: rv.titulo, status: rv.status,
       thumbUrl: atual ? urlThumbnail(atual.bunny_video_id) : "",
-      versaoAtualId: atual?.id ?? null, prontoAtual: atual?.pronto ?? false, assistidoPct,
-    });
-  }
-  return out;
+      versaoAtualId: atual?.id ?? null,
+      prontoAtual: atual?.pronto ?? false,
+      assistidoPct: atual ? (assistidoPorVersao.get(atual.id) ?? 0) : 0,
+    };
+  });
 }
