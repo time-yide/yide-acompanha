@@ -238,7 +238,7 @@ export async function getTaskById(id: string): Promise<TaskRow> {
     .from("tasks")
     .select(`
       *,
-      atribuido:profiles!tasks_atribuido_a_fkey(id, nome),
+      atribuido:profiles!tasks_atribuido_a_fkey(id, nome, role),
       criador:profiles!tasks_criado_por_fkey(id, nome),
       cliente:clients(id, nome)
     `)

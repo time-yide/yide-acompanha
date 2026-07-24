@@ -6,6 +6,7 @@ import { canManageAnyTask, canAccess } from "@/lib/auth/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { getTaskById, listTaskRevisoes, listTaskComments, type TaskAprovacao, type TaskFormato, type TaskStatus } from "@/lib/tarefas/queries";
 import { updateTaskAction, deleteTaskAction } from "@/lib/tarefas/actions";
+import { isVideoDelivery } from "@/lib/tarefas/delivery-roles";
 import { TaskForm } from "@/components/tarefas/TaskForm";
 import { PriorityBadge } from "@/components/tarefas/PriorityBadge";
 import { Button } from "@/components/ui/button";
@@ -94,7 +95,14 @@ export default async function TarefaPage({
 
   const supabase = await createClient();
   const isApprovalTask = task.tipo === "video" || task.tipo === "arte";
-  const videosDaTarefa = task.tipo === "video" ? await getReviewsDaTarefa(task.id, user.id) : [];
+  // Bloco de vídeo (Frame) segue a MESMA regra da entrega (isVideoDelivery):
+  // tipo "video" OU "geral" com responsável de vídeo. Sem isso, a tarefa "geral"
+  // atribuída ao audiovisual recebia o vídeo pelo modal mas o bloco/botão Review
+  // não aparecia (divergência com o fluxo de entrega).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const atribuidoRole = (task.atribuido as any)?.role ?? task.atribuido_a_role ?? null;
+  const isVideoTask = isVideoDelivery(task.tipo, atribuidoRole);
+  const videosDaTarefa = isVideoTask ? await getReviewsDaTarefa(task.id, user.id) : [];
   const podeVideo = canAccess(user.role, "manage:review");
   const isMember =
     task.criado_por === user.id ||
@@ -260,7 +268,7 @@ export default async function TarefaPage({
             />
           )}
 
-          {task.tipo === "video" && (
+          {(isVideoTask || videosDaTarefa.length > 0) && (
             <VideoDaTarefa taskId={task.id} videos={videosDaTarefa} podeGerenciar={podeVideo} />
           )}
 
