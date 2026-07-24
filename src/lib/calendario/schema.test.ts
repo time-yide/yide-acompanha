@@ -1,5 +1,21 @@
 import { describe, it, expect } from "vitest";
-import { createEventSchema } from "./schema";
+import { createEventSchema, podeCriarVideomaker } from "./schema";
+
+describe("podeCriarVideomaker (criar evento tipo gravação)", () => {
+  it("libera coordenador audiovisual (agenda/gerencia gravações)", () => {
+    expect(podeCriarVideomaker("audiovisual_chefe")).toBe(true);
+  });
+  it("libera socio, adm, coordenador, assessor", () => {
+    for (const r of ["socio", "adm", "coordenador", "assessor"]) {
+      expect(podeCriarVideomaker(r)).toBe(true);
+    }
+  });
+  it("bloqueia execução do audiovisual (videomaker/editor/fast_midia/designer)", () => {
+    for (const r of ["videomaker", "editor", "fast_midia", "designer"]) {
+      expect(podeCriarVideomaker(r)).toBe(false);
+    }
+  });
+});
 
 const base = {
   titulo: "Reunião X",

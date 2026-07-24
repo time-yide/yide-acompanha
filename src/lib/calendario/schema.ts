@@ -27,7 +27,17 @@ export const SELECTABLE_SUBS = [
 export type SelectableSub = typeof SELECTABLE_SUBS[number];
 
 // Papéis autorizados a criar evento de videomaker (quem agenda a gravação).
-export const ROLES_PODEM_CRIAR_VIDEOMAKER = ["socio", "adm", "coordenador", "assessor"] as const;
+// audiovisual_chefe (Coordenador audiovisual) inclui-se aqui: ele delega o
+// videomaker e é obrigado a escolher um, então precisa poder criar o tipo.
+export const ROLES_PODEM_CRIAR_VIDEOMAKER = ["socio", "adm", "coordenador", "assessor", "audiovisual_chefe"] as const;
+
+/**
+ * Fonte única (client form + server action) de quem pode criar/editar evento
+ * do tipo "Videomaker (gravação)". Evita drift entre a UI e a validação.
+ */
+export function podeCriarVideomaker(role: string): boolean {
+  return (ROLES_PODEM_CRIAR_VIDEOMAKER as readonly string[]).includes(role);
+}
 
 const baseEventFields = {
   titulo: z.string().min(2, "Título muito curto"),

@@ -2,7 +2,7 @@ import { requireAuth } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { createEventAction } from "@/lib/calendario/actions";
 import { EventForm } from "@/components/calendario/EventForm";
-import { ROLES_PODEM_CRIAR_VIDEOMAKER } from "@/lib/calendario/schema";
+import { podeCriarVideomaker } from "@/lib/calendario/schema";
 import { listVideomakersAtivos } from "@/lib/audiovisual/coord-queries";
 import { canRoleDelegateVideomaker, isVideomakerObrigatorioParaRole } from "@/lib/audiovisual/coord-roles";
 import { Card } from "@/components/ui/card";
@@ -17,7 +17,7 @@ export default async function NovoEventoPage() {
     canDelegateVideomaker ? listVideomakersAtivos() : Promise.resolve([]),
   ]);
 
-  const canCreateVideomaker = (ROLES_PODEM_CRIAR_VIDEOMAKER as readonly string[]).includes(user.role);
+  const canCreateVideomaker = podeCriarVideomaker(user.role);
   const videomakerRequired = isVideomakerObrigatorioParaRole(user.role);
 
   return (
