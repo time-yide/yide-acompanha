@@ -6,7 +6,7 @@ import { X } from "lucide-react";
 import { TasksColumn } from "./TasksColumn";
 import { ConcludeOperationalModal } from "./ConcludeOperationalModal";
 import { moveTaskStatusAction } from "@/lib/tarefas/actions";
-import { isRoleQueEntrega, isRoleEntregaSempre } from "@/lib/tarefas/delivery-roles";
+import { precisaModalDeEntrega } from "@/lib/tarefas/delivery-roles";
 import type { TaskRow } from "@/lib/tarefas/queries";
 
 type Status =
@@ -66,23 +66,14 @@ export function TasksBoard({ tasks, userRole }: { tasks: TaskRow[]; userRole: st
     setError(null);
 
     // Mover pra "concluida" ou "em_aprovacao": responsáveis de execução
-    // precisam preencher o modal com link de entrega antes da movimentação.
-    // - Responsável audiovisual de execução (editor/videomaker/designer/
-    //   chefe/coordenador): modal em QUALQUER tipo, inclusive "geral".
-    // - Assessor: só em vídeo/arte — suas tarefas "geral" (reunião/follow-up)
-    //   não têm material, arrasta direto.
-    // Exceção: se a tarefa já tem drive_link salvo (re-conclusão depois de
-    // "alteração"), pula o modal - link só é pedido uma vez por tarefa.
+    // precisam preencher o modal de entrega antes da movimentação.
+    // Regra única em delivery-roles (espelha o server moveTaskStatusAction):
+    // - VÍDEO: sempre abre o modal (sobe pro Frame; ignora drive_link).
+    // - Arte/geral com material: abre se ainda não tem drive_link (pedido 1x).
     if (toStatus === "concluida" || toStatus === "em_aprovacao") {
       const task = tasks.find((t) => t.id === taskId);
       const role = task?.atribuido_a_role;
-      const tipoEntrega = task?.tipo === "video" || task?.tipo === "arte";
-      // Espelha EXATAMENTE a trava do server (moveTaskStatusAction): quem tem
-      // material pra entregar (vídeo/arte OU papel que sempre entrega) E é papel
-      // de entrega precisa do modal com link. Lista compartilhada em
-      // delivery-roles pra não divergir (foi a divergência que soltou fast_midia).
-      const requiresModal = (tipoEntrega || isRoleEntregaSempre(role)) && isRoleQueEntrega(role);
-      if (task && !task.drive_link && requiresModal) {
+      if (task && precisaModalDeEntrega(task.tipo, role, task.drive_link)) {
         setConclModalTask({
           id: taskId,
           tipo: (task.tipo as "geral" | "video" | "arte") ?? "geral",

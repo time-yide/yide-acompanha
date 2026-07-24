@@ -67,3 +67,26 @@ export function isVideoDelivery(
   if (tipo === "arte") return false;
   return (VIDEO_ROLES as readonly string[]).includes(role ?? "");
 }
+
+/**
+ * Decide se mover uma tarefa pra "Concluído Operacional"/"Aprovação" precisa
+ * passar pelo modal de entrega. Fonte única (client TasksBoard + server
+ * moveTaskStatusAction/toggleTaskCompletionAction), pra não divergir.
+ *
+ * - VÍDEO: SEMPRE pede (sobe pro Frame; ignora `drive_link` — a entrega é o
+ *   Frame, não o link. Sem isso, tarefa com link antigo pulava o modal).
+ * - Arte/geral com material: pede se ainda não tem `drive_link` (pedido 1x).
+ * - Papel sem entrega (adm/sócio) ou sem responsável: não pede.
+ */
+export function precisaModalDeEntrega(
+  tipo: string | null | undefined,
+  role: string | null | undefined,
+  driveLink: string | null | undefined,
+): boolean {
+  if (!isRoleQueEntrega(role)) return false;
+  const tipoEntrega = tipo === "video" || tipo === "arte";
+  const requiresDelivery = tipoEntrega || isRoleEntregaSempre(role);
+  if (!requiresDelivery) return false;
+  if (isVideoDelivery(tipo, role)) return true; // vídeo sempre
+  return !driveLink; // arte/geral: pula se já tem link
+}
