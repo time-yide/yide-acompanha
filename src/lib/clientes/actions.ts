@@ -114,6 +114,7 @@ export async function createClienteAction(formData: FormData) {
   revalidatePath("/");
   revalidateTag("dashboard", "default");
   revalidateTag("clients", "default");
+  revalidateTag("unit-context", "default");
   revalidateTag(PAINEL_CACHE_TAG, "default");
   redirect(`/clientes/${created.id}`);
 }
@@ -233,6 +234,7 @@ export async function updateClienteAction(formData: FormData) {
   revalidatePath("/");
   revalidateTag("dashboard", "default");
   revalidateTag("clients", "default");
+  revalidateTag("unit-context", "default");
   revalidateTag(PAINEL_CACHE_TAG, "default");
   redirect(`/clientes/${id}`);
 }
@@ -283,6 +285,7 @@ export async function churnClienteAction(formData: FormData) {
   revalidatePath("/");
   revalidateTag("dashboard", "default");
   revalidateTag("clients", "default");
+  revalidateTag("unit-context", "default");
   revalidateTag(PAINEL_CACHE_TAG, "default");
   return { success: true as const };
 }
@@ -346,6 +349,7 @@ export async function updateClienteMotivoChurnAction(formData: FormData) {
   revalidatePath("/");
   revalidateTag("dashboard", "default");
   revalidateTag("clients", "default");
+  revalidateTag("unit-context", "default");
   revalidateTag(PAINEL_CACHE_TAG, "default");
   return { success: true as const };
 }
@@ -378,6 +382,7 @@ export async function reactivateClienteAction(id: string) {
   revalidatePath("/");
   revalidateTag("dashboard", "default");
   revalidateTag("clients", "default");
+  revalidateTag("unit-context", "default");
   revalidateTag(PAINEL_CACHE_TAG, "default");
   return { success: "Cliente reativado" };
 }
@@ -450,6 +455,7 @@ export async function deleteClienteAction(formData: FormData) {
   revalidatePath("/");
   revalidateTag("dashboard", "default");
   revalidateTag("clients", "default");
+  revalidateTag("unit-context", "default");
   revalidateTag(PAINEL_CACHE_TAG, "default");
   redirect("/clientes");
 }
@@ -576,6 +582,7 @@ export async function updateClienteAssignmentAction(formData: FormData) {
   revalidatePath("/");
   revalidateTag("dashboard", "default");
   revalidateTag("clients", "default");
+  revalidateTag("unit-context", "default");
   revalidateTag(PAINEL_CACHE_TAG, "default");
   return { success: true };
 }
@@ -691,6 +698,7 @@ export async function updateClienteFieldAction(formData: FormData) {
   revalidatePath("/");
   revalidateTag("dashboard", "default");
   revalidateTag("clients", "default");
+  revalidateTag("unit-context", "default");
   revalidateTag(PAINEL_CACHE_TAG, "default");
   return { success: true as const };
 }
@@ -774,6 +782,7 @@ export async function bulkAssignClientesAction(formData: FormData) {
   revalidatePath("/");
   revalidateTag("dashboard", "default");
   revalidateTag("clients", "default");
+  revalidateTag("unit-context", "default");
   revalidateTag(PAINEL_CACHE_TAG, "default");
   return { success: true, count: clienteIds.length };
 }
@@ -841,6 +850,7 @@ export async function setAjusteMensalAction(formData: FormData) {
   revalidatePath("/");
   revalidateTag("dashboard", "default");
   revalidateTag("clients", "default");
+  revalidateTag("unit-context", "default");
   revalidateTag(PAINEL_CACHE_TAG, "default");
   return { success: true };
 }
@@ -864,6 +874,7 @@ export async function removeAjusteMensalAction(clientId: string, mesReferencia: 
   revalidatePath("/");
   revalidateTag("dashboard", "default");
   revalidateTag("clients", "default");
+  revalidateTag("unit-context", "default");
   revalidateTag(PAINEL_CACHE_TAG, "default");
   return { success: true };
 }
