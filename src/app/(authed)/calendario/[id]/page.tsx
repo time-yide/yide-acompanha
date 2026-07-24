@@ -6,7 +6,7 @@ import { getEventById } from "@/lib/calendario/queries";
 import { updateEventAction, deleteEventAction } from "@/lib/calendario/actions";
 import { EventForm } from "@/components/calendario/EventForm";
 import { RecurrenceScopeControls } from "@/components/calendario/RecurrenceScopeControls";
-import { ROLES_PODEM_CRIAR_VIDEOMAKER, type SelectableSub, SELECTABLE_SUBS } from "@/lib/calendario/schema";
+import { podeCriarVideomaker, type SelectableSub, SELECTABLE_SUBS } from "@/lib/calendario/schema";
 import { listVideomakersAtivos } from "@/lib/audiovisual/coord-queries";
 import { canRoleDelegateVideomaker, isVideomakerObrigatorioParaRole } from "@/lib/audiovisual/coord-roles";
 import { formatBrtDateTime, utcIsoToBrtInputValue } from "@/lib/calendario/timezone";
@@ -38,7 +38,7 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
   try { event = await getEventById(id); } catch { notFound(); }
 
   const canEdit = event.criado_por === user.id || ["adm", "socio"].includes(user.role);
-  const canCreateVideomaker = (ROLES_PODEM_CRIAR_VIDEOMAKER as readonly string[]).includes(user.role);
+  const canCreateVideomaker = podeCriarVideomaker(user.role);
   const isVideomaker = event.sub_calendar === "videomakers";
   const seriesId: string | null = event.series_id ?? null;
 
