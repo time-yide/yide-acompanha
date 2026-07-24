@@ -48,12 +48,12 @@ export function ReviewModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] max-w-4xl overflow-y-auto p-4 sm:p-6">
+      <DialogContent className="h-[88vh] w-[96vw] max-w-4xl overflow-y-auto p-4 sm:p-6">
         <DialogHeader className="sr-only">
           <DialogTitle>Review do vídeo</DialogTitle>
         </DialogHeader>
         {!data ? (
-          <div className="flex items-center justify-center gap-2 py-20 text-sm text-muted-foreground">
+          <div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> Carregando review…
           </div>
         ) : (
