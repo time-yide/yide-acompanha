@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { ExternalLink, History } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
-import { canManageAnyTask } from "@/lib/auth/permissions";
+import { canManageAnyTask, canAccess } from "@/lib/auth/permissions";
+import { isVideoDelivery } from "@/lib/tarefas/delivery-roles";
+import { getReviewsDaTarefa } from "@/lib/review/queries";
+import { VideoDaTarefa } from "@/components/review/VideoDaTarefa";
 import {
   getTaskById,
   listTaskComments,
@@ -87,9 +90,18 @@ export default async function TarefaModalPage({
     (Array.isArray(task.participantes_ids) && task.participantes_ids.includes(user.id));
   const isApprover = task.criado_por === user.id || canManageAnyTask(user);
 
-  const [revisoes, comments] = await Promise.all([
+  // Bloco de vídeo (Frame) — mesma regra da entrega (isVideoDelivery): tipo
+  // "video" OU "geral" com responsável de vídeo. Sem isso, o modal de
+  // pré-visualização não mostrava o vídeo nem o botão Review.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const atribuidoRole = (task.atribuido as any)?.role ?? null;
+  const isVideoTask = isVideoDelivery(task.tipo, atribuidoRole);
+  const podeVideo = canAccess(user.role, "manage:review");
+
+  const [revisoes, comments, videosDaTarefa] = await Promise.all([
     isApprovalTask ? listTaskRevisoes(id) : Promise.resolve([]),
     isMember ? listTaskComments(id) : Promise.resolve([]),
+    isVideoTask ? getReviewsDaTarefa(id, user.id) : Promise.resolve([]),
   ]);
 
   return (
@@ -146,6 +158,11 @@ export default async function TarefaModalPage({
             isApprover={isApprover}
             canMarkPosted={isMember}
           />
+        )}
+
+        {/* Vídeos (Frame) — abre o Review inline */}
+        {(isVideoTask || videosDaTarefa.length > 0) && (
+          <VideoDaTarefa taskId={id} videos={videosDaTarefa} podeGerenciar={podeVideo} />
         )}
 
         {/* Material entregue */}
