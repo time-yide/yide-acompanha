@@ -16,7 +16,13 @@ export function uploadVideoTus(
   return new Promise((resolve, reject) => {
     const up = new tus.Upload(file, {
       endpoint: upload.endpoint,
-      retryDelays: [0, 3000, 6000],
+      // Upload em pedaços de 50MB (múltiplo de 256KB) → resumível: um soluço da
+      // rede reenvia só o pedaço atual em vez do arquivo inteiro. Também evita o
+      // request único gigante (que servidores rejeitam com 413) em vídeos de
+      // câmera grandes. Múltiplas tentativas com backoff pra uploads longos.
+      chunkSize: 50 * 1024 * 1024,
+      retryDelays: [0, 3000, 5000, 10000, 20000, 30000],
+      removeFingerprintOnSuccess: true,
       headers: {
         AuthorizationSignature: upload.signature,
         AuthorizationExpire: String(upload.expiration),
