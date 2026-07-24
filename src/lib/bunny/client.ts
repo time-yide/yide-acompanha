@@ -28,6 +28,20 @@ export async function criarVideo(titulo: string): Promise<string> {
   return data.guid;
 }
 
+/** Deleta um vídeo no Bunny (best-effort — não lança se falhar/inexistir). */
+export async function deletarVideo(videoId: string): Promise<void> {
+  if (!bunnyConfigurado() || !videoId) return;
+  try {
+    const { apiKey, libraryId } = creds();
+    await fetch(`${BASE}/library/${libraryId}/videos/${videoId}`, {
+      method: "DELETE",
+      headers: { AccessKey: apiKey },
+    });
+  } catch {
+    // best-effort: o registro no banco já será removido de qualquer forma
+  }
+}
+
 export interface UploadTus {
   endpoint: string;
   libraryId: string;

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/lib/auth/session";
 import { canAccess } from "@/lib/auth/permissions";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { criarVideo, assinaturaUpload, urlDownloadMp4, bunnyConfigurado, type UploadTus } from "@/lib/bunny/client";
+import { criarVideo, assinaturaUpload, urlDownloadMp4, deletarVideo, bunnyConfigurado, type UploadTus } from "@/lib/bunny/client";
 import { carregarReview, type ReviewFull } from "@/lib/review/queries";
 import { podeVerReview, podeGerenciarReview, podeAprovarReview } from "@/lib/review/permissions";
 import { destravado } from "./gate";
@@ -67,6 +67,28 @@ export async function adicionarVideoAction(taskId: string, titulo: string): Prom
 export async function bunnyDisponivelAction(): Promise<boolean> {
   await requireAuth();
   return bunnyConfigurado();
+}
+
+/**
+ * Remove um vídeo (frame) da tarefa: apaga o vídeo no Bunny (best-effort) e o
+ * registro em review_video — versões/comentários/assistido caem por CASCADE.
+ * Usado pelo botão de apagar (limpar duplicados) e pelo rollback do modal de
+ * entrega quando o upload falha (pra não deixar frame órfão/duplicado).
+ */
+export async function removerVideoAction(reviewId: string): Promise<Res<{ ok: true }>> {
+  const user = await requireAuth();
+  if (!pode(user.role)) return { error: "Sem permissão" };
+  const sb = createServiceRoleClient() as SB;
+  const { data: rv } = await sb.from("review_video").select("id, task_id").eq("id", reviewId).maybeSingle();
+  if (!rv) return { error: "Vídeo não encontrado" };
+  // Apaga os vídeos no Bunny antes de remover o registro (libera armazenamento).
+  const { data: versoes } = await sb.from("review_versao").select("bunny_video_id").eq("review_video_id", reviewId);
+  for (const v of (versoes ?? []) as Array<{ bunny_video_id: string }>) {
+    await deletarVideo(v.bunny_video_id);
+  }
+  await sb.from("review_video").delete().eq("id", reviewId);
+  if (rv.task_id) revalidatePath(`/tarefas/${rv.task_id}`);
+  return { ok: true };
 }
 
 /** Registra o progresso assistido (guarda o máximo). */

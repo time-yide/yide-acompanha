@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { concludeOperationalAction } from "@/lib/tarefas/actions";
 import { isVideoDelivery } from "@/lib/tarefas/delivery-roles";
-import { adicionarVideoAction, bunnyDisponivelAction } from "@/lib/review/tarefa-actions";
+import { adicionarVideoAction, bunnyDisponivelAction, removerVideoAction } from "@/lib/review/tarefa-actions";
 import { uploadVideoTus } from "@/lib/review/upload-tus";
 
 interface Props {
@@ -103,9 +103,16 @@ export function ConcludeOperationalModal({ open, onOpenChange, taskId, taskTipo,
         const titulo = files.length > 1 ? `Vídeo ${i + 1}` : "";
         const r = await adicionarVideoAction(taskId, titulo);
         if ("error" in r) throw new Error(r.error);
-        await uploadVideoTus(files[i], r.upload, titulo || `Vídeo ${i + 1}`, (pct) =>
-          setProgress((p) => ({ ...p, [i]: pct })),
-        );
+        try {
+          await uploadVideoTus(files[i], r.upload, titulo || `Vídeo ${i + 1}`, (pct) =>
+            setProgress((p) => ({ ...p, [i]: pct })),
+          );
+        } catch (err) {
+          // Upload falhou/cancelou → remove o frame recém-criado pra não deixar
+          // vídeo órfão/duplicado na tarefa.
+          await removerVideoAction(r.reviewId);
+          throw err;
+        }
       }
       // Bytes enviados (100%). Falta o servidor concluir a tarefa — no 4G isso
       // demora, então sinalizamos "Finalizando…" pra não parecer travado.
