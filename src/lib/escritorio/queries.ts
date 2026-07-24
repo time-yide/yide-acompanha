@@ -61,7 +61,20 @@ async function _listChannelsWithUnreadImpl(
   if (unitId !== null) {
     roleChannelsQ = roleChannelsQ.eq("unit_id", unitId);
   }
-  const { data: roleChannels, error: roleErr } = await roleChannelsQ;
+  // DMs + grupos: canais por lista de membros onde o user está.
+  const memberChannelsQ = sb
+    .from("chat_channels")
+    .select("id, kind, nome, descricao, ordem, member_ids, icon_url")
+    .in("kind", ["direct", "grupo"])
+    .is("deleted_at", null)
+    .contains("member_ids", [userId]);
+
+  // Roda as duas listagens de canais EM PARALELO (antes eram 2 awaits sequenciais).
+  const [
+    { data: roleChannels, error: roleErr },
+    { data: memberChannels },
+  ] = await Promise.all([roleChannelsQ, memberChannelsQ]);
+
   // Fallback: se a coluna unit_id ainda não existir (migration não rodada),
   // re-tenta sem o filtro pra não esvaziar o chat inteiro.
   let roleChannelsData = roleChannels;
@@ -83,14 +96,6 @@ async function _listChannelsWithUnreadImpl(
 
   const accessibleRoleChannels = ((roleChannelsData ?? []) as Channel[])
     .filter((c) => canAccessChannel(userRole, c.kind));
-
-  // DMs + grupos: canais por lista de membros onde o user está.
-  const { data: memberChannels } = await sb
-    .from("chat_channels")
-    .select("id, kind, nome, descricao, ordem, member_ids, icon_url")
-    .in("kind", ["direct", "grupo"])
-    .is("deleted_at", null)
-    .contains("member_ids", [userId]);
 
   const allChannels = [...accessibleRoleChannels, ...((memberChannels ?? []) as Channel[])];
   if (allChannels.length === 0) return [];
