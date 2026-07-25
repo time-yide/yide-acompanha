@@ -233,18 +233,17 @@ export async function getTemperaturaForCoordinator(
   ref: Date,
   period: TempPeriod,
 ): Promise<TemperaturaResult> {
+  const refIso = ref.toISOString();
+  // IMPORTANTE: os parâmetros que variam (coordenador + referência + período)
+  // vão na CHAVE do unstable_cache (keyParts), não só como argumento. Passar só
+  // como argumento não estava diferenciando as entradas nesta versão do Next, e
+  // trocar semana/mês/trimestre servia sempre o mesmo resultado (números não
+  // mudavam). Com os params na chave, cada combinação tem sua própria entrada.
   const cached = unstable_cache(
-    async (paramsJson: string) => {
-      const { coord, ref: refIso, period: p } = JSON.parse(paramsJson) as {
-        coord: string;
-        ref: string;
-        period: TempPeriod;
-      };
-      return _getTemperaturaImpl(coord, refIso, p);
-    },
-    // v2: shape mudou (peakByHour 7x24, total, range/period) + suporte a período.
-    ["calendario-temperatura-v3"],
+    async () => _getTemperaturaImpl(coordinatorId, refIso, period),
+    // v4: params (coord/ref/period) movidos pra keyParts — corrige o filtro por período.
+    ["calendario-temperatura-v4", coordinatorId, refIso, period],
     { revalidate: 300, tags: ["calendar"] },
   );
-  return cached(JSON.stringify({ coord: coordinatorId, ref: ref.toISOString(), period }));
+  return cached();
 }
