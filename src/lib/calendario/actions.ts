@@ -248,8 +248,14 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
   const podeDelegar = canRoleDelegateVideomaker(actor.role);
   const videomakerObrigatorio = isVideomakerObrigatorioParaRole(actor.role);
 
+  // Recorrência agora vale também pra gravação. Numa gravação que se repete, o
+  // videomaker NÃO é fixado na série — cada data cai na fila do coordenador
+  // delegar (evita conflito de agenda nas ocorrências futuras). Por isso a
+  // atribuição direta de videomaker só roda pra evento único (!recurrence).
+  const recurrence: RecurrenceRule | null = parseRecurrenceFromForm(formData);
+
   let videomakerId: string | null = null;
-  if (isVideomaker && podeDelegar) {
+  if (isVideomaker && podeDelegar && !recurrence) {
     videomakerId = parsed.data.videomaker_assigned_id ?? null;
     if (!videomakerId && videomakerObrigatorio) {
       return { error: "Escolha o videomaker responsável pela gravação" };
@@ -307,22 +313,23 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
         }
       : { ...basePayload, videomaker_status: "pending_delegation" as const };
 
-  // Recorrência: só vale fora do sub-calendário de gravação (videomakers). A
-  // expansão trabalha nas strings locais ingênuas do form ("YYYY-MM-DDTHH:mm")
+  // A expansão trabalha nas strings locais ingênuas do form ("YYYY-MM-DDTHH:mm")
   // e cada ocorrência é convertida pra ISO UTC com brtInputToUtcIso — igual ao
-  // caminho de evento único (basePayload.inicio/fim já são UTC).
-  const recurrence: RecurrenceRule | null = isVideomaker
-    ? null
-    : parseRecurrenceFromForm(formData);
-
+  // caminho de evento único (basePayload.inicio/fim já são UTC). `recurrence` já
+  // foi parseado acima (agora inclui gravação).
   if (recurrence) {
     const seriesId = crypto.randomUUID();
     const horizon = addMonthsUTC(new Date(), FOREVER_HORIZON_MONTHS);
     const occurrences = expandRecurrence(recurrence, parsed.data.inicio, parsed.data.fim, horizon);
     if (occurrences.length === 0) return { error: "A recorrência não gerou nenhuma data" };
 
+    // Gravação recorrente: cada ocorrência nasce na fila do coordenador
+    // (pending_delegation), pra ele delegar o videomaker por data.
+    const recBase = isVideomaker
+      ? { ...basePayload, videomaker_status: "pending_delegation" as const }
+      : basePayload;
     const rows = occurrences.map((o, idx) => ({
-      ...basePayload,
+      ...recBase,
       inicio: brtInputToUtcIso(o.inicio),
       fim: brtInputToUtcIso(o.fim),
       series_id: seriesId,
