@@ -61,6 +61,9 @@ export default async function PagamentosPage({
             Marca recebimentos de clientes e pagamentos de colaboradores referentes a um mês específico.
           </p>
         </div>
+        <Link href="/financeiro/contratos">
+          <Button variant="outline" size="sm">Contratos</Button>
+        </Link>
       </header>
 
       <div className="inline-flex items-center gap-1 rounded-md border bg-card">

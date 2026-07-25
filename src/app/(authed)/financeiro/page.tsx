@@ -112,6 +112,9 @@ function PageShell({
           <Link href="/financeiro/despesas">
             <Button variant="outline">Gerenciar despesas</Button>
           </Link>
+          <Link href="/financeiro/contratos">
+            <Button variant="outline">Contratos</Button>
+          </Link>
         </div>
       </header>
 
