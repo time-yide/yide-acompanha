@@ -1,17 +1,28 @@
 import Link from "next/link";
-import { BookOpen, GraduationCap } from "lucide-react";
+import { BookOpen, GraduationCap, Gamepad2, UserCog, ClipboardList, type LucideIcon } from "lucide-react";
 
-export type ManualTabKey = "manual" | "academy";
+export type ManualTabKey = "manual" | "academy" | "time" | "colaboradores" | "pesquisas";
 
 interface Props {
   active: ManualTabKey;
+  /** Aba "Colaboradores" só aparece pra quem gerencia. */
+  canVerColaboradores?: boolean;
 }
 
-/** Barra de abas: Bastidores + Yide Academy (que saiu do menu lateral). */
-export function TabsManual({ active }: Props) {
-  const tabs = [
-    { key: "manual" as const, label: "Bastidores", href: "/manual", Icon: BookOpen },
-    { key: "academy" as const, label: "Yide Academy", href: "/academy", Icon: GraduationCap },
+/**
+ * Barra de abas do "Bastidores": Bastidores + Yide Academy + Time + Colaboradores
+ * (só gestor) + Pesquisas. Todos saíram do menu lateral e viram abas daqui,
+ * com as URLs preservadas.
+ */
+export function TabsManual({ active, canVerColaboradores = false }: Props) {
+  const tabs: Array<{ key: ManualTabKey; label: string; href: string; Icon: LucideIcon }> = [
+    { key: "manual", label: "Bastidores", href: "/manual", Icon: BookOpen },
+    { key: "academy", label: "Yide Academy", href: "/academy", Icon: GraduationCap },
+    { key: "time", label: "Time", href: "/time", Icon: Gamepad2 },
+    ...(canVerColaboradores
+      ? [{ key: "colaboradores" as const, label: "Colaboradores", href: "/colaboradores", Icon: UserCog }]
+      : []),
+    { key: "pesquisas", label: "Pesquisas", href: "/pesquisas", Icon: ClipboardList },
   ];
 
   return (

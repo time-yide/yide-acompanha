@@ -2,6 +2,7 @@ import Link from "next/link";
 import { BookOpen, FolderOpen, ScrollText, Heart, Compass, PlayCircle } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import { TabsManual } from "@/components/manual/TabsManual";
+import { podeVerColaboradores } from "@/lib/colaboradores/access";
 
 interface Card {
   href: string;
@@ -44,11 +45,11 @@ const CARDS: Card[] = [
 ];
 
 export default async function ManualPage() {
-  await requireAuth();
+  const user = await requireAuth();
 
   return (
     <div className="space-y-8">
-      <TabsManual active="manual" />
+      <TabsManual active="manual" canVerColaboradores={podeVerColaboradores(user.role)} />
       <header className="overflow-hidden rounded-2xl border bg-gradient-to-br from-primary/15 via-card to-card p-6 sm:p-8">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/15 text-primary">

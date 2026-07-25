@@ -6,6 +6,8 @@ import { PESQUISA_STATUS_LABEL } from "@/lib/pesquisas/schema";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Plus, ClipboardList } from "lucide-react";
+import { TabsManual } from "@/components/manual/TabsManual";
+import { podeVerColaboradores } from "@/lib/colaboradores/access";
 
 export default async function PesquisasPage({
   searchParams,
@@ -26,6 +28,7 @@ export default async function PesquisasPage({
 
   return (
     <div className="space-y-5">
+      <TabsManual active="pesquisas" canVerColaboradores={podeVerColaboradores(user.role)} />
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Pesquisas</h1>
