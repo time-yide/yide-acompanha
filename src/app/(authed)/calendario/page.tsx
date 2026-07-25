@@ -15,6 +15,7 @@ import {
   getProfileIdsForActiveUnit,
 } from "@/lib/units/filter-helpers";
 import { SUB_CALENDARS } from "@/lib/calendario/schema";
+import { canRecordMeeting } from "@/lib/reunioes/permissions";
 import { WeekView } from "@/components/calendario/WeekView";
 import { MonthView, formatMonthLabel } from "@/components/calendario/MonthView";
 import { SubCalendarChips } from "@/components/calendario/SubCalendarChips";
@@ -123,6 +124,8 @@ export default async function CalendarioPage({
   // server. Agora vive na subpágina /calendario/temperatura — aqui só exibimos
   // o link de acesso no header pra quem pode ver.
   const podeVerTemperatura = canAccess(user.role, "view:agenda_temperature");
+  // Quem pode gravar reunião vê o "play" nos cards de reunião (Week view).
+  const podeGravar = canRecordMeeting(user.role);
 
   if (view === "month") {
     return renderMonth({
@@ -145,6 +148,7 @@ export default async function CalendarioPage({
     unitProfileIds,
     userId: user.id,
     podeVerTemperatura,
+    podeGravar,
   });
 }
 
@@ -159,6 +163,7 @@ async function renderWeek({
   unitProfileIds,
   userId,
   podeVerTemperatura,
+  podeGravar,
 }: {
   params: { week?: string };
   subQuery: string;
@@ -168,6 +173,7 @@ async function renderWeek({
   unitProfileIds: string[] | null;
   userId: string;
   podeVerTemperatura: boolean;
+  podeGravar: boolean;
 }) {
   // Anchor a data ao meio-dia UTC pra evitar shift de timezone:
   // `new Date("2026-05-19")` = UTC midnight, que em Cuiabá (UTC-4) é
@@ -220,7 +226,7 @@ async function renderWeek({
         podeVerTemperatura={podeVerTemperatura}
       />
       <SubCalendarChips current={sub} />
-      <WeekView weekStart={start} events={events} />
+      <WeekView weekStart={start} events={events} podeGravar={podeGravar} />
     </div>
   );
 }

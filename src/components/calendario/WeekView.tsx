@@ -9,9 +9,11 @@ const DAYS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 interface Props {
   weekStart: Date;
   events: CalendarEvent[];
+  /** Habilita o botão "play" de gravar reunião nos cards (só quem pode gravar). */
+  podeGravar?: boolean;
 }
 
-export function WeekView({ weekStart, events }: Props) {
+export function WeekView({ weekStart, events, podeGravar = false }: Props) {
   const groups: CalendarEvent[][] = [[], [], [], [], [], [], []];
   for (const e of events) {
     // dayIdx 0 = Segunda em nossa convenção (DAYS array começa em Seg)
@@ -65,7 +67,7 @@ export function WeekView({ weekStart, events }: Props) {
             {/* No mobile, dia vazio não mostra container vazio (já tem o "sem eventos" no header). */}
             {!isEmpty && (
               <div className="space-y-1.5 rounded-md bg-muted/20 p-1.5 sm:min-h-[200px]">
-                {groups[i].map((e) => <EventCell key={e.id} event={e} />)}
+                {groups[i].map((e) => <EventCell key={e.id} event={e} podeGravar={podeGravar} />)}
               </div>
             )}
             {/* No desktop, dia vazio mostra container com placeholder pra manter altura uniforme. */}

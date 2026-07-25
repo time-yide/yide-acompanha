@@ -180,6 +180,7 @@ async function _listEventsForWeekImpl(
       inicio: m.inicio,
       fim: m.fim,
       sub_calendar: m.sub_calendar as SubCalendar,
+      client_id: (m.client_id as string | null) ?? null,
       link: `/calendario/${m.id}`,
       criado_por: m.criado_por,
       participantes_ids: (m.participantes_ids ?? []) as string[],
