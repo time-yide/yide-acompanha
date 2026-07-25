@@ -158,7 +158,17 @@ export function EventForm({ action, defaults = {}, profiles, clientes, videomake
 
       {/* Recorrência só na criação (!defaults.id) e fora de gravação. Editar uma
           série usa o escopo (RecurrenceScopeControls), não recria a regra aqui. */}
-      {!defaults.id && !isVideomaker && <RecurrenceFields />}
+      {!defaults.id && (
+        <>
+          <RecurrenceFields />
+          {isVideomaker && (
+            <p className="text-[11px] text-muted-foreground">
+              Em gravação que se repete, cada data cai na fila do coordenador do audiovisual delegar
+              (o videomaker é escolhido por data, não pra série toda).
+            </p>
+          )}
+        </>
+      )}
 
       {/* Cliente — disponível pra todos os tipos. Em reunião de assessoria,
           vincular o cliente faz a reunião aparecer no painel mensal dele. */}
