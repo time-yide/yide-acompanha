@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpen, FolderOpen, ScrollText, Heart, Compass, PlayCircle } from "lucide-react";
+import { BookOpen, FolderOpen, ScrollText, Heart, Compass, PlayCircle, KeyRound } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import { TabsManual } from "@/components/manual/TabsManual";
 import { podeVerColaboradores } from "@/lib/colaboradores/access";
@@ -41,6 +41,12 @@ const CARDS: Card[] = [
     icon: Heart,
     titulo: "Cultura",
     resumo: "Como nos comportamos, como damos feedback, o que valorizamos.",
+  },
+  {
+    href: "/manual/acessos-internos",
+    icon: KeyRound,
+    titulo: "Acessos internos",
+    resumo: "Logins dos sistemas e contas da Yide (criptografados). Alguns pro time todo, outros restritos.",
   },
 ];
 
