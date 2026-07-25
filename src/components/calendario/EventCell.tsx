@@ -146,7 +146,7 @@ export function EventCell({ event, podeGravar = false }: { event: CalendarEvent;
           href={`/clientes/${event.client_id}/reunioes?gravar=1`}
           title="Gravar reunião"
           aria-label="Gravar reunião"
-          className="absolute right-1 top-1 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white shadow ring-1 ring-white/30 hover:bg-red-600"
+          className="absolute right-1 top-1 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-white shadow ring-1 ring-white/30 hover:bg-blue-600"
         >
           <Play className="h-3 w-3 fill-white" />
         </Link>
