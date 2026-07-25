@@ -1,6 +1,11 @@
 // SERVER ONLY
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
+/** Janela (em dias) em que uma gravação RECORRENTE entra na fila de delegação.
+ *  Só a captação mais próxima (<= N dias) aparece; as distantes surgem quando
+ *  chegam perto. Tunável aqui. */
+export const DIAS_JANELA_DELEGACAO_RECORRENTE = 10;
+
 export interface PendingDelegationRow {
   id: string;
   titulo: string;
@@ -45,6 +50,14 @@ export async function listPendingDelegations(
     `)
     .eq("sub_calendar", "videomakers")
     .eq("videomaker_status", "pending_delegation");
+
+  // Gravação RECORRENTE só entra na fila quando falta pouco pra data (a mais
+  // próxima). As de datas distantes só aparecem quando chegam perto — evita
+  // encher a fila com todas as ocorrências de uma série de uma vez. Gravação
+  // única (series_id null) sempre aparece; atrasadas (passado) também, porque o
+  // filtro é só teto (inicio <= cutoff), sem piso.
+  const cutoff = new Date(Date.now() + DIAS_JANELA_DELEGACAO_RECORRENTE * 86_400_000).toISOString();
+  q = q.or(`series_id.is.null,inicio.lte.${cutoff}`);
 
   if (unitClientIds !== null) {
     // Captações sem client_id (raro, mas existe) seguem visíveis pra todos -
