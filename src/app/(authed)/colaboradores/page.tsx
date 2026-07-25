@@ -5,6 +5,8 @@ import { listColaboradores } from "@/lib/colaboradores/queries";
 import { ColaboradoresTable } from "@/components/colaboradores/ColaboradoresTable";
 import { ColaboradoresFilters } from "@/components/colaboradores/ColaboradoresFilters";
 import { TabsColaboradores } from "@/components/colaboradores/TabsColaboradores";
+import { TabsManual } from "@/components/manual/TabsManual";
+import { podeVerColaboradores } from "@/lib/colaboradores/access";
 import { Plus } from "lucide-react";
 
 const PROD_ROLES = ["adm", "socio", "coordenador", "audiovisual_chefe"];
@@ -57,6 +59,7 @@ export default async function ColaboradoresPage({
 
   return (
     <div className="space-y-5">
+      <TabsManual active="colaboradores" canVerColaboradores={podeVerColaboradores(user.role)} />
       <TabsColaboradores active="colaboradores" canSeeProdutividade={PROD_ROLES.includes(user.role)} />
       <header className="flex items-center justify-between">
         <div>

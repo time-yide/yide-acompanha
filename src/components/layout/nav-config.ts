@@ -1,9 +1,8 @@
 import {
   LayoutGrid, Users, KanbanSquare, ListChecks,
-  DollarSign, Calendar, UserCog, MessageSquare,
+  DollarSign, Calendar, MessageSquare,
   TrendingUp, Video, Trash2, MessagesSquare, Share2, Radar, MessageCircle, Phone,
   IdCard, BookOpen, Inbox, Layers, Zap, MapPin, Target, ShoppingCart, Images, Code2,
-  ClipboardList, Gamepad2,
   type LucideIcon,
 } from "lucide-react";
 import type { Role } from "@/lib/auth/permissions";
@@ -122,14 +121,9 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
     items: [
       // Yide Academy virou aba dentro do Manual (TabsManual); Produtividade virou
       // aba dentro de Colaboradores (TabsColaboradores). URLs preservadas.
+      // Time, Colaboradores e Pesquisas saíram daqui e viraram ABAS de Bastidores
+      // (ver TabsManual) — URLs preservadas. Colaboradores só aparece pra gestor.
       { type: "link", href: "/manual", icon: BookOpen, label: "Bastidores", roles: "all", badgeKey: null },
-      { type: "link", href: "/colaboradores", icon: UserCog, label: "Colaboradores", roles: "all", badgeKey: null },
-      { type: "link", href: "/time", icon: Gamepad2, label: "Time", roles: "all", badgeKey: null },
-      // Todo colaborador pode ser destinatário de uma pesquisa (pesquisa_destinatarios
-      // é por pessoa, não por cargo), então o link é "all" — a página mostra só a aba
-      // "Responder" pra quem não gerencia. Gerenciar/criar continua protegido por
-      // canManage (manage:pesquisas) dentro da página.
-      { type: "link", href: "/pesquisas", icon: ClipboardList, label: "Pesquisas", roles: "all", badgeKey: null },
       { type: "link", href: "/unidades", icon: Layers, label: "Unidades", roles: ["adm", "socio"], badgeKey: null },
     ],
   },
@@ -149,7 +143,9 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
 
 // Links `roles:"all"` que a Programação também deve ver. O cargo começa sem os
 // itens "all" (ver isLinkVisible), então cada um é liberado aqui explicitamente.
-const PROGRAMACAO_ALL_ALLOWED = new Set<string>(["/recados", "/calendario", "/time"]);
+// Programação chegava no Time por link direto; agora Time é aba de Bastidores,
+// então liberamos "/manual" (Bastidores) pra ela continuar alcançando o Time.
+const PROGRAMACAO_ALL_ALLOWED = new Set<string>(["/recados", "/calendario", "/manual"]);
 
 function isLinkVisible(role: Role, link: NavLink, especialidade?: string | null): boolean {
   // Programação (cargo técnico) começa SEM acessos: nem os itens "all", exceto
