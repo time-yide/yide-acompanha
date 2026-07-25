@@ -15,7 +15,9 @@ import {
 import { listUnidadesAtivasByClient } from "@/lib/clientes/unidades/queries";
 import { getGmbTimeSeries } from "@/lib/clientes/gmb-snapshots";
 import { listRequestsByClient } from "@/lib/portal-requests/queries";
+import { listCredentialsForPortal } from "@/lib/credenciais/queries";
 import { ClientPortalHeader } from "./ClientPortalHeader";
+import { CredenciaisPortalSection } from "./CredenciaisPortalSection";
 import { HeroSection } from "./HeroSection";
 import { ContratoSection } from "./ContratoSection";
 import { TrafegoSection } from "./TrafegoSection";
@@ -44,7 +46,7 @@ interface Props {
 }
 
 export async function ClientPortalView({ clientId, nomeContato, previewMode = false }: Props) {
-  const [data, selfSat, agencyPerception, reunioes, unidades, gmbTimeSeries, requests, tarefas] = await Promise.all([
+  const [data, selfSat, agencyPerception, reunioes, unidades, gmbTimeSeries, requests, tarefas, credenciais] = await Promise.all([
     getClientPortalData(clientId),
     getLastSelfSatisfaction(clientId),
     getLastAgencyPerception(clientId),
@@ -53,6 +55,7 @@ export async function ClientPortalView({ clientId, nomeContato, previewMode = fa
     getGmbTimeSeries(clientId, 90),
     listRequestsByClient(clientId),
     getTarefasForPortal(clientId),
+    listCredentialsForPortal(clientId),
   ]);
 
   if (!data) {
@@ -93,6 +96,9 @@ export async function ClientPortalView({ clientId, nomeContato, previewMode = fa
         )}
         <SolicitacoesSection requests={requests} previewMode={previewMode} />
         <PastaSection driveUrl={data.cliente.drive_url} />
+        {/* Em preview (colaborador interno) não mandamos a lista pro client — os
+            acessos são só do cliente logado. A agência vê em /clientes/[id]/credenciais. */}
+        <CredenciaisPortalSection credenciais={previewMode ? [] : credenciais} previewMode={previewMode} />
         <UnidadesSection unidades={unidades} />
         <TarefasPortalSection tarefas={tarefas} />
         <RelatoriosSection clientId={clientId} />
