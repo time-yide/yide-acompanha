@@ -69,13 +69,15 @@ export function VideoDaTarefa({ taskId, videos, podeGerenciar }: { taskId: strin
                 ) : null}
                 <Play className="absolute h-4 w-4 fill-white text-white" />
               </span>
-              <span className="min-w-0 flex-1">
+              <span className="flex min-w-0 flex-1 flex-col">
                 <span className="block truncate text-sm font-medium">{v.titulo}</span>
-                <span className={`text-[11px] ${v.status === "aprovado" ? "text-emerald-600 dark:text-emerald-400" : v.status === "ajustes" ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}>
+                {/* block + truncate: sem isso o status transbordava e ficava
+                    sobreposto ao botão "Review" em cards estreitos. */}
+                <span className={`block truncate text-[11px] ${v.status === "aprovado" ? "text-emerald-600 dark:text-emerald-400" : v.status === "ajustes" ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}>
                   {STATUS_LABEL[v.status]}
                 </span>
               </span>
-              <span className="shrink-0 rounded-md border px-2 py-1 text-xs font-medium">Review</span>
+              <span className="shrink-0 self-center rounded-md border px-2 py-1 text-xs font-medium">Review</span>
             </button>
             {podeGerenciar && (
               <button
