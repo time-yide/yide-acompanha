@@ -19,6 +19,29 @@ export interface CredentialRow {
   updated_by_nome?: string | null;
 }
 
+/** Item mascarado pro PORTAL do cliente (sem senha; senha só via revelarSenhaPortalAction). */
+export interface PortalCredential {
+  id: string;
+  service_name: string;
+  username: string | null;
+  notes: string | null;
+  updated_at: string;
+}
+
+/** Lista as credenciais de um cliente pro portal — sem a senha. */
+export async function listCredentialsForPortal(clientId: string): Promise<PortalCredential[]> {
+  const supabase = createServiceRoleClient();
+  const { data } = await (supabase.from("client_credentials" as never) as unknown as {
+    select: (c: string) => {
+      eq: (k: string, v: string) => { order: (c: string) => Promise<{ data: PortalCredential[] | null }> };
+    };
+  })
+    .select("id, service_name, username, notes, updated_at")
+    .eq("client_id", clientId)
+    .order("service_name");
+  return data ?? [];
+}
+
 export interface AccessLogRow {
   id: string;
   credential_id: string;
