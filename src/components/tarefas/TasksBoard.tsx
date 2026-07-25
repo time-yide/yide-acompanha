@@ -22,12 +22,15 @@ type Status =
 // "Aprovado" não tem coluna própria: tarefas aprovadas (aguardando postagem)
 // vivem na coluna "Aprovação" (ver grouping abaixo) até serem marcadas como
 // postadas. Por isso "aprovada" fica fora da lista de colunas renderizadas.
+// Ordem do fluxo: depois de "Concluído Operacional" o vídeo é revisado no Frame e
+// vai pra "Alteração" (volta pro editor) ou avança pra "Aprovação" (do cliente).
+// Por isso "Alteração" fica logo ao lado de "Concluído Operacional", antes de "Aprovação".
 const STATUSES: Status[] = [
   "aberta",
   "em_andamento",
   "concluida",
-  "em_aprovacao",
   "alteracao",
+  "em_aprovacao",
   "agendado",
   "postada",
 ];
