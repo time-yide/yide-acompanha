@@ -98,6 +98,9 @@ export interface CalendarEvent {
   inicio: string;
   fim: string;
   sub_calendar: SubCalendar;
+  /** Cliente da reunião/evento (quando houver). Usado pra ligar o card ao
+   *  gravador de reunião do cliente. */
+  client_id?: string | null;
   link?: string | null;
   cor?: string;
   localizacao_endereco?: string | null;

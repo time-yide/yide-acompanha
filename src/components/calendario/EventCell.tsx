@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { Video, User, UserPlus, Lock, Briefcase } from "lucide-react";
+import { Video, User, UserPlus, Lock, Briefcase, Play } from "lucide-react";
 import type { CalendarEvent } from "@/lib/calendario/schema";
 import { formatBrtTime } from "@/lib/calendario/timezone";
 import { computaStatus } from "@/lib/briefing-gravacao/status";
+import { requerGravacao } from "@/lib/calendario/reuniao-gravacao";
 
 // Light mode usa cor sólida 100/200 + texto 900/950 pra contraste forte.
 // Dark mode mantém overlay /15-/25 que já funciona bem no fundo escuro.
@@ -19,7 +20,7 @@ const subClass: Record<string, string> = {
   comercial: "bg-green-100 text-green-950 dark:bg-green-500/15 dark:text-green-200 border-l-2 border-green-500",
 };
 
-export function EventCell({ event }: { event: CalendarEvent }) {
+export function EventCell({ event, podeGravar = false }: { event: CalendarEvent; podeGravar?: boolean }) {
   // Bloqueio de agenda aprovado: marcador read-only "🔒 Indisponível", visual
   // neutro + borda tracejada pra NÃO confundir com uma gravação real.
   if (event.bloqueio) {
@@ -128,5 +129,30 @@ export function EventCell({ event }: { event: CalendarEvent }) {
       )}
     </div>
   );
-  return event.link ? <Link href={event.link}>{content}</Link> : content;
+  const card = event.link ? <Link href={event.link}>{content}</Link> : content;
+
+  // Reunião que pode ser gravada (agendas assessores/coordenadores/comercial,
+  // origem manual) e que tem cliente: mostra um "play" no canto pra começar a
+  // gravar a reunião (leva pro gravador do cliente, já aberto). Só pra quem tem
+  // permissão de gravar. O botão é irmão do card (não aninhado no <Link>) pra
+  // não gerar <a> dentro de <a>.
+  const podeGravarReuniao =
+    podeGravar && !!event.client_id && requerGravacao(event.sub_calendar, event.origem);
+  if (podeGravarReuniao) {
+    return (
+      <div className="relative">
+        {card}
+        <Link
+          href={`/clientes/${event.client_id}/reunioes?gravar=1`}
+          title="Gravar reunião"
+          aria-label="Gravar reunião"
+          className="absolute right-1 top-1 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white shadow ring-1 ring-white/30 hover:bg-red-600"
+        >
+          <Play className="h-3 w-3 fill-white" />
+        </Link>
+      </div>
+    );
+  }
+
+  return card;
 }

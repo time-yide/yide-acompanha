@@ -7,8 +7,16 @@ import { NotesTimeline } from "@/components/client-folder/NotesTimeline";
 import { GravadorReuniao } from "@/components/reunioes/GravadorReuniao";
 import { MeetingCard } from "@/components/reunioes/MeetingCard";
 
-export default async function ReunioesPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ReunioesPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams?: Promise<{ gravar?: string }>;
+}) {
   const { id } = await params;
+  // ?gravar=1 (vindo do "play" no card do calendário) já abre o gravador.
+  const autoAbrir = (await searchParams)?.gravar === "1";
   const user = await requireAuth();
   const [notes, meetings] = await Promise.all([
     listNotes(id),
@@ -24,7 +32,7 @@ export default async function ReunioesPage({ params }: { params: Promise<{ id: s
             <h2 className="text-lg font-semibold">Reuniões gravadas</h2>
             <p className="text-xs text-muted-foreground">Grave a reunião (online ou presencial) e ela fica guardada aqui.</p>
           </div>
-          {podeGravar && <GravadorReuniao clientId={id} />}
+          {podeGravar && <GravadorReuniao clientId={id} autoAbrir={autoAbrir} />}
         </header>
         {meetings.length === 0 ? (
           <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">Nenhuma reunião gravada ainda.</p>

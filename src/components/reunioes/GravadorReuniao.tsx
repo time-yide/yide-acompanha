@@ -10,9 +10,9 @@ import { criarReuniaoGravacaoAction, registrarGravacaoAction } from "@/lib/reuni
 
 type Modo = "presencial" | "online";
 
-export function GravadorReuniao({ clientId }: { clientId: string }) {
+export function GravadorReuniao({ clientId, autoAbrir = false }: { clientId: string; autoAbrir?: boolean }) {
   const router = useRouter();
-  const [aberto, setAberto] = useState(false);
+  const [aberto, setAberto] = useState(autoAbrir);
   const [modo, setModo] = useState<Modo>("presencial");
   const [titulo, setTitulo] = useState("");
   const [consentiu, setConsentiu] = useState(false);
