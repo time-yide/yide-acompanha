@@ -69,6 +69,15 @@ const SUB_DESC: Record<SelectableSub, string> = {
   comercial: "Agenda do time comercial (vendas, prospecção, reuniões).",
 };
 
+/** "YYYY-MM-DDTHH:mm" + 1 hora, em horário local (trata virada de dia). */
+function maisUmaHora(v: string): string {
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return v;
+  d.setHours(d.getHours() + 1);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 export function EventForm({ action, defaults = {}, profiles, clientes, videomakers, canCreateVideomaker, canDelegateVideomaker, videomakerRequired, submitLabel = "Salvar", formId }: Props) {
   const [state, formAction, pending] = useActionState(action, undefined);
   const formRef = useRef<HTMLFormElement>(null);
@@ -80,6 +89,18 @@ export function EventForm({ action, defaults = {}, profiles, clientes, videomake
   const clienteReq = clienteObrigatorio(sub);
   const [videomakerId, setVideomakerId] = useState<string | null>(defaults.videomaker_assigned_id ?? null);
   const isVideomaker = sub === "videomakers";
+
+  // Início/Fim controlados pra auto-preencher o Fim (+1h) quando escolhem o
+  // Início — sem isso, Fim ficava igual ao Início (duração zero) e o salvar dava
+  // "Horário de fim deve ser posterior ao início".
+  const [inicio, setInicio] = useState<string>(defaults.inicio ?? "");
+  const [fim, setFim] = useState<string>(defaults.fim ?? "");
+  function onChangeInicio(v: string) {
+    setInicio(v);
+    setIgnorar(false);
+    // Se o Fim está vazio ou não é depois do início, sugere início + 1h.
+    if (v && (!fim || fim <= v)) setFim(maisUmaHora(v));
+  }
 
   const subOptions = SELECTABLE_SUBS.filter((s) => s !== "videomakers" || canCreateVideomaker);
 
@@ -148,11 +169,11 @@ export function EventForm({ action, defaults = {}, profiles, clientes, videomake
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="inicio">Início</Label>
-          <Input id="inicio" name="inicio" type="datetime-local" required defaultValue={defaults.inicio ?? ""} onChange={() => setIgnorar(false)} />
+          <Input id="inicio" name="inicio" type="datetime-local" required value={inicio} onChange={(e) => onChangeInicio(e.target.value)} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="fim">Fim</Label>
-          <Input id="fim" name="fim" type="datetime-local" required defaultValue={defaults.fim ?? ""} onChange={() => setIgnorar(false)} />
+          <Label htmlFor="fim">Fim <span className="text-xs text-muted-foreground">(mesmo dia — hora que termina)</span></Label>
+          <Input id="fim" name="fim" type="datetime-local" required value={fim} onChange={(e) => { setFim(e.target.value); setIgnorar(false); }} />
         </div>
       </div>
 
