@@ -42,3 +42,23 @@ describe("createEventSchema — cliente obrigatório", () => {
     expect(r.success).toBe(true);
   });
 });
+
+describe("createEventSchema — roteiro obrigatório na gravação", () => {
+  const gravacao = { ...base, sub_calendar: "videomakers" as const };
+  it("rejeita gravação sem roteiro", () => {
+    const r = createEventSchema.safeParse(gravacao);
+    expect(r.success).toBe(false);
+  });
+  it("aceita gravação com link de roteiro", () => {
+    const r = createEventSchema.safeParse({ ...gravacao, link_roteiro: "https://docs.google.com/x" });
+    expect(r.success).toBe(true);
+  });
+  it("aceita gravação com PDF de roteiro", () => {
+    const r = createEventSchema.safeParse({ ...gravacao, roteiro_pdf_path: "roteiros/x.pdf", roteiro_tipo: "pdf" });
+    expect(r.success).toBe(true);
+  });
+  it("não exige roteiro em outros tipos (agência)", () => {
+    const r = createEventSchema.safeParse({ ...base, sub_calendar: "agencia" });
+    expect(r.success).toBe(true);
+  });
+});

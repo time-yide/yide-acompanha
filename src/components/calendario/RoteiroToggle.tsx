@@ -56,7 +56,7 @@ export function RoteiroToggle({
     }
     if (!eventoId) {
       setErro(
-        "Salve o evento primeiro (sem roteiro) e edite depois pra anexar o PDF.",
+        "Pra anexar PDF, salve o evento primeiro com um link de roteiro e depois troque pra PDF na edição.",
       );
       return;
     }
@@ -73,7 +73,7 @@ export function RoteiroToggle({
     <div className="space-y-3">
       <Label className="flex items-center gap-1.5">
         <FileText className="h-3.5 w-3.5" /> Roteiro{" "}
-        <span className="text-xs text-muted-foreground">(opcional)</span>
+        <span className="text-xs text-amber-600 dark:text-amber-400">(obrigatório)</span>
       </Label>
 
       <div className="flex gap-2">
