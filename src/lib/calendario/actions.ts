@@ -338,15 +338,19 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
       recurrence_end_kind: idx === 0 ? recurrence.endKind : null,
     }));
 
+    // NÃO usar .order("inicio") aqui: com .select("id") o Postgres só enxerga
+    // "id" no retorno e ordenar por "inicio" dá "column ... inicio does not
+    // exist". Selecionamos id+inicio e ordenamos no JS pra achar o mestre
+    // (1ª ocorrência = a que carrega a recurrence_rule).
     const { data: createdRows, error: recErr } = await sb
       .from("calendar_events")
       .insert(rows)
-      .select("id")
-      .order("inicio", { ascending: true });
+      .select("id, inicio");
     if (recErr || !createdRows || createdRows.length === 0) {
       return { error: recErr?.message ?? "Falha ao criar a série de eventos" };
     }
-    const masterId = createdRows[0].id;
+    const masterId = [...(createdRows as Array<{ id: string; inicio: string }>)]
+      .sort((a, b) => (a.inicio < b.inicio ? -1 : a.inicio > b.inicio ? 1 : 0))[0].id;
 
     await logAudit({
       entidade: "calendar_events",
