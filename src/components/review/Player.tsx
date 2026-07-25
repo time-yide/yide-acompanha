@@ -96,7 +96,16 @@ export const Player = forwardRef<PlayerHandle, {
   }
   function toggleMudo() { const v = video.current; if (v) { v.muted = !v.muted; setMudo(v.muted); } }
   function trocaVel(x: number) { const v = video.current; if (v) { v.playbackRate = x; setVel(x); setVelAberta(false); } }
-  function fullscreen() { wrap.current?.requestFullscreen?.().catch(() => {}); }
+  function fullscreen() {
+    const w = wrap.current as (HTMLDivElement & { webkitRequestFullscreen?: () => Promise<void> | void }) | null;
+    const v = video.current as (HTMLVideoElement & { webkitEnterFullscreen?: () => void }) | null;
+    // Desktop/Android: fullscreen no wrapper mantém a barra de controles custom.
+    if (w?.requestFullscreen) { w.requestFullscreen().catch(() => {}); return; }
+    if (w?.webkitRequestFullscreen) { w.webkitRequestFullscreen(); return; }
+    // iOS/iPhone: Element.requestFullscreen não existe — só o <video> entra em
+    // tela cheia (player nativo do sistema). Sem esse fallback o botão não fazia nada.
+    if (v?.webkitEnterFullscreen) { v.webkitEnterFullscreen(); return; }
+  }
 
   const pct = dur > 0 ? (atual / dur) * 100 : 0;
 
