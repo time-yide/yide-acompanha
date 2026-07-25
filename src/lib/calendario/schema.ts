@@ -63,14 +63,24 @@ const baseEventFields = {
 // papel de quem cria (só o coordenador audiovisual é obrigado) e é validada na
 // server action, que conhece o role do ator.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function refineClienteObrigatorio(data: any, ctx: z.RefinementCtx) {
+function refineEventoRegras(data: any, ctx: z.RefinementCtx) {
   if (clienteObrigatorio(data.sub_calendar) && !data.client_id) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["client_id"], message: "Selecione o cliente desta reunião" });
   }
+  // Roteiro é OBRIGATÓRIO na gravação (agenda de videomaker) — link ou PDF.
+  // O PDF só anexa depois de salvar (precisa do evento), então na criação
+  // o roteiro entra por link.
+  if (data.sub_calendar === "videomakers") {
+    const temLink = typeof data.link_roteiro === "string" && data.link_roteiro.trim().length > 0;
+    const temPdf = typeof data.roteiro_pdf_path === "string" && data.roteiro_pdf_path.trim().length > 0;
+    if (!temLink && !temPdf) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["link_roteiro"], message: "Adicione o roteiro da gravação (link ou PDF)" });
+    }
+  }
 }
 
-export const createEventSchema = z.object(baseEventFields).superRefine(refineClienteObrigatorio);
-export const editEventSchema = z.object({ ...baseEventFields, id: z.string().uuid() }).superRefine(refineClienteObrigatorio);
+export const createEventSchema = z.object(baseEventFields).superRefine(refineEventoRegras);
+export const editEventSchema = z.object({ ...baseEventFields, id: z.string().uuid() }).superRefine(refineEventoRegras);
 
 /**
  * Garante que o videomaker designado esteja em participantes_ids (sem
