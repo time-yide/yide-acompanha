@@ -15,13 +15,13 @@ import {
   getProfileIdsForActiveUnit,
 } from "@/lib/units/filter-helpers";
 import { SUB_CALENDARS } from "@/lib/calendario/schema";
-import { canRecordMeeting } from "@/lib/reunioes/permissions";
+import { canRecordMeeting, canViewMeetings } from "@/lib/reunioes/permissions";
 import { WeekView } from "@/components/calendario/WeekView";
 import { MonthView, formatMonthLabel } from "@/components/calendario/MonthView";
 import { SubCalendarChips } from "@/components/calendario/SubCalendarChips";
 import { ViewSwitch } from "@/components/calendario/ViewSwitch";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Plus, Thermometer } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Thermometer, Mic } from "lucide-react";
 import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 import type { CalendarEvent } from "@/lib/calendario/schema";
 
@@ -126,6 +126,8 @@ export default async function CalendarioPage({
   const podeVerTemperatura = canAccess(user.role, "view:agenda_temperature");
   // Quem pode gravar reunião vê o "play" nos cards de reunião (Week view).
   const podeGravar = canRecordMeeting(user.role);
+  // Quem vê o módulo de reuniões vê o link "Reuniões gravadas" no topo.
+  const podeVerReunioes = canViewMeetings(user.role);
 
   if (view === "month") {
     return renderMonth({
@@ -137,6 +139,7 @@ export default async function CalendarioPage({
       unitProfileIds,
       userId: user.id,
       podeVerTemperatura,
+      podeVerReunioes,
     });
   }
   return renderWeek({
@@ -148,6 +151,7 @@ export default async function CalendarioPage({
     unitProfileIds,
     userId: user.id,
     podeVerTemperatura,
+    podeVerReunioes,
     podeGravar,
   });
 }
@@ -163,6 +167,7 @@ async function renderWeek({
   unitProfileIds,
   userId,
   podeVerTemperatura,
+  podeVerReunioes,
   podeGravar,
 }: {
   params: { week?: string };
@@ -173,6 +178,7 @@ async function renderWeek({
   unitProfileIds: string[] | null;
   userId: string;
   podeVerTemperatura: boolean;
+  podeVerReunioes: boolean;
   podeGravar: boolean;
 }) {
   // Anchor a data ao meio-dia UTC pra evitar shift de timezone:
@@ -224,6 +230,7 @@ async function renderWeek({
         prevLabel="Semana anterior"
         nextLabel="Próxima semana"
         podeVerTemperatura={podeVerTemperatura}
+        podeVerReunioes={podeVerReunioes}
       />
       <SubCalendarChips current={sub} />
       <WeekView weekStart={start} events={events} podeGravar={podeGravar} />
@@ -242,6 +249,7 @@ async function renderMonth({
   unitProfileIds,
   userId,
   podeVerTemperatura,
+  podeVerReunioes,
 }: {
   params: { month?: string };
   subQuery: string;
@@ -251,6 +259,7 @@ async function renderMonth({
   unitProfileIds: string[] | null;
   userId: string;
   podeVerTemperatura: boolean;
+  podeVerReunioes: boolean;
 }) {
   // `month` param é "YYYY-MM" - âncora qualquer dia do meio do mês pra evitar
   // problema de timezone com dia 1.
@@ -300,6 +309,7 @@ async function renderMonth({
         prevLabel="Mês anterior"
         nextLabel="Próximo mês"
         podeVerTemperatura={podeVerTemperatura}
+        podeVerReunioes={podeVerReunioes}
       />
       <SubCalendarChips current={sub} />
       <MonthView
@@ -324,6 +334,7 @@ function Header({
   prevLabel,
   nextLabel,
   podeVerTemperatura,
+  podeVerReunioes,
 }: {
   title: string;
   subtitle: string;
@@ -335,6 +346,7 @@ function Header({
   prevLabel: string;
   nextLabel: string;
   podeVerTemperatura?: boolean;
+  podeVerReunioes?: boolean;
 }) {
   return (
     <header className="flex flex-wrap items-center justify-between gap-3">
@@ -370,6 +382,15 @@ function Header({
           <ChevronRight className="h-4 w-4" />
         </Link>
         <ViewSwitch current={view} />
+        {podeVerReunioes && (
+          <Link
+            href="/calendario/reunioes-gravadas"
+            className={buttonVariants({ variant: "outline" })}
+          >
+            <Mic className="mr-2 h-4 w-4" />
+            Reuniões gravadas
+          </Link>
+        )}
         {podeVerTemperatura && (
           <Link
             href="/calendario/temperatura"

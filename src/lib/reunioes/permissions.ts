@@ -10,6 +10,13 @@ export function canRecordMeeting(role: string): boolean {
   return (RECORD_ROLES as readonly string[]).includes(role);
 }
 
+/** Roles que enxergam o módulo de reuniões (lista/gravações). Mesma audiência de /reunioes. */
+export const VIEW_ROLES = ["adm", "socio", "comercial", "coordenador", "assessor"] as const;
+
+export function canViewMeetings(role: string): boolean {
+  return (VIEW_ROLES as readonly string[]).includes(role);
+}
+
 /**
  * Visibilidade: dono (quem gravou) OU gestão. Assessor não vê reunião de
  * cliente de outro assessor.
