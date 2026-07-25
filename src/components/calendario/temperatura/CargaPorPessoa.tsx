@@ -7,7 +7,7 @@ export function CargaPorPessoa({ byPerson, nomes }: { byPerson: PersonLoad[]; no
     <Card className="space-y-3 p-4">
       <h3 className="text-sm font-semibold">Carga por pessoa</h3>
       {byPerson.length === 0 ? (
-        <p className="text-xs text-muted-foreground">Ninguém do time tem eventos nesta semana.</p>
+        <p className="text-xs text-muted-foreground">Ninguém do time tem eventos neste período.</p>
       ) : (
         <div className="space-y-1.5">
           {byPerson.map((p) => {
