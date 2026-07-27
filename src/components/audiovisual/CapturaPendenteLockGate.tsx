@@ -94,7 +94,9 @@ export function CapturaPendenteLockGate({ overdue, clientes }: Props) {
 
       {openPendente && (
         <Dialog open={openPendente !== null} onOpenChange={(o) => { if (!o) setOpenPendente(null); }}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          {/* z-[110]: o gate é fixed z-[100]; sem isso o dialog abre ATRÁS do
+              cadeado (invisível/sem clique) e o videomaker não consegue entregar. */}
+          <DialogContent className="z-[110] max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Entregar captação</DialogTitle>
               <DialogDescription>
