@@ -14,7 +14,7 @@ import { PCT_MINIMO, destravado } from "@/lib/review/gate";
 import { STATUS_LABEL } from "@/lib/review/schema";
 import type { ReviewFull } from "@/lib/review/queries";
 import type { UploadTus } from "@/lib/bunny/client";
-import { ArrowLeft, CheckCircle2, Download, Lock, Plus, RotateCcw } from "lucide-react";
+import { ArrowLeft, Check, CheckCircle2, Copy, Download, Lock, Plus, RotateCcw } from "lucide-react";
 
 export function ReviewView({ review, podeGerenciar, podeAprovar, onVoltar }: { review: ReviewFull; podeGerenciar: boolean; podeAprovar: boolean; onVoltar?: () => void }) {
   const router = useRouter();
@@ -23,6 +23,7 @@ export function ReviewView({ review, podeGerenciar, podeAprovar, onVoltar }: { r
   const [uploadNova, setUploadNova] = useState<UploadTus | null>(null);
   const [tempo, setTempo] = useState(0);
   const [pending, start] = useTransition();
+  const [linkCopiado, setLinkCopiado] = useState(false);
   const versao = review.versoes[ativa];
 
   // Anotação "alfinete/balão" no frame.
@@ -98,6 +99,16 @@ export function ReviewView({ review, podeGerenciar, podeAprovar, onVoltar }: { r
       window.open(r.url, "_blank");
     });
   }
+  function copiarLinkCliente() {
+    if (!review.aprovacaoToken) return;
+    const url = `${window.location.origin}/aprovacao-video/${review.aprovacaoToken}`;
+    const marcarCopiado = () => { setLinkCopiado(true); setTimeout(() => setLinkCopiado(false), 2000); };
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(url).then(marcarCopiado).catch(() => window.prompt("Copia esse link:", url));
+    } else {
+      window.prompt("Copia esse link:", url);
+    }
+  }
 
   const marcadores = versao ? versao.comentarios.map((c) => c.tempo_seg) : [];
   const liberado = destravado(pctVisto);
@@ -140,6 +151,15 @@ export function ReviewView({ review, podeGerenciar, podeAprovar, onVoltar }: { r
             <span className="flex items-center gap-1 text-xs text-amber-400">
               <Lock className="h-3.5 w-3.5" />Assista até o fim ({pctVisto}%/{PCT_MINIMO}%)
             </span>
+          )}
+          {review.status === "revisao_cliente" && review.aprovacaoToken && (
+            <>
+              <span className="text-xs text-white/45">Aguardando o cliente aprovar</span>
+              <Button type="button" size="sm" variant="outline" onClick={copiarLinkCliente} className="border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white">
+                {linkCopiado ? <Check className="mr-2 h-4 w-4 text-emerald-400" /> : <Copy className="mr-2 h-4 w-4" />}
+                {linkCopiado ? "Copiado" : "Copiar link do cliente"}
+              </Button>
+            </>
           )}
           {podeAprovar && review.status !== "aprovado" && (
             <>
