@@ -72,6 +72,9 @@ export function ConcludeOperationalModal({ open, onOpenChange, taskId, taskTipo,
   const [progress, setProgress] = useState<Record<number, number>>({});
   const [sending, setSending] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
+  // Plano B: mesmo com o Frame ligado, o videomaker pode cair pro link do Drive
+  // (upload falhou, arquivo gigante, Bunny fora do ar...) e não ficar preso.
+  const [modoDrive, setModoDrive] = useState(false);
 
   // Ao abrir uma tarefa de vídeo, descobre se o Bunny está disponível.
   // (config global não muda entre aberturas → não precisa resetar pra null)
@@ -83,6 +86,9 @@ export function ConcludeOperationalModal({ open, onOpenChange, taskId, taskTipo,
   }, [open, isVideo]);
 
   const useVideoFlow = isVideo && bunnyOk === true;
+  // Está mostrando o upload de vídeo? (Se o videomaker escolheu o plano B do
+  // Drive, cai pro formulário de link mesmo com o Frame ligado.)
+  const mostrandoVideo = useVideoFlow && !modoDrive;
 
   function reset() {
     setDriveLink("");
@@ -90,6 +96,7 @@ export function ConcludeOperationalModal({ open, onOpenChange, taskId, taskTipo,
     setObservacoes("");
     setFiles([]);
     setProgress({});
+    setModoDrive(false);
   }
 
   const driveValid = driveLink.trim().length > 0 && qtd.trim().length > 0 && /^\d+$/.test(qtd) && Number(qtd) >= 1;
@@ -129,7 +136,10 @@ export function ConcludeOperationalModal({ open, onOpenChange, taskId, taskTipo,
       onOpenChange(false);
       onSuccess();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha ao subir os vídeos");
+      const raw = e instanceof Error ? e.message : "";
+      toast.error(
+        `Não deu pra subir o vídeo${raw ? `: ${raw}` : ""}. Se continuar, use "Enviar link do Drive" ali embaixo.`,
+      );
     } finally {
       setSending(false);
       setFinalizing(false);
@@ -162,7 +172,7 @@ export function ConcludeOperationalModal({ open, onOpenChange, taskId, taskTipo,
         <DialogHeader>
           <DialogTitle>{TITLE[toStatus]}</DialogTitle>
           <DialogDescription>
-            {useVideoFlow ? "Suba o(s) vídeo(s) desta tarefa — vão pro Frame pra revisão interna." : DESCRIPTION[toStatus]}
+            {mostrandoVideo ? "Suba o(s) vídeo(s) desta tarefa — vão pro Frame pra revisão interna." : DESCRIPTION[toStatus]}
           </DialogDescription>
         </DialogHeader>
 
@@ -170,7 +180,7 @@ export function ConcludeOperationalModal({ open, onOpenChange, taskId, taskTipo,
           <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> Verificando…
           </div>
-        ) : useVideoFlow ? (
+        ) : mostrandoVideo ? (
           <div className="space-y-3">
             <div className="space-y-1.5">
               <Label htmlFor="videos">Vídeos da entrega *</Label>
@@ -205,9 +215,31 @@ export function ConcludeOperationalModal({ open, onOpenChange, taskId, taskTipo,
                 rows={3}
               />
             </div>
+
+            <button
+              type="button"
+              onClick={() => setModoDrive(true)}
+              disabled={sending}
+              className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground disabled:opacity-50"
+            >
+              Não consegue subir o vídeo? Enviar link do Drive
+            </button>
           </div>
         ) : (
           <div className="space-y-3">
+            {useVideoFlow && modoDrive && (
+              <div className="flex items-center justify-between gap-2 rounded-md border border-dashed bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                <span>Enviando por link do Drive (plano B).</span>
+                <button
+                  type="button"
+                  onClick={() => setModoDrive(false)}
+                  disabled={sending}
+                  className="underline underline-offset-2 hover:text-foreground disabled:opacity-50"
+                >
+                  Voltar pra subir o vídeo
+                </button>
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label htmlFor="drive_link">Link do Drive *</Label>
               <Input
@@ -253,8 +285,8 @@ export function ConcludeOperationalModal({ open, onOpenChange, taskId, taskTipo,
             Cancelar
           </Button>
           <Button
-            onClick={useVideoFlow ? handleConfirmVideo : handleConfirmDrive}
-            disabled={(useVideoFlow ? !videoValid : !driveValid) || sending || (isVideo && bunnyOk === null)}
+            onClick={mostrandoVideo ? handleConfirmVideo : handleConfirmDrive}
+            disabled={(mostrandoVideo ? !videoValid : !driveValid) || sending || (isVideo && bunnyOk === null)}
           >
             {sending ? (finalizing ? "Finalizando…" : "Enviando…") : toStatus === "em_aprovacao" ? "Enviar pra aprovação" : "Confirmar entrega"}
           </Button>
