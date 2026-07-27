@@ -8,13 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Player, type PlayerHandle } from "./Player";
 import { Comentarios } from "./Comentarios";
 import { UploadVersao } from "./UploadVersao";
-import { aprovarVideoAction, novaVersaoAction, pedirAlteracaoAction } from "@/lib/review/actions";
+import { aprovarVideoAction, novaVersaoAction, pedirAlteracaoAction, aprovarInternoAction } from "@/lib/review/actions";
 import { registrarAssistidoAction } from "@/lib/review/tarefa-actions";
 import { PCT_MINIMO, destravado } from "@/lib/review/gate";
 import { STATUS_LABEL } from "@/lib/review/schema";
 import type { ReviewFull } from "@/lib/review/queries";
 import type { UploadTus } from "@/lib/bunny/client";
-import { ArrowLeft, Check, CheckCircle2, Copy, Download, Lock, Plus, RotateCcw } from "lucide-react";
+import { ArrowLeft, Check, CheckCircle2, Copy, Download, Lock, Plus, RotateCcw, Send } from "lucide-react";
 
 export function ReviewView({ review, podeGerenciar, podeAprovar, onVoltar }: { review: ReviewFull; podeGerenciar: boolean; podeAprovar: boolean; onVoltar?: () => void }) {
   const router = useRouter();
@@ -91,6 +91,13 @@ export function ReviewView({ review, podeGerenciar, podeAprovar, onVoltar }: { r
       toast.success("Enviado pra alteração — o editor vai ver os comentários."); router.refresh();
     });
   }
+  function enviarProCliente() {
+    start(async () => {
+      const r = await aprovarInternoAction(review.id);
+      if ("error" in r) { toast.error(r.error); return; }
+      toast.success("Enviado pro cliente! Agora é só copiar o link e mandar pra ele."); router.refresh();
+    });
+  }
   function baixar() {
     if (!versao) return;
     // Endpoint no próprio sistema devolve o MP4 como attachment → baixa o arquivo
@@ -164,8 +171,13 @@ export function ReviewView({ review, podeGerenciar, podeAprovar, onVoltar }: { r
               <Button type="button" size="sm" variant="outline" onClick={pedirAlteracao} disabled={pending || !liberado} className="border-amber-500/40 bg-transparent text-amber-500 hover:bg-amber-500/10 hover:text-amber-400">
                 <RotateCcw className="mr-2 h-4 w-4" />Pedir alteração
               </Button>
-              <Button type="button" size="sm" onClick={aprovar} disabled={pending || !liberado}>
-                <CheckCircle2 className="mr-2 h-4 w-4" />Aprovar
+              {(review.status === "revisao_interna" || review.status === "ajustes") && (
+                <Button type="button" size="sm" onClick={enviarProCliente} disabled={pending}>
+                  <Send className="mr-2 h-4 w-4" />Enviar pro cliente
+                </Button>
+              )}
+              <Button type="button" size="sm" variant="outline" onClick={aprovar} disabled={pending || !liberado} className="border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white">
+                <CheckCircle2 className="mr-2 h-4 w-4" />Aprovar direto
               </Button>
             </>
           )}
