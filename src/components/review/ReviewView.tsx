@@ -9,7 +9,7 @@ import { Player, type PlayerHandle } from "./Player";
 import { Comentarios } from "./Comentarios";
 import { UploadVersao } from "./UploadVersao";
 import { aprovarVideoAction, novaVersaoAction, pedirAlteracaoAction } from "@/lib/review/actions";
-import { registrarAssistidoAction, linkDownloadAction } from "@/lib/review/tarefa-actions";
+import { registrarAssistidoAction } from "@/lib/review/tarefa-actions";
 import { PCT_MINIMO, destravado } from "@/lib/review/gate";
 import { STATUS_LABEL } from "@/lib/review/schema";
 import type { ReviewFull } from "@/lib/review/queries";
@@ -93,11 +93,9 @@ export function ReviewView({ review, podeGerenciar, podeAprovar, onVoltar }: { r
   }
   function baixar() {
     if (!versao) return;
-    start(async () => {
-      const r = await linkDownloadAction(versao.id);
-      if ("error" in r) { toast.error(r.error); return; }
-      window.open(r.url, "_blank");
-    });
+    // Endpoint no próprio sistema devolve o MP4 como attachment → baixa o arquivo
+    // (window.open na URL do Bunny tocava inline e o time não conseguia salvar).
+    window.location.href = `/api/review/download/${versao.id}`;
   }
   function copiarLinkCliente() {
     if (!review.aprovacaoToken) return;
