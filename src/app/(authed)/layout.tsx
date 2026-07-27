@@ -51,6 +51,7 @@ export default async function AuthedLayout({ children }: { children: React.React
       // Inclui onboarding: captação de cliente novo precisa poder ser entregue
       // aqui no gate também (mesma regra da tela /audiovisual). Churn fica de fora.
       .in("status", ["ativo", "em_onboarding"])
+      .is("deleted_at", null)
       .order("nome");
     clientesAtivos = (data ?? []) as Array<{ id: string; nome: string }>;
   }
