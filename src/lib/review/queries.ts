@@ -8,7 +8,7 @@ type SB = any;
 export interface ReviewListItem { id: string; titulo: string; status: ReviewStatus; clienteNome: string | null; taskId: string | null; created_at: string }
 export interface Comentario { id: string; autor_tipo: AutorTipo; autor_nome: string; tempo_seg: number; corpo: string; resolvido: boolean; created_at: string; pos_x: number | null; pos_y: number | null }
 export interface Versao { id: string; numero: number; bunny_video_id: string; pronto: boolean; playlistUrl: string; thumbUrl: string; comentarios: Comentario[] }
-export interface ReviewFull { id: string; titulo: string; status: ReviewStatus; clienteNome: string | null; taskId: string | null; assistidoPctVersaoAtual: number; versoes: Versao[] }
+export interface ReviewFull { id: string; titulo: string; status: ReviewStatus; clienteNome: string | null; taskId: string | null; assistidoPctVersaoAtual: number; aprovacaoToken: string | null; versoes: Versao[] }
 
 export async function listarReviews(): Promise<ReviewListItem[]> {
   const sb = createServiceRoleClient() as SB;
@@ -28,7 +28,7 @@ export async function carregarReview(id: string, userId: string): Promise<Review
   const sb = createServiceRoleClient() as SB;
   const { data: rv } = await sb
     .from("review_video")
-    .select("id, titulo, status, task_id, clients(nome)")
+    .select("id, titulo, status, task_id, aprovacao_token, clients(nome)")
     .eq("id", id)
     .maybeSingle();
   if (!rv) return null;
@@ -88,6 +88,8 @@ export async function carregarReview(id: string, userId: string): Promise<Review
     id: rv.id, titulo: rv.titulo, status: rv.status, clienteNome: (rv as any).clients?.nome ?? null,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     taskId: (rv as any).task_id ?? null, assistidoPctVersaoAtual,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    aprovacaoToken: (rv as any).aprovacao_token ?? null,
     versoes: vs.map((v) => ({
       id: v.id, numero: v.numero, bunny_video_id: v.bunny_video_id, pronto: v.pronto,
       playlistUrl: urlPlaylist(v.bunny_video_id), thumbUrl: urlThumbnail(v.bunny_video_id),
