@@ -8,7 +8,10 @@ type TabId = "resumo" | "topicos" | "transcricao" | "insights" | "tarefas";
 interface TabConfig {
   id: TabId;
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
+  // Opcional de propósito: ícones NÃO podem ser passados de Server Component
+  // pra Client Component (função não serializa). O server manda só id/label e
+  // o ícone é resolvido aqui pelo ICONS_FALLBACK.
+  icon?: React.ComponentType<{ className?: string }>;
   badge?: number;
 }
 

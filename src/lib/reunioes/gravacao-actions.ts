@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/lib/auth/session";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { canRecordMeeting } from "./permissions";
+import { canRecordMeeting, podeExcluirReuniao } from "./permissions";
 import { recordingPath, createSignedUpload } from "./storage";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -98,6 +98,46 @@ export async function registrarGravacaoAction(input: {
 
   revalidatePath(`/clientes/${mt.client_id}/reunioes`);
   revalidatePath("/reunioes");
+  return { ok: true };
+}
+
+/**
+ * Exclui (soft-delete) uma reunião: marca deleted_at. As queries internas já
+ * filtram deleted_at, e o portal do cliente também (getLastMeetingsForClient),
+ * então a reunião some da lista interna E da visão do cliente na hora.
+ * A limpeza definitiva do áudio segue pela retenção LGPD de 90 dias.
+ */
+export async function excluirReuniaoAction(meetingId: string): Promise<Res<{ ok: true }>> {
+  const user = await requireAuth();
+  const sb = createServiceRoleClient() as SB;
+
+  const { data: mt } = await sb
+    .from("meetings")
+    .select("owner_user_id, client_id, deleted_at")
+    .eq("id", meetingId)
+    .maybeSingle();
+  if (!mt) return { error: "Reunião não encontrada" };
+  if (!podeExcluirReuniao(user, { owner_user_id: mt.owner_user_id })) {
+    return { error: "Sem permissão pra excluir esta reunião" };
+  }
+
+  // Já excluída? Idempotente: trata como sucesso.
+  if (!mt.deleted_at) {
+    const { error } = await sb
+      .from("meetings")
+      .update({ deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .eq("id", meetingId)
+      .is("deleted_at", null);
+    if (error) return { error: "Falha ao excluir a reunião" };
+  }
+
+  revalidatePath("/reunioes");
+  revalidatePath("/calendario/reunioes-gravadas");
+  revalidatePath("/cliente");
+  if (mt.client_id) {
+    revalidatePath(`/clientes/${mt.client_id}/reunioes`);
+    revalidatePath(`/painel-cliente/preview/${mt.client_id}`);
+  }
   return { ok: true };
 }
 

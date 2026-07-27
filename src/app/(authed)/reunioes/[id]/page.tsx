@@ -2,11 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft, Mic, Calendar, Users, Briefcase, ExternalLink, Tag,
-  Sparkles, FileText, Layers, AlertCircle, ListChecks, Clock,
+  AlertCircle, Clock,
 } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import { getMeetingById } from "@/lib/reunioes/queries";
-import { canRecordMeeting } from "@/lib/reunioes/permissions";
+import { canRecordMeeting, podeExcluirReuniao } from "@/lib/reunioes/permissions";
 import {
   formatDuracao,
   MEETING_SOURCE_LABEL,
@@ -22,6 +22,7 @@ import { ExtractedTasksPanel } from "@/components/reunioes/ExtractedTasksPanel";
 import { MeetingDetailTabs } from "@/components/reunioes/MeetingDetailTabs";
 import { MeetingRealtimeWatcher } from "@/components/reunioes/MeetingRealtimeWatcher";
 import { ProcessingBanner } from "@/components/reunioes/ProcessingBanner";
+import { ExcluirReuniaoButton } from "@/components/reunioes/ExcluirReuniaoButton";
 import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 const ALLOWED_ROLES = [
@@ -46,11 +47,12 @@ export default async function ReuniaoDetailPage({
   const meeting = await getMeetingById(user, id);
   if (!meeting) notFound();
 
+  const podeExcluir = podeExcluirReuniao(user, { owner_user_id: meeting.owner_user_id });
+
   const tabs = [
     {
       id: "resumo" as const,
       label: "Resumo IA",
-      icon: Sparkles,
       content: meeting.summary ? (
         <SummaryPanel summary={meeting.summary} />
       ) : (
@@ -60,7 +62,6 @@ export default async function ReuniaoDetailPage({
     {
       id: "topicos" as const,
       label: "Tópicos",
-      icon: Layers,
       badge: meeting.summary?.topicos.length ?? 0,
       content: meeting.summary ? (
         <TopicsTimeline topicos={meeting.summary.topicos} duracaoTotal={meeting.duracao_segundos} />
@@ -71,7 +72,6 @@ export default async function ReuniaoDetailPage({
     {
       id: "transcricao" as const,
       label: "Transcrição",
-      icon: FileText,
       badge: meeting.transcript?.segments.length ?? 0,
       content: meeting.transcript ? (
         <TranscriptViewer segments={meeting.transcript.segments} />
@@ -82,7 +82,6 @@ export default async function ReuniaoDetailPage({
     {
       id: "insights" as const,
       label: "Insights",
-      icon: AlertCircle,
       badge: meeting.summary?.insights.length ?? 0,
       content: meeting.summary ? (
         <InsightsPanel insights={meeting.summary.insights} />
@@ -93,7 +92,6 @@ export default async function ReuniaoDetailPage({
     {
       id: "tarefas" as const,
       label: "Tarefas",
-      icon: ListChecks,
       badge: meeting.extracted_tasks.length,
       content: <ExtractedTasksPanel tasks={meeting.extracted_tasks} podeAceitar={canRecordMeeting(user.role)} />,
     },
@@ -150,17 +148,26 @@ export default async function ReuniaoDetailPage({
               <p className="text-sm text-muted-foreground max-w-2xl">{meeting.descricao}</p>
             )}
           </div>
-          {meeting.external_url && (
-            <a
-              href={meeting.external_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-xs hover:bg-muted"
-            >
-              <ExternalLink className="h-3.5 w-3.5" />
-              Ver no Meet
-            </a>
-          )}
+          <div className="flex shrink-0 items-center gap-2">
+            {meeting.external_url && (
+              <a
+                href={meeting.external_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-xs hover:bg-muted"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                Ver no Meet
+              </a>
+            )}
+            {podeExcluir && (
+              <ExcluirReuniaoButton
+                meetingId={meeting.id}
+                titulo={meeting.titulo}
+                clientId={meeting.client_id}
+              />
+            )}
+          </div>
         </div>
 
         {/* Meta */}
