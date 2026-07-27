@@ -105,7 +105,9 @@ export function SearchableSelect({
           </button>
         }
       />
-      <PopoverContent align="start" className="w-(--anchor-width) p-0" sideOffset={4}>
+      {/* z-[110]: garante que o dropdown fique acima de overlays fixed altos
+          (ex.: gate de captação atrasada z-[100]); sem isso abre atrás e some. */}
+      <PopoverContent align="start" className="z-[110] w-(--anchor-width) p-0" sideOffset={4}>
         <div className="p-2">
           <input
             ref={inputRef}
