@@ -74,6 +74,8 @@ export async function getLastMeetingsForClient(
     .from("meetings")
     .select("id, titulo, starts_at, duracao_segundos, resumo_preview, summary_ready, status")
     .eq("client_id", clientId)
+    // Reuniões excluídas (soft-delete) não aparecem pro cliente.
+    .is("deleted_at", null)
     // "completed" = reunião finalizada com resumo pronto.
     // "processing" = transcrição/AI rodando - mostra mesmo assim, com flag
     // `summary_ready` o componente decide se renderiza o preview ou um placeholder.
