@@ -121,7 +121,7 @@ export default async function AudiovisualPage({
     const [{ data: clientesData = [] }, pendentes, editores, meusClientesRes] = await Promise.all([
       // Entrega de captação: inclui clientes em onboarding — captação de cliente
       // novo é comum e não pode travar a entrega. Churn fica de fora.
-      supabase.from("clients").select("id, nome").in("status", ["ativo", "em_onboarding"]).order("nome"),
+      supabase.from("clients").select("id, nome").in("status", ["ativo", "em_onboarding"]).is("deleted_at", null).order("nome"),
       isVideomaker ? listPendenteParaVideomaker(user.id) : Promise.resolve([]),
       editoresPromise,
       meusClientesPromise,
@@ -161,7 +161,7 @@ export default async function AudiovisualPage({
     const [rows, { data: clientesData = [] }] = await Promise.all([
       listEventosSemCaptura(isVideomaker ? { videomakerId: user.id } : {}),
       isVideomaker
-        ? supabase.from("clients").select("id, nome").in("status", ["ativo", "em_onboarding"]).order("nome") // inclui onboarding (ver aba capturas)
+        ? supabase.from("clients").select("id, nome").in("status", ["ativo", "em_onboarding"]).is("deleted_at", null).order("nome") // inclui onboarding (ver aba capturas)
         : Promise.resolve({ data: [] as Array<{ id: string; nome: string }> }),
     ]);
     const clientes = (clientesData ?? []) as Array<{ id: string; nome: string }>;
