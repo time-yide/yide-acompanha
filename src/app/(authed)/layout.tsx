@@ -48,7 +48,9 @@ export default async function AuthedLayout({ children }: { children: React.React
     const { data } = await supabase
       .from("clients")
       .select("id, nome")
-      .eq("status", "ativo")
+      // Inclui onboarding: captação de cliente novo precisa poder ser entregue
+      // aqui no gate também (mesma regra da tela /audiovisual). Churn fica de fora.
+      .in("status", ["ativo", "em_onboarding"])
       .order("nome");
     clientesAtivos = (data ?? []) as Array<{ id: string; nome: string }>;
   }
