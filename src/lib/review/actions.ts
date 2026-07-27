@@ -108,7 +108,9 @@ export async function resolverComentarioAction(reviewId: string, comentarioId: s
 
 export async function aprovarInternoAction(reviewId: string): Promise<Res<{ ok: true }>> {
   const user = await requireAuth();
-  if (!pode(user.role)) return { error: "Sem permissão" };
+  // Mesmo gate de aprovar/pedir alteração (gestor de tarefa, ex.: assessor),
+  // não só manage:review — é quem decide enviar o vídeo pro cliente aprovar.
+  if (!podeRevisar(user.role)) return { error: "Sem permissão" };
   const sb = createServiceRoleClient() as SB;
   const { data: rv } = await sb.from("review_video").select("status").eq("id", reviewId).maybeSingle();
   if (!rv) return { error: "Review não encontrado" };
