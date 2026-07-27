@@ -17,6 +17,7 @@ import { getGmbTimeSeries } from "@/lib/clientes/gmb-snapshots";
 import { listRequestsByClient } from "@/lib/portal-requests/queries";
 import { listCredentialsForPortal } from "@/lib/credenciais/queries";
 import { getContratoInfo } from "@/lib/contratos/queries";
+import { listarVideosParaAprovar } from "@/lib/cliente-portal/videos-aprovar";
 import { ClientPortalHeader } from "./ClientPortalHeader";
 import { CredenciaisPortalSection } from "./CredenciaisPortalSection";
 import { InfoContratoPortalSection } from "./InfoContratoPortalSection";
@@ -48,7 +49,7 @@ interface Props {
 }
 
 export async function ClientPortalView({ clientId, nomeContato, previewMode = false }: Props) {
-  const [data, selfSat, agencyPerception, reunioes, unidades, gmbTimeSeries, requests, tarefas, credenciais, contratoInfo] = await Promise.all([
+  const [data, selfSat, agencyPerception, reunioes, unidades, gmbTimeSeries, requests, tarefas, credenciais, contratoInfo, videosParaAprovar] = await Promise.all([
     getClientPortalData(clientId),
     getLastSelfSatisfaction(clientId),
     getLastAgencyPerception(clientId),
@@ -59,6 +60,7 @@ export async function ClientPortalView({ clientId, nomeContato, previewMode = fa
     getTarefasForPortal(clientId),
     listCredentialsForPortal(clientId),
     getContratoInfo(clientId),
+    listarVideosParaAprovar(clientId),
   ]);
 
   if (!data) {
@@ -93,6 +95,24 @@ export async function ClientPortalView({ clientId, nomeContato, previewMode = fa
           (rota /cliente sem layout admin) também fica OK — o root layout
           não tem <main>, então é só um div semanticamente neutro. */}
       <div className="mx-auto max-w-4xl space-y-6 px-4 py-6 sm:py-8">
+        {videosParaAprovar.length > 0 && (
+          <section className="rounded-2xl border bg-card p-6">
+            <h2 className="text-sm font-bold uppercase tracking-wider">Vídeos pra aprovar</h2>
+            <ul className="mt-3 space-y-2">
+              {videosParaAprovar.map((v) => (
+                <li key={v.reviewId}>
+                  <a
+                    href={`/aprovacao-video/${v.token}`}
+                    className="flex items-center justify-between rounded-lg border bg-background/50 px-3 py-2 text-sm hover:bg-muted/50"
+                  >
+                    <span className="truncate">{v.titulo}</span>
+                    <span className="text-primary">Assistir e aprovar →</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
         <HeroSection nomeContato={nomeContato} clientNome={data.cliente.nome} />
         {!previewMode && (
           <NotificacoesSection vapidPublicKey={env.NEXT_PUBLIC_VAPID_PUBLIC_KEY} />
