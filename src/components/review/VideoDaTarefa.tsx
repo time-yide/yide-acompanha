@@ -77,15 +77,17 @@ export function VideoDaTarefa({ taskId, videos, podeGerenciar }: { taskId: strin
                   {STATUS_LABEL[v.status]}
                 </span>
               </span>
-              <span className="shrink-0 self-center rounded-md border px-2 py-1 text-xs font-medium">Review</span>
+              <span className="shrink-0 self-center rounded-md border bg-muted/50 px-2 py-1 text-xs font-medium">Review</span>
             </button>
             {podeGerenciar && (
+              // Divisor + margem separam a lixeira do botão "Review": colados
+              // (só gap-2) faziam clicar num quando queria o outro no mobile.
               <button
                 type="button"
                 onClick={() => remover(v.reviewId)}
                 disabled={removingId === v.reviewId}
                 title="Apagar vídeo"
-                className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+                className="ml-1 flex shrink-0 items-center self-stretch rounded-md border-l pl-3 pr-1 text-muted-foreground hover:text-destructive disabled:opacity-50"
               >
                 <Trash2 className="h-4 w-4" />
               </button>
