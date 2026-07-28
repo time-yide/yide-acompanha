@@ -56,11 +56,13 @@ export function VideoDaTarefa({ taskId, videos, podeGerenciar }: { taskId: strin
 
       <div className="grid gap-2 sm:grid-cols-2">
         {videos.map((v) => (
-          <div key={v.reviewId} className="flex items-center gap-2 rounded-lg border p-2">
+          // overflow-hidden: em card estreito o conteúdo não vaza por cima da
+          // coluna da lixeira. items-stretch dá altura total ao divisor.
+          <div key={v.reviewId} className="flex items-stretch overflow-hidden rounded-lg border">
             <button
               type="button"
               onClick={() => setReviewOpen(v.reviewId)}
-              className="flex min-w-0 flex-1 items-center gap-3 text-left"
+              className="flex min-w-0 flex-1 items-center gap-3 p-2 text-left"
             >
               <span className="relative flex h-12 w-20 shrink-0 items-center justify-center overflow-hidden rounded bg-black">
                 {v.thumbUrl ? (
@@ -80,14 +82,16 @@ export function VideoDaTarefa({ taskId, videos, podeGerenciar }: { taskId: strin
               <span className="shrink-0 self-center rounded-md border bg-muted/50 px-2 py-1 text-xs font-medium">Review</span>
             </button>
             {podeGerenciar && (
-              // Divisor + margem separam a lixeira do botão "Review": colados
-              // (só gap-2) faziam clicar num quando queria o outro no mobile.
+              // Lixeira é uma COLUNA própria à direita: divisor de altura total
+              // (border-l) + largura fixa + fundo no hover deixam claro que é
+              // um botão separado, sem cair em cima do "Review".
               <button
                 type="button"
                 onClick={() => remover(v.reviewId)}
                 disabled={removingId === v.reviewId}
                 title="Apagar vídeo"
-                className="ml-1 flex shrink-0 items-center self-stretch rounded-md border-l pl-3 pr-1 text-muted-foreground hover:text-destructive disabled:opacity-50"
+                aria-label="Apagar vídeo"
+                className="flex w-11 shrink-0 items-center justify-center border-l text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
               >
                 <Trash2 className="h-4 w-4" />
               </button>
