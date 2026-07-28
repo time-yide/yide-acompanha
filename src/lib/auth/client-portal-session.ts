@@ -27,8 +27,14 @@ export interface ClientPortalUser {
  */
 export const getClientPortalUser = cache(async (): Promise<ClientPortalUser | null> => {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user || !user.email) return null;
+  // getClaims() valida o JWT localmente (sem rede) com chave assimétrica
+  // (ES256), evitando o round-trip do getUser em toda página do portal. O
+  // acesso real é regovernado pelo lookup em client_portal_users (ativo=true)
+  // abaixo. Token HS256 legacy cai sozinho no getUser (rede) — self-healing.
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const userId = claimsData?.claims.sub;
+  const email = claimsData?.claims.email;
+  if (!userId || !email) return null;
 
   // service-role pra bypassar RLS na validação (mais rápido e seguro do
   // que depender de RLS pra essa lookup específica).
@@ -36,7 +42,7 @@ export const getClientPortalUser = cache(async (): Promise<ClientPortalUser | nu
   const { data: portalUser } = await sb
     .from("client_portal_users")
     .select("user_id, client_id, nome_contato, ativo, client:clients(nome)")
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .eq("ativo", true)
     .single();
 
@@ -46,7 +52,7 @@ export const getClientPortalUser = cache(async (): Promise<ClientPortalUser | nu
 
   return {
     userId: portalUser.user_id,
-    email: user.email,
+    email,
     clientId: portalUser.client_id,
     clientNome: client.nome,
     nomeContato: portalUser.nome_contato ?? null,

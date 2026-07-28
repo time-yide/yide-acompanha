@@ -29,8 +29,17 @@ export type CurrentUser = {
  */
 export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
+  // getClaims() valida o JWT LOCALMENTE (sem round-trip de rede) quando o token
+  // é assinado com chave assimétrica (o projeto já usa ES256). Antes o
+  // getUser() batia no Auth do Supabase pela rede em TODA página — o maior
+  // peso de TTFB do caminho quente. Segurança: a assinatura é verificada
+  // criptograficamente, e o gate de acesso real (profile.ativo + role) continua
+  // vindo fresco do banco abaixo, então desativar um colab bloqueia na hora.
+  // Se algum token ainda for HS256 (legacy), getClaims cai sozinho no getUser
+  // (rede) — self-healing, sem risco de quebrar.
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const userId = claimsData?.claims.sub;
+  if (!userId) return null;
 
   // `especialidade` ainda não está nos tipos gerados do Supabase → cast via any.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -39,11 +48,11 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   // As duas checagens (é cliente-portal? + perfil interno) são independentes:
   // roda EM PARALELO pra não pagar 2 round-trips sequenciais em toda página.
   const [isPortal, profileRes] = await Promise.all([
-    isAuthUserAClientPortalUser(user.id),
+    isAuthUserAClientPortalUser(userId),
     sb
       .from("profiles")
       .select("id, email, role, nome, ativo, avatar_url, especialidade, unit_id")
-      .eq("id", user.id)
+      .eq("id", userId)
       .single(),
   ]);
 
