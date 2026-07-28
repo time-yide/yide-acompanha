@@ -14,6 +14,8 @@ export type CurrentUser = {
   avatarUrl: string | null;
   /** Especialidade do assessor (ex: "ecommerce"). Livre, pode ser null. */
   especialidade: string | null;
+  /** Unidade "lar" do colaborador (profiles.unit_id). Evita 2ª query em getUnitContext. */
+  unitId: string | null;
 };
 
 /**
@@ -40,7 +42,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     isAuthUserAClientPortalUser(user.id),
     sb
       .from("profiles")
-      .select("id, email, role, nome, ativo, avatar_url, especialidade")
+      .select("id, email, role, nome, ativo, avatar_url, especialidade, unit_id")
       .eq("id", user.id)
       .single(),
   ]);
@@ -60,6 +62,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     ativo: profile.ativo,
     avatarUrl: profile.avatar_url,
     especialidade: (profile.especialidade as string | null) ?? null,
+    unitId: (profile.unit_id as string | null) ?? null,
   };
 });
 
