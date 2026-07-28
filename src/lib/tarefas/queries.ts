@@ -232,6 +232,40 @@ export async function listTasksForClient(clientId: string): Promise<TaskRow[]> {
   return listTasks({ clientId });
 }
 
+/**
+ * Listas leves (id+nome) pra popular os dropdowns de filtro da /tarefas.
+ * Antes eram buscadas fresh (via cookie-client) a cada request; agora
+ * cacheadas 5min - mudam raramente (ativar/desativar colab/cliente) e um
+ * dropdown tolera essa defasagem. Service-role pra rodar dentro de
+ * unstable_cache. Tags "colaboradores"/"clients" já são invalidadas nas
+ * mutations relevantes, então ativar/desativar reflete na hora.
+ */
+export async function listActiveProfilesForFilter(): Promise<{ id: string; nome: string }[]> {
+  const cached = unstable_cache(
+    async () => {
+      const sb = createServiceRoleClient();
+      const { data } = await sb.from("profiles").select("id, nome").eq("ativo", true).order("nome");
+      return (data ?? []) as { id: string; nome: string }[];
+    },
+    ["tarefas-filter-profiles-v1"],
+    { revalidate: 300, tags: ["colaboradores"] },
+  );
+  return cached();
+}
+
+export async function listActiveClientsForFilter(): Promise<{ id: string; nome: string }[]> {
+  const cached = unstable_cache(
+    async () => {
+      const sb = createServiceRoleClient();
+      const { data } = await sb.from("clients").select("id, nome").eq("status", "ativo").order("nome");
+      return (data ?? []) as { id: string; nome: string }[];
+    },
+    ["tarefas-filter-clients-v1"],
+    { revalidate: 300, tags: ["clients"] },
+  );
+  return cached();
+}
+
 export async function getTaskById(id: string): Promise<TaskRow> {
   const supabase = await createClient();
   const { data, error } = await supabase
