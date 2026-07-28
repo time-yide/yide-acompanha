@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import {
   getKpis,
   getCarteiraTimeline,
@@ -16,20 +17,9 @@ import { PainelAudiovisualSection } from "./audiovisual/PainelAudiovisualSection
 import { AlertaOnboardingAtrasadoSection } from "./AlertaOnboardingAtrasado";
 import { Section } from "./Section";
 import { HiddenValuesProvider, HiddenValueToggle } from "./HiddenValuesContext";
-import { InstagramPostsSection } from "./sections";
+import { InstagramPostsSection, KpiRowSkeleton, ChartSkeleton, ListSkeleton, RemuneracaoSkeleton } from "./sections";
 import { MesSelector } from "./MesSelector";
 import { EspecialidadeBadge } from "@/components/colaboradores/EspecialidadeBadge";
-import { Suspense } from "react";
-
-function ListSkeleton({ rows = 5 }: { rows?: number }) {
-  return (
-    <div className="space-y-2">
-      {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="h-10 animate-pulse rounded bg-muted/50" />
-      ))}
-    </div>
-  );
-}
 
 interface Props {
   userId: string;
@@ -40,18 +30,63 @@ interface Props {
   meses: string[];
 }
 
-export async function DashboardAssessor({ userId, nome, especialidade, mes, mesAtual, meses }: Props) {
-  const filter = { assessorId: userId };
-  const isMesAtual = mes === mesAtual;
+// Seções async escopadas à carteira do assessor (`{ assessorId }`). Com o shell
+// síncrono + Suspense abaixo, saudação e postagens do Instagram aparecem na hora;
+// KPIs/gráficos/listas streamam quando cada query resolve. Antes um Promise.all
+// de 6 queries bloqueava até a saudação até a query mais lenta (comissão/ranking).
 
-  const [kpis, carteiraTimeline, entradaChurn, ranking, eventos, comissao] = await Promise.all([
-    getKpis(filter, mes),
-    getCarteiraTimeline(12, filter, mes),
-    getEntradaChurn(6, filter, mes),
-    getRankingSatisfacao(filter),
-    isMesAtual ? getProximosEventos(30, 10, { userId }) : Promise.resolve([]),
-    getComissaoDoMes(userId, "assessor", mes, isMesAtual),
-  ]);
+async function KpiSection({ userId, mes }: { userId: string; mes: string }) {
+  const kpis = await getKpis({ assessorId: userId }, mes);
+  return <KpiRowAssessor kpis={kpis} />;
+}
+
+async function RemuneracaoAssessorSection({ userId, mes, isMesAtual }: { userId: string; mes: string; isMesAtual: boolean }) {
+  const comissao = await getComissaoDoMes(userId, "assessor", mes, isMesAtual);
+  return <RemuneracaoCard comissao={comissao} />;
+}
+
+async function CarteiraTimelineSection({ userId, mes }: { userId: string; mes: string }) {
+  const data = await getCarteiraTimeline(12, { assessorId: userId }, mes);
+  return (
+    <Section title="Evolução da minha carteira" subtitle="Últimos 12 meses">
+      <ChartCarteiraTimelineLazy data={data} />
+    </Section>
+  );
+}
+
+async function EntradaChurnSection({ userId, mes }: { userId: string; mes: string }) {
+  const data = await getEntradaChurn(6, { assessorId: userId }, mes);
+  return (
+    <Section title="Entrada vs Churn" subtitle="Últimos 6 meses">
+      <ChartEntradaChurnLazy data={data} />
+    </Section>
+  );
+}
+
+async function RankingAssessorSection({ userId }: { userId: string }) {
+  const ranking = await getRankingSatisfacao({ assessorId: userId });
+  return (
+    <Section title="Satisfação dos meus clientes" subtitle="Top 10 mais e menos satisfeitos da semana" cta={{ href: "/satisfacao", label: "Ver completo →" }}>
+      <RankingResumo top={ranking.top} bottom={ranking.bottom} />
+    </Section>
+  );
+}
+
+async function ProximosEventosAssessorSection({ userId }: { userId: string }) {
+  const eventos = await getProximosEventos(30, 10, { userId });
+  return (
+    <Section title="Próximos eventos meus" cta={{ href: "/calendario", label: "Ver agenda →" }}>
+      <ProximosEventosList eventos={eventos} />
+    </Section>
+  );
+}
+
+/**
+ * Shell síncrono. Saudação e postagens no topo aparecem imediatamente; o resto
+ * streama via Suspense quando cada query resolve (padrão do DashboardSocioAdm).
+ */
+export function DashboardAssessor({ userId, nome, especialidade, mes, mesAtual, meses }: Props) {
+  const isMesAtual = mes === mesAtual;
 
   return (
     <HiddenValuesProvider>
@@ -82,31 +117,38 @@ export async function DashboardAssessor({ userId, nome, especialidade, mes, mesA
           <AlertaOnboardingAtrasadoSection userId={userId} role="assessor" />
         </Suspense>
 
-        <KpiRowAssessor kpis={kpis} />
-        <RemuneracaoCard comissao={comissao} />
+        <Suspense fallback={<KpiRowSkeleton />}>
+          <KpiSection userId={userId} mes={mes} />
+        </Suspense>
+
+        <Suspense fallback={<RemuneracaoSkeleton />}>
+          <RemuneracaoAssessorSection userId={userId} mes={mes} isMesAtual={isMesAtual} />
+        </Suspense>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <Section title="Evolução da minha carteira" subtitle="Últimos 12 meses">
-            <ChartCarteiraTimelineLazy data={carteiraTimeline} />
-          </Section>
-          <Section title="Entrada vs Churn" subtitle="Últimos 6 meses">
-            <ChartEntradaChurnLazy data={entradaChurn} />
-          </Section>
+          <Suspense fallback={<ChartSkeleton />}>
+            <CarteiraTimelineSection userId={userId} mes={mes} />
+          </Suspense>
+          <Suspense fallback={<ChartSkeleton />}>
+            <EntradaChurnSection userId={userId} mes={mes} />
+          </Suspense>
         </div>
 
         {isMesAtual && (
-          <Section title="Satisfação dos meus clientes" subtitle="Top 10 mais e menos satisfeitos da semana" cta={{ href: "/satisfacao", label: "Ver completo →" }}>
-            <RankingResumo top={ranking.top} bottom={ranking.bottom} />
-          </Section>
+          <Suspense fallback={<ListSkeleton rows={5} />}>
+            <RankingAssessorSection userId={userId} />
+          </Suspense>
         )}
 
         {isMesAtual && (
-          <Section title="Próximos eventos meus" cta={{ href: "/calendario", label: "Ver agenda →" }}>
-            <ProximosEventosList eventos={eventos} />
-          </Section>
+          <Suspense fallback={<ListSkeleton rows={5} />}>
+            <ProximosEventosAssessorSection userId={userId} />
+          </Suspense>
         )}
 
-        <PainelAudiovisualSection />
+        <Suspense fallback={<ListSkeleton rows={4} />}>
+          <PainelAudiovisualSection />
+        </Suspense>
       </div>
     </HiddenValuesProvider>
   );

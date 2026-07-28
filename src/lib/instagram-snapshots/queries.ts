@@ -58,58 +58,63 @@ export async function listClientesComUltimoSnapshot(opts: {
 
   if (rows.length === 0) return [];
 
-  // Busca último snapshot por cliente. Mantém só o primeiro de cada client_id
-  // (já vem ordenado por scraped_at desc).
   const clienteIds = rows.map((r) => r.id);
-  const { data: snaps } = await sb
-    .from("client_instagram_snapshots")
-    .select("*")
-    .in("client_id", clienteIds)
-    .order("client_id")
-    .order("scraped_at", { ascending: false });
-
-  const ultimoPorCliente = new Map<string, SnapshotRow>();
-  for (const s of (snaps ?? []) as SnapshotRow[]) {
-    if (!ultimoPorCliente.has(s.client_id)) {
-      ultimoPorCliente.set(s.client_id, s);
-    }
-  }
-
-  // Resolve nome dos assessores em UMA query.
   const assessorIds = Array.from(
     new Set(rows.map((r) => r.assessor_id).filter((id): id is string => !!id)),
   );
-  const nomesAssessor = new Map<string, string>();
-  if (assessorIds.length > 0) {
-    const { data: profs } = await sb
-      .from("profiles")
-      .select("id, nome")
-      .in("id", assessorIds);
-    for (const p of ((profs ?? []) as Array<{ id: string; nome: string }>)) {
-      nomesAssessor.set(p.id, p.nome);
-    }
-  }
-
-  // Conferência: posts publicados PELO SISTEMA no mês atual (início do mês em Cuiabá = UTC-4).
+  // Início do mês atual em Cuiabá (UTC-4) — cálculo sem IO, feito antes das queries.
   const agora = new Date();
   const cuiaba = new Date(agora.getTime() - 4 * 60 * 60 * 1000);
   const inicioMesIso = new Date(
     Date.UTC(cuiaba.getUTCFullYear(), cuiaba.getUTCMonth(), 1, 4, 0, 0),
   ).toISOString();
-  const postsSistemaPorCliente = new Map<string, number>();
-  try {
-    const { data: smPosts } = await sb
+
+  // As 3 queries seguintes só dependem dos ids da query de clients e são
+  // independentes entre si — rodam em PARALELO (antes eram 3 idas sequenciais):
+  // 1) último snapshot por cliente  2) nome dos assessores  3) conferência de posts do sistema.
+  const [snaps, profs, smPosts] = await Promise.all([
+    sb
+      .from("client_instagram_snapshots")
+      .select("*")
+      .in("client_id", clienteIds)
+      .order("client_id")
+      .order("scraped_at", { ascending: false })
+      .then((r: { data: SnapshotRow[] | null }) => r.data ?? []),
+    assessorIds.length > 0
+      ? sb
+          .from("profiles")
+          .select("id, nome")
+          .in("id", assessorIds)
+          .then((r: { data: Array<{ id: string; nome: string }> | null }) => r.data ?? [])
+      : Promise.resolve([] as Array<{ id: string; nome: string }>),
+    // Conferência: tabela pode não existir → catch devolve [] sem quebrar o dashboard.
+    sb
       .from("social_media_posts")
       .select("client_id")
       .in("client_id", clienteIds)
       .eq("status", "publicado")
       .is("archived_at", null)
-      .gte("publicado_em", inicioMesIso);
-    for (const p of (smPosts ?? []) as Array<{ client_id: string }>) {
-      postsSistemaPorCliente.set(p.client_id, (postsSistemaPorCliente.get(p.client_id) ?? 0) + 1);
+      .gte("publicado_em", inicioMesIso)
+      .then((r: { data: Array<{ client_id: string }> | null }) => r.data ?? [])
+      .catch(() => [] as Array<{ client_id: string }>),
+  ]);
+
+  // Último snapshot por cliente (já vem ordenado por scraped_at desc).
+  const ultimoPorCliente = new Map<string, SnapshotRow>();
+  for (const s of snaps as SnapshotRow[]) {
+    if (!ultimoPorCliente.has(s.client_id)) {
+      ultimoPorCliente.set(s.client_id, s);
     }
-  } catch {
-    // tabela ausente / erro → conferência fica 0, não quebra o dashboard
+  }
+
+  const nomesAssessor = new Map<string, string>();
+  for (const p of profs as Array<{ id: string; nome: string }>) {
+    nomesAssessor.set(p.id, p.nome);
+  }
+
+  const postsSistemaPorCliente = new Map<string, number>();
+  for (const p of smPosts as Array<{ client_id: string }>) {
+    postsSistemaPorCliente.set(p.client_id, (postsSistemaPorCliente.get(p.client_id) ?? 0) + 1);
   }
 
   return rows.map((c) => ({
