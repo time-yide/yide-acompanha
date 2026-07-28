@@ -133,42 +133,155 @@ async function _listEventsForWeekImpl(
     return q;
   };
 
-  let manualResult = await buildManualQuery(fullSelect);
+  // As 5 fontes de evento são buscadas EM PARALELO (Promise.all abaixo) em vez
+  // de uma-esperando-a-outra: cortava ~5 round-trips serializados no TTFB.
+  // Só o vmProfiles depende do resultado de `manual` (usa os ids designados),
+  // então ele roda dentro do bloco de manual, depois que manual resolve.
+  // Os loops de events.push() ficam DEPOIS do Promise.all — são CPU barato e
+  // a ordem não importa (há events.sort no fim).
 
-  // Fallback: se a migration 20260603000000 (videomaker_status etc) ainda não
-  // foi aplicada nesse ambiente, o select dispara erro de coluna inexistente.
-  // Re-tenta sem as colunas novas pra não esvaziar o calendário inteiro.
-  if (manualResult.error) {
-    const msg = String(manualResult.error.message ?? "");
-    if (msg.includes("videomaker_status") || msg.includes("videomaker_assigned_id") || msg.includes("schema cache")) {
-      console.warn("[calendario] fallback pro select legacy (migration 20260603000000 não aplicada):", msg);
-      manualResult = await buildManualQuery(legacySelect);
-    } else {
-      console.error("[calendario] manual events fetch failed:", manualResult.error);
+  // 1) Manual events (+ nomes dos videomakers designados, batch, sem N+1)
+  const manualPromise = (async () => {
+    let manualResult = await buildManualQuery(fullSelect);
+
+    // Fallback: se a migration 20260603000000 (videomaker_status etc) ainda não
+    // foi aplicada nesse ambiente, o select dispara erro de coluna inexistente.
+    // Re-tenta sem as colunas novas pra não esvaziar o calendário inteiro.
+    if (manualResult.error) {
+      const msg = String(manualResult.error.message ?? "");
+      if (msg.includes("videomaker_status") || msg.includes("videomaker_assigned_id") || msg.includes("schema cache")) {
+        console.warn("[calendario] fallback pro select legacy (migration 20260603000000 não aplicada):", msg);
+        manualResult = await buildManualQuery(legacySelect);
+      } else {
+        console.error("[calendario] manual events fetch failed:", manualResult.error);
+      }
     }
-  }
 
-  const manual = manualResult.data ?? [];
+    const manual = manualResult.data ?? [];
 
-  // Resolve nome do videomaker designado em batch (1 query pra todos os
-  // eventos da semana) pra exibir no card do calendário sem N+1.
-  const assignedIds: string[] = Array.from(
-    new Set(
-      (manual as Array<{ videomaker_assigned_id?: string | null }>)
-        .map((m) => m.videomaker_assigned_id)
-        .filter((id): id is string => Boolean(id)),
-    ),
-  );
-  const assignedNomeMap = new Map<string, string>();
-  if (assignedIds.length > 0) {
-    const { data: vmProfiles = [] } = await supabase
+    const assignedIds: string[] = Array.from(
+      new Set(
+        (manual as Array<{ videomaker_assigned_id?: string | null }>)
+          .map((m) => m.videomaker_assigned_id)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    );
+    const assignedNomeMap = new Map<string, string>();
+    if (assignedIds.length > 0) {
+      const { data: vmProfiles = [] } = await supabase
+        .from("profiles")
+        .select("id, nome")
+        .in("id", assignedIds);
+      for (const p of vmProfiles ?? []) {
+        assignedNomeMap.set(p.id, p.nome);
+      }
+    }
+    return { manual, assignedNomeMap };
+  })();
+
+  // 2) Leads - filtra pela unidade quando aplicável (via responsáveis).
+  const leadsPromise = (async () => {
+    let leads: Array<{
+      id: string;
+      nome_prospect: string;
+      data_prospeccao_agendada: string | null;
+      data_reuniao_marco_zero: string | null;
+      stage: string;
+    }> = [];
+    if (unitProfileIds === null || unitProfileIds.length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let leadsQ: any = supabase
+        .from("leads")
+        .select("id, nome_prospect, data_prospeccao_agendada, data_reuniao_marco_zero, stage")
+        .or(
+          `data_prospeccao_agendada.gte.${weekStart.toISOString()},data_reuniao_marco_zero.gte.${weekStart.toISOString()}`
+        );
+      if (unitProfileIds !== null) {
+        const ids = unitProfileIds.join(",");
+        leadsQ = leadsQ.or(
+          `comercial_id.in.(${ids}),coord_alocado_id.in.(${ids}),assessor_alocado_id.in.(${ids})`,
+        );
+      }
+      const { data } = await leadsQ;
+      leads = (data ?? []) as typeof leads;
+    }
+    return leads;
+  })();
+
+  // 3) Client birthdays - filtra pela unidade quando aplicável
+  const clientsBirthdaysPromise = (async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let clientsBirthdaysQ: any = supabase
+      .from("clients")
+      .select("id, nome, data_aniversario_socio_cliente")
+      .eq("status", "ativo")
+      .not("data_aniversario_socio_cliente", "is", null);
+    if (unitClientIds !== null) {
+      if (unitClientIds.length === 0) {
+        clientsBirthdaysQ = null;
+      } else {
+        clientsBirthdaysQ = clientsBirthdaysQ.in("id", unitClientIds);
+      }
+    }
+    const { data = [] } = clientsBirthdaysQ
+      ? await clientsBirthdaysQ
+      : { data: [] as Array<{ id: string; nome: string; data_aniversario_socio_cliente: string | null }> };
+    return (data ?? []) as Array<{ id: string; nome: string; data_aniversario_socio_cliente: string | null }>;
+  })();
+
+  // 4) Collaborator birthdays - filtra pela unidade quando aplicável
+  const colabsBirthdaysPromise = (async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let colabsBirthdaysQ: any = supabase
       .from("profiles")
-      .select("id, nome")
-      .in("id", assignedIds);
-    for (const p of vmProfiles ?? []) {
-      assignedNomeMap.set(p.id, p.nome);
+      .select("id, nome, data_nascimento")
+      .eq("ativo", true)
+      .not("data_nascimento", "is", null);
+    if (unitProfileIds !== null) {
+      if (unitProfileIds.length === 0) {
+        colabsBirthdaysQ = null;
+      } else {
+        colabsBirthdaysQ = colabsBirthdaysQ.in("id", unitProfileIds);
+      }
     }
-  }
+    const { data = [] } = colabsBirthdaysQ
+      ? await colabsBirthdaysQ
+      : { data: [] as Array<{ id: string; nome: string; data_nascimento: string | null }> };
+    return (data ?? []) as Array<{ id: string; nome: string; data_nascimento: string | null }>;
+  })();
+
+  // 5) Client important dates - filtra pela unidade quando aplicável
+  const clientDatesPromise = (async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let clientDatesQ: any = supabase
+      .from("client_important_dates")
+      .select(`
+        id, data, descricao, tipo, client_id,
+        cliente:clients(id, nome)
+      `)
+      .gte("data", weekStart.toISOString().slice(0, 10))
+      .lt("data", weekEnd.toISOString().slice(0, 10));
+    if (unitClientIds !== null) {
+      if (unitClientIds.length === 0) {
+        clientDatesQ = null;
+      } else {
+        clientDatesQ = clientDatesQ.in("client_id", unitClientIds);
+      }
+    }
+    const { data = [] } = clientDatesQ
+      ? await clientDatesQ
+      : { data: [] as Array<{ id: string; data: string; descricao: string; tipo: string; client_id: string; cliente: { id: string; nome: string } | null }> };
+    return (data ?? []) as Array<{ id: string; data: string; descricao: string; tipo: string; client_id: string; cliente: { id: string; nome: string } | null }>;
+  })();
+
+  const [{ manual, assignedNomeMap }, leads, clientsBirthdays, colabsBirthdays, clientDates] =
+    await Promise.all([
+      manualPromise,
+      leadsPromise,
+      clientsBirthdaysPromise,
+      colabsBirthdaysPromise,
+      clientDatesPromise,
+    ]);
 
   for (const m of manual) {
     const assignedId = m.videomaker_assigned_id ?? null;
@@ -195,33 +308,6 @@ async function _listEventsForWeekImpl(
       videomaker_leu_em: m.videomaker_leu_em ?? null,
       videomaker_imprimiu_em: m.videomaker_imprimiu_em ?? null,
     });
-  }
-
-  // 2) Leads - filtra pela unidade quando aplicável (via responsáveis: comercial/coord/assessor).
-  //    null = sem filtro; [] = unidade nova → pula leads inteiramente.
-  let leads: Array<{
-    id: string;
-    nome_prospect: string;
-    data_prospeccao_agendada: string | null;
-    data_reuniao_marco_zero: string | null;
-    stage: string;
-  }> = [];
-  if (unitProfileIds === null || unitProfileIds.length > 0) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let leadsQ: any = supabase
-      .from("leads")
-      .select("id, nome_prospect, data_prospeccao_agendada, data_reuniao_marco_zero, stage")
-      .or(
-        `data_prospeccao_agendada.gte.${weekStart.toISOString()},data_reuniao_marco_zero.gte.${weekStart.toISOString()}`
-      );
-    if (unitProfileIds !== null) {
-      const ids = unitProfileIds.join(",");
-      leadsQ = leadsQ.or(
-        `comercial_id.in.(${ids}),coord_alocado_id.in.(${ids}),assessor_alocado_id.in.(${ids})`,
-      );
-    }
-    const { data } = await leadsQ;
-    leads = (data ?? []) as typeof leads;
   }
 
   for (const l of leads ?? []) {
@@ -259,24 +345,6 @@ async function _listEventsForWeekImpl(
     }
   }
 
-  // 3) Client birthdays - filtra pela unidade quando aplicável
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let clientsBirthdaysQ: any = supabase
-    .from("clients")
-    .select("id, nome, data_aniversario_socio_cliente")
-    .eq("status", "ativo")
-    .not("data_aniversario_socio_cliente", "is", null);
-  if (unitClientIds !== null) {
-    if (unitClientIds.length === 0) {
-      clientsBirthdaysQ = null;
-    } else {
-      clientsBirthdaysQ = clientsBirthdaysQ.in("id", unitClientIds);
-    }
-  }
-  const { data: clientsBirthdays = [] } = clientsBirthdaysQ
-    ? await clientsBirthdaysQ
-    : { data: [] as Array<{ id: string; nome: string; data_aniversario_socio_cliente: string | null }> };
-
   for (const c of clientsBirthdays ?? []) {
     if (!c.data_aniversario_socio_cliente) continue;
     const next = computeBirthdayThisYear(c.data_aniversario_socio_cliente, weekStart);
@@ -295,24 +363,6 @@ async function _listEventsForWeekImpl(
     }
   }
 
-  // 4) Collaborator birthdays - filtra pela unidade quando aplicável
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let colabsBirthdaysQ: any = supabase
-    .from("profiles")
-    .select("id, nome, data_nascimento")
-    .eq("ativo", true)
-    .not("data_nascimento", "is", null);
-  if (unitProfileIds !== null) {
-    if (unitProfileIds.length === 0) {
-      colabsBirthdaysQ = null;
-    } else {
-      colabsBirthdaysQ = colabsBirthdaysQ.in("id", unitProfileIds);
-    }
-  }
-  const { data: colabsBirthdays = [] } = colabsBirthdaysQ
-    ? await colabsBirthdaysQ
-    : { data: [] as Array<{ id: string; nome: string; data_nascimento: string | null }> };
-
   for (const p of colabsBirthdays ?? []) {
     if (!p.data_nascimento) continue;
     const next = computeBirthdayThisYear(p.data_nascimento, weekStart);
@@ -330,27 +380,6 @@ async function _listEventsForWeekImpl(
       });
     }
   }
-
-  // 5) Client important dates - filtra pela unidade quando aplicável
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let clientDatesQ: any = supabase
-    .from("client_important_dates")
-    .select(`
-      id, data, descricao, tipo, client_id,
-      cliente:clients(id, nome)
-    `)
-    .gte("data", weekStart.toISOString().slice(0, 10))
-    .lt("data", weekEnd.toISOString().slice(0, 10));
-  if (unitClientIds !== null) {
-    if (unitClientIds.length === 0) {
-      clientDatesQ = null;
-    } else {
-      clientDatesQ = clientDatesQ.in("client_id", unitClientIds);
-    }
-  }
-  const { data: clientDates = [] } = clientDatesQ
-    ? await clientDatesQ
-    : { data: [] as Array<{ id: string; data: string; descricao: string; tipo: string; client_id: string; cliente: { id: string; nome: string } | null }> };
 
   for (const d of clientDates ?? []) {
     const start = new Date(`${d.data}T12:00:00Z`);
