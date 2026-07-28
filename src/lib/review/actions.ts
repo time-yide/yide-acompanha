@@ -81,7 +81,10 @@ export async function comentarAction(
   posY?: number | null,
 ): Promise<Res<{ ok: true }>> {
   const user = await requireAuth();
-  if (!pode(user.role)) return { error: "Sem permissão" };
+  // Quem revisa (inclui assessor/coord via canManageAnyTask) pode comentar —
+  // a UI mostra a caixa de comentário pra todo revisor. Antes exigia
+  // manage:review e o assessor levava "Sem permissão" ao mandar o comentário.
+  if (!podeRevisar(user.role)) return { error: "Sem permissão" };
   if (!corpo.trim()) return { error: "Escreva um comentário" };
   // Coordenadas do alfinete/balão (0..1). Só grava se as duas vierem válidas.
   const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
@@ -99,7 +102,7 @@ export async function comentarAction(
 
 export async function resolverComentarioAction(reviewId: string, comentarioId: string, resolvido: boolean): Promise<Res<{ ok: true }>> {
   const user = await requireAuth();
-  if (!pode(user.role)) return { error: "Sem permissão" };
+  if (!podeRevisar(user.role)) return { error: "Sem permissão" };
   const sb = createServiceRoleClient() as SB;
   await sb.from("review_comentario").update({ resolvido }).eq("id", comentarioId);
   revalidatePath(`/audiovisual/review/${reviewId}`);
