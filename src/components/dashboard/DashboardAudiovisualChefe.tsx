@@ -1,9 +1,11 @@
+import { Suspense } from "react";
 import { FixoCard } from "./personal/FixoCard";
 import { ComissaoCard } from "./personal/ComissaoCard";
 import { MinhasTarefasPendentes } from "./personal/MinhasTarefasPendentes";
 import { EquipeAudiovisualSection } from "./audiovisual/EquipeAudiovisualSection";
 import { PainelAudiovisualSection } from "./audiovisual/PainelAudiovisualSection";
 import { HiddenValuesProvider, HiddenValueToggle } from "./HiddenValuesContext";
+import { ListSkeleton, RemuneracaoSkeleton } from "./sections";
 import type { Periodo } from "@/lib/dashboard/personal";
 
 interface Props {
@@ -12,7 +14,12 @@ interface Props {
   periodo?: Periodo;
 }
 
-export async function DashboardAudiovisualChefe({ userId, nome, periodo = "mes_atual" }: Props) {
+// Shell síncrono: a saudação renderiza na hora (TTFB não espera query). Cada
+// sub-componente async (FixoCard, ComissaoCard, MinhasTarefasPendentes,
+// EquipeAudiovisualSection, PainelAudiovisualSection) faz seu próprio fetch e
+// vai dentro de <Suspense>, streamando quando sua query resolve — antes todos
+// bloqueavam o primeiro byte até a query mais lenta.
+export function DashboardAudiovisualChefe({ userId, nome, periodo = "mes_atual" }: Props) {
   const primeiroNome = nome.split(" ")[0];
 
   return (
@@ -27,15 +34,25 @@ export async function DashboardAudiovisualChefe({ userId, nome, periodo = "mes_a
         </header>
 
         <div className="grid gap-4 md:grid-cols-2">
-          <FixoCard userId={userId} />
-          <ComissaoCard userId={userId} />
+          <Suspense fallback={<RemuneracaoSkeleton />}>
+            <FixoCard userId={userId} />
+          </Suspense>
+          <Suspense fallback={<RemuneracaoSkeleton />}>
+            <ComissaoCard userId={userId} />
+          </Suspense>
         </div>
 
-        <MinhasTarefasPendentes userId={userId} />
+        <Suspense fallback={<ListSkeleton rows={5} />}>
+          <MinhasTarefasPendentes userId={userId} />
+        </Suspense>
 
-        <EquipeAudiovisualSection periodo={periodo} />
+        <Suspense fallback={<ListSkeleton rows={5} />}>
+          <EquipeAudiovisualSection periodo={periodo} />
+        </Suspense>
 
-        <PainelAudiovisualSection />
+        <Suspense fallback={<ListSkeleton rows={4} />}>
+          <PainelAudiovisualSection />
+        </Suspense>
       </div>
     </HiddenValuesProvider>
   );

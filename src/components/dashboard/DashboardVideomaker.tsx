@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { FixoCard } from "./personal/FixoCard";
 import { HiddenValuesProvider, HiddenValueToggle } from "./HiddenValuesContext";
@@ -5,6 +6,7 @@ import { MinhasTarefasPendentes } from "./personal/MinhasTarefasPendentes";
 import { getProximasGravacoes } from "@/lib/dashboard/personal";
 import { Video, MapPin } from "lucide-react";
 import { APP_TIMEZONE, getAppTimezoneOffsetMs, getDatePartsInAppTz } from "@/lib/datetime/timezone";
+import { ListSkeleton, RemuneracaoSkeleton } from "./sections";
 
 interface Props {
   userId: string;
@@ -42,10 +44,59 @@ function formatDateTime(iso: string): string {
   });
 }
 
-export async function DashboardVideomaker({ userId, nome }: Props) {
-  const primeiroNome = nome.split(" ")[0];
+// Seção async isolada: puxa as gravações e streama via <Suspense>. FixoCard e
+// MinhasTarefasPendentes já são async e ganham seu próprio Suspense — antes o
+// await no topo + esses dois bloqueavam o primeiro byte até tudo resolver.
+async function ProximasGravacoesSection({ userId }: { userId: string }) {
   const { fromIso, toIso } = getWeekRangeBR();
   const gravacoes = await getProximasGravacoes(userId, fromIso, toIso);
+
+  return (
+    <section className="space-y-3">
+      <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-foreground/80">
+        <Video className="h-4 w-4" />
+        Próximas gravações
+        <span className="ml-1 text-xs font-normal text-muted-foreground">({gravacoes.length})</span>
+      </h2>
+      {gravacoes.length === 0 ? (
+        <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+          Nenhuma gravação agendada nas próximas 2 semanas.
+        </p>
+      ) : (
+        <ul className="space-y-2">
+          {gravacoes.map((g) => (
+            <li
+              key={g.id}
+              className="rounded-lg border bg-card p-4"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium">{g.titulo}</p>
+                  <p className="text-xs text-muted-foreground">{formatDateTime(g.inicio)}</p>
+                  {g.localizacao_endereco && (
+                    <p className="mt-1 flex items-start gap-1 text-xs">
+                      <MapPin className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
+                      <span>{g.localizacao_endereco}</span>
+                    </p>
+                  )}
+                </div>
+                <Link
+                  href="/calendario"
+                  className="text-xs text-primary hover:underline shrink-0"
+                >
+                  Ver no calendário →
+                </Link>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+export function DashboardVideomaker({ userId, nome }: Props) {
+  const primeiroNome = nome.split(" ")[0];
 
   return (
     <HiddenValuesProvider>
@@ -58,50 +109,17 @@ export async function DashboardVideomaker({ userId, nome }: Props) {
         <HiddenValueToggle />
       </header>
 
-      <FixoCard userId={userId} />
+      <Suspense fallback={<RemuneracaoSkeleton />}>
+        <FixoCard userId={userId} />
+      </Suspense>
 
-      <section className="space-y-3">
-        <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-foreground/80">
-          <Video className="h-4 w-4" />
-          Próximas gravações
-          <span className="ml-1 text-xs font-normal text-muted-foreground">({gravacoes.length})</span>
-        </h2>
-        {gravacoes.length === 0 ? (
-          <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-            Nenhuma gravação agendada nas próximas 2 semanas.
-          </p>
-        ) : (
-          <ul className="space-y-2">
-            {gravacoes.map((g) => (
-              <li
-                key={g.id}
-                className="rounded-lg border bg-card p-4"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">{g.titulo}</p>
-                    <p className="text-xs text-muted-foreground">{formatDateTime(g.inicio)}</p>
-                    {g.localizacao_endereco && (
-                      <p className="mt-1 flex items-start gap-1 text-xs">
-                        <MapPin className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
-                        <span>{g.localizacao_endereco}</span>
-                      </p>
-                    )}
-                  </div>
-                  <Link
-                    href="/calendario"
-                    className="text-xs text-primary hover:underline shrink-0"
-                  >
-                    Ver no calendário →
-                  </Link>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      <Suspense fallback={<ListSkeleton rows={3} />}>
+        <ProximasGravacoesSection userId={userId} />
+      </Suspense>
 
-      <MinhasTarefasPendentes userId={userId} />
+      <Suspense fallback={<ListSkeleton rows={4} />}>
+        <MinhasTarefasPendentes userId={userId} />
+      </Suspense>
     </div>
     </HiddenValuesProvider>
   );
