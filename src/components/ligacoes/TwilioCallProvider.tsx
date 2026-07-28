@@ -9,7 +9,12 @@ import {
   type ReactNode,
 } from "react";
 import { Phone, PhoneOff, Loader2 } from "lucide-react";
-import { Device, type Call } from "@twilio/voice-sdk";
+// Import SÓ de tipo (apagado em runtime). O SDK real (@twilio/voice-sdk, pesado)
+// é carregado via import() dinâmico dentro do effect, e SÓ depois de confirmar
+// que o usuário tem instância Twilio. Assim o SDK não entra no bundle inicial de
+// toda página (home/tarefas/calendário) — só baixa pra quem realmente liga.
+// Antes o import estático pesava no JS de todo mundo (INP alto no mobile).
+import type { Device, Call } from "@twilio/voice-sdk";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { getTwilioVoiceTokenAction } from "@/lib/ligacoes/actions";
@@ -85,6 +90,9 @@ export function TwilioCallProvider({ children }: { children: ReactNode }) {
         if (!alive) return;
         if (!r.token || !r.instanciaId) return; // sem Twilio: provider inerte
         instanciaIdRef.current = r.instanciaId;
+        // Só agora (usuário confirmado como "liga") baixamos o SDK do Twilio.
+        const { Device } = await import("@twilio/voice-sdk");
+        if (!alive) return;
         const device = new Device(r.token, { logLevel: "error" });
         // O Access Token da Twilio vale só 1h (ttl 3600). Sem renovar, o Device
         // para de discar depois de ~1h de página aberta ("travou depois de N
