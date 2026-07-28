@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import type { RequestRow, Status } from "./schema";
 
@@ -93,8 +94,7 @@ export async function getRequestById(id: string): Promise<RequestDetail | null> 
   };
 }
 
-/** Contagem rápida pra badge no menu/dashboard interno. */
-export async function countRequestsAbertas(): Promise<number> {
+async function _countRequestsAbertasImpl(): Promise<number> {
   const sb = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sbAny = sb as any;
@@ -103,4 +103,18 @@ export async function countRequestsAbertas(): Promise<number> {
     .select("id", { count: "exact", head: true })
     .in("status", ["aberta", "em_andamento"]);
   return count ?? 0;
+}
+
+/**
+ * Contagem rápida pra badge no menu/dashboard interno.
+ * Cacheado 30s - chamado em TODA página autenticada via layout.tsx (badge).
+ * 30s de defasagem é irrelevante pra um contador de menu.
+ */
+export async function countRequestsAbertas(): Promise<number> {
+  const cached = unstable_cache(
+    _countRequestsAbertasImpl,
+    ["portal-requests-count-abertas-v1"],
+    { revalidate: 30, tags: ["portal-requests"] },
+  );
+  return cached();
 }

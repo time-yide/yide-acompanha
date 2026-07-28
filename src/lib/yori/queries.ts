@@ -1,4 +1,5 @@
 // SERVER ONLY
+import { unstable_cache } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import type { YoriJob, YoriTemplate } from "./tipos";
@@ -65,7 +66,7 @@ export async function countJobsThisMonth(orgId: string): Promise<number> {
   return count ?? 0;
 }
 
-export async function countUndownloadedJobs(userId: string): Promise<number> {
+async function _countUndownloadedJobsImpl(userId: string): Promise<number> {
   const supabase = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
@@ -76,6 +77,20 @@ export async function countUndownloadedJobs(userId: string): Promise<number> {
     .eq("status", "done")
     .is("downloaded_at", null);
   return count ?? 0;
+}
+
+/**
+ * Badge de jobs Yori prontos e não baixados.
+ * Cacheado 30s - chamado em TODA página autenticada via layout.tsx.
+ * Key por userId (cada usuário tem cache próprio).
+ */
+export async function countUndownloadedJobs(userId: string): Promise<number> {
+  const cached = unstable_cache(
+    (uid: string) => _countUndownloadedJobsImpl(uid),
+    ["yori-count-undownloaded-v1"],
+    { revalidate: 30, tags: ["yori-jobs"] },
+  );
+  return cached(userId);
 }
 
 export async function listJobsToProcess(limit: number = 5): Promise<YoriJob[]> {
