@@ -42,11 +42,25 @@ export async function getReviewDaTarefa(taskId: string, userId: string): Promise
 
   const versaoIds = vs.map((v) => v.id);
   const { data: coments } = versaoIds.length
-    ? await sb.from("review_comentario").select("id, versao_id, autor_tipo, autor_nome, tempo_seg, corpo, resolvido, created_at").in("versao_id", versaoIds).order("tempo_seg", { ascending: true })
+    ? await sb.from("review_comentario").select("id, versao_id, autor_tipo, autor_id, autor_nome, tempo_seg, corpo, resolvido, created_at").in("versao_id", versaoIds).order("tempo_seg", { ascending: true })
     : { data: [] };
-  const porVersao = new Map<string, Comentario[]>();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  for (const c of (coments ?? []) as any[]) { const arr = porVersao.get(c.versao_id) ?? []; arr.push(c); porVersao.set(c.versao_id, arr); }
+  const comentsRaw = (coments ?? []) as any[];
+  // Foto do autor (só do time). Mesmo join do carregarReview.
+  const autorIds = [...new Set(comentsRaw.filter((c) => c.autor_tipo === "time" && c.autor_id).map((c) => c.autor_id as string))];
+  const avatarPorId = new Map<string, string | null>();
+  if (autorIds.length) {
+    const { data: perfis } = await sb.from("profiles").select("id, avatar_url").in("id", autorIds);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const p of (perfis ?? []) as any[]) avatarPorId.set(p.id, p.avatar_url ?? null);
+  }
+  const porVersao = new Map<string, Comentario[]>();
+  for (const c of comentsRaw) {
+    c.autor_avatar = c.autor_tipo === "time" && c.autor_id ? (avatarPorId.get(c.autor_id) ?? null) : null;
+    const arr = porVersao.get(c.versao_id) ?? [];
+    arr.push(c);
+    porVersao.set(c.versao_id, arr);
+  }
 
   const atual = vs[vs.length - 1];
   let assistidoPctVersaoAtual = 0;

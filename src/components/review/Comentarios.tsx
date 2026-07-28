@@ -66,9 +66,18 @@ export function Comentarios({ reviewId, versaoId, comentarios, playerRef, tempoA
         ) : ordenados.map((c) => (
           <div key={c.id} className={`group rounded-lg px-3 py-2.5 transition hover:bg-white/[0.04] ${c.resolvido ? "opacity-45" : ""}`}>
             <div className="flex items-start gap-2.5">
-              <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/20 text-[10px] font-semibold text-primary">
-                {iniciais(c.autor_nome)}
-              </span>
+              {c.autor_avatar ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={c.autor_avatar}
+                  alt={c.autor_nome}
+                  className="mt-0.5 h-7 w-7 shrink-0 rounded-full object-cover"
+                />
+              ) : (
+                <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/20 text-[10px] font-semibold text-primary">
+                  {iniciais(c.autor_nome)}
+                </span>
+              )}
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="truncate text-xs font-medium text-white">{c.autor_nome}</span>

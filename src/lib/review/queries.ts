@@ -6,7 +6,7 @@ import type { ReviewStatus, AutorTipo } from "./schema";
 type SB = any;
 
 export interface ReviewListItem { id: string; titulo: string; status: ReviewStatus; clienteNome: string | null; taskId: string | null; created_at: string }
-export interface Comentario { id: string; autor_tipo: AutorTipo; autor_nome: string; tempo_seg: number; corpo: string; resolvido: boolean; created_at: string; pos_x: number | null; pos_y: number | null }
+export interface Comentario { id: string; autor_tipo: AutorTipo; autor_nome: string; autor_avatar: string | null; tempo_seg: number; corpo: string; resolvido: boolean; created_at: string; pos_x: number | null; pos_y: number | null }
 export interface Versao { id: string; numero: number; bunny_video_id: string; pronto: boolean; playlistUrl: string; thumbUrl: string; comentarios: Comentario[] }
 export interface ReviewFull { id: string; titulo: string; status: ReviewStatus; clienteNome: string | null; taskId: string | null; assistidoPctVersaoAtual: number; aprovacaoToken: string | null; versoes: Versao[] }
 
@@ -60,11 +60,22 @@ export async function carregarReview(id: string, userId: string): Promise<Review
 
   const versaoIds = vs.map((v) => v.id);
   const { data: coments } = versaoIds.length
-    ? await sb.from("review_comentario").select("id, versao_id, autor_tipo, autor_nome, tempo_seg, corpo, resolvido, created_at, pos_x, pos_y").in("versao_id", versaoIds).order("tempo_seg", { ascending: true })
+    ? await sb.from("review_comentario").select("id, versao_id, autor_tipo, autor_id, autor_nome, tempo_seg, corpo, resolvido, created_at, pos_x, pos_y").in("versao_id", versaoIds).order("tempo_seg", { ascending: true })
     : { data: [] };
-  const porVersao = new Map<string, Comentario[]>();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  for (const c of (coments ?? []) as any[]) {
+  const comentsRaw = (coments ?? []) as any[];
+  // Foto do autor (só do time — comentário de cliente não tem perfil). Um select
+  // em profiles pros ids distintos, mapeado por id → avatar_url.
+  const autorIds = [...new Set(comentsRaw.filter((c) => c.autor_tipo === "time" && c.autor_id).map((c) => c.autor_id as string))];
+  const avatarPorId = new Map<string, string | null>();
+  if (autorIds.length) {
+    const { data: perfis } = await sb.from("profiles").select("id, avatar_url").in("id", autorIds);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const p of (perfis ?? []) as any[]) avatarPorId.set(p.id, p.avatar_url ?? null);
+  }
+  const porVersao = new Map<string, Comentario[]>();
+  for (const c of comentsRaw) {
+    c.autor_avatar = c.autor_tipo === "time" && c.autor_id ? (avatarPorId.get(c.autor_id) ?? null) : null;
     const arr = porVersao.get(c.versao_id) ?? [];
     arr.push(c);
     porVersao.set(c.versao_id, arr);
