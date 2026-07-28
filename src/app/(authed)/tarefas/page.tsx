@@ -1,8 +1,12 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { requireAuth } from "@/lib/auth/session";
-import { createClient } from "@/lib/supabase/server";
-import { listTasks, type TaskFilters as TaskFiltersData } from "@/lib/tarefas/queries";
+import {
+  listTasks,
+  listActiveProfilesForFilter,
+  listActiveClientsForFilter,
+  type TaskFilters as TaskFiltersData,
+} from "@/lib/tarefas/queries";
 import { getCurrentMonthYM } from "@/lib/datetime/timezone";
 import { getClientIdsForActiveUnit } from "@/lib/units/filter-helpers";
 import { TasksBoard } from "@/components/tarefas/TasksBoard";
@@ -70,15 +74,16 @@ export default async function TarefasPage({ searchParams }: { searchParams: Prom
     filters.atribuidoA = params.atribuido;
   }
 
-  // Multi-tenant: pega ids dos clientes da unidade ativa e filtra.
-  filters.unitClientIds = await getClientIdsForActiveUnit();
-
-  // Paraleliza tudo: tasks + profiles + clientes (são independentes).
-  const supabase = await createClient();
-  const [tasks, { data: profiles = [] }, { data: clientes = [] }] = await Promise.all([
-    listTasks(filters),
-    supabase.from("profiles").select("id, nome").eq("ativo", true).order("nome"),
-    supabase.from("clients").select("id, nome").eq("status", "ativo").order("nome"),
+  // Paraleliza tudo. profiles/clientes (dropdowns de filtro) NÃO dependem da
+  // unidade, então rodam junto — antes o `await getClientIdsForActiveUnit()`
+  // serializava e travava as duas sem precisar. Agora ele roda dentro do
+  // Promise.all, encadeado só com listTasks (que é quem usa o filtro de unidade).
+  const [tasks, profiles, clientes] = await Promise.all([
+    getClientIdsForActiveUnit().then((unitClientIds) =>
+      listTasks({ ...filters, unitClientIds }),
+    ),
+    listActiveProfilesForFilter(),
+    listActiveClientsForFilter(),
   ]);
 
   function tabHref(slug: Aba) {
