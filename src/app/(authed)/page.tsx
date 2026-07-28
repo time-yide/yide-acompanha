@@ -104,7 +104,8 @@ export default async function DashboardPage({
   const canImpersonate = user.role === "socio" || user.role === "adm";
 
   // Resolve target. Default = self. Sócio/adm com ?as= pode visualizar como outro colab.
-  let target: TargetUser = { id: user.id, role: user.role, nome: user.nome, especialidade: null };
+  // A especialidade do próprio user já vem no CurrentUser (requireAuth) — sem refetch.
+  let target: TargetUser = { id: user.id, role: user.role, nome: user.nome, especialidade: user.especialidade };
   let isImpersonating = false;
 
   if (canImpersonate && params.as) {
@@ -117,17 +118,6 @@ export default async function DashboardPage({
       }
     } catch {
       // uuid inválido ou não encontrado - silenciosamente cai no self
-    }
-  }
-
-  // Self assessor: busca a especialidade pro selo do próprio dashboard.
-  // (Só assessor mostra o selo no header; evita query extra pros demais.)
-  if (!isImpersonating && target.role === "assessor") {
-    try {
-      const self = (await getColaboradorById(user.id)) as { especialidade?: string | null } | null;
-      target = { ...target, especialidade: self?.especialidade ?? null };
-    } catch {
-      // sem especialidade — segue como assessor comum
     }
   }
 

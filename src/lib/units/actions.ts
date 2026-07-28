@@ -1,10 +1,10 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { cookies } from "next/headers";
 import { requireAuth } from "@/lib/auth/session";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { listActiveUnits, getUnitBySlug } from "./queries";
+import { listActiveUnits, getUnitBySlug, UNITS_CACHE_TAG } from "./queries";
 import { createUnitSchema, editUnitSchema, isMasterRole, ACTIVE_UNIT_COOKIE } from "./schema";
 
 /**
@@ -95,6 +95,7 @@ export async function createUnitAction(
     }
   }
 
+  revalidateTag(UNITS_CACHE_TAG, "max");
   revalidatePath("/unidades");
   revalidatePath("/", "layout");
   return { ok: true };
@@ -140,6 +141,7 @@ export async function updateUnitAction(
     return { ok: false, error: error.message || "Falha ao atualizar unidade" };
   }
 
+  revalidateTag(UNITS_CACHE_TAG, "max");
   revalidatePath("/unidades");
   revalidatePath("/", "layout");
   return { ok: true };

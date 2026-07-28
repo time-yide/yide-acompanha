@@ -1,7 +1,6 @@
 // SERVER ONLY
 import { cache } from "react";
 import { cookies } from "next/headers";
-import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { requireAuth, type CurrentUser } from "@/lib/auth/session";
 import { listActiveUnits, getUnitBySlug } from "./queries";
 import { ACTIVE_UNIT_COOKIE, isMasterRole, type Unit } from "./schema";
@@ -35,23 +34,12 @@ export const getUnitContext = cache(async (): Promise<UnitContext | null> => {
 });
 
 async function resolveUnitContextForUser(user: CurrentUser): Promise<UnitContext | null> {
-  // Busca unit_id do user direto do banco (não está no CurrentUser ainda - Fase 1
-  // não toca em requireAuth pra evitar regressão no resto do app).
-  const admin = createServiceRoleClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sb = admin as any;
-  const { data: profileRow, error } = await sb
-    .from("profiles")
-    .select("unit_id")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (error || !profileRow?.unit_id) {
-    console.error("[units] resolveUnitContextForUser failed:", error);
-    return null;
-  }
+  // unit_id agora vem no CurrentUser (getCurrentUser já lê a linha de profiles) —
+  // evita um 2º SELECT em profiles no caminho crítico de TODA página autenticada.
+  if (!user.unitId) return null;
 
   const units = await listActiveUnits();
-  const homeUnit = units.find((u) => u.id === profileRow.unit_id);
+  const homeUnit = units.find((u) => u.id === user.unitId);
   if (!homeUnit) return null;
 
   const master = isMasterRole(user.role);
