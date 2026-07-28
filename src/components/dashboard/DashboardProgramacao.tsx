@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { Plus, Database, UserPlus, Boxes, Layers } from "lucide-react";
 import { FixoCard } from "./personal/FixoCard";
@@ -6,6 +7,7 @@ import { getOrganizationId } from "@/lib/gerador-leads/queries";
 import { listLancamentos } from "@/lib/programacao/queries";
 import { resumoLancamentos } from "@/lib/programacao/resumo";
 import { getCurrentMonthYM, getTodayDate } from "@/lib/datetime/timezone";
+import { KpiRowSkeleton, ListSkeleton, RemuneracaoSkeleton } from "./sections";
 
 interface Props {
   userId: string;
@@ -24,8 +26,14 @@ function formatarDataBR(iso: string): string {
   return `${d}/${m}/${y}`;
 }
 
-export async function DashboardProgramacao({ userId, nome }: Props) {
-  const primeiroNome = nome.split(" ")[0];
+// `orgId` e `lancamentos` são dois awaits dependentes (a listagem precisa do
+// orgId) e alimentam a MESMA fatia de dados — os cards de resumo e a lista de
+// recentes vêm da mesma query. Por isso ficam juntos numa única seção async,
+// que streama via <Suspense> no shell síncrono abaixo. Antes esses awaits
+// bloqueavam o primeiro byte da página inteira; agora a saudação sai na hora.
+// O FixoCard tem fetch próprio e streama à parte, no seu lugar entre os cards
+// e a lista.
+async function LancamentosSection({ userId }: { userId: string }) {
   const orgId = await getOrganizationId(userId);
   const lancamentos = orgId
     ? await listLancamentos(orgId, "programacao", userId, { de: inicioDoMes(), ate: hoje() })
@@ -39,6 +47,59 @@ export async function DashboardProgramacao({ userId, nome }: Props) {
     { label: "Sistemas feitos", valor: resumo.sistemas, icon: Boxes },
     { label: "Total", valor: resumo.total, icon: Layers },
   ];
+
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        {cards.map((c) => {
+          const Icon = c.icon;
+          return (
+            <div key={c.label} className="rounded-xl border bg-card p-3 sm:p-5">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground sm:text-xs">{c.label}</p>
+                <Icon className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <p className="mt-1.5 text-2xl font-bold tabular-nums sm:mt-2 sm:text-3xl">{c.valor}</p>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Suspense fallback={<RemuneracaoSkeleton />}>
+          <FixoCard userId={userId} />
+        </Suspense>
+      </div>
+
+      <section className="space-y-2">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Últimos lançamentos</h2>
+          <Link href="/programacao" className="text-xs text-primary hover:underline">Ver todos</Link>
+        </div>
+        {recentes.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nenhum lançamento este mês.</p>
+        ) : (
+          <div className="space-y-2">
+            {recentes.map((l) => (
+              <div key={l.id} className="flex items-center justify-between gap-2 rounded-md border bg-card p-3 text-sm">
+                <span className="min-w-0 truncate font-medium">{l.client_nome ?? "—"}</span>
+                <span className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <span className="rounded-full border bg-muted px-2 py-0.5 tabular-nums">{l.quantidade}× {l.tipo_label}</span>
+                  <span className="tabular-nums">{formatarDataBR(l.data)}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    </>
+  );
+}
+
+// Shell síncrono: a saudação e o botão "Registrar" renderizam imediatamente;
+// os cards/FixoCard/lista streamam via <Suspense> quando as queries resolvem.
+export function DashboardProgramacao({ userId, nome }: Props) {
+  const primeiroNome = nome.split(" ")[0];
 
   return (
     <HiddenValuesProvider>
@@ -59,46 +120,19 @@ export async function DashboardProgramacao({ userId, nome }: Props) {
           </div>
         </header>
 
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-          {cards.map((c) => {
-            const Icon = c.icon;
-            return (
-              <div key={c.label} className="rounded-xl border bg-card p-3 sm:p-5">
-                <div className="flex items-center justify-between">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground sm:text-xs">{c.label}</p>
-                  <Icon className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <p className="mt-1.5 text-2xl font-bold tabular-nums sm:mt-2 sm:text-3xl">{c.valor}</p>
+        <Suspense
+          fallback={
+            <>
+              <KpiRowSkeleton />
+              <div className="grid gap-4 md:grid-cols-2">
+                <RemuneracaoSkeleton />
               </div>
-            );
-          })}
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <FixoCard userId={userId} />
-        </div>
-
-        <section className="space-y-2">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Últimos lançamentos</h2>
-            <Link href="/programacao" className="text-xs text-primary hover:underline">Ver todos</Link>
-          </div>
-          {recentes.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhum lançamento este mês.</p>
-          ) : (
-            <div className="space-y-2">
-              {recentes.map((l) => (
-                <div key={l.id} className="flex items-center justify-between gap-2 rounded-md border bg-card p-3 text-sm">
-                  <span className="min-w-0 truncate font-medium">{l.client_nome ?? "—"}</span>
-                  <span className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <span className="rounded-full border bg-muted px-2 py-0.5 tabular-nums">{l.quantidade}× {l.tipo_label}</span>
-                    <span className="tabular-nums">{formatarDataBR(l.data)}</span>
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
+              <ListSkeleton rows={5} />
+            </>
+          }
+        >
+          <LancamentosSection userId={userId} />
+        </Suspense>
       </div>
     </HiddenValuesProvider>
   );

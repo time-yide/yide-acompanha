@@ -1,9 +1,11 @@
+import { Suspense } from "react";
 import { FixoCard } from "./personal/FixoCard";
 import { MinhasTarefasPendentes } from "./personal/MinhasTarefasPendentes";
 import { PeriodoSelector } from "./personal/PeriodoSelector";
 import { HiddenValuesProvider, HiddenValueToggle } from "./HiddenValuesContext";
 import { resolvePeriodo, getProducaoNoPeriodo, type Periodo } from "@/lib/dashboard/personal";
 import { Palette } from "lucide-react";
+import { ListSkeleton, RemuneracaoSkeleton } from "./sections";
 
 interface Props {
   userId: string;
@@ -18,10 +20,20 @@ const PERIODO_LABELS: Record<Periodo, string> = {
   total: "no total",
 };
 
-export async function DashboardDesigner({ userId, nome, periodo = "mes_atual" }: Props) {
-  const primeiroNome = nome.split(" ")[0];
+// Cada await de dados vira uma sub-seção async, renderizada via <Suspense> no
+// shell síncrono abaixo. Antes o componente era `async` e a query de artes
+// bloqueava o primeiro byte — agora a saudação e o seletor aparecem na hora e
+// cada parte streama quando fica pronta. FixoCard e MinhasTarefasPendentes já
+// são async (fazem fetch próprio), então também vão em <Suspense>.
+
+async function ArtesEntreguesValueSection({ userId, periodo }: { userId: string; periodo: Periodo }) {
   const { fromIso, toIso } = resolvePeriodo(periodo);
   const totalArtes = await getProducaoNoPeriodo(userId, fromIso, toIso, "artes");
+  return <>{totalArtes}</>;
+}
+
+export function DashboardDesigner({ userId, nome, periodo = "mes_atual" }: Props) {
+  const primeiroNome = nome.split(" ")[0];
 
   return (
     <HiddenValuesProvider>
@@ -35,7 +47,9 @@ export async function DashboardDesigner({ userId, nome, periodo = "mes_atual" }:
         </header>
 
         <div className="grid gap-4 md:grid-cols-2">
-          <FixoCard userId={userId} />
+          <Suspense fallback={<RemuneracaoSkeleton />}>
+            <FixoCard userId={userId} />
+          </Suspense>
           <div className="rounded-xl border bg-card p-5">
             <div className="flex items-center justify-between gap-3">
               <p className="text-xs uppercase tracking-wider text-muted-foreground">
@@ -45,12 +59,16 @@ export async function DashboardDesigner({ userId, nome, periodo = "mes_atual" }:
             </div>
             <p className="mt-2 flex items-baseline gap-2 text-3xl font-bold tabular-nums">
               <Palette className="h-5 w-5 text-primary" />
-              {totalArtes}
+              <Suspense fallback={<span className="inline-block h-7 w-10 animate-pulse rounded-md bg-muted" />}>
+                <ArtesEntreguesValueSection userId={userId} periodo={periodo} />
+              </Suspense>
             </p>
           </div>
         </div>
 
-        <MinhasTarefasPendentes userId={userId} />
+        <Suspense fallback={<ListSkeleton rows={5} />}>
+          <MinhasTarefasPendentes userId={userId} />
+        </Suspense>
       </div>
     </HiddenValuesProvider>
   );
