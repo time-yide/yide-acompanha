@@ -1,22 +1,46 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { Play, Pause, Volume2, Download, FileAudio } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Play, Pause, Volume2, Download, FileAudio, Loader2, AlertTriangle } from "lucide-react";
 import { formatDuracao, formatTimestamp, type MeetingRecording } from "@/lib/reunioes/tipos";
+import { urlAudioReuniaoAction } from "@/lib/reunioes/gravacao-actions";
 
 interface Props {
   recording: MeetingRecording | null;
+  meetingId: string;
 }
 
 /**
- * Player de áudio simplificado. Quando o áudio real (mp3 URL do Storage)
- * entrar na Fase 2, basta apontar src pro audio_url. Por enquanto é mock -
- * play/pause funcionam visualmente mas não há áudio real.
+ * Player de áudio da gravação. `recording.audio_url` guarda o CAMINHO no bucket
+ * (privado), não uma URL tocável — a URL assinada é gerada pela action
+ * urlAudioReuniaoAction (que também checa permissão). Buscamos essa URL ao
+ * montar, então o play() roda no gesto do clique (sem bloqueio de autoplay).
  */
-export function RecordingPlayer({ recording }: Props) {
+export function RecordingPlayer({ recording, meetingId }: Props) {
+  const temGravacao = !!recording?.audio_url;
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [src, setSrc] = useState<string | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+  // Já começa carregando quando há gravação (evita setState síncrono no effect).
+  const [carregando, setCarregando] = useState(temGravacao);
+
+  // Busca a URL assinada ao montar (só se há gravação). Todos os setState ficam
+  // nos callbacks (async), não no corpo do effect.
+  useEffect(() => {
+    if (!temGravacao) return;
+    let alive = true;
+    urlAudioReuniaoAction(meetingId)
+      .then((r) => {
+        if (!alive) return;
+        if ("error" in r) setErro(r.error);
+        else setSrc(r.url);
+      })
+      .catch(() => { if (alive) setErro("Falha ao carregar a gravação."); })
+      .finally(() => { if (alive) setCarregando(false); });
+    return () => { alive = false; };
+  }, [meetingId, temGravacao]);
 
   if (!recording || !recording.audio_url) {
     return (
@@ -24,7 +48,7 @@ export function RecordingPlayer({ recording }: Props) {
         <FileAudio className="mx-auto h-8 w-8 text-muted-foreground/40" />
         <p className="mt-2 text-sm font-medium">Sem gravação disponível</p>
         <p className="mt-1 text-xs text-muted-foreground">
-          A gravação aparece aqui quando o bot capturar a reunião (Fase 2 do roadmap).
+          A gravação aparece aqui quando a reunião é capturada.
         </p>
       </div>
     );
@@ -35,28 +59,33 @@ export function RecordingPlayer({ recording }: Props) {
 
   function togglePlay() {
     const el = audioRef.current;
-    if (!el) {
-      // Mock - sem áudio real, só simula
-      setPlaying((p) => !p);
-      return;
+    if (!el || !src) return;
+    if (playing) {
+      el.pause();
+    } else {
+      // play() roda no gesto do clique (src já carregado no mount).
+      el.play().catch(() => {
+        setErro("Seu navegador não conseguiu tocar este áudio (formato WEBM). Baixe o arquivo para ouvir.");
+        setPlaying(false);
+      });
     }
-    if (playing) el.pause();
-    else void el.play();
-    setPlaying(!playing);
   }
 
   return (
     <div className="rounded-xl border bg-gradient-to-br from-card to-muted/30 p-4">
       <audio
         ref={audioRef}
-        src={recording.audio_url}
+        src={src ?? undefined}
+        preload="none"
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
         onTimeUpdate={(e) => {
           const el = e.currentTarget;
           if (el.duration) setProgress((el.currentTime / el.duration) * 100);
         }}
         onEnded={() => setPlaying(false)}
         onError={() => {
-          // mock mode: áudio falso, deixa o usuário "scrubbar" sem áudio real
+          if (src) setErro("Não foi possível carregar o áudio. Tente baixar o arquivo.");
         }}
         className="hidden"
       />
@@ -64,10 +93,17 @@ export function RecordingPlayer({ recording }: Props) {
         <button
           type="button"
           onClick={togglePlay}
-          className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform hover:scale-105"
+          disabled={carregando || !src}
+          className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
           aria-label={playing ? "Pausar" : "Tocar"}
         >
-          {playing ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 translate-x-0.5" />}
+          {carregando ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : playing ? (
+            <Pause className="h-5 w-5" />
+          ) : (
+            <Play className="h-5 w-5 translate-x-0.5" />
+          )}
         </button>
 
         <div className="min-w-0 flex-1 space-y-1.5">
@@ -92,9 +128,9 @@ export function RecordingPlayer({ recording }: Props) {
               {recording.formato?.toUpperCase() ?? "MP3"}
               {recording.size_bytes && ` · ${(recording.size_bytes / 1024 / 1024).toFixed(1)} MB`}
             </span>
-            {recording.audio_url && recording.audio_url.startsWith("http") && (
+            {src && (
               <a
-                href={recording.audio_url}
+                href={src}
                 download
                 className="inline-flex items-center gap-1 hover:text-foreground"
               >
@@ -105,6 +141,13 @@ export function RecordingPlayer({ recording }: Props) {
           </div>
         </div>
       </div>
+
+      {erro && (
+        <p className="mt-3 flex items-start gap-1.5 rounded-md bg-destructive/10 p-2 text-[11px] text-destructive">
+          <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" />
+          <span>{erro}</span>
+        </p>
+      )}
     </div>
   );
 }
