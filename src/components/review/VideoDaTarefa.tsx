@@ -2,17 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { UploadVersao } from "./UploadVersao";
+import { UploadVideosMultiplos } from "./UploadVideosMultiplos";
 import { ReviewModal } from "./ReviewModal";
-import { adicionarVideoAction, removerVideoAction } from "@/lib/review/tarefa-actions";
+import { removerVideoAction } from "@/lib/review/tarefa-actions";
 import { STATUS_LABEL } from "@/lib/review/schema";
 import type { VideoDoBloco } from "@/lib/review/queries";
-import type { UploadTus } from "@/lib/bunny/client";
-import { Plus, Video, Play, Trash2, AlertTriangle, Loader2 } from "lucide-react";
+import { Video, Play, Trash2, AlertTriangle, Loader2 } from "lucide-react";
 
 /**
  * Uma linha de vídeo. Estado próprio (`imgErro`) pra detectar capa que não
@@ -109,18 +106,9 @@ function VideoRow({
 
 export function VideoDaTarefa({ taskId, videos, podeGerenciar }: { taskId: string; videos: VideoDoBloco[]; podeGerenciar: boolean }) {
   const router = useRouter();
-  const [pending, start] = useTransition();
-  const [upload, setUpload] = useState<{ reviewId: string; upload: UploadTus } | null>(null);
+  const [, start] = useTransition();
   const [reviewOpen, setReviewOpen] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
-
-  function adicionar() {
-    start(async () => {
-      const r = await adicionarVideoAction(taskId, `Vídeo ${videos.length + 1}`);
-      if ("error" in r) { toast.error(r.error); return; }
-      setUpload(r); router.refresh();
-    });
-  }
 
   function remover(reviewId: string) {
     if (!window.confirm("Apagar este vídeo? Os comentários dele também serão removidos.")) return;
@@ -143,7 +131,7 @@ export function VideoDaTarefa({ taskId, videos, podeGerenciar }: { taskId: strin
         {videos.length > 0 && <span className="text-xs text-muted-foreground">{aprovados}/{videos.length} aprovados</span>}
       </div>
 
-      {videos.length === 0 && !upload && (
+      {videos.length === 0 && (
         <p className="text-xs text-muted-foreground">Nenhum vídeo ainda.</p>
       )}
 
@@ -160,15 +148,9 @@ export function VideoDaTarefa({ taskId, videos, podeGerenciar }: { taskId: strin
         ))}
       </div>
 
-      {podeGerenciar && (upload ? (
-        <div className="rounded-lg border bg-muted/30 p-3">
-          <p className="mb-2 text-xs text-muted-foreground">Envie o arquivo do vídeo:</p>
-          <UploadVersao reviewId={upload.reviewId} upload={upload.upload} titulo="video" />
-          <Link href={`/audiovisual/review/${upload.reviewId}`} className="mt-2 inline-block text-xs text-primary hover:underline">Abrir o vídeo →</Link>
-        </div>
-      ) : (
-        <Button type="button" size="sm" variant="outline" onClick={adicionar} disabled={pending}><Plus className="mr-2 h-4 w-4" />Adicionar vídeo</Button>
-      ))}
+      {podeGerenciar && (
+        <UploadVideosMultiplos taskId={taskId} proximoNumero={videos.length + 1} />
+      )}
 
       <ReviewModal
         reviewId={reviewOpen ?? ""}
