@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { after } from "next/server";
 import { requireAuth } from "@/lib/auth/session";
@@ -121,7 +122,76 @@ export default async function PainelPage({
   }
   // audiovisual_chefe sem filtro: vê todos.
 
-  // Paraleliza checklists + assessoresOptions (não dependem entre si)
+  // Cria proativamente os checklists do próximo mês (idempotente) FORA do
+  // caminho de render (after): bloco de escrita que não deve segurar o TTFB.
+  // Cron noturno + botão "Atualizar painel" são a rede de segurança.
+  if (PRIVILEGED_ROLES.includes(user.role)) {
+    after(() => ensureMonthlyChecklistsImpl(proximoMes).catch(() => {}));
+  }
+
+  // Casca (abas + header) pinta na hora; KPIs/filtros/tabela — que dependem da
+  // query pesada de checklists — streamam via <Suspense>.
+  return (
+    <div className="space-y-5">
+      <TabsSocialMedia active="painel" />
+      <PainelHeader
+        mesAtual={mesAtual}
+        mesesDisponiveis={mesesDisponiveis}
+        canAtualizar={PRIVILEGED_ROLES.includes(user.role)}
+      />
+      <Suspense fallback={<PainelConteudoSkeleton />}>
+        <PainelConteudo
+          mesAtual={mesAtual}
+          filter={filter}
+          tipoFiltro={tipoFiltro}
+          areaFiltro={areaFiltro}
+          soPostagem={soPostagem}
+          searchQuery={searchQuery}
+          qParam={params.q ?? ""}
+          view={view}
+          canFilterAssessor={canFilterAssessor}
+          assessorFiltro={assessorFiltro}
+          userRole={user.role}
+          userId={user.id}
+        />
+      </Suspense>
+    </div>
+  );
+}
+
+/**
+ * KPIs + barra de filtros + tabela. Isolado num async component pra streamar:
+ * a query pesada (getMonthlyChecklists) fica aqui, atrás do <Suspense>, sem
+ * bloquear a casca (abas + header) do painel.
+ */
+async function PainelConteudo({
+  mesAtual,
+  filter,
+  tipoFiltro,
+  areaFiltro,
+  soPostagem,
+  searchQuery,
+  qParam,
+  view,
+  canFilterAssessor,
+  assessorFiltro,
+  userRole,
+  userId,
+}: {
+  mesAtual: string;
+  filter: ChecklistFilter;
+  tipoFiltro: TipoPacote | "todos";
+  areaFiltro: ReturnType<typeof parseArea>;
+  soPostagem: boolean;
+  searchQuery: string;
+  qParam: string;
+  view: "cards" | "tabela";
+  canFilterAssessor: boolean;
+  assessorFiltro: string | null;
+  userRole: string;
+  userId: string;
+}) {
+  // Paraleliza checklists + assessoresOptions (não dependem entre si).
   const supabase = await createClient();
   const assessoresPromise = canFilterAssessor
     ? supabase
@@ -142,39 +212,18 @@ export default async function PainelPage({
     .filter((c) => tipoFiltro === "todos" || c.client_tipo_pacote === tipoFiltro)
     .filter((c) => matchesArea(c.client_tipo_pacote as TipoPacote, areaFiltro))
     // Só com postagem — só na visão geral; um tipo específico escolhido pelo
-    // usuário sempre é respeitado. Oculta tráfego puro, audiovisual e
-    // e-commerce (ver PACOTES_COM_POSTAGEM).
+    // usuário sempre é respeitado. Oculta tráfego puro, audiovisual e e-commerce.
     .filter((c) => !(soPostagem && tipoFiltro === "todos") || temPostagem(c.client_tipo_pacote as TipoPacote))
     .filter((c) => searchQuery === "" || c.client_nome.toLowerCase().includes(searchQuery));
 
-  // Cria proativamente os checklists do próximo mês (idempotente). Garante
-  // que ao selecionar o próximo mês, o painel já tem dados. Custo: 1 SELECT
-  // se já existem; 1 INSERT só na primeira vez do mês.
-  // Roda só pra roles privilegiados (assessor/designer não disparam — eles
-  // só consomem os checklists).
-  if (PRIVILEGED_ROLES.includes(user.role)) {
-    // Roda FORA do caminho de render (after): esse bloco faz vários SELECTs +
-    // INSERT/UPDATE e estava com `await` bloqueando o TTFB de todo render de
-    // adm/coord. É criação PROATIVA do próximo mês — cron noturno + botão
-    // "Atualizar painel" são a rede de segurança se o after falhar.
-    after(() => ensureMonthlyChecklistsImpl(proximoMes).catch(() => {}));
-  }
-
   return (
-    <div className="space-y-5">
-      <TabsSocialMedia active="painel" />
-      <PainelHeader
-        mesAtual={mesAtual}
-        mesesDisponiveis={mesesDisponiveis}
-        canAtualizar={PRIVILEGED_ROLES.includes(user.role)}
-      />
-
+    <>
       <PainelKpis checklists={checklists} />
 
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-lg border bg-card px-3 py-2.5">
         <TipoFilter current={tipoFiltro} />
         <div className="flex flex-wrap items-center gap-2">
-          <ClientSearchInput current={params.q ?? ""} />
+          <ClientSearchInput current={qParam} />
           {tipoFiltro === "todos" && <PostagemToggle soPostagem={soPostagem} />}
           <AreaFilterSelect current={areaFiltro} />
           {canFilterAssessor && (
@@ -186,10 +235,28 @@ export default async function PainelPage({
       </div>
 
       {view === "cards" ? (
-        <PainelCardsList checklists={checklists} userRole={user.role} userId={user.id} />
+        <PainelCardsList checklists={checklists} userRole={userRole} userId={userId} />
       ) : (
-        <PainelTable checklists={checklists} userRole={user.role} userId={user.id} />
+        <PainelTable checklists={checklists} userRole={userRole} userId={userId} />
       )}
+    </>
+  );
+}
+
+function PainelConteudoSkeleton() {
+  return (
+    <div className="space-y-5">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-20 animate-pulse rounded-lg bg-muted" />
+        ))}
+      </div>
+      <div className="h-12 animate-pulse rounded-lg bg-muted" />
+      <div className="space-y-2">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="h-10 animate-pulse rounded bg-muted/70" />
+        ))}
+      </div>
     </div>
   );
 }
