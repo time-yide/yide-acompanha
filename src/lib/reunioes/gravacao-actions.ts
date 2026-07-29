@@ -15,7 +15,7 @@ type Res<T> = T | { error: string };
  * de upload assinado pro browser subir o áudio direto no bucket.
  */
 export async function criarReuniaoGravacaoAction(input: {
-  clientId: string;
+  clientId: string | null;
   titulo: string;
   consentiu: boolean;
   online: boolean;
@@ -23,7 +23,7 @@ export async function criarReuniaoGravacaoAction(input: {
   const user = await requireAuth();
   if (!canRecordMeeting(user.role)) return { error: "Sem permissão pra gravar reunião" };
   if (!input.consentiu) return { error: "É preciso confirmar o aviso de gravação (LGPD)" };
-  if (!input.clientId) return { error: "Escolha o cliente" };
+  // clientId opcional: reunião interna (geral/comercial) grava SEM cliente.
 
   const sb = createServiceRoleClient() as SB;
   const { data: org } = await sb.from("organizations").select("id").limit(1).single();
@@ -35,7 +35,7 @@ export async function criarReuniaoGravacaoAction(input: {
     .insert({
       organization_id: org.id,
       owner_user_id: user.id,
-      client_id: input.clientId,
+      client_id: input.clientId ?? null,
       source: "app_recording",
       status: "in_progress",
       titulo,
@@ -46,7 +46,8 @@ export async function criarReuniaoGravacaoAction(input: {
     .single();
   if (error || !mt) return { error: "Falha ao criar a reunião" };
 
-  const path = recordingPath(org.id, input.clientId, mt.id, "webm");
+  // Sem cliente → pasta "interno" no storage (o path exige um segmento).
+  const path = recordingPath(org.id, input.clientId ?? "interno", mt.id, "webm");
   const up = await createSignedUpload(path);
   if (!up.ok) return { error: up.error };
   return { meetingId: mt.id, path: up.path, token: up.token };
@@ -96,7 +97,7 @@ export async function registrarGravacaoAction(input: {
     status: "pending",
   });
 
-  revalidatePath(`/clientes/${mt.client_id}/reunioes`);
+  if (mt.client_id) revalidatePath(`/clientes/${mt.client_id}/reunioes`);
   revalidatePath("/reunioes");
   return { ok: true };
 }

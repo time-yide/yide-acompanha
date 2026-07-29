@@ -136,14 +136,20 @@ export function EventCell({ event, podeGravar = false }: { event: CalendarEvent;
   // gravar a reunião (leva pro gravador do cliente, já aberto). Só pra quem tem
   // permissão de gravar. O botão é irmão do card (não aninhado no <Link>) pra
   // não gerar <a> dentro de <a>.
+  // Botão de gravar: com cliente → gravador do cliente; SEM cliente (reunião
+  // interna, ex: geral/comercial) → gravador interno /reunioes/gravar. Antes
+  // exigia client_id e a reunião interna ficava sem o botão.
   const podeGravarReuniao =
-    podeGravar && !!event.client_id && requerGravacao(event.sub_calendar, event.origem);
+    podeGravar && requerGravacao(event.sub_calendar, event.origem);
   if (podeGravarReuniao) {
+    const gravarHref = event.client_id
+      ? `/clientes/${event.client_id}/reunioes?gravar=1`
+      : `/reunioes/gravar?titulo=${encodeURIComponent(event.titulo)}`;
     return (
       <div className="relative">
         {card}
         <Link
-          href={`/clientes/${event.client_id}/reunioes?gravar=1`}
+          href={gravarHref}
           title="Gravar reunião"
           aria-label="Gravar reunião"
           className="absolute right-1 top-1 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-white shadow ring-1 ring-white/30 hover:bg-blue-600"
