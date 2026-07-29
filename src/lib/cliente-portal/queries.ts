@@ -74,6 +74,9 @@ export async function getLastMeetingsForClient(
     .from("meetings")
     .select("id, titulo, starts_at, duracao_segundos, resumo_preview, summary_ready, status")
     .eq("client_id", clientId)
+    // Opt-in: só reuniões que a equipe liberou explicitamente pro portal.
+    // Sem isso, TODA reunião do cliente vazaria (inclusive conversa interna).
+    .eq("visivel_cliente", true)
     // Reuniões excluídas (soft-delete) não aparecem pro cliente.
     .is("deleted_at", null)
     // "completed" = reunião finalizada com resumo pronto.
@@ -100,6 +103,78 @@ export async function getLastMeetingsForClient(
     resumo_preview: r.resumo_preview,
     summary_ready: r.summary_ready,
   }));
+}
+
+export interface ReuniaoTopicoCliente {
+  titulo: string;
+  start_seconds: number;
+  resumo: string;
+}
+
+/**
+ * Detalhe da reunião para o PORTAL DO CLIENTE ("versão cliente"): gravação +
+ * resumo + decisões + próximos passos + tópicos + tarefas (só título/prazo).
+ * NUNCA inclui a transcrição crua nem os insights internos. Só retorna se a
+ * reunião é do próprio cliente E está liberada (visivel_cliente).
+ */
+export interface ReuniaoDetalheCliente {
+  id: string;
+  titulo: string;
+  starts_at: string;
+  duracao_segundos: number | null;
+  recording: { audio_url: string | null; formato: string | null; size_bytes: number | null; duracao_segundos: number | null } | null;
+  resumo_geral: string | null;
+  decisoes: string[];
+  proximos_passos: string[];
+  topicos: ReuniaoTopicoCliente[];
+  tarefas: Array<{ titulo: string; due_date: string | null }>;
+}
+
+export async function getMeetingForClientPortal(
+  clientId: string,
+  meetingId: string,
+): Promise<ReuniaoDetalheCliente | null> {
+  const admin = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = admin as any;
+  // Gate: pertence ao cliente logado E liberada pra ele. Sem isso, um cliente
+  // poderia abrir /cliente/reunioes/<id> de outra reunião pelo id.
+  const { data: mt } = await sb
+    .from("meetings")
+    .select("id, titulo, starts_at, duracao_segundos")
+    .eq("id", meetingId)
+    .eq("client_id", clientId)
+    .eq("visivel_cliente", true)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (!mt) return null;
+
+  const [recRes, smRes, etsRes] = await Promise.all([
+    sb.from("meeting_recordings").select("audio_url, formato, size_bytes, duracao_segundos").eq("meeting_id", meetingId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    sb.from("meeting_summaries").select("resumo_geral, decisoes, proximos_passos, topicos").eq("meeting_id", meetingId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    // Só tarefas não descartadas; expõe apenas título + prazo (resto é interno).
+    sb.from("meeting_extracted_tasks").select("titulo_sugerido, due_date_sugestao, estado").eq("meeting_id", meetingId).neq("estado", "descartada").order("created_at", { ascending: true }),
+  ]);
+  const rec = recRes.data;
+  const sm = smRes.data;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ets = (etsRes.data ?? []) as any[];
+
+  return {
+    id: mt.id,
+    titulo: mt.titulo,
+    starts_at: mt.starts_at,
+    duracao_segundos: mt.duracao_segundos ?? null,
+    recording: rec
+      ? { audio_url: rec.audio_url ?? null, formato: rec.formato ?? null, size_bytes: rec.size_bytes ?? null, duracao_segundos: rec.duracao_segundos ?? null }
+      : null,
+    resumo_geral: sm?.resumo_geral ?? null,
+    decisoes: (sm?.decisoes as string[] | null) ?? [],
+    proximos_passos: (sm?.proximos_passos as string[] | null) ?? [],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    topicos: (((sm?.topicos as any[] | null) ?? []).map((t) => ({ titulo: String(t.titulo ?? ""), start_seconds: Number(t.start_seconds ?? 0), resumo: String(t.resumo ?? "") }))),
+    tarefas: ets.map((t) => ({ titulo: String(t.titulo_sugerido ?? ""), due_date: (t.due_date_sugestao as string | null) ?? null })),
+  };
 }
 
 /**
