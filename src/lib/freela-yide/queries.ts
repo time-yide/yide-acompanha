@@ -275,9 +275,13 @@ export async function getHistorico(orgId: string): Promise<FreelaHistorico> {
   return { meses, geral: geralArr };
 }
 
-export async function getStats(orgId: string, userId: string): Promise<FreelaStats> {
-  const [todas, ranking] = await Promise.all([listOportunidades(orgId), getRanking(orgId)]);
-  const disponiveis = todas.filter((o) => o.status === "disponivel");
+/**
+ * Stats do topo (Hero) — função PURA. Antes buscava listOportunidades + getRanking
+ * por dentro, DUPLICANDO queries que a página já faz. Agora recebe os dados
+ * prontos: `disponiveis` (a lista de oportunidades disponíveis já buscada) e o
+ * `ranking` do mês. Zero round-trip.
+ */
+export function getStats(disponiveis: OportunidadeRow[], ranking: RankingEntry[], userId: string): FreelaStats {
   const idx = ranking.findIndex((r) => r.user_id === userId);
   const eu = idx >= 0 ? ranking[idx] : null;
   return {
