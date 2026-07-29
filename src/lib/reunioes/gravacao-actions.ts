@@ -151,7 +151,9 @@ export async function urlAudioReuniaoAction(meetingId: string): Promise<Res<{ ur
   if (!mt || !podeVerReuniao(user, { owner_user_id: mt.owner_user_id })) return { error: "Sem acesso" };
   const { data: rec } = await sb.from("meeting_recordings").select("audio_url").eq("meeting_id", meetingId).order("created_at", { ascending: false }).limit(1).maybeSingle();
   if (!rec?.audio_url) return { error: "Sem gravação" };
-  const url = await getSignedPlaybackUrl(rec.audio_url);
+  // 6h de validade: uma URL de 1h vencia no meio de gravações longas (1h30+),
+  // cortando o áudio ao buscar trechos ainda não bufferizados.
+  const url = await getSignedPlaybackUrl(rec.audio_url, 6 * 60 * 60);
   if (!url) return { error: "Falha ao gerar link" };
   return { url };
 }

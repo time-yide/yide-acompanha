@@ -222,7 +222,7 @@ export default async function ReuniaoDetailPage({
 
         {/* Player */}
         <div className="pt-1">
-          <RecordingPlayer recording={meeting.recording} />
+          <RecordingPlayer recording={meeting.recording} meetingId={meeting.id} />
         </div>
       </header>
 
