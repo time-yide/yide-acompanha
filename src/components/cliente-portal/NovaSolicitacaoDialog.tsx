@@ -22,9 +22,13 @@ import { CATEGORIA_LABEL, CATEGORIAS, type Categoria } from "@/lib/portal-reques
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Pré-preenchimento opcional (ex: solicitação a partir de uma reunião). */
+  defaultCategoria?: Categoria;
+  defaultTitulo?: string;
+  defaultDescricao?: string;
 }
 
-export function NovaSolicitacaoDialog({ open, onOpenChange }: Props) {
+export function NovaSolicitacaoDialog({ open, onOpenChange, defaultCategoria, defaultTitulo, defaultDescricao }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -57,7 +61,7 @@ export function NovaSolicitacaoDialog({ open, onOpenChange }: Props) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="categoria">Categoria *</Label>
-            <Select name="categoria" defaultValue={"outro" as Categoria}>
+            <Select name="categoria" defaultValue={defaultCategoria ?? ("outro" as Categoria)}>
               <SelectTrigger id="categoria">
                 <SelectValue />
               </SelectTrigger>
@@ -79,6 +83,7 @@ export function NovaSolicitacaoDialog({ open, onOpenChange }: Props) {
               required
               minLength={3}
               maxLength={200}
+              defaultValue={defaultTitulo}
               placeholder="Ex: Trocar foto principal do Instagram"
               disabled={pending}
             />
@@ -93,6 +98,7 @@ export function NovaSolicitacaoDialog({ open, onOpenChange }: Props) {
               minLength={10}
               maxLength={5000}
               rows={5}
+              defaultValue={defaultDescricao}
               placeholder="Descreva com detalhes o que precisa. Quanto mais detalhe, melhor!"
               disabled={pending}
             />

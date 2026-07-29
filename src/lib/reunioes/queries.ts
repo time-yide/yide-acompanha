@@ -14,7 +14,7 @@ export const MEETINGS_CACHE_TAG = "meetings" as const;
 const SELECT_LIST = `
   id, titulo, status, source, starts_at, ends_at, duracao_segundos, owner_user_id,
   recording_ready, transcript_ready, summary_ready, insights_ready,
-  lead_id, client_id, tags,
+  lead_id, client_id, tags, visivel_cliente,
   owner:profiles!meetings_owner_user_id_fkey ( nome, avatar_url ),
   client:clients ( nome )
 `;
@@ -42,6 +42,7 @@ export function mapMeetingRow(r: any): MeetingListItem {
     lead_nome: null,
     client_id: r.client_id ?? null,
     client_nome: r.client?.nome ?? null,
+    visivel_cliente: !!r.visivel_cliente,
     tags: r.tags ?? [],
     resumo_preview: null,
     tasks_geradas_count: 0,

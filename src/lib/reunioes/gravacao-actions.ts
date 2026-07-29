@@ -141,6 +141,30 @@ export async function excluirReuniaoAction(meetingId: string): Promise<Res<{ ok:
   return { ok: true };
 }
 
+/** Liga/desliga a visibilidade da reunião no portal do cliente (opt-in).
+ *  Só quem pode ver/gerenciar a reunião muda isso, e exige cliente vinculado. */
+export async function toggleReuniaoVisivelClienteAction(meetingId: string, visivel: boolean): Promise<Res<{ visivel: boolean }>> {
+  const user = await requireAuth();
+  const sb = createServiceRoleClient() as SB;
+  const { data: mt } = await sb
+    .from("meetings")
+    .select("owner_user_id, client_id")
+    .eq("id", meetingId)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (!mt) return { error: "Reunião não encontrada" };
+  if (!podeExcluirReuniao(user, { owner_user_id: mt.owner_user_id })) return { error: "Sem permissão" };
+  if (!mt.client_id) return { error: "Vincule um cliente à reunião antes de compartilhar no portal." };
+  const { error } = await sb
+    .from("meetings")
+    .update({ visivel_cliente: visivel, updated_at: new Date().toISOString() })
+    .eq("id", meetingId);
+  if (error) return { error: "Falha ao atualizar a visibilidade" };
+  revalidatePath(`/reunioes/${meetingId}`);
+  revalidatePath("/cliente");
+  return { visivel };
+}
+
 /** URL assinada pra tocar o áudio de uma reunião (checa visibilidade). */
 export async function urlAudioReuniaoAction(meetingId: string): Promise<Res<{ url: string }>> {
   const { podeVerReuniao } = await import("./permissions");

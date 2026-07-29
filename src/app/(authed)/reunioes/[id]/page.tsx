@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import { getMeetingById } from "@/lib/reunioes/queries";
+import { urlAudioReuniaoAction } from "@/lib/reunioes/gravacao-actions";
 import { canRecordMeeting, podeExcluirReuniao } from "@/lib/reunioes/permissions";
 import {
   formatDuracao,
@@ -23,6 +24,7 @@ import { MeetingDetailTabs } from "@/components/reunioes/MeetingDetailTabs";
 import { MeetingRealtimeWatcher } from "@/components/reunioes/MeetingRealtimeWatcher";
 import { ProcessingBanner } from "@/components/reunioes/ProcessingBanner";
 import { ExcluirReuniaoButton } from "@/components/reunioes/ExcluirReuniaoButton";
+import { CompartilharClienteToggle } from "@/components/reunioes/CompartilharClienteToggle";
 import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
 const ALLOWED_ROLES = [
@@ -148,7 +150,11 @@ export default async function ReuniaoDetailPage({
               <p className="text-sm text-muted-foreground max-w-2xl">{meeting.descricao}</p>
             )}
           </div>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            {/* Opt-in: liberar a reunião no portal do cliente (só com cliente vinculado). */}
+            {podeExcluir && meeting.client_id && (
+              <CompartilharClienteToggle meetingId={meeting.id} inicial={meeting.visivel_cliente} />
+            )}
             {meeting.external_url && (
               <a
                 href={meeting.external_url}
@@ -222,7 +228,7 @@ export default async function ReuniaoDetailPage({
 
         {/* Player */}
         <div className="pt-1">
-          <RecordingPlayer recording={meeting.recording} meetingId={meeting.id} />
+          <RecordingPlayer recording={meeting.recording} meetingId={meeting.id} fetchUrlAction={urlAudioReuniaoAction} />
         </div>
       </header>
 

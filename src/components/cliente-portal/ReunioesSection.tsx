@@ -1,4 +1,5 @@
-import { Mic, MessageSquareText, Video } from "lucide-react";
+import Link from "next/link";
+import { Mic, MessageSquareText, Video, ChevronRight } from "lucide-react";
 import type { ReuniaoListItem } from "@/lib/cliente-portal/queries";
 
 interface Props {
@@ -71,11 +72,12 @@ export function ReunioesSection({ reunioes }: Props) {
 
         <ol className="mt-5 space-y-3">
           {reunioes.map((r) => (
-            <li
-              key={r.id}
-              className="group rounded-xl border bg-background/40 p-4 transition-all hover:border-primary/40 hover:bg-background/70"
-            >
-              <div className="flex items-start gap-3">
+            <li key={r.id}>
+              {/* Clique abre o detalhe (gravação + resumo + tarefas) no portal. */}
+              <Link
+                href={`/cliente/reunioes/${r.id}`}
+                className="group flex items-start gap-3 rounded-xl border bg-background/40 p-4 transition-all hover:border-primary/40 hover:bg-background/70"
+              >
                 <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                   <MessageSquareText className="h-4 w-4" />
                 </div>
@@ -95,7 +97,8 @@ export function ReunioesSection({ reunioes }: Props) {
                     </p>
                   )}
                 </div>
-              </div>
+                <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 self-center text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+              </Link>
             </li>
           ))}
         </ol>

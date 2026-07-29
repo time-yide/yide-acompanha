@@ -117,6 +117,8 @@ export interface MeetingListItem {
   lead_nome: string | null;
   client_id: string | null;
   client_nome: string | null;
+  /** Opt-in: reunião liberada pra aparecer no portal do cliente. */
+  visivel_cliente: boolean;
   tags: string[];
   /** Resumo de uma linha pra preview no card. */
   resumo_preview: string | null;

@@ -2,21 +2,32 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Play, Pause, Volume2, Download, FileAudio, Loader2, AlertTriangle } from "lucide-react";
-import { formatDuracao, formatTimestamp, type MeetingRecording } from "@/lib/reunioes/tipos";
-import { urlAudioReuniaoAction } from "@/lib/reunioes/gravacao-actions";
+import { formatDuracao, formatTimestamp } from "@/lib/reunioes/tipos";
+
+/** Só os campos que o player usa — serve tanto o detalhe interno quanto o
+ *  DTO "versão cliente" do portal. */
+interface RecordingLite {
+  audio_url: string | null;
+  duracao_segundos: number | null;
+  formato: string | null;
+  size_bytes: number | null;
+}
 
 interface Props {
-  recording: MeetingRecording | null;
+  recording: RecordingLite | null;
   meetingId: string;
+  /** Action que gera a URL assinada (checa permissão). Interno e portal do
+   *  cliente passam actions diferentes — desacopla o player da permissão. */
+  fetchUrlAction: (meetingId: string) => Promise<{ url: string } | { error: string }>;
 }
 
 /**
  * Player de áudio da gravação. `recording.audio_url` guarda o CAMINHO no bucket
- * (privado), não uma URL tocável — a URL assinada é gerada pela action
- * urlAudioReuniaoAction (que também checa permissão). Buscamos essa URL ao
- * montar, então o play() roda no gesto do clique (sem bloqueio de autoplay).
+ * (privado), não uma URL tocável — a URL assinada vem de `fetchUrlAction` (que
+ * também checa permissão). Buscamos essa URL ao montar, então o play() roda no
+ * gesto do clique (sem bloqueio de autoplay).
  */
-export function RecordingPlayer({ recording, meetingId }: Props) {
+export function RecordingPlayer({ recording, meetingId, fetchUrlAction }: Props) {
   const temGravacao = !!recording?.audio_url;
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
@@ -31,7 +42,7 @@ export function RecordingPlayer({ recording, meetingId }: Props) {
   useEffect(() => {
     if (!temGravacao) return;
     let alive = true;
-    urlAudioReuniaoAction(meetingId)
+    fetchUrlAction(meetingId)
       .then((r) => {
         if (!alive) return;
         if ("error" in r) setErro(r.error);
@@ -40,7 +51,7 @@ export function RecordingPlayer({ recording, meetingId }: Props) {
       .catch(() => { if (alive) setErro("Falha ao carregar a gravação."); })
       .finally(() => { if (alive) setCarregando(false); });
     return () => { alive = false; };
-  }, [meetingId, temGravacao]);
+  }, [meetingId, temGravacao, fetchUrlAction]);
 
   if (!recording || !recording.audio_url) {
     return (
