@@ -57,11 +57,13 @@ export async function novaVersaoAction(reviewId: string, titulo: string): Promis
   return assinaturaUpload(guid);
 }
 
-/** Marca a versão como pronta (chamado após o Bunny terminar de processar). */
-export async function confirmarProntoAction(reviewId: string, bunnyVideoId: string): Promise<Res<{ pronto: boolean }>> {
+/** Marca a versão como pronta (chamado após o Bunny terminar de processar).
+ *  Devolve `falhou: true` quando o Bunny reportou erro de codificação/upload —
+ *  o chamador avisa o usuário pra reenviar em vez de deixar um vídeo quebrado. */
+export async function confirmarProntoAction(reviewId: string, bunnyVideoId: string): Promise<Res<{ pronto: boolean; falhou: boolean }>> {
   const user = await requireAuth();
   if (!pode(user.role)) return { error: "Sem permissão" };
-  let st: { pronto: boolean; duracaoSeg: number };
+  let st: { pronto: boolean; falhou: boolean; duracaoSeg: number };
   try { st = await statusVideo(bunnyVideoId); }
   catch (e) { return { error: msgBunny(e) }; }
   if (st.pronto) {
@@ -69,7 +71,7 @@ export async function confirmarProntoAction(reviewId: string, bunnyVideoId: stri
     await sb.from("review_versao").update({ pronto: true, duracao_seg: st.duracaoSeg }).eq("bunny_video_id", bunnyVideoId);
     revalidatePath(`/audiovisual/review/${reviewId}`);
   }
-  return { pronto: st.pronto };
+  return { pronto: st.pronto, falhou: st.falhou };
 }
 
 export async function comentarAction(
