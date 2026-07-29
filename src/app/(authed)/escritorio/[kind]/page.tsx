@@ -39,9 +39,6 @@ export default async function CanalPage({ params }: { params: Promise<{ kind: st
     getProfileIdsForActiveUnit(),
   ]);
 
-  const channel = await getChannelByKind(kind, unitId);
-  if (!channel) notFound();
-
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = (await createClient()) as any;
   // DM autocomplete ("Pessoas") só de quem está na mesma unidade.
@@ -58,12 +55,21 @@ export default async function CanalPage({ params }: { params: Promise<{ kind: st
       pessoasQ = pessoasQ.in("id", unitProfileIds);
     }
   }
-  const [messages, sidebarChannels, mentionables, pessoasRes, deletedChannels, reads] = await Promise.all([
-    listMessages(channel.id, 50),
+
+  // getChannelByKind roda EM PARALELO com as buscas que não dependem do canal
+  // (sidebar, menções, pessoas, canais apagados) — antes ele serializava antes
+  // de tudo. Só messages+reads precisam do channel.id, então vão numa 2ª onda.
+  const [channel, sidebarChannels, mentionables, pessoasRes, deletedChannels] = await Promise.all([
+    getChannelByKind(kind, unitId),
     listChannelsWithUnread(user.id, user.role, unitId),
     listMentionables(unitProfileIds),
     pessoasQ.order("nome"),
     listDeletedChannels(user.role),
+  ]);
+  if (!channel) notFound();
+
+  const [messages, reads] = await Promise.all([
+    listMessages(channel.id, 50),
     listChannelReads(channel.id),
   ]);
   const pessoas = (pessoasRes.data ?? []) as Array<{ id: string; nome: string; role: string; avatar_url: string | null }>;
