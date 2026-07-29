@@ -7,7 +7,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { requireAuth } from "@/lib/auth/session";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 import { dispatchChatNotification } from "@/lib/notificacoes/dispatch-chat";
-import { canAccessChannel, canAccessMemberChannel, isMemberBasedKind, type Channel, type ChannelKind } from "./types";
+import { canAccessChannel, canAccessMemberChannel, channelLink, isMemberBasedKind, type Channel, type ChannelKind } from "./types";
 import { ESCRITORIO_UNREAD_TAG } from "./queries";
 
 type ActionResult = { error?: string; success?: boolean; id?: string; created_at?: string };
@@ -126,7 +126,7 @@ export async function sendChatMessageAction(
         evento_tipo: "task_assigned",
         titulo: `Resposta em ${channel.nome}`,
         mensagem: `${actor.nome} respondeu: ${preview}`,
-        link: `/escritorio/${channel.kind}`,
+        link: channelLink(channel.kind as ChannelKind, parsed.data.channel_id),
         user_ids_extras: [original.autor_id],
         source_user_id: actor.id,
       });

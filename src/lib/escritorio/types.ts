@@ -108,6 +108,19 @@ export function isMemberBasedKind(kind: ChannelKind): boolean {
   return kind === "direct" || kind === "grupo";
 }
 
+/**
+ * Rota do canal no portal do escritório a partir do kind + id.
+ * DM e grupo têm rota própria com id (`/escritorio/dm/[id]`,
+ * `/escritorio/grupo/[id]`); os canais fixos vão por `/escritorio/[kind]`.
+ * Usar SEMPRE isto pra montar links (ex: notificações) — `/escritorio/${kind}`
+ * cru dava 404 pra DM ('direct') e grupo.
+ */
+export function channelLink(kind: ChannelKind, channelId: string): string {
+  if (kind === "direct") return `/escritorio/dm/${channelId}`;
+  if (kind === "grupo") return `/escritorio/grupo/${channelId}`;
+  return `/escritorio/${kind}`;
+}
+
 /** Acesso a canal por member_ids (DM ou grupo): user precisa estar na lista. */
 export function canAccessMemberChannel(channel: Channel, userId: string): boolean {
   if (!isMemberBasedKind(channel.kind) || !channel.member_ids) return false;

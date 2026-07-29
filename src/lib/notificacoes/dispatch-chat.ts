@@ -2,7 +2,7 @@
 import { revalidateTag } from "next/cache";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { sendWebPushToUser } from "@/lib/push/server";
-import { canAccessChannel, type ChannelKind } from "@/lib/escritorio/types";
+import { canAccessChannel, channelLink, type ChannelKind } from "@/lib/escritorio/types";
 
 interface DispatchArgs {
   messageId: string;
@@ -58,7 +58,8 @@ export async function dispatchChatNotification(args: DispatchArgs): Promise<void
   const preview = args.conteudo.length > 100
     ? args.conteudo.slice(0, 100) + "…"
     : args.conteudo;
-  const link = `/escritorio/${args.channelKind}`;
+  // DM/grupo têm rota própria com id — `/escritorio/${kind}` cru dava 404.
+  const link = channelLink(args.channelKind, args.channelId);
 
   // Insert in-app notifications em batch
   const rows = recipientIds.map((uid) => {
