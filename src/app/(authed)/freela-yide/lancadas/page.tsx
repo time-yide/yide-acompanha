@@ -34,7 +34,7 @@ export default async function LancadasPage() {
         <p className="text-sm text-muted-foreground">Todas as oportunidades já lançadas, com status e resumo.</p>
       </div>
       <ResumoSubidos ops={todasLancadas} />
-      <OportunidadesGrid ops={todasLancadas} gestao={gestao} podePegar={podePegar} />
+      <OportunidadesGrid ops={todasLancadas} gestao={gestao} podePegar={podePegar} currentUserId={user.id} />
     </div>
   );
 }

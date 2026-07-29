@@ -55,7 +55,7 @@ export default async function FreelaYidePage() {
                 </div>
               )}
             </div>
-            <OportunidadesGrid ops={todas} gestao={gestao} podePegar={podePegar} />
+            <OportunidadesGrid ops={todas} gestao={gestao} podePegar={podePegar} currentUserId={user.id} />
           </section>
 
           <section className="space-y-2">
