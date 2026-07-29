@@ -391,12 +391,25 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
     // Fallback: se a migration de videomaker_status ainda não foi aplicada,
     // insere sem os campos de delegação (modo legado, visível direto na agenda).
     if (isVideomaker && (msg.includes("videomaker_status") || msg.includes("videomaker_assigned_id") || msg.includes("schema cache"))) {
-      console.warn("[calendario] migration videomaker_* não aplicada - fallback sem delegação");
+      console.warn("[calendario] insert videomaker falhou, tentando fallback sem delegação:", msg);
       createResult = await sb
         .from("calendar_events")
         .insert(basePayload)
         .select("id")
         .single();
+      // Se o fallback bate na constraint chk_videomaker_status_required, é o
+      // caso onde a migration ESTÁ aplicada (constraint existe no Postgres) mas
+      // o cache de schema do PostgREST/Supabase está velho e rejeita as colunas
+      // videomaker_*. Erro claro e acionável em vez do críptico do Postgres.
+      const fbMsg = String(createResult.error?.message ?? "");
+      if (fbMsg.includes("chk_videomaker_status_required")) {
+        console.error("[calendario] schema cache do PostgREST desatualizado p/ colunas videomaker_*");
+        return {
+          error:
+            "Não deu pra salvar a gravação: o banco tem os campos de videomaker, mas o cache do Supabase está desatualizado. " +
+            "Recarregue o schema no Supabase (Settings → API → 'Reload schema', ou rode no SQL Editor: NOTIFY pgrst, 'reload schema';) e tente de novo.",
+        };
+      }
     }
   }
 
