@@ -10,11 +10,11 @@ import { criarReuniaoGravacaoAction, registrarGravacaoAction } from "@/lib/reuni
 
 type Modo = "presencial" | "online";
 
-export function GravadorReuniao({ clientId, autoAbrir = false }: { clientId: string; autoAbrir?: boolean }) {
+export function GravadorReuniao({ clientId, tituloInicial = "", autoAbrir = false }: { clientId?: string; tituloInicial?: string; autoAbrir?: boolean }) {
   const router = useRouter();
   const [aberto, setAberto] = useState(autoAbrir);
   const [modo, setModo] = useState<Modo>("presencial");
-  const [titulo, setTitulo] = useState("");
+  const [titulo, setTitulo] = useState(tituloInicial);
   const [consentiu, setConsentiu] = useState(false);
   const [gravando, setGravando] = useState(false);
   const [segundos, setSegundos] = useState(0);
@@ -96,7 +96,7 @@ export function GravadorReuniao({ clientId, autoAbrir = false }: { clientId: str
     if (blob.size === 0) { toast.error("Gravação vazia."); return; }
 
     start(async () => {
-      const r = await criarReuniaoGravacaoAction({ clientId, titulo, consentiu: true, online: modo === "online" });
+      const r = await criarReuniaoGravacaoAction({ clientId: clientId ?? null, titulo, consentiu: true, online: modo === "online" });
       if ("error" in r) { toast.error(r.error); return; }
 
       const supabase = createClient();
