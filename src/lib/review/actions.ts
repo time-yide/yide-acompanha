@@ -68,7 +68,12 @@ export async function confirmarProntoAction(reviewId: string, bunnyVideoId: stri
   catch (e) { return { error: msgBunny(e) }; }
   if (st.pronto) {
     const sb = createServiceRoleClient() as SB;
-    await sb.from("review_versao").update({ pronto: true, duracao_seg: st.duracaoSeg }).eq("bunny_video_id", bunnyVideoId);
+    await sb.from("review_versao").update({ pronto: true, falhou: false, duracao_seg: st.duracaoSeg }).eq("bunny_video_id", bunnyVideoId);
+    revalidatePath(`/audiovisual/review/${reviewId}`);
+  } else if (st.falhou) {
+    // Persiste a falha pro card mostrar "Falhou — reenviar" (em vez de card preto).
+    const sb = createServiceRoleClient() as SB;
+    await sb.from("review_versao").update({ falhou: true }).eq("bunny_video_id", bunnyVideoId);
     revalidatePath(`/audiovisual/review/${reviewId}`);
   }
   return { pronto: st.pronto, falhou: st.falhou };
