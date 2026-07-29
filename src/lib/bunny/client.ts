@@ -99,18 +99,32 @@ export function urlThumbnail(videoId: string): string {
 }
 
 /**
+ * URLs de MP4 pra download, da melhor resolução pra pior. Requer "MP4 Fallback"
+ * habilitado na library. Vazio se o Bunny não está configurado ou sem resolução.
+ *
+ * IMPORTANTE: `availableResolutions` reflete o HLS — nem toda resolução listada
+ * tem o `play_XXXp.mp4` gerado (MP4 Fallback desligado na época, ou vídeo
+ * antigo). Por isso devolvemos TODAS as candidatas e o chamador tenta em ordem
+ * até uma responder 200, em vez de apostar numa só.
+ */
+export async function mp4CandidateUrls(videoId: string): Promise<string[]> {
+  if (!bunnyConfigurado()) return [];
+  const { apiKey, libraryId, cdn } = creds();
+  const resp = await fetch(`${BASE}/library/${libraryId}/videos/${videoId}`, { headers: { AccessKey: apiKey } });
+  if (!resp.ok) return [];
+  const data = (await resp.json()) as { availableResolutions?: string | null };
+  const res = (data.availableResolutions ?? "").split(",").map((r) => r.trim()).filter(Boolean);
+  const ordem = ["2160p", "1440p", "1080p", "720p", "480p", "360p", "240p"];
+  const ordenadas = ordem.filter((r) => res.includes(r));
+  for (const r of res) if (!ordenadas.includes(r)) ordenadas.push(r); // resoluções fora da lista, no fim
+  return ordenadas.map((r) => `https://${cdn}/${videoId}/play_${r}.mp4`);
+}
+
+/**
  * URL do MP4 pra download da melhor resolução disponível. Requer "MP4 fallback"
  * habilitado na library. Retorna null se o Bunny não está configurado ou sem MP4.
  */
 export async function urlDownloadMp4(videoId: string): Promise<string | null> {
-  if (!bunnyConfigurado()) return null;
-  const { apiKey, libraryId, cdn } = creds();
-  const resp = await fetch(`${BASE}/library/${libraryId}/videos/${videoId}`, { headers: { AccessKey: apiKey } });
-  if (!resp.ok) return null;
-  const data = (await resp.json()) as { availableResolutions?: string | null };
-  const res = (data.availableResolutions ?? "").split(",").map((r) => r.trim()).filter(Boolean);
-  const ordem = ["2160p", "1440p", "1080p", "720p", "480p", "360p", "240p"];
-  const melhor = ordem.find((r) => res.includes(r)) ?? res[0];
-  if (!melhor) return null;
-  return `https://${cdn}/${videoId}/play_${melhor}.mp4`;
+  const cands = await mp4CandidateUrls(videoId);
+  return cands[0] ?? null;
 }
