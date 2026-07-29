@@ -15,9 +15,12 @@ function fmtPrazo(iso: string): string {
   return d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
-export function OportunidadeCard({ op, gestao = false, podePegar = true }: { op: OportunidadeRow; gestao?: boolean; podePegar?: boolean }) {
+export function OportunidadeCard({ op, gestao = false, podePegar = true, currentUserId }: { op: OportunidadeRow; gestao?: boolean; podePegar?: boolean; currentUserId?: string }) {
   const router = useRouter();
   const [pending, start] = useTransition();
+  // Gestão OU quem lançou pode editar/excluir o próprio freela (o backend já
+  // permite os dois — antes o botão só aparecia pra gestão).
+  const podeGerenciar = gestao || (!!currentUserId && op.criado_por === currentUserId);
   const def = STATUS_OP_DEFS[op.status];
   const tipoDef = TIPO_OP_DEFS[op.tipo];
   function pegar() {
@@ -77,7 +80,7 @@ export function OportunidadeCard({ op, gestao = false, podePegar = true }: { op:
       {op.status !== "disponivel" && op.pego_por_nome && (
         <p className="text-[11px] text-muted-foreground">Com <strong className="text-foreground">{op.pego_por_nome}</strong></p>
       )}
-      {gestao && (
+      {podeGerenciar && (
         <div className="flex items-center gap-2 border-t pt-2">
           <EditarOportunidadeButton op={op} />
           <button

@@ -25,6 +25,8 @@ export interface OportunidadeRow {
   negociacao_em: string | null;
   fechada_em: string | null;
   created_at: string;
+  /** Quem lançou — usado pra liberar Editar/Excluir pro próprio criador. */
+  criado_por: string | null;
   pontos: number;
 }
 
@@ -86,7 +88,7 @@ export interface FreelaStats {
 }
 
 const SELECT =
-  "id, titulo, descricao, cliente_nome, contato, horario, data_hora, duracao_min, valor_comissao, status, tipo, entrega_urgente, prazo_entrega, pego_por, pego_em, negociacao_em, fechada_em, created_at, responsavel:profiles!freela_oportunidades_pego_por_fkey(nome)";
+  "id, titulo, descricao, cliente_nome, contato, horario, data_hora, duracao_min, valor_comissao, status, tipo, entrega_urgente, prazo_entrega, pego_por, pego_em, negociacao_em, fechada_em, created_at, criado_por, responsavel:profiles!freela_oportunidades_pego_por_fkey(nome)";
 
 function mapRow(row: Record<string, unknown>): OportunidadeRow {
   const status = row.status as StatusOp;
@@ -111,6 +113,7 @@ function mapRow(row: Record<string, unknown>): OportunidadeRow {
     negociacao_em: (row.negociacao_em as string | null) ?? null,
     fechada_em: (row.fechada_em as string | null) ?? null,
     created_at: row.created_at as string,
+    criado_por: (row.criado_por as string | null) ?? null,
   };
   return { ...base, pontos: calcularPontos({ status, negociacao_em: base.negociacao_em, fechada_em: base.fechada_em, valor_comissao }) };
 }
