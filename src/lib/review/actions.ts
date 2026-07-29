@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/lib/auth/session";
 import { canAccess, canManageAnyTask } from "@/lib/auth/permissions";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { criarVideo, assinaturaUpload, statusVideo, type UploadTus } from "@/lib/bunny/client";
+import { criarVideo, assinaturaUpload, statusVideo, reencodeVideo, type UploadTus } from "@/lib/bunny/client";
 import { podeTransicionar, type ReviewStatus } from "./schema";
 import { destravado } from "./gate";
 import { syncTarefaComReview } from "./task-sync";
@@ -77,6 +77,27 @@ export async function confirmarProntoAction(reviewId: string, bunnyVideoId: stri
     revalidatePath(`/audiovisual/review/${reviewId}`);
   }
   return { pronto: st.pronto, falhou: st.falhou };
+}
+
+/**
+ * Reprocessa (re-encoda) o vídeo no Bunny pra GERAR O MP4 DE DOWNLOAD. Vídeos
+ * antigos, encodados antes do MP4 Fallback estar ligado na library, não têm o
+ * play_XXX.mp4 → o download dá 403. O reencode regenera as renditions com as
+ * configs atuais (MP4 Fallback ON) e o download passa a funcionar. Leva alguns
+ * minutos; enquanto isso o vídeo volta pra "processando".
+ */
+export async function reprocessarVideoAction(versaoId: string): Promise<Res<{ ok: true }>> {
+  const user = await requireAuth();
+  if (!pode(user.role)) return { error: "Sem permissão" };
+  const sb = createServiceRoleClient() as SB;
+  const { data: v } = await sb.from("review_versao").select("bunny_video_id, review_video_id").eq("id", versaoId).maybeSingle();
+  if (!v?.bunny_video_id) return { error: "Vídeo não encontrado" };
+  const ok = await reencodeVideo(v.bunny_video_id);
+  if (!ok) return { error: "O Bunny não aceitou o reprocessamento. Tente de novo em instantes." };
+  // Volta pra "processando" até o reencode terminar (aí o MP4 e a capa saem).
+  await sb.from("review_versao").update({ pronto: false, falhou: false }).eq("id", versaoId);
+  revalidatePath(`/audiovisual/review/${v.review_video_id}`);
+  return { ok: true };
 }
 
 export async function comentarAction(

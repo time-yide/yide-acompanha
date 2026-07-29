@@ -8,13 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Player, type PlayerHandle } from "./Player";
 import { Comentarios } from "./Comentarios";
 import { UploadVersao } from "./UploadVersao";
-import { aprovarVideoAction, novaVersaoAction, pedirAlteracaoAction, aprovarInternoAction } from "@/lib/review/actions";
+import { aprovarVideoAction, novaVersaoAction, pedirAlteracaoAction, aprovarInternoAction, reprocessarVideoAction } from "@/lib/review/actions";
 import { registrarAssistidoAction } from "@/lib/review/tarefa-actions";
 import { PCT_MINIMO, destravado } from "@/lib/review/gate";
 import { STATUS_LABEL } from "@/lib/review/schema";
 import type { ReviewFull } from "@/lib/review/queries";
 import type { UploadTus } from "@/lib/bunny/client";
-import { ArrowLeft, Check, CheckCircle2, Copy, Download, Lock, Plus, RotateCcw, Send } from "lucide-react";
+import { ArrowLeft, Check, CheckCircle2, Copy, Download, Lock, Plus, RefreshCw, RotateCcw, Send } from "lucide-react";
 
 export function ReviewView({ review, podeGerenciar, podeAprovar, onVoltar }: { review: ReviewFull; podeGerenciar: boolean; podeAprovar: boolean; onVoltar?: () => void }) {
   const router = useRouter();
@@ -104,6 +104,16 @@ export function ReviewView({ review, podeGerenciar, podeAprovar, onVoltar }: { r
     // (window.open na URL do Bunny tocava inline e o time não conseguia salvar).
     window.location.href = `/api/review/download/${versao.id}`;
   }
+  function reprocessar() {
+    if (!versao) return;
+    if (!window.confirm("Reprocessar este vídeo no Bunny pra gerar o arquivo de download? Leva alguns minutos — depois é só tentar baixar de novo.")) return;
+    start(async () => {
+      const r = await reprocessarVideoAction(versao.id);
+      if ("error" in r) { toast.error(r.error); return; }
+      toast.success("Reprocessando no Bunny. Em alguns minutos, tente baixar de novo.");
+      router.refresh();
+    });
+  }
   function copiarLinkCliente() {
     if (!review.aprovacaoToken) return;
     const url = `${window.location.origin}/aprovacao-video/${review.aprovacaoToken}`;
@@ -184,6 +194,13 @@ export function ReviewView({ review, podeGerenciar, podeAprovar, onVoltar }: { r
           {versao && (
             <Button type="button" size="sm" variant="outline" onClick={baixar} disabled={pending || !liberado} className="border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white">
               <Download className="mr-2 h-4 w-4" />Baixar
+            </Button>
+          )}
+          {versao && podeGerenciar && (
+            // Gera o MP4 de download de vídeos antigos (sem MP4 Fallback na época).
+            // Use quando o "Baixar" der erro de MP4 não encontrado.
+            <Button type="button" size="sm" variant="outline" onClick={reprocessar} disabled={pending} title="Gerar o arquivo de download (reprocessa no Bunny)" className="border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white">
+              <RefreshCw className="mr-2 h-4 w-4" />Gerar MP4
             </Button>
           )}
           {podeGerenciar && !uploadNova && (

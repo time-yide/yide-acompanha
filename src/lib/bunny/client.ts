@@ -28,6 +28,22 @@ export async function criarVideo(titulo: string): Promise<string> {
   return data.guid;
 }
 
+/**
+ * Re-encoda o vídeo no Bunny, regenerando as renditions com as CONFIGS ATUAIS
+ * da library (incluindo MP4 Fallback). Serve pra gerar o MP4 de download de
+ * vídeos antigos, encodados ANTES do MP4 Fallback estar ligado. Leva alguns
+ * minutos pra concluir. Retorna true se o Bunny aceitou o pedido.
+ */
+export async function reencodeVideo(videoId: string): Promise<boolean> {
+  if (!bunnyConfigurado() || !videoId) return false;
+  const { apiKey, libraryId } = creds();
+  const resp = await fetch(`${BASE}/library/${libraryId}/videos/${videoId}/reencode`, {
+    method: "POST",
+    headers: { AccessKey: apiKey },
+  });
+  return resp.ok;
+}
+
 /** Deleta um vídeo no Bunny (best-effort — não lança se falhar/inexistir). */
 export async function deletarVideo(videoId: string): Promise<void> {
   if (!bunnyConfigurado() || !videoId) return;
