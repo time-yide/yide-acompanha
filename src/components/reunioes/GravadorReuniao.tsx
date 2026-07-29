@@ -38,6 +38,16 @@ export function GravadorReuniao({ clientId, autoAbrir = false }: { clientId: str
   async function iniciar() {
     if (!consentiu) { toast.error("Confirme o aviso de gravação (LGPD)."); return; }
     try {
+      // getDisplayMedia PRECISA ser a 1ª chamada async no gesto do clique
+      // (regra do browser: "must be called from a user gesture handler"). Antes
+      // o await do microfone vinha primeiro e "queimava" o gesto → erro no
+      // modo online. Por isso capturamos a tela ANTES do microfone.
+      let disp: MediaStream | null = null;
+      if (modo === "online") {
+        disp = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+        streamsRef.current.push(disp);
+      }
+
       const mic = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamsRef.current.push(mic);
 
@@ -46,9 +56,7 @@ export function GravadorReuniao({ clientId, autoAbrir = false }: { clientId: str
       const dest = ctx.createMediaStreamDestination();
       ctx.createMediaStreamSource(mic).connect(dest);
 
-      if (modo === "online") {
-        const disp = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-        streamsRef.current.push(disp);
+      if (disp) {
         disp.getVideoTracks().forEach((t) => t.stop());
         if (disp.getAudioTracks().length === 0) {
           toast.error("Não veio áudio da aba. Ao compartilhar, marque 'Compartilhar áudio da guia'.");
