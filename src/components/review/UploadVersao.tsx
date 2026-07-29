@@ -25,10 +25,19 @@ export function UploadVersao({ reviewId, upload, titulo }: { reviewId: string; u
     }
     setProg(null);
     toast.success("Enviado! Processando o vídeo…");
-    // Poll status até ficar pronto (até ~2 min).
+    // Poll status até ficar pronto (até ~2 min). Se o Bunny reportar falha de
+    // codificação (arquivo corrompido/incompatível), avisa na hora pra reenviar
+    // em vez de deixar um vídeo quebrado (capa preta que não toca).
     for (let i = 0; i < 40; i++) {
       const r = await confirmarProntoAction(reviewId, upload.videoId);
-      if (!("error" in r) && r.pronto) break;
+      if (!("error" in r)) {
+        if (r.falhou) {
+          toast.error("O vídeo falhou ao processar. O arquivo pode estar corrompido ou num formato não suportado — tente reenviar.", { duration: 10000 });
+          router.refresh();
+          return;
+        }
+        if (r.pronto) break;
+      }
       await new Promise((res) => setTimeout(res, 3000));
     }
     router.refresh();

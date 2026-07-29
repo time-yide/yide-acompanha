@@ -61,15 +61,25 @@ export function assinaturaUpload(videoId: string): UploadTus {
   return { endpoint: `${BASE}/tusupload`, libraryId, videoId, signature, expiration };
 }
 
-/** Status do vídeo (4 = pronto pra tocar). */
-export async function statusVideo(videoId: string): Promise<{ pronto: boolean; duracaoSeg: number }> {
+/**
+ * Status do vídeo no Bunny.
+ * Códigos: 0-3 processando, 4 finished (ok), 5 error, 6 upload failed,
+ * 7/8 JIT (já playável).
+ *
+ * BUG antigo: `status >= 4` marcava ERROR (5) e UPLOAD FAILED (6) como
+ * "pronto" — um vídeo que falhou ao codificar virava uma capa preta que não
+ * toca, parecendo "arquivo corrompido" sem aviso nenhum. Agora 5/6 = `falhou`
+ * e NÃO conta como pronto.
+ */
+export async function statusVideo(videoId: string): Promise<{ pronto: boolean; falhou: boolean; duracaoSeg: number }> {
   const { apiKey, libraryId } = creds();
   const resp = await fetch(`${BASE}/library/${libraryId}/videos/${videoId}`, {
     headers: { AccessKey: apiKey },
   });
   if (!resp.ok) throw new Error(`BUNNY_STATUS_FALHOU:${resp.status}`);
   const data = (await resp.json()) as { status: number; length: number };
-  return { pronto: data.status >= 4, duracaoSeg: Math.round(data.length ?? 0) };
+  const falhou = data.status === 5 || data.status === 6;
+  return { pronto: data.status >= 4 && !falhou, falhou, duracaoSeg: Math.round(data.length ?? 0) };
 }
 
 /** true se as envs do Bunny estão setadas. Não lança. */
