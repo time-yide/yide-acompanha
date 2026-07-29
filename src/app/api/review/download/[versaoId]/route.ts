@@ -1,6 +1,6 @@
 import { requireAuth } from "@/lib/auth/session";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { urlDownloadMp4 } from "@/lib/bunny/client";
+import { mp4CandidateUrls } from "@/lib/bunny/client";
 import { destravado } from "@/lib/review/gate";
 
 export const dynamic = "force-dynamic";
@@ -44,9 +44,9 @@ export async function GET(
     .maybeSingle();
   if (!v) return new Response("Versão não encontrada.", { status: 404 });
 
-  const url = await urlDownloadMp4(v.bunny_video_id as string);
-  if (!url) {
-    return new Response("Download indisponível — habilite o 'MP4 fallback' na biblioteca do Bunny.", { status: 502 });
+  const candidatos = await mp4CandidateUrls(v.bunny_video_id as string);
+  if (candidatos.length === 0) {
+    return new Response("Download indisponível — habilite o 'MP4 Fallback' na biblioteca do Bunny.", { status: 502 });
   }
 
   const { data: rv } = await sb
@@ -58,9 +58,25 @@ export async function GET(
     .normalize("NFKD").replace(/[^\w\-]+/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "") || "video";
   const nomeArquivo = `${base}.mp4`;
 
-  const upstream = await fetch(url);
-  if (!upstream.ok || !upstream.body) {
-    return new Response("Falha ao baixar o vídeo do Bunny.", { status: 502 });
+  // Tenta cada resolução até uma responder 200 — nem toda resolução do HLS tem
+  // o MP4 gerado. Se nenhuma funcionar, é MP4 Fallback não gerado pra este vídeo.
+  let upstream: Response | null = null;
+  let ultimoStatus = 0;
+  for (const url of candidatos) {
+    try {
+      const r = await fetch(url);
+      if (r.ok && r.body) { upstream = r; break; }
+      ultimoStatus = r.status;
+    } catch {
+      ultimoStatus = 0;
+    }
+  }
+  if (!upstream || !upstream.body) {
+    console.error("[review/download] MP4 indisponível", { versaoId, bunny: v.bunny_video_id, ultimoStatus, candidatos });
+    return new Response(
+      `Não consegui baixar o MP4 deste vídeo (status ${ultimoStatus}). O 'MP4 Fallback' do Bunny provavelmente não foi gerado pra ele — vídeos enviados antes de ligar essa opção precisam ser reenviados/reprocessados na library.`,
+      { status: 502 },
+    );
   }
 
   const headers: Record<string, string> = {
