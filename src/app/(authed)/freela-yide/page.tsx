@@ -23,14 +23,15 @@ export default async function FreelaYidePage() {
   const podeCriar = ROLES_PODE_CRIAR.includes(user.role);
   const podePegar = !ROLES_NAO_PEGA.includes(user.role); // gestão + coordenador não pegam freela
 
-  const [todas, minhas, ranking, historico, meta, stats] = await Promise.all([
+  const [todas, minhas, ranking, historico, meta] = await Promise.all([
     listOportunidades(orgId, true),
     listMinhas(orgId, user.id),
     getRanking(orgId),
     getHistorico(orgId),
     getMetaAtual(orgId),
-    getStats(orgId, user.id),
   ]);
+  // Pura, sem query: usa `todas` (disponíveis) + `ranking` já buscados.
+  const stats = getStats(todas, ranking, user.id);
 
   // XP do nível = pontos acumulados de todos os tempos (historico.geral). 0 se ainda não pontuou.
   const xpTotal = historico.geral.find((g) => g.user_id === user.id)?.pontos ?? 0;

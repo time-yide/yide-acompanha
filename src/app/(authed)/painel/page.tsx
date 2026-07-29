@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { after } from "next/server";
 import { requireAuth } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { getMonthlyChecklists, type ChecklistFilter } from "@/lib/painel/queries";
@@ -152,12 +153,11 @@ export default async function PainelPage({
   // Roda só pra roles privilegiados (assessor/designer não disparam — eles
   // só consomem os checklists).
   if (PRIVILEGED_ROLES.includes(user.role)) {
-    try {
-      await ensureMonthlyChecklistsImpl(proximoMes);
-    } catch {
-      // Falha silenciosa: não bloqueia o render. Cron noturno (ou botão
-      // "Atualizar painel") cobre se algo der errado aqui.
-    }
+    // Roda FORA do caminho de render (after): esse bloco faz vários SELECTs +
+    // INSERT/UPDATE e estava com `await` bloqueando o TTFB de todo render de
+    // adm/coord. É criação PROATIVA do próximo mês — cron noturno + botão
+    // "Atualizar painel" são a rede de segurança se o after falhar.
+    after(() => ensureMonthlyChecklistsImpl(proximoMes).catch(() => {}));
   }
 
   return (
