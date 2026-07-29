@@ -49,7 +49,9 @@ export async function carregarReview(id: string, userId: string): Promise<Review
           const st = await statusVideo(v.bunny_video_id);
           if (st.pronto) {
             v.pronto = true;
-            await sb.from("review_versao").update({ pronto: true, duracao_seg: st.duracaoSeg }).eq("id", v.id);
+            await sb.from("review_versao").update({ pronto: true, falhou: false, duracao_seg: st.duracaoSeg }).eq("id", v.id);
+          } else if (st.falhou) {
+            await sb.from("review_versao").update({ falhou: true }).eq("id", v.id);
           }
         } catch {
           // ignora — segue como processando
@@ -116,6 +118,8 @@ export interface VideoDoBloco {
   thumbUrl: string;
   versaoAtualId: string | null;
   prontoAtual: boolean;
+  /** Bunny reportou erro de codificação nesta versão (status 5/6). */
+  falhouAtual: boolean;
   assistidoPct: number;
 }
 
@@ -139,13 +143,13 @@ export async function getReviewsDaTarefa(taskId: string, userId: string): Promis
   // é a 1ª ocorrência (ordenado por numero desc).
   const { data: versoesData } = await sb
     .from("review_versao")
-    .select("id, review_video_id, bunny_video_id, pronto, numero")
+    .select("id, review_video_id, bunny_video_id, pronto, falhou, numero")
     .in("review_video_id", reviewIds)
     .order("numero", { ascending: false });
-  const atualPorReview = new Map<string, { id: string; bunny_video_id: string; pronto: boolean }>();
-  for (const v of (versoesData ?? []) as Array<{ id: string; review_video_id: string; bunny_video_id: string; pronto: boolean; numero: number }>) {
+  const atualPorReview = new Map<string, { id: string; bunny_video_id: string; pronto: boolean; falhou: boolean }>();
+  for (const v of (versoesData ?? []) as Array<{ id: string; review_video_id: string; bunny_video_id: string; pronto: boolean; falhou: boolean; numero: number }>) {
     if (!atualPorReview.has(v.review_video_id)) {
-      atualPorReview.set(v.review_video_id, { id: v.id, bunny_video_id: v.bunny_video_id, pronto: v.pronto });
+      atualPorReview.set(v.review_video_id, { id: v.id, bunny_video_id: v.bunny_video_id, pronto: v.pronto, falhou: v.falhou });
     }
   }
 
@@ -170,6 +174,7 @@ export async function getReviewsDaTarefa(taskId: string, userId: string): Promis
       thumbUrl: atual ? urlThumbnail(atual.bunny_video_id) : "",
       versaoAtualId: atual?.id ?? null,
       prontoAtual: atual?.pronto ?? false,
+      falhouAtual: atual?.falhou ?? false,
       assistidoPct: atual ? (assistidoPorVersao.get(atual.id) ?? 0) : 0,
     };
   });

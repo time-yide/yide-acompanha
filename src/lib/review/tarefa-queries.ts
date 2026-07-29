@@ -36,7 +36,7 @@ export async function getReviewDaTarefa(taskId: string, userId: string): Promise
   // Self-heal do status (igual carregarReview).
   if (bunnyConfigurado()) {
     await Promise.all(vs.filter((v) => !v.pronto).map(async (v) => {
-      try { const st = await statusVideo(v.bunny_video_id); if (st.pronto) { v.pronto = true; await sb.from("review_versao").update({ pronto: true, duracao_seg: st.duracaoSeg }).eq("id", v.id); } } catch {}
+      try { const st = await statusVideo(v.bunny_video_id); if (st.pronto) { v.pronto = true; await sb.from("review_versao").update({ pronto: true, falhou: false, duracao_seg: st.duracaoSeg }).eq("id", v.id); } else if (st.falhou) { await sb.from("review_versao").update({ falhou: true }).eq("id", v.id); } } catch {}
     }));
   }
 
