@@ -1,6 +1,8 @@
+import { Suspense } from "react";
 import { requireAuth } from "@/lib/auth/session";
+import type { CurrentUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import { Sidebar } from "@/components/layout/Sidebar";
+import { Sidebar, type SidebarBadges } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
 import { countRecadosNaoLidos } from "@/lib/recados/queries";
 import { checkSatisfactionLock } from "@/lib/satisfacao/lock";
@@ -18,24 +20,45 @@ import { countUndownloadedJobs } from "@/lib/yori/queries";
 import { isYoriEnabled } from "@/lib/yori/feature-flag";
 import { countRequestsAbertas } from "@/lib/portal-requests/queries";
 
-export default async function AuthedLayout({ children }: { children: React.ReactNode }) {
-  const user = await requireAuth();
+/**
+ * Contagens de badge do menu/topo. Buscadas como PROMESSA (não awaited no
+ * layout) pra não segurar o primeiro paint da casca — o Sidebar/MobileNav
+ * resolvem via <Suspense>/use() só onde as bolinhas aparecem. Antes essas
+ * queries (+ unidade + travas) bloqueavam a página inteira, inclusive o
+ * skeleton do conteúdo, piorando o FCP (sensível no mobile).
+ */
+async function resolveBadges(user: CurrentUser): Promise<SidebarBadges> {
+  // Resiliente: badge é decoração — qualquer falha vira zero, nunca derruba a
+  // navegação (o use() lê essa promessa dentro do Suspense do menu).
+  try {
+    const veSolicitacoes = ["adm", "socio", "coordenador", "assessor", "audiovisual_chefe"].includes(user.role);
+    const [unitProfileIds, unitId] = await Promise.all([
+      getProfileIdsForActiveUnit(),
+      getEffectiveUnitId(),
+    ]);
+    const [recados, escritorio, yoriProntos, solicitacoes] = await Promise.all([
+      countRecadosNaoLidos(user.id, unitProfileIds).catch(() => 0),
+      countChannelsWithUnread(user.id, user.role, unitId).catch(() => 0),
+      isYoriEnabled() ? countUndownloadedJobs(user.id).catch(() => 0) : Promise.resolve(0),
+      veSolicitacoes ? countRequestsAbertas().catch(() => 0) : Promise.resolve(0),
+    ]);
+    return { recados, escritorio, yoriProntos, solicitacoes };
+  } catch {
+    return { recados: 0, escritorio: 0, yoriProntos: 0, solicitacoes: 0 };
+  }
+}
+
+/**
+ * Lock gates (satisfação, captação atrasada de videomaker, pesquisa) + a lista
+ * de clientes do gate. Streamados fora do caminho crítico — são overlays
+ * (invisíveis quando não há trava) e incluem a parte mais pesada (satisfação
+ * faz INSERT em cache miss), então não devem segurar o FCP.
+ */
+async function LockGatesStreamed({ user }: { user: CurrentUser }) {
   const isVideomaker = user.role === "videomaker";
-  // Solicitações no menu só pra quem responde (mesmos cargos da página).
-  const veSolicitacoes = ["adm", "socio", "coordenador", "assessor", "audiovisual_chefe"].includes(user.role);
-  // Multi-tenant: resolve filtros da unidade ativa pras contagens de badges.
-  const [unitProfileIds, unitId] = await Promise.all([
-    getProfileIdsForActiveUnit(),
-    getEffectiveUnitId(),
-  ]);
-  const [recadosNaoLidos, lockState, audiovisualPendentes, escritorioUnread, unitContext, yoriProntos, solicitacoesAbertas, pesquisaLock] = await Promise.all([
-    countRecadosNaoLidos(user.id, unitProfileIds),
+  const [lockState, audiovisualPendentes, pesquisaLock] = await Promise.all([
     checkSatisfactionLock(user.id, user.role),
     isVideomaker ? listPendenteParaVideomaker(user.id) : Promise.resolve([]),
-    countChannelsWithUnread(user.id, user.role, unitId).catch(() => 0),
-    getUnitContext().catch(() => null),
-    isYoriEnabled() ? countUndownloadedJobs(user.id).catch(() => 0) : Promise.resolve(0),
-    veSolicitacoes ? countRequestsAbertas().catch(() => 0) : Promise.resolve(0),
     checkPesquisaLock(user.id).catch(() => ({ blocked: false as const, pesquisa: null, perguntas: [] })),
   ]);
   const audiovisualOverdue = audiovisualPendentes.filter((p) => p.isOverdue);
@@ -57,8 +80,25 @@ export default async function AuthedLayout({ children }: { children: React.React
   }
 
   return (
+    <>
+      <SatisfactionLockGate state={lockState} />
+      <CapturaPendenteLockGate overdue={audiovisualOverdue} clientes={clientesAtivos} />
+      <PesquisaLockGate state={pesquisaLock} />
+    </>
+  );
+}
+
+export default async function AuthedLayout({ children }: { children: React.ReactNode }) {
+  // Único await no caminho crítico: valida a sessão (getClaims, local e rápido).
+  // Badges/unidade/travas viram promessas/Suspense abaixo, então a casca +
+  // skeleton do conteúdo pintam sem esperar essas queries.
+  const user = await requireAuth();
+  const badgesPromise = resolveBadges(user);
+  const unitContextPromise = getUnitContext().catch(() => null);
+
+  return (
     <div className="flex min-h-screen">
-      <Sidebar role={user.role} nome={user.nome} especialidade={user.especialidade} badges={{ recados: recadosNaoLidos, escritorio: escritorioUnread, yoriProntos, solicitacoes: solicitacoesAbertas }} />
+      <Sidebar role={user.role} nome={user.nome} especialidade={user.especialidade} badgesPromise={badgesPromise} />
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar
           userId={user.id}
@@ -66,8 +106,8 @@ export default async function AuthedLayout({ children }: { children: React.React
           email={user.email}
           avatarUrl={user.avatarUrl}
           role={user.role}
-          badges={{ recados: recadosNaoLidos, escritorio: escritorioUnread, yoriProntos, solicitacoes: solicitacoesAbertas }}
-          unitContext={unitContext}
+          badgesPromise={badgesPromise}
+          unitContextPromise={unitContextPromise}
           especialidade={user.especialidade}
         />
         <main
@@ -80,9 +120,9 @@ export default async function AuthedLayout({ children }: { children: React.React
           <TwilioCallProvider>{children}</TwilioCallProvider>
         </main>
       </div>
-      <SatisfactionLockGate state={lockState} />
-      <CapturaPendenteLockGate overdue={audiovisualOverdue} clientes={clientesAtivos} />
-      <PesquisaLockGate state={pesquisaLock} />
+      <Suspense fallback={null}>
+        <LockGatesStreamed user={user} />
+      </Suspense>
       <HeartbeatProvider />
     </div>
   );

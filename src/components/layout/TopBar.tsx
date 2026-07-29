@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { ThemeToggle } from "./ThemeToggle";
 import { UserMenu } from "./UserMenu";
 import { MobileNav } from "./MobileNav";
@@ -9,14 +10,32 @@ import type { Role } from "@/lib/auth/permissions";
 import type { SidebarBadges } from "./Sidebar";
 import type { UnitContext } from "@/lib/units/session";
 
+/** Seletor de unidade (só master). Resolve a promessa de contexto de unidade
+ *  fora do caminho crítico — começa como null (fallback) e entra quando pronto,
+ *  sem segurar o primeiro paint da TopBar. */
+async function UnitSwitcherStreamed({ unitContextPromise }: { unitContextPromise: Promise<UnitContext | null> }) {
+  const unitContext = await unitContextPromise;
+  if (!unitContext?.isMaster) return null;
+  return (
+    <UnitSwitcherBoundary>
+      <UnitSwitcher
+        activeUnit={unitContext.activeUnit}
+        homeUnit={unitContext.homeUnit}
+        accessibleUnits={unitContext.accessibleUnits}
+        isViewingOtherUnit={unitContext.isViewingOtherUnit}
+      />
+    </UnitSwitcherBoundary>
+  );
+}
+
 export function TopBar({
   userId,
   nome,
   email,
   avatarUrl,
   role,
-  badges,
-  unitContext,
+  badgesPromise,
+  unitContextPromise,
   especialidade,
 }: {
   userId: string;
@@ -24,8 +43,8 @@ export function TopBar({
   email: string;
   avatarUrl: string | null;
   role: Role;
-  badges?: SidebarBadges;
-  unitContext: UnitContext | null;
+  badgesPromise: Promise<SidebarBadges>;
+  unitContextPromise: Promise<UnitContext | null>;
   especialidade?: string | null;
 }) {
   return (
@@ -39,23 +58,15 @@ export function TopBar({
     >
       <div className="flex h-14 items-center justify-between gap-2 px-4 md:px-6">
         <div className="flex items-center gap-1">
-          <MobileNav role={role} nome={nome} badges={badges} especialidade={especialidade} />
+          <MobileNav role={role} nome={nome} badgesPromise={badgesPromise} especialidade={especialidade} />
           <SidebarToggle />
         </div>
         <div className="flex flex-1 items-center justify-end gap-2">
-          {/* Seletor de unidade - só renderiza pra master (adm/sócio).
-              Non-master nem vê o badge da unidade aqui (Fase 1 mantém UI
-              minimalista; quando for confuso aí mostramos um badge passivo). */}
-          {unitContext?.isMaster && (
-            <UnitSwitcherBoundary>
-              <UnitSwitcher
-                activeUnit={unitContext.activeUnit}
-                homeUnit={unitContext.homeUnit}
-                accessibleUnits={unitContext.accessibleUnits}
-                isViewingOtherUnit={unitContext.isViewingOtherUnit}
-              />
-            </UnitSwitcherBoundary>
-          )}
+          {/* Seletor de unidade - só master (adm/sócio). Streama fora do caminho
+              crítico; non-master nem vê. */}
+          <Suspense fallback={null}>
+            <UnitSwitcherStreamed unitContextPromise={unitContextPromise} />
+          </Suspense>
           <NotificationBell userId={userId} />
           <ThemeToggle />
           <UserMenu nome={nome} email={email} avatarUrl={avatarUrl} />

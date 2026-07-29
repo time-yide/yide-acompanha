@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense, use } from "react";
 import { Settings } from "lucide-react";
 import Image from "next/image";
 import { SidebarItem } from "./SidebarItem";
@@ -14,9 +15,69 @@ export interface SidebarBadges {
   solicitacoes?: number;
 }
 
-export function Sidebar({ role, nome, badges, especialidade }: { role: Role; nome: string; badges?: SidebarBadges; especialidade?: string | null }) {
+/** Itens do menu. `badges` pode chegar depois (streaming) — os itens
+ *  renderizam na hora; só as bolinhas de contagem entram quando prontas. */
+function NavItems({
+  role,
+  especialidade,
+  badges,
+}: {
+  role: Role;
+  especialidade?: string | null;
+  badges?: SidebarBadges;
+}) {
   const visible = visibleNavStructure(role, especialidade);
+  return (
+    <>
+      {visible.map((entry) =>
+        entry.type === "link" ? (
+          <SidebarItem
+            key={entry.href}
+            href={entry.href}
+            icon={entry.icon}
+            label={entry.label}
+            badge={entry.badgeKey ? badges?.[entry.badgeKey] : undefined}
+          />
+        ) : (
+          <SidebarGroup
+            key={entry.id}
+            groupId={entry.id}
+            label={entry.label}
+            items={entry.items}
+            badges={badges}
+            alwaysExpanded={entry.alwaysExpanded}
+          />
+        ),
+      )}
+    </>
+  );
+}
 
+/** Resolve a promessa de badges e re-renderiza os itens com as contagens. */
+function NavItemsComBadges({
+  role,
+  especialidade,
+  badgesPromise,
+}: {
+  role: Role;
+  especialidade?: string | null;
+  badgesPromise: Promise<SidebarBadges>;
+}) {
+  const badges = use(badgesPromise);
+  return <NavItems role={role} especialidade={especialidade} badges={badges} />;
+}
+
+export function Sidebar({
+  role,
+  nome,
+  badgesPromise,
+  especialidade,
+}: {
+  role: Role;
+  nome: string;
+  badgesPromise: Promise<SidebarBadges>;
+  especialidade?: string | null;
+}) {
   return (
     <aside data-role="sidebar" className="hidden w-[210px] flex-col border-r bg-card md:flex">
       <div className="flex items-center justify-center px-4 py-5">
@@ -32,26 +93,12 @@ export function Sidebar({ role, nome, badges, especialidade }: { role: Role; nom
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 pb-2">
-        {visible.map((entry) =>
-          entry.type === "link" ? (
-            <SidebarItem
-              key={entry.href}
-              href={entry.href}
-              icon={entry.icon}
-              label={entry.label}
-              badge={entry.badgeKey ? badges?.[entry.badgeKey] : undefined}
-            />
-          ) : (
-            <SidebarGroup
-              key={entry.id}
-              groupId={entry.id}
-              label={entry.label}
-              items={entry.items}
-              badges={badges}
-              alwaysExpanded={entry.alwaysExpanded}
-            />
-          ),
-        )}
+        {/* Os itens aparecem na hora (fallback sem badges); as bolinhas de
+            contagem entram quando `badgesPromise` resolve — sem bloquear o
+            primeiro paint da casca. */}
+        <Suspense fallback={<NavItems role={role} especialidade={especialidade} />}>
+          <NavItemsComBadges role={role} especialidade={especialidade} badgesPromise={badgesPromise} />
+        </Suspense>
       </nav>
 
       <div className="border-t px-3 py-3">

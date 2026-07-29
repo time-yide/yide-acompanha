@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, use, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { Menu, Settings, X } from "lucide-react";
@@ -13,14 +13,65 @@ import type { SidebarBadges } from "./Sidebar";
 interface Props {
   role: Role;
   nome: string;
-  badges?: SidebarBadges;
+  /** Contagens de badge — chegam por streaming (promessa). O drawer começa
+   *  fechado, então as bolinhas nem são visíveis no primeiro paint. */
+  badgesPromise: Promise<SidebarBadges>;
   especialidade?: string | null;
 }
 
-export function MobileNav({ role, nome, badges, especialidade }: Props) {
+/** Itens do drawer. `badges` opcional — renderiza os itens mesmo sem contagem. */
+function DrawerItems({
+  role,
+  especialidade,
+  badges,
+}: {
+  role: Role;
+  especialidade?: string | null;
+  badges?: SidebarBadges;
+}) {
+  const visible = visibleNavStructure(role, especialidade);
+  return (
+    <>
+      {visible.map((entry) =>
+        entry.type === "link" ? (
+          <SidebarItem
+            key={entry.href}
+            href={entry.href}
+            icon={entry.icon}
+            label={entry.label}
+            badge={entry.badgeKey ? badges?.[entry.badgeKey] : undefined}
+          />
+        ) : (
+          <SidebarGroup
+            key={entry.id}
+            groupId={entry.id}
+            label={entry.label}
+            items={entry.items}
+            badges={badges}
+            alwaysExpanded={entry.alwaysExpanded}
+          />
+        ),
+      )}
+    </>
+  );
+}
+
+function DrawerItemsComBadges({
+  role,
+  especialidade,
+  badgesPromise,
+}: {
+  role: Role;
+  especialidade?: string | null;
+  badgesPromise: Promise<SidebarBadges>;
+}) {
+  const badges = use(badgesPromise);
+  return <DrawerItems role={role} especialidade={especialidade} badges={badges} />;
+}
+
+export function MobileNav({ role, nome, badgesPromise, especialidade }: Props) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
-  const visible = visibleNavStructure(role, especialidade);
 
   // Fecha o drawer ao navegar. setTimeout tira o setState de dentro do
   // body do effect (passa no react-hooks/set-state-in-effect) sem mudar
@@ -88,26 +139,12 @@ export function MobileNav({ role, nome, badges, especialidade }: Props) {
             </div>
 
             <nav className="flex-1 space-y-1 overflow-y-auto px-3 pb-3">
-              {visible.map((entry) =>
-                entry.type === "link" ? (
-                  <SidebarItem
-                    key={entry.href}
-                    href={entry.href}
-                    icon={entry.icon}
-                    label={entry.label}
-                    badge={entry.badgeKey ? badges?.[entry.badgeKey] : undefined}
-                  />
-                ) : (
-                  <SidebarGroup
-                    key={entry.id}
-                    groupId={entry.id}
-                    label={entry.label}
-                    items={entry.items}
-                    badges={badges}
-                    alwaysExpanded={entry.alwaysExpanded}
-                  />
-                ),
-              )}
+              {/* Itens na hora (fallback sem badges); contagens entram quando a
+                  promessa resolve — na prática já está pronta quando o usuário
+                  abre o drawer. */}
+              <Suspense fallback={<DrawerItems role={role} especialidade={especialidade} />}>
+                <DrawerItemsComBadges role={role} especialidade={especialidade} badgesPromise={badgesPromise} />
+              </Suspense>
             </nav>
 
             <div className="border-t px-3 py-3">
