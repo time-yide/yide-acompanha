@@ -18,11 +18,20 @@ export const maxDuration = 300;
  * corpo do Bunny direto (sem bufferizar em memória).
  */
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ versaoId: string }> },
 ) {
   const user = await requireAuth();
   const { versaoId } = await params;
+
+  // O pull zone do Bunny tem proteção de HOTLINK/REFERRER: só serve os arquivos
+  // (incl. o play_XXX.mp4 de download) pra requests com Referer de um domínio
+  // permitido. O navegador tocando o vídeo manda esse Referer e passa; mas ESTA
+  // rota busca o MP4 do lado do SERVIDOR — sem Referer, o Bunny devolve 403.
+  // Reencaminhamos o Referer do próprio app (o host de onde veio o request, que
+  // é um domínio permitido, senão o player nem tocaria). Sem isso o download
+  // dava "403" mesmo com o MP4 existindo.
+  const appReferer = `https://${req.headers.get("host") ?? ""}/`;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
@@ -58,13 +67,13 @@ export async function GET(
     .normalize("NFKD").replace(/[^\w\-]+/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "") || "video";
   const nomeArquivo = `${base}.mp4`;
 
-  // Tenta cada resolução até uma responder 200 — nem toda resolução do HLS tem
-  // o MP4 gerado. Se nenhuma funcionar, é MP4 Fallback não gerado pra este vídeo.
+  // Tenta cada resolução até uma responder OK. Manda o Referer do app pra
+  // passar pela proteção de hotlink do Bunny (senão 403 mesmo com o MP4 lá).
   let upstream: Response | null = null;
   let ultimoStatus = 0;
   for (const url of candidatos) {
     try {
-      const r = await fetch(url);
+      const r = await fetch(url, { headers: { Referer: appReferer } });
       if (r.ok && r.body) { upstream = r; break; }
       ultimoStatus = r.status;
     } catch {
@@ -72,9 +81,9 @@ export async function GET(
     }
   }
   if (!upstream || !upstream.body) {
-    console.error("[review/download] MP4 indisponível", { versaoId, bunny: v.bunny_video_id, ultimoStatus, candidatos });
+    console.error("[review/download] MP4 indisponível", { versaoId, bunny: v.bunny_video_id, ultimoStatus, appReferer, candidatos });
     return new Response(
-      `Não consegui baixar o MP4 deste vídeo (status ${ultimoStatus}). O 'MP4 Fallback' do Bunny provavelmente não foi gerado pra ele — vídeos enviados antes de ligar essa opção precisam ser reenviados/reprocessados na library.`,
+      `Não consegui baixar o MP4 deste vídeo (status ${ultimoStatus}). Se persistir, confira no Bunny a proteção de referrer da library (deve permitir ${appReferer}) e o 'MP4 Fallback'.`,
       { status: 502 },
     );
   }
