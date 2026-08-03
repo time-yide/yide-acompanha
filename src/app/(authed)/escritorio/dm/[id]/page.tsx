@@ -76,7 +76,7 @@ export default async function DmPage({ params }: { params: Promise<{ id: string 
   const pessoas = (pessoasRes.data ?? []) as Array<{ id: string; nome: string; role: string; avatar_url: string | null }>;
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] min-h-0 flex-col gap-4 md:flex-row">
+    <div className="flex h-[calc(100dvh-5rem)] min-h-0 flex-col gap-4 md:h-[calc(100vh-8rem)] md:flex-row">
       <ChannelSidebar
         channels={sidebarChannels}
         currentKind={null}
