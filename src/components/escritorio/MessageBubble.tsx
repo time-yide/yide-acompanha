@@ -96,6 +96,10 @@ function isImage(url: string): boolean {
   return /\.(jpe?g|png|webp|gif)(\?|$)/i.test(url);
 }
 
+function isAudio(url: string): boolean {
+  return /\.(webm|m4a|mp3|mpeg|ogg|wav|aac)(\?|$)/i.test(url);
+}
+
 function isContinuationOf(message: ChatMessage, prev: ChatMessage | null | undefined): boolean {
   if (!prev) return false;
   if (prev.autor_id !== message.autor_id) return false;
@@ -106,8 +110,34 @@ function isContinuationOf(message: ChatMessage, prev: ChatMessage | null | undef
 export function MessageBubble({ message, isMine, prev, onReply, readers }: Props) {
   const continuation = isContinuationOf(message, prev);
   const [showReaders, setShowReaders] = useState(false);
+  const [lightbox, setLightbox] = useState<string | null>(null);
   const readCount = readers?.length ?? 0;
   const lida = readCount > 0;
+  const hasText = message.conteudo.trim().length > 0;
+
+  const meta = (
+    <span className="ml-2 inline-flex items-center gap-0.5 text-[10px] text-muted-foreground/80 align-bottom">
+      {formatHourMinute(message.created_at)}
+      {isMine && (
+        message.pending ? (
+          <Clock className="h-2.5 w-2.5 text-muted-foreground/60" aria-label="Enviando" />
+        ) : lida ? (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setShowReaders(true); }}
+            className="inline-flex items-center gap-0.5 text-sky-500 hover:opacity-80"
+            title={`Lido por ${readCount} — clique pra ver quem`}
+            aria-label={`Lido por ${readCount}. Ver quem leu.`}
+          >
+            <CheckCheck className="h-3.5 w-3.5" />
+            {readCount > 1 && <span className="text-[9px] font-semibold">{readCount}</span>}
+          </button>
+        ) : (
+          <Check className="h-3 w-3 text-muted-foreground/60" aria-label="Enviado" />
+        )
+      )}
+    </span>
+  );
 
   return (
     <div className={cn("group flex gap-2", isMine && "flex-row-reverse", continuation ? "mt-0.5" : "mt-2")}>
@@ -137,48 +167,44 @@ export function MessageBubble({ message, isMine, prev, onReply, readers }: Props
           </div>
         )}
 
-        <div
-          className={cn(
-            "relative inline-block rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap text-left shadow-sm",
-            isMine
-              ? "bg-primary/20 border border-primary/30"
-              : "bg-card border",
-            !continuation && (isMine ? "rounded-tr-sm" : "rounded-tl-sm"),
-          )}
-        >
-          <span className="pr-12">{renderConteudo(message.conteudo)}</span>
-          <span className="ml-2 inline-flex items-center gap-0.5 text-[10px] text-muted-foreground/80 align-bottom">
-            {formatHourMinute(message.created_at)}
-            {isMine && (
-              message.pending ? (
-                <Clock className="h-2.5 w-2.5 text-muted-foreground/60" aria-label="Enviando" />
-              ) : lida ? (
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); setShowReaders(true); }}
-                  className="inline-flex items-center gap-0.5 text-sky-500 hover:opacity-80"
-                  title={`Lido por ${readCount} — clique pra ver quem`}
-                  aria-label={`Lido por ${readCount}. Ver quem leu.`}
-                >
-                  <CheckCheck className="h-3.5 w-3.5" />
-                  {readCount > 1 && <span className="text-[9px] font-semibold">{readCount}</span>}
-                </button>
-              ) : (
-                <Check className="h-3 w-3 text-muted-foreground/60" aria-label="Enviado" />
-              )
+        {/* Hora + status de leitura. Vai dentro da bolha (se tem texto) ou
+            embaixo dos anexos (mensagem só de imagem/áudio/arquivo). */}
+        {hasText && (
+          <div
+            className={cn(
+              "relative inline-block rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap text-left shadow-sm",
+              isMine
+                ? "bg-primary/20 border border-primary/30"
+                : "bg-card border",
+              !continuation && (isMine ? "rounded-tr-sm" : "rounded-tl-sm"),
             )}
-          </span>
-        </div>
+          >
+            <span className="pr-12">{renderConteudo(message.conteudo)}</span>
+            {meta}
+          </div>
+        )}
 
         {message.attachment_urls.length > 0 && (
           <div className={cn("flex flex-wrap gap-2 pt-1", isMine && "justify-end")}>
             {message.attachment_urls.map((url, i) => (
               <div key={i}>
                 {isImage(url) ? (
-                  <a href={url} target="_blank" rel="noopener noreferrer" className="block h-24 w-24 overflow-hidden rounded-md border bg-muted">
+                  <button
+                    type="button"
+                    onClick={() => setLightbox(url)}
+                    className="block h-40 w-40 overflow-hidden rounded-lg border bg-muted transition-opacity hover:opacity-90"
+                    aria-label="Ampliar imagem"
+                  >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={url} alt="anexo" className="h-full w-full object-cover" />
-                  </a>
+                  </button>
+                ) : isAudio(url) ? (
+                  <audio
+                    controls
+                    src={url}
+                    preload="metadata"
+                    className="h-10 w-60 max-w-[70vw]"
+                  />
                 ) : (
                   <a
                     href={url}
@@ -195,6 +221,13 @@ export function MessageBubble({ message, isMine, prev, onReply, readers }: Props
             ))}
           </div>
         )}
+
+        {/* Mensagem só de anexo: hora/status vão numa linha embaixo. */}
+        {!hasText && (
+          <div className={cn("mt-0.5 flex", isMine ? "justify-end" : "justify-start")}>
+            {meta}
+          </div>
+        )}
       </div>
 
       <button
@@ -206,6 +239,34 @@ export function MessageBubble({ message, isMine, prev, onReply, readers }: Props
       >
         <Reply className="h-3.5 w-3.5" />
       </button>
+
+      {/* Lightbox: imagem em popup (estilo WhatsApp), não abre aba nova. */}
+      <Dialog open={lightbox !== null} onOpenChange={(o) => !o && setLightbox(null)}>
+        <DialogContent className="max-w-[92vw] border-none bg-transparent p-0 shadow-none sm:max-w-3xl">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Imagem</DialogTitle>
+          </DialogHeader>
+          {lightbox && (
+            <div className="flex flex-col items-center gap-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={lightbox}
+                alt="anexo"
+                className="max-h-[82vh] w-auto max-w-full rounded-lg object-contain"
+              />
+              <a
+                href={lightbox}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-md bg-black/60 px-3 py-1.5 text-xs text-white hover:bg-black/80"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                Abrir em tamanho real
+              </a>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {isMine && lida && (
         <Dialog open={showReaders} onOpenChange={setShowReaders}>
