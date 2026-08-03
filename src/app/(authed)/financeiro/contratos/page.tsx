@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ChevronLeft, FileSignature, Check, Clock } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
+import { canAccessFinanceiro } from "@/lib/financeiro/access";
 import { listContratosForFinance } from "@/lib/contratos/queries";
 
 export const dynamic = "force-dynamic";
@@ -17,8 +18,8 @@ function fmtData(iso: string): string {
 
 export default async function ContratosPage() {
   const user = await requireAuth();
-  // Contratos é do financeiro/administrativo: sócio e adm.
-  if (user.role !== "socio" && user.role !== "adm") redirect("/");
+  // Contratos é do financeiro/administrativo: sócio, financeiro e adm.
+  if (!canAccessFinanceiro(user.role) && user.role !== "adm") redirect("/");
 
   const rows = await listContratosForFinance();
   const preenchidos = rows.filter((r) => r.info?.razao_social);

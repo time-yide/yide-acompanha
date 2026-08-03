@@ -19,7 +19,7 @@ function formatMonthLong(monthRef: string): string {
 
 export default async function MinhasComissoesPage() {
   const user = await requireAuth();
-  if (user.role === "socio") redirect("/comissoes/visao-geral");
+  if (user.role === "socio" || user.role === "financeiro") redirect("/comissoes/visao-geral");
 
   const showVisaoGeral = canAccess(user.role, "view:other_commissions");
   const showFechamento = canAccess(user.role, "approve:monthly_closing");

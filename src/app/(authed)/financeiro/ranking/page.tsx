@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Trophy, Clock } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
+import { canAccessFinanceiro } from "@/lib/financeiro/access";
 import { getClientRanking, type RankingRow } from "@/lib/financeiro/ranking";
 import { Button } from "@/components/ui/button";
 
@@ -69,7 +70,7 @@ function RankingList({
 
 export default async function RankingPage() {
   const user = await requireAuth();
-  if (user.role !== "socio") redirect("/");
+  if (!canAccessFinanceiro(user.role)) redirect("/");
 
   const data = await getClientRanking(20);
 

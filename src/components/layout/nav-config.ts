@@ -134,7 +134,7 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
     label: "Financeiro",
     items: [
       { type: "link", href: "/comissoes", icon: DollarSign, label: "Comissões", roles: "all", badgeKey: null },
-      { type: "link", href: "/financeiro", icon: TrendingUp, label: "Financeiro", roles: ["socio", "adm"], badgeKey: null },
+      { type: "link", href: "/financeiro", icon: TrendingUp, label: "Financeiro", roles: ["socio", "adm", "financeiro"], badgeKey: null },
     ],
   },
 
@@ -147,11 +147,23 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
 // então liberamos "/manual" (Bastidores) pra ela continuar alcançando o Time.
 const PROGRAMACAO_ALL_ALLOWED = new Set<string>(["/recados", "/calendario", "/manual"]);
 
+// Links `roles:"all"` que o Financeiro também deve ver. Como a Programação, o
+// cargo começa SEM os itens "all" operacionais (Clientes, Tarefas) — só o
+// essencial de navegação/comunicação + o Dashboard e as Comissões. O módulo
+// /financeiro em si é liberado pela lista de roles do próprio link.
+const FINANCEIRO_ALL_ALLOWED = new Set<string>(["/", "/recados", "/comissoes", "/calendario", "/manual"]);
+
 function isLinkVisible(role: Role, link: NavLink, especialidade?: string | null): boolean {
   // Programação (cargo técnico) começa SEM acessos: nem os itens "all", exceto
   // os liberados explicitamente em PROGRAMACAO_ALL_ALLOWED.
   if (role === "programacao") {
     if (link.roles === "all") return PROGRAMACAO_ALL_ALLOWED.has(link.href);
+    return Array.isArray(link.roles) && link.roles.includes(role);
+  }
+  // Financeiro: mesmo padrão — sem os itens "all" operacionais, só os liberados
+  // em FINANCEIRO_ALL_ALLOWED. O módulo /financeiro entra pela lista de roles.
+  if (role === "financeiro") {
+    if (link.roles === "all") return FINANCEIRO_ALL_ALLOWED.has(link.href);
     return Array.isArray(link.roles) && link.roles.includes(role);
   }
   // E-commerce: além dos cargos dedicados, assessor comum com especialidade

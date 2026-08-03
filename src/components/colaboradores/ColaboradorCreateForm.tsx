@@ -85,6 +85,7 @@ export function ColaboradorCreateForm({
                 {canAssign("assistente_ecommerce") && <SelectItem value="assistente_ecommerce">Assistente de e-commerce</SelectItem>}
                 {canAssign("programacao") && <SelectItem value="programacao">Programação</SelectItem>}
                 {canAssign("fast_midia") && <SelectItem value="fast_midia">Fast Mídia</SelectItem>}
+                {canAssign("financeiro") && <SelectItem value="financeiro">Financeiro</SelectItem>}
               </SelectContent>
             </Select>
             <p className="text-[11px] text-muted-foreground">

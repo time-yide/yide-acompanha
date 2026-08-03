@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth/session";
+import { canAccessFinanceiro } from "@/lib/financeiro/access";
 import { listExpenses } from "@/lib/financeiro/queries";
 import { ExpenseTable } from "@/components/financeiro/ExpenseTable";
 import { ExpenseFilters } from "@/components/financeiro/ExpenseFilters";
@@ -17,7 +18,7 @@ const TIPOS: ExpenseTipo[] = ["fixa", "avulsa"];
 export default async function DespesasPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const params = await searchParams;
   const user = await requireAuth();
-  if (user.role !== "socio") redirect("/");
+  if (!canAccessFinanceiro(user.role)) redirect("/");
 
   const tipo = TIPOS.includes(params.tipo as ExpenseTipo) ? (params.tipo as ExpenseTipo) : undefined;
   const categoria = params.categoria && params.categoria !== "qualquer" ? (params.categoria as ExpenseCategoria) : undefined;
