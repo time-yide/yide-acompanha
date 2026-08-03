@@ -58,7 +58,7 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
     alwaysExpanded: true,
     items: [
       { type: "link", href: "/recados", icon: MessageSquare, label: "Recados", roles: "all", badgeKey: "recados" },
-      { type: "link", href: "/escritorio", icon: MessagesSquare, label: "Escritório Virtual", roles: ["adm", "socio", "coordenador", "assessor", "designer", "videomaker", "fast_midia", "editor", "audiovisual_chefe", "assessor_ecommerce", "assistente_ecommerce", "programacao"], badgeKey: "escritorio" },
+      { type: "link", href: "/escritorio", icon: MessagesSquare, label: "Escritório Virtual", roles: ["adm", "socio", "coordenador", "assessor", "designer", "videomaker", "fast_midia", "editor", "audiovisual_chefe", "assessor_ecommerce", "assistente_ecommerce", "programacao", "financeiro"], badgeKey: "escritorio" },
     ],
   },
 
