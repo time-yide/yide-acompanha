@@ -9,6 +9,8 @@ interface DispatchArgs {
   channelId: string;
   authorId: string;
   authorName: string;
+  /** Avatar de quem mandou — vira o ícone do push (estilo WhatsApp). */
+  authorAvatarUrl?: string | null;
   channelKind: ChannelKind;
   channelName: string;
   conteudo: string;
@@ -93,6 +95,8 @@ export async function dispatchChatNotification(args: DispatchArgs): Promise<void
           // Não-mencionados: mesmo canal compartilha tag → última msg
           // do canal aparece, anteriores somem (UX limpa pra canal ativo)
           tag: isMentioned ? `chat-mention-${args.messageId}` : `chat-${args.channelId}`,
+          // Foto de quem mandou como ícone (fallback pro logo do app no sw.js).
+          icon: args.authorAvatarUrl ?? undefined,
         });
       } catch (e) {
         console.error("[dispatch-chat] push failed for user", uid, e);
