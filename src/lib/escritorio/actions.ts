@@ -17,11 +17,25 @@ const sendMessageSchema = z.object({
    * realtime — assim a dedup por id funciona e não duplica no envio. */
   id: z.string().uuid().optional(),
   channel_id: z.string().uuid(),
-  conteudo: z.string().trim().min(1, "Mensagem vazia").max(4000, "Mensagem muito longa"),
+  // Pode ser vazio SE tiver anexo (mensagem só de imagem/áudio/arquivo).
+  conteudo: z.string().trim().max(4000, "Mensagem muito longa").default(""),
   reply_to_id: z.string().uuid().nullable().optional(),
   attachment_urls: z.array(z.string().url()).max(5, "Máx. 5 anexos").default([]),
   mentioned_user_ids: z.array(z.string().uuid()).max(20).default([]),
+}).refine((d) => d.conteudo.length > 0 || d.attachment_urls.length > 0, {
+  message: "Escreva algo ou anexe um arquivo",
+  path: ["conteudo"],
 });
+
+/** Preview textual pra notificação quando a mensagem é só anexo (sem texto). */
+function attachmentPreview(urls: string[]): string {
+  if (urls.length === 0) return "";
+  const isAudio = (u: string) => /\.(webm|m4a|mp3|mpeg|ogg|wav|aac)(\?|$)/i.test(u);
+  const isImg = (u: string) => /\.(jpe?g|png|webp|gif)(\?|$)/i.test(u);
+  if (urls.some(isAudio)) return "🎤 Mensagem de voz";
+  if (urls.every(isImg)) return urls.length > 1 ? `🖼️ ${urls.length} imagens` : "🖼️ Imagem";
+  return urls.length > 1 ? `📎 ${urls.length} anexos` : "📎 Anexo";
+}
 
 function fdString(formData: FormData, key: string): string | undefined {
   const v = formData.get(key);
@@ -94,6 +108,10 @@ export async function sendChatMessageAction(
     .single();
   if (error || !created) return { error: error?.message ?? "Falha ao enviar mensagem" };
 
+  // Texto pras notificações: se a mensagem é só anexo (sem texto), usa um
+  // resumo tipo "🎤 Mensagem de voz" / "📎 Anexo" em vez de vazio.
+  const notifText = parsed.data.conteudo || attachmentPreview(parsed.data.attachment_urls);
+
   // Notifica todos os usuários com acesso ao canal (menos o autor).
   // Mencionados ganham destaque visual via dispatch-chat.
   // Best-effort: falha aqui não bloqueia o envio da mensagem.
@@ -105,7 +123,7 @@ export async function sendChatMessageAction(
       authorName: actor.nome,
       channelKind: channel.kind as ChannelKind,
       channelName: channel.nome,
-      conteudo: parsed.data.conteudo,
+      conteudo: notifText,
       mentionedUserIds: parsed.data.mentioned_user_ids.filter((id) => id !== actor.id),
       memberIds: channel.member_ids ?? undefined,
     });
@@ -121,7 +139,7 @@ export async function sendChatMessageAction(
       .eq("id", parsed.data.reply_to_id)
       .maybeSingle();
     if (original && original.autor_id && original.autor_id !== actor.id) {
-      const preview = parsed.data.conteudo.slice(0, 80) + (parsed.data.conteudo.length > 80 ? "…" : "");
+      const preview = notifText.slice(0, 80) + (notifText.length > 80 ? "…" : "");
       await dispatchNotification({
         evento_tipo: "task_assigned",
         titulo: `Resposta em ${channel.nome}`,
@@ -170,8 +188,20 @@ export async function markChannelReadAction(formData: FormData): Promise<ActionR
 
 const MAX_ATTACHMENT_BYTES = 15 * 1024 * 1024; // 15 MB
 const ALLOWED_ATTACHMENT_TYPES = [
+  // Imagens
   "image/jpeg", "image/png", "image/webp", "image/gif",
+  // PDF
   "application/pdf",
+  // Áudio (gravação de voz no navegador + upload)
+  "audio/webm", "audio/mp4", "audio/mpeg", "audio/mp3", "audio/ogg", "audio/wav", "audio/aac", "audio/x-m4a",
+  // Documentos comuns do dia-a-dia
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "text/plain", "text/csv", "application/zip",
 ];
 
 /**
@@ -191,8 +221,11 @@ export async function prepareChatAttachmentUpload(
 ): Promise<{ error: string } | { path: string; token: string; url: string }> {
   await requireAuth();
 
-  if (!ALLOWED_ATTACHMENT_TYPES.includes(fileType)) {
-    return { error: "Tipo não suportado (use JPG, PNG, WebP, GIF ou PDF)" };
+  // MediaRecorder manda mime com parâmetros (ex: "audio/webm;codecs=opus").
+  // Normaliza pro tipo base antes de validar.
+  const baseType = fileType.split(";")[0].trim().toLowerCase();
+  if (!ALLOWED_ATTACHMENT_TYPES.includes(baseType)) {
+    return { error: "Tipo de arquivo não suportado" };
   }
   if (fileSize <= 0) return { error: "Arquivo vazio" };
   if (fileSize > MAX_ATTACHMENT_BYTES) return { error: "Máximo 15MB por arquivo" };
