@@ -120,7 +120,7 @@ self.addEventListener("push", (event) => {
   const urgent = payload.urgent === true;
   const options = {
     body: payload.body || "",
-    icon: "/brand/logo-yide.png",
+    icon: payload.icon || "/brand/logo-yide.png",
     badge: "/brand/logo-yide.png",
     tag: payload.tag || undefined,
     data: { url: payload.url || "/" },

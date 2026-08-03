@@ -121,6 +121,7 @@ export async function sendChatMessageAction(
       channelId: parsed.data.channel_id,
       authorId: actor.id,
       authorName: actor.nome,
+      authorAvatarUrl: actor.avatarUrl,
       channelKind: channel.kind as ChannelKind,
       channelName: channel.nome,
       conteudo: notifText,

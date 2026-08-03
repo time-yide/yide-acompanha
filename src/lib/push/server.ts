@@ -31,6 +31,9 @@ export interface PushPayload {
   url?: string;
   tag?: string;
   urgent?: boolean;
+  /** URL absoluta pra usar como ícone da notificação (ex: avatar de quem
+   * mandou a mensagem, estilo WhatsApp). O sw.js cai no logo do app se vazio. */
+  icon?: string;
 }
 
 /**
