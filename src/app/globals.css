@@ -169,3 +169,24 @@ html[data-sidebar="hidden"] [data-role="sidebar"] {
 .animate-card-rise {
   animation: card-rise 400ms ease-out both;
 }
+
+/* Escritório Virtual (chat): o container preenche EXATAMENTE a área útil do
+   <main> abaixo da TopBar. Sem isso, ele fica alto demais no mobile e a
+   PÁGINA rola junto com o chat (2 barras de rolagem). No mobile só o chat
+   deve rolar. Desconta: TopBar (h-14=3.5rem + border 1px + safe-area-top),
+   o padding do main (p-3=0.75rem no topo, e max(safe-area-bottom, 0.75rem)
+   embaixo) + 1px de folga. No desktop mantém o cálculo antigo (100vh-8rem). */
+.escritorio-shell {
+  height: calc(
+    100dvh
+    - env(safe-area-inset-top)
+    - 4.25rem
+    - 2px
+    - max(env(safe-area-inset-bottom), 0.75rem)
+  );
+}
+@media (min-width: 768px) {
+  .escritorio-shell {
+    height: calc(100vh - 8rem);
+  }
+}

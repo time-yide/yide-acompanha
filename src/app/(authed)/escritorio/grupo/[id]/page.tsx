@@ -58,7 +58,7 @@ export default async function GrupoPage({ params }: { params: Promise<{ id: stri
   const pessoas = (pessoasRes.data ?? []) as Array<{ id: string; nome: string; role: string; avatar_url: string | null }>;
 
   return (
-    <div className="flex h-[calc(100dvh-5rem)] min-h-0 flex-col gap-4 md:h-[calc(100vh-8rem)] md:flex-row">
+    <div className="escritorio-shell flex min-h-0 flex-col gap-4 md:flex-row">
       <ChannelSidebar
         className="hidden md:flex"
         channels={sidebarChannels}
