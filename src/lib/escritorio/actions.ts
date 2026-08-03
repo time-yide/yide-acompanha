@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath, revalidateTag } from "next/cache";
+import { after } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -112,45 +113,54 @@ export async function sendChatMessageAction(
   // resumo tipo "🎤 Mensagem de voz" / "📎 Anexo" em vez de vazio.
   const notifText = parsed.data.conteudo || attachmentPreview(parsed.data.attachment_urls);
 
-  // Notifica todos os usuários com acesso ao canal (menos o autor).
-  // Mencionados ganham destaque visual via dispatch-chat.
-  // Best-effort: falha aqui não bloqueia o envio da mensagem.
-  try {
-    await dispatchChatNotification({
-      messageId: created.id,
-      channelId: parsed.data.channel_id,
-      authorId: actor.id,
-      authorName: actor.nome,
-      authorAvatarUrl: actor.avatarUrl,
-      channelKind: channel.kind as ChannelKind,
-      channelName: channel.nome,
-      conteudo: notifText,
-      mentionedUserIds: parsed.data.mentioned_user_ids.filter((id) => id !== actor.id),
-      memberIds: channel.member_ids ?? undefined,
-    });
-  } catch (e) {
-    console.error("[sendChatMessageAction] notification dispatch failed:", e);
-  }
-
-  // Reply: notifica autor da mensagem original (se for outro)
-  if (parsed.data.reply_to_id) {
-    const { data: original } = await sb
-      .from("chat_messages")
-      .select("autor_id")
-      .eq("id", parsed.data.reply_to_id)
-      .maybeSingle();
-    if (original && original.autor_id && original.autor_id !== actor.id) {
-      const preview = notifText.slice(0, 80) + (notifText.length > 80 ? "…" : "");
-      await dispatchNotification({
-        evento_tipo: "task_assigned",
-        titulo: `Resposta em ${channel.nome}`,
-        mensagem: `${actor.nome} respondeu: ${preview}`,
-        link: channelLink(channel.kind as ChannelKind, parsed.data.channel_id),
-        user_ids_extras: [original.autor_id],
-        source_user_id: actor.id,
+  // Notificações SAEM do caminho crítico. Antes tudo era awaited antes do
+  // return: buscar todos os profiles do canal + inserir notifs in-app + mandar
+  // web push pra CADA destinatário. No canal Geral (todo mundo) isso segurava
+  // a resposta por segundos → no mobile a msg demorava a confirmar ("enviando").
+  // Com after(), a action responde logo após o insert e o fan-out roda depois
+  // da resposta. Notificação é best-effort; um leve atraso nela é aceitável.
+  after(async () => {
+    try {
+      await dispatchChatNotification({
+        messageId: created.id,
+        channelId: parsed.data.channel_id,
+        authorId: actor.id,
+        authorName: actor.nome,
+        authorAvatarUrl: actor.avatarUrl,
+        channelKind: channel.kind as ChannelKind,
+        channelName: channel.nome,
+        conteudo: notifText,
+        mentionedUserIds: parsed.data.mentioned_user_ids.filter((id) => id !== actor.id),
+        memberIds: channel.member_ids ?? undefined,
       });
+    } catch (e) {
+      console.error("[sendChatMessageAction] notification dispatch failed:", e);
     }
-  }
+
+    // Reply: notifica autor da mensagem original (se for outro)
+    if (parsed.data.reply_to_id) {
+      try {
+        const { data: original } = await sb
+          .from("chat_messages")
+          .select("autor_id")
+          .eq("id", parsed.data.reply_to_id)
+          .maybeSingle();
+        if (original && original.autor_id && original.autor_id !== actor.id) {
+          const preview = notifText.slice(0, 80) + (notifText.length > 80 ? "…" : "");
+          await dispatchNotification({
+            evento_tipo: "task_assigned",
+            titulo: `Resposta em ${channel.nome}`,
+            mensagem: `${actor.nome} respondeu: ${preview}`,
+            link: channelLink(channel.kind as ChannelKind, parsed.data.channel_id),
+            user_ids_extras: [original.autor_id],
+            source_user_id: actor.id,
+          });
+        }
+      } catch (e) {
+        console.error("[sendChatMessageAction] reply notification failed:", e);
+      }
+    }
+  });
 
   // Não revalida o path do canal: o cliente já adicionou a mensagem otimista
   // e o realtime cobre outros usuários. Revalidar aqui só causa refetch
