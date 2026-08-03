@@ -38,9 +38,12 @@ interface Props {
   viewerId: string;
   viewerRole: string;
   deletedChannels: DeletedChannel[];
+  /** Classe extra no root (ex: `hidden md:flex` pra esconder no mobile nas
+   * páginas de canal — no mobile a conversa ocupa a tela inteira). */
+  className?: string;
 }
 
-export function ChannelSidebar({ channels, currentKind, currentChannelId, pessoas, viewerId, viewerRole, deletedChannels }: Props) {
+export function ChannelSidebar({ channels, currentKind, currentChannelId, pessoas, viewerId, viewerRole, deletedChannels, className }: Props) {
   const [novoOpen, setNovoOpen] = useState(false);
   const [grupoNovoOpen, setGrupoNovoOpen] = useState(false);
   const [grupoEdit, setGrupoEdit] = useState<ChannelWithUnread | null>(null);
@@ -88,7 +91,7 @@ export function ChannelSidebar({ channels, currentKind, currentChannelId, pessoa
   }
 
   return (
-    <aside className="flex w-full flex-col rounded-xl border bg-card md:w-72">
+    <aside className={cn("flex w-full flex-col rounded-xl border bg-card md:w-72", className)}>
       <div className="flex items-center justify-between border-b px-3 py-2.5">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Conversas
