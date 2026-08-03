@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
  */
 export function ChannelSkeleton() {
   return (
-    <div className="flex h-[calc(100dvh-5rem)] min-h-0 flex-col gap-4 md:h-[calc(100vh-8rem)] md:flex-row">
+    <div className="escritorio-shell flex min-h-0 flex-col gap-4 md:flex-row">
       <aside className="hidden w-56 shrink-0 space-y-2 rounded-lg border bg-card p-3 md:block">
         {Array.from({ length: 7 }).map((_, i) => <Skeleton key={i} className="h-9 w-full" />)}
       </aside>
