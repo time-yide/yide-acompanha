@@ -11,48 +11,50 @@ export async function fetchClienteEquipeAction(clientId: string): Promise<Client
   return getClienteEquipe(clientId);
 }
 
-const MAX_BYTES = 5 * 1024 * 1024;
-const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+const MAX_BYTES = 15 * 1024 * 1024; // 15 MB (igual ao chat)
+const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf"];
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * Upload de anexo pra Storage bucket task-attachments.
- * taskId é gerado no client antes do submit do form (UUID v4) - assim
- * a tarefa ainda nem foi criada na DB mas já temos um path estável.
+ * Prepara um upload de anexo de tarefa DIRETO do browser pro Storage.
  *
- * Retorna URL pública.
+ * IMPORTANTE: o arquivo NÃO passa por Server Action. Server Actions têm teto de
+ * corpo (bodySizeLimit = 2MB neste projeto) — foto de celular (3-8MB) estourava
+ * ANTES da action rodar e, sem try/catch no client, dava falha silenciosa
+ * ("trava sem mensagem"). Aqui só geramos um signed upload token (payload
+ * minúsculo); o browser envia os bytes direto pro Storage via `uploadToSignedUrl`,
+ * furando o 2MB. Mesmo padrão do chat (prepareChatAttachmentUpload).
+ *
+ * `taskId` é o UUID gerado no client antes do submit — path estável mesmo antes
+ * da tarefa existir na DB. Bucket público → devolvemos a URL pública final.
  */
-export async function uploadTaskAttachmentAction(
+export async function prepareTaskAttachmentUpload(
   taskId: string,
-  formData: FormData,
-): Promise<{ error: string } | { success: true; url: string }> {
+  fileName: string,
+  fileType: string,
+  fileSize: number,
+): Promise<{ error: string } | { path: string; token: string; url: string }> {
   await requireAuth();
 
   if (!UUID_RE.test(taskId)) return { error: "ID de tarefa inválido" };
 
-  const file = formData.get("file");
-  if (!(file instanceof File)) return { error: "Arquivo inválido" };
-  if (!ALLOWED.includes(file.type)) return { error: "Apenas JPEG, PNG, WebP ou GIF" };
-  if (file.size > MAX_BYTES) return { error: "Máximo 5MB por arquivo" };
-  if (file.size === 0) return { error: "Arquivo vazio" };
+  const baseType = fileType.split(";")[0].trim().toLowerCase();
+  if (!ALLOWED.includes(baseType)) return { error: "Apenas imagem (JPEG/PNG/WebP/GIF) ou PDF" };
+  if (fileSize <= 0) return { error: "Arquivo vazio" };
+  if (fileSize > MAX_BYTES) return { error: "Máximo 15MB por arquivo" };
 
-  const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-  const filename = `${crypto.randomUUID()}.${ext}`;
-  const path = `${taskId}/${filename}`;
+  const ext = (fileName.split(".").pop() || "bin").toLowerCase();
+  const path = `${taskId}/${crypto.randomUUID()}.${ext}`;
 
   const admin = createServiceRoleClient();
-  const arrayBuffer = await file.arrayBuffer();
-  const { error: upErr } = await admin.storage
-    .from("task-attachments")
-    .upload(path, arrayBuffer, {
-      contentType: file.type,
-      upsert: false,
-    });
-  if (upErr) return { error: `Falha no upload: ${upErr.message}` };
+  const { data, error } = await admin.storage.from("task-attachments").createSignedUploadUrl(path);
+  if (error || !data?.token) {
+    return { error: error?.message ?? "Erro ao preparar upload" };
+  }
 
-  const { data: pub } = admin.storage.from("task-attachments").getPublicUrl(path);
-  return { success: true, url: pub.publicUrl };
+  const { data: pub } = admin.storage.from("task-attachments").getPublicUrl(data.path ?? path);
+  return { path: data.path ?? path, token: data.token, url: pub.publicUrl };
 }
 
 /**

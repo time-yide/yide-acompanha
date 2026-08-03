@@ -10,10 +10,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
-  uploadTaskAttachmentAction,
+  prepareTaskAttachmentUpload,
   removeTaskAttachmentAction,
   fetchClienteEquipeAction,
 } from "@/lib/tarefas/upload-actions";
+import { createClient } from "@/lib/supabase/client";
 import type { TaskLink } from "@/lib/tarefas/queries";
 
 interface ProfileOption { id: string; nome: string; role?: string | null; }
@@ -184,15 +185,28 @@ export function TaskForm({
     e.target.value = ""; // reset pro mesmo arquivo poder ser upado de novo
 
     startUpload(async () => {
+      const supabase = createClient();
       for (const file of files) {
-        const fd = new FormData();
-        fd.set("file", file);
-        const r = await uploadTaskAttachmentAction(taskId, fd);
-        if ("error" in r) {
-          setUploadError(r.error);
+        try {
+          // 1) prepara (só gera o token — arquivo NÃO passa pelo Server Action)
+          const prep = await prepareTaskAttachmentUpload(taskId, file.name, file.type, file.size);
+          if ("error" in prep) {
+            setUploadError(prep.error);
+            break;
+          }
+          // 2) sobe os bytes direto pro Storage (fura o teto de 2MB do server)
+          const { error: upErr } = await supabase.storage
+            .from("task-attachments")
+            .uploadToSignedUrl(prep.path, prep.token, file, { contentType: file.type });
+          if (upErr) {
+            setUploadError(`Falha no upload: ${upErr.message}`);
+            break;
+          }
+          setAttachments((prev) => [...prev, prep.url]);
+        } catch (err) {
+          setUploadError(err instanceof Error ? err.message : "Falha no upload");
           break;
         }
-        setAttachments((prev) => [...prev, r.url]);
       }
     });
   }
@@ -445,7 +459,7 @@ export function TaskForm({
               <span className="text-[10px]">{uploading ? "Enviando..." : "Adicionar"}</span>
               <input
                 type="file"
-                accept="image/png,image/jpeg,image/webp,image/gif"
+                accept="image/png,image/jpeg,image/webp,image/gif,application/pdf"
                 multiple
                 onChange={onUpload}
                 disabled={uploading}
