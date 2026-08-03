@@ -77,6 +77,7 @@ export default async function CanalPage({ params }: { params: Promise<{ kind: st
   return (
     <div className="flex h-[calc(100dvh-5rem)] min-h-0 flex-col gap-4 md:h-[calc(100vh-8rem)] md:flex-row">
       <ChannelSidebar
+        className="hidden md:flex"
         channels={sidebarChannels}
         currentKind={kind}
         currentChannelId={null}

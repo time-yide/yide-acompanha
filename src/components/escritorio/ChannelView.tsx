@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Hash } from "lucide-react";
+import Link from "next/link";
+import { Hash, ArrowLeft } from "lucide-react";
 import { MessageBubble } from "./MessageBubble";
 import { MessageInput } from "./MessageInput";
 import { useRealtimeMessages } from "@/lib/escritorio/use-realtime-messages";
@@ -119,14 +120,24 @@ export function ChannelView({ channel, initialMessages, currentUser, mentionable
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col rounded-xl border bg-card">
-      <header className="border-b px-4 py-3">
-        <h2 className="flex items-center gap-1.5 text-sm font-semibold">
-          <Hash className="h-4 w-4 text-muted-foreground" />
-          {channel.nome}
-        </h2>
-        {channel.descricao && (
-          <p className="mt-0.5 text-xs text-muted-foreground">{channel.descricao}</p>
-        )}
+      <header className="flex items-center gap-2 border-b px-4 py-3">
+        {/* Voltar pra lista — só no mobile (no desktop a lista fica ao lado). */}
+        <Link
+          href="/escritorio"
+          aria-label="Voltar pra lista de conversas"
+          className="-ml-1.5 shrink-0 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground md:hidden"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Link>
+        <div className="min-w-0">
+          <h2 className="flex items-center gap-1.5 text-sm font-semibold">
+            <Hash className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <span className="truncate">{channel.nome}</span>
+          </h2>
+          {channel.descricao && (
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">{channel.descricao}</p>
+          )}
+        </div>
       </header>
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto bg-muted/10 px-3 py-3 sm:px-4">
