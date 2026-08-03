@@ -1,4 +1,6 @@
+import { Suspense } from "react";
 import { requireAuth } from "@/lib/auth/session";
+import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { DashboardSocioAdm } from "@/components/dashboard/DashboardSocioAdm";
 import { DashboardAdm } from "@/components/dashboard/DashboardAdm";
 
@@ -90,8 +92,25 @@ export default async function DashboardPage({
 }: {
   searchParams: Promise<{ as?: string; periodo?: string; mes?: string }>;
 }) {
-  const params = await searchParams;
+  // Só o auth bloqueia o primeiro byte. O dashboard do papel (queries pesadas)
+  // carrega DENTRO do <Suspense> via streaming — o celular vê o "Olá" + o
+  // esqueleto na hora, em vez de ~3s de tela branca (melhora FCP/LCP no mobile).
   const user = await requireAuth();
+  return (
+    <Suspense fallback={<DashboardSkeleton nome={user.nome} />}>
+      <DashboardBody searchParams={searchParams} user={user} />
+    </Suspense>
+  );
+}
+
+async function DashboardBody({
+  searchParams,
+  user,
+}: {
+  searchParams: Promise<{ as?: string; periodo?: string; mes?: string }>;
+  user: { id: string; role: string; nome: string; especialidade: string | null };
+}) {
+  const params = await searchParams;
   const periodo = parsePeriodo(params.periodo);
   const mesAtual = getCurrentMonthYM(new Date());
   // Âncora no meio do mês atual em UTC: mesesRecentes/parseMes operam em UTC,
