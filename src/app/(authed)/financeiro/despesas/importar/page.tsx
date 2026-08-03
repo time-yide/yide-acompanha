@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth/session";
+import { canAccessFinanceiro } from "@/lib/financeiro/access";
 import { BulkExpenseImportForm } from "@/components/financeiro/BulkExpenseImportForm";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 
 export default async function ImportarDespesasPage() {
   const user = await requireAuth();
-  if (user.role !== "socio") redirect("/");
+  if (!canAccessFinanceiro(user.role)) redirect("/");
 
   return (
     <div className="mx-auto max-w-3xl space-y-5">

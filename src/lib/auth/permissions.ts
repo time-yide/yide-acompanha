@@ -2,7 +2,7 @@ export type Role =
   | "adm" | "socio" | "comercial" | "coordenador" | "assessor"
   | "videomaker" | "designer" | "editor" | "audiovisual_chefe"
   | "assessor_ecommerce" | "assistente_ecommerce"
-  | "programacao" | "fast_midia";
+  | "programacao" | "fast_midia" | "financeiro";
 
 /**
  * Label visível no UI pra cada role. O enum `app_role` no banco mantém
@@ -23,6 +23,7 @@ export const ROLE_LABELS: Record<string, string> = {
   assistente_ecommerce: "Assistente de e-commerce",
   programacao: "Programação",
   fast_midia: "Fast Mídia",
+  financeiro: "Financeiro",
 };
 
 /** Devolve o label visível de um role. Faz fallback pro próprio valor. */
@@ -192,6 +193,19 @@ const matrix: Record<Role, Action[]> = {
   // Por ora SEM acessos: nenhuma permissão e nenhum item de menu (ver
   // isLinkVisible em nav-config). Não ganha comissão (fora do calculator).
   programacao: [],
+  // Financeiro: cuida das finanças da operação. Vê TODO o módulo /financeiro
+  // (DRE/lucro, caixa, ranking, despesas, pagamentos, contratos) e todas as
+  // comissões da equipe — mas NÃO aprova o fechamento mensal (approve:monthly_closing
+  // continua só do sócio). Sem nada operacional (tarefas/comercial/CRM): o menu
+  // começa zerado nos itens "all", igual à Programação (ver FINANCEIRO_ALL_ALLOWED
+  // em nav-config). Não ganha comissão (fica de fora do calculator → só fixo).
+  financeiro: [
+    "view:all_clients",
+    "view:client_money_all",
+    "view:financial_consolidated",
+    "view:other_commissions",
+    "view:own_commission",
+  ],
   // Fast Mídia: responsável pelos stories dos clientes E exerce a função de
   // videomaker (aparece na equipe audiovisual do coordenador, é delegável a
   // gravações, entra no fluxo de satisfação). Mesmo conjunto de permissões do

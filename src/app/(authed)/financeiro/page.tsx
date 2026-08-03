@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth/session";
+import { canAccessFinanceiro } from "@/lib/financeiro/access";
 import { getDRE, getDRESeries, type DREData } from "@/lib/financeiro/queries";
 import { DREView } from "@/components/financeiro/DREView";
 import { DREComposition } from "@/components/financeiro/DREComposition";
@@ -139,10 +140,10 @@ export default async function FinanceiroPage({
 }) {
   const params = await searchParams;
   const user = await requireAuth();
-  // DRE/visão financeira é só pro sócio. ADM cai direto em /financeiro/pagamentos
-  // (que é o que ela usa). Outros roles não acessam.
+  // DRE/visão financeira é do sócio e do financeiro. ADM cai direto em
+  // /financeiro/pagamentos (que é o que ela usa). Outros roles não acessam.
   if (user.role === "adm") redirect("/financeiro/pagamentos");
-  if (user.role !== "socio") redirect("/");
+  if (!canAccessFinanceiro(user.role)) redirect("/");
 
   const mesRef = isValidMes(params.mes) ? params.mes : currentMesRef();
   const mode: Mode = params.mode === "6m" ? "6m" : params.mode === "ytd" ? "ytd" : "mes";

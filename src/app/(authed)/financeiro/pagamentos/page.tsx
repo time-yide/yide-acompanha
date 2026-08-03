@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
+import { canAccessFinanceiro } from "@/lib/financeiro/access";
 import { listClientPaymentsForMonth, listPayrollForMonth } from "@/lib/pagamentos/queries";
 import { ClientPaymentsTable } from "@/components/dashboard/adm/ClientPaymentsTable";
 import { PayrollPaymentsTable } from "@/components/dashboard/adm/PayrollPaymentsTable";
@@ -36,8 +37,8 @@ export default async function PagamentosPage({
 }) {
   const params = await searchParams;
   const user = await requireAuth();
-  // ADM e sócio têm acesso (ADM marca dia-a-dia; sócio vê e ajusta).
-  if (user.role !== "socio" && user.role !== "adm") redirect("/");
+  // Sócio, financeiro e ADM têm acesso (ADM marca dia-a-dia; sócio/financeiro veem e ajustam).
+  if (!canAccessFinanceiro(user.role) && user.role !== "adm") redirect("/");
 
   const mes = isValidMes(params.mes) ? params.mes : currentMesRef();
   const [clientPayments, payroll] = await Promise.all([

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth/session";
+import { canAccessFinanceiro } from "@/lib/financeiro/access";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getFluxoCaixa, listAportes, getMesesComCaixa, type FluxoCaixaPonto } from "@/lib/financeiro/caixa";
 import { getProjecaoCaixaMes, calcularReserva } from "@/lib/financeiro/projecao";
@@ -75,7 +76,7 @@ function FluxoTable({ series }: { series: FluxoCaixaPonto[] }) {
 
 export default async function FluxoCaixaPage() {
   const user = await requireAuth();
-  if (user.role !== "socio") redirect("/");
+  if (!canAccessFinanceiro(user.role)) redirect("/");
 
   // Só os meses que têm dado de caixa (pagamento marcado ou aporte). Meses sem
   // marcação dariam recebido 0 + saídas cheias = prejuízo fantasma. Inclui o
