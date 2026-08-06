@@ -141,7 +141,7 @@ export function LeadCard({
         </div>
       </Link>
 
-      {canInteract && (
+      {canInteract && !selectMode && (
         <StageTransitionButtons
           leadId={lead.id}
           currentStage={lead.stage as Stage}
