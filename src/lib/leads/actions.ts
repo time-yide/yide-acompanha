@@ -796,3 +796,63 @@ export async function deleteLeadAction(formData: FormData) {
   revalidateTag(LEADS_CACHE_TAG, "default");
   return { success: true as const };
 }
+
+/**
+ * Exclusão em lote de cards do onboarding. Aplica a MESMA regra do
+ * deleteLeadAction por card (sócio/ADM/criador; sócia passa por cima do
+ * bloqueio "já virou cliente"). Cards sem permissão são pulados e devolvidos
+ * em `skipped` pra avisar a usuária, sem abortar os demais.
+ */
+export async function deleteLeadsBulkAction(formData: FormData) {
+  const actor = await requireAuth();
+  const justificativa = (fd(formData, "justificativa") ?? "").trim();
+  if (justificativa.length < 3) {
+    return { error: "Informe o motivo da exclusão (mín. 3 caracteres)" };
+  }
+  const ids = (fd(formData, "ids") ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (ids.length === 0) return { error: "Nenhum card selecionado" };
+
+  const supabase = await createClient();
+  const { data: leads } = await supabase.from("leads").select("*").in("id", ids);
+  if (!leads || leads.length === 0) return { error: "Cards não encontrados" };
+
+  const isPriv = actor.role === "socio" || actor.role === "adm";
+  let deleted = 0;
+  const skipped: string[] = [];
+
+  for (const lead of leads) {
+    const isCreator = actor.id === lead.comercial_id;
+    if (!isPriv && !isCreator) { skipped.push(lead.nome_prospect); continue; }
+    if ((lead.stage === "ativo" || lead.client_id) && actor.role !== "socio") {
+      skipped.push(lead.nome_prospect); continue;
+    }
+
+    await logAudit({
+      entidade: "leads",
+      entidade_id: lead.id,
+      acao: "delete",
+      dados_antes: lead as unknown as Record<string, unknown>,
+      ator_id: actor.id,
+      justificativa,
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = supabase as any;
+    const { data: del } = await sb
+      .from("leads")
+      .update({ deleted_at: new Date().toISOString(), deleted_by: actor.id })
+      .eq("id", lead.id)
+      .is("deleted_at", null)
+      .select("id");
+    if (del && del.length > 0) deleted++;
+    else skipped.push(lead.nome_prospect);
+  }
+
+  revalidatePath("/onboarding");
+  revalidateTag(PROSPECTS_CACHE_TAG, "default");
+  revalidateTag(LEADS_CACHE_TAG, "default");
+  return { success: true as const, deleted, skipped };
+}

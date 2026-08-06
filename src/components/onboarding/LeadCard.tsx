@@ -31,6 +31,12 @@ interface Props {
   currentUserRole: string;
   coordenadores?: Profile[];
   assessores?: Profile[];
+  /** Modo de seleção múltipla ligado no quadro. */
+  selectMode?: boolean;
+  /** Se este card está selecionado. */
+  selected?: boolean;
+  /** Alterna a seleção deste card. */
+  onToggleSelect?: (leadId: string) => void;
 }
 
 export function LeadCard({
@@ -39,6 +45,9 @@ export function LeadCard({
   currentUserRole,
   coordenadores = [],
   assessores = [],
+  selectMode = false,
+  selected = false,
+  onToggleSelect,
 }: Props) {
   const canDelete = currentUserRole === "socio" || currentUserRole === "adm" || currentUserId === lead.comercial_id;
   // Permissão por estágio (mapa em src/lib/leads/schema.ts)
@@ -50,12 +59,30 @@ export function LeadCard({
     e.dataTransfer.effectAllowed = "move";
   }
 
+  const selectable = selectMode && canDelete;
+
   return (
     <Card
-      draggable={canInteract}
-      onDragStart={canInteract ? onDragStart : undefined}
-      className={`space-y-2 p-3 transition-opacity ${canInteract ? "cursor-grab active:cursor-grabbing [&[draggable=true]:active]:opacity-50" : ""}`}
+      draggable={canInteract && !selectMode}
+      onDragStart={canInteract && !selectMode ? onDragStart : undefined}
+      className={`space-y-2 p-3 transition-opacity ${
+        canInteract && !selectMode ? "cursor-grab active:cursor-grabbing [&[draggable=true]:active]:opacity-50" : ""
+      } ${selected ? "ring-2 ring-primary" : ""}`}
     >
+      {selectMode && (
+        <label
+          className={`flex items-center gap-2 text-xs ${selectable ? "cursor-pointer text-foreground" : "text-muted-foreground"}`}
+        >
+          <input
+            type="checkbox"
+            checked={selected}
+            disabled={!selectable}
+            onChange={() => onToggleSelect?.(lead.id)}
+            className="h-4 w-4 accent-primary"
+          />
+          {selectable ? "Selecionar" : "Sem permissão"}
+        </label>
+      )}
       <Link
         href={`/onboarding/${lead.id}`}
         className="block -m-3 mb-0 cursor-pointer p-3 pb-0 hover:bg-muted/30 rounded-t-xl"
