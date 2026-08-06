@@ -760,9 +760,11 @@ export async function deleteLeadAction(formData: FormData) {
     return { error: "Apenas sócio, ADM ou o criador do card pode excluir" };
   }
 
-  // Lead já virou cliente - exclusão precisa ser feita pelo /clientes
-  // (commission_snapshots referenciam lead_id sem cascade).
-  if (lead.stage === "ativo" || lead.client_id) {
+  // Lead já virou cliente - por padrão a exclusão precisa ser feita pelo /clientes
+  // (commission_snapshots referenciam lead_id sem cascade). Sócia/dono pode forçar:
+  // é soft delete (a linha permanece, então os snapshots de comissão ficam intactos)
+  // e o card é recuperável na /lixeira por 30 dias.
+  if ((lead.stage === "ativo" || lead.client_id) && actor.role !== "socio") {
     return { error: "Lead já virou cliente. Use a página de clientes pra excluir." };
   }
 
