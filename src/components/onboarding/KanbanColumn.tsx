@@ -39,6 +39,9 @@ interface Props {
   currentUserRole: string;
   coordenadores?: Profile[];
   assessores?: Profile[];
+  selectMode?: boolean;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (leadId: string) => void;
 }
 
 export function KanbanColumn({
@@ -49,6 +52,9 @@ export function KanbanColumn({
   currentUserRole,
   coordenadores = [],
   assessores = [],
+  selectMode = false,
+  selectedIds,
+  onToggleSelect,
 }: Props) {
   const [isOver, setIsOver] = useState(false);
 
@@ -105,6 +111,9 @@ export function KanbanColumn({
               currentUserRole={currentUserRole}
               coordenadores={coordenadores}
               assessores={assessores}
+              selectMode={selectMode}
+              selected={selectedIds?.has(l.id) ?? false}
+              onToggleSelect={onToggleSelect}
             />
           ))
         )}
