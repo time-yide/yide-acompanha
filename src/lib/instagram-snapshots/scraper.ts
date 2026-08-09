@@ -155,6 +155,16 @@ async function scrapeOnce(username: string, token: string): Promise<ProfileSnaps
     }
     if (!resp.ok) {
       const text = await resp.text().catch(() => "");
+      // Detecta limite mensal do plano Apify estourado (HTTP 403 com type
+      // "platform-feature-disabled"). UX melhor que "HTTP 403".
+      if (resp.status === 403 && /Monthly usage hard limit exceeded|platform-feature-disabled/i.test(text)) {
+        return {
+          status: "error",
+          totalPosts: null,
+          recentPosts: [],
+          erro: "Limite mensal do plano Apify atingido. Adicione créditos em console.apify.com/billing ou aguarde reset do ciclo.",
+        };
+      }
       return {
         status: "error",
         totalPosts: null,
