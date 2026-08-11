@@ -15,6 +15,25 @@ type Res<T> = T | { error: string };
 
 function pode(role: string) { return canAccess(role, "manage:review"); }
 
+/**
+ * Traduz a falha do `criarVideo` (Bunny) numa mensagem que já diz O QUE fazer.
+ * Antes engolíamos tudo em "configuração?" — agora o status do Bunny vira causa:
+ * 401 chave errada, 402/403 cobrança/bloqueio, 404 library ID errado, 429 limite.
+ */
+function motivoBunny(e: unknown): string {
+  const msg = e instanceof Error ? e.message : String(e);
+  if (msg === "BUNNY_NAO_CONFIGURADO") return "Frame não configurado: faltam as chaves do Bunny na Vercel.";
+  const status = msg.startsWith("BUNNY_CRIAR_FALHOU:") ? Number(msg.split(":")[1]) : NaN;
+  switch (status) {
+    case 401: return "Frame recusou (401): a API key do Bunny está errada ou foi regerada.";
+    case 402: return "Frame recusou (402): conta do Bunny com pendência de cobrança.";
+    case 403: return "Frame recusou (403): conta/library do Bunny bloqueada.";
+    case 404: return "Frame recusou (404): o BUNNY_STREAM_LIBRARY_ID não bate com a key.";
+    case 429: return "Frame recusou (429): limite de uso do Bunny atingido. Tente daqui a pouco.";
+    default: return `Frame recusou o upload${Number.isFinite(status) ? ` (erro ${status})` : ""}. Use "Enviar link do Drive".`;
+  }
+}
+
 /** Cria (ou reusa) o review da tarefa e prepara o upload da 1ª versão. */
 export async function criarReviewDaTarefaAction(taskId: string): Promise<Res<{ reviewId: string; upload: UploadTus }>> {
   const user = await requireAuth();
@@ -35,7 +54,7 @@ export async function criarReviewDaTarefaAction(taskId: string): Promise<Res<{ r
   }
 
   let guid: string;
-  try { guid = await criarVideo(task.titulo); } catch { return { error: "Falha ao criar vídeo no Bunny (configuração?)" }; }
+  try { guid = await criarVideo(task.titulo); } catch (e) { return { error: motivoBunny(e) }; }
   const { data: ult } = await sb.from("review_versao").select("numero").eq("review_video_id", reviewId).order("numero", { ascending: false }).limit(1);
   const prox = ((ult?.[0]?.numero as number | undefined) ?? 0) + 1;
   await sb.from("review_versao").insert({ review_video_id: reviewId, numero: prox, bunny_video_id: guid, criado_por: user.id });
@@ -57,7 +76,7 @@ export async function adicionarVideoAction(taskId: string, titulo: string): Prom
   const { data: rv, error } = await sb.from("review_video").insert({ organization_id: org?.id, cliente_id: task.client_id, task_id: taskId, titulo: nome, status: "revisao_interna", criado_por: user.id }).select("id").single();
   if (error || !rv) return { error: "Falha ao criar o vídeo" };
   let guid: string;
-  try { guid = await criarVideo(nome); } catch { return { error: "Falha ao criar vídeo no Bunny (configuração?)" }; }
+  try { guid = await criarVideo(nome); } catch (e) { return { error: motivoBunny(e) }; }
   await sb.from("review_versao").insert({ review_video_id: rv.id, numero: 1, bunny_video_id: guid, criado_por: user.id });
   revalidatePath(`/tarefas/${taskId}`);
   return { reviewId: rv.id, upload: assinaturaUpload(guid) };
