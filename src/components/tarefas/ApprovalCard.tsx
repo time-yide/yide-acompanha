@@ -169,7 +169,7 @@ export function ApprovalCard({
       <Card className="space-y-4 p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
-            <h3 className="text-sm font-semibold">Aprovação</h3>
+            <h3 className="text-sm font-semibold">Aprovação Cliente</h3>
             <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <Badge variant="outline">{tipoLabel}</Badge>
               <span className="text-muted-foreground/60">·</span>
