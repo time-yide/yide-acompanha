@@ -5,6 +5,11 @@ import { requireAuth } from "@/lib/auth/session";
 import {
   getClienteSocial, listPostsByCliente,
 } from "@/lib/social-media/queries";
+import { getCalendarByClientMonth } from "@/lib/content-calendar/queries";
+import {
+  PACOTES_CRONOGRAMA_COMPLETO,
+  PACOTES_COM_CRONOGRAMA,
+} from "@/lib/content-calendar/types";
 import { SocialMediaWorkspace } from "@/components/social-media/SocialMediaWorkspace";
 
 const ALLOWED_ROLES = [
@@ -45,6 +50,33 @@ export default async function SocialMediaClientePage({
 
   const canManage = ROLES_QUE_GERENCIAM.includes(user.role);
 
+  // Content calendar: determine month and fetch if client package supports it
+  const hasCronograma = (PACOTES_COM_CRONOGRAMA as readonly string[]).includes(
+    cliente.tipo_pacote,
+  );
+
+  let calendarData = null;
+  let calendarModo: "completo" | "leve" | undefined;
+
+  if (hasCronograma) {
+    const now = new Date();
+    const day = now.getDate();
+    let mesReferencia: string;
+    if (day > 3) {
+      mesReferencia = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    } else {
+      const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      mesReferencia = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}`;
+    }
+
+    calendarData = await getCalendarByClientMonth(cliente.id, mesReferencia);
+    calendarModo = (PACOTES_CRONOGRAMA_COMPLETO as readonly string[]).includes(
+      cliente.tipo_pacote,
+    )
+      ? "completo"
+      : "leve";
+  }
+
   return (
     <div className="space-y-5">
       <div className="space-y-2">
@@ -79,6 +111,8 @@ export default async function SocialMediaClientePage({
           linkedin_company_id: cliente.linkedin_company_id,
           gmn_location_id: cliente.gmn_location_id,
         }}
+        calendarData={calendarData}
+        calendarModo={calendarModo}
       />
     </div>
   );

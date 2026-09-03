@@ -1,13 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarDays, List, Plus, LinkIcon } from "lucide-react";
+import { CalendarDays, List, Plus, LinkIcon, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CalendarMonthView } from "./CalendarMonthView";
 import { PostsListView } from "./PostsListView";
 import { PostFormModal } from "./PostFormModal";
 import { AccountsModal } from "./AccountsModal";
+import { ContentCalendarTab } from "@/components/content-calendar/ContentCalendarTab";
 import type { SocialPostRow } from "@/lib/social-media/queries";
+import type { ContentCalendarRow, CalendarMode } from "@/lib/content-calendar/types";
 
 interface Props {
   clientId: string;
@@ -20,12 +22,14 @@ interface Props {
     linkedin_company_id: string | null;
     gmn_location_id: string | null;
   };
+  calendarData?: ContentCalendarRow | null;
+  calendarModo?: CalendarMode;
 }
 
 export function SocialMediaWorkspace({
-  clientId, clientNome, posts, canManage, contas,
+  clientId, clientNome, posts, canManage, contas, calendarData, calendarModo,
 }: Props) {
-  const [view, setView] = useState<"calendar" | "list">("calendar");
+  const [view, setView] = useState<"calendar" | "list" | "cronograma">("calendar");
   const [openForm, setOpenForm] = useState(false);
   const [editing, setEditing] = useState<SocialPostRow | null>(null);
   const [defaultDate, setDefaultDate] = useState<string | undefined>(undefined);
@@ -71,6 +75,15 @@ export function SocialMediaWorkspace({
             >
               <List className="h-3.5 w-3.5" /> Lista
             </button>
+            {calendarModo && (
+              <button
+                type="button"
+                onClick={() => setView("cronograma")}
+                className={`inline-flex h-7 items-center gap-1 rounded px-2 text-xs ${view === "cronograma" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
+              >
+                <Sparkles className="h-3.5 w-3.5" /> Cronograma IA
+              </button>
+            )}
           </div>
         </div>
         {canManage && (
@@ -87,13 +100,19 @@ export function SocialMediaWorkspace({
           onEditPost={editarPost}
           canManage={canManage}
         />
-      ) : (
+      ) : view === "list" ? (
         <PostsListView
           posts={posts}
           canManage={canManage}
           onEditPost={editarPost}
         />
-      )}
+      ) : calendarModo ? (
+        <ContentCalendarTab
+          clientId={clientId}
+          calendarData={calendarData ?? null}
+          modo={calendarModo}
+        />
+      ) : null}
 
       {openForm && (
         <PostFormModal
