@@ -4,7 +4,9 @@ import type { NichoRow } from "./schema";
 
 export async function listNichos(orgId: string): Promise<NichoRow[]> {
   const sb = createServiceRoleClient();
-  const { data, error } = await sb
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sbAny = sb as any;
+  const { data, error } = await sbAny
     .from("nichos")
     .select("*")
     .eq("organization_id", orgId)
@@ -15,7 +17,9 @@ export async function listNichos(orgId: string): Promise<NichoRow[]> {
 
 export async function getNicho(id: string): Promise<NichoRow | null> {
   const sb = createServiceRoleClient();
-  const { data, error } = await sb
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sbAny = sb as any;
+  const { data, error } = await sbAny
     .from("nichos")
     .select("*")
     .eq("id", id)
@@ -28,7 +32,9 @@ export async function getNichoByClientId(
   clientId: string
 ): Promise<NichoRow | null> {
   const sb = createServiceRoleClient();
-  const { data, error } = await sb
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sbAny = sb as any;
+  const { data, error } = await sbAny
     .from("clients")
     .select("nicho_id, nichos(*)")
     .eq("id", clientId)

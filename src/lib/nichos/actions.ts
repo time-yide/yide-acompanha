@@ -1,13 +1,24 @@
 "use server";
 
-import { revalidateTag } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { requireAuth } from "@/lib/auth/session";
 import { nichoSchema } from "./schema";
 
 interface ActionResult {
   success: boolean;
   error?: string;
+}
+
+async function getOrgId(userId: string): Promise<string | null> {
+  const sb = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data } = await (sb as any)
+    .from("profiles")
+    .select("organization_id")
+    .eq("id", userId)
+    .single();
+  return data?.organization_id ?? null;
 }
 
 export async function createNichoAction(
@@ -30,23 +41,21 @@ export async function createNichoAction(
   if (!parsed.success)
     return { success: false, error: parsed.error.issues[0]?.message };
 
-  const sb = await createClient();
-  // Pega org_id via organizations (RLS garante que é a do user logado)
-  const { data: org } = await sb
-    .from("organizations")
-    .select("id")
-    .limit(1)
-    .single();
-  if (!org) return { success: false, error: "Organização não encontrada" };
+  const orgId = await getOrgId(actor.id);
+  if (!orgId) return { success: false, error: "Organização não encontrada" };
 
-  const { data, error } = await sb
+  const sb = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sbAny = sb as any;
+
+  const { data, error } = await sbAny
     .from("nichos")
-    .insert({ ...parsed.data, organization_id: org.id })
+    .insert({ ...parsed.data, organization_id: orgId })
     .select("id")
     .single();
   if (error) return { success: false, error: error.message };
 
-  revalidateTag("nichos");
+  revalidatePath("/configuracoes/nichos");
   return { success: true, id: data.id };
 }
 
@@ -73,22 +82,21 @@ export async function updateNichoAction(
   if (!parsed.success)
     return { success: false, error: parsed.error.issues[0]?.message };
 
-  const sb = await createClient();
-  const { data: org } = await sb
-    .from("organizations")
-    .select("id")
-    .limit(1)
-    .single();
-  if (!org) return { success: false, error: "Organização não encontrada" };
+  const orgId = await getOrgId(actor.id);
+  if (!orgId) return { success: false, error: "Organização não encontrada" };
 
-  const { error } = await sb
+  const sb = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sbAny = sb as any;
+
+  const { error } = await sbAny
     .from("nichos")
     .update(parsed.data)
     .eq("id", id)
-    .eq("organization_id", org.id);
+    .eq("organization_id", orgId);
   if (error) return { success: false, error: error.message };
 
-  revalidateTag("nichos");
+  revalidatePath("/configuracoes/nichos");
   return { success: true };
 }
 
@@ -102,47 +110,45 @@ export async function deleteNichoAction(
   const id = formData.get("id") as string;
   if (!id) return { success: false, error: "ID obrigatório" };
 
-  const sb = await createClient();
-  const { data: org } = await sb
-    .from("organizations")
-    .select("id")
-    .limit(1)
-    .single();
-  if (!org) return { success: false, error: "Organização não encontrada" };
+  const orgId = await getOrgId(actor.id);
+  if (!orgId) return { success: false, error: "Organização não encontrada" };
 
-  const { error } = await sb
+  const sb = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sbAny = sb as any;
+
+  const { error } = await sbAny
     .from("nichos")
     .delete()
     .eq("id", id)
-    .eq("organization_id", org.id);
+    .eq("organization_id", orgId);
   if (error) return { success: false, error: error.message };
 
-  revalidateTag("nichos");
+  revalidatePath("/configuracoes/nichos");
   return { success: true };
 }
 
 export async function setClientNichoAction(
   formData: FormData
 ): Promise<ActionResult> {
-  await requireAuth();
+  const actor = await requireAuth();
   const clientId = formData.get("client_id") as string;
   const nichoId = (formData.get("nicho_id") as string) || null;
 
-  const sb = await createClient();
-  const { data: org } = await sb
-    .from("organizations")
-    .select("id")
-    .limit(1)
-    .single();
-  if (!org) return { success: false, error: "Organização não encontrada" };
+  const orgId = await getOrgId(actor.id);
+  if (!orgId) return { success: false, error: "Organização não encontrada" };
 
-  const { error } = await sb
+  const sb = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sbAny = sb as any;
+
+  const { error } = await sbAny
     .from("clients")
     .update({ nicho_id: nichoId })
     .eq("id", clientId)
-    .eq("organization_id", org.id);
+    .eq("organization_id", orgId);
   if (error) return { success: false, error: error.message };
 
-  revalidateTag("clients");
+  revalidatePath("/clientes");
   return { success: true };
 }
