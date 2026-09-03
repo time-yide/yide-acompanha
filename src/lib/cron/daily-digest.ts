@@ -11,6 +11,7 @@ import { detectRenovacoes } from "./detectors/renovacao-contrato";
 import { detectSatisfacaoPendente } from "./detectors/satisfacao-pendente";
 import { detectChecklistPainel } from "./detectors/checklist-painel";
 import { detectClienteSelfSatisfactionSemanal } from "./detectors/cliente-self-satisfaction-semanal";
+import { detectGravacaoNaoAlinhada } from "./detectors/gravacao-nao-alinhada";
 
 export interface DigestCounters {
   task_overdue: number;
@@ -23,6 +24,7 @@ export interface DigestCounters {
   satisfacao_pendente: number;
   checklist_painel: number;
   cliente_self_satisfaction_semanal: number;
+  gravacao_pendente: number;
 }
 
 type DigestResult =
@@ -54,6 +56,7 @@ export async function runDailyDigest(): Promise<DigestResult> {
     satisfacao_pendente: 0,
     checklist_painel: 0,
     cliente_self_satisfaction_semanal: 0,
+    gravacao_pendente: 0,
   };
 
   await safeDetect(() => detectOverdueTasks(counters));
@@ -70,6 +73,7 @@ export async function runDailyDigest(): Promise<DigestResult> {
 
   await safeDetect(() => detectChecklistPainel(counters));
   await safeDetect(() => detectClienteSelfSatisfactionSemanal(counters));
+  await safeDetect(() => detectGravacaoNaoAlinhada(counters));
 
   await supabase
     .from("cron_runs")
