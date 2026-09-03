@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import { listNichos } from "@/lib/nichos/queries";
 import { ClienteForm } from "@/components/clientes/ClienteForm";
 import { createClienteAction } from "@/lib/clientes/actions";
 import { Card } from "@/components/ui/card";
@@ -19,6 +20,16 @@ export default async function NovoClientePage() {
   const assessores = (profiles ?? []).filter((p) => p.role === "assessor");
   const coordenadores = (profiles ?? []).filter((p) => p.role === "coordenador");
 
+  // Nichos
+  const { data: org } = await supabase
+    .from("organizations")
+    .select("id")
+    .limit(1)
+    .single();
+  const nichos = org
+    ? (await listNichos(org.id)).map((n) => ({ id: n.id, nome: n.nome }))
+    : [];
+
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <header>
@@ -35,6 +46,7 @@ export default async function NovoClientePage() {
           designers={[]}
           videomakers={[]}
           editors={[]}
+          nichos={nichos}
           canEditAlocacao={true}
           submitLabel="Criar cliente"
         />

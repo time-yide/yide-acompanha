@@ -34,6 +34,7 @@ import { UnidadesSection } from "./UnidadesSection";
 import { GmbSection } from "./GmbSection";
 import { SolicitacoesSection } from "./SolicitacoesSection";
 import { TarefasPortalSection } from "./TarefasPortalSection";
+import { RelatoriosSemanaisSection } from "./RelatoriosSemanaisSection";
 import { env } from "@/lib/env";
 
 interface Props {
@@ -126,6 +127,7 @@ export async function ClientPortalView({ clientId, nomeContato, previewMode = fa
         <UnidadesSection unidades={unidades} />
         <TarefasPortalSection tarefas={tarefas} />
         <RelatoriosSection clientId={clientId} />
+        <RelatoriosSemanaisSection clientId={clientId} />
         <ReunioesSection reunioes={reunioes} />
         <TrafegoSection
           google={data.cliente.valor_trafego_google}

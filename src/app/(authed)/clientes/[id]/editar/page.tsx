@@ -3,6 +3,7 @@ import { requireAuth } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { getClienteById } from "@/lib/clientes/queries";
 import { updateClienteAction } from "@/lib/clientes/actions";
+import { listNichos } from "@/lib/nichos/queries";
 import { ClienteForm } from "@/components/clientes/ClienteForm";
 import { Card } from "@/components/ui/card";
 
@@ -26,6 +27,16 @@ export default async function EditClientePage({ params }: { params: Promise<{ id
 
   const assessores = (profiles ?? []).filter((p) => p.role === "assessor");
   const coordenadores = (profiles ?? []).filter((p) => p.role === "coordenador");
+
+  // Nichos — carrega só pra admin
+  const { data: org } = await supabase
+    .from("organizations")
+    .select("id")
+    .limit(1)
+    .single();
+  const nichos = isPrivileged && org
+    ? (await listNichos(org.id)).map((n) => ({ id: n.id, nome: n.nome }))
+    : [];
 
   const [designersResp, videomakersResp, editorsResp] = await Promise.all([
     supabase.from("profiles").select("id, nome").eq("role", "designer").eq("ativo", true).order("nome"),
@@ -94,12 +105,14 @@ export default async function EditClientePage({ params }: { params: Promise<{ id
             tipo_pacote_revisado: cliente.tipo_pacote_revisado ?? false,
             tipo_relacao: (cliente as { tipo_relacao?: string | null }).tipo_relacao ?? "comum",
             modalidade: (cliente as { modalidade?: string | null }).modalidade ?? "mensal",
+            nicho_id: (cliente as { nicho_id?: string | null }).nicho_id ?? null,
           }}
           assessores={assessores}
           coordenadores={coordenadores}
           designers={designers}
           videomakers={videomakers}
           editors={editors}
+          nichos={nichos}
           canEditAlocacao={isPrivileged}
           submitLabel="Salvar alterações"
         />
