@@ -45,7 +45,6 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const eligibleClients = (clients ?? []) as Array<{
     id: string;
     organization_id: string;

@@ -3,8 +3,8 @@ import { listWeeklyReportsByClient } from "@/lib/weekly-reports/queries";
 import type { MetricaComparacao, WeeklyReportRow } from "@/lib/weekly-reports/types";
 
 function formatDateBR(iso: string): string {
-  const [y, m, d] = iso.split("-");
-  return `${d}/${m}`;
+  const parts = iso.split("-");
+  return `${parts[2]}/${parts[1]}`;
 }
 
 function VariacaoIndicator({ variacao }: { variacao: number }) {

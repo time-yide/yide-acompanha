@@ -5,7 +5,6 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { requireAuth } from "@/lib/auth/session";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 import { regenerateSinglePost } from "./generator";
-import { getCalendarByClientMonth } from "./queries";
 import type { GeneratedPost, ContentCalendarRow } from "./types";
 
 interface ActionOk {
@@ -170,7 +169,7 @@ export async function updateCalendarPostsAction(
   calendarId: string,
   posts: GeneratedPost[],
 ): Promise<ActionResult> {
-  const user = await requireAuth();
+  await requireAuth();
 
   const sb = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -206,14 +205,11 @@ export async function updateCalendarPostsAction(
   return { success: true };
 }
 
-/**
- * Regenera um post individual usando IA.
- */
 export async function regeneratePostAction(
   calendarId: string,
   postIndex: number,
 ): Promise<ActionResult & { post?: GeneratedPost }> {
-  const user = await requireAuth();
+  await requireAuth();
 
   const sb = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

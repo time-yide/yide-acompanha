@@ -25,7 +25,7 @@ interface VideomakerOption {
 interface Props {
   alerts: AlertWithClient[];
   userRole: string;
-  userId: string;
+  _userId?: string;
   videomakers: VideomakerOption[];
 }
 
@@ -46,7 +46,6 @@ const STATUS_COLORS: Record<AlertStatus, string> = {
 export function PendenciasGravacaoView({
   alerts,
   userRole,
-  userId,
   videomakers,
 }: Props) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());

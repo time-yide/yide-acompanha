@@ -7,6 +7,7 @@ export async function listWeeklyReportsByClient(
   limit: number = 8
 ): Promise<WeeklyReportRow[]> {
   const sb = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sbAny = sb as any;
   const { data, error } = await sbAny
     .from("weekly_reports")

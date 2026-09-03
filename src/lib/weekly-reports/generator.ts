@@ -19,6 +19,7 @@ export async function generateWeeklyReport(
   semanaFim: string
 ): Promise<WeeklyReportData> {
   const sb = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sbAny = sb as any;
 
   const { data: posts } = await sbAny
@@ -29,6 +30,7 @@ export async function generateWeeklyReport(
     .gte("publicado_em", semanaInicio)
     .lte("publicado_em", semanaFim + "T23:59:59");
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const postsDetalhes = (posts ?? []).map((p: any) => ({
     titulo: p.titulo ?? "",
     rede: (p.redes as string[])?.[0] ?? "instagram",
@@ -36,6 +38,7 @@ export async function generateWeeklyReport(
     publicado_em: p.publicado_em,
   }));
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const postIds = (posts ?? []).map((p: any) => p.id);
   const metricsThisWeek = await aggregateMetrics(sbAny, postIds);
 
@@ -52,6 +55,7 @@ export async function generateWeeklyReport(
     .gte("publicado_em", prevStart.toISOString().slice(0, 10))
     .lte("publicado_em", prevEnd.toISOString().slice(0, 10) + "T23:59:59");
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const prevIds = (prevPosts ?? []).map((p: any) => p.id);
   const metricsPrev = await aggregateMetrics(sbAny, prevIds);
 
@@ -80,6 +84,7 @@ interface AggregatedMetrics {
   compartilhamentos: number;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function aggregateMetrics(sb: any, postIds: string[]): Promise<AggregatedMetrics> {
   const empty = { alcance: 0, curtidas: 0, comentarios: 0, salvamentos: 0, compartilhamentos: 0 };
   if (postIds.length === 0) return empty;

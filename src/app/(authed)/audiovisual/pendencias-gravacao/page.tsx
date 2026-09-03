@@ -46,7 +46,6 @@ export default async function PendenciasGravacaoPage() {
     <PendenciasGravacaoView
       alerts={alerts}
       userRole={user.role}
-      userId={user.id}
       videomakers={videomakers}
     />
   );

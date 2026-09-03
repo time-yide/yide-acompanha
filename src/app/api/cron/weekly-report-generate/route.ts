@@ -14,6 +14,7 @@ export async function GET(req: Request) {
   }
 
   const sb = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sbAny = sb as any;
 
   // last week Monday to Sunday

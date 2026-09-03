@@ -52,7 +52,6 @@ export async function searchTrends(
       }
 
       const json = await res.json();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const webResults: SearchResult[] = (json.web?.results ?? [])
         .slice(0, 5)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
