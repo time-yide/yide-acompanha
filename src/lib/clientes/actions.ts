@@ -84,6 +84,7 @@ export async function createClienteAction(formData: FormData) {
     valor_trafego_meta: parsed.data.valor_trafego_meta ?? null,
     tipo_relacao: tipoRelacao,
     modalidade: parsed.data.modalidade ?? "mensal",
+    nicho_id: fd(formData, "nicho_id") || null,
   };
 
   const { data: created, error } = await supabase
@@ -207,6 +208,7 @@ export async function updateClienteAction(formData: FormData) {
     valor_trafego_meta: parsed.data.valor_trafego_meta ?? null,
     tipo_relacao: tipoRelacaoEdit,
     modalidade: parsed.data.modalidade ?? "mensal",
+    nicho_id: fd(formData, "nicho_id") || null,
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -15,6 +15,11 @@ interface ProfileOption {
   role: string;
 }
 
+interface NichoOption {
+  id: string;
+  nome: string;
+}
+
 interface Props {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   action: (formData: FormData) => any;
@@ -48,12 +53,14 @@ interface Props {
     tipo_pacote_revisado: boolean;
     tipo_relacao: string | null;
     modalidade: string | null;
+    nicho_id: string | null;
   }>;
   assessores: ProfileOption[];
   coordenadores: ProfileOption[];
   designers: Array<{ id: string; nome: string }>;
   videomakers: Array<{ id: string; nome: string }>;
   editors: Array<{ id: string; nome: string }>;
+  nichos?: NichoOption[];
   canEditAlocacao: boolean;
   submitLabel?: string;
 }
@@ -69,7 +76,7 @@ const MODALIDADE_LABELS: Record<string, string> = {
   pontual: "Pontual (serviço único)",
 };
 
-export function ClienteForm({ action, defaults = {}, assessores, coordenadores, designers, videomakers, editors, canEditAlocacao, submitLabel = "Salvar" }: Props) {
+export function ClienteForm({ action, defaults = {}, assessores, coordenadores, designers, videomakers, editors, nichos = [], canEditAlocacao, submitLabel = "Salvar" }: Props) {
   const [tipoRelacao, setTipoRelacao] = useState<TipoRelacaoCliente>(
     (defaults.tipo_relacao as TipoRelacaoCliente) ?? "comum"
   );
@@ -123,6 +130,23 @@ export function ClienteForm({ action, defaults = {}, assessores, coordenadores, 
             Pontual (vídeo avulso, projeto fechado): conta na carteira enquanto vigente, mas <strong>não vira churn</strong> ao encerrar. Fica em &quot;Serviços pontuais concluídos no mês&quot;.
           </p>
         </div>
+
+        {nichos.length > 0 && (
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="nicho_id">Nicho</Label>
+            <Select name="nicho_id" defaultValue={defaults.nicho_id ?? ""}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o nicho" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Sem nicho</SelectItem>
+                {nichos.map((n) => (
+                  <SelectItem key={n.id} value={n.id}>{n.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         <div className="space-y-2">
           <Label htmlFor="contato_principal">Contato principal</Label>
