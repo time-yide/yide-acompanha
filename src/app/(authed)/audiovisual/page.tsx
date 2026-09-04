@@ -58,7 +58,7 @@ export default async function AudiovisualPage({
   // audiovisual (audiovisual_chefe). A RLS de audiovisual_capturas já permite
   // audiovisual_chefe inserir; aqui só liberamos o formulário na UI. A captura
   // cai normalmente na fila do audiovisual (o coord pode delegar depois).
-  const canUpload = isVideomaker || user.role === "audiovisual_chefe";
+  const canUpload = isVideomaker || user.role === "audiovisual_chefe" || user.role === "socio";
   const isAssessor = user.role === "assessor";
   const canDelegate = ROLES_QUE_DELEGAM.includes(user.role);
   const canDelete = ROLES_QUE_EXCLUEM.includes(user.role);
