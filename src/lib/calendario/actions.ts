@@ -9,6 +9,7 @@ import { logAudit } from "@/lib/audit/log";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 import { brtInputToUtcIso } from "./timezone";
 import { APP_TIMEZONE } from "@/lib/datetime/timezone";
+import { autoAssignVideomaker } from "@/lib/audiovisual/auto-delegate";
 import {
   createEventSchema,
   editEventSchema,
@@ -370,6 +371,13 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
       actorNome: actor.nome,
     }));
 
+    // Auto-delega videomaker pra cada ocorrência da série (best-effort).
+    if (isVideomaker) {
+      for (const row of createdRows as { id: string }[]) {
+        after(autoAssignVideomaker(row.id, actor.id));
+      }
+    }
+
     revalidatePath("/calendario");
     revalidateTag("calendar", "default");
     revalidateTag("dashboard", "default");
@@ -450,10 +458,8 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
   revalidateTag("dashboard", "default");
   if (isVideomaker) {
     revalidatePath("/audiovisual");
-    // Com videomaker já designado, a captação nasce agendada → vai pra agenda.
-    // Sem videomaker, cai na fila "Captações futuras" pro coordenador delegar.
     if (!videomakerId) {
-      redirect(`/audiovisual?tab=aguardando_videomaker&novo=${created.id}`);
+      after(autoAssignVideomaker(created.id, actor.id));
     }
   }
   redirect(`/calendario`);
