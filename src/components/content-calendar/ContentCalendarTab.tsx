@@ -13,7 +13,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CalendarPostCard } from "./CalendarPostCard";
 import { ApproveCalendarButton } from "./ApproveCalendarButton";
-import { updateCalendarPostsAction } from "@/lib/content-calendar/actions";
+import {
+  updateCalendarPostsAction,
+  enqueueCalendarAction,
+} from "@/lib/content-calendar/actions";
 import type {
   ContentCalendarRow,
   CalendarMode,
@@ -47,9 +50,10 @@ interface Props {
   clientId: string;
   calendarData: ContentCalendarRow | null;
   modo: CalendarMode;
+  canEnqueue?: boolean;
 }
 
-export function ContentCalendarTab({ clientId, calendarData, modo }: Props) {
+export function ContentCalendarTab({ clientId, calendarData, modo, canEnqueue }: Props) {
   const [calendar, setCalendar] = useState(calendarData);
   const [posts, setPosts] = useState<GeneratedPost[]>(
     calendarData?.posts_json ?? [],
@@ -67,6 +71,26 @@ export function ContentCalendarTab({ clientId, calendarData, modo }: Props) {
     return `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}`;
   });
   const [loadingMonth, setLoadingMonth] = useState(false);
+  const [enqueuing, startEnqueuing] = useTransition();
+
+  async function handleEnqueue() {
+    startEnqueuing(async () => {
+      const result = await enqueueCalendarAction(clientId, currentMonth);
+      if ("error" in result) {
+        alert(result.error);
+      } else {
+        // Reload to show the new pendente_geracao status
+        const res = await fetch(
+          `/api/content-calendar?clientId=${clientId}&mes=${currentMonth}`,
+        );
+        if (res.ok) {
+          const data = await res.json();
+          setCalendar(data as ContentCalendarRow | null);
+          setPosts((data as ContentCalendarRow | null)?.posts_json ?? []);
+        }
+      }
+    });
+  }
 
   const handleUpdate = useCallback(
     (index: number, field: string, value: string) => {
@@ -146,10 +170,26 @@ export function ContentCalendarTab({ clientId, calendarData, modo }: Props) {
           onNext={() => navigateMonth(1)}
           loading={loadingMonth}
         />
-        <div className="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground">
+        <div className="flex flex-col items-center justify-center gap-3 py-12 text-muted-foreground">
           <p className="text-sm">
             Nenhum cronograma gerado para este mes
           </p>
+          {canEnqueue && (
+            <Button
+              size="sm"
+              onClick={handleEnqueue}
+              disabled={enqueuing}
+            >
+              {enqueuing ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Enfileirando...
+                </>
+              ) : (
+                "Gerar cronograma"
+              )}
+            </Button>
+          )}
         </div>
       </div>
     );

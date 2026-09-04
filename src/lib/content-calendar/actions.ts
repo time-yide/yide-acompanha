@@ -6,6 +6,11 @@ import { requireAuth } from "@/lib/auth/session";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 import { regenerateSinglePost } from "./generator";
 import type { GeneratedPost, ContentCalendarRow } from "./types";
+import {
+  PACOTES_COM_CRONOGRAMA,
+  PACOTES_CRONOGRAMA_COMPLETO,
+} from "./types";
+import type { CalendarMode } from "./types";
 
 interface ActionOk {
   success: true;
@@ -264,4 +269,65 @@ export async function regeneratePostAction(
     const msg = err instanceof Error ? err.message : String(err);
     return { error: `Falha ao regenerar post: ${msg}` };
   }
+}
+
+/**
+ * Enfileira cronograma de um cliente para um mês específico.
+ * Útil quando o cron mensal já passou e se quer gerar agora.
+ */
+export async function enqueueCalendarAction(
+  clientId: string,
+  mesReferencia: string,
+): Promise<ActionResult> {
+  const user = await requireAuth();
+  if (!["adm", "socio", "coordenador", "assessor"].includes(user.role)) {
+    return { error: "Sem permissão" };
+  }
+
+  const sb = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sbAny = sb as any;
+
+  const { data: client } = await sbAny
+    .from("clients")
+    .select("id, organization_id, tipo_pacote, nicho_id")
+    .eq("id", clientId)
+    .single();
+
+  if (!client) return { error: "Cliente não encontrado" };
+  if (!client.nicho_id) return { error: "Cliente sem nicho configurado. Vá em Configurações → Nichos e associe um nicho a este cliente." };
+  if (!(PACOTES_COM_CRONOGRAMA as readonly string[]).includes(client.tipo_pacote)) {
+    return { error: "Pacote do cliente não inclui cronograma de conteúdo" };
+  }
+
+  const { data: existing } = await sbAny
+    .from("content_calendars")
+    .select("id")
+    .eq("client_id", clientId)
+    .eq("mes_referencia", mesReferencia)
+    .maybeSingle();
+
+  if (existing) return { error: "Já existe cronograma para este mês" };
+
+  const modo: CalendarMode = (
+    PACOTES_CRONOGRAMA_COMPLETO as readonly string[]
+  ).includes(client.tipo_pacote)
+    ? "completo"
+    : "leve";
+
+  const { error } = await sbAny
+    .from("content_calendars")
+    .insert({
+      organization_id: client.organization_id,
+      client_id: clientId,
+      mes_referencia: mesReferencia,
+      modo,
+      status: "pendente_geracao",
+      criado_por: user.id,
+    });
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/social-media");
+  return { success: true };
 }

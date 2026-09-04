@@ -24,10 +24,11 @@ interface Props {
   };
   calendarData?: ContentCalendarRow | null;
   calendarModo?: CalendarMode;
+  canEnqueue?: boolean;
 }
 
 export function SocialMediaWorkspace({
-  clientId, clientNome, posts, canManage, contas, calendarData, calendarModo,
+  clientId, clientNome, posts, canManage, contas, calendarData, calendarModo, canEnqueue,
 }: Props) {
   const [view, setView] = useState<"calendar" | "list" | "cronograma">("calendar");
   const [openForm, setOpenForm] = useState(false);
@@ -111,6 +112,7 @@ export function SocialMediaWorkspace({
           clientId={clientId}
           calendarData={calendarData ?? null}
           modo={calendarModo}
+          canEnqueue={canEnqueue}
         />
       ) : null}
 
