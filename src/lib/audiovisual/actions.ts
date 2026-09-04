@@ -3,7 +3,9 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { AUDIOVISUAL_PENDENTE_TAG, AUDIOVISUAL_CAPTURAS_TAG } from "./queries";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { autoAssignEditor } from "./auto-delegate";
 import { requireAuth } from "@/lib/auth/session";
 import { logAudit } from "@/lib/audit/log";
 import { logActivityInternal } from "@/lib/produtividade/actions";
@@ -207,6 +209,9 @@ export async function createCapturaAction(_prev: ActionResult, formData: FormDat
   revalidateTag(AUDIOVISUAL_CAPTURAS_TAG, "default");
   revalidatePath("/satisfacao");
   revalidateTag(AUDIOVISUAL_PENDENTE_TAG, "default");
+
+  after(autoAssignEditor(created.id, actor.id, actor.nome));
+
   redirect("/audiovisual?toast=entregue");
 }
 
@@ -557,6 +562,8 @@ export async function markCapturaEntregueRapidoAction(
   revalidatePath("/audiovisual");
   revalidateTag(AUDIOVISUAL_PENDENTE_TAG, "default");
   revalidateTag(AUDIOVISUAL_CAPTURAS_TAG, "default");
+
+  after(autoAssignEditor(created.id, actor.id, actor.nome));
 
   return { success: true, capturaId: created.id };
 }
