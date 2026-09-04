@@ -113,6 +113,7 @@ export default async function SocialMediaClientePage({
         }}
         calendarData={calendarData}
         calendarModo={calendarModo}
+        canEnqueue={hasCronograma && canManage}
       />
     </div>
   );
