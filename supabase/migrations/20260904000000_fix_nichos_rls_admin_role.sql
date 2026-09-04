@@ -1,20 +1,9 @@
--- Tabela nichos
-create table nichos (
-  id uuid primary key default gen_random_uuid(),
-  organization_id uuid not null references organizations(id),
-  nome text not null,
-  slug text not null,
-  datas_comemorativas jsonb not null default '[]'::jsonb,
-  palavras_chave text[] not null default '{}',
-  created_at timestamptz not null default now(),
-  unique (organization_id, slug)
-);
+-- Fix: role = 'admin' não existe no sistema, o correto é 'adm'/'socio'.
+-- Recria as policies de insert/update/delete com os roles certos.
 
-alter table nichos enable row level security;
-
-create policy "nichos_select" on nichos
-  for select to authenticated
-  using (organization_id = (select organization_id from profiles where id = auth.uid()));
+drop policy if exists "nichos_insert" on nichos;
+drop policy if exists "nichos_update" on nichos;
+drop policy if exists "nichos_delete" on nichos;
 
 create policy "nichos_insert" on nichos
   for insert to authenticated
@@ -45,7 +34,3 @@ create policy "nichos_delete" on nichos
       where id = auth.uid() and role in ('adm', 'socio')
     )
   );
-
--- Campo nicho_id em clients
-alter table clients add column nicho_id uuid references nichos(id);
-create index idx_clients_nicho on clients(nicho_id);

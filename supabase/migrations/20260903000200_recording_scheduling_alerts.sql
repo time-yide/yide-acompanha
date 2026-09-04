@@ -35,8 +35,12 @@ create policy "rsa_update" on recording_scheduling_alerts
 create index idx_rsa_status on recording_scheduling_alerts(status);
 create index idx_rsa_client on recording_scheduling_alerts(client_id);
 
-insert into notification_rules (evento_tipo, titulo, ativo, default_roles, permite_email)
+-- IMPORTANTE: rodar os ALTER TYPE ADD VALUE em query separada ANTES deste bloco.
+-- Ver migration 20260903000150_notification_event_gravacao_cronograma.sql
+
+insert into public.notification_rules
+  (evento_tipo, ativo, mandatory, email_default, permite_destinatarios_extras, default_roles, default_user_ids)
 values
-  ('gravacao_alinhada', 'Gravacao alinhada pelo assessor', true, '{audiovisual_chefe}', false),
-  ('gravacao_pendente_lembrete', 'Lembrete de gravacao pendente', true, '{audiovisual_chefe}', false)
+  ('gravacao_alinhada', true, false, false, true, array['audiovisual_chefe']::text[], array[]::uuid[]),
+  ('gravacao_pendente_lembrete', true, false, false, true, array['audiovisual_chefe']::text[], array[]::uuid[])
 on conflict do nothing;
