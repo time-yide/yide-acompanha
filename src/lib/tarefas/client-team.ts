@@ -29,7 +29,7 @@ export async function getCoordenadoresAudiovisualIds(): Promise<string[]> {
   const { data } = await supabase
     .from("profiles")
     .select("id")
-    .eq("role", "audiovisual_chefe")
+    .in("role", ["audiovisual_chefe", "socio"])
     .eq("ativo", true);
   return (data ?? []).map((p) => p.id as string);
 }

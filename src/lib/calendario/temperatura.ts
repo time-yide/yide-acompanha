@@ -159,7 +159,7 @@ async function fetchTeamMemberIds(coordinatorId: string): Promise<string[]> {
   // usada também pelos recados — NÃO alterar). Aumentamos o time só aqui.
   const { data: coordinator } = await supabase
     .from("profiles").select("role").eq("id", coordinatorId).maybeSingle();
-  if (coordinator?.role === "audiovisual_chefe") {
+  if (coordinator?.role === "audiovisual_chefe" || coordinator?.role === "socio") {
     const { data: fastMidia } = await supabase
       .from("profiles").select("id").eq("ativo", true)
       .eq("role", "fast_midia" as never); // 'fast_midia' pode não estar no enum tipado
