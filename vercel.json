@@ -22,6 +22,7 @@
     { "path": "/api/cron/calendar-recurrence-extend", "schedule": "0 5 * * *" },
     { "path": "/api/cron/content-calendar-enqueue", "schedule": "0 12 3 * *" },
     { "path": "/api/cron/content-calendar-worker", "schedule": "*/5 * * * *" },
-    { "path": "/api/cron/weekly-report-generate", "schedule": "0 12 * * 1" }
+    { "path": "/api/cron/weekly-report-generate", "schedule": "0 12 * * 1" },
+    { "path": "/api/cron/wpp-dispatch", "schedule": "*/10 * * * *" }
   ]
 }
