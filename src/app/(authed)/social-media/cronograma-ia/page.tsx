@@ -15,6 +15,7 @@ import type { CalendarStatus } from "@/lib/content-calendar/types";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TabsSocialMedia } from "@/components/social-media/TabsSocialMedia";
+import { EnqueueAllButton } from "@/components/content-calendar/EnqueueAllButton";
 
 const ALLOWED_ROLES = [
   "adm",
@@ -130,6 +131,11 @@ export default async function CronogramaIAPage({
           {formatMonthLabel(nextMonth)} &rarr;
         </Link>
       </nav>
+
+      {/* Enqueue button for sócio/adm */}
+      {["socio", "adm"].includes(user.role) && (
+        <EnqueueAllButton mes={mes} monthLabel={formatMonthLabel(mes)} />
+      )}
 
       {calendars.length === 0 ? (
         <Card className="p-8 text-center text-sm text-muted-foreground">
