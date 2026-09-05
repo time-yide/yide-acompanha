@@ -1,4 +1,4 @@
-import { iniciais } from "@/lib/conversas/mock-data";
+import { iniciais } from "@/lib/conversas/helpers";
 
 interface Props {
   nome: string;

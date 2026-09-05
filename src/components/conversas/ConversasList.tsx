@@ -1,35 +1,28 @@
 import Link from "next/link";
 import { Search, MessageCircle, MoreVertical, Filter } from "lucide-react";
 import { ConversaItem } from "./ConversaItem";
-import type { ConversaMock } from "@/lib/conversas/mock-data";
+import type { WppConversation } from "@/lib/conversas/types";
 
 interface Props {
-  conversas: ConversaMock[];
+  conversas: WppConversation[];
   conversaSelecionadaId: string | null;
-  filtroAtivo: "todas" | "nao_lidas" | "comerciais";
+  filtroAtivo: "todas" | "nao_lidas";
 }
 
 const FILTROS = [
   { id: "todas", label: "Todas" },
   { id: "nao_lidas", label: "Não lidas" },
-  { id: "comerciais", label: "Comerciais" },
 ] as const;
 
-/**
- * Sidebar esquerda - search + tabs + lista de conversas.
- * Server Component: navegação por searchParams pra trocar conversa selecionada.
- */
 export function ConversasList({ conversas, conversaSelecionadaId, filtroAtivo }: Props) {
-  // Fixadas primeiro, depois resto ordenado por última mensagem desc.
   const ordenadas = [...conversas].sort((a, b) => {
     if (a.fixada && !b.fixada) return -1;
     if (!a.fixada && b.fixada) return 1;
-    return b.ultima_mensagem_em.localeCompare(a.ultima_mensagem_em);
+    return (b.ultima_msg_em ?? "").localeCompare(a.ultima_msg_em ?? "");
   });
 
   return (
     <aside className="flex h-full w-full flex-col border-r bg-card md:max-w-[360px]">
-      {/* Header da sidebar */}
       <header className="flex items-center justify-between gap-2 border-b px-4 py-3">
         <div className="flex items-center gap-2">
           <MessageCircle className="h-5 w-5 text-emerald-500" />
@@ -57,7 +50,6 @@ export function ConversasList({ conversas, conversaSelecionadaId, filtroAtivo }:
         </div>
       </header>
 
-      {/* Search */}
       <div className="px-3 py-2">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -71,7 +63,6 @@ export function ConversasList({ conversas, conversaSelecionadaId, filtroAtivo }:
         </div>
       </div>
 
-      {/* Tabs de filtro */}
       <div className="flex items-center gap-2 px-3 py-1.5 border-b">
         {FILTROS.map((f) => (
           <Link
@@ -89,7 +80,6 @@ export function ConversasList({ conversas, conversaSelecionadaId, filtroAtivo }:
         ))}
       </div>
 
-      {/* Lista de conversas */}
       <div className="flex-1 overflow-y-auto">
         {ordenadas.length === 0 ? (
           <p className="px-4 py-8 text-center text-xs text-muted-foreground">

@@ -1,8 +1,9 @@
 import { Check, CheckCheck, Clock, AlertCircle } from "lucide-react";
-import { formatHoraMsg, type MensagemMock } from "@/lib/conversas/mock-data";
+import { formatHoraMsg } from "@/lib/conversas/helpers";
+import type { WppMessage } from "@/lib/conversas/types";
 
 interface Props {
-  mensagem: MensagemMock;
+  mensagem: WppMessage;
 }
 
 /**
@@ -27,7 +28,7 @@ export function MessageBubble({ mensagem }: Props) {
           {mensagem.texto}
         </p>
         <div className="float-right -mb-0.5 ml-2 mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
-          <span>{formatHoraMsg(mensagem.timestamp)}</span>
+          <span>{formatHoraMsg(mensagem.created_at)}</span>
           {eMinha && <StatusIcon status={mensagem.status} />}
         </div>
       </div>
@@ -35,7 +36,7 @@ export function MessageBubble({ mensagem }: Props) {
   );
 }
 
-function StatusIcon({ status }: { status: MensagemMock["status"] }) {
+function StatusIcon({ status }: { status: WppMessage["status"] }) {
   if (status === "enviando") return <Clock className="h-3 w-3" />;
   if (status === "falhou") return <AlertCircle className="h-3 w-3 text-rose-500" />;
   if (status === "enviada") return <Check className="h-3 w-3" />;

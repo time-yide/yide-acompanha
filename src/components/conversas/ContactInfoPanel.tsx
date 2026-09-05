@@ -1,18 +1,14 @@
 import Link from "next/link";
 import {
-  Phone, Briefcase, User, Tag, Archive, BellOff, Trash2, ExternalLink,
+  Phone, Briefcase, Tag, Archive, BellOff, Trash2, ExternalLink,
 } from "lucide-react";
 import { Avatar } from "./Avatar";
-import type { ConversaMock } from "@/lib/conversas/mock-data";
+import type { WppConversation } from "@/lib/conversas/types";
 
 interface Props {
-  conversa: ConversaMock;
+  conversa: WppConversation;
 }
 
-/**
- * Painel direito: dados do contato + lead vinculado + atalhos.
- * Aparece só em viewport ≥ xl (1280px) pra não comer espaço do chat.
- */
 export function ContactInfoPanel({ conversa }: Props) {
   return (
     <aside className="hidden h-full w-[300px] shrink-0 flex-col border-l bg-card xl:flex">
@@ -21,9 +17,9 @@ export function ContactInfoPanel({ conversa }: Props) {
       </header>
 
       <div className="flex flex-col items-center gap-3 border-b px-4 py-6 text-center">
-        <Avatar nome={conversa.contato_nome} avatarUrl={conversa.avatar_url} online={conversa.online} size="lg" />
+        <Avatar nome={conversa.contato_nome || conversa.contato_telefone} size="lg" />
         <div>
-          <p className="font-medium">{conversa.contato_nome}</p>
+          <p className="font-medium">{conversa.contato_nome || conversa.contato_telefone}</p>
           <p className="text-xs text-muted-foreground">{conversa.contato_telefone}</p>
         </div>
         <div className="flex gap-2">
@@ -39,48 +35,44 @@ export function ContactInfoPanel({ conversa }: Props) {
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {/* Info do atendimento */}
         <div className="space-y-3 border-b px-4 py-4">
           <h4 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             Atendimento
           </h4>
-          <Linha icon={User} label="Comercial" value={conversa.comercial_nome} />
-          <Linha
-            icon={Phone}
-            label="Instância"
-            value={conversa.instancia_nome}
-          />
           <Linha
             icon={Tag}
             label="Canal"
-            value={conversa.canal === "whatsapp" ? "WhatsApp" : "Instagram Direct"}
+            value="WhatsApp"
+          />
+          <Linha
+            icon={Phone}
+            label="Número"
+            value={conversa.twilio_from ?? "—"}
           />
         </div>
 
-        {/* Lead vinculado */}
         <div className="space-y-3 border-b px-4 py-4">
           <h4 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             Lead vinculado
           </h4>
-          {conversa.lead_vinculado_id && conversa.lead_vinculado_nome ? (
+          {conversa.lead_gerado_id && conversa.lead_nome ? (
             <Link
-              href={`/onboarding/${conversa.lead_vinculado_id}`}
+              href={`/gerador-leads/${conversa.lead_gerado_id}`}
               className="flex items-center justify-between gap-2 rounded-lg border bg-muted/30 px-3 py-2 text-xs hover:bg-muted/50"
             >
               <div className="flex items-center gap-2 min-w-0">
                 <Briefcase className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
-                <span className="truncate font-medium">{conversa.lead_vinculado_nome}</span>
+                <span className="truncate font-medium">{conversa.lead_nome}</span>
               </div>
               <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
             </Link>
           ) : (
             <p className="text-xs text-muted-foreground">
-              Nenhum lead vinculado. Crie um a partir desta conversa.
+              Nenhum lead vinculado.
             </p>
           )}
         </div>
 
-        {/* Ações */}
         <div className="space-y-1 px-2 py-2 text-sm">
           <AcaoBotao icon={BellOff} label="Silenciar notificações" tom="muted" />
           <AcaoBotao icon={Archive} label="Arquivar conversa" tom="muted" />
