@@ -9,8 +9,8 @@ import {
 } from "./queries";
 import { DISPATCH_DAILY_LIMIT } from "./types";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function sb(): any {
+function sb() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return createServiceRoleClient() as any;
 }
 

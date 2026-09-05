@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Loader2, Send, Plus, MessageSquare } from "lucide-react";
 import {
   Dialog,
@@ -39,7 +39,7 @@ export function DispararWppModal({
   const [templates, setTemplates] = useState<WppTemplate[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [twilioFrom, setTwilioFrom] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<string | null>(null);
 
@@ -48,17 +48,17 @@ export function DispararWppModal({
   const [newCorpo, setNewCorpo] = useState("");
   const [savingTemplate, setSavingTemplate] = useState(false);
 
-  const loadTemplates = useCallback(async () => {
-    setLoading(true);
-    const list = await listTemplatesAction(baseFiltro);
-    setTemplates(list);
-    if (list.length > 0 && !selectedId) setSelectedId(list[0].id);
-    setLoading(false);
-  }, [baseFiltro, selectedId]);
-
   useEffect(() => {
-    if (open) loadTemplates();
-  }, [open, loadTemplates]);
+    if (!open) return;
+    let cancelled = false;
+    listTemplatesAction(baseFiltro).then((list) => {
+      if (cancelled) return;
+      setTemplates(list);
+      if (list.length > 0) setSelectedId(list[0].id);
+      setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [open, baseFiltro]);
 
   const selectedTemplate = templates.find((t) => t.id === selectedId);
 
@@ -79,7 +79,8 @@ export function DispararWppModal({
     setNewNome("");
     setNewCorpo("");
     setSelectedId(res.id);
-    await loadTemplates();
+    const list = await listTemplatesAction(baseFiltro);
+    setTemplates(list);
   }
 
   async function handleDispatch() {

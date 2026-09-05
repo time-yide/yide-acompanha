@@ -7,8 +7,8 @@ import { renderTemplate, normalizeTelefone } from "./render-template";
 import { listTemplates, getTemplate, getDispatchStats } from "./queries";
 import type { WppTemplate, DispatchStats } from "./types";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function sb(): any {
+function sb() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return createServiceRoleClient() as any;
 }
 

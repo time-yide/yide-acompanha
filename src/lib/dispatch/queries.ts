@@ -2,8 +2,8 @@ import "server-only";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import type { WppTemplate, WppDispatchItem, DispatchStats } from "./types";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function sb(): any {
+function sb() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return createServiceRoleClient() as any;
 }
 
