@@ -337,3 +337,79 @@ export async function enqueueCalendarAction(
   revalidatePath("/social-media");
   return { success: true };
 }
+
+/**
+ * Enfileira cronogramas de TODOS os clientes elegíveis para um mês.
+ * Mesma lógica do cron content-calendar-enqueue, mas disparável pela UI.
+ */
+export async function enqueueAllCalendarsAction(
+  mesReferencia: string,
+): Promise<{ created: number; skipped: number; total: number } | ActionErr> {
+  const user = await requireAuth();
+  if (!["adm", "socio"].includes(user.role)) {
+    return { error: "Apenas sócio ou adm pode gerar cronogramas em lote" };
+  }
+
+  const sb = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sbAny = sb as any;
+
+  const { data: clients, error: fetchErr } = await sbAny
+    .from("clients")
+    .select("id, organization_id, tipo_pacote, nicho_id")
+    .eq("status", "ativo")
+    .not("nicho_id", "is", null)
+    .in("tipo_pacote", [...PACOTES_COM_CRONOGRAMA]);
+
+  if (fetchErr) return { error: fetchErr.message };
+
+  const eligible = (clients ?? []) as Array<{
+    id: string;
+    organization_id: string;
+    tipo_pacote: string;
+    nicho_id: string;
+  }>;
+
+  let created = 0;
+  let skipped = 0;
+
+  for (const c of eligible) {
+    const { data: existing } = await sbAny
+      .from("content_calendars")
+      .select("id")
+      .eq("client_id", c.id)
+      .eq("mes_referencia", mesReferencia)
+      .maybeSingle();
+
+    if (existing) {
+      skipped++;
+      continue;
+    }
+
+    const modo: CalendarMode = (
+      PACOTES_CRONOGRAMA_COMPLETO as readonly string[]
+    ).includes(c.tipo_pacote)
+      ? "completo"
+      : "leve";
+
+    const { error: insertErr } = await sbAny
+      .from("content_calendars")
+      .insert({
+        organization_id: c.organization_id,
+        client_id: c.id,
+        mes_referencia: mesReferencia,
+        modo,
+        status: "pendente_geracao",
+        criado_por: user.id,
+      });
+
+    if (insertErr) {
+      skipped++;
+    } else {
+      created++;
+    }
+  }
+
+  revalidatePath("/social-media/cronograma-ia");
+  return { created, skipped, total: eligible.length };
+}
