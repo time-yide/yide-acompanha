@@ -35,10 +35,13 @@ const PACOTE_LABELS: Record<string, string> = {
 
 export default async function SocialMediaClientePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ clientId: string }>;
+  searchParams: Promise<{ tab?: string }>;
 }) {
   const { clientId } = await params;
+  const sp = await searchParams;
   const user = await requireAuth();
   if (!ALLOWED_ROLES.includes(user.role)) notFound();
 
@@ -114,6 +117,7 @@ export default async function SocialMediaClientePage({
         calendarData={calendarData}
         calendarModo={calendarModo}
         canEnqueue={hasCronograma && canManage}
+        defaultView={sp.tab === "cronograma" ? "cronograma" : undefined}
       />
     </div>
   );
