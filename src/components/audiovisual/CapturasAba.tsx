@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { Clock } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { CapturaForm } from "./CapturaForm";
+import { CollapsibleCapturaForm } from "./CollapsibleCapturaForm";
 import { CapturasOrganizadas } from "./CapturasOrganizadas";
 import { AudiovisualToastFlash } from "./AudiovisualToastFlash";
 import type { CapturaRow } from "@/lib/audiovisual/captura-utils";
@@ -60,7 +61,11 @@ export function CapturasAba({
         </Card>
       )}
 
-      {canUpload && <CapturaForm clientes={clientes} pendentes={pendentes} />}
+      {canUpload && (
+        isVideomaker
+          ? <CapturaForm clientes={clientes} pendentes={pendentes} />
+          : <CollapsibleCapturaForm clientes={clientes} pendentes={pendentes} />
+      )}
 
       <section className="space-y-4">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/80">
