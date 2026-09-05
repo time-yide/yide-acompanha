@@ -1,31 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import { Paperclip, Smile, Mic, Send } from "lucide-react";
+import { Paperclip, Smile, Mic, Send, Loader2 } from "lucide-react";
 
 interface Props {
-  /** Cb que recebe o texto digitado quando user clica em enviar (placeholder por enquanto). */
   onSend?: (texto: string) => void;
+  sending?: boolean;
 }
 
-/**
- * Barra de input estilo WhatsApp: emoji + anexo + textarea + (mic | send).
- * Comportamento "real" - texto fica preso enquanto Evolution API não tá
- * conectada. Click no enviar mostra toast "Em construção".
- */
-export function ChatInput({ onSend }: Props) {
+export function ChatInput({ onSend, sending }: Props) {
   const [texto, setTexto] = useState("");
-  const [aviso, setAviso] = useState<string | null>(null);
 
   function handleSend() {
-    if (!texto.trim()) return;
+    if (!texto.trim() || sending) return;
     if (onSend) {
       onSend(texto);
       setTexto("");
-      return;
     }
-    setAviso("Conexão com WhatsApp ainda em construção. Sua mensagem não foi enviada.");
-    setTimeout(() => setAviso(null), 3500);
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -37,11 +28,6 @@ export function ChatInput({ onSend }: Props) {
 
   return (
     <div className="border-t bg-card">
-      {aviso && (
-        <div className="bg-amber-500/10 px-4 py-1.5 text-center text-[11px] text-amber-700 dark:text-amber-300">
-          {aviso}
-        </div>
-      )}
       <div className="flex items-end gap-2 px-3 py-2.5">
         <button
           type="button"
@@ -65,16 +51,22 @@ export function ChatInput({ onSend }: Props) {
           onKeyDown={handleKeyDown}
           placeholder="Digite uma mensagem"
           rows={1}
-          className="max-h-32 min-h-10 flex-1 resize-none rounded-2xl bg-muted/60 px-4 py-2 text-sm outline-none placeholder:text-muted-foreground focus:bg-muted"
+          disabled={sending}
+          className="max-h-32 min-h-10 flex-1 resize-none rounded-2xl bg-muted/60 px-4 py-2 text-sm outline-none placeholder:text-muted-foreground focus:bg-muted disabled:opacity-50"
         />
         {texto.trim() ? (
           <button
             type="button"
             onClick={handleSend}
-            className="rounded-full bg-emerald-500 p-2 text-white hover:bg-emerald-600"
+            disabled={sending}
+            className="rounded-full bg-emerald-500 p-2 text-white hover:bg-emerald-600 disabled:opacity-50"
             aria-label="Enviar"
           >
-            <Send className="h-5 w-5" />
+            {sending ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <Send className="h-5 w-5" />
+            )}
           </button>
         ) : (
           <button

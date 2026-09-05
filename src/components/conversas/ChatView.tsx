@@ -1,19 +1,23 @@
-import { MessageCircle, Lock } from "lucide-react";
+"use client";
+
+import { useState, useEffect, useRef, useCallback } from "react";
+import { MessageCircle, Lock, Loader2 } from "lucide-react";
 import { ChatHeader } from "./ChatHeader";
 import { ChatInput } from "./ChatInput";
 import { MessageBubble } from "./MessageBubble";
-import type { ConversaMock, MensagemMock } from "@/lib/conversas/mock-data";
+import { sendWppMessageAction, markConversationReadAction } from "@/lib/conversas/actions";
+import type { WppConversation, WppMessage } from "@/lib/conversas/types";
 import { APP_TIMEZONE, getTodayDate } from "@/lib/datetime/timezone";
 
 interface Props {
-  conversa: ConversaMock | null;
+  conversa: WppConversation | null;
+  initialMessages?: WppMessage[];
 }
 
-/** Agrupa mensagens por dia (YYYY-MM-DD) pra mostrar separadores tipo WhatsApp. */
-function agruparPorDia(mensagens: MensagemMock[]): Array<{ dia: string; rotulo: string; itens: MensagemMock[] }> {
-  const grupos = new Map<string, MensagemMock[]>();
+function agruparPorDia(mensagens: WppMessage[]): Array<{ dia: string; rotulo: string; itens: WppMessage[] }> {
+  const grupos = new Map<string, WppMessage[]>();
   for (const m of mensagens) {
-    const dia = m.timestamp.slice(0, 10);
+    const dia = m.created_at.slice(0, 10);
     const cur = grupos.get(dia) ?? [];
     cur.push(m);
     grupos.set(dia, cur);
@@ -38,11 +42,76 @@ function agruparPorDia(mensagens: MensagemMock[]): Array<{ dia: string; rotulo: 
     });
 }
 
-/** Wallpaper sutil dark/light pra remeter ao WhatsApp sem ser igualzinho. */
 const WALLPAPER_CLASSES =
   "bg-[radial-gradient(circle_at_top_left,theme(colors.emerald.500/0.04),transparent_40%),radial-gradient(circle_at_bottom_right,theme(colors.teal.500/0.04),transparent_40%)]";
 
-export function ChatView({ conversa }: Props) {
+export function ChatView({ conversa, initialMessages }: Props) {
+  const [messages, setMessages] = useState<WppMessage[]>(initialMessages ?? []);
+  const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  // Fetch messages when conversation changes
+  useEffect(() => {
+    if (!conversa) {
+      setMessages([]);
+      return;
+    }
+    if (initialMessages) {
+      setMessages(initialMessages);
+    } else {
+      setLoading(true);
+      fetch(`/api/conversas/messages?conversationId=${conversa.id}`)
+        .then((r) => r.json())
+        .then((data) => setMessages(data as WppMessage[]))
+        .catch(() => setMessages([]))
+        .finally(() => setLoading(false));
+    }
+    // Mark as read
+    markConversationReadAction(conversa.id).catch(() => {});
+  }, [conversa?.id]);
+
+  // Scroll to bottom on new messages
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages.length]);
+
+  // Poll for new messages every 5s
+  useEffect(() => {
+    if (!conversa) return;
+    const interval = setInterval(async () => {
+      try {
+        const r = await fetch(`/api/conversas/messages?conversationId=${conversa.id}`);
+        if (r.ok) {
+          const data = await r.json();
+          setMessages(data as WppMessage[]);
+        }
+      } catch {}
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [conversa?.id]);
+
+  const handleSend = useCallback(async (texto: string) => {
+    if (!conversa || sending) return;
+    setSending(true);
+    try {
+      const result = await sendWppMessageAction(conversa.id, texto);
+      if ("error" in result) {
+        alert(result.error);
+      } else {
+        // Refresh messages
+        const r = await fetch(`/api/conversas/messages?conversationId=${conversa.id}`);
+        if (r.ok) {
+          setMessages(await r.json() as WppMessage[]);
+        }
+      }
+    } catch {
+      alert("Erro ao enviar mensagem");
+    } finally {
+      setSending(false);
+    }
+  }, [conversa?.id, sending]);
+
   if (!conversa) {
     return (
       <div className={`flex h-full flex-1 flex-col items-center justify-center gap-4 ${WALLPAPER_CLASSES} bg-muted/20`}>
@@ -52,40 +121,50 @@ export function ChatView({ conversa }: Props) {
         <div className="max-w-md text-center space-y-2 px-6">
           <h2 className="text-xl font-light tracking-tight">Conversas Yide</h2>
           <p className="text-sm text-muted-foreground">
-            Inbox unificada de WhatsApp e Instagram dos comerciais. Selecione uma
-            conversa à esquerda pra começar.
+            Inbox unificada de WhatsApp. Selecione uma conversa à esquerda pra começar.
           </p>
         </div>
         <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
           <Lock className="h-3 w-3" />
-          As mensagens trafegam pela Evolution API hospedada na sua VPS.
+          Mensagens via Twilio WhatsApp Business API.
         </p>
       </div>
     );
   }
 
-  const grupos = agruparPorDia(conversa.mensagens);
+  const grupos = agruparPorDia(messages);
 
   return (
     <div className={`flex h-full flex-1 flex-col ${WALLPAPER_CLASSES}`}>
       <ChatHeader conversa={conversa} />
 
       <div className="flex-1 space-y-4 overflow-y-auto px-3 py-4 sm:px-6">
-        {grupos.map((g) => (
-          <div key={g.dia} className="space-y-2">
-            <div className="flex justify-center">
-              <span className="rounded-full bg-card/80 backdrop-blur-sm px-3 py-1 text-[10px] uppercase tracking-wider text-muted-foreground shadow-sm">
-                {g.rotulo}
-              </span>
-            </div>
-            {g.itens.map((m) => (
-              <MessageBubble key={m.id} mensagem={m} />
-            ))}
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
-        ))}
+        ) : messages.length === 0 ? (
+          <p className="py-12 text-center text-sm text-muted-foreground">
+            Nenhuma mensagem nessa conversa ainda.
+          </p>
+        ) : (
+          grupos.map((g) => (
+            <div key={g.dia} className="space-y-2">
+              <div className="flex justify-center">
+                <span className="rounded-full bg-card/80 backdrop-blur-sm px-3 py-1 text-[10px] uppercase tracking-wider text-muted-foreground shadow-sm">
+                  {g.rotulo}
+                </span>
+              </div>
+              {g.itens.map((m) => (
+                <MessageBubble key={m.id} mensagem={m} />
+              ))}
+            </div>
+          ))
+        )}
+        <div ref={bottomRef} />
       </div>
 
-      <ChatInput />
+      <ChatInput onSend={handleSend} sending={sending} />
     </div>
   );
 }

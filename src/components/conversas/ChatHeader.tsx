@@ -1,36 +1,16 @@
 import Link from "next/link";
-import { Phone, Video, MoreVertical, Search, ArrowLeft, AtSign } from "lucide-react";
+import { Phone, Video, MoreVertical, Search, ArrowLeft } from "lucide-react";
 import { Avatar } from "./Avatar";
-import { formatHoraMsg, type ConversaMock } from "@/lib/conversas/mock-data";
-import { APP_TIMEZONE } from "@/lib/datetime/timezone";
+import type { WppConversation } from "@/lib/conversas/types";
 
 interface Props {
-  conversa: ConversaMock;
+  conversa: WppConversation;
 }
 
-function statusLabel(c: ConversaMock): string {
-  if (c.online) return "online";
-  if (c.ultima_vez_visto) {
-    const d = new Date(c.ultima_vez_visto);
-    const agora = new Date();
-    const diffMin = (agora.getTime() - d.getTime()) / 60000;
-    if (diffMin < 60) return `visto há ${Math.floor(diffMin)} min`;
-    if (agora.toDateString() === d.toDateString()) {
-      return `visto hoje às ${formatHoraMsg(c.ultima_vez_visto)}`;
-    }
-    return `visto em ${d.toLocaleDateString("pt-BR", { timeZone: APP_TIMEZONE, day: "2-digit", month: "2-digit" })}`;
-  }
-  return "offline";
-}
-
-/**
- * Header da conversa selecionada: avatar + nome + status + ações.
- */
 export function ChatHeader({ conversa }: Props) {
   return (
     <header className="flex items-center justify-between gap-2 border-b bg-card px-3 py-2.5">
       <div className="flex items-center gap-2 min-w-0 flex-1">
-        {/* Botão "voltar" só aparece em mobile (sidebar fechada) */}
         <Link
           href="/conversas"
           scroll={false}
@@ -39,16 +19,14 @@ export function ChatHeader({ conversa }: Props) {
         >
           <ArrowLeft className="h-5 w-5" />
         </Link>
-        <Avatar nome={conversa.contato_nome} avatarUrl={conversa.avatar_url} online={conversa.online} size="sm" />
+        <Avatar nome={conversa.contato_nome || conversa.contato_telefone} size="sm" />
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium flex items-center gap-1.5">
-            {conversa.canal === "instagram" && (
-              <AtSign className="h-3.5 w-3.5 shrink-0 text-pink-500" />
-            )}
-            {conversa.contato_nome}
+          <p className="truncate text-sm font-medium">
+            {conversa.contato_nome || conversa.contato_telefone}
           </p>
           <p className="truncate text-[11px] text-muted-foreground">
-            {statusLabel(conversa)} · {conversa.instancia_nome}
+            {conversa.contato_telefone}
+            {conversa.lead_nome ? ` · ${conversa.lead_nome}` : ""}
           </p>
         </div>
       </div>
