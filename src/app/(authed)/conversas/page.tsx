@@ -29,7 +29,7 @@ export default async function ConversasPage({
   const conversaSelecionadaId = params.c ?? null;
   const filtro: Filtro = params.filtro === "nao_lidas" ? "nao_lidas" : "todas";
 
-  let allConversas = await listConversations(orgId);
+  const allConversas = await listConversations(orgId);
 
   // Filtro
   const conversasFiltradas = allConversas.filter((c) => {
@@ -73,7 +73,7 @@ export default async function ConversasPage({
             conversaAtual ? "flex" : "hidden md:flex"
           } min-w-0 flex-1`}
         >
-          <ChatView conversa={conversaAtual} initialMessages={mensagens} />
+          <ChatView key={conversaAtual?.id ?? "empty"} conversa={conversaAtual} initialMessages={mensagens} />
         </div>
 
         {conversaAtual && <ContactInfoPanel conversa={conversaAtual} />}

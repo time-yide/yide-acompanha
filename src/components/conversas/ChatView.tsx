@@ -51,15 +51,9 @@ export function ChatView({ conversa, initialMessages }: Props) {
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Fetch messages when conversation changes
   useEffect(() => {
-    if (!conversa) {
-      setMessages([]);
-      return;
-    }
-    if (initialMessages) {
-      setMessages(initialMessages);
-    } else {
+    if (!conversa) return;
+    if (!initialMessages) {
       setLoading(true);
       fetch(`/api/conversas/messages?conversationId=${conversa.id}`)
         .then((r) => r.json())
@@ -67,9 +61,8 @@ export function ChatView({ conversa, initialMessages }: Props) {
         .catch(() => setMessages([]))
         .finally(() => setLoading(false));
     }
-    // Mark as read
     markConversationReadAction(conversa.id).catch(() => {});
-  }, [conversa?.id]);
+  }, [conversa?.id, initialMessages]);
 
   // Scroll to bottom on new messages
   useEffect(() => {
