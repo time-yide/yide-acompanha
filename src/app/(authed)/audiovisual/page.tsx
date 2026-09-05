@@ -9,12 +9,14 @@ import {
   listPendenteParaVideomaker,
   listEventosSemCaptura,
   listCapturasSemDelegacao,
+  listCapturasEmEdicao,
 } from "@/lib/audiovisual/queries";
 import { ROLES_QUE_EDITAM } from "@/lib/audiovisual/roles";
 import { getClientIdsForActiveUnit } from "@/lib/units/filter-helpers";
 import { CapturasAba } from "@/components/audiovisual/CapturasAba";
 import { PendenteEntregaAba } from "@/components/audiovisual/PendenteEntregaAba";
 import { PendenteDelegacaoAba } from "@/components/audiovisual/PendenteDelegacaoAba";
+import { EmEdicaoAba } from "@/components/audiovisual/EmEdicaoAba";
 import { AguardandoVideomakerAba } from "@/components/audiovisual/AguardandoVideomakerAba";
 import { MeusBloqueiosAba } from "@/components/audiovisual/MeusBloqueiosAba";
 import { SolicitacoesBloqueioAba } from "@/components/audiovisual/SolicitacoesBloqueioAba";
@@ -30,12 +32,13 @@ const ROLES_QUE_DELEGAM = ["audiovisual_chefe", "adm", "socio"];
 const ROLES_GESTAO = ["audiovisual_chefe", "coordenador", "assessor", "adm", "socio"];
 const ROLES_QUE_EXCLUEM = ["audiovisual_chefe", "coordenador", "adm", "socio"];
 
-type TabKey = "capturas" | "pendente_entrega" | "pendente_delegacao" | "aguardando_videomaker" | "meus_bloqueios" | "solicitacoes_bloqueio";
+type TabKey = "capturas" | "pendente_entrega" | "pendente_delegacao" | "em_edicao" | "aguardando_videomaker" | "meus_bloqueios" | "solicitacoes_bloqueio";
 
 const TAB_LABELS: Record<TabKey, string> = {
   capturas: "Capturas",
   pendente_entrega: "Pendente de entrega",
   pendente_delegacao: "Pendente edição",
+  em_edicao: "Em edição",
   aguardando_videomaker: "Captações futuras",
   meus_bloqueios: "Meus bloqueios",
   solicitacoes_bloqueio: "Solicitações de bloqueio",
@@ -86,6 +89,7 @@ export default async function AudiovisualPage({
   const availableTabs: TabKey[] = ["capturas", "pendente_entrega"];
   if (canSeeAguardando) availableTabs.push("aguardando_videomaker");
   if (canSeeDelegacao) availableTabs.push("pendente_delegacao");
+  if (canSeeDelegacao) availableTabs.push("em_edicao");
   if (isVideomaker) availableTabs.push("meus_bloqueios");
   // Só quem realmente aprova (coord. audiovisual + adm/sócio) vê a fila de
   // solicitações — assessor/coordenador geral não aprovam, então não faz
@@ -188,6 +192,9 @@ export default async function AudiovisualPage({
     content = (
       <PendenteDelegacaoAba rows={rows} editores={editoresData} canDelegate={canDelegate} canDelete={canDelete} />
     );
+  } else if (activeTab === "em_edicao") {
+    const rows = await listCapturasEmEdicao();
+    content = <EmEdicaoAba rows={rows} />;
   } else if (activeTab === "aguardando_videomaker") {
     const [pending, scheduled, videomakersList, coordsList] = await Promise.all([
       listPendingDelegations(unitClientIdsForFilter),
