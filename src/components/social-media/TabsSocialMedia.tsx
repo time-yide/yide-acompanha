@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Share2, Presentation, ClipboardList, Palette, Megaphone, Rocket, CalendarCog } from "lucide-react";
+import { Share2, ClipboardList, Megaphone, Rocket, CalendarCog } from "lucide-react";
 
 export type TabKey = "agendamento" | "apresenta-yide" | "painel" | "design" | "trafego" | "d0-d30" | "cronograma-ia";
 
@@ -7,14 +7,9 @@ interface Props {
   active: TabKey;
 }
 
-// Ordem: Painel Mensal primeiro (default ao clicar em "Estratégia" no menu
-// — /social-media redirect pro /painel), Agendamento, Design, Apresenta Yide,
-// e por fim Tráfego e D0 → D30 (que saíram do menu lateral pra virar abas aqui).
 const TABS: Array<{ key: TabKey; label: string; href: string; Icon: typeof Share2 }> = [
   { key: "painel", label: "Painel Mensal", href: "/painel", Icon: ClipboardList },
   { key: "agendamento", label: "Agendamento de Post", href: "/social-media/agendamento", Icon: Share2 },
-  { key: "design", label: "Design", href: "/design", Icon: Palette },
-  { key: "apresenta-yide", label: "Apresenta Yide", href: "/social-media/apresenta-yide", Icon: Presentation },
   { key: "trafego", label: "Tráfego", href: "/trafego", Icon: Megaphone },
   { key: "d0-d30", label: "D0 → D30", href: "/d0-d30", Icon: Rocket },
   { key: "cronograma-ia", label: "Cronograma IA", href: "/social-media/cronograma-ia", Icon: CalendarCog },
