@@ -289,7 +289,82 @@ async function _listCapturasSemDelegacaoImpl(): Promise<CapturaSemDelegacaoRow[]
   }));
 }
 
+export interface CapturaEmEdicaoRow {
+  id: string;
+  data_captacao: string;
+  drive_url: string;
+  qtd_videos: number;
+  qtd_fotos: number;
+  client_id: string;
+  cliente_nome: string | null;
+  videomaker_id: string;
+  videomaker_nome: string | null;
+  task_id: string;
+  task_status: string;
+  editor_id: string;
+  editor_nome: string | null;
+}
 
+const TASK_STATUS_TERMINAL = ["concluida", "aprovada", "postada"];
+
+export async function listCapturasEmEdicao(): Promise<CapturaEmEdicaoRow[]> {
+  const cached = unstable_cache(
+    async () => _listCapturasEmEdicaoImpl(),
+    ["audiovisual-em-edicao-v1"],
+    { revalidate: 30, tags: [AUDIOVISUAL_CAPTURAS_TAG] },
+  );
+  return cached();
+}
+
+async function _listCapturasEmEdicaoImpl(): Promise<CapturaEmEdicaoRow[]> {
+  const supabase = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const { data, error } = await sb
+    .from("audiovisual_capturas")
+    .select(`
+      id, data_captacao, drive_url, qtd_videos, qtd_fotos, client_id, videomaker_id, task_id,
+      cliente:clients(nome),
+      videomaker:profiles!audiovisual_capturas_videomaker_id_fkey(nome),
+      task:tasks!task_id(id, status, atribuido_a, editor:profiles!atribuido_a(id, nome))
+    `)
+    .not("task_id", "is", null)
+    .is("concluida_em", null)
+    .order("data_captacao", { ascending: false })
+    .limit(200);
+
+  if (error || !data) return [];
+
+  return (data as Array<{
+    id: string;
+    data_captacao: string;
+    drive_url: string;
+    qtd_videos: number | null;
+    qtd_fotos: number | null;
+    client_id: string;
+    videomaker_id: string;
+    task_id: string;
+    cliente: { nome: string } | null;
+    videomaker: { nome: string } | null;
+    task: { id: string; status: string; atribuido_a: string; editor: { id: string; nome: string } | null } | null;
+  }>)
+    .filter((c) => c.task && !TASK_STATUS_TERMINAL.includes(c.task.status))
+    .map((c) => ({
+      id: c.id,
+      data_captacao: c.data_captacao,
+      drive_url: c.drive_url,
+      qtd_videos: c.qtd_videos ?? 0,
+      qtd_fotos: c.qtd_fotos ?? 0,
+      client_id: c.client_id,
+      cliente_nome: c.cliente?.nome ?? null,
+      videomaker_id: c.videomaker_id,
+      videomaker_nome: c.videomaker?.nome ?? null,
+      task_id: c.task_id,
+      task_status: c.task!.status,
+      editor_id: c.task!.atribuido_a,
+      editor_nome: c.task!.editor?.nome ?? null,
+    }));
+}
 
 /**
  * Lista capturas entregues. Filtros opcionais. Cacheado 30s + tag
