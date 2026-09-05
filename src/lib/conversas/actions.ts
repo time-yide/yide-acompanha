@@ -21,6 +21,7 @@ export async function sendWppMessageAction(
   const user = await requireAuth();
   if (!texto.trim()) return { error: "Mensagem vazia" };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
 
   const { data: conv } = await sb
@@ -39,11 +40,13 @@ export async function sendWppMessageAction(
     return { error: "Twilio não configurado. Configure TWILIO_ACCOUNT_SID e TWILIO_AUTH_TOKEN." };
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fromNumber = (conv as any).twilio_from;
   if (!fromNumber) {
     return { error: "Número de origem não configurado nessa conversa" };
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const toNumber = `whatsapp:${(conv as any).contato_telefone}`;
   const fromWpp = `whatsapp:${fromNumber}`;
 
@@ -52,6 +55,7 @@ export async function sendWppMessageAction(
     .from("wpp_messages")
     .insert({
       conversation_id: conversationId,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       organization_id: (conv as any).organization_id,
       autor: "comercial",
       texto: texto.trim(),
@@ -65,6 +69,7 @@ export async function sendWppMessageAction(
     return { error: "Falha ao salvar mensagem" };
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const messageId = (msg as any).id as string;
 
   // Enviar via Twilio
@@ -97,6 +102,7 @@ export async function sendWppMessageAction(
     }
 
     const result = await resp.json();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const twilioSid = (result as any).sid ?? null;
 
     await sb
@@ -130,6 +136,7 @@ export async function markConversationReadAction(
   conversationId: string,
 ): Promise<void> {
   await requireAuth();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
   await sb
     .from("wpp_conversations")

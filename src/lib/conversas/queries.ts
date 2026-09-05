@@ -6,9 +6,10 @@ export async function listConversations(
   organizationId: string,
   filter: { arquivada?: boolean } = {},
 ): Promise<WppConversation[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
 
-  let q = sb
+  const q = sb
     .from("wpp_conversations")
     .select(
       "id, organization_id, contato_nome, contato_telefone, canal, lead_gerado_id, ultimo_texto, ultima_msg_em, nao_lidas, arquivada, fixada, twilio_from, created_at, updated_at, lead:leads_gerados!wpp_conversations_lead_gerado_id_fkey(empresa)",
@@ -25,7 +26,8 @@ export async function listConversations(
     return [];
   }
 
-  return ((data ?? []) as any[]).map((row) => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return ((data ?? []) as any[]).map((row: any) => ({
     id: row.id,
     organization_id: row.organization_id,
     contato_nome: row.contato_nome ?? "",
@@ -45,6 +47,7 @@ export async function listConversations(
 }
 
 export async function getConversation(id: string): Promise<WppConversation | null> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
   const { data, error } = await sb
     .from("wpp_conversations")
@@ -54,6 +57,7 @@ export async function getConversation(id: string): Promise<WppConversation | nul
     .eq("id", id)
     .maybeSingle();
   if (error || !data) return null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const row = data as any;
   return {
     id: row.id,
@@ -78,6 +82,7 @@ export async function listMessages(
   conversationId: string,
   limit = 100,
 ): Promise<WppMessage[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
   const { data, error } = await sb
     .from("wpp_messages")
@@ -91,7 +96,8 @@ export async function listMessages(
     return [];
   }
 
-  return ((data ?? []) as any[]).map((row) => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return ((data ?? []) as any[]).map((row: any) => ({
     id: row.id,
     conversation_id: row.conversation_id,
     autor: row.autor,
@@ -106,11 +112,13 @@ export async function listMessages(
 }
 
 export async function getOrganizationIdByUser(userId: string): Promise<string | null> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
   const { data } = await sb
     .from("profiles")
     .select("organization_id")
     .eq("id", userId)
     .maybeSingle();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (data as any)?.organization_id ?? null;
 }
