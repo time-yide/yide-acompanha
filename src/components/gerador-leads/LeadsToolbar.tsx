@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, FileDown } from "lucide-react";
+import { Plus, FileDown, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NovaPesquisaModal } from "./NovaPesquisaModal";
+import { DispararWppModal } from "./DispararWppModal";
 import { STATUS_LEAD_VALORES, STATUS_LEAD_DEFS } from "@/lib/gerador-leads/tipos";
 import { BASE_PROSPECCAO_DEFS } from "@/lib/gerador-leads/classificar-base";
 import type { BaseProspeccao } from "@/lib/gerador-leads/classificar-base";
@@ -14,6 +15,7 @@ interface Props {
   /** Leads já carregados na página atual - usado pra exportar CSV. */
   leadsAtuais: LeadGeradoRow[];
   canManage: boolean;
+  baseFiltro?: string | null;
 }
 
 const ORDER_LABELS: Record<string, string> = {
@@ -22,8 +24,13 @@ const ORDER_LABELS: Record<string, string> = {
   empresa: "Nome A-Z",
 };
 
-export function LeadsToolbar({ total, leadsAtuais, canManage }: Props) {
+export function LeadsToolbar({ total, leadsAtuais, canManage, baseFiltro }: Props) {
   const [openNova, setOpenNova] = useState(false);
+  const [openDisparo, setOpenDisparo] = useState(false);
+
+  const leadsComWpp = leadsAtuais.filter((l) => l.whatsapp || l.decisor_whatsapp || l.telefone);
+  const leadIdsComWpp = leadsComWpp.map((l) => l.id);
+  const sampleLead = leadsComWpp[0] ?? null;
 
   function exportCsv() {
     if (leadsAtuais.length === 0) {
@@ -130,6 +137,16 @@ export function LeadsToolbar({ total, leadsAtuais, canManage }: Props) {
             <Plus className="h-4 w-4" /> Nova pesquisa
           </Button>
         )}
+        {canManage && leadIdsComWpp.length > 0 && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setOpenDisparo(true)}
+            className="border-emerald-600/30 text-emerald-600 hover:bg-emerald-600/10"
+          >
+            <Send className="h-4 w-4" /> Disparar WhatsApp ({leadIdsComWpp.length})
+          </Button>
+        )}
         <Button size="sm" variant="outline" onClick={exportCsv} disabled={leadsAtuais.length === 0}>
           <FileDown className="h-4 w-4" /> Exportar CSV ({leadsAtuais.length})
         </Button>
@@ -140,6 +157,22 @@ export function LeadsToolbar({ total, leadsAtuais, canManage }: Props) {
 
       {openNova && (
         <NovaPesquisaModal open={openNova} onOpenChange={setOpenNova} />
+      )}
+
+      {openDisparo && (
+        <DispararWppModal
+          open={openDisparo}
+          onOpenChange={setOpenDisparo}
+          leadIds={leadIdsComWpp}
+          leadsCount={leadIdsComWpp.length}
+          baseFiltro={baseFiltro ?? null}
+          sampleLead={sampleLead ? {
+            empresa: sampleLead.empresa,
+            decisor_nome: sampleLead.decisor_nome,
+            categoria: sampleLead.categoria,
+            cidade: sampleLead.cidade,
+          } : null}
+        />
       )}
     </>
   );

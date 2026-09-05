@@ -94,7 +94,7 @@ export default async function GeradorLeadsPage({
       </section>
 
       {/* Toolbar (filtros + nova pesquisa + export) */}
-      <LeadsToolbar total={total} leadsAtuais={leads} canManage={canManage} />
+      <LeadsToolbar total={total} leadsAtuais={leads} canManage={canManage} baseFiltro={params.base} />
 
       {/* Tabela */}
       <LeadsTable leads={leads} canManage={canManage} />
