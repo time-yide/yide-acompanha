@@ -11,6 +11,8 @@
 // com backoff exponencial pra requests 429.
 
 import { getServerEnv } from "@/lib/env";
+import { classificarBase } from "@/lib/gerador-leads/classificar-base";
+import type { BaseProspeccao } from "@/lib/gerador-leads/classificar-base";
 
 const OUTSCRAPER_BASE = "https://api.outscraper.com";
 const MAX_RETRIES = 3;
@@ -292,6 +294,7 @@ export interface NormalizedLead {
   google_maps_url: string | null;
   latitude: number | null;
   longitude: number | null;
+  base_prospeccao: BaseProspeccao | null;
   raw_data: OutscraperPlaceRaw;
 }
 
@@ -315,6 +318,7 @@ export function normalizeOutscraperPlace(raw: OutscraperPlaceRaw): NormalizedLea
     estado: raw.state ?? null,
     pais: raw.country ?? "BR",
     categoria: raw.category ?? raw.type ?? raw.subtypes ?? null,
+    base_prospeccao: classificarBase(raw.category ?? raw.type ?? raw.subtypes ?? null),
     horario_funcionamento: formatWorkingHours(raw.working_hours),
     google_rating: typeof raw.rating === "number" ? raw.rating : null,
     google_reviews_count: typeof raw.reviews === "number" ? raw.reviews : null,

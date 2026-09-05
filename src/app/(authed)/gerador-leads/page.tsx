@@ -28,6 +28,7 @@ export default async function GeradorLeadsPage({
     comWhatsapp?: string;
     comInstagram?: string;
     comSite?: string;
+    base?: string;
   }>;
 }) {
   const user = await requireAuth();
@@ -50,6 +51,7 @@ export default async function GeradorLeadsPage({
     comWhatsapp: params.comWhatsapp === "1",
     comInstagram: params.comInstagram === "1",
     comSite: params.comSite === "1",
+    baseProspeccao: params.base || undefined,
   };
 
   const [{ leads, total, page, totalPages }, pesquisas] = await Promise.all([

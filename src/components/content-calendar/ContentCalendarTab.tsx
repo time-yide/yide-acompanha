@@ -195,6 +195,26 @@ export function ContentCalendarTab({ clientId, calendarData, modo, canEnqueue }:
     );
   }
 
+  // -- Pending generation --
+  if (calendar.status === "pendente_geracao") {
+    return (
+      <div className="space-y-4">
+        <MonthNav
+          monthLabel={monthLabel}
+          onPrev={() => navigateMonth(-1)}
+          onNext={() => navigateMonth(1)}
+          loading={loadingMonth}
+        />
+        <div className="flex flex-col items-center justify-center gap-3 py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">
+            Cronograma na fila de geração — aguarde alguns minutos...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   // -- Generating --
   if (calendar.status === "gerando") {
     return (

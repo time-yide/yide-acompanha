@@ -6,6 +6,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LeadActions } from "./LeadActions";
 import { STATUS_LEAD_DEFS } from "@/lib/gerador-leads/tipos";
+import { BASE_PROSPECCAO_DEFS } from "@/lib/gerador-leads/classificar-base";
+import type { BaseProspeccao } from "@/lib/gerador-leads/classificar-base";
 import type { LeadGeradoRow } from "@/lib/gerador-leads/queries";
 
 interface Props {
@@ -48,6 +50,11 @@ function LeadRow({ lead, canManage }: { lead: LeadGeradoRow; canManage: boolean 
           {statusDef && (
             <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${statusDef.color}`}>
               {statusDef.label}
+            </span>
+          )}
+          {lead.base_prospeccao && BASE_PROSPECCAO_DEFS[lead.base_prospeccao as BaseProspeccao] && (
+            <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${BASE_PROSPECCAO_DEFS[lead.base_prospeccao as BaseProspeccao].color}`}>
+              {BASE_PROSPECCAO_DEFS[lead.base_prospeccao as BaseProspeccao].label}
             </span>
           )}
         </div>
