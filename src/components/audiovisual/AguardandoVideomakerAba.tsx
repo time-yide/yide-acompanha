@@ -184,6 +184,7 @@ function PendingCard({
           localizacao_maps_url={row.localizacao_maps_url}
           link_roteiro={row.link_roteiro}
           criadorNomeLine={row.criador_nome ? `Criado por ${row.criador_nome}` : null}
+          solicitadoEm={row.created_at}
         />
 
         {row.observacoes_gravacao && (
@@ -267,6 +268,7 @@ function ScheduledCard({
                 ? `Delegada por ${row.delegado_por_nome}`
                 : null
           }
+          solicitadoEm={row.created_at}
         />
 
         <div className="flex items-center gap-1.5 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1.5 text-xs text-emerald-800 dark:text-emerald-200">
@@ -309,6 +311,7 @@ function CommonFields({
   localizacao_maps_url,
   link_roteiro,
   criadorNomeLine,
+  solicitadoEm,
 }: {
   inicio: string;
   dur: number;
@@ -316,6 +319,7 @@ function CommonFields({
   localizacao_maps_url: string | null;
   link_roteiro: string | null;
   criadorNomeLine: string | null;
+  solicitadoEm?: string | null;
 }) {
   return (
     <dl className="space-y-1.5 text-xs">
@@ -324,6 +328,12 @@ function CommonFields({
         <span className="tabular-nums">{formatBR(inicio)}</span>
         <span>· {dur} min</span>
       </div>
+      {solicitadoEm && (
+        <div className="flex items-center gap-1.5 text-muted-foreground">
+          <Inbox className="h-3 w-3 flex-shrink-0" />
+          <span>Solicitado em {formatBR(solicitadoEm)}</span>
+        </div>
+      )}
       {localizacao_endereco && (
         <div className="flex items-start gap-1.5 text-muted-foreground">
           <MapPin className="mt-0.5 h-3 w-3 flex-shrink-0" />

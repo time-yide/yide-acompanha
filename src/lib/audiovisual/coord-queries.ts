@@ -122,6 +122,7 @@ export interface ScheduledFutureRow {
   videomaker_delegado_por: string | null;
   videomaker_delegado_em: string | null;
   delegado_por_nome: string | null;
+  created_at: string;
 }
 
 /**
@@ -144,7 +145,7 @@ export async function listScheduledFutureCaptures(
   let q: any = sb
     .from("calendar_events")
     .select(`
-      id, titulo, inicio, fim, client_id,
+      id, titulo, inicio, fim, client_id, created_at,
       localizacao_endereco, localizacao_maps_url, link_roteiro, observacoes_gravacao,
       videomaker_assigned_id, videomaker_delegado_por, videomaker_delegado_em,
       cliente:clients(nome),
@@ -170,7 +171,7 @@ export async function listScheduledFutureCaptures(
       let fb: any = sb
         .from("calendar_events")
         .select(`
-          id, titulo, inicio, fim, client_id,
+          id, titulo, inicio, fim, client_id, created_at,
           localizacao_endereco, localizacao_maps_url, link_roteiro, observacoes_gravacao,
           videomaker_assigned_id, videomaker_delegado_por, videomaker_delegado_em,
           cliente:clients(nome)
@@ -212,6 +213,7 @@ export async function listScheduledFutureCaptures(
         videomaker_delegado_por: r.videomaker_delegado_por,
         videomaker_delegado_em: r.videomaker_delegado_em,
         delegado_por_nome: r.videomaker_delegado_por ? nameById.get(r.videomaker_delegado_por) ?? null : null,
+        created_at: r.created_at,
       }));
     }
     console.error("[audiovisual/coord] listScheduledFutureCaptures failed:", error);
@@ -224,6 +226,7 @@ export async function listScheduledFutureCaptures(
     inicio: string;
     fim: string;
     client_id: string | null;
+    created_at: string;
     localizacao_endereco: string | null;
     localizacao_maps_url: string | null;
     link_roteiro: string | null;
@@ -252,6 +255,7 @@ export async function listScheduledFutureCaptures(
     videomaker_delegado_por: r.videomaker_delegado_por,
     videomaker_delegado_em: r.videomaker_delegado_em,
     delegado_por_nome: r.delegado_por?.nome ?? null,
+    created_at: r.created_at,
   }));
 }
 
