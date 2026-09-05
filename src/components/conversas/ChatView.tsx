@@ -47,14 +47,13 @@ const WALLPAPER_CLASSES =
 
 export function ChatView({ conversa, initialMessages }: Props) {
   const [messages, setMessages] = useState<WppMessage[]>(initialMessages ?? []);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(!initialMessages && !!conversa);
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!conversa) return;
     if (!initialMessages) {
-      setLoading(true);
       fetch(`/api/conversas/messages?conversationId=${conversa.id}`)
         .then((r) => r.json())
         .then((data) => setMessages(data as WppMessage[]))
