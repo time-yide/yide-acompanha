@@ -8,7 +8,7 @@ import type { GeneratedPost, CalendarMode } from "./types";
 import type { DataComemorativa } from "@/lib/nichos/schema";
 import type { PromptContext } from "./prompt";
 
-const MODEL = "claude-sonnet-4-5-20250514";
+const MODEL = "claude-sonnet-4-5";
 
 /**
  * Gera o cronograma de conteúdo de um cliente para o mês referência.
