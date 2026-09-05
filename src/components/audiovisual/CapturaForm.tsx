@@ -85,11 +85,18 @@ export function CapturaForm({ clientes, pendentes, hidePendenteSelect = false }:
   const [dataCaptacao, setDataCaptacao] = useState<string>(
     initial?.inicio ? formatBrtDateOnly(initial.inicio) : todayBR(),
   );
+  const [qtdVideos, setQtdVideos] = useState<number>(0);
+  const [qtdFotos, setQtdFotos] = useState<number>(0);
   const [ratings, setRatings] = useState<Record<string, number>>({});
   const [clientError, setClientError] = useState<string | null>(null);
   const ratingRowsRef = useRef<Record<string, HTMLDivElement | null>>({});
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    if (qtdVideos + qtdFotos < 1) {
+      e.preventDefault();
+      setClientError("Informe a quantidade de vídeos e/ou fotos.");
+      return;
+    }
     const missing = RATING_FIELDS.filter((f) => !ratings[f.name] || ratings[f.name] < 1);
     if (missing.length > 0) {
       e.preventDefault();
@@ -182,12 +189,26 @@ export function CapturaForm({ clientes, pendentes, hidePendenteSelect = false }:
 
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="qtd_videos">Quantidade de vídeos</Label>
-            <Input id="qtd_videos" name="qtd_videos" type="number" min={0} defaultValue={0} />
+            <Label htmlFor="qtd_videos">Quantidade de vídeos *</Label>
+            <Input
+              id="qtd_videos"
+              name="qtd_videos"
+              type="number"
+              min={0}
+              value={qtdVideos}
+              onChange={(e) => { setQtdVideos(Number(e.target.value) || 0); if (clientError) setClientError(null); }}
+            />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="qtd_fotos">Quantidade de fotos</Label>
-            <Input id="qtd_fotos" name="qtd_fotos" type="number" min={0} defaultValue={0} />
+            <Label htmlFor="qtd_fotos">Quantidade de fotos *</Label>
+            <Input
+              id="qtd_fotos"
+              name="qtd_fotos"
+              type="number"
+              min={0}
+              value={qtdFotos}
+              onChange={(e) => { setQtdFotos(Number(e.target.value) || 0); if (clientError) setClientError(null); }}
+            />
           </div>
         </div>
 
