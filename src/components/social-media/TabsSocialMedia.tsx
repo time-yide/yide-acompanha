@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { Share2, Presentation, ClipboardList, Palette, Megaphone, Rocket } from "lucide-react";
+import { Share2, Presentation, ClipboardList, Palette, Megaphone, Rocket, CalendarCog } from "lucide-react";
 
-export type TabKey = "agendamento" | "apresenta-yide" | "painel" | "design" | "trafego" | "d0-d30";
+export type TabKey = "agendamento" | "apresenta-yide" | "painel" | "design" | "trafego" | "d0-d30" | "cronograma-ia";
 
 interface Props {
   active: TabKey;
@@ -17,6 +17,7 @@ const TABS: Array<{ key: TabKey; label: string; href: string; Icon: typeof Share
   { key: "apresenta-yide", label: "Apresenta Yide", href: "/social-media/apresenta-yide", Icon: Presentation },
   { key: "trafego", label: "Tráfego", href: "/trafego", Icon: Megaphone },
   { key: "d0-d30", label: "D0 → D30", href: "/d0-d30", Icon: Rocket },
+  { key: "cronograma-ia", label: "Cronograma IA", href: "/social-media/cronograma-ia", Icon: CalendarCog },
 ];
 
 export function TabsSocialMedia({ active }: Props) {
