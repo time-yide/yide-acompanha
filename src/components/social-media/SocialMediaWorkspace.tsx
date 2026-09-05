@@ -25,12 +25,15 @@ interface Props {
   calendarData?: ContentCalendarRow | null;
   calendarModo?: CalendarMode;
   canEnqueue?: boolean;
+  defaultView?: "calendar" | "list" | "cronograma";
 }
 
 export function SocialMediaWorkspace({
-  clientId, clientNome, posts, canManage, contas, calendarData, calendarModo, canEnqueue,
+  clientId, clientNome, posts, canManage, contas, calendarData, calendarModo, canEnqueue, defaultView,
 }: Props) {
-  const [view, setView] = useState<"calendar" | "list" | "cronograma">("calendar");
+  const [view, setView] = useState<"calendar" | "list" | "cronograma">(
+    defaultView && (defaultView !== "cronograma" || calendarModo) ? defaultView : "calendar",
+  );
   const [openForm, setOpenForm] = useState(false);
   const [editing, setEditing] = useState<SocialPostRow | null>(null);
   const [defaultDate, setDefaultDate] = useState<string | undefined>(undefined);
