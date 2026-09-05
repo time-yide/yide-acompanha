@@ -16,8 +16,9 @@ import {
 } from "@/lib/units/filter-helpers";
 import { SUB_CALENDARS } from "@/lib/calendario/schema";
 import { canRecordMeeting, canViewMeetings } from "@/lib/reunioes/permissions";
-import { WeekView } from "@/components/calendario/WeekView";
-import { MonthView, formatMonthLabel } from "@/components/calendario/MonthView";
+import { SearchableWeekView } from "@/components/calendario/SearchableView";
+import { SearchableMonthView } from "@/components/calendario/SearchableView";
+import { formatMonthLabel } from "@/components/calendario/MonthView";
 import { SubCalendarChips } from "@/components/calendario/SubCalendarChips";
 import { ViewSwitch } from "@/components/calendario/ViewSwitch";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -233,7 +234,7 @@ async function renderWeek({
         podeVerReunioes={podeVerReunioes}
       />
       <SubCalendarChips current={sub} />
-      <WeekView weekStart={start} events={events} podeGravar={podeGravar} />
+      <SearchableWeekView weekStart={start} events={events} podeGravar={podeGravar} />
     </div>
   );
 }
@@ -312,7 +313,7 @@ async function renderMonth({
         podeVerReunioes={podeVerReunioes}
       />
       <SubCalendarChips current={sub} />
-      <MonthView
+      <SearchableMonthView
         gridStart={grid.start}
         refMonth={grid.month}
         events={events}
