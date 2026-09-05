@@ -24,10 +24,16 @@ type ActionResult = ActionOk | ActionErr;
  * Aprova o cronograma: marca como aprovado, cria posts no social_media_posts
  * (modo completo), cria 1 tarefa, e tenta criar alerta de gravação.
  */
+const ROLES_PODEM_APROVAR = ["assessor", "socio", "adm"];
+
 export async function approveCalendarAction(
   calendarId: string,
 ): Promise<ActionResult> {
   const user = await requireAuth();
+
+  if (!ROLES_PODEM_APROVAR.includes(user.role)) {
+    return { error: "Apenas assessor, sócio ou adm pode aprovar cronogramas" };
+  }
 
   const sb = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
