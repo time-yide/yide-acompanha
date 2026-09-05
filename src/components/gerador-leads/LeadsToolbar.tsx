@@ -5,6 +5,8 @@ import { Plus, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NovaPesquisaModal } from "./NovaPesquisaModal";
 import { STATUS_LEAD_VALORES, STATUS_LEAD_DEFS } from "@/lib/gerador-leads/tipos";
+import { BASE_PROSPECCAO_DEFS } from "@/lib/gerador-leads/classificar-base";
+import type { BaseProspeccao } from "@/lib/gerador-leads/classificar-base";
 import type { LeadGeradoRow } from "@/lib/gerador-leads/queries";
 
 interface Props {
@@ -92,6 +94,12 @@ export function LeadsToolbar({ total, leadsAtuais, canManage }: Props) {
           <option value="todos">Todos status</option>
           {STATUS_LEAD_VALORES.map((s) => (
             <option key={s} value={s}>{STATUS_LEAD_DEFS[s].label}</option>
+          ))}
+        </select>
+        <select name="base" className="h-9 rounded-md border bg-card px-2 text-xs">
+          <option value="">Todas as bases</option>
+          {(Object.entries(BASE_PROSPECCAO_DEFS) as [BaseProspeccao, { label: string }][]).map(([v, d]) => (
+            <option key={v} value={v}>{d.label}</option>
           ))}
         </select>
         <select name="ordem" className="h-9 rounded-md border bg-card px-2 text-xs">

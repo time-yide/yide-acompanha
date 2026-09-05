@@ -202,6 +202,7 @@ async function processarPesquisa(args: {
           google_maps_url: norm.google_maps_url,
           latitude: norm.latitude,
           longitude: norm.longitude,
+          base_prospeccao: norm.base_prospeccao,
           raw_data: norm.raw_data,
           fonte: "outscraper",
           status: "novo",

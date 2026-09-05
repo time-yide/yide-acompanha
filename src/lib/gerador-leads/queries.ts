@@ -41,6 +41,7 @@ export interface LeadGeradoRow {
   responsavel_id: string | null;
   responsavel_nome?: string | null;
   fonte: string;
+  base_prospeccao: string | null;
   visita_id?: string | null;
   created_at: string;
   updated_at: string;
@@ -56,6 +57,7 @@ export interface ListLeadsFilter {
   comWhatsapp?: boolean;
   comInstagram?: boolean;
   comSite?: boolean;
+  baseProspeccao?: string;
   visitaId?: string;
   scoreMin?: number;
   /** 1-indexed page number */
@@ -94,7 +96,7 @@ export async function listLeadsGerados(
   let q = sb
     .from("leads_gerados")
     .select(
-      "id, empresa, telefone, whatsapp, email, website, dominio, instagram, endereco, cidade, estado, categoria, google_rating, google_reviews_count, google_maps_url, decisor_nome, decisor_cargo, decisor_email, decisor_whatsapp, decisor_instagram, decisor_telefone, decisor_linkedin, cnpj, telefone_receita, email_receita, socios, socio_principal_qualificacao, score, qualificado, potencial_comercial, observacoes_ia, diagnostico, status, tags, observacoes, responsavel_id, fonte, visita_id, created_at, updated_at, responsavel:profiles!leads_gerados_responsavel_id_fkey(nome)",
+      "id, empresa, telefone, whatsapp, email, website, dominio, instagram, endereco, cidade, estado, categoria, google_rating, google_reviews_count, google_maps_url, decisor_nome, decisor_cargo, decisor_email, decisor_whatsapp, decisor_instagram, decisor_telefone, decisor_linkedin, cnpj, telefone_receita, email_receita, socios, socio_principal_qualificacao, score, qualificado, potencial_comercial, observacoes_ia, diagnostico, status, tags, observacoes, responsavel_id, fonte, base_prospeccao, visita_id, created_at, updated_at, responsavel:profiles!leads_gerados_responsavel_id_fkey(nome)",
       { count: "exact" },
     )
     .eq("organization_id", organizationId)
@@ -115,6 +117,7 @@ export async function listLeadsGerados(
   if (filter.comWhatsapp) q = q.not("whatsapp", "is", null);
   if (filter.comInstagram) q = q.not("instagram", "is", null);
   if (filter.comSite) q = q.not("website", "is", null);
+  if (filter.baseProspeccao) q = q.eq("base_prospeccao", filter.baseProspeccao);
   if (filter.visitaId) q = q.eq("visita_id", filter.visitaId);
   if (filter.scoreMin && filter.scoreMin > 0) q = q.gte("score", filter.scoreMin);
 
@@ -188,6 +191,7 @@ export async function listLeadsGerados(
     responsavel_id: (row.responsavel_id as string | null) ?? null,
     responsavel_nome: ((row.responsavel as { nome?: string } | null) ?? null)?.nome ?? null,
     fonte: row.fonte as string,
+    base_prospeccao: (row.base_prospeccao as string | null) ?? null,
     visita_id: (row.visita_id as string | null) ?? null,
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
@@ -206,7 +210,7 @@ export async function getLeadGerado(id: string): Promise<LeadGeradoRow | null> {
   const { data, error } = await sb
     .from("leads_gerados")
     .select(
-      "id, empresa, telefone, whatsapp, email, website, dominio, instagram, endereco, cidade, estado, categoria, google_rating, google_reviews_count, google_maps_url, decisor_nome, decisor_cargo, decisor_email, decisor_whatsapp, decisor_instagram, decisor_telefone, decisor_linkedin, cnpj, telefone_receita, email_receita, socios, socio_principal_qualificacao, score, qualificado, potencial_comercial, observacoes_ia, diagnostico, status, tags, observacoes, responsavel_id, fonte, visita_id, created_at, updated_at, responsavel:profiles!leads_gerados_responsavel_id_fkey(nome)",
+      "id, empresa, telefone, whatsapp, email, website, dominio, instagram, endereco, cidade, estado, categoria, google_rating, google_reviews_count, google_maps_url, decisor_nome, decisor_cargo, decisor_email, decisor_whatsapp, decisor_instagram, decisor_telefone, decisor_linkedin, cnpj, telefone_receita, email_receita, socios, socio_principal_qualificacao, score, qualificado, potencial_comercial, observacoes_ia, diagnostico, status, tags, observacoes, responsavel_id, fonte, base_prospeccao, visita_id, created_at, updated_at, responsavel:profiles!leads_gerados_responsavel_id_fkey(nome)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -254,6 +258,7 @@ export async function getLeadGerado(id: string): Promise<LeadGeradoRow | null> {
     responsavel_id: (row.responsavel_id as string | null) ?? null,
     responsavel_nome: ((row.responsavel as { nome?: string } | null) ?? null)?.nome ?? null,
     fonte: row.fonte as string,
+    base_prospeccao: (row.base_prospeccao as string | null) ?? null,
     visita_id: (row.visita_id as string | null) ?? null,
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
