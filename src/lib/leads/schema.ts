@@ -25,7 +25,6 @@ export const createLeadSchema = z.object({
   info_briefing: z.string().optional().nullable(),
   prioridade: z.enum(PRIORITIES).default("media"),
   data_prospeccao_agendada: z.string().optional().nullable(),
-  canal: z.enum(["ligacao", "rua"]).default("ligacao"),
 });
 
 export const editLeadSchema = createLeadSchema.extend({
