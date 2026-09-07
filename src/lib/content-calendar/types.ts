@@ -21,6 +21,14 @@ export interface GeneratedPost {
   estrategia_mes?: string;
 }
 
+export interface CalendarBriefing {
+  temas_cliente: string;
+  promocoes_eventos: string;
+  ideias_assessor: string;
+  evitar: string;
+  observacoes: string;
+}
+
 export interface ContentCalendarRow {
   id: string;
   organization_id: string;
@@ -30,6 +38,7 @@ export interface ContentCalendarRow {
   status: CalendarStatus;
   posts_json: GeneratedPost[];
   pesquisa_tendencias: unknown;
+  briefing_assessor: CalendarBriefing | null;
   task_id: string | null;
   aprovado_por: string | null;
   aprovado_em: string | null;

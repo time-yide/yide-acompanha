@@ -4,7 +4,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getNichoByClientId } from "@/lib/nichos/queries";
 import { searchTrends } from "./web-search";
 import { buildSystemPrompt, buildUserPrompt } from "./prompt";
-import type { GeneratedPost, CalendarMode } from "./types";
+import type { GeneratedPost, CalendarMode, CalendarBriefing } from "./types";
 import type { DataComemorativa } from "@/lib/nichos/schema";
 import type { PromptContext } from "./prompt";
 
@@ -82,7 +82,15 @@ export async function generateCalendar(
     nicho.nome,
   );
 
-  // 8. Salvar pesquisa de tendências no registro
+  // 8. Carregar briefing do assessor (se houver)
+  const { data: calRow } = await sbAny
+    .from("content_calendars")
+    .select("briefing_assessor")
+    .eq("id", calendarId)
+    .single();
+  const briefing = (calRow?.briefing_assessor ?? null) as CalendarBriefing | null;
+
+  // 9. Salvar pesquisa de tendências no registro
   await sbAny
     .from("content_calendars")
     .update({
@@ -91,7 +99,7 @@ export async function generateCalendar(
     })
     .eq("id", calendarId);
 
-  // 9. Montar prompt e chamar Claude
+  // 10. Montar prompt e chamar Claude
   const ctx: PromptContext = {
     clientName: client.nome,
     nicho: nicho.nome,
@@ -103,6 +111,7 @@ export async function generateCalendar(
     datasComem: datasDoMes,
     tendencias,
     modo,
+    briefing,
   };
 
   const response = await anthropic.messages.create({
@@ -154,6 +163,7 @@ export async function regenerateSinglePost(
   clientId: string,
   mesReferencia: string,
   modo: CalendarMode,
+  instrucoes?: string,
 ): Promise<GeneratedPost> {
   const anthropic = getAnthropicClient();
   if (!anthropic) {
@@ -196,7 +206,7 @@ Retorne SOMENTE um objeto JSON (não array), com os mesmos campos do post origin
         content: `O post atual (ordem ${postAtual.ordem}) precisa ser regenerado. Tipo: ${postAtual.tipo}.
 Tema anterior: "${postAtual.tema}" — crie algo diferente mas adequado ao mesmo slot.
 Modo: ${modo}.
-
+${instrucoes ? `\nInstruções do assessor para esta regeneração:\n"${instrucoes}"\n` : ""}
 Contexto dos outros posts do mês (para não repetir temas):
 ${currentPosts
   .filter((_, i) => i !== postIndex)

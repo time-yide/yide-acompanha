@@ -1,5 +1,5 @@
 import "server-only";
-import type { CalendarMode } from "./types";
+import type { CalendarMode, CalendarBriefing } from "./types";
 import type { TrendSearchResult } from "./web-search";
 import type { DataComemorativa } from "@/lib/nichos/schema";
 
@@ -14,6 +14,7 @@ export interface PromptContext {
   datasComem: DataComemorativa[];
   tendencias: TrendSearchResult[];
   modo: CalendarMode;
+  briefing: CalendarBriefing | null;
 }
 
 export function buildSystemPrompt(ctx: PromptContext): string {
@@ -49,6 +50,16 @@ export function buildUserPrompt(ctx: PromptContext): string {
           .join("\n\n")
       : "Nenhuma pesquisa de tendências disponível.";
 
+  const briefingStr = ctx.briefing
+    ? `\nBriefing do assessor (informações do cliente e ideias para este mês):
+- Temas/ideias que o cliente quer abordar: ${ctx.briefing.temas_cliente || "Não informado"}
+- Promoções, eventos ou datas importantes: ${ctx.briefing.promocoes_eventos || "Não informado"}
+- Ideias e sugestões do assessor: ${ctx.briefing.ideias_assessor || "Não informado"}
+- O que EVITAR neste mês: ${ctx.briefing.evitar || "Não informado"}
+- Observações extras: ${ctx.briefing.observacoes || "Não informado"}
+`
+    : "";
+
   if (ctx.modo === "completo") {
     return `Gere um cronograma COMPLETO com exatamente 12 posts para ${ctx.mesAno}:
 - 8 posts de vídeo (tipo: "video")
@@ -73,7 +84,7 @@ ${datasStr}
 
 Tendências encontradas:
 ${tendenciasStr}
-
+${briefingStr}
 Retorne o JSON array diretamente, sem marcadores de código.`;
   }
 
@@ -109,6 +120,6 @@ ${datasStr}
 
 Tendências encontradas:
 ${tendenciasStr}
-
+${briefingStr}
 Retorne o JSON array diretamente, sem marcadores de código.`;
 }
