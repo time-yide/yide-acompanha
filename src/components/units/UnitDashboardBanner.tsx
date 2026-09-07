@@ -9,7 +9,6 @@ import type { Unit } from "@/lib/units/schema";
 
 interface Props {
   activeUnit: Unit;
-  homeUnit: Unit;
   accessibleUnits: Unit[];
 }
 
@@ -20,7 +19,6 @@ interface Props {
  */
 export function UnitDashboardBanner({
   activeUnit,
-  homeUnit,
   accessibleUnits,
 }: Props) {
   const router = useRouter();
@@ -69,7 +67,6 @@ export function UnitDashboardBanner({
           </span>
           {accessibleUnits.map((unit) => {
             const isActive = unit.id === activeUnit.id;
-            const isHome = unit.id === homeUnit.id;
             return (
               <button
                 key={unit.id}
@@ -99,12 +96,7 @@ export function UnitDashboardBanner({
                   <Building2 className="h-3.5 w-3.5 opacity-60" />
                 )}
                 <span>{unit.nome}</span>
-                {isHome && (
-                  <span className="rounded-full bg-muted px-1.5 py-0 text-[9px] font-medium uppercase tracking-wider text-muted-foreground">
-                    minha
-                  </span>
-                )}
-              </button>
+                              </button>
             );
           })}
         </div>
