@@ -381,6 +381,47 @@ export async function enqueueCalendarAction(
   return { success: true, calendarId: inserted?.id };
 }
 
+export async function retryCalendarAction(
+  calendarId: string,
+  briefing?: CalendarBriefing,
+): Promise<ActionResult> {
+  await requireAuth();
+
+  const sb = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sbAny = sb as any;
+
+  const { data: cal } = await sbAny
+    .from("content_calendars")
+    .select("id, status")
+    .eq("id", calendarId)
+    .single();
+
+  if (!cal) return { error: "Cronograma não encontrado" };
+
+  const status = (cal as ContentCalendarRow).status;
+  if (status !== "erro" && status !== "gerando") {
+    return { error: "Só é possível reprocessar cronogramas com erro ou travados" };
+  }
+
+  const { error } = await sbAny
+    .from("content_calendars")
+    .update({
+      status: "pendente_geracao",
+      tentativas: 0,
+      erro_msg: null,
+      updated_at: new Date().toISOString(),
+      ...(briefing ? { briefing_assessor: briefing } : {}),
+    })
+    .eq("id", calendarId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/content-calendar");
+  revalidatePath("/social-media");
+  return { success: true };
+}
+
 /**
  * Enfileira cronogramas de TODOS os clientes elegíveis para um mês.
  * Mesma lógica do cron content-calendar-enqueue, mas disparável pela UI.

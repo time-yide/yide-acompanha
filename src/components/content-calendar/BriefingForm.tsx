@@ -38,9 +38,10 @@ interface Props {
   onSubmit: (briefing: CalendarBriefing) => void;
   loading?: boolean;
   initialBriefing?: CalendarBriefing | null;
+  submitLabel?: string;
 }
 
-export function BriefingForm({ onSubmit, loading, initialBriefing }: Props) {
+export function BriefingForm({ onSubmit, loading, initialBriefing, submitLabel }: Props) {
   const [values, setValues] = useState<CalendarBriefing>({
     temas_cliente: initialBriefing?.temas_cliente ?? "",
     promocoes_eventos: initialBriefing?.promocoes_eventos ?? "",
@@ -102,7 +103,7 @@ export function BriefingForm({ onSubmit, loading, initialBriefing }: Props) {
           ) : (
             <>
               <Send className="h-4 w-4" />
-              Gerar cronograma
+              {submitLabel ?? "Gerar cronograma"}
             </>
           )}
         </Button>
