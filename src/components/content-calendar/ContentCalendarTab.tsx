@@ -17,6 +17,7 @@ import { BriefingForm } from "./BriefingForm";
 import {
   updateCalendarPostsAction,
   enqueueCalendarAction,
+  retryCalendarAction,
 } from "@/lib/content-calendar/actions";
 import type {
   ContentCalendarRow,
@@ -74,6 +75,45 @@ export function ContentCalendarTab({ clientId, calendarData, modo, canEnqueue }:
   });
   const [loadingMonth, setLoadingMonth] = useState(false);
   const [enqueuing, startEnqueuing] = useTransition();
+  const [retrying, startRetrying] = useTransition();
+
+  async function handleRetryWithBriefing(briefing: CalendarBriefing) {
+    if (!calendar) return;
+    startRetrying(async () => {
+      const result = await retryCalendarAction(calendar.id, briefing);
+      if ("error" in result) {
+        alert(result.error);
+      } else {
+        const res = await fetch(
+          `/api/content-calendar?clientId=${clientId}&mes=${currentMonth}`,
+        );
+        if (res.ok) {
+          const data = await res.json();
+          setCalendar(data as ContentCalendarRow | null);
+          setPosts((data as ContentCalendarRow | null)?.posts_json ?? []);
+        }
+      }
+    });
+  }
+
+  async function handleForceRetry() {
+    if (!calendar) return;
+    startRetrying(async () => {
+      const result = await retryCalendarAction(calendar.id);
+      if ("error" in result) {
+        alert(result.error);
+      } else {
+        const res = await fetch(
+          `/api/content-calendar?clientId=${clientId}&mes=${currentMonth}`,
+        );
+        if (res.ok) {
+          const data = await res.json();
+          setCalendar(data as ContentCalendarRow | null);
+          setPosts((data as ContentCalendarRow | null)?.posts_json ?? []);
+        }
+      }
+    });
+  }
 
   async function handleEnqueueWithBriefing(briefing: CalendarBriefing) {
     startEnqueuing(async () => {
@@ -222,6 +262,22 @@ export function ContentCalendarTab({ clientId, calendarData, modo, canEnqueue }:
           <p className="text-sm text-muted-foreground">
             Gerando cronograma...
           </p>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleForceRetry}
+            disabled={retrying}
+            className="mt-2"
+          >
+            {retrying ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Reprocessando...
+              </>
+            ) : (
+              "Travou? Forçar reprocessamento"
+            )}
+          </Button>
         </div>
       </div>
     );
@@ -237,7 +293,7 @@ export function ContentCalendarTab({ clientId, calendarData, modo, canEnqueue }:
           onNext={() => navigateMonth(1)}
           loading={loadingMonth}
         />
-        <div className="flex flex-col items-center justify-center gap-3 py-12">
+        <div className="flex flex-col items-center justify-center gap-3 py-6">
           <AlertTriangle className="h-6 w-6 text-destructive" />
           <p className="text-sm text-destructive">
             Erro ao gerar cronograma
@@ -248,6 +304,12 @@ export function ContentCalendarTab({ clientId, calendarData, modo, canEnqueue }:
             </p>
           )}
         </div>
+        <BriefingForm
+          onSubmit={handleRetryWithBriefing}
+          loading={retrying}
+          initialBriefing={calendar.briefing_assessor}
+          submitLabel="Tentar novamente"
+        />
       </div>
     );
   }
