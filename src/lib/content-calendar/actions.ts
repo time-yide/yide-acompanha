@@ -223,6 +223,8 @@ export async function regeneratePostAction(
 ): Promise<ActionResult & { post?: GeneratedPost }> {
   await requireAuth();
 
+  const safeInstrucoes = instrucoes?.slice(0, 500);
+
   const sb = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sbAny = sb as any;
@@ -256,7 +258,7 @@ export async function regeneratePostAction(
       calendar.client_id,
       calendar.mes_referencia,
       calendar.modo,
-      instrucoes,
+      safeInstrucoes,
     );
 
     // Atualizar o post no array
@@ -292,6 +294,17 @@ export async function saveBriefingAction(
   const sb = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sbAny = sb as any;
+
+  const { data: cal } = await sbAny
+    .from("content_calendars")
+    .select("id, status")
+    .eq("id", calendarId)
+    .single();
+
+  if (!cal) return { error: "Cronograma não encontrado" };
+  if ((cal as ContentCalendarRow).status === "aprovado") {
+    return { error: "Cronograma já aprovado — não pode editar briefing" };
+  }
 
   const { error } = await sbAny
     .from("content_calendars")
