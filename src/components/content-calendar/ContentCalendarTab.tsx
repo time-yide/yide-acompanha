@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CalendarPostCard } from "./CalendarPostCard";
 import { ApproveCalendarButton } from "./ApproveCalendarButton";
+import { BriefingForm } from "./BriefingForm";
 import {
   updateCalendarPostsAction,
   enqueueCalendarAction,
@@ -20,6 +21,7 @@ import {
 import type {
   ContentCalendarRow,
   CalendarMode,
+  CalendarBriefing,
   GeneratedPost,
 } from "@/lib/content-calendar/types";
 
@@ -73,13 +75,12 @@ export function ContentCalendarTab({ clientId, calendarData, modo, canEnqueue }:
   const [loadingMonth, setLoadingMonth] = useState(false);
   const [enqueuing, startEnqueuing] = useTransition();
 
-  async function handleEnqueue() {
+  async function handleEnqueueWithBriefing(briefing: CalendarBriefing) {
     startEnqueuing(async () => {
-      const result = await enqueueCalendarAction(clientId, currentMonth);
+      const result = await enqueueCalendarAction(clientId, currentMonth, briefing);
       if ("error" in result) {
         alert(result.error);
       } else {
-        // Reload to show the new pendente_geracao status
         const res = await fetch(
           `/api/content-calendar?clientId=${clientId}&mes=${currentMonth}`,
         );
@@ -170,27 +171,18 @@ export function ContentCalendarTab({ clientId, calendarData, modo, canEnqueue }:
           onNext={() => navigateMonth(1)}
           loading={loadingMonth}
         />
-        <div className="flex flex-col items-center justify-center gap-3 py-12 text-muted-foreground">
-          <p className="text-sm">
-            Nenhum cronograma gerado para este mes
-          </p>
-          {canEnqueue && (
-            <Button
-              size="sm"
-              onClick={handleEnqueue}
-              disabled={enqueuing}
-            >
-              {enqueuing ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Enfileirando...
-                </>
-              ) : (
-                "Gerar cronograma"
-              )}
-            </Button>
-          )}
-        </div>
+        {canEnqueue ? (
+          <BriefingForm
+            onSubmit={handleEnqueueWithBriefing}
+            loading={enqueuing}
+          />
+        ) : (
+          <div className="flex flex-col items-center justify-center gap-3 py-12 text-muted-foreground">
+            <p className="text-sm">
+              Nenhum cronograma gerado para este mês
+            </p>
+          </div>
+        )}
       </div>
     );
   }

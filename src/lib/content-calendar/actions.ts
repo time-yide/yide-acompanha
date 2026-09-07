@@ -5,7 +5,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { requireAuth } from "@/lib/auth/session";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 import { regenerateSinglePost } from "./generator";
-import type { GeneratedPost, ContentCalendarRow } from "./types";
+import type { GeneratedPost, ContentCalendarRow, CalendarBriefing } from "./types";
 import {
   PACOTES_COM_CRONOGRAMA,
   PACOTES_CRONOGRAMA_COMPLETO,
@@ -219,8 +219,11 @@ export async function updateCalendarPostsAction(
 export async function regeneratePostAction(
   calendarId: string,
   postIndex: number,
+  instrucoes?: string,
 ): Promise<ActionResult & { post?: GeneratedPost }> {
   await requireAuth();
+
+  const safeInstrucoes = instrucoes?.slice(0, 500);
 
   const sb = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -255,6 +258,7 @@ export async function regeneratePostAction(
       calendar.client_id,
       calendar.mes_referencia,
       calendar.modo,
+      safeInstrucoes,
     );
 
     // Atualizar o post no array
@@ -281,10 +285,46 @@ export async function regeneratePostAction(
  * Enfileira cronograma de um cliente para um mês específico.
  * Útil quando o cron mensal já passou e se quer gerar agora.
  */
+export async function saveBriefingAction(
+  calendarId: string,
+  briefing: CalendarBriefing,
+): Promise<ActionResult> {
+  await requireAuth();
+
+  const sb = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sbAny = sb as any;
+
+  const { data: cal } = await sbAny
+    .from("content_calendars")
+    .select("id, status")
+    .eq("id", calendarId)
+    .single();
+
+  if (!cal) return { error: "Cronograma não encontrado" };
+  if ((cal as ContentCalendarRow).status === "aprovado") {
+    return { error: "Cronograma já aprovado — não pode editar briefing" };
+  }
+
+  const { error } = await sbAny
+    .from("content_calendars")
+    .update({
+      briefing_assessor: briefing,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", calendarId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/social-media");
+  return { success: true };
+}
+
 export async function enqueueCalendarAction(
   clientId: string,
   mesReferencia: string,
-): Promise<ActionResult> {
+  briefing?: CalendarBriefing,
+): Promise<ActionResult & { calendarId?: string }> {
   const user = await requireAuth();
   if (!["adm", "socio", "coordenador", "assessor"].includes(user.role)) {
     return { error: "Sem permissão" };
@@ -321,7 +361,7 @@ export async function enqueueCalendarAction(
     ? "completo"
     : "leve";
 
-  const { error } = await sbAny
+  const { data: inserted, error } = await sbAny
     .from("content_calendars")
     .insert({
       organization_id: client.organization_id,
@@ -330,12 +370,15 @@ export async function enqueueCalendarAction(
       modo,
       status: "pendente_geracao",
       criado_por: user.id,
-    });
+      ...(briefing ? { briefing_assessor: briefing } : {}),
+    })
+    .select("id")
+    .single();
 
   if (error) return { error: error.message };
 
   revalidatePath("/social-media");
-  return { success: true };
+  return { success: true, calendarId: inserted?.id };
 }
 
 /**
