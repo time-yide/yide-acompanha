@@ -8,7 +8,7 @@ import type { GeneratedPost, CalendarMode } from "./types";
 import type { DataComemorativa } from "@/lib/nichos/schema";
 import type { PromptContext } from "./prompt";
 
-const MODEL = "claude-sonnet-4-5";
+const MODEL = "claude-sonnet-5";
 
 /**
  * Gera o cronograma de conteúdo de um cliente para o mês referência.
@@ -107,18 +107,22 @@ export async function generateCalendar(
 
   const response = await anthropic.messages.create({
     model: MODEL,
-    max_tokens: 8192,
+    max_tokens: 16000,
     system: buildSystemPrompt(ctx),
     messages: [{ role: "user", content: buildUserPrompt(ctx) }],
   });
 
-  // 10. Extrair texto da resposta
+  if (response.stop_reason === "max_tokens") {
+    throw new Error(
+      "Resposta da IA truncada (max_tokens atingido). Tente novamente.",
+    );
+  }
+
   const textBlock = response.content.find((b) => b.type === "text");
   if (!textBlock || textBlock.type !== "text") {
     throw new Error("Resposta da IA não contém texto");
   }
 
-  // 11. Parse JSON — limpa possíveis marcadores de código
   let rawJson = textBlock.text.trim();
   if (rawJson.startsWith("```")) {
     rawJson = rawJson.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
@@ -180,7 +184,7 @@ export async function regenerateSinglePost(
 
   const response = await anthropic.messages.create({
     model: MODEL,
-    max_tokens: 2048,
+    max_tokens: 4096,
     system: `Você é um estrategista de conteúdo digital. Regenere UM post de cronograma de redes sociais.
 Cliente: ${client?.nome ?? ""}. Nicho: ${nicho?.nome ?? ""}. Mês: ${mesAno}.
 Tom de voz: ${sg.tom_voz ?? ""}. Mood: ${sg.mood ?? ""}.
@@ -204,6 +208,12 @@ Retorne o objeto JSON diretamente, sem marcadores de código.`,
     ],
   });
 
+  if (response.stop_reason === "max_tokens") {
+    throw new Error(
+      "Resposta da IA truncada (max_tokens atingido). Tente novamente.",
+    );
+  }
+
   const textBlock = response.content.find((b) => b.type === "text");
   if (!textBlock || textBlock.type !== "text") {
     throw new Error("Resposta da IA não contém texto");
@@ -214,7 +224,14 @@ Retorne o objeto JSON diretamente, sem marcadores de código.`,
     rawJson = rawJson.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
   }
 
-  const newPost = JSON.parse(rawJson) as GeneratedPost;
+  let newPost: GeneratedPost;
+  try {
+    newPost = JSON.parse(rawJson) as GeneratedPost;
+  } catch {
+    throw new Error(
+      `Falha ao parsear JSON da IA: ${rawJson.slice(0, 200)}...`,
+    );
+  }
   newPost.ordem = postAtual.ordem;
   return newPost;
 }

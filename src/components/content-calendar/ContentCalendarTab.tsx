@@ -284,36 +284,50 @@ export function ContentCalendarTab({ clientId, calendarData, modo, canEnqueue }:
         </div>
       </div>
 
-      {/* Posts list */}
-      <div className="space-y-3">
-        {posts.map((post, i) => (
-          <CalendarPostCard
-            key={`${post.ordem}-${i}`}
-            post={post}
-            index={i}
-            calendarId={calendar.id}
-            modo={modo}
-            onUpdate={handleUpdate}
-            readOnly={isReadOnly}
-          />
-        ))}
-      </div>
-
-      {/* Action buttons */}
-      {!isReadOnly && (
-        <div className="flex flex-wrap items-center gap-2 border-t pt-3">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleSave}
-            disabled={!dirty || saving}
-          >
-            <Save className="h-4 w-4" />
-            {saving ? "Salvando..." : "Salvar alteracoes"}
-          </Button>
-          <ApproveCalendarButton calendarId={calendar.id} />
+      {/* Document-style container */}
+      <div className="mx-auto max-w-3xl rounded-lg border bg-card shadow-sm">
+        {/* Document header */}
+        <div className="border-b px-8 py-5">
+          <h2 className="text-lg font-semibold tracking-tight">
+            Cronograma de Conteúdo
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {posts.length} posts · {modo === "completo" ? "Modo Completo" : "Modo Leve"}
+          </p>
         </div>
-      )}
+
+        {/* Posts as document sections */}
+        <div className="divide-y divide-border/50">
+          {posts.map((post, i) => (
+            <div key={`${post.ordem}-${i}`} className="px-8 py-6">
+              <CalendarPostCard
+                post={post}
+                index={i}
+                calendarId={calendar.id}
+                modo={modo}
+                onUpdate={handleUpdate}
+                readOnly={isReadOnly}
+              />
+            </div>
+          ))}
+        </div>
+
+        {/* Action bar inside document */}
+        {!isReadOnly && (
+          <div className="flex flex-wrap items-center gap-2 border-t px-8 py-4">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleSave}
+              disabled={!dirty || saving}
+            >
+              <Save className="h-4 w-4" />
+              {saving ? "Salvando..." : "Salvar alterações"}
+            </Button>
+            <ApproveCalendarButton calendarId={calendar.id} />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
