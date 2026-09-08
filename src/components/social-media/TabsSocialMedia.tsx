@@ -12,7 +12,7 @@ const TABS: Array<{ key: TabKey; label: string; href: string; Icon: typeof Share
   { key: "agendamento", label: "Agendamento de Post", href: "/social-media/agendamento", Icon: Share2 },
   { key: "trafego", label: "Tráfego", href: "/trafego", Icon: Megaphone },
   { key: "d0-d30", label: "D0 → D30", href: "/d0-d30", Icon: Rocket },
-  { key: "cronograma-ia", label: "Cronograma IA", href: "/social-media/cronograma-ia", Icon: CalendarCog },
+  { key: "cronograma-ia", label: "Assistente de cronograma", href: "/social-media/cronograma-ia", Icon: CalendarCog },
 ];
 
 export function TabsSocialMedia({ active }: Props) {
