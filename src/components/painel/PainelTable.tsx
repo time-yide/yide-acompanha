@@ -20,7 +20,7 @@ interface Props {
 }
 
 const COLUMNS: Array<{ key: ColumnKey | "drive"; label: string }> = [
-  { key: "crono", label: "Crono" },
+  { key: "crono", label: "Cronograma" },
   { key: "design", label: "Design" },
   { key: "tpg", label: "TPG" },
   { key: "tpm", label: "TPM" },
