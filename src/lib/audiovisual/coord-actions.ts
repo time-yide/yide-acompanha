@@ -505,9 +505,7 @@ export async function cancelCaptureAction(
   formData: FormData,
 ): Promise<ActionResult> {
   const actor = await requireAuth();
-  if (!ROLES_COORD_DELEGATE.has(actor.role)) {
-    return { error: "Você não tem permissão pra cancelar captação" };
-  }
+  const isCoord = ROLES_COORD_DELEGATE.has(actor.role);
 
   const eventId = String(formData.get("event_id") ?? "");
   if (!eventId) return { error: "Evento é obrigatório" };
@@ -518,13 +516,20 @@ export async function cancelCaptureAction(
 
   const { data: event } = await sb
     .from("calendar_events")
-    .select("id, titulo, sub_calendar, videomaker_status, videomaker_assigned_id")
+    .select("id, titulo, sub_calendar, videomaker_status, videomaker_assigned_id, participantes_ids")
     .eq("id", eventId)
     .single();
   if (!event) return { error: "Evento não encontrado" };
   if (event.sub_calendar !== "videomakers") {
     return { error: "Esse evento não é de videomaker" };
   }
+
+  const isAssigned = event.videomaker_assigned_id === actor.id;
+  const isParticipant = Array.isArray(event.participantes_ids) && event.participantes_ids.includes(actor.id);
+  if (!isCoord && !isAssigned && !isParticipant) {
+    return { error: "Você não tem permissão pra cancelar essa captação" };
+  }
+
   if (event.videomaker_status !== "pending_delegation" && event.videomaker_status !== "scheduled") {
     return { error: "Esse evento não pode ser cancelado nesse estado" };
   }

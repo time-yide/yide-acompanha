@@ -54,7 +54,7 @@ function getDeadline(eventInicioIso: string): Date {
 export async function listPendenteParaVideomaker(userId: string): Promise<PendenteEvento[]> {
   const cached = unstable_cache(
     async (uid: string) => _listPendenteParaVideomakerImpl(uid),
-    ["audiovisual-pendente-videomaker"],
+    ["audiovisual-pendente-videomaker-v2"],
     { revalidate: 30, tags: [AUDIOVISUAL_PENDENTE_TAG] },
   );
   return cached(userId);
@@ -64,11 +64,14 @@ async function _listPendenteParaVideomakerImpl(userId: string): Promise<Pendente
   const supabase = createServiceRoleClient();
   const now = new Date();
 
-  // Eventos passados onde é participante (sub_calendar='videomakers')
-  const { data: events, error } = await supabase
+  // Eventos passados onde é participante (sub_calendar='videomakers', exclui cancelados)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const { data: events, error } = await sb
     .from("calendar_events")
     .select("id, titulo, inicio, client_id, cliente:clients(id, nome)")
     .eq("sub_calendar", "videomakers")
+    .neq("videomaker_status", "cancelled")
     .contains("participantes_ids", [userId])
     .lt("inicio", now.toISOString())
     .order("inicio", { ascending: false })
@@ -77,8 +80,6 @@ async function _listPendenteParaVideomakerImpl(userId: string): Promise<Pendente
   if (events.length === 0) return [];
 
   const eventIds = (events as Array<{ id: string }>).map((e) => e.id);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sb = supabase as any;
   const { data: capturas } = await sb
     .from("audiovisual_capturas")
     .select("event_id")
@@ -131,7 +132,7 @@ export interface EventoSemCapturaRow {
 export async function listEventosSemCaptura(options: { videomakerId?: string } = {}): Promise<EventoSemCapturaRow[]> {
   const cached = unstable_cache(
     async (videomakerId: string | undefined) => _listEventosSemCapturaImpl({ videomakerId }),
-    ["audiovisual-eventos-sem-captura-v1"],
+    ["audiovisual-eventos-sem-captura-v2"],
     { revalidate: 30, tags: [AUDIOVISUAL_PENDENTE_TAG, AUDIOVISUAL_CAPTURAS_TAG] },
   );
   return cached(options.videomakerId);
@@ -141,11 +142,14 @@ async function _listEventosSemCapturaImpl(options: { videomakerId?: string }): P
   const supabase = createServiceRoleClient();
   const now = new Date();
 
-  // Eventos passados na agenda dos videomakers
-  let q = supabase
+  // Eventos passados na agenda dos videomakers (exclui cancelados)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  let q = sb
     .from("calendar_events")
     .select("id, titulo, inicio, client_id, participantes_ids, cliente:clients(id, nome)")
     .eq("sub_calendar", "videomakers")
+    .neq("videomaker_status", "cancelled")
     .lt("inicio", now.toISOString())
     .order("inicio", { ascending: false })
     .limit(200);
@@ -158,8 +162,6 @@ async function _listEventosSemCapturaImpl(options: { videomakerId?: string }): P
   if (events.length === 0) return [];
 
   const eventIds = (events as Array<{ id: string }>).map((e) => e.id);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sb = supabase as any;
   const { data: capturas } = await sb
     .from("audiovisual_capturas")
     .select("event_id")

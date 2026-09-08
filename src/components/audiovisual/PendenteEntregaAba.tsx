@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, Upload, CheckCircle2 } from "lucide-react";
+import { CancelarCaptacaoButton } from "./CancelarCaptacaoButton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { CapturaForm } from "./CapturaForm";
 import { MarcarEntregueRapidoDialog } from "./MarcarEntregueRapidoDialog";
@@ -91,16 +92,21 @@ export function PendenteEntregaAba({ rows, showVideomaker, canDeliver, canQuickM
             </div>
           );
 
-          // Sem nenhuma ação disponível - só link pro calendário (visualizar)
+          // Sem nenhuma ação de entrega - mostra corpo + cancelar
           if (!hasAnyAction) {
             return (
               <li key={key}>
-                <Link
-                  href="/calendario"
-                  className="flex items-start justify-between gap-2 rounded-lg border bg-card p-3 hover:bg-muted/40"
-                >
-                  {cardBody}
-                </Link>
+                <div className="flex items-start justify-between gap-2 rounded-lg border bg-card p-3">
+                  <Link href="/calendario" className="flex min-w-0 flex-1 hover:opacity-80">
+                    {cardBody}
+                  </Link>
+                  <div className="flex shrink-0 items-start">
+                    <CancelarCaptacaoButton
+                      eventId={r.event_id}
+                      titulo={`${r.titulo}${r.client_nome ? ` · ${r.client_nome}` : ""}`}
+                    />
+                  </div>
+                </div>
               </li>
             );
           }
@@ -157,6 +163,11 @@ export function PendenteEntregaAba({ rows, showVideomaker, canDeliver, canQuickM
                       <Upload className="h-4 w-4" />
                     </button>
                   )}
+
+                  <CancelarCaptacaoButton
+                    eventId={r.event_id}
+                    titulo={`${r.titulo}${r.client_nome ? ` · ${r.client_nome}` : ""}`}
+                  />
                 </div>
               </div>
             </li>
