@@ -9,6 +9,7 @@ export const TIPOS_PACOTE = [
   "ia",
   "crm",
   "crm_ia",
+  "comercial_ai",
 ] as const;
 export type TipoPacote = (typeof TIPOS_PACOTE)[number];
 
@@ -65,6 +66,7 @@ export const PACOTE_COLUMNS: Record<TipoPacote, ColumnFlags> = {
   ia: { ...NOTHING },
   crm: { ...NOTHING },
   crm_ia: { ...NOTHING },
+  comercial_ai: { ...NOTHING },
 };
 
 export const PACOTES_NO_PAINEL_MENSAL: readonly TipoPacote[] = [
@@ -122,5 +124,7 @@ export function tipoPacoteBadge(pacote: TipoPacote): BadgeMeta {
       return { label: "CRM", classes: "bg-orange-500/15 text-orange-700 dark:text-orange-300 border-orange-500/30" };
     case "crm_ia":
       return { label: "CRM+IA", classes: "bg-teal-500/15 text-teal-700 dark:text-teal-300 border-teal-500/30" };
+    case "comercial_ai":
+      return { label: "Comercial AI", classes: "bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border-cyan-500/30" };
   }
 }
