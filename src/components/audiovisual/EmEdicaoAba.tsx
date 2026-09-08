@@ -1,9 +1,18 @@
 import Link from "next/link";
 import { ExternalLink, User } from "lucide-react";
 import type { CapturaEmEdicaoRow } from "@/lib/audiovisual/queries";
+import { TrocarEditorButton } from "./TrocarEditorButton";
+
+interface Editor {
+  id: string;
+  nome: string;
+  role?: string;
+}
 
 interface Props {
   rows: CapturaEmEdicaoRow[];
+  editores: Editor[];
+  canDelegate: boolean;
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -29,7 +38,7 @@ function formatDateBR(iso: string): string {
   return new Date(y, m - 1, d).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
 }
 
-export function EmEdicaoAba({ rows }: Props) {
+export function EmEdicaoAba({ rows, editores, canDelegate }: Props) {
   if (rows.length === 0) {
     return (
       <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
@@ -85,6 +94,13 @@ export function EmEdicaoAba({ rows }: Props) {
                       <p className="text-xs text-muted-foreground">Gravação: {r.videomaker_nome ?? "Videomaker"}</p>
                     </div>
                     <div className="flex items-center gap-1.5">
+                      {canDelegate && (
+                        <TrocarEditorButton
+                          capturaId={r.id}
+                          editorAtualId={r.editor_id}
+                          editores={editores}
+                        />
+                      )}
                       <Link
                         href={`/tarefas?id=${r.task_id}`}
                         className="inline-flex items-center gap-1 rounded border border-input bg-card px-2 py-1 text-xs hover:bg-muted/40"
