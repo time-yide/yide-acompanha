@@ -57,8 +57,8 @@ function fd(formData: FormData, key: string) {
 
 export async function createLeadAction(formData: FormData) {
   const actor = await requireAuth();
-  if (!["adm", "socio", "comercial"].includes(actor.role)) {
-    return { error: "Apenas Comercial, ADM ou Sócio podem criar leads" };
+  if (!["adm", "socio", "comercial", "programacao"].includes(actor.role)) {
+    return { error: "Sem permissão para criar leads" };
   }
 
   const parsed = createLeadSchema.safeParse({
@@ -170,8 +170,8 @@ export async function createLeadAction(formData: FormData) {
  */
 export async function importClientToOnboardingAction(formData: FormData) {
   const actor = await requireAuth();
-  if (!["adm", "socio", "comercial"].includes(actor.role)) {
-    return { error: "Apenas Comercial, ADM ou Sócio podem importar clientes pro onboarding" };
+  if (!["adm", "socio", "comercial", "programacao"].includes(actor.role)) {
+    return { error: "Sem permissão para importar clientes pro onboarding" };
   }
 
   const parsed = importClientToOnboardingSchema.safeParse({

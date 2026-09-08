@@ -23,7 +23,7 @@ type ActionResult = ActionOk | ActionErr;
 type CreateResult = (ActionOk & { pesquisaId: string }) | ActionErr;
 
 const ROLES_QUE_GERENCIAM = [
-  "adm", "socio", "comercial", "coordenador", "assessor",
+  "adm", "socio", "comercial", "coordenador", "assessor", "programacao",
 ] as const;
 
 function canManage(role: string): boolean {

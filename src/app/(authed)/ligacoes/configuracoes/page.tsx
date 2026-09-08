@@ -7,8 +7,8 @@ import { listInstancias } from "@/lib/ligacoes/instancia-actions";
 import { InstanciasList } from "@/components/ligacoes/InstanciasList";
 import { Card } from "@/components/ui/card";
 
-const ALLOWED_ROLES = ["adm", "socio", "comercial", "coordenador"];
-const ROLES_QUE_GERENCIAM = ["adm", "socio", "comercial", "coordenador"];
+const ALLOWED_ROLES = ["adm", "socio", "comercial", "coordenador", "programacao"];
+const ROLES_QUE_GERENCIAM = ["adm", "socio", "comercial", "coordenador", "programacao"];
 
 export default async function LigacoesConfigPage() {
   const user = await requireAuth();

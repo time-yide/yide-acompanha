@@ -8,7 +8,7 @@ import { LeadsTable } from "@/components/gerador-leads/LeadsTable";
 import { AdicionarLeadVisitaButton } from "@/components/visitas/AdicionarLeadVisitaButton";
 import { EditarVisitaButton } from "@/components/visitas/EditarVisitaButton";
 
-const ALLOWED_ROLES = ["adm", "socio", "comercial", "coordenador", "assessor"];
+const ALLOWED_ROLES = ["adm", "socio", "comercial", "coordenador", "assessor", "programacao"];
 
 export default async function VisitaDetalhePage({
   params,

@@ -3,7 +3,7 @@ import { requireAuth } from "@/lib/auth/session";
 import { TabsNav } from "@/components/prospeccao/TabsNav";
 import { TabsOnboardingProspeccao } from "@/components/onboarding/TabsOnboardingProspeccao";
 
-const ALLOWED_ROLES = ["socio", "adm", "comercial"];
+const ALLOWED_ROLES = ["socio", "adm", "comercial", "programacao"];
 
 export default async function ProspeccaoLayout({ children }: { children: React.ReactNode }) {
   const user = await requireAuth();

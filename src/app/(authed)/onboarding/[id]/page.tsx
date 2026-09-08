@@ -4,7 +4,7 @@ import { requireAuth } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 
 // LGPD: detalhe do lead expõe telefone/email/valor - restringe a quem opera.
-const ROLES_PERMITIDOS = ["adm", "socio", "comercial", "assessor", "coordenador", "audiovisual_chefe"];
+const ROLES_PERMITIDOS = ["adm", "socio", "comercial", "assessor", "coordenador", "audiovisual_chefe", "programacao"];
 import { getLeadById, listLeadHistory, listLeadAttempts } from "@/lib/leads/queries";
 import { updateLeadAction } from "@/lib/leads/actions";
 import { LeadForm } from "@/components/onboarding/LeadForm";

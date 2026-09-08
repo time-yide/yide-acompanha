@@ -22,7 +22,7 @@ interface ActionErr { error: string }
 type ActionResult = ActionOk | ActionErr;
 
 const ROLES_QUE_GERENCIAM = [
-  "adm", "socio", "comercial", "coordenador", "assessor",
+  "adm", "socio", "comercial", "coordenador", "assessor", "programacao",
 ] as const;
 
 function canManage(role: string): boolean {

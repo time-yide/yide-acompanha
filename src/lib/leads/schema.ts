@@ -74,10 +74,10 @@ export const importClientToOnboardingSchema = z.object({
  * (LeadCard) pra UI esconder botões e action bloquear.
  */
 export const STAGE_INTERACTORS: Record<Stage, readonly string[]> = {
-  leads_potencial: ["adm", "socio", "comercial"],
-  leads_ativos: ["adm", "socio", "comercial"],
-  proposta_enviada: ["adm", "socio", "comercial"],
-  reuniao_comercial: ["adm", "socio", "comercial"],
+  leads_potencial: ["adm", "socio", "comercial", "programacao"],
+  leads_ativos: ["adm", "socio", "comercial", "programacao"],
+  proposta_enviada: ["adm", "socio", "comercial", "programacao"],
+  reuniao_comercial: ["adm", "socio", "comercial", "programacao"],
   contrato: ["adm", "socio", "coordenador"],
   marco_zero: ["adm", "socio", "coordenador", "assessor"],
   ativo: ["socio", "coordenador", "assessor"],

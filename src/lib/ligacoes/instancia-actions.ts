@@ -11,7 +11,7 @@ interface ActionOk { success: true }
 interface ActionErr { error: string }
 type ActionResult = ActionOk | ActionErr;
 
-const ROLES_QUE_GERENCIAM = ["adm", "socio", "comercial", "coordenador"] as const;
+const ROLES_QUE_GERENCIAM = ["adm", "socio", "comercial", "coordenador", "programacao"] as const;
 
 function canManage(role: string): boolean {
   return (ROLES_QUE_GERENCIAM as readonly string[]).includes(role);

@@ -19,7 +19,7 @@ interface Err {
 }
 type Result = Ok | Err;
 
-const ROLES = ["adm", "socio", "comercial", "coordenador", "assessor"] as const;
+const ROLES = ["adm", "socio", "comercial", "coordenador", "assessor", "programacao"] as const;
 function canManage(role: string) {
   return (ROLES as readonly string[]).includes(role);
 }

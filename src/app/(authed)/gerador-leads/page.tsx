@@ -14,8 +14,8 @@ import { LeadsTable } from "@/components/gerador-leads/LeadsTable";
 import { LeadsToolbar } from "@/components/gerador-leads/LeadsToolbar";
 import { PesquisasRecentes } from "@/components/gerador-leads/PesquisasRecentes";
 
-const ALLOWED_ROLES = ["adm", "socio", "comercial", "coordenador", "assessor"];
-const ROLES_QUE_GERENCIAM = ["adm", "socio", "comercial", "coordenador", "assessor"];
+const ALLOWED_ROLES = ["adm", "socio", "comercial", "coordenador", "assessor", "programacao"];
+const ROLES_QUE_GERENCIAM = ["adm", "socio", "comercial", "coordenador", "assessor", "programacao"];
 
 export default async function GeradorLeadsPage({
   searchParams,

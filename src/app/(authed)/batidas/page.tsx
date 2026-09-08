@@ -9,7 +9,7 @@ import {
 } from "@/lib/batidas/queries";
 import { ProspectosCadenciaTable } from "@/components/batidas/ProspectosCadenciaTable";
 
-const ALLOWED = ["adm", "socio", "comercial", "coordenador", "assessor"];
+const ALLOWED = ["adm", "socio", "comercial", "coordenador", "assessor", "programacao"];
 
 export default async function BatidasPage({
   searchParams,

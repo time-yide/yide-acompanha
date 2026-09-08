@@ -76,11 +76,12 @@ describe("programacao role", () => {
     expect(ROLE_LABELS.programacao).toBe("Programação");
     expect(roleLabel("programacao")).toBe("Programação");
   });
-  it("não tem acesso a nada por padrão", () => {
+  it("tem acesso comercial mas não financeiro/admin", () => {
     expect(canAccess("programacao", "manage:users")).toBe(false);
-    expect(canAccess("programacao", "create:tasks")).toBe(false);
-    expect(canAccess("programacao", "view:all_clients")).toBe(false);
     expect(canAccess("programacao", "view:financial_consolidated")).toBe(false);
+    expect(canAccess("programacao", "create:tasks")).toBe(true);
+    expect(canAccess("programacao", "view:all_clients")).toBe(true);
+    expect(canAccess("programacao", "access:prospeccao")).toBe(true);
   });
 });
 
