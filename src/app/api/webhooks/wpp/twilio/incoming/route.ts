@@ -126,19 +126,11 @@ export async function POST(req: NextRequest) {
     status: "entregue",
   });
 
-  // Atualizar conversa (último texto + incrementar nao_lidas)
-  await sb.rpc("increment_nao_lidas", { conv_id: convId }).catch(() => {
-    // Fallback se a function não existe
-    sb.from("wpp_conversations")
-      .update({
-        ultimo_texto: body.slice(0, 200),
-        ultima_msg_em: new Date().toISOString(),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        nao_lidas: ((conv as any).nao_lidas ?? 0) + 1,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", convId)
-      .then(() => {});
+  // Atualizar conversa (último texto + incrementar nao_lidas atomicamente)
+  await sb.rpc("increment_nao_lidas", {
+    conv_id: convId,
+    novo_texto: body.slice(0, 200),
+    nova_data: new Date().toISOString(),
   });
 
   // Twilio espera TwiML de resposta (pode ser vazio)
