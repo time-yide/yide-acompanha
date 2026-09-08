@@ -31,6 +31,8 @@ export interface CnpjLookupResult {
   /** Email oficial cadastrado na Receita. */
   email: string | null;
   socios: CnpjaSocio[];
+  /** MEI | ME | EPP | DEMAIS - porte da empresa na Receita Federal. */
+  porte_empresa: string | null;
   /** True quando o endpoint retornou >1 resultado pro nome+cidade. */
   multiplos_resultados: boolean;
 }
@@ -104,6 +106,7 @@ export function parseCnpjaResponse(
       telefone: null,
       email: null,
       socios: [],
+      porte_empresa: null,
       multiplos_resultados: multiplosResultados,
     };
   }
@@ -119,6 +122,12 @@ export function parseCnpjaResponse(
     }))
     .filter((s) => s.nome);
 
+  const porteRaw = raw.company?.size?.acronym ?? raw.company?.size?.text ?? null;
+  const PORTES_VALIDOS = ["MEI", "ME", "EPP", "DEMAIS"];
+  const porte = porteRaw
+    ? PORTES_VALIDOS.find((p) => String(porteRaw).toUpperCase().startsWith(p)) ?? null
+    : null;
+
   return {
     ok: true,
     skipped: false,
@@ -129,6 +138,7 @@ export function parseCnpjaResponse(
     telefone: parsePhone(raw.phones),
     email: parseEmail(raw.emails),
     socios,
+    porte_empresa: porte,
     multiplos_resultados: multiplosResultados,
   };
 }
@@ -152,6 +162,7 @@ export async function searchCnpjByName(
     telefone: null,
     email: null,
     socios: [],
+    porte_empresa: null,
     multiplos_resultados: false,
   };
 

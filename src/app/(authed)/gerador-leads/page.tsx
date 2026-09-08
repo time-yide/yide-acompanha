@@ -29,6 +29,9 @@ export default async function GeradorLeadsPage({
     comInstagram?: string;
     comSite?: string;
     base?: string;
+    porte?: string;
+    func?: string;
+    fat?: string;
   }>;
 }) {
   const user = await requireAuth();
@@ -42,6 +45,23 @@ export default async function GeradorLeadsPage({
     ? (params.status as StatusLead)
     : "todos";
 
+  const FUNC_RANGES: Record<string, { min?: number; max?: number }> = {
+    "1-10": { min: 1, max: 10 },
+    "11-50": { min: 11, max: 50 },
+    "51-200": { min: 51, max: 200 },
+    "201-500": { min: 201, max: 500 },
+    "500+": { min: 501 },
+  };
+  const FAT_RANGES: Record<string, { min?: number; max?: number }> = {
+    "ate100k": { max: 100_000 },
+    "100k-500k": { min: 100_000, max: 500_000 },
+    "500k-1m": { min: 500_000, max: 1_000_000 },
+    "1m-5m": { min: 1_000_000, max: 5_000_000 },
+    "5m+": { min: 5_000_000 },
+  };
+  const funcRange = params.func ? FUNC_RANGES[params.func] : undefined;
+  const fatRange = params.fat ? FAT_RANGES[params.fat] : undefined;
+
   const filter: ListLeadsFilter = {
     searchQuery: params.q,
     status,
@@ -52,6 +72,11 @@ export default async function GeradorLeadsPage({
     comInstagram: params.comInstagram === "1",
     comSite: params.comSite === "1",
     baseProspeccao: params.base || undefined,
+    porteEmpresa: params.porte || undefined,
+    numFuncMin: funcRange?.min,
+    numFuncMax: funcRange?.max,
+    fatMin: fatRange?.min,
+    fatMax: fatRange?.max,
   };
 
   const [{ leads, total, page, totalPages }, pesquisas] = await Promise.all([

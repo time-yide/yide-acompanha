@@ -329,6 +329,7 @@ async function enriquecerComReceita(
           socio_principal_qualificacao: socioPrincipal?.qualificacao ?? null,
           telefone_receita: r.telefone,
           email_receita: r.email,
+          porte_empresa: r.porte_empresa,
         })
         .eq("id", lead.id);
     }
@@ -357,6 +358,9 @@ export async function updateLeadAction(formData: FormData): Promise<ActionResult
     }
   }
 
+  const numFuncRaw = fd(formData, "num_funcionarios");
+  const fatRaw = fd(formData, "faturamento_anual");
+
   const parsed = updateLeadSchema.safeParse({
     id: fd(formData, "id"),
     status: fd(formData, "status") ?? undefined,
@@ -374,6 +378,9 @@ export async function updateLeadAction(formData: FormData): Promise<ActionResult
     decisor_email: fd(formData, "decisor_email"),
     decisor_whatsapp: fd(formData, "decisor_whatsapp"),
     decisor_instagram: fd(formData, "decisor_instagram"),
+    porte_empresa: fd(formData, "porte_empresa"),
+    num_funcionarios: numFuncRaw != null ? numFuncRaw : undefined,
+    faturamento_anual: fatRaw != null ? fatRaw : undefined,
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 

@@ -30,6 +30,9 @@ export interface LeadGeradoRow {
   email_receita: string | null;
   socios: Array<{ nome: string; qualificacao: string; data_entrada: string | null }>;
   socio_principal_qualificacao: string | null;
+  porte_empresa: string | null;
+  num_funcionarios: number | null;
+  faturamento_anual: number | null;
   score: number | null;
   qualificado: boolean | null;
   potencial_comercial: string | null;
@@ -60,6 +63,11 @@ export interface ListLeadsFilter {
   baseProspeccao?: string;
   visitaId?: string;
   scoreMin?: number;
+  porteEmpresa?: string;
+  numFuncMin?: number;
+  numFuncMax?: number;
+  fatMin?: number;
+  fatMax?: number;
   /** 1-indexed page number */
   page?: number;
   pageSize?: number;
@@ -96,7 +104,7 @@ export async function listLeadsGerados(
   let q = sb
     .from("leads_gerados")
     .select(
-      "id, empresa, telefone, whatsapp, email, website, dominio, instagram, endereco, cidade, estado, categoria, google_rating, google_reviews_count, google_maps_url, decisor_nome, decisor_cargo, decisor_email, decisor_whatsapp, decisor_instagram, decisor_telefone, decisor_linkedin, cnpj, telefone_receita, email_receita, socios, socio_principal_qualificacao, score, qualificado, potencial_comercial, observacoes_ia, diagnostico, status, tags, observacoes, responsavel_id, fonte, base_prospeccao, visita_id, created_at, updated_at, responsavel:profiles!leads_gerados_responsavel_id_fkey(nome)",
+      "id, empresa, telefone, whatsapp, email, website, dominio, instagram, endereco, cidade, estado, categoria, google_rating, google_reviews_count, google_maps_url, decisor_nome, decisor_cargo, decisor_email, decisor_whatsapp, decisor_instagram, decisor_telefone, decisor_linkedin, cnpj, telefone_receita, email_receita, socios, socio_principal_qualificacao, porte_empresa, num_funcionarios, faturamento_anual, score, qualificado, potencial_comercial, observacoes_ia, diagnostico, status, tags, observacoes, responsavel_id, fonte, base_prospeccao, visita_id, created_at, updated_at, responsavel:profiles!leads_gerados_responsavel_id_fkey(nome)",
       { count: "exact" },
     )
     .eq("organization_id", organizationId)
@@ -120,6 +128,11 @@ export async function listLeadsGerados(
   if (filter.baseProspeccao) q = q.eq("base_prospeccao", filter.baseProspeccao);
   if (filter.visitaId) q = q.eq("visita_id", filter.visitaId);
   if (filter.scoreMin && filter.scoreMin > 0) q = q.gte("score", filter.scoreMin);
+  if (filter.porteEmpresa) q = q.eq("porte_empresa", filter.porteEmpresa);
+  if (filter.numFuncMin != null) q = q.gte("num_funcionarios", filter.numFuncMin);
+  if (filter.numFuncMax != null) q = q.lte("num_funcionarios", filter.numFuncMax);
+  if (filter.fatMin != null) q = q.gte("faturamento_anual", filter.fatMin);
+  if (filter.fatMax != null) q = q.lte("faturamento_anual", filter.fatMax);
 
   switch (filter.orderBy) {
     case "score":
@@ -180,6 +193,9 @@ export async function listLeadsGerados(
       ? (row.socios as Array<{ nome: string; qualificacao: string; data_entrada: string | null }>)
       : [],
     socio_principal_qualificacao: (row.socio_principal_qualificacao as string | null) ?? null,
+    porte_empresa: (row.porte_empresa as string | null) ?? null,
+    num_funcionarios: (row.num_funcionarios as number | null) ?? null,
+    faturamento_anual: (row.faturamento_anual as number | null) ?? null,
     score: (row.score as number | null) ?? null,
     qualificado: (row.qualificado as boolean | null) ?? null,
     potencial_comercial: (row.potencial_comercial as string | null) ?? null,
@@ -210,7 +226,7 @@ export async function getLeadGerado(id: string): Promise<LeadGeradoRow | null> {
   const { data, error } = await sb
     .from("leads_gerados")
     .select(
-      "id, empresa, telefone, whatsapp, email, website, dominio, instagram, endereco, cidade, estado, categoria, google_rating, google_reviews_count, google_maps_url, decisor_nome, decisor_cargo, decisor_email, decisor_whatsapp, decisor_instagram, decisor_telefone, decisor_linkedin, cnpj, telefone_receita, email_receita, socios, socio_principal_qualificacao, score, qualificado, potencial_comercial, observacoes_ia, diagnostico, status, tags, observacoes, responsavel_id, fonte, base_prospeccao, visita_id, created_at, updated_at, responsavel:profiles!leads_gerados_responsavel_id_fkey(nome)",
+      "id, empresa, telefone, whatsapp, email, website, dominio, instagram, endereco, cidade, estado, categoria, google_rating, google_reviews_count, google_maps_url, decisor_nome, decisor_cargo, decisor_email, decisor_whatsapp, decisor_instagram, decisor_telefone, decisor_linkedin, cnpj, telefone_receita, email_receita, socios, socio_principal_qualificacao, porte_empresa, num_funcionarios, faturamento_anual, score, qualificado, potencial_comercial, observacoes_ia, diagnostico, status, tags, observacoes, responsavel_id, fonte, base_prospeccao, visita_id, created_at, updated_at, responsavel:profiles!leads_gerados_responsavel_id_fkey(nome)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -247,6 +263,9 @@ export async function getLeadGerado(id: string): Promise<LeadGeradoRow | null> {
       ? (row.socios as Array<{ nome: string; qualificacao: string; data_entrada: string | null }>)
       : [],
     socio_principal_qualificacao: (row.socio_principal_qualificacao as string | null) ?? null,
+    porte_empresa: (row.porte_empresa as string | null) ?? null,
+    num_funcionarios: (row.num_funcionarios as number | null) ?? null,
+    faturamento_anual: (row.faturamento_anual as number | null) ?? null,
     score: (row.score as number | null) ?? null,
     qualificado: (row.qualificado as boolean | null) ?? null,
     potencial_comercial: (row.potencial_comercial as string | null) ?? null,

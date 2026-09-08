@@ -84,9 +84,12 @@ function LeadRow({ lead, canManage }: { lead: LeadGeradoRow; canManage: boolean 
           )}
         </div>
 
-        {lead.cnpj && (
+        {(lead.cnpj || lead.porte_empresa) && (
           <p className="text-[11px] text-muted-foreground">
-            CNPJ {lead.cnpj}
+            {lead.cnpj && <>CNPJ {lead.cnpj}</>}
+            {lead.cnpj && lead.porte_empresa && " · "}
+            {lead.porte_empresa && <>Porte: {lead.porte_empresa}</>}
+            {lead.num_funcionarios != null && <> · {lead.num_funcionarios} func.</>}
           </p>
         )}
 
