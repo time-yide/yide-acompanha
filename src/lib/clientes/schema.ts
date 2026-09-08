@@ -26,6 +26,7 @@ export function inferTipoPacote(servico: string | null | undefined): TipoPacote 
   if (s.includes("estrat")) return "estrategia";
   if (s.includes("audiovisual") || s.includes("video") || s.includes("vídeo")) return "audiovisual";
   if (s.includes("site")) return "site";
+  if (s.includes("comercial") && HAS_IA.test(servico)) return "comercial_ai";
   if (s.includes("crm") && HAS_IA.test(servico)) return "crm_ia";
   if (s.includes("crm")) return "crm";
   if (HAS_IA.test(servico)) return "ia";

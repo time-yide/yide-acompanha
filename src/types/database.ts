@@ -2817,6 +2817,7 @@ export type Database = {
         | "ia"
         | "crm"
         | "crm_ia"
+        | "comercial_ai"
       tipo_relacao_cliente: "comum" | "parceria" | "permuta"
       user_role:
         | "adm"
@@ -3067,6 +3068,7 @@ export const Constants = {
         "ia",
         "crm",
         "crm_ia",
+        "comercial_ai",
       ],
       tipo_relacao_cliente: ["comum", "parceria", "permuta"],
       user_role: [
