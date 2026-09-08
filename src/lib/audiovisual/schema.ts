@@ -52,6 +52,21 @@ export const markEntregueRapidoSchema = z.object({
 
 export type MarkEntregueRapidoInput = z.infer<typeof markEntregueRapidoSchema>;
 
+export const subirEdicaoManualSchema = z.object({
+  client_id: z.string().uuid("Selecione o cliente"),
+  editor_id: z.string().uuid("Selecione o editor"),
+  drive_url: z.union([
+    z.string().url("Link do Drive inválido").max(500),
+    z.literal(""),
+  ]).optional(),
+  data_captacao: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida"),
+  qtd_videos: z.coerce.number().int().min(0).default(0),
+  qtd_fotos: z.coerce.number().int().min(0).default(0),
+  observacoes: z.string().max(2000).optional().nullable(),
+});
+
+export type SubirEdicaoManualInput = z.infer<typeof subirEdicaoManualSchema>;
+
 export const RATING_FIELDS = [
   { name: "rating_organizacao", label: "Organização do cliente" },
   { name: "rating_facilidade", label: "Facilidade na gravação" },
