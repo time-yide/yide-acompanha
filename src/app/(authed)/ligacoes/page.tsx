@@ -24,8 +24,8 @@ import { LigacoesToolbar } from "@/components/ligacoes/LigacoesToolbar";
 import { DiscadorTwilio } from "@/components/ligacoes/DiscadorTwilio";
 import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
-const ALLOWED_ROLES = ["adm", "socio", "comercial", "coordenador", "assessor"];
-const ROLES_QUE_GERENCIAM = ["adm", "socio", "comercial", "coordenador", "assessor"];
+const ALLOWED_ROLES = ["adm", "socio", "comercial", "coordenador", "assessor", "programacao"];
+const ROLES_QUE_GERENCIAM = ["adm", "socio", "comercial", "coordenador", "assessor", "programacao"];
 
 function defaultDesde(): string {
   const d = new Date();

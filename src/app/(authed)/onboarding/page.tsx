@@ -12,7 +12,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Plus, Download } from "lucide-react";
 
 // LGPD: só roles que precisam operar com dados de prospect têm acesso.
-const ROLES_PERMITIDOS = ["adm", "socio", "comercial", "assessor", "coordenador", "audiovisual_chefe"];
+const ROLES_PERMITIDOS = ["adm", "socio", "comercial", "assessor", "coordenador", "audiovisual_chefe", "programacao"];
 
 export default async function OnboardingPage({ searchParams }: { searchParams: Promise<{ canal?: string }> }) {
   const user = await requireAuth();

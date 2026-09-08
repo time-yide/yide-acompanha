@@ -5,7 +5,7 @@ import { getOrganizationId } from "@/lib/gerador-leads/queries";
 import { listVisitas } from "@/lib/visitas/queries";
 import { NovaVisitaButton } from "@/components/visitas/NovaVisitaButton";
 
-const ALLOWED_ROLES = ["adm", "socio", "comercial", "coordenador", "assessor"];
+const ALLOWED_ROLES = ["adm", "socio", "comercial", "coordenador", "assessor", "programacao"];
 
 export default async function VisitasPage() {
   const user = await requireAuth();

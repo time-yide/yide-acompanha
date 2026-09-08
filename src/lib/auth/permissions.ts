@@ -192,7 +192,12 @@ const matrix: Record<Role, Action[]> = {
   // Programação: cargo técnico (CRM/integrações/analytics — módulos futuros).
   // Por ora SEM acessos: nenhuma permissão e nenhum item de menu (ver
   // isLinkVisible em nav-config). Não ganha comissão (fora do calculator).
-  programacao: [],
+  programacao: [
+    "view:all_clients",
+    "view:own_commission",
+    "create:tasks", "create:calendar_event", "customize:notification_recipients",
+    "access:prospeccao",
+  ],
   // Financeiro: cuida das finanças da operação. Vê TODO o módulo /financeiro
   // (DRE/lucro, caixa, ranking, despesas, pagamentos, contratos) e todas as
   // comissões da equipe — mas NÃO aprova o fechamento mensal (approve:monthly_closing

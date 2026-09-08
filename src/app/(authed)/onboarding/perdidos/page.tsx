@@ -10,7 +10,7 @@ import { TabsOnboarding } from "@/components/onboarding/TabsOnboarding";
 import { TabsOnboardingProspeccao } from "@/components/onboarding/TabsOnboardingProspeccao";
 import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 
-const ROLES_PERMITIDOS = ["adm", "socio", "comercial", "assessor", "coordenador", "audiovisual_chefe"];
+const ROLES_PERMITIDOS = ["adm", "socio", "comercial", "assessor", "coordenador", "audiovisual_chefe", "programacao"];
 
 const STAGE_LABEL: Record<string, string> = {
   leads_potencial: "Leads em potencial",

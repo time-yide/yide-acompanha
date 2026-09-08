@@ -9,8 +9,8 @@ import { LeadEditCard } from "@/components/gerador-leads/LeadEditCard";
 import { IdentificacaoOficialCard } from "@/components/gerador-leads/IdentificacaoOficialCard";
 import { STATUS_LEAD_DEFS } from "@/lib/gerador-leads/tipos";
 
-const ALLOWED_ROLES = ["adm", "socio", "comercial", "coordenador", "assessor"];
-const ROLES_QUE_GERENCIAM = ["adm", "socio", "comercial", "coordenador", "assessor"];
+const ALLOWED_ROLES = ["adm", "socio", "comercial", "coordenador", "assessor", "programacao"];
+const ROLES_QUE_GERENCIAM = ["adm", "socio", "comercial", "coordenador", "assessor", "programacao"];
 
 export default async function LeadDetalhePage({
   params,

@@ -10,7 +10,7 @@ import {
   getOrganizationIdByUser,
 } from "@/lib/conversas/queries";
 
-const ALLOWED_ROLES = ["adm", "socio", "comercial", "coordenador", "assessor"];
+const ALLOWED_ROLES = ["adm", "socio", "comercial", "coordenador", "assessor", "programacao"];
 
 type Filtro = "todas" | "nao_lidas";
 

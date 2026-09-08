@@ -12,7 +12,7 @@ import { PeriodSelector } from "@/components/onboarding-relatorios/PeriodSelecto
 import { FunilConversao } from "@/components/onboarding-relatorios/FunilConversao";
 import { MetricCards } from "@/components/onboarding-relatorios/MetricCards";
 
-const ROLES_PERMITIDOS = ["adm", "socio", "comercial", "assessor", "coordenador", "audiovisual_chefe"];
+const ROLES_PERMITIDOS = ["adm", "socio", "comercial", "assessor", "coordenador", "audiovisual_chefe", "programacao"];
 
 export default async function RelatoriosPage({
   searchParams,

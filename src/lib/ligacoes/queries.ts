@@ -490,7 +490,7 @@ async function _getRankingColaboradoresImpl(
 
   // Ranking de chamadas faz sentido só pro time comercial + coordenadores;
   // assessores e demais cargos que eventualmente ligam ficam de fora.
-  const ROLES_NO_RANKING = new Set(["comercial", "coordenador"]);
+  const ROLES_NO_RANKING = new Set(["comercial", "coordenador", "programacao"]);
 
   return [...map.values()]
     .filter((r) => ROLES_NO_RANKING.has(r.role))
@@ -531,7 +531,7 @@ async function _listColaboradoresAtivosImpl(
     .select("id, nome")
     .eq("organization_id", organizationId)
     .eq("ativo", true)
-    .in("role", ["comercial", "assessor", "coordenador", "socio", "adm"])
+    .in("role", ["comercial", "assessor", "coordenador", "socio", "adm", "programacao"])
     .order("nome");
   return (data ?? []) as Array<{ id: string; nome: string }>;
 }
