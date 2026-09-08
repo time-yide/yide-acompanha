@@ -30,7 +30,7 @@ function isPrivileged(role: string): boolean {
 }
 
 const COLUMN_META: Record<Exclude<ColumnKey, "pacote_postados">, { label: string; icon: LucideIcon }> = {
-  crono: { label: "Crono", icon: Calendar },
+  crono: { label: "Cronograma", icon: Calendar },
   design: { label: "Design", icon: Palette },
   tpg: { label: "TPG", icon: TrendingUp },
   tpm: { label: "TPM", icon: TrendingUp },
