@@ -595,3 +595,81 @@ export async function unmarkCapturaConcluidaAction(capturaId: string): Promise<{
   revalidateTag(AUDIOVISUAL_CAPTURAS_TAG, "default");
   return { success: true };
 }
+
+export async function redelegarCapturaAction(formData: FormData): Promise<{ error?: string; success?: boolean }> {
+  const actor = await requireAuth();
+  if (!ROLES_QUE_DELEGAM.has(actor.role)) {
+    return { error: "Apenas coord. audiovisual, adm ou sócio podem trocar editor" };
+  }
+
+  const capturaId = String(formData.get("captura_id") ?? "");
+  const novoEditorId = String(formData.get("editor_id") ?? "");
+  if (!capturaId) return { error: "Captação não informada" };
+  if (!novoEditorId) return { error: "Selecione um editor" };
+
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+
+  const { data: captura } = await sb
+    .from("audiovisual_capturas")
+    .select("id, task_id")
+    .eq("id", capturaId)
+    .maybeSingle();
+  if (!captura) return { error: "Captação não encontrada" };
+  if (!captura.task_id) return { error: "Captação não foi delegada ainda" };
+
+  const { data: editor } = await sb
+    .from("profiles")
+    .select("id, role, ativo, nome")
+    .eq("id", novoEditorId)
+    .maybeSingle();
+  if (!editor || !editor.ativo) return { error: "Pessoa não encontrada ou inativa" };
+  if (!(ROLES_QUE_EDITAM as readonly string[]).includes(editor.role)) {
+    return { error: "Pessoa selecionada não pode receber edição" };
+  }
+
+  const { data: task } = await sb
+    .from("tasks")
+    .select("id, atribuido_a, titulo")
+    .eq("id", captura.task_id)
+    .maybeSingle();
+  if (!task) return { error: "Tarefa vinculada não encontrada" };
+
+  const editorAntigoId = task.atribuido_a;
+  if (editorAntigoId === novoEditorId) return { error: "Já está com esse editor" };
+
+  const { error: updateErr } = await sb
+    .from("tasks")
+    .update({ atribuido_a: novoEditorId })
+    .eq("id", captura.task_id);
+  if (updateErr) return { error: updateErr.message };
+
+  after(async () => {
+    try {
+      await dispatchNotification({
+        evento_tipo: "task_assigned",
+        titulo: `Tarefa reatribuída: ${task.titulo}`,
+        mensagem: `Edição transferida para ${editor.nome} por ${actor.nome}.`,
+        link: `/tarefas/${captura.task_id}`,
+        user_ids_extras: [novoEditorId, ...(editorAntigoId ? [editorAntigoId] : [])],
+        source_user_id: actor.id,
+      });
+    } catch (e) {
+      console.error("[redelegarCapturaAction] notif failed:", e);
+    }
+
+    await logAudit({
+      entidade: "audiovisual_capturas",
+      entidade_id: capturaId,
+      acao: "update",
+      dados_depois: { editor_anterior: editorAntigoId, editor_novo: novoEditorId } as unknown as Record<string, unknown>,
+      ator_id: actor.id,
+    });
+  });
+
+  revalidatePath("/audiovisual");
+  revalidateTag(AUDIOVISUAL_CAPTURAS_TAG, "default");
+  revalidatePath("/tarefas");
+  return { success: true };
+}

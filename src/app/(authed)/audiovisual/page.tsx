@@ -193,8 +193,17 @@ export default async function AudiovisualPage({
       <PendenteDelegacaoAba rows={rows} editores={editoresData} canDelegate={canDelegate} canDelete={canDelete} />
     );
   } else if (activeTab === "em_edicao") {
-    const rows = await listCapturasEmEdicao();
-    content = <EmEdicaoAba rows={rows} />;
+    const [rows, editoresData] = await Promise.all([
+      listCapturasEmEdicao(),
+      supabase
+        .from("profiles")
+        .select("id, nome, role")
+        .in("role", ROLES_QUE_EDITAM)
+        .eq("ativo", true)
+        .order("nome")
+        .then((r) => ((r.data ?? []) as Array<{ id: string; nome: string; role: string }>)),
+    ]);
+    content = <EmEdicaoAba rows={rows} editores={editoresData} canDelegate={canDelegate} />;
   } else if (activeTab === "aguardando_videomaker") {
     const [pending, scheduled, videomakersList, coordsList] = await Promise.all([
       listPendingDelegations(unitClientIdsForFilter),
