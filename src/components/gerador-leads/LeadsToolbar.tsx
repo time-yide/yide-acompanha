@@ -41,7 +41,8 @@ export function LeadsToolbar({ total, leadsAtuais, canManage, baseFiltro }: Prop
       "empresa", "telefone", "whatsapp", "email", "website", "instagram",
       "endereco", "cidade", "estado", "categoria",
       "google_rating", "google_reviews_count",
-      "cnpj", "telefone_receita", "email_receita",
+      "cnpj", "porte_empresa", "num_funcionarios", "faturamento_anual",
+      "telefone_receita", "email_receita",
       "status", "tags", "observacoes",
       "google_maps_url",
     ];
@@ -67,6 +68,9 @@ export function LeadsToolbar({ total, leadsAtuais, canManage, baseFiltro }: Prop
       l.google_rating ?? "",
       l.google_reviews_count ?? "",
       l.cnpj ?? "",
+      l.porte_empresa ?? "",
+      l.num_funcionarios ?? "",
+      l.faturamento_anual ?? "",
       l.telefone_receita ?? "",
       l.email_receita ?? "",
       l.status,
@@ -113,6 +117,29 @@ export function LeadsToolbar({ total, leadsAtuais, canManage, baseFiltro }: Prop
           {Object.entries(ORDER_LABELS).map(([v, l]) => (
             <option key={v} value={v}>{l}</option>
           ))}
+        </select>
+        <select name="porte" className="h-9 rounded-md border bg-card px-2 text-xs">
+          <option value="">Todos os portes</option>
+          <option value="MEI">MEI</option>
+          <option value="ME">ME (Micro)</option>
+          <option value="EPP">EPP (Peq. Porte)</option>
+          <option value="DEMAIS">Demais</option>
+        </select>
+        <select name="func" className="h-9 rounded-md border bg-card px-2 text-xs">
+          <option value="">Funcionários</option>
+          <option value="1-10">1 – 10</option>
+          <option value="11-50">11 – 50</option>
+          <option value="51-200">51 – 200</option>
+          <option value="201-500">201 – 500</option>
+          <option value="500+">500+</option>
+        </select>
+        <select name="fat" className="h-9 rounded-md border bg-card px-2 text-xs">
+          <option value="">Faturamento</option>
+          <option value="ate100k">Até R$ 100 mil</option>
+          <option value="100k-500k">R$ 100 mil – 500 mil</option>
+          <option value="500k-1m">R$ 500 mil – 1 mi</option>
+          <option value="1m-5m">R$ 1 mi – 5 mi</option>
+          <option value="5m+">Acima de R$ 5 mi</option>
         </select>
         <label className="flex items-center gap-1 text-xs text-muted-foreground">
           <input type="checkbox" name="comWhatsapp" value="1" /> WhatsApp

@@ -22,6 +22,9 @@ export function LeadEditCard({ lead, canEdit }: Props) {
   const [email, setEmail] = useState(lead.email ?? "");
   const [website, setWebsite] = useState(lead.website ?? "");
   const [instagram, setInstagram] = useState(lead.instagram ?? "");
+  const [porteEmpresa, setPorteEmpresa] = useState(lead.porte_empresa ?? "");
+  const [numFuncionarios, setNumFuncionarios] = useState(lead.num_funcionarios?.toString() ?? "");
+  const [faturamentoAnual, setFaturamentoAnual] = useState(lead.faturamento_anual?.toString() ?? "");
   const [observacoes, setObservacoes] = useState(lead.observacoes ?? "");
   const [tags, setTags] = useState<string[]>(lead.tags);
   const [tagInput, setTagInput] = useState("");
@@ -53,6 +56,9 @@ export function LeadEditCard({ lead, canEdit }: Props) {
     fd.set("website", website);
     fd.set("instagram", instagram);
     fd.set("observacoes", observacoes);
+    fd.set("porte_empresa", porteEmpresa);
+    fd.set("num_funcionarios", numFuncionarios);
+    fd.set("faturamento_anual", faturamentoAnual);
     fd.set("tags", JSON.stringify(tags));
     startTransition(async () => {
       const r = await updateLeadAction(fd);
@@ -139,6 +145,50 @@ export function LeadEditCard({ lead, canEdit }: Props) {
           disabled={!canEdit}
           placeholder="https://empresa.com.br"
         />
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 border-t pt-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="porte_empresa">Porte da empresa</Label>
+          <select
+            id="porte_empresa"
+            value={porteEmpresa}
+            onChange={(e) => setPorteEmpresa(e.target.value)}
+            disabled={!canEdit}
+            className="h-9 w-full rounded-md border bg-card px-2 text-sm"
+          >
+            <option value="">—</option>
+            <option value="MEI">MEI</option>
+            <option value="ME">ME (Microempresa)</option>
+            <option value="EPP">EPP (Peq. Porte)</option>
+            <option value="DEMAIS">Demais</option>
+          </select>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="num_funcionarios">Nº de funcionários</Label>
+          <Input
+            id="num_funcionarios"
+            type="number"
+            min={0}
+            value={numFuncionarios}
+            onChange={(e) => setNumFuncionarios(e.target.value)}
+            disabled={!canEdit}
+            placeholder="Ex: 25"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="faturamento_anual">Faturamento anual (R$)</Label>
+          <Input
+            id="faturamento_anual"
+            type="number"
+            min={0}
+            step={0.01}
+            value={faturamentoAnual}
+            onChange={(e) => setFaturamentoAnual(e.target.value)}
+            disabled={!canEdit}
+            placeholder="Ex: 500000"
+          />
+        </div>
       </div>
 
       <div className="space-y-1.5 border-t pt-4">

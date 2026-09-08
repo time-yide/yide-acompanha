@@ -32,6 +32,10 @@ export const updateLeadSchema = z.object({
   cnpj: z.string().trim().max(20).optional().nullable(),
   decisor_whatsapp: z.string().trim().max(40).optional().nullable(),
   decisor_instagram: z.string().trim().max(80).optional().nullable(),
+  // === Perfil da empresa ===
+  porte_empresa: z.enum(["MEI", "ME", "EPP", "DEMAIS"]).optional().nullable(),
+  num_funcionarios: z.coerce.number().int().min(0).max(999999).optional().nullable(),
+  faturamento_anual: z.coerce.number().min(0).max(999_999_999_999).optional().nullable(),
 });
 
 export const archiveLeadSchema = z.object({ id: uuidLike });
