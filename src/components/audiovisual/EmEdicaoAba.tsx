@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ExternalLink, User } from "lucide-react";
 import type { CapturaEmEdicaoRow } from "@/lib/audiovisual/queries";
 import { TrocarEditorButton } from "./TrocarEditorButton";
+import { ConcluirCapturaButton } from "./ConcluirCapturaButton";
 
 interface Editor {
   id: string;
@@ -95,11 +96,14 @@ export function EmEdicaoAba({ rows, editores, canDelegate }: Props) {
                     </div>
                     <div className="flex items-center gap-1.5">
                       {canDelegate && (
-                        <TrocarEditorButton
-                          capturaId={r.id}
-                          editorAtualId={r.editor_id}
-                          editores={editores}
-                        />
+                        <>
+                          <ConcluirCapturaButton capturaId={r.id} />
+                          <TrocarEditorButton
+                            capturaId={r.id}
+                            editorAtualId={r.editor_id}
+                            editores={editores}
+                          />
+                        </>
                       )}
                       <Link
                         href={`/tarefas?id=${r.task_id}`}
