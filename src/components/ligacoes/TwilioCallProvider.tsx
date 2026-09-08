@@ -8,12 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { Phone, PhoneOff, Loader2 } from "lucide-react";
-// Import SÓ de tipo (apagado em runtime). O SDK real (@twilio/voice-sdk, pesado)
-// é carregado via import() dinâmico dentro do effect, e SÓ depois de confirmar
-// que o usuário tem instância Twilio. Assim o SDK não entra no bundle inicial de
-// toda página (home/tarefas/calendário) — só baixa pra quem realmente liga.
-// Antes o import estático pesava no JS de todo mundo (INP alto no mobile).
+import { Phone, PhoneOff, Loader2, MicOff } from "lucide-react";
 import type { Device, Call } from "@twilio/voice-sdk";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -22,24 +17,16 @@ import { getTwilioVoiceTokenAction } from "@/lib/ligacoes/actions";
 type Status = "idle" | "connecting" | "in_call";
 
 interface TwilioCallCtx {
-  /** Há instância Twilio + token: o navegador pode ligar. */
   available: boolean;
   status: Status;
   activeNumber: string | null;
   error: string | null;
-  /** `extra` vira params extras no Device.connect (ex: lead_gerado_id,
-   *  contato_nome) — a rota de voz vincula a ligação ao lead. */
   dial: (numero: string, extra?: Record<string, string>) => void;
   hangup: () => void;
 }
 
 const Ctx = createContext<TwilioCallCtx | null>(null);
 
-/**
- * Hook de acesso ao "telefone" Twilio da página. Fora do provider (ou sem
- * instância Twilio) retorna um stub inerte — assim o LigarButton funciona em
- * qualquer contexto sem quebrar.
- */
 export function useTwilioCall(): TwilioCallCtx {
   const c = useContext(Ctx);
   if (!c) {
@@ -55,24 +42,16 @@ export function useTwilioCall(): TwilioCallCtx {
   return c;
 }
 
-/**
- * Mantém UM único Twilio Device pra toda a página (evita registrar dois Devices
- * pro mesmo colaborador). Renderiza uma barra flutuante com o estado da chamada
- * ativa + botão Desligar.
- */
 export function TwilioCallProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [available, setAvailable] = useState(false);
   const [status, setStatus] = useState<Status>("idle");
   const [activeNumber, setActiveNumber] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [micProblem, setMicProblem] = useState(false);
   const deviceRef = useRef<Device | null>(null);
   const callRef = useRef<Call | null>(null);
   const instanciaIdRef = useRef<string | null>(null);
-  // Watchdog: se um `connect` ficar preso em "connecting" (ex: o token venceu no
-  // meio da discagem e a chamada nunca dispara accept/disconnect/error), libera
-  // o discador em vez de travar pra sempre — o `dial` bloqueia enquanto status
-  // não for "idle".
   const connectingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function clearWatchdog() {
@@ -88,22 +67,20 @@ export function TwilioCallProvider({ children }: { children: ReactNode }) {
       try {
         const r = await getTwilioVoiceTokenAction();
         if (!alive) return;
-        if (!r.token || !r.instanciaId) return; // sem Twilio: provider inerte
+        if (!r.token || !r.instanciaId) return;
         instanciaIdRef.current = r.instanciaId;
-        // Só agora (usuário confirmado como "liga") baixamos o SDK do Twilio.
         const { Device } = await import("@twilio/voice-sdk");
         if (!alive) return;
-        const device = new Device(r.token, { logLevel: "error" });
-        // O Access Token da Twilio vale só 1h (ttl 3600). Sem renovar, o Device
-        // para de discar depois de ~1h de página aberta ("travou depois de N
-        // ligações"). O SDK emite `tokenWillExpire` ~10s antes do fim: buscamos
-        // um token novo pela action e atualizamos o Device no lugar.
+        const device = new Device(r.token, {
+          logLevel: "error",
+          edge: ["sao-paulo", "ashburn"],
+        });
         device.on("tokenWillExpire", async () => {
           try {
             const novo = await getTwilioVoiceTokenAction();
             if (novo.token) device.updateToken(novo.token);
           } catch {
-            // silencioso: o SDK re-emite o evento; a próxima tentativa renova.
+            /* SDK re-emite o evento */
           }
         });
         await device.register();
@@ -125,21 +102,65 @@ export function TwilioCallProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  function dial(numero: string, extra?: Record<string, string>) {
+  async function dial(numero: string, extra?: Record<string, string>) {
     const device = deviceRef.current;
     if (!device || !numero.trim() || status !== "idle") return;
     setError(null);
+    setMicProblem(false);
     setStatus("connecting");
     setActiveNumber(numero.trim());
+
+    // Checa permissão de mic sem capturar (Permissions API).
+    try {
+      const perm = await navigator.permissions.query({
+        name: "microphone" as PermissionName,
+      });
+      if (perm.state === "denied") {
+        setError(
+          "Microfone bloqueado. Clique no cadeado na barra de endereço e permita o microfone.",
+        );
+        setStatus("idle");
+        setActiveNumber(null);
+        return;
+      }
+    } catch {
+      /* Permissions API não suportada — segue e o SDK pede permissão */
+    }
+
+    // Garante que o AudioContext do Chrome não está suspenso.
+    try {
+      const ctx = (
+        device.constructor as typeof import("@twilio/voice-sdk").Device
+      ).audioContext;
+      if (ctx && ctx.state === "suspended") await ctx.resume();
+    } catch {
+      /* ignora */
+    }
+
+    // Configura o dispositivo de entrada ANTES de conectar (padrão do SDK).
+    // Sem isso, em alguns navegadores o mic não é capturado e o outro lado
+    // fica mudo.
+    try {
+      if (device.audio) {
+        const inputs = device.audio.availableInputDevices;
+        if (inputs.size > 0) {
+          const [firstId] = inputs.keys();
+          await device.audio.setInputDevice(firstId);
+        }
+      }
+    } catch {
+      /* fallback: SDK usa o default */
+    }
+
     clearWatchdog();
     connectingTimerRef.current = setTimeout(() => {
-      // Passou muito tempo sem conectar: destrava o discador.
       callRef.current?.disconnect();
       callRef.current = null;
       setStatus("idle");
       setActiveNumber(null);
       setError("A ligação não completou. Tente de novo.");
     }, 45000);
+
     device
       .connect({
         params: {
@@ -147,25 +168,47 @@ export function TwilioCallProvider({ children }: { children: ReactNode }) {
           instancia_id: instanciaIdRef.current ?? "",
           ...(extra ?? {}),
         },
+        rtcConstraints: {
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+        },
       })
       .then((call) => {
         callRef.current = call;
         call.on("accept", () => {
           clearWatchdog();
           setStatus("in_call");
+          const stream = call.getLocalStream();
+          if (stream) {
+            const tracks = stream.getAudioTracks();
+            const ativo = tracks.some(
+              (t) => t.enabled && t.readyState === "live",
+            );
+            if (!ativo) setMicProblem(true);
+          }
         });
-        call.on("disconnect", () => {
+        call.on("disconnect", async () => {
           clearWatchdog();
           setStatus("idle");
           setActiveNumber(null);
+          setMicProblem(false);
           callRef.current = null;
-          router.refresh(); // recarrega a tabela pra mostrar a ligação nova
+          try {
+            await device.audio?.unsetInputDevice();
+          } catch {
+            /* ignora */
+          }
+          router.refresh();
         });
         call.on("error", (e: { message: string }) => {
           clearWatchdog();
           setError(e.message);
           setStatus("idle");
           setActiveNumber(null);
+          setMicProblem(false);
         });
       })
       .catch((e: Error) => {
@@ -192,9 +235,16 @@ export function TwilioCallProvider({ children }: { children: ReactNode }) {
             <Phone className="h-4 w-4 text-emerald-500" />
           )}
           <div className="text-sm">
-            <p className="font-medium">{status === "connecting" ? "Chamando…" : "Em ligação"}</p>
+            <p className="font-medium">
+              {status === "connecting" ? "Chamando…" : "Em ligação"}
+            </p>
             <p className="text-xs text-muted-foreground">{activeNumber}</p>
           </div>
+          {micProblem && (
+            <span className="flex items-center gap-1 text-xs text-destructive">
+              <MicOff className="h-3 w-3" /> Mic sem áudio
+            </span>
+          )}
           <Button size="sm" variant="destructive" onClick={hangup} className="gap-1">
             <PhoneOff className="h-4 w-4" /> Desligar
           </Button>
