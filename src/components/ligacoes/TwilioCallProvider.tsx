@@ -42,13 +42,6 @@ export function useTwilioCall(): TwilioCallCtx {
   return c;
 }
 
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
-  return Promise.race([
-    promise,
-    new Promise<null>((r) => setTimeout(() => r(null), ms)),
-  ]);
-}
-
 export function TwilioCallProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [available, setAvailable] = useState(false);
@@ -66,15 +59,6 @@ export function TwilioCallProvider({ children }: { children: ReactNode }) {
       clearTimeout(connectingTimerRef.current);
       connectingTimerRef.current = null;
     }
-  }
-
-  function resetToIdle(err?: string) {
-    clearWatchdog();
-    setStatus("idle");
-    setActiveNumber(null);
-    setMicProblem(false);
-    callRef.current = null;
-    if (err) setError(err);
   }
 
   useEffect(() => {
@@ -118,39 +102,21 @@ export function TwilioCallProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  async function dial(numero: string, extra?: Record<string, string>) {
+  function dial(numero: string, extra?: Record<string, string>) {
     const device = deviceRef.current;
     if (!device || !numero.trim() || status !== "idle") return;
     setError(null);
     setMicProblem(false);
     setStatus("connecting");
     setActiveNumber(numero.trim());
-
-    // Watchdog PRIMEIRO — se qualquer coisa travar abaixo, destrava em 45s.
     clearWatchdog();
     connectingTimerRef.current = setTimeout(() => {
       callRef.current?.disconnect();
-      resetToIdle("A ligação não completou. Tente de novo.");
+      callRef.current = null;
+      setStatus("idle");
+      setActiveNumber(null);
+      setError("A ligação não completou. Tente de novo.");
     }, 45000);
-
-    // Prepara mic (best-effort, com timeout de 3s — se falhar, segue sem).
-    try {
-      await withTimeout(
-        (async () => {
-          if (device.audio) {
-            const inputs = device.audio.availableInputDevices;
-            if (inputs.size > 0) {
-              const [firstId] = inputs.keys();
-              await device.audio.setInputDevice(firstId);
-            }
-          }
-        })(),
-        3000,
-      );
-    } catch {
-      /* segue sem — SDK tenta o default */
-    }
-
     device
       .connect({
         params: {
@@ -158,43 +124,47 @@ export function TwilioCallProvider({ children }: { children: ReactNode }) {
           instancia_id: instanciaIdRef.current ?? "",
           ...(extra ?? {}),
         },
-        rtcConstraints: {
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-          },
-        },
       })
       .then((call) => {
         callRef.current = call;
         call.on("accept", () => {
           clearWatchdog();
           setStatus("in_call");
-          const stream = call.getLocalStream();
-          if (stream) {
-            const tracks = stream.getAudioTracks();
-            const ativo = tracks.some(
-              (t) => t.enabled && t.readyState === "live",
-            );
-            if (!ativo) setMicProblem(true);
-          }
-        });
-        call.on("disconnect", async () => {
-          resetToIdle();
+          // Diagnóstico: verifica se o mic tá capturando de verdade.
           try {
-            await device.audio?.unsetInputDevice();
+            const stream = call.getLocalStream();
+            if (stream) {
+              const tracks = stream.getAudioTracks();
+              const ativo = tracks.some(
+                (t) => t.enabled && t.readyState === "live",
+              );
+              if (!ativo) setMicProblem(true);
+            }
           } catch {
             /* ignora */
           }
+        });
+        call.on("disconnect", () => {
+          clearWatchdog();
+          setStatus("idle");
+          setActiveNumber(null);
+          setMicProblem(false);
+          callRef.current = null;
           router.refresh();
         });
         call.on("error", (e: { message: string }) => {
-          resetToIdle(e.message);
+          clearWatchdog();
+          setError(e.message);
+          setStatus("idle");
+          setActiveNumber(null);
+          setMicProblem(false);
         });
       })
       .catch((e: Error) => {
-        resetToIdle(e.message);
+        clearWatchdog();
+        setError(e.message);
+        setStatus("idle");
+        setActiveNumber(null);
       });
   }
 
