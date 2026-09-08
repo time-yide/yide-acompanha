@@ -11,7 +11,7 @@ import { logAudit } from "@/lib/audit/log";
 import { logActivityInternal } from "@/lib/produtividade/actions";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 import { isoWeek } from "@/lib/satisfacao/iso-week";
-import { createCapturaSchema, markEntregueRapidoSchema, RATING_FIELDS } from "./schema";
+import { createCapturaSchema, markEntregueRapidoSchema, subirEdicaoManualSchema, RATING_FIELDS } from "./schema";
 import { formatIsoDate } from "@/lib/datetime/timezone";
 import { avgRating } from "./queries";
 import { ROLES_QUE_EDITAM } from "./roles";
@@ -666,6 +666,152 @@ export async function redelegarCapturaAction(formData: FormData): Promise<{ erro
       dados_depois: { editor_anterior: editorAntigoId, editor_novo: novoEditorId } as unknown as Record<string, unknown>,
       ator_id: actor.id,
     });
+  });
+
+  revalidatePath("/audiovisual");
+  revalidateTag(AUDIOVISUAL_CAPTURAS_TAG, "default");
+  revalidatePath("/tarefas");
+  return { success: true };
+}
+
+/**
+ * Subir edição manual — cria captação + delega ao editor de uma vez.
+ * Usado quando uma edição se perdeu ou precisa ser registrada manualmente.
+ */
+export async function subirEdicaoManualAction(
+  input: {
+    client_id: string;
+    editor_id: string;
+    drive_url?: string;
+    data_captacao: string;
+    qtd_videos?: number;
+    qtd_fotos?: number;
+    observacoes?: string | null;
+  },
+): Promise<{ error?: string; success?: boolean }> {
+  const actor = await requireAuth();
+  if (!ROLES_QUE_DELEGAM.has(actor.role)) {
+    return { error: "Apenas coord. audiovisual, adm ou sócio podem subir edição manual" };
+  }
+
+  const parsed = subirEdicaoManualSchema.safeParse(input);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+
+  // Valida editor
+  const { data: editor } = await sb
+    .from("profiles")
+    .select("id, role, ativo, nome")
+    .eq("id", parsed.data.editor_id)
+    .maybeSingle();
+  if (!editor || !editor.ativo) return { error: "Editor não encontrado ou inativo" };
+  if (!(ROLES_QUE_EDITAM as readonly string[]).includes(editor.role)) {
+    return { error: "Pessoa selecionada não pode receber edição" };
+  }
+
+  // Busca nome do cliente
+  const { data: cliente } = await sb
+    .from("clients")
+    .select("id, nome, assessor_id")
+    .eq("id", parsed.data.client_id)
+    .maybeSingle();
+  if (!cliente) return { error: "Cliente não encontrado" };
+
+  const driveUrl = parsed.data.drive_url?.trim() || "";
+  const tagOrigem = `[Edição subida manualmente por ${actor.nome}]`;
+  const observacoesFinal = parsed.data.observacoes?.trim()
+    ? `${parsed.data.observacoes.trim()}\n\n${tagOrigem}`
+    : tagOrigem;
+
+  // 1. Cria a captação
+  const { data: captura, error: capErr } = await sb
+    .from("audiovisual_capturas")
+    .insert({
+      event_id: null,
+      client_id: parsed.data.client_id,
+      videomaker_id: actor.id,
+      data_captacao: parsed.data.data_captacao,
+      drive_url: driveUrl,
+      qtd_videos: parsed.data.qtd_videos ?? 0,
+      qtd_fotos: parsed.data.qtd_fotos ?? 0,
+      observacoes: observacoesFinal,
+    })
+    .select("id")
+    .single();
+  if (capErr || !captura) return { error: capErr?.message ?? "Falha ao criar captação" };
+
+  // 2. Cria a tarefa de edição (igual delegateCapturaAction)
+  const clienteNome = cliente.nome ?? "";
+  const dataBr = new Date(parsed.data.data_captacao + "T12:00:00Z").toLocaleDateString("pt-BR");
+  const titulo = `Editar: ${clienteNome} (${dataBr})`;
+
+  const descricaoLines: string[] = [];
+  descricaoLines.push(`📹 ${parsed.data.qtd_videos ?? 0} vídeo(s) · 📷 ${parsed.data.qtd_fotos ?? 0} foto(s)`);
+  if (driveUrl) descricaoLines.push(`Drive: ${driveUrl}`);
+  if (parsed.data.observacoes?.trim()) descricaoLines.push(`Obs.: ${parsed.data.observacoes.trim()}`);
+  const descricao = descricaoLines.join("\n\n");
+
+  const coordenadoresAv = await getCoordenadoresAudiovisualIds();
+  const assessorId: string | null = cliente.assessor_id ?? null;
+  const participantesAuto = [
+    ...coordenadoresAv,
+    ...(assessorId ? [assessorId] : []),
+  ].filter(
+    (id: string, i: number, arr: string[]) =>
+      id !== parsed.data.editor_id && id !== actor.id && arr.indexOf(id) === i,
+  );
+
+  const { data: createdTask, error: taskErr } = await sb
+    .from("tasks")
+    .insert({
+      titulo,
+      descricao,
+      prioridade: "media",
+      status: "aberta",
+      atribuido_a: parsed.data.editor_id,
+      criado_por: actor.id,
+      client_id: parsed.data.client_id,
+      participantes_ids: participantesAuto,
+    })
+    .select("id")
+    .single();
+  if (taskErr || !createdTask) return { error: taskErr?.message ?? "Falha ao criar tarefa" };
+
+  // 3. Linka captação à tarefa
+  await sb
+    .from("audiovisual_capturas")
+    .update({ task_id: createdTask.id })
+    .eq("id", captura.id);
+
+  // Notifica o editor
+  try {
+    await dispatchNotification({
+      evento_tipo: "task_assigned",
+      titulo: `Nova tarefa: ${titulo}`,
+      mensagem: `Edição subida manualmente por ${actor.nome}.`,
+      link: `/tarefas/${createdTask.id}`,
+      user_ids_extras: [parsed.data.editor_id],
+      source_user_id: actor.id,
+    });
+  } catch (e) {
+    console.error("[subirEdicaoManualAction] notif failed:", e);
+  }
+
+  await logAudit({
+    entidade: "audiovisual_capturas",
+    entidade_id: captura.id,
+    acao: "create",
+    dados_depois: {
+      client_id: parsed.data.client_id,
+      editor_id: parsed.data.editor_id,
+      task_id: createdTask.id,
+      manual: true,
+    } as unknown as Record<string, unknown>,
+    ator_id: actor.id,
+    justificativa: "Edição subida manualmente",
   });
 
   revalidatePath("/audiovisual");

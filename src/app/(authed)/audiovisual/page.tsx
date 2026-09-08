@@ -24,8 +24,7 @@ import { listPendingDelegations, listScheduledFutureCaptures, listVideomakersAti
 import { canRoleDelegateVideomaker, canRoleViewCoord } from "@/lib/audiovisual/coord-roles";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { EditorIaEntryButton } from "@/components/editor-ia/EditorIaEntryButton";
-import { isEditorIaEnabled, canUseEditorIa } from "@/lib/editor-ia/feature-flag";
+import { SubirEdicaoButton } from "@/components/audiovisual/SubirEdicaoButton";
 
 const ROLES_QUE_VEEM = ["videomaker", "fast_midia", "audiovisual_chefe", "coordenador", "assessor", "adm", "socio"];
 const ROLES_QUE_DELEGAM = ["audiovisual_chefe", "adm", "socio"];
@@ -103,6 +102,26 @@ export default async function AudiovisualPage({
     : "capturas";
 
   const supabase = await createClient();
+
+  // Dados do header (botão "Subir edição") — só carrega pra quem pode delegar
+  const [headerClientes, headerEditores] = canDelegate
+    ? await Promise.all([
+        supabase
+          .from("clients")
+          .select("id, nome")
+          .in("status", ["ativo", "em_onboarding"])
+          .is("deleted_at", null)
+          .order("nome")
+          .then((r) => (r.data ?? []) as Array<{ id: string; nome: string }>),
+        supabase
+          .from("profiles")
+          .select("id, nome, role")
+          .in("role", ROLES_QUE_EDITAM)
+          .eq("ativo", true)
+          .order("nome")
+          .then((r) => (r.data ?? []) as Array<{ id: string; nome: string; role?: string }>),
+      ])
+    : [[] as Array<{ id: string; nome: string }>, [] as Array<{ id: string; nome: string; role?: string }>];
 
   // Carrega dados conforme a aba ativa (lazy: aba inativa não dispara queries pesadas)
   let content: React.ReactNode = null;
@@ -255,7 +274,9 @@ export default async function AudiovisualPage({
               Reviews de vídeo
             </Link>
           )}
-          {isEditorIaEnabled() && canUseEditorIa(user.role) && <EditorIaEntryButton />}
+          {canDelegate && (
+            <SubirEdicaoButton clientes={headerClientes} editores={headerEditores} />
+          )}
         </div>
       </header>
 
