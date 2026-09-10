@@ -80,8 +80,8 @@ export async function delegateVideomakerAction(
     .select("id, nome, role, ativo")
     .eq("id", videomakerId)
     .single();
-  if (!videomaker || !["videomaker", "fast_midia"].includes(videomaker.role) || !videomaker.ativo) {
-    return { error: "Videomaker inválido ou inativo" };
+  if (!videomaker || !videomaker.ativo) {
+    return { error: "Pessoa inválida ou inativa" };
   }
 
   // 3) Checa colisão antes de tentar inserir (UX melhor que erro do banco).
@@ -253,8 +253,8 @@ export async function updateDelegacaoAction(
       .select("id, nome, role, ativo")
       .eq("id", newVideomakerId)
       .single();
-    if (!vm || !["videomaker", "fast_midia"].includes(vm.role) || !vm.ativo) {
-      return { error: "Videomaker inválido ou inativo" };
+    if (!vm || !vm.ativo) {
+      return { error: "Pessoa inválida ou inativa" };
     }
     // Conflito de horário (ignora o próprio evento)
     const { data: conflict } = await sb

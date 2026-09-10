@@ -264,8 +264,11 @@ export interface VideomakerOption {
   nome: string;
 }
 
-/** Lista videomakers ativos pra dropdown da delegação (inclui Fast Mídia,
- * que acumula a função de videomaker). */
+const NOMES_PRIORITARIOS = ["Icaro Pinheiro", "Locatelli"];
+
+/** Lista pessoas ativas pra dropdown da delegação de gravação.
+ * Ícaro Pinheiro e Locatelli aparecem sempre no topo; o restante
+ * vem em ordem alfabética. */
 export async function listVideomakersAtivos(): Promise<VideomakerOption[]> {
   const admin = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -273,10 +276,19 @@ export async function listVideomakersAtivos(): Promise<VideomakerOption[]> {
   const { data } = await sb
     .from("profiles")
     .select("id, nome")
-    .in("role", ["videomaker", "fast_midia"])
     .eq("ativo", true)
     .order("nome");
-  return (data ?? []) as VideomakerOption[];
+  const all = (data ?? []) as VideomakerOption[];
+  const priority: VideomakerOption[] = [];
+  const rest: VideomakerOption[] = [];
+  for (const p of all) {
+    if (NOMES_PRIORITARIOS.some((n) => p.nome?.includes(n))) {
+      priority.push(p);
+    } else {
+      rest.push(p);
+    }
+  }
+  return [...priority, ...rest];
 }
 
 export interface CoordOption {
