@@ -8,6 +8,8 @@ import { getCoordenadoresAudiovisualIds } from "@/lib/tarefas/client-team";
 
 // ─── Auto-delegação de videomaker a gravação ────────────────────────────────
 
+const NOMES_RODIZIO_GRAVACAO = ["Icaro Pinheiro", "Locatelli"];
+
 interface VideomakerCandidate {
   id: string;
   nome: string;
@@ -48,12 +50,14 @@ async function _autoAssignVideomakerImpl(
   if (event.sub_calendar !== "videomakers") return;
   if (event.videomaker_status !== "pending_delegation") return;
 
-  const { data: videomakers } = await sb
+  const { data: allProfiles } = await sb
     .from("profiles")
     .select("id, nome")
-    .in("role", ["videomaker", "fast_midia"])
     .eq("ativo", true);
-  if (!videomakers || videomakers.length === 0) return;
+  const videomakers = (allProfiles ?? []).filter((p: { nome: string }) =>
+    NOMES_RODIZIO_GRAVACAO.some((n) => p.nome?.includes(n)),
+  );
+  if (videomakers.length === 0) return;
 
   const now = new Date();
   const windowEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
