@@ -146,25 +146,27 @@ async function validateVideomakerAssignment(
     return { error: "Pessoa inválida ou inativa" };
   }
 
-  let q = sb
-    .from("calendar_events")
-    .select("id, titulo, inicio, fim")
-    .eq("sub_calendar", "videomakers")
-    .eq("videomaker_status", "scheduled")
-    .eq("videomaker_assigned_id", params.videomakerId)
-    .lt("inicio", params.fimUtc)
-    .gt("fim", params.inicioUtc);
-  if (params.excludeEventId) q = q.neq("id", params.excludeEventId);
-  const { data: conflict } = await q.limit(1).maybeSingle();
-  if (conflict) {
-    const inicioBR = new Date(conflict.inicio).toLocaleString("pt-BR", {
-      timeZone: APP_TIMEZONE,
-      day: "2-digit",
-      month: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-    return { error: `${vm.nome} já tem captação "${conflict.titulo}" às ${inicioBR}` };
+  if (!params.ignorarBloqueio) {
+    let q = sb
+      .from("calendar_events")
+      .select("id, titulo, inicio, fim")
+      .eq("sub_calendar", "videomakers")
+      .eq("videomaker_status", "scheduled")
+      .eq("videomaker_assigned_id", params.videomakerId)
+      .lt("inicio", params.fimUtc)
+      .gt("fim", params.inicioUtc);
+    if (params.excludeEventId) q = q.neq("id", params.excludeEventId);
+    const { data: conflict } = await q.limit(1).maybeSingle();
+    if (conflict) {
+      const inicioBR = new Date(conflict.inicio).toLocaleString("pt-BR", {
+        timeZone: APP_TIMEZONE,
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      return { blockWarning: `${vm.nome} já tem captação "${conflict.titulo}" às ${inicioBR}` };
+    }
   }
 
   const freelaMsg = await checarFreelaVideomaker({

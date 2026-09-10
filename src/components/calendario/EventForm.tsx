@@ -359,7 +359,7 @@ export function EventForm({ action, defaults = {}, profiles, clientes, videomake
         <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
           <p className="font-medium text-amber-700 dark:text-amber-400">⚠️ {state.blockWarning}</p>
           <p className="mt-1 text-muted-foreground">
-            O videomaker tem um bloqueio aprovado nesse horário. Você pode confirmar assim mesmo.
+            Verifique se o conflito é real. Se quiser prosseguir, clique abaixo.
           </p>
           <Button
             type="button"
