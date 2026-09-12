@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Phone, Video, MoreVertical, Search, ArrowLeft } from "lucide-react";
 import { Avatar } from "./Avatar";
+import { BadgeIAAtiva } from "./BadgeIAAtiva";
 import type { WppConversation } from "@/lib/conversas/types";
 
 interface Props {
@@ -29,6 +30,7 @@ export function ChatHeader({ conversa }: Props) {
             {conversa.lead_nome ? ` · ${conversa.lead_nome}` : ""}
           </p>
         </div>
+        <BadgeIAAtiva conversationId={conversa.id} aiAtiva={conversa.ai_ativa ?? false} />
       </div>
       <div className="flex items-center gap-1 text-muted-foreground shrink-0">
         <button

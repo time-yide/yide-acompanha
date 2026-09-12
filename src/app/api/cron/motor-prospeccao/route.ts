@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { executarMotor } from "@/lib/motor-prospeccao/worker";
+import { enviarLembretesReuniao } from "@/lib/motor-prospeccao/lembrete-reuniao";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -12,5 +13,6 @@ export async function GET(req: Request) {
   }
 
   const result = await executarMotor();
-  return NextResponse.json(result);
+  const lembretes = await enviarLembretesReuniao();
+  return NextResponse.json({ ...result, lembretes });
 }
