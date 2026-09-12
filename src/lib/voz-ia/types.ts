@@ -36,6 +36,16 @@ export interface AIVoiceConfig {
   wpp_followup_template: string | null;
   max_tentativas: number;
   tentativas_por_semana: number;
+  wpp_system_prompt: string | null;
+  wpp_primeiro_contato_prompt: string | null;
+  motor_ativo: boolean;
+  max_chamadas_dia: number;
+  max_wpp_dia: number;
+  horario_inicio: string;
+  horario_fim: string;
+  horario_inicio_fds: string;
+  horario_fim_fds: string;
+  twilio_wpp_from: string | null;
   ativo: boolean;
   created_at: string;
   updated_at: string;
