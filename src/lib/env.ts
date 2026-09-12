@@ -83,6 +83,9 @@ const serverSchema = z.object({
   // Sem isso, o comando "gerar imagem" retorna erro amigável e o resto do
   // Studio continua funcionando. Gerar em platform.openai.com → API Keys.
   OPENAI_API_KEY: z.string().optional(),
+  // OpenAI Realtime - modelo de voz pra ligações IA do módulo /voz-ia.
+  // Default: gpt-4o-realtime-preview. Sem OPENAI_API_KEY o módulo fica inerte.
+  OPENAI_REALTIME_MODEL: z.string().optional(),
   // Frame Interno (review de vídeo) — Bunny Stream. Sem isso, /audiovisual/review
   // mostra aviso de setup. Guia: docs/frame-interno-bunny-setup.md
   BUNNY_STREAM_API_KEY: z.string().optional(),
