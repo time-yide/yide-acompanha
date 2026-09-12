@@ -9,6 +9,7 @@ import { archiveLeadAction, changeLeadStatusAction } from "@/lib/gerador-leads/a
 import { STATUS_LEAD_VALORES, STATUS_LEAD_DEFS } from "@/lib/gerador-leads/tipos";
 import type { LeadGeradoRow } from "@/lib/gerador-leads/queries";
 import { LigarLeadButton } from "./LigarLeadButton";
+import { LigarIAButton } from "@/components/voz-ia/LigarIAButton";
 
 interface Props {
   lead: LeadGeradoRow;
@@ -62,6 +63,14 @@ export function LeadActions({ lead, canManage }: Props) {
           leadGeradoId={lead.id}
           numero={(lead.telefone ?? lead.whatsapp) as string}
           contatoNome={lead.empresa}
+        />
+      )}
+      {canManage && (
+        <LigarIAButton
+          leadId={lead.id}
+          temTelefone={!!(lead.telefone || lead.whatsapp)}
+          aiStatus={(lead as any).ai_status ?? null}
+          aiTentativas={(lead as any).ai_tentativas ?? 0}
         />
       )}
       {/* WhatsApp */}
