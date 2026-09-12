@@ -2780,6 +2780,8 @@ export type Database = {
         | "task_alteracao_solicitada"
         | "freela_nova_oportunidade"
         | "freela_reservada"
+        | "freela_pendente_aprovacao"
+        | "freela_aprovada"
         | "bloqueio_agenda_solicitado"
         | "bloqueio_agenda_respondido"
         | "conquista_desbloqueada"
@@ -3033,6 +3035,8 @@ export const Constants = {
         "task_alteracao_solicitada",
         "freela_nova_oportunidade",
         "freela_reservada",
+        "freela_pendente_aprovacao",
+        "freela_aprovada",
         "bloqueio_agenda_solicitado",
         "bloqueio_agenda_respondido",
         "conquista_desbloqueada",

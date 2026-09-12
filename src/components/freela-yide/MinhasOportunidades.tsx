@@ -8,6 +8,7 @@ import { moverStatusAction } from "@/lib/freela-yide/actions";
 import type { OportunidadeRow } from "@/lib/freela-yide/queries";
 
 const PROXIMOS: Record<string, { status: string; label: string }[]> = {
+  pendente: [],
   pega: [{ status: "em_negociacao", label: "Em andamento" }, { status: "fechada", label: "Concluí" }, { status: "perdida", label: "Cancelar" }, { status: "disponivel", label: "Devolver" }],
   em_negociacao: [{ status: "fechada", label: "Concluí" }, { status: "perdida", label: "Cancelar" }],
 };

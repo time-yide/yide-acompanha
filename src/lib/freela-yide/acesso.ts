@@ -10,8 +10,9 @@ export const ROLES_ALLOWED = [
 
 export const ROLES_GESTAO = ["adm", "socio"];
 
-// Quem pode subir/criar freela: gestão + coordenador audiovisual + assessor.
-export const ROLES_PODE_CRIAR = ["adm", "socio", "audiovisual_chefe", "assessor"];
+// Qualquer pessoa que vê o FreelaYide pode lançar. Lançamento de não-gestão
+// entra como "pendente" e precisa de aprovação.
+export const ROLES_PODE_CRIAR = ROLES_ALLOWED;
 
 // Quem NÃO pega freela: gestão (adm/sócio) + coordenador. Eles gerenciam/
 // delegam, não executam — não devem ocupar uma vaga de freela.

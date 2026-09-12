@@ -1,7 +1,8 @@
-export const STATUS_OP = ["disponivel", "pega", "em_negociacao", "fechada", "perdida"] as const;
+export const STATUS_OP = ["pendente", "disponivel", "pega", "em_negociacao", "fechada", "perdida"] as const;
 export type StatusOp = (typeof STATUS_OP)[number];
 
 export const STATUS_OP_DEFS: Record<StatusOp, { label: string; color: string }> = {
+  pendente:      { label: "Pendente",      color: "border-yellow-500/40 bg-yellow-500/10 text-yellow-600 dark:text-yellow-400" },
   disponivel:    { label: "Disponível",    color: "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
   pega:          { label: "Pega",          color: "border-blue-500/40 bg-blue-500/10 text-blue-600 dark:text-blue-400" },
   em_negociacao: { label: "Em andamento",  color: "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400" },
