@@ -8,6 +8,9 @@ import { LeadActions } from "@/components/gerador-leads/LeadActions";
 import { LeadEditCard } from "@/components/gerador-leads/LeadEditCard";
 import { IdentificacaoOficialCard } from "@/components/gerador-leads/IdentificacaoOficialCard";
 import { STATUS_LEAD_DEFS } from "@/lib/gerador-leads/tipos";
+import { listCallsForLead } from "@/lib/voz-ia/queries";
+import { HistoricoLigacoesIA } from "@/components/voz-ia/HistoricoLigacoesIA";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 const ALLOWED_ROLES = ["adm", "socio", "comercial", "coordenador", "assessor", "programacao"];
 const ROLES_QUE_GERENCIAM = ["adm", "socio", "comercial", "coordenador", "assessor", "programacao"];
@@ -23,6 +26,14 @@ export default async function LeadDetalhePage({
 
   const lead = await getLeadGerado(id);
   if (!lead) notFound();
+
+  const sb = createServiceRoleClient() as any;
+  const { data: profile } = await sb
+    .from("profiles")
+    .select("organization_id")
+    .eq("id", user.id)
+    .single();
+  const aiCalls = profile ? await listCallsForLead(id, profile.organization_id) : [];
 
   const canEdit = ROLES_QUE_GERENCIAM.includes(user.role);
   const statusDef = STATUS_LEAD_DEFS[lead.status as keyof typeof STATUS_LEAD_DEFS];
@@ -65,6 +76,8 @@ export default async function LeadDetalhePage({
           {/* Form editável */}
           {/* key força remount quando lead atualiza - useState do form reinicializa com novos valores */}
           <LeadEditCard key={lead.updated_at} lead={lead} canEdit={canEdit} />
+
+          <HistoricoLigacoesIA calls={aiCalls} />
         </div>
 
         {/* Sidebar com info do Google Maps */}
