@@ -42,43 +42,46 @@ export async function POST(
       resultado_detalhe: callStatus === "busy" ? "Ocupado" : "Não atendeu",
     }).eq("id", callId);
 
-    // WhatsApp follow-up
-    const config = await getActiveConfig(call.organization_id);
-    if (config?.wpp_followup_ativo) {
-      const lead = await getLeadAIStatus(call.lead_gerado_id, call.organization_id);
-      const telefone = lead?.whatsapp || lead?.telefone;
-      if (telefone) {
-        await sendWhatsAppFollowUp({
-          callId,
-          orgId: call.organization_id,
-          leadGeradoId: call.lead_gerado_id,
-          telefone,
-          empresa: lead.empresa ?? "sua empresa",
-          twilioFrom: call.twilio_from,
-          template: config.wpp_followup_template,
-        });
+    // Pula follow-up e cadência pra ligações de teste (sem lead)
+    if (call.lead_gerado_id) {
+      const config = await getActiveConfig(call.organization_id);
+      if (config?.wpp_followup_ativo) {
+        const lead = await getLeadAIStatus(call.lead_gerado_id, call.organization_id);
+        const telefone = lead?.whatsapp || lead?.telefone;
+        if (telefone) {
+          await sendWhatsAppFollowUp({
+            callId,
+            orgId: call.organization_id,
+            leadGeradoId: call.lead_gerado_id,
+            telefone,
+            empresa: lead.empresa ?? "sua empresa",
+            twilioFrom: call.twilio_from,
+            template: config.wpp_followup_template,
+          });
+        } else {
+          await sb.from("leads_gerados").update({ ai_status: "esgotado" }).eq("id", call.lead_gerado_id);
+        }
       } else {
-        await sb.from("leads_gerados").update({ ai_status: "esgotado" }).eq("id", call.lead_gerado_id);
+        await sb.from("leads_gerados").update({ ai_status: null }).eq("id", call.lead_gerado_id);
       }
-    } else {
-      await sb.from("leads_gerados").update({ ai_status: null }).eq("id", call.lead_gerado_id);
-    }
 
-    // Schedule next attempt
-    const leadAfter = await getLeadAIStatus(call.lead_gerado_id, call.organization_id);
-    if (leadAfter && config && (leadAfter.ai_tentativas ?? 0) + 1 < config.max_tentativas) {
-      const nextAttempt = new Date();
-      nextAttempt.setDate(nextAttempt.getDate() + Math.ceil(7 / config.tentativas_por_semana));
-      await sb.from("leads_gerados").update({
-        ai_tentativas: (leadAfter.ai_tentativas ?? 0) + 1,
-        ai_proxima_tentativa: nextAttempt.toISOString(),
-      }).eq("id", call.lead_gerado_id);
-    } else if (leadAfter && config && (leadAfter.ai_tentativas ?? 0) + 1 >= config.max_tentativas) {
-      await sb.from("leads_gerados").update({
-        ai_tentativas: (leadAfter.ai_tentativas ?? 0) + 1,
-        ai_status: "esgotado",
-        ai_proxima_tentativa: null,
-      }).eq("id", call.lead_gerado_id);
+      // Schedule next attempt
+      const config2 = await getActiveConfig(call.organization_id);
+      const leadAfter = await getLeadAIStatus(call.lead_gerado_id, call.organization_id);
+      if (leadAfter && config2 && (leadAfter.ai_tentativas ?? 0) + 1 < config2.max_tentativas) {
+        const nextAttempt = new Date();
+        nextAttempt.setDate(nextAttempt.getDate() + Math.ceil(7 / config2.tentativas_por_semana));
+        await sb.from("leads_gerados").update({
+          ai_tentativas: (leadAfter.ai_tentativas ?? 0) + 1,
+          ai_proxima_tentativa: nextAttempt.toISOString(),
+        }).eq("id", call.lead_gerado_id);
+      } else if (leadAfter && config2 && (leadAfter.ai_tentativas ?? 0) + 1 >= config2.max_tentativas) {
+        await sb.from("leads_gerados").update({
+          ai_tentativas: (leadAfter.ai_tentativas ?? 0) + 1,
+          ai_status: "esgotado",
+          ai_proxima_tentativa: null,
+        }).eq("id", call.lead_gerado_id);
+      }
     }
   } else if (callStatus === "failed") {
     const errMsg = formParams.ErrorMessage || "Twilio call failed";
@@ -87,7 +90,9 @@ export async function POST(
       erro_msg: errMsg,
       finalizado_em: new Date().toISOString(),
     }).eq("id", callId);
-    await sb.from("leads_gerados").update({ ai_status: null }).eq("id", call.lead_gerado_id);
+    if (call.lead_gerado_id) {
+      await sb.from("leads_gerados").update({ ai_status: null }).eq("id", call.lead_gerado_id);
+    }
   }
 
   return NextResponse.json({ ok: true });

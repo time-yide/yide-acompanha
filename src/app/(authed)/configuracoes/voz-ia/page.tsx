@@ -3,6 +3,7 @@ import { requireAuth } from "@/lib/auth/session";
 import { getActiveConfig } from "@/lib/voz-ia/queries";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { ConfigVozIAForm } from "@/components/voz-ia/ConfigVozIAForm";
+import { TestarLigacaoIA } from "@/components/voz-ia/TestarLigacaoIA";
 import { ROLES_CONFIG_VOZ_IA } from "@/lib/voz-ia/types";
 import { Bot } from "lucide-react";
 
@@ -31,6 +32,7 @@ export default async function ConfigVozIAPage() {
         </p>
       </div>
       <ConfigVozIAForm config={config} />
+      <TestarLigacaoIA />
     </div>
   );
 }

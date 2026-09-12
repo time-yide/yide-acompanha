@@ -44,7 +44,7 @@ export interface AIVoiceConfig {
 export interface AIVoiceCall {
   id: string;
   organization_id: string;
-  lead_gerado_id: string;
+  lead_gerado_id: string | null;
   config_id: string | null;
   prompt_usado: string;
   voz: string;

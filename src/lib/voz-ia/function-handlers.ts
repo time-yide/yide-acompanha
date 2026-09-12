@@ -3,7 +3,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 interface CallContext {
   callId: string;
   orgId: string;
-  leadGeradoId: string;
+  leadGeradoId: string | null;
   iniciado_por: string;
 }
 
@@ -18,18 +18,22 @@ export async function handleAgendarReuniao(
   const inicioDate = new Date(inicioBrt + "-03:00");
   const fimDate = new Date(inicioDate.getTime() + duracao * 60_000);
 
-  const { data: lead } = await sb
-    .from("leads_gerados")
-    .select("empresa")
-    .eq("id", ctx.leadGeradoId)
-    .single();
+  let empresaNome = "Lead";
+  if (ctx.leadGeradoId) {
+    const { data: lead } = await sb
+      .from("leads_gerados")
+      .select("empresa")
+      .eq("id", ctx.leadGeradoId)
+      .single();
+    if (lead?.empresa) empresaNome = lead.empresa;
+  }
 
   const { data: evento, error } = await sb
     .from("calendar_events")
     .insert({
       organization_id: ctx.orgId,
-      titulo: `Reunião comercial — ${lead?.empresa ?? "Lead"}`,
-      descricao: `Reunião agendada pela IA de voz com ${lead?.empresa ?? "lead"}.`,
+      titulo: `Reunião comercial — ${empresaNome}`,
+      descricao: `Reunião agendada pela IA de voz com ${empresaNome}.`,
       inicio: inicioDate.toISOString(),
       fim: fimDate.toISOString(),
       sub_calendar: "comercial",
@@ -51,10 +55,12 @@ export async function handleAgendarReuniao(
     resultado_detalhe: `Reunião ${args.data} às ${args.horario}`,
   }).eq("id", ctx.callId);
 
-  await sb.from("leads_gerados").update({
-    status: "reuniao_marcada",
-    ai_status: "reuniao_agendada",
-  }).eq("id", ctx.leadGeradoId);
+  if (ctx.leadGeradoId) {
+    await sb.from("leads_gerados").update({
+      status: "reuniao_marcada",
+      ai_status: "reuniao_agendada",
+    }).eq("id", ctx.leadGeradoId);
+  }
 
   return `Reunião agendada com sucesso para ${args.data} às ${args.horario}. Confirme com o lead e encerre a chamada.`;
 }
@@ -70,11 +76,13 @@ export async function handleMarcarSemInteresse(
     resultado_detalhe: args.motivo ?? "Lead recusou",
   }).eq("id", ctx.callId);
 
-  await sb.from("leads_gerados").update({
-    status: "descartado",
-    ai_status: "sem_interesse",
-    observacoes: args.motivo ? `IA: ${args.motivo}` : "IA: lead sem interesse",
-  }).eq("id", ctx.leadGeradoId);
+  if (ctx.leadGeradoId) {
+    await sb.from("leads_gerados").update({
+      status: "descartado",
+      ai_status: "sem_interesse",
+      observacoes: args.motivo ? `IA: ${args.motivo}` : "IA: lead sem interesse",
+    }).eq("id", ctx.leadGeradoId);
+  }
 
   return "Registrado. Agradeça educadamente e encerre a chamada.";
 }
