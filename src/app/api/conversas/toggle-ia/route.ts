@@ -16,6 +16,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Organização não encontrada" }, { status: 403 });
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
   const { count } = await sb
     .from("wpp_conversations")

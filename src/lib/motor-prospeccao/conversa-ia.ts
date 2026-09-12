@@ -14,6 +14,7 @@ import {
 } from "./tool-handlers";
 
 function sb() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return createServiceRoleClient() as any;
 }
 

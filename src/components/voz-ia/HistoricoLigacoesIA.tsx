@@ -62,6 +62,7 @@ export function HistoricoLigacoesIA({ calls }: { calls: AIVoiceCall[] }) {
                 </audio>
               )}
               {call.transcricao && (
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 <TranscricaoExpandivel items={call.transcricao as any} />
               )}
             </div>

@@ -27,6 +27,7 @@ export default async function LeadDetalhePage({
   const lead = await getLeadGerado(id);
   if (!lead) notFound();
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
   const { data: profile } = await sb
     .from("profiles")

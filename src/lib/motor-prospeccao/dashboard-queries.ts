@@ -2,6 +2,7 @@ import "server-only";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 function sb() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return createServiceRoleClient() as any;
 }
 
@@ -118,6 +119,7 @@ export async function getConversasAtivas(orgId: string): Promise<ConversaAtiva[]
   if (!data) return [];
 
   const conversas: ConversaAtiva[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const c of data as any[]) {
     let lead_categoria: string | null = null;
     if (c.lead_gerado_id) {
