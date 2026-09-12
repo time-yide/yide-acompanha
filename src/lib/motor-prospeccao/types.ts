@@ -19,6 +19,7 @@ export interface MotorResult {
   orgId: string;
   processados: number;
   wppEnviados: number;
+  ligacoesDisparadas: number;
   erros: number;
   detalhes: { leadId: string; acao: string; erro?: string }[];
 }
@@ -27,6 +28,7 @@ export interface MotorGlobalResult {
   orgs: number;
   totalProcessados: number;
   totalWpp: number;
+  totalLigacoes: number;
   totalErros: number;
   porOrg: MotorResult[];
 }
