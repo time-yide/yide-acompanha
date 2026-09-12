@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bell, Hash, Lock, Tags } from "lucide-react";
+import { Bell, Bot, Hash, Lock, Tags } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { updateOwnProfileAction } from "@/lib/profile/actions";
@@ -118,6 +118,22 @@ export default async function ConfiguracoesPage() {
           />
         )}
       </Card>
+
+      {(user.role === "socio" || user.role === "adm") && (
+        <Card className="p-6">
+          <h2 className="mb-2 text-lg font-semibold">Voz IA e Motor de Prospecção</h2>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Configure ligações automáticas, motor de prospecção por WhatsApp e prompts da IA.
+          </p>
+          <Link
+            href="/configuracoes/voz-ia"
+            className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+          >
+            <Bot className="h-4 w-4" />
+            Configurar Voz IA →
+          </Link>
+        </Card>
+      )}
 
       {(user.role === "socio" || user.role === "adm") && (
         <Card className="p-6">
