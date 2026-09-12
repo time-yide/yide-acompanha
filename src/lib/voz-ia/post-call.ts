@@ -5,7 +5,7 @@ import type { TranscriptionItem } from "./types";
 interface PostCallData {
   callId: string;
   orgId: string;
-  leadGeradoId: string;
+  leadGeradoId: string | null;
   transcription: TranscriptionItem[];
   durationSeconds: number;
   twilioCallSid: string | null;
@@ -30,27 +30,28 @@ export async function processPostCall(data: PostCallData) {
 
   await sb.from("ai_voice_calls").update(updatePayload).eq("id", data.callId);
 
-  // Incrementa tentativas no lead (read + write)
-  const { data: lead } = await sb
-    .from("leads_gerados")
-    .select("ai_tentativas")
-    .eq("id", data.leadGeradoId)
-    .single();
-  if (lead) {
-    await sb
+  // Pula lead updates pra ligações de teste (sem lead)
+  if (data.leadGeradoId) {
+    const { data: lead } = await sb
       .from("leads_gerados")
-      .update({ ai_tentativas: (lead.ai_tentativas ?? 0) + 1 })
-      .eq("id", data.leadGeradoId);
-  }
+      .select("ai_tentativas")
+      .eq("id", data.leadGeradoId)
+      .single();
+    if (lead) {
+      await sb
+        .from("leads_gerados")
+        .update({ ai_tentativas: (lead.ai_tentativas ?? 0) + 1 })
+        .eq("id", data.leadGeradoId);
+    }
 
-  // Registra como lead_attempt (integração com 14 batidas)
-  await sb.from("lead_attempts").insert({
-    organization_id: data.orgId,
-    lead_gerado_id: data.leadGeradoId,
-    tipo: "ligacao",
-    canal: "telefone",
-    notas: "Ligação IA automática",
-  }).catch(() => {});
+    await sb.from("lead_attempts").insert({
+      organization_id: data.orgId,
+      lead_gerado_id: data.leadGeradoId,
+      tipo: "ligacao",
+      canal: "telefone",
+      notas: "Ligação IA automática",
+    }).catch(() => {});
+  }
 }
 
 export async function sendWhatsAppFollowUp(data: {
