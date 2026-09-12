@@ -1,6 +1,6 @@
 export type CanalConversa = "whatsapp";
 export type StatusMensagem = "enviando" | "enviada" | "entregue" | "lida" | "falhou";
-export type AutorMensagem = "lead" | "comercial" | "sistema";
+export type AutorMensagem = "lead" | "comercial" | "sistema" | "ia";
 
 export interface WppConversation {
   id: string;
@@ -16,6 +16,8 @@ export interface WppConversation {
   arquivada: boolean;
   fixada: boolean;
   twilio_from: string | null;
+  ai_ativa: boolean;
+  ai_config_id: string | null;
   created_at: string;
   updated_at: string;
 }
