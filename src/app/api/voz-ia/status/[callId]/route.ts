@@ -33,6 +33,7 @@ export async function POST(
   const call = await getCallById(callId);
   if (!call) return NextResponse.json({ ok: false }, { status: 404 });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
 
   if (callStatus === "no-answer" || callStatus === "busy") {

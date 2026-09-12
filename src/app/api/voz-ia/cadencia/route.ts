@@ -8,6 +8,7 @@ async function verifyConfigOwnership(configId: string, userId: string) {
   const orgId = await getOrganizationIdByUser(userId);
   if (!orgId) return false;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
   const { data } = await sb
     .from("ai_voice_configs")
@@ -31,6 +32,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Config não encontrada" }, { status: 404 });
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
   const { data } = await sb
     .from("cadencia_steps")
@@ -58,6 +60,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Config não encontrada" }, { status: 404 });
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
 
   await sb.from("cadencia_steps").delete().eq("config_id", configId);
@@ -77,6 +80,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "ativo deve ser boolean" }, { status: 400 });
       }
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rows = steps.map((s: any, i: number) => ({
       config_id: configId,
       ordem: i + 1,

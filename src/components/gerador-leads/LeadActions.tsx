@@ -69,7 +69,9 @@ export function LeadActions({ lead, canManage }: Props) {
         <LigarIAButton
           leadId={lead.id}
           temTelefone={!!(lead.telefone || lead.whatsapp)}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           aiStatus={(lead as any).ai_status ?? null}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           aiTentativas={(lead as any).ai_tentativas ?? 0}
         />
       )}
