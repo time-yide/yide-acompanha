@@ -23,8 +23,8 @@ CREATE POLICY "cadencia_steps_org_select" ON cadencia_steps
     )
   );
 
-CREATE POLICY "cadencia_steps_service_all" ON cadencia_steps
-  FOR ALL USING (true) WITH CHECK (true);
+-- service_role já bypassa RLS — não precisa de policy ALL.
+-- Writes são feitos via createServiceRoleClient() no server.
 
 -- 2. Lembrete de reunião IA
 ALTER TABLE public.calendar_events
