@@ -18,6 +18,7 @@ async function findOrCreateConversation(
   twilioFrom: string,
   leadId: string,
   empresa: string,
+  configId: string | null,
 ): Promise<string | null> {
   const { data: existing } = await sb()
     .from("wpp_conversations")
@@ -26,7 +27,13 @@ async function findOrCreateConversation(
     .eq("contato_telefone", telefone)
     .maybeSingle();
 
-  if (existing) return (existing as any).id;
+  if (existing) {
+    await sb()
+      .from("wpp_conversations")
+      .update({ ai_ativa: true, ai_config_id: configId })
+      .eq("id", (existing as any).id);
+    return (existing as any).id;
+  }
 
   const { data: conv } = await sb()
     .from("wpp_conversations")
@@ -38,7 +45,8 @@ async function findOrCreateConversation(
       lead_gerado_id: leadId,
       twilio_from: twilioFrom,
       nao_lidas: 0,
-      ai_ativa: false,
+      ai_ativa: true,
+      ai_config_id: configId,
     })
     .select("id")
     .single();
@@ -105,7 +113,7 @@ async function processarLead(
   if ("error" in msgResult) return { acao: "erro", erro: msgResult.error };
 
   const convId = await findOrCreateConversation(
-    orgId, telefone, twilioFrom, lead.id, lead.empresa,
+    orgId, telefone, twilioFrom, lead.id, lead.empresa, config.id,
   );
   if (!convId) return { acao: "erro", erro: "Falha ao criar conversa" };
 
