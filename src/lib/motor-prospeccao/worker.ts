@@ -4,6 +4,7 @@ import { getServerEnv } from "@/lib/env";
 import { isHorarioComercial } from "./categorias";
 import { selecionarLeads, contarWppEnviadosHoje, getOrgsComMotorAtivo } from "./selecao";
 import { gerarMensagemPrimeiroContato } from "./gerar-mensagem";
+import { getStepsDaCadencia, calcularStepAtual, seedCadenciaPadrao } from "./cadencia";
 import { normalizeTelefone } from "@/lib/dispatch/render-template";
 import type { LeadParaProspectar, MotorResult, MotorGlobalResult } from "./types";
 import { MOTOR_BATCH_SIZE, MOTOR_INTERVALO_MIN_HORAS } from "./types";
@@ -18,6 +19,7 @@ async function findOrCreateConversation(
   twilioFrom: string,
   leadId: string,
   empresa: string,
+  configId: string | null,
 ): Promise<string | null> {
   const { data: existing } = await sb()
     .from("wpp_conversations")
@@ -26,7 +28,13 @@ async function findOrCreateConversation(
     .eq("contato_telefone", telefone)
     .maybeSingle();
 
-  if (existing) return (existing as any).id;
+  if (existing) {
+    await sb()
+      .from("wpp_conversations")
+      .update({ ai_ativa: true, ai_config_id: configId })
+      .eq("id", (existing as any).id);
+    return (existing as any).id;
+  }
 
   const { data: conv } = await sb()
     .from("wpp_conversations")
@@ -38,7 +46,8 @@ async function findOrCreateConversation(
       lead_gerado_id: leadId,
       twilio_from: twilioFrom,
       nao_lidas: 0,
-      ai_ativa: false,
+      ai_ativa: true,
+      ai_config_id: configId,
     })
     .select("id")
     .single();
@@ -89,6 +98,44 @@ async function processarLead(
   config: any,
   statusUrl: string,
 ): Promise<{ acao: string; erro?: string }> {
+  // Check cadência step
+  await seedCadenciaPadrao(config.id);
+  const steps = await getStepsDaCadencia(config.id);
+  const step = calcularStepAtual(lead.ai_tentativas, steps);
+
+  if (!step) {
+    await sb()
+      .from("leads_gerados")
+      .update({ ai_status: "esgotado" })
+      .eq("id", lead.id);
+    return { acao: "esgotado" };
+  }
+
+  if (step.canal === "ligacao") {
+    // Log voice call as pending (Fase 3 integration)
+    await sb().from("motor_prospeccao_log").insert({
+      organization_id: orgId,
+      lead_gerado_id: lead.id,
+      acao: "ligacao_pendente",
+      modelo: "wpp_direto",
+      detalhes: { nota: "Ligação IA pendente — integração em Fase 3", step_ordem: step.ordem },
+    });
+
+    // Still increment tentativas so lead progresses through cadência
+    const proximaTentativa = new Date();
+    proximaTentativa.setDate(proximaTentativa.getDate() + (step.dias_apos_anterior || 2));
+    await sb()
+      .from("leads_gerados")
+      .update({
+        ai_tentativas: lead.ai_tentativas + 1,
+        ai_proxima_tentativa: proximaTentativa.toISOString(),
+      })
+      .eq("id", lead.id);
+
+    return { acao: "ligacao_pendente" };
+  }
+
+  // --- WhatsApp flow ---
   const telefoneRaw = lead.whatsapp || lead.telefone;
   if (!telefoneRaw) return { acao: "erro", erro: "Sem telefone/whatsapp" };
 
@@ -98,14 +145,18 @@ async function processarLead(
   const twilioFrom = config.twilio_wpp_from;
   if (!twilioFrom) return { acao: "erro", erro: "twilio_wpp_from não configurado" };
 
-  const msgResult = await gerarMensagemPrimeiroContato(
-    lead,
-    config.wpp_primeiro_contato_prompt,
-  );
+  let promptOverride = config.wpp_primeiro_contato_prompt;
+  if (step.template_tipo === "followup") {
+    promptOverride = `Você é da Yide Digital. Já mandou mensagem pra esse lead antes mas ele não respondeu. Mande um follow-up curto e amigável. Máximo 2 linhas. Mencione algo novo ou diferente. Não repita a mesma mensagem.`;
+  } else if (step.template_tipo === "ultimo") {
+    promptOverride = `Você é da Yide Digital. Esta é a ÚLTIMA tentativa de contato com esse lead. Mande uma mensagem final, curta e respeitosa. Diga que é a última mensagem e que está à disposição se mudar de ideia. Máximo 2 linhas.`;
+  }
+
+  const msgResult = await gerarMensagemPrimeiroContato(lead, promptOverride);
   if ("error" in msgResult) return { acao: "erro", erro: msgResult.error };
 
   const convId = await findOrCreateConversation(
-    orgId, telefone, twilioFrom, lead.id, lead.empresa,
+    orgId, telefone, twilioFrom, lead.id, lead.empresa, config.id,
   );
   if (!convId) return { acao: "erro", erro: "Falha ao criar conversa" };
 

@@ -12,7 +12,7 @@ export async function listConversations(
   const q = sb
     .from("wpp_conversations")
     .select(
-      "id, organization_id, contato_nome, contato_telefone, canal, lead_gerado_id, ultimo_texto, ultima_msg_em, nao_lidas, arquivada, fixada, twilio_from, created_at, updated_at, lead:leads_gerados!wpp_conversations_lead_gerado_id_fkey(empresa)",
+      "id, organization_id, contato_nome, contato_telefone, canal, lead_gerado_id, ultimo_texto, ultima_msg_em, nao_lidas, arquivada, fixada, twilio_from, ai_ativa, ai_config_id, created_at, updated_at, lead:leads_gerados!wpp_conversations_lead_gerado_id_fkey(empresa)",
     )
     .eq("organization_id", organizationId)
     .eq("arquivada", filter.arquivada ?? false)
@@ -41,6 +41,8 @@ export async function listConversations(
     arquivada: row.arquivada ?? false,
     fixada: row.fixada ?? false,
     twilio_from: row.twilio_from ?? null,
+    ai_ativa: row.ai_ativa ?? false,
+    ai_config_id: row.ai_config_id ?? null,
     created_at: row.created_at,
     updated_at: row.updated_at,
   }));
@@ -52,7 +54,7 @@ export async function getConversation(id: string): Promise<WppConversation | nul
   const { data, error } = await sb
     .from("wpp_conversations")
     .select(
-      "id, organization_id, contato_nome, contato_telefone, canal, lead_gerado_id, ultimo_texto, ultima_msg_em, nao_lidas, arquivada, fixada, twilio_from, created_at, updated_at, lead:leads_gerados!wpp_conversations_lead_gerado_id_fkey(empresa)",
+      "id, organization_id, contato_nome, contato_telefone, canal, lead_gerado_id, ultimo_texto, ultima_msg_em, nao_lidas, arquivada, fixada, twilio_from, ai_ativa, ai_config_id, created_at, updated_at, lead:leads_gerados!wpp_conversations_lead_gerado_id_fkey(empresa)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -73,6 +75,8 @@ export async function getConversation(id: string): Promise<WppConversation | nul
     arquivada: row.arquivada ?? false,
     fixada: row.fixada ?? false,
     twilio_from: row.twilio_from ?? null,
+    ai_ativa: row.ai_ativa ?? false,
+    ai_config_id: row.ai_config_id ?? null,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
