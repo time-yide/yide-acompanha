@@ -32,7 +32,7 @@ export async function ligarComIAAction(leadGeradoId: string): Promise<LigarResul
   const config = await getActiveConfig(orgId);
   if (!config) return { error: "Configure o agente de voz em Configurações → Voz IA" };
 
-  const lead = await getLeadAIStatus(leadGeradoId);
+  const lead = await getLeadAIStatus(leadGeradoId, orgId);
   if (!lead) return { error: "Lead não encontrado" };
   if (!lead.telefone && !lead.whatsapp) return { error: "Lead sem telefone" };
   if (lead.ai_status === "em_ligacao") return { error: "Chamada IA já ativa pra esse lead" };
