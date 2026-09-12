@@ -36,16 +36,18 @@ export function bonusFechamento(valorComissao: number): number {
   return 10;
 }
 
-/** Pontos derivados do progresso da oportunidade. Acumulativo. */
+/** Pontos derivados do progresso da oportunidade. Acumulativo. Pendente não rende ponto. */
 export function calcularPontos(o: OportunidadePontos): number {
+  if (o.status === "pendente") return 0;
   let p = 0;
-  if (o.status !== "disponivel") p += bonusPegar(o.valor_comissao ?? 0); // pegou
+  if (o.status !== "disponivel") p += bonusPegar(o.valor_comissao ?? 0);
   if (o.negociacao_em) p += PONTOS.negociacao;
   if (o.status === "fechada") p += bonusFechamento(o.valor_comissao ?? 0);
   return p;
 }
 
 const TRANSICOES: Record<StatusOp, StatusOp[]> = {
+  pendente: ["pega", "perdida"],
   disponivel: ["pega"],
   pega: ["em_negociacao", "fechada", "perdida", "disponivel"],
   em_negociacao: ["fechada", "perdida", "pega"],

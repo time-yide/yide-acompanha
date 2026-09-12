@@ -8,7 +8,7 @@ import type { StatusOp } from "./tipos";
 import { criarOportunidadeSchema, editarOportunidadeSchema, moverStatusSchema, definirMetaSchema, normalizeUrgencia } from "./schema";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 import { verificarConquistas } from "./verificar-conquistas";
-import { ROLES_NAO_PEGA } from "./acesso";
+import { ROLES_NAO_PEGA, ROLES_PODE_CRIAR } from "./acesso";
 import { brtInputToUtcIso, formatBrtDate, formatBrtTime } from "@/lib/calendario/timezone";
 
 interface Ok { success: true }
@@ -18,9 +18,6 @@ type Result = Ok | Err;
 const ROLES_GESTAO = ["adm", "socio"] as const;
 function isGestao(role: string): boolean { return (ROLES_GESTAO as readonly string[]).includes(role); }
 
-// Quem pode subir/criar freela (além de gerir os próprios): gestão + coordenador
-// audiovisual (audiovisual_chefe) + assessor.
-const ROLES_PODE_CRIAR = ["adm", "socio", "audiovisual_chefe", "assessor"] as const;
 function podeCriar(role: string): boolean { return (ROLES_PODE_CRIAR as readonly string[]).includes(role); }
 
 function fd(formData: FormData, key: string): string | null {
@@ -60,6 +57,9 @@ export async function criarOportunidadeAction(formData: FormData): Promise<Resul
 
   const urg = normalizeUrgencia(parsed.data.tipo, parsed.data.entrega_urgente, parsed.data.prazo_entrega ?? null);
 
+  const gestaoLancou = isGestao(actor.role);
+  const statusInicial = gestaoLancou ? "disponivel" : "pendente";
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase as any).from("freela_oportunidades").insert({
     organization_id: orgId,
@@ -75,26 +75,39 @@ export async function criarOportunidadeAction(formData: FormData): Promise<Resul
     tipo: parsed.data.tipo,
     entrega_urgente: urg.entrega_urgente,
     prazo_entrega: urg.prazo_entrega ? brtInputToUtcIso(urg.prazo_entrega) : null,
-    status: "disponivel",
+    status: statusInicial,
+    ...(gestaoLancou ? {} : { pego_por: actor.id, pego_em: new Date().toISOString() }),
   });
   if (error) return { error: error.message };
 
-  // Notifica quem pode pegar a oportunidade. Best-effort: falha de
-  // notificação não invalida a criação. Urgente vai com prioridade alta (cor/som).
-  // Texto sem emoji e sem en-dash (convenção do projeto).
   const tipoLabel = parsed.data.tipo === "edicao" ? "Edição" : parsed.data.tipo === "modelo" ? "Modelo" : "Captação";
   const clienteSuffix = parsed.data.cliente_nome ? ` (${parsed.data.cliente_nome})` : "";
-  try {
-    await dispatchNotification({
-      evento_tipo: "freela_nova_oportunidade",
-      titulo: urg.entrega_urgente ? `URGENTE - ${tipoLabel}: ${parsed.data.titulo}` : `Nova oportunidade (${tipoLabel}): ${parsed.data.titulo}`,
-      mensagem: `${tipoLabel}${clienteSuffix}. R$ ${parsed.data.valor_comissao.toLocaleString("pt-BR")}. Abra o Freelayide para pegar.`,
-      link: "/freela-yide",
-      source_user_id: actor.id,
-      prioridade: urg.entrega_urgente ? "urgente" : "normal",
-    });
-  } catch (e) {
-    console.error("[freelayide] dispatch nova oportunidade falhou:", e);
+
+  if (gestaoLancou) {
+    try {
+      await dispatchNotification({
+        evento_tipo: "freela_nova_oportunidade",
+        titulo: urg.entrega_urgente ? `URGENTE - ${tipoLabel}: ${parsed.data.titulo}` : `Nova oportunidade (${tipoLabel}): ${parsed.data.titulo}`,
+        mensagem: `${tipoLabel}${clienteSuffix}. R$ ${parsed.data.valor_comissao.toLocaleString("pt-BR")}. Abra o Freelayide para pegar.`,
+        link: "/freela-yide",
+        source_user_id: actor.id,
+        prioridade: urg.entrega_urgente ? "urgente" : "normal",
+      });
+    } catch (e) {
+      console.error("[freelayide] dispatch nova oportunidade falhou:", e);
+    }
+  } else {
+    try {
+      await dispatchNotification({
+        evento_tipo: "freela_pendente_aprovacao",
+        titulo: `Freela pendente: ${parsed.data.titulo}`,
+        mensagem: `${actor.nome ?? "Alguém"} lançou ${tipoLabel.toLowerCase()}${clienteSuffix} de R$ ${parsed.data.valor_comissao.toLocaleString("pt-BR")}. Aprove no Freelayide.`,
+        link: "/freela-yide",
+        source_user_id: actor.id,
+      });
+    } catch (e) {
+      console.error("[freelayide] dispatch freela_pendente_aprovacao falhou:", e);
+    }
   }
 
   revalidatePath("/freela-yide");
@@ -260,6 +273,75 @@ export async function definirMetaAction(formData: FormData): Promise<Result> {
     alvo: parsed.data.alvo, bonus_descricao: parsed.data.bonus_descricao,
     updated_at: new Date().toISOString(),
   }, { onConflict: "organization_id,mes" });
+  if (error) return { error: error.message };
+  revalidatePath("/freela-yide");
+  return { success: true };
+}
+
+export async function aprovarFreelaAction(id: string): Promise<Result> {
+  const actor = await requireAuth();
+  if (!isGestao(actor.role)) return { error: "Só gestão pode aprovar" };
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const { data: op } = await sb.from("freela_oportunidades")
+    .select("status, pego_por, titulo, data_hora, criado_por, tipo, valor_comissao, cliente_nome")
+    .eq("id", id).single();
+  if (!op) return { error: "Oportunidade não encontrada" };
+  if (op.status !== "pendente") return { error: "Só pendentes podem ser aprovadas" };
+
+  const { data: upd, error } = await sb.from("freela_oportunidades")
+    .update({ status: "pega", updated_at: new Date().toISOString() })
+    .eq("id", id).eq("status", "pendente").select("id");
+  if (error) return { error: error.message };
+  if (!upd || upd.length === 0) return { error: "Status já mudou" };
+
+  if (op.data_hora && op.pego_por) {
+    try {
+      await dispatchNotification({
+        evento_tipo: "freela_reservada",
+        titulo: `Você reservou: ${op.titulo}`,
+        mensagem: `Reservado na sua agenda para ${formatBrtDate(op.data_hora)} às ${formatBrtTime(op.data_hora)}. Abra o calendário.`,
+        link: "/calendario",
+        user_ids_extras: [op.pego_por],
+      });
+    } catch (e) {
+      console.error("[freelayide] dispatch freela_reservada (aprovacao) falhou:", e);
+    }
+  }
+
+  if (op.criado_por) {
+    try {
+      await dispatchNotification({
+        evento_tipo: "freela_aprovada",
+        titulo: `Freela aprovado: ${op.titulo}`,
+        mensagem: `Seu lançamento foi aprovado. Bora fechar!`,
+        link: "/freela-yide",
+        user_ids_extras: [op.criado_por],
+      });
+    } catch (e) {
+      console.error("[freelayide] dispatch freela_aprovada falhou:", e);
+    }
+  }
+
+  if (op.pego_por) await verificarConquistas(op.pego_por as string);
+
+  revalidatePath("/freela-yide");
+  return { success: true };
+}
+
+export async function rejeitarFreelaAction(id: string): Promise<Result> {
+  const actor = await requireAuth();
+  if (!isGestao(actor.role)) return { error: "Só gestão pode rejeitar" };
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const { data: op } = await sb.from("freela_oportunidades").select("status").eq("id", id).single();
+  if (!op) return { error: "Oportunidade não encontrada" };
+  if (op.status !== "pendente") return { error: "Só pendentes podem ser rejeitadas" };
+
+  const { error } = await sb.from("freela_oportunidades")
+    .update({ deleted_at: new Date().toISOString() }).eq("id", id);
   if (error) return { error: error.message };
   revalidatePath("/freela-yide");
   return { success: true };

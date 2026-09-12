@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
-import { getOrganizationId, listOportunidades, listMinhas, getRanking, getHistorico, getMetaAtual, getStats } from "@/lib/freela-yide/queries";
+import { getOrganizationId, listOportunidades, listMinhas, listPendentes, getRanking, getHistorico, getMetaAtual, getStats } from "@/lib/freela-yide/queries";
 import { FreelaHero } from "@/components/freela-yide/FreelaHero";
 import { calcularRival } from "@/lib/freela-yide/rivalidade";
 import { MetaCard } from "@/components/freela-yide/MetaCard";
@@ -11,6 +11,7 @@ import { MinhasOportunidades } from "@/components/freela-yide/MinhasOportunidade
 import { RankingPainel } from "@/components/freela-yide/RankingPainel";
 import { NovaOportunidadeButton } from "@/components/freela-yide/NovaOportunidadeButton";
 import { DefinirMetaButton } from "@/components/freela-yide/DefinirMetaButton";
+import { PendentesAprovacao } from "@/components/freela-yide/PendentesAprovacao";
 import { ROLES_ALLOWED, ROLES_GESTAO, ROLES_PODE_CRIAR, ROLES_NAO_PEGA } from "@/lib/freela-yide/acesso";
 
 export default async function FreelaYidePage() {
@@ -23,9 +24,10 @@ export default async function FreelaYidePage() {
   const podeCriar = ROLES_PODE_CRIAR.includes(user.role);
   const podePegar = !ROLES_NAO_PEGA.includes(user.role); // gestão + coordenador não pegam freela
 
-  const [todas, minhas, ranking, historico, meta] = await Promise.all([
+  const [todas, minhas, pendentes, ranking, historico, meta] = await Promise.all([
     listOportunidades(orgId, true),
     listMinhas(orgId, user.id),
+    gestao ? listPendentes(orgId) : Promise.resolve([]),
     getRanking(orgId),
     getHistorico(orgId),
     getMetaAtual(orgId),
@@ -44,17 +46,24 @@ export default async function FreelaYidePage() {
 
       <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
         <div className="space-y-6">
+          {gestao && pendentes.length > 0 && (
+            <section className="space-y-2">
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-yellow-600 dark:text-yellow-400">Pendentes de aprovação ({pendentes.length})</h2>
+              <PendentesAprovacao ops={pendentes} />
+            </section>
+          )}
+
           <section className="space-y-2">
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Oportunidades disponíveis</h2>
-              {podeCriar && (
-                <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2">
+                {gestao && (
                   <Link href="/freela-yide/lancadas" className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted/40 hover:text-foreground">
                     Todas lançadas <ArrowRight className="h-4 w-4" />
                   </Link>
-                  <NovaOportunidadeButton />
-                </div>
-              )}
+                )}
+                {podeCriar && <NovaOportunidadeButton />}
+              </div>
             </div>
             <OportunidadesGrid ops={todas} gestao={gestao} podePegar={podePegar} currentUserId={user.id} />
           </section>

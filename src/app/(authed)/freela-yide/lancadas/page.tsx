@@ -5,11 +5,11 @@ import { requireAuth } from "@/lib/auth/session";
 import { getOrganizationId, listOportunidades } from "@/lib/freela-yide/queries";
 import { ResumoSubidos } from "@/components/freela-yide/ResumoSubidos";
 import { OportunidadesGrid } from "@/components/freela-yide/OportunidadesGrid";
-import { ROLES_ALLOWED, ROLES_GESTAO, ROLES_PODE_CRIAR, ROLES_NAO_PEGA } from "@/lib/freela-yide/acesso";
+import { ROLES_ALLOWED, ROLES_GESTAO, ROLES_NAO_PEGA } from "@/lib/freela-yide/acesso";
 
 export default async function LancadasPage() {
   const user = await requireAuth();
-  if (!ROLES_ALLOWED.includes(user.role) || !ROLES_PODE_CRIAR.includes(user.role)) notFound();
+  if (!ROLES_ALLOWED.includes(user.role) || !ROLES_GESTAO.includes(user.role)) notFound();
   const orgId = await getOrganizationId(user.id);
   if (!orgId) notFound();
 

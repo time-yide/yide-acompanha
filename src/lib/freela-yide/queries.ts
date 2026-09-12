@@ -138,6 +138,16 @@ export async function listOportunidades(orgId: string, apenasDisponiveis = false
   return ((data ?? []) as Array<Record<string, unknown>>).map(mapRow);
 }
 
+export async function listPendentes(orgId: string): Promise<OportunidadeRow[]> {
+  const sb = createServiceRoleClient() as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  const { data, error } = await sb
+    .from("freela_oportunidades").select(SELECT)
+    .eq("organization_id", orgId).eq("status", "pendente").is("deleted_at", null)
+    .order("created_at", { ascending: false });
+  if (error) { console.error("[freelayide] listPendentes", error.message); return []; }
+  return ((data ?? []) as Array<Record<string, unknown>>).map(mapRow);
+}
+
 export async function listMinhas(orgId: string, userId: string): Promise<OportunidadeRow[]> {
   const sb = createServiceRoleClient() as any; // eslint-disable-line @typescript-eslint/no-explicit-any
   const { data, error } = await sb
@@ -173,7 +183,8 @@ export async function getRanking(orgId: string): Promise<RankingEntry[]> {
   const { data } = await sb.from("freela_oportunidades")
     .select("pego_por, status, negociacao_em, fechada_em, valor_comissao, responsavel:profiles!freela_oportunidades_pego_por_fkey(nome)")
     .eq("organization_id", orgId).is("deleted_at", null)
-    .not("pego_por", "is", null).gte("pego_em", inicioDoMes());
+    .not("pego_por", "is", null).gte("pego_em", inicioDoMes())
+    .neq("status", "pendente");
   const mapa = new Map<string, RankingEntry>();
   for (const r of (data ?? []) as Array<Record<string, unknown>>) {
     const uid = r.pego_por as string;
@@ -214,7 +225,8 @@ export async function getHistorico(orgId: string): Promise<FreelaHistorico> {
   const { data, error } = await sb.from("freela_oportunidades")
     .select("pego_por, titulo, cliente_nome, status, negociacao_em, fechada_em, valor_comissao, pego_em, responsavel:profiles!freela_oportunidades_pego_por_fkey(nome)")
     .eq("organization_id", orgId).is("deleted_at", null)
-    .not("pego_por", "is", null).not("pego_em", "is", null);
+    .not("pego_por", "is", null).not("pego_em", "is", null)
+    .neq("status", "pendente");
   if (error) { console.error("[freelayide] getHistorico", error.message); return { meses: [], geral: [] }; }
 
   const porMes = new Map<string, Map<string, RankingEntry>>();
@@ -304,7 +316,7 @@ export async function getPagamentosPorMes(orgId: string): Promise<MesPagamentos[
     .select("pego_por, titulo, cliente_nome, valor_comissao, pego_em, responsavel:profiles!freela_oportunidades_pego_por_fkey(nome)")
     .eq("organization_id", orgId).is("deleted_at", null)
     .not("pego_por", "is", null).not("pego_em", "is", null)
-    .neq("status", "perdida");
+    .neq("status", "perdida").neq("status", "pendente");
   if (error) { console.error("[freelayide] getPagamentosPorMes", error.message); return []; }
   const rows: PagamentoInput[] = (data ?? []).map((r: Record<string, unknown>) => ({
     pego_por: r.pego_por as string,
@@ -326,7 +338,8 @@ export async function getConquistaStats(userId: string): Promise<ConquistaStats>
   const sb = createServiceRoleClient() as any; // eslint-disable-line @typescript-eslint/no-explicit-any
   const { data, error } = await sb.from("freela_oportunidades")
     .select("status, valor_comissao")
-    .eq("pego_por", userId).is("deleted_at", null);
+    .eq("pego_por", userId).is("deleted_at", null)
+    .neq("status", "pendente");
   if (error) { console.error("[freelayide] getConquistaStats", error.message); return { pegas: 0, fechamentos: 0, pequenasFechadas: 0, valorFechado: 0 }; }
   let pegas = 0, fechamentos = 0, pequenasFechadas = 0, valorFechado = 0;
   for (const r of (data ?? []) as Array<Record<string, unknown>>) {
