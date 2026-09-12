@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { saveVoiceConfigAction } from "@/lib/voz-ia/config-actions";
 import { VOZES_OPENAI } from "@/lib/voz-ia/types";
 import type { AIVoiceConfig } from "@/lib/voz-ia/types";
+import { VoicePreviewButton } from "./VoicePreviewButton";
 
 interface Props {
   config: AIVoiceConfig | null;
@@ -11,6 +12,7 @@ interface Props {
 
 export function ConfigVozIAForm({ config }: Props) {
   const [state, action, pending] = useActionState(saveVoiceConfigAction, { success: true });
+  const [selectedVoice, setSelectedVoice] = useState(config?.voz ?? "alloy");
 
   return (
     <form action={action} className="space-y-6">
@@ -34,16 +36,20 @@ export function ConfigVozIAForm({ config }: Props) {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <label htmlFor="voz" className="text-sm font-medium">Voz</label>
-          <select
-            id="voz"
-            name="voz"
-            defaultValue={config?.voz ?? "alloy"}
-            className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-          >
-            {VOZES_OPENAI.map((v) => (
-              <option key={v.value} value={v.value}>{v.label}</option>
-            ))}
-          </select>
+          <div className="flex items-center gap-2">
+            <select
+              id="voz"
+              name="voz"
+              value={selectedVoice}
+              onChange={(e) => setSelectedVoice(e.target.value)}
+              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+            >
+              {VOZES_OPENAI.map((v) => (
+                <option key={v.value} value={v.value}>{v.label}</option>
+              ))}
+            </select>
+            <VoicePreviewButton voice={selectedVoice} />
+          </div>
         </div>
 
         <div className="space-y-2">
