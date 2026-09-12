@@ -5,6 +5,7 @@ import { saveVoiceConfigAction } from "@/lib/voz-ia/config-actions";
 import { VOZES_OPENAI } from "@/lib/voz-ia/types";
 import type { AIVoiceConfig } from "@/lib/voz-ia/types";
 import { VoicePreviewButton } from "./VoicePreviewButton";
+import { CadenciaConfig } from "./CadenciaConfig";
 
 interface Props {
   config: AIVoiceConfig | null;
@@ -251,6 +252,14 @@ export function ConfigVozIAForm({ config }: Props) {
             placeholder="Deixe vazio para usar o prompt padrão que adapta a mensagem por nicho automaticamente."
             className="w-full rounded-md border bg-background px-3 py-2 text-sm"
           />
+        </div>
+
+        <div className="border-t pt-4">
+          <h3 className="text-sm font-semibold mb-2">Cadência de Prospecção</h3>
+          <p className="text-xs text-muted-foreground mb-3">
+            Sequência de contatos automáticos. O motor executa cada step no intervalo configurado.
+          </p>
+          <CadenciaConfig configId={config?.id ?? null} />
         </div>
       </div>
 
