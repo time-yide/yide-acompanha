@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { validarAssinaturaTwilio } from "@/lib/ligacoes/twilio";
 import { getServerEnv } from "@/lib/env";
+import { isOptOut, isMediaOnly } from "@/lib/motor-prospeccao/opt-out";
+import { buildConversaContext, gerarRespostaIA } from "@/lib/motor-prospeccao/conversa-ia";
+import { handleMarcarSemInteresse } from "@/lib/motor-prospeccao/tool-handlers";
+import { isHorarioComercial } from "@/lib/motor-prospeccao/categorias";
 
 /**
  * Webhook de mensagens WhatsApp recebidas (incoming) do Twilio.
@@ -133,8 +137,120 @@ export async function POST(req: NextRequest) {
     nova_data: new Date().toISOString(),
   });
 
+  // --- IA Conversacional ---
+  const { data: convAI } = await sb
+    .from("wpp_conversations")
+    .select("ai_ativa, ai_config_id")
+    .eq("id", convId)
+    .single();
+
+  if (convAI?.ai_ativa) {
+    try {
+      if (isOptOut(body)) {
+        const { data: convLead } = await sb
+          .from("wpp_conversations")
+          .select("lead_gerado_id")
+          .eq("id", convId)
+          .single();
+        await handleMarcarSemInteresse(orgId, convLead?.lead_gerado_id ?? null, convId, {
+          motivo: "Lead pediu pra parar (opt-out)",
+        });
+        await enviarRespostaIA(sb, convId, orgId, "Sem problema, não vou mais te enviar mensagens. Desculpa o incômodo!");
+        return twimlResponse();
+      }
+
+      if (isMediaOnly(params)) {
+        await enviarRespostaIA(sb, convId, orgId, "Desculpa, por enquanto só consigo ler mensagens de texto! Pode digitar pra mim?");
+        return twimlResponse();
+      }
+
+      if (convAI.ai_config_id) {
+        const { data: aiConfig } = await sb
+          .from("ai_voice_configs")
+          .select("horario_inicio, horario_fim, horario_inicio_fds, horario_fim_fds")
+          .eq("id", convAI.ai_config_id)
+          .single();
+
+        if (aiConfig && !isHorarioComercial(new Date(), aiConfig)) {
+          return twimlResponse();
+        }
+      }
+
+      const ctx = await buildConversaContext(convId);
+      if (ctx) {
+        const result = await gerarRespostaIA(ctx);
+        if ("texto" in result && result.texto) {
+          await enviarRespostaIA(sb, convId, orgId, result.texto);
+        }
+      }
+    } catch (err) {
+      console.error("[wpp-webhook] Erro na IA conversacional:", err);
+    }
+  }
+
   // Twilio espera TwiML de resposta (pode ser vazio)
   return twimlResponse();
+}
+
+async function enviarRespostaIA(
+  supabase: any,
+  conversationId: string,
+  orgId: string,
+  texto: string,
+) {
+  const env = getServerEnv();
+  const { data: conv } = await supabase
+    .from("wpp_conversations")
+    .select("contato_telefone, twilio_from")
+    .eq("id", conversationId)
+    .single();
+
+  if (!conv?.twilio_from || !conv?.contato_telefone) return;
+
+  const accountSid = env.TWILIO_ACCOUNT_SID;
+  const authToken = env.TWILIO_AUTH_TOKEN;
+  if (!accountSid || !authToken) return;
+
+  const appUrl = env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+  const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
+  const twilioParams = new URLSearchParams({
+    From: `whatsapp:${conv.twilio_from}`,
+    To: `whatsapp:${conv.contato_telefone}`,
+    Body: texto,
+    StatusCallback: `${appUrl}/api/webhooks/wpp/twilio/status`,
+  });
+
+  const resp = await fetch(twilioUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: twilioParams.toString(),
+  });
+
+  let twilioSid: string | null = null;
+  if (resp.ok) {
+    const result = await resp.json();
+    twilioSid = result.sid ?? null;
+  }
+
+  await supabase.from("wpp_messages").insert({
+    conversation_id: conversationId,
+    organization_id: orgId,
+    autor: "ia",
+    texto,
+    twilio_sid: twilioSid,
+    status: twilioSid ? "enviada" : "falhou",
+  });
+
+  await supabase
+    .from("wpp_conversations")
+    .update({
+      ultimo_texto: texto.slice(0, 200),
+      ultima_msg_em: new Date().toISOString(),
+    })
+    .eq("id", conversationId);
 }
 
 function twimlResponse() {
