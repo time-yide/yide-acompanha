@@ -61,7 +61,9 @@ CREATE INDEX IF NOT EXISTS motor_log_criado_idx
 ALTER TABLE public.motor_prospeccao_log ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "motor_log_select_by_org" ON public.motor_prospeccao_log
-  FOR SELECT USING (organization_id = public.get_user_org());
+  FOR SELECT USING (
+    organization_id IN (SELECT organization_id FROM profiles WHERE id = auth.uid())
+  );
 
 CREATE POLICY "motor_log_insert_service" ON public.motor_prospeccao_log
   FOR INSERT WITH CHECK (true);
