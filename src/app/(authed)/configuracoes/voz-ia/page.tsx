@@ -11,6 +11,7 @@ export default async function ConfigVozIAPage() {
   const user = await requireAuth();
   if (!ROLES_CONFIG_VOZ_IA.includes(user.role)) notFound();
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
   const { data: profile } = await sb
     .from("profiles")

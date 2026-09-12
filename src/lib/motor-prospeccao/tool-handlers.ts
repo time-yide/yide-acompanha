@@ -3,6 +3,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import type { ToolCallResult } from "./conversa-ia-types";
 
 function sb() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return createServiceRoleClient() as any;
 }
 

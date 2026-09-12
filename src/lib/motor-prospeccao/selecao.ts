@@ -5,6 +5,7 @@ import type { LeadParaProspectar } from "./types";
 import { MOTOR_BATCH_SIZE } from "./types";
 
 function sb() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return createServiceRoleClient() as any;
 }
 
@@ -66,6 +67,7 @@ export async function contarWppEnviadosHoje(orgId: string): Promise<number> {
 }
 
 export async function getOrgsComMotorAtivo(): Promise<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   { organization_id: string; config: any }[]
 > {
   const { data } = await sb()
@@ -74,6 +76,7 @@ export async function getOrgsComMotorAtivo(): Promise<
     .eq("ativo", true)
     .eq("motor_ativo", true);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (data ?? []).map((c: any) => ({
     organization_id: c.organization_id,
     config: c,

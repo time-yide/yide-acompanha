@@ -11,6 +11,7 @@ import type { LeadParaProspectar, MotorResult, MotorGlobalResult } from "./types
 import { MOTOR_BATCH_SIZE, MOTOR_INTERVALO_MIN_HORAS } from "./types";
 
 function sb() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return createServiceRoleClient() as any;
 }
 
@@ -33,7 +34,9 @@ async function findOrCreateConversation(
     await sb()
       .from("wpp_conversations")
       .update({ ai_ativa: true, ai_config_id: configId })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .eq("id", (existing as any).id);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (existing as any).id;
   }
 
@@ -96,6 +99,7 @@ async function enviarViaTwilio(
 async function processarLead(
   orgId: string,
   lead: LeadParaProspectar,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   config: any,
   statusUrl: string,
   podeLigar: boolean,

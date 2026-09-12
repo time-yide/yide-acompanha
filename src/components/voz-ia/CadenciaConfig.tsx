@@ -60,8 +60,10 @@ export function CadenciaConfig({ configId }: Props) {
     setSteps(steps.filter((_, i) => i !== idx));
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function updateStep(idx: number, field: string, value: any) {
     const updated = [...steps];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (updated[idx] as any)[field] = value;
     setSteps(updated);
   }

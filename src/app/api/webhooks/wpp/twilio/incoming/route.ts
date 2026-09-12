@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
 
   // Encontrar ou criar conversa
@@ -67,6 +68,7 @@ export async function POST(req: NextRequest) {
     let orgId: string;
     if (existingConv) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       orgId = (existingConv as any).organization_id;
     } else {
       // Fallback: primeira organização
@@ -79,6 +81,7 @@ export async function POST(req: NextRequest) {
         console.error("[wpp-webhook] Nenhuma organização encontrada");
         return twimlResponse();
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       orgId = (firstOrg as any).id;
     }
@@ -106,7 +109,9 @@ export async function POST(req: NextRequest) {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const convId = (conv as any).id;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const orgId = (conv as any).organization_id;
 
@@ -193,6 +198,7 @@ export async function POST(req: NextRequest) {
 }
 
 async function enviarRespostaIA(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
   conversationId: string,
   orgId: string,
