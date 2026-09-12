@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { getServerEnv } from "@/lib/env";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getRealtimeWsUrl, buildSessionUpdate } from "./openai-session";

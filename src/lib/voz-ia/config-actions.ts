@@ -16,6 +16,7 @@ export async function saveVoiceConfigAction(
   const actor = await requireAuth();
   if (!ROLES_CONFIG_VOZ_IA.includes(actor.role)) return { error: "Sem permissão" };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
   const { data: profile } = await sb
     .from("profiles")

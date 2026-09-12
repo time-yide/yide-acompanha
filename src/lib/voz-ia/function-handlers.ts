@@ -11,6 +11,7 @@ export async function handleAgendarReuniao(
   args: { data: string; horario: string; duracao_minutos?: number },
   ctx: CallContext,
 ): Promise<string> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
   const duracao = args.duracao_minutos ?? 30;
 
@@ -69,6 +70,7 @@ export async function handleMarcarSemInteresse(
   args: { motivo?: string },
   ctx: CallContext,
 ): Promise<string> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
 
   await sb.from("ai_voice_calls").update({

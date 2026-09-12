@@ -6,6 +6,7 @@ import { selecionarLeads, contarWppEnviadosHoje, getOrgsComMotorAtivo } from "./
 import { gerarMensagemPrimeiroContato } from "./gerar-mensagem";
 import { getStepsDaCadencia, calcularStepAtual, seedCadenciaPadrao } from "./cadencia";
 import { normalizeTelefone } from "@/lib/dispatch/render-template";
+import { dispararLigacaoIA, contarLigacoesHoje } from "@/lib/voz-ia/ligacao-automatica";
 import type { LeadParaProspectar, MotorResult, MotorGlobalResult } from "./types";
 import { MOTOR_BATCH_SIZE, MOTOR_INTERVALO_MIN_HORAS } from "./types";
 
@@ -97,6 +98,7 @@ async function processarLead(
   lead: LeadParaProspectar,
   config: any,
   statusUrl: string,
+  podeLigar: boolean,
 ): Promise<{ acao: string; erro?: string }> {
   // Check cadência step
   await seedCadenciaPadrao(config.id);
@@ -112,18 +114,29 @@ async function processarLead(
   }
 
   if (step.canal === "ligacao") {
-    // Log voice call as pending (Fase 3 integration)
-    await sb().from("motor_prospeccao_log").insert({
-      organization_id: orgId,
-      lead_gerado_id: lead.id,
-      acao: "ligacao_pendente",
-      modelo: "wpp_direto",
-      detalhes: { nota: "Ligação IA pendente — integração em Fase 3", step_ordem: step.ordem },
-    });
+    if (!podeLigar) {
+      return { acao: "ligacao_limite", erro: "Limite diário de ligações atingido" };
+    }
 
-    // Still increment tentativas so lead progresses through cadência
+    const telefoneRaw = lead.telefone || lead.whatsapp;
+    if (!telefoneRaw) return { acao: "erro", erro: "Sem telefone para ligação" };
+
+    const resultado = await dispararLigacaoIA(orgId, lead.id);
+
+    if ("error" in resultado) {
+      await sb().from("motor_prospeccao_log").insert({
+        organization_id: orgId,
+        lead_gerado_id: lead.id,
+        acao: "ligacao_erro",
+        modelo: "voz_ia",
+        detalhes: { erro: resultado.error, step_ordem: step.ordem },
+      });
+      return { acao: "erro", erro: resultado.error };
+    }
+
     const proximaTentativa = new Date();
     proximaTentativa.setDate(proximaTentativa.getDate() + (step.dias_apos_anterior || 2));
+
     await sb()
       .from("leads_gerados")
       .update({
@@ -132,7 +145,23 @@ async function processarLead(
       })
       .eq("id", lead.id);
 
-    return { acao: "ligacao_pendente" };
+    await sb().from("lead_attempts").insert({
+      organization_id: orgId,
+      lead_gerado_id: lead.id,
+      tipo: "ligacao",
+      canal: "ligacao",
+      notas: "Motor de prospecção — ligação IA automática",
+    }).catch(() => {});
+
+    await sb().from("motor_prospeccao_log").insert({
+      organization_id: orgId,
+      lead_gerado_id: lead.id,
+      acao: "ligacao_ia",
+      modelo: "voz_ia",
+      detalhes: { call_id: resultado.callId, step_ordem: step.ordem },
+    });
+
+    return { acao: "ligacao_ia" };
   }
 
   // --- WhatsApp flow ---
@@ -229,6 +258,7 @@ export async function executarMotor(): Promise<MotorGlobalResult> {
     orgs: 0,
     totalProcessados: 0,
     totalWpp: 0,
+    totalLigacoes: 0,
     totalErros: 0,
     porOrg: [],
   };
@@ -247,10 +277,15 @@ export async function executarMotor(): Promise<MotorGlobalResult> {
     const batch = Math.min(MOTOR_BATCH_SIZE, wppRestante);
     const leads = await selecionarLeads(orgId, config.max_tentativas, batch);
 
+    const ligacoesHoje = await contarLigacoesHoje(orgId);
+    const maxLigacoes = config.max_chamadas_dia ?? 30;
+    let ligacoesRestantes = Math.max(0, maxLigacoes - ligacoesHoje);
+
     const orgResult: MotorResult = {
       orgId,
       processados: 0,
       wppEnviados: 0,
+      ligacoesDisparadas: 0,
       erros: 0,
       detalhes: [],
     };
@@ -258,9 +293,12 @@ export async function executarMotor(): Promise<MotorGlobalResult> {
     for (const lead of leads) {
       orgResult.processados++;
       try {
-        const res = await processarLead(orgId, lead, config, statusUrl);
+        const res = await processarLead(orgId, lead, config, statusUrl, ligacoesRestantes > 0);
         if (res.acao === "wpp_primeiro_contato") {
           orgResult.wppEnviados++;
+        } else if (res.acao === "ligacao_ia") {
+          orgResult.ligacoesDisparadas++;
+          ligacoesRestantes--;
         } else if (res.acao === "erro") {
           orgResult.erros++;
           await sb().from("motor_prospeccao_log").insert({
@@ -281,6 +319,7 @@ export async function executarMotor(): Promise<MotorGlobalResult> {
 
     result.totalProcessados += orgResult.processados;
     result.totalWpp += orgResult.wppEnviados;
+    result.totalLigacoes += orgResult.ligacoesDisparadas;
     result.totalErros += orgResult.erros;
     result.porOrg.push(orgResult);
   }
