@@ -27,14 +27,17 @@ export async function GET(req: NextRequest) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "tts-1",
+      model: "tts-1-hd",
       voice,
       input: FRASE_PREVIEW,
     }),
   });
 
   if (!resp.ok) {
-    return NextResponse.json({ error: "Erro ao gerar áudio" }, { status: 502 });
+    const msg = voice === "verse"
+      ? "Voz Verse só funciona nas ligações (Realtime API), não tem preview por TTS"
+      : "Erro ao gerar áudio";
+    return NextResponse.json({ error: msg }, { status: 502 });
   }
 
   const audio = await resp.arrayBuffer();

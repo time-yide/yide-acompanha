@@ -7,7 +7,8 @@ interface Props {
 }
 
 export function VoicePreviewButton({ voice }: Props) {
-  const [status, setStatus] = useState<"idle" | "loading" | "playing">("idle");
+  const [status, setStatus] = useState<"idle" | "loading" | "playing" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState("");
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   async function handlePlay() {
@@ -18,9 +19,15 @@ export function VoicePreviewButton({ voice }: Props) {
     }
 
     setStatus("loading");
+    setErrorMsg("");
     try {
       const resp = await fetch(`/api/voz-ia/tts-preview?voice=${voice}`);
-      if (!resp.ok) throw new Error();
+      if (!resp.ok) {
+        const data = await resp.json().catch(() => ({}));
+        setErrorMsg(data.error ?? "Erro ao gerar áudio");
+        setStatus("error");
+        return;
+      }
       const blob = await resp.blob();
       const url = URL.createObjectURL(blob);
 
@@ -35,19 +42,25 @@ export function VoicePreviewButton({ voice }: Props) {
       audio.play();
       setStatus("playing");
     } catch {
-      setStatus("idle");
+      setErrorMsg("Erro de conexão");
+      setStatus("error");
     }
   }
 
   return (
-    <button
-      type="button"
-      onClick={handlePlay}
-      disabled={status === "loading"}
-      className="rounded-md border px-2 py-1 text-xs hover:bg-muted disabled:opacity-50"
-      title={status === "playing" ? "Parar" : "Ouvir voz"}
-    >
-      {status === "loading" ? "..." : status === "playing" ? "⏹" : "▶"}
-    </button>
+    <div className="flex items-center gap-2">
+      <button
+        type="button"
+        onClick={handlePlay}
+        disabled={status === "loading"}
+        className="rounded-md border px-2 py-1 text-xs hover:bg-muted disabled:opacity-50"
+        title={status === "playing" ? "Parar" : "Ouvir voz"}
+      >
+        {status === "loading" ? "..." : status === "playing" ? "⏹" : "▶"}
+      </button>
+      {status === "error" && (
+        <span className="text-xs text-red-500">{errorMsg}</span>
+      )}
+    </div>
   );
 }
