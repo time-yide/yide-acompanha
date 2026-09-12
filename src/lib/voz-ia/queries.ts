@@ -2,6 +2,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import type { AIVoiceConfig, AIVoiceCall } from "./types";
 
 export async function getActiveConfig(orgId: string): Promise<AIVoiceConfig | null> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
   const { data } = await sb
     .from("ai_voice_configs")
@@ -13,6 +14,7 @@ export async function getActiveConfig(orgId: string): Promise<AIVoiceConfig | nu
 }
 
 export async function getCallById(callId: string, orgId?: string): Promise<AIVoiceCall | null> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
   let query = sb
     .from("ai_voice_calls")
@@ -28,6 +30,7 @@ export async function listCallsForLead(
   orgId: string,
   limit = 20,
 ): Promise<AIVoiceCall[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
   const { data } = await sb
     .from("ai_voice_calls")
@@ -40,6 +43,7 @@ export async function listCallsForLead(
 }
 
 export async function getLeadAIStatus(leadId: string, orgId: string) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
   const { data } = await sb
     .from("leads_gerados")

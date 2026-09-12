@@ -8,6 +8,7 @@ interface LigacaoErr { error: string }
 export type LigacaoAutomaticaResult = LigacaoOk | LigacaoErr;
 
 export async function contarLigacoesHoje(orgId: string): Promise<number> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
@@ -28,6 +29,7 @@ export async function dispararLigacaoIA(
   if (!env.TWILIO_ACCOUNT_SID || !env.TWILIO_AUTH_TOKEN)
     return { error: "Twilio não configurado" };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
 
   const config = await getActiveConfig(orgId);

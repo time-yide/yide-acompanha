@@ -24,6 +24,7 @@ export async function testarVozIAAction(telefone: string): Promise<LigarResult> 
   const numero = telefone.trim().replace(/[^\d+]/g, "");
   if (numero.length < 10) return { error: "Número inválido" };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
   const { data: profile } = await sb
     .from("profiles")
@@ -107,6 +108,7 @@ export async function ligarComIAAction(leadGeradoId: string): Promise<LigarResul
   if (!env.TWILIO_ACCOUNT_SID || !env.TWILIO_AUTH_TOKEN)
     return { error: "Twilio não configurado" };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
   const { data: profile } = await sb
     .from("profiles")

@@ -12,6 +12,7 @@ interface PostCallData {
 }
 
 export async function processPostCall(data: PostCallData) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
   const env = getServerEnv();
   const appUrl = env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
@@ -66,6 +67,7 @@ export async function sendWhatsAppFollowUp(data: {
   const env = getServerEnv();
   if (!env.TWILIO_ACCOUNT_SID || !env.TWILIO_AUTH_TOKEN) return;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
 
   const mensagem = (data.template ?? "Oi! Tentei ligar pra você agora da Yide Digital. Somos uma agência de marketing e queria conversar sobre como podemos ajudar a {empresa} a crescer nas redes sociais. Posso te explicar por aqui?")
