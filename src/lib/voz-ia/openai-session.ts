@@ -2,7 +2,7 @@ import { getServerEnv } from "@/lib/env";
 import { OPENAI_REALTIME_TOOLS } from "./types";
 import type { AIVoiceConfig } from "./types";
 
-const DEFAULT_MODEL = "gpt-4o-realtime-preview-2024-12-17";
+const DEFAULT_MODEL = "gpt-4o-realtime-preview";
 
 export function getRealtimeWsUrl(): string {
   const model = getServerEnv().OPENAI_REALTIME_MODEL || DEFAULT_MODEL;
@@ -15,9 +15,10 @@ export function buildSessionUpdate(config: AIVoiceConfig) {
     session: {
       instructions: config.system_prompt,
       voice: config.voz,
-      temperature: config.temperatura,
-      input_audio_format: "g711_ulaw",
-      output_audio_format: "g711_ulaw",
+      audio: {
+        input: { format: { type: "audio/pcmu" } },
+        output: { format: { type: "audio/pcmu" } },
+      },
       input_audio_transcription: { model: "whisper-1" },
       turn_detection: { type: "server_vad", threshold: 0.5, silence_duration_ms: 800 },
       tools: OPENAI_REALTIME_TOOLS.map((t) => ({
