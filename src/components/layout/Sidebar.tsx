@@ -11,7 +11,6 @@ import { roleLabel, type Role } from "@/lib/auth/permissions";
 export interface SidebarBadges {
   recados?: number;
   escritorio?: number;
-  yoriProntos?: number;
   solicitacoes?: number;
 }
 

@@ -16,8 +16,6 @@ import { HeartbeatProvider } from "@/components/produtividade/HeartbeatProvider"
 import { TwilioCallProvider } from "@/components/ligacoes/TwilioCallProvider";
 import { getEffectiveUnitId, getUnitContext } from "@/lib/units/session";
 import { getProfileIdsForActiveUnit } from "@/lib/units/filter-helpers";
-import { countUndownloadedJobs } from "@/lib/yori/queries";
-import { isYoriEnabled } from "@/lib/yori/feature-flag";
 import { countRequestsAbertas } from "@/lib/portal-requests/queries";
 
 /**
@@ -36,15 +34,14 @@ async function resolveBadges(user: CurrentUser): Promise<SidebarBadges> {
       getProfileIdsForActiveUnit(),
       getEffectiveUnitId(),
     ]);
-    const [recados, escritorio, yoriProntos, solicitacoes] = await Promise.all([
+    const [recados, escritorio, solicitacoes] = await Promise.all([
       countRecadosNaoLidos(user.id, unitProfileIds).catch(() => 0),
       countChannelsWithUnread(user.id, user.role, unitId).catch(() => 0),
-      isYoriEnabled() ? countUndownloadedJobs(user.id).catch(() => 0) : Promise.resolve(0),
       veSolicitacoes ? countRequestsAbertas().catch(() => 0) : Promise.resolve(0),
     ]);
-    return { recados, escritorio, yoriProntos, solicitacoes };
+    return { recados, escritorio, solicitacoes };
   } catch {
-    return { recados: 0, escritorio: 0, yoriProntos: 0, solicitacoes: 0 };
+    return { recados: 0, escritorio: 0, solicitacoes: 0 };
   }
 }
 

@@ -32,3 +32,16 @@ export interface EditPlan {
   segments: EditSegment[];
   captions: CaptionLine[];
 }
+
+export interface WhisperWord {
+  word: string;
+  start: number;
+  end: number;
+}
+
+export interface WhisperTranscription {
+  text: string;
+  language: string;
+  duration: number;
+  words: WhisperWord[];
+}

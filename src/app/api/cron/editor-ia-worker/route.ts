@@ -9,7 +9,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getServerEnv } from "@/lib/env";
 import { listJobsToProcess } from "@/lib/editor-ia/queries";
 import { downloadFile, getSignedUrl, uploadOutput, outputPath } from "@/lib/editor-ia/storage";
-import { transcribeAudio } from "@/lib/yori/services/groq-whisper";
+import { transcribeAudio } from "@/lib/editor-ia/services/groq-whisper";
 import { gerarPlanoBase, parametrosDaInstrucao } from "@/lib/editor-ia/services/ia-plano";
 import { buildShotstackEdit, submitRender, getRenderStatus } from "@/lib/editor-ia/services/shotstack";
 import type { EditorIaJobRow } from "@/lib/editor-ia/queries";
@@ -84,7 +84,7 @@ async function processTranscrevendo(job: JobWithMeta): Promise<string> {
 }
 
 async function processPlanejando(job: JobWithMeta): Promise<string> {
-  const transc = job.transcricao as { words?: import("@/lib/yori/tipos").WhisperWord[] } | null;
+  const transc = job.transcricao as { words?: import("@/lib/editor-ia/tipos").WhisperWord[] } | null;
   const words = transc?.words ?? [];
   if (words.length === 0) throw new Error("transcrição sem palavras");
 

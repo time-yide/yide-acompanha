@@ -1,5 +1,5 @@
 import type { TranscriptSegment } from "./tipos";
-import type { WhisperWord } from "@/lib/yori/tipos";
+import type { WhisperWord } from "@/lib/editor-ia/tipos";
 
 /**
  * Agrupa palavras (com timestamps do Whisper) em segmentos de até `maxSeg`
