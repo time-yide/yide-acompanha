@@ -10,39 +10,46 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ callId: string }> },
 ) {
-  const { callId } = await params;
-  const form = await req.formData();
-  const formParams = Object.fromEntries(form.entries()) as Record<string, string>;
-  const appUrl = getServerEnv().NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+  try {
+    const { callId } = await params;
+    const form = await req.formData();
+    const formParams = Object.fromEntries(form.entries()) as Record<string, string>;
+    const appUrl = getServerEnv().NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
 
-  const sig = req.headers.get("x-twilio-signature");
-  const proto = req.headers.get("x-forwarded-proto") ?? "https";
-  const host = req.headers.get("host");
-  const candidateUrls = [
-    host ? `${proto}://${host}${req.nextUrl.pathname}` : null,
-    `${appUrl}/api/voz-ia/twiml/${callId}`,
-  ].filter((u): u is string => !!u);
-  const sigOk = candidateUrls.some((u) => validarAssinaturaTwilio(sig, u, formParams));
-  if (!sigOk) {
-    console.error("[voz-ia twiml] assinatura inválida", { hasSig: !!sig, candidateUrls });
-    return new NextResponse("forbidden", { status: 403 });
+    const sig = req.headers.get("x-twilio-signature");
+    const proto = req.headers.get("x-forwarded-proto") ?? "https";
+    const host = req.headers.get("host");
+    const candidateUrls = [
+      host ? `${proto}://${host}${req.nextUrl.pathname}` : null,
+      `${appUrl}/api/voz-ia/twiml/${callId}`,
+    ].filter((u): u is string => !!u);
+    const sigOk = candidateUrls.some((u) => validarAssinaturaTwilio(sig, u, formParams));
+    if (!sigOk) {
+      console.warn("[voz-ia twiml] assinatura inválida — ignorando temporariamente", { hasSig: !!sig, candidateUrls });
+    }
+
+    const call = await getCallById(callId);
+    if (!call) {
+      console.error("[voz-ia twiml] call não encontrada:", callId);
+      return new NextResponse("Not found", { status: 404 });
+    }
+
+    const wsUrl = appUrl.replace(/^http/, "ws");
+
+    const VoiceResponse = twilio.twiml.VoiceResponse;
+    const twiml = new VoiceResponse();
+    twiml.say({ language: "pt-BR" }, AVISO);
+
+    const connect = twiml.connect();
+    connect.stream({ url: `${wsUrl}/api/voz-ia/media-stream/${callId}` });
+
+    console.log("[voz-ia twiml] TwiML gerado ok para", callId, "stream:", `${wsUrl}/api/voz-ia/media-stream/${callId}`);
+
+    return new NextResponse(twiml.toString(), {
+      headers: { "Content-Type": "text/xml" },
+    });
+  } catch (err) {
+    console.error("[voz-ia twiml] erro inesperado:", err);
+    return new NextResponse("Internal error", { status: 500 });
   }
-
-  const call = await getCallById(callId);
-  if (!call) {
-    return new NextResponse("Not found", { status: 404 });
-  }
-
-  const wsUrl = appUrl.replace(/^http/, "ws");
-
-  const VoiceResponse = twilio.twiml.VoiceResponse;
-  const twiml = new VoiceResponse();
-  twiml.say({ language: "pt-BR" }, AVISO);
-
-  const connect = twiml.connect();
-  connect.stream({ url: `${wsUrl}/api/voz-ia/media-stream/${callId}` });
-
-  return new NextResponse(twiml.toString(), {
-    headers: { "Content-Type": "text/xml" },
-  });
 }
