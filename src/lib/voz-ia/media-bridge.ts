@@ -95,7 +95,6 @@ async function initOpenAIConnection(
   const openaiWs = new WebSocket(wsUrl, {
     headers: {
       Authorization: `Bearer ${env.OPENAI_API_KEY}`,
-      "OpenAI-Beta": "realtime=v1",
     },
   } as any);
   state.openaiWs = openaiWs;
@@ -141,6 +140,7 @@ function handleOpenAIMessage(
 ) {
   switch (msg.type) {
     case "response.audio.delta":
+    case "response.output_audio.delta":
       if (state.streamSid && msg.delta) {
         twilioWs.send(JSON.stringify({
           event: "media",
@@ -161,6 +161,7 @@ function handleOpenAIMessage(
       break;
 
     case "response.audio_transcript.done":
+    case "response.output_audio_transcript.done":
       if (msg.transcript) {
         state.transcription.push({
           role: "assistant",
