@@ -13,6 +13,7 @@ export function buildSessionUpdate(config: AIVoiceConfig) {
   return {
     type: "session.update",
     session: {
+      type: "realtime",
       instructions: config.system_prompt,
       voice: config.voz,
       audio: {
