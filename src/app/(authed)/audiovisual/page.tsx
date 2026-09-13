@@ -25,6 +25,7 @@ import { canRoleDelegateVideomaker, canRoleViewCoord } from "@/lib/audiovisual/c
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { SubirEdicaoButton } from "@/components/audiovisual/SubirEdicaoButton";
+import { isEditorIaEnabled, canUseEditorIa } from "@/lib/editor-ia/feature-flag";
 
 const ROLES_QUE_VEEM = ["videomaker", "fast_midia", "audiovisual_chefe", "coordenador", "assessor", "adm", "socio"];
 const ROLES_QUE_DELEGAM = ["audiovisual_chefe", "adm", "socio"];
@@ -264,6 +265,16 @@ export default async function AudiovisualPage({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {isEditorIaEnabled() && canUseEditorIa(user.role) && (
+            <Link
+              href="/audiovisual/editor-ia"
+              prefetch={false}
+              className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors"
+            >
+              <Clapperboard className="h-4 w-4" />
+              Editor IA
+            </Link>
+          )}
           {canAccess(user.role, "manage:review") && (
             <Link
               href="/audiovisual/review"

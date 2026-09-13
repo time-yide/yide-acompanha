@@ -1,5 +1,5 @@
-import type { WhisperWord } from "@/lib/yori/tipos";
-import { groupWordsIntoLines } from "@/lib/yori/srt-builder";
+import type { WhisperWord } from "../tipos";
+import { groupWordsIntoLines } from "../srt-builder";
 import type { EditPlan, EditSegment, CaptionLine } from "../tipos";
 
 export interface PlanoParams {

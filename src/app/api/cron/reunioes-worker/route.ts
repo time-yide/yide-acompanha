@@ -5,7 +5,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getServerEnv } from "@/lib/env";
 import { downloadRecording } from "@/lib/reunioes/storage";
 import { wordsToSegments } from "@/lib/reunioes/transcript";
-import { transcribeAudio } from "@/lib/yori/services/groq-whisper";
+import { transcribeAudio } from "@/lib/editor-ia/services/groq-whisper";
 import { summarizeMeeting } from "@/lib/reunioes/ai/summarizer";
 
 export const dynamic = "force-dynamic";

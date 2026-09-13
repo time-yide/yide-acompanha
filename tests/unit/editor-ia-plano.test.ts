@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { parametrosDaInstrucao, gerarPlanoBase } from "@/lib/editor-ia/services/ia-plano";
-import type { WhisperWord } from "@/lib/yori/tipos";
+import type { WhisperWord } from "@/lib/editor-ia/tipos";
 
 const W = (word: string, start: number, end: number): WhisperWord => ({ word, start, end });
 
