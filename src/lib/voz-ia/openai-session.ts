@@ -2,7 +2,7 @@ import { getServerEnv } from "@/lib/env";
 import { OPENAI_REALTIME_TOOLS } from "./types";
 import type { AIVoiceConfig } from "./types";
 
-const DEFAULT_MODEL = "gpt-4o-realtime-preview";
+const DEFAULT_MODEL = "gpt-realtime";
 
 export function getRealtimeWsUrl(): string {
   const model = getServerEnv().OPENAI_REALTIME_MODEL || DEFAULT_MODEL;
