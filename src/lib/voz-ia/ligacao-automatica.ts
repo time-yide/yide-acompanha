@@ -44,13 +44,13 @@ export async function dispararLigacaoIA(
 
   const { data: instancia } = await sb
     .from("ligacoes_instancias")
-    .select("numero_saida, id")
+    .select("numero, id")
     .eq("organization_id", orgId)
     .eq("provedor", "twilio")
-    .is("archived_at", null)
+    .is("arquivado_em", null)
     .limit(1)
     .maybeSingle();
-  if (!instancia?.numero_saida) return { error: "Sem instância Twilio" };
+  if (!instancia?.numero) return { error: "Sem instância Twilio" };
 
   const { data: call, error: insertErr } = await sb
     .from("ai_voice_calls")
@@ -60,7 +60,7 @@ export async function dispararLigacaoIA(
       config_id: config.id,
       prompt_usado: config.system_prompt,
       voz: config.voz,
-      twilio_from: instancia.numero_saida,
+      twilio_from: instancia.numero,
       status: "iniciando",
       iniciado_por: null,
       resultado_detalhe: "Ligação automática — motor de prospecção",
@@ -78,7 +78,7 @@ export async function dispararLigacaoIA(
   const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${env.TWILIO_ACCOUNT_SID}/Calls.json`;
   const body = new URLSearchParams({
     To: telefone,
-    From: instancia.numero_saida,
+    From: instancia.numero,
     Url: `${appUrl}/api/voz-ia/twiml/${call.id}`,
     StatusCallback: `${appUrl}/api/voz-ia/status/${call.id}`,
     StatusCallbackEvent: "initiated ringing answered completed",
