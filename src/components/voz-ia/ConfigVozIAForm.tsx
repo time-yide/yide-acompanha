@@ -6,6 +6,7 @@ import { VOZES_OPENAI } from "@/lib/voz-ia/types";
 import type { AIVoiceConfig } from "@/lib/voz-ia/types";
 import { VoicePreviewButton } from "./VoicePreviewButton";
 import { CadenciaConfig } from "./CadenciaConfig";
+import { PesquisasAutomaticasConfig } from "./PesquisasAutomaticasConfig";
 
 interface Props {
   config: AIVoiceConfig | null;
@@ -260,6 +261,10 @@ export function ConfigVozIAForm({ config }: Props) {
             Sequência de contatos automáticos. O motor executa cada step no intervalo configurado.
           </p>
           <CadenciaConfig configId={config?.id ?? null} />
+        </div>
+
+        <div className="border-t pt-4">
+          <PesquisasAutomaticasConfig />
         </div>
       </div>
 
