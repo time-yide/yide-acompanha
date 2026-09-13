@@ -43,6 +43,28 @@ export function isHorarioComercial(now: Date, config: {
   return hhmm >= inicio && hhmm < fim;
 }
 
+export function isHorarioLigacao(now: Date, config: {
+  horario_inicio_ligacao: string;
+  horario_fim_ligacao: string;
+  horario_inicio_ligacao_fds: string;
+  horario_fim_ligacao_fds: string;
+}): boolean {
+  const brt = new Date(now.getTime() - 4 * 60 * 60 * 1000);
+  const hhmm = brt.getUTCHours() * 100 + brt.getUTCMinutes();
+  const day = brt.getUTCDay();
+  const isWeekday = day >= 1 && day <= 5;
+
+  const [iniH, iniM] = (isWeekday ? config.horario_inicio_ligacao : config.horario_inicio_ligacao_fds)
+    .split(":").map(Number);
+  const [fimH, fimM] = (isWeekday ? config.horario_fim_ligacao : config.horario_fim_ligacao_fds)
+    .split(":").map(Number);
+
+  const inicio = iniH * 100 + iniM;
+  const fim = fimH * 100 + fimM;
+
+  return hhmm >= inicio && hhmm < fim;
+}
+
 export function isDiaUtil(now: Date): boolean {
   const brt = new Date(now.getTime() - 4 * 60 * 60 * 1000);
   const day = brt.getUTCDay();

@@ -45,6 +45,10 @@ export interface AIVoiceConfig {
   horario_fim: string;
   horario_inicio_fds: string;
   horario_fim_fds: string;
+  horario_inicio_ligacao: string;
+  horario_fim_ligacao: string;
+  horario_inicio_ligacao_fds: string;
+  horario_fim_ligacao_fds: string;
   twilio_wpp_from: string | null;
   ativo: boolean;
   created_at: string;
