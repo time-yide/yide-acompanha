@@ -15,13 +15,17 @@ export function buildSessionUpdate(config: AIVoiceConfig) {
     session: {
       type: "realtime",
       instructions: config.system_prompt,
-      voice: config.voz,
       audio: {
-        input: { format: { type: "audio/pcmu" } },
-        output: { format: { type: "audio/pcmu" } },
+        input: {
+          format: { type: "audio/pcmu" },
+          turn_detection: { type: "server_vad", threshold: 0.5, silence_duration_ms: 800 },
+          transcription: { model: "whisper-1" },
+        },
+        output: {
+          format: { type: "audio/pcmu" },
+          voice: config.voz,
+        },
       },
-      input_audio_transcription: { model: "whisper-1" },
-      turn_detection: { type: "server_vad", threshold: 0.5, silence_duration_ms: 800 },
       tools: OPENAI_REALTIME_TOOLS.map((t) => ({
         type: t.type,
         name: t.name,
