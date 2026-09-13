@@ -1,7 +1,7 @@
 import "server-only";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getServerEnv } from "@/lib/env";
-import { isHorarioComercial } from "./categorias";
+import { isHorarioComercial, isHorarioLigacao } from "./categorias";
 import { selecionarLeads, contarWppEnviadosHoje, getOrgsComMotorAtivo } from "./selecao";
 import { gerarMensagemPrimeiroContato } from "./gerar-mensagem";
 import { getStepsDaCadencia, calcularStepAtual, seedCadenciaPadrao } from "./cadencia";
@@ -281,9 +281,12 @@ export async function executarMotor(): Promise<MotorGlobalResult> {
     const batch = Math.min(MOTOR_BATCH_SIZE, wppRestante);
     const leads = await selecionarLeads(orgId, config.max_tentativas, batch);
 
+    const dentroDoHorarioLigacao = isHorarioLigacao(now, config);
     const ligacoesHoje = await contarLigacoesHoje(orgId);
     const maxLigacoes = config.max_chamadas_dia ?? 30;
-    let ligacoesRestantes = Math.max(0, maxLigacoes - ligacoesHoje);
+    let ligacoesRestantes = dentroDoHorarioLigacao
+      ? Math.max(0, maxLigacoes - ligacoesHoje)
+      : 0;
 
     const orgResult: MotorResult = {
       orgId,
