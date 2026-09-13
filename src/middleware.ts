@@ -141,6 +141,6 @@ export const config = {
   // explicitamente, senão o auth redireciona pro /login e o ícone não
   // carrega (manifest é público mas apontaria pra ícone gated).
   matcher: [
-    "/((?!_next/static|_next/image|favicon|public|manifest\\.webmanifest|sw\\.js|api/cron|api/webhooks|api/ligacoes/twilio/voice|apple-icon|icon0|icon1|icon2|.*\\.svg|.*\\.png).*)",
+    "/((?!_next/static|_next/image|favicon|public|manifest\\.webmanifest|sw\\.js|api/cron|api/webhooks|api/ligacoes/twilio/voice|api/voz-ia/twiml|api/voz-ia/status|api/voz-ia/media-stream|apple-icon|icon0|icon1|icon2|.*\\.svg|.*\\.png).*)",
   ],
 };
