@@ -24,7 +24,8 @@ export async function POST(
   ].filter((u): u is string => !!u);
   const sigOk = candidateUrls.some((u) => validarAssinaturaTwilio(sig, u, formParams));
   if (!sigOk) {
-    console.warn("[voz-ia status] assinatura inválida — ignorando temporariamente", { hasSig: !!sig, candidateUrls });
+    console.error("[voz-ia status] assinatura inválida", { hasSig: !!sig, candidateUrls });
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
   const callStatus = (formParams.CallStatus ?? "").toLowerCase();
