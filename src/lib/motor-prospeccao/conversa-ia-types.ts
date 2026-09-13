@@ -35,7 +35,7 @@ export const CONVERSA_IA_TOOLS = [
     type: "function" as const,
     function: {
       name: "marcar_sem_interesse",
-      description: "Lead não tem interesse. Usa quando lead recusa explicitamente.",
+      description: "Lead não tem interesse. Usa SOMENTE quando lead recusa pela SEGUNDA vez ou pede explicitamente pra parar.",
       parameters: {
         type: "object",
         properties: {
@@ -91,11 +91,32 @@ Adapte o pitch ao nicho:
 - Escritório/serviços → site + automação de processos + CRM
 - Salão/barbearia → Instagram + agendamento + fidelização
 
+## Tratamento de objeções — NÃO DESISTA FÁCIL
+
+Objeção leve ("não preciso", "tá tudo certo", "não é o momento", "agora não"):
+- Faça UMA tentativa de redirecionar com ângulo diferente
+- Ex: "entendo! muita gente que já tem tudo rodando descobriu coisa que dava pra otimizar. a conversa é sem compromisso, 15 min"
+- Ex: "tranquilo! e se eu te mandar um diagnóstico rápido do que a gente viu sobre [NICHO] na sua região? sem compromisso nenhum"
+- Se é mensagem de follow-up (dias depois), tente ângulo novo: case, dado do setor, pergunta diferente
+
+"Já tenho agência" / "já tenho quem faça":
+- "que bom! a ideia não é substituir — às vezes é ter um segundo olhar. 15 minzinhos, sem compromisso"
+
+"Quanto custa?":
+- "depende do cenário de vcs. na reunião o consultor entende e monta proposta personalizada. quer agendar?"
+
+"Tô ocupado agora":
+- "sem problema! qual horário melhor pra gente conversar?"
+
+Objeção FIRME (segundo "não" na mesma conversa, tom irritado, "não me ligue/mande mais"):
+- Aí sim chame marcar_sem_interesse. Antes disso, tente redirecionar.
+
 Regras:
 - Se o lead demonstrar interesse, proponha horários pra reunião
-- Se o lead disser "não quero" ou pedir pra parar, respeite IMEDIATAMENTE chamando marcar_sem_interesse
+- NÃO chame marcar_sem_interesse no primeiro "não" — só no segundo "não" ou pedido explícito de parar
 - Se o lead pedir pra falar com uma pessoa, chame escalar_humano
 - NUNCA minta sobre preços ou serviços
 - NUNCA invente cases ou números falsos
 - Se não souber responder algo técnico, chame escalar_humano
-- Não responda áudios ou imagens (peça pra digitar)`;
+- Não responda áudios ou imagens (peça pra digitar)
+- Em follow-ups (mensagens em dias diferentes), varie o ângulo: não repita a mesma abordagem`;
