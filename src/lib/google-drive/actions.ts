@@ -10,6 +10,8 @@ import {
   initResumableUpload,
   countFilesInFolder,
 } from "./client";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { notifyDriveUploadPronto } from "@/lib/notificacoes/trigger";
 
 export const CATEGORIAS_VIDEO = [
   "Reels",
@@ -146,7 +148,7 @@ export async function confirmUpload(input: z.input<typeof confirmSchema>) {
 
   const { data: client } = await supabase
     .from("clients")
-    .select("id")
+    .select("id, nome, editor_id")
     .eq("id", parsed.clientId)
     .single();
   if (!client) return { error: "Cliente não encontrado" };
@@ -163,6 +165,25 @@ export async function confirmUpload(input: z.input<typeof confirmSchema>) {
 
   const { error } = await supabase.from("drive_uploads").insert(rows);
   if (error) return { error: error.message };
+
+  if (client.editor_id) {
+    const svc = createServiceRoleClient();
+    const { data: uploader } = await svc
+      .from("profiles")
+      .select("nome")
+      .eq("id", actor.id)
+      .single();
+
+    notifyDriveUploadPronto({
+      editorId: client.editor_id,
+      uploaderId: actor.id,
+      uploaderName: uploader?.nome ?? "Videomaker",
+      clientName: client.nome,
+      categoria: parsed.categoria,
+      fileCount: parsed.files.length,
+      folderUrl: parsed.folderUrl,
+    }).catch(() => {});
+  }
 
   return { success: true, count: rows.length };
 }
