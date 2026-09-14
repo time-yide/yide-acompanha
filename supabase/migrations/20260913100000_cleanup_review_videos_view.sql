@@ -1,4 +1,4 @@
--- View: vídeos de review aprovados há mais de 60 dias, prontos pra limpeza do Bunny.
+-- View: vídeos de review aprovados há mais de 20 dias, prontos pra limpeza do Bunny.
 -- Usada pelo cron cleanup-old-review-videos.
 create or replace view public.review_videos_to_cleanup as
 select
@@ -10,5 +10,5 @@ select
 from public.review_video rv
 join public.review_versao ver on ver.review_video_id = rv.id
 where rv.status = 'aprovado'
-  and rv.updated_at < now() - interval '60 days'
+  and rv.updated_at < now() - interval '20 days'
   and ver.bunny_video_id is not null;
