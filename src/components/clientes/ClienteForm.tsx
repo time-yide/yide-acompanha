@@ -191,7 +191,8 @@ export function ClienteForm({ action, defaults = {}, assessores, coordenadores, 
 
         <div className="space-y-2">
           <Label htmlFor="assessor_id">Assessor</Label>
-          <Select name="assessor_id" defaultValue={defaults.assessor_id ?? ""} disabled={!canEditAlocacao}>
+          {!canEditAlocacao && <input type="hidden" name="assessor_id" value={defaults.assessor_id ?? ""} />}
+          <Select name={canEditAlocacao ? "assessor_id" : undefined} defaultValue={defaults.assessor_id ?? ""} disabled={!canEditAlocacao}>
             <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="">Sem assessor</SelectItem>
@@ -203,7 +204,8 @@ export function ClienteForm({ action, defaults = {}, assessores, coordenadores, 
         </div>
         <div className="space-y-2">
           <Label htmlFor="coordenador_id">Coordenador</Label>
-          <Select name="coordenador_id" defaultValue={defaults.coordenador_id ?? ""} disabled={!canEditAlocacao}>
+          {!canEditAlocacao && <input type="hidden" name="coordenador_id" value={defaults.coordenador_id ?? ""} />}
+          <Select name={canEditAlocacao ? "coordenador_id" : undefined} defaultValue={defaults.coordenador_id ?? ""} disabled={!canEditAlocacao}>
             <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="">Sem coordenador</SelectItem>
