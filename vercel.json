@@ -10,18 +10,17 @@
     { "path": "/api/cron/audiovisual-auto-marcar-entregue", "schedule": "0 5 * * *" },
     { "path": "/api/cron/trafego-meta-sync", "schedule": "0 4 * * *" },
     { "path": "/api/cron/refresh-gmb", "schedule": "0 6 * * *" },
-    { "path": "/api/cron/social-media-publish", "schedule": "*/5 * * * *" },
+    { "path": "/api/cron/social-media-publish", "schedule": "*/10 * * * *" },
     { "path": "/api/cron/social-media-insights-sync", "schedule": "0 11,17,23 * * *" },
     { "path": "/api/cron/instagram-snapshots", "schedule": "30 4 * * 1" },
     { "path": "/api/cron/instagram-meta-alerts", "schedule": "0 12 * * *" },
     { "path": "/api/cron/editor-ia-worker", "schedule": "*/5 * * * *" },
     { "path": "/api/cron/reunioes-worker", "schedule": "*/5 * * * *" },
-    { "path": "/api/cron/gravacoes-pendentes", "schedule": "*/5 * * * *" },
+    { "path": "/api/cron/gravacoes-pendentes", "schedule": "*/15 * * * *" },
     { "path": "/api/cron/calendar-recurrence-extend", "schedule": "0 5 * * *" },
     { "path": "/api/cron/content-calendar-enqueue", "schedule": "0 12 3 * *" },
-    { "path": "/api/cron/content-calendar-worker", "schedule": "*/5 * * * *" },
+    { "path": "/api/cron/content-calendar-worker", "schedule": "*/15 * * * *" },
     { "path": "/api/cron/weekly-report-generate", "schedule": "0 12 * * 1" },
-    { "path": "/api/cron/wpp-dispatch", "schedule": "*/10 * * * *" },
-    { "path": "/api/cron/motor-prospeccao", "schedule": "*/15 * * * *" }
+    { "path": "/api/cron/wpp-dispatch", "schedule": "*/10 * * * *" }
   ]
 }
