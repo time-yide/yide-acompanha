@@ -10,7 +10,7 @@ import type { Slide } from "@/lib/apresenta-yide/tipos";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-const MODEL = "claude-sonnet-4-6";
+const MODEL = "claude-haiku-4-5-20251001";
 
 /**
  * POST /api/apresenta-yide/[id]/gerar
