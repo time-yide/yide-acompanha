@@ -1,4 +1,4 @@
-// src/lib/design/image-gen/openai.ts
+// src/lib/ai/image-gen/openai.ts
 // SERVER ONLY — gera imagem com GPT-Image-1.
 import OpenAI from "openai";
 import { getServerEnv } from "@/lib/env";

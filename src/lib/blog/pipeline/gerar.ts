@@ -1,6 +1,6 @@
 // SERVER — geração de artigo (Claude) + capa (gpt-image-1) a partir de uma notícia.
 import { getAnthropicClient } from "@/lib/ai/client";
-import { gerarImagemOpenAI } from "@/lib/design/image-gen/openai";
+import { gerarImagemOpenAI } from "@/lib/ai/image-gen/openai";
 import { uploadCapaBlog } from "./storage";
 import { semTravessao } from "../texto";
 import type { NoticiaItem } from "./rss";

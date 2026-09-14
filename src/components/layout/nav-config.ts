@@ -97,11 +97,11 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
       { type: "link", href: "/ecommerce", icon: ShoppingCart, label: "E-commerce", roles: ["adm", "socio", "assessor_ecommerce", "assistente_ecommerce"], badgeKey: null },
       { type: "link", href: "/programacao", icon: Code2, label: "Programação", roles: ["adm", "socio", "programacao"], badgeKey: null },
       { type: "link", href: "/programacao/clientes", icon: Users, label: "Clientes", roles: ["programacao"], badgeKey: null },
-      // Label "Estratégia" — engloba Painel Mensal + Agendamento de Post + Design + Apresenta Yide.
+      // Label "Estratégia" — engloba Painel Mensal + Agendamento de Post + Apresenta Yide.
       // URL /social-media preservada (redirect pro /painel).
       { type: "link", href: "/social-media", icon: Share2, label: "Estratégia", roles: ["adm", "socio", "coordenador", "assessor", "designer", "videomaker", "fast_midia", "editor", "audiovisual_chefe"], badgeKey: null },
       // "CRM" e "Painel GMB" saíram do menu — aparecem como abas dentro de Tráfego. URLs preservadas.
-      // "Design" e "Painel mensal" saíram do menu — aparecem como abas dentro de Social Media. URLs /design e /painel preservadas.
+      // "Painel mensal" saiu do menu — aparece como aba dentro de Social Media. URL /painel preservada.
       // Fast Mídia chega ao Painel mensal (sua tela de stories) pelo item
       // "Estratégia" acima, que redireciona /social-media → /painel.
       { type: "link", href: "/painel-cliente", icon: IdCard, label: "Painel do cliente", roles: ["adm", "socio", "coordenador", "assessor", "audiovisual_chefe"], badgeKey: null },
