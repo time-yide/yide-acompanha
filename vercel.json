@@ -23,6 +23,7 @@
     { "path": "/api/cron/content-calendar-worker", "schedule": "*/15 * * * *" },
     { "path": "/api/cron/weekly-report-generate", "schedule": "0 12 * * 1" },
     { "path": "/api/cron/wpp-dispatch", "schedule": "*/10 * * * *" },
-    { "path": "/api/cron/motor-prospeccao", "schedule": "*/30 * * * *" }
+    { "path": "/api/cron/motor-prospeccao", "schedule": "*/30 * * * *" },
+    { "path": "/api/cron/gerador-leads-auto", "schedule": "0 8,14 * * *" }
   ]
 }
