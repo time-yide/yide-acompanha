@@ -45,13 +45,15 @@ export async function processPostCall(data: PostCallData) {
         .eq("id", data.leadGeradoId);
     }
 
-    await sb.from("lead_attempts").insert({
-      organization_id: data.orgId,
-      lead_gerado_id: data.leadGeradoId,
-      tipo: "ligacao",
-      canal: "telefone",
-      notas: "Ligação IA automática",
-    }).catch(() => {});
+    try {
+      await sb.from("lead_attempts").insert({
+        organization_id: data.orgId,
+        lead_gerado_id: data.leadGeradoId,
+        tipo: "ligacao",
+        canal: "telefone",
+        notas: "Ligação IA automática",
+      });
+    } catch { /* ignora erro de log */ }
 
     // Espelha no dashboard de Ligações
     const { data: leadData } = await sb
@@ -61,25 +63,27 @@ export async function processPostCall(data: PostCallData) {
       .single();
     if (leadData?.telefone) {
       const now = new Date();
-      await sb.from("ligacoes").insert({
-        organization_id: data.orgId,
-        tipo: "telefone",
-        numero: leadData.telefone,
-        contato_nome: leadData.empresa ?? null,
-        direcao: "saida",
-        status: data.durationSeconds > 5 ? "atendida" : "perdida",
-        iniciada_em: new Date(now.getTime() - data.durationSeconds * 1000).toISOString(),
-        finalizada_em: now.toISOString(),
-        duracao_segundos: data.durationSeconds,
-        gravacao_url: gravacaoUrl,
-        transcricao: data.transcription?.length ? JSON.stringify(data.transcription) : null,
-        origem: "voz_ia",
-        external_id: data.twilioCallSid,
-        lead_gerado_id: data.leadGeradoId,
-        tags: ["ia"],
-      }).catch((err: unknown) => {
+      try {
+        await sb.from("ligacoes").insert({
+          organization_id: data.orgId,
+          tipo: "telefone",
+          numero: leadData.telefone,
+          contato_nome: leadData.empresa ?? null,
+          direcao: "saida",
+          status: data.durationSeconds > 5 ? "atendida" : "perdida",
+          iniciada_em: new Date(now.getTime() - data.durationSeconds * 1000).toISOString(),
+          finalizada_em: now.toISOString(),
+          duracao_segundos: data.durationSeconds,
+          gravacao_url: gravacaoUrl,
+          transcricao: data.transcription?.length ? JSON.stringify(data.transcription) : null,
+          origem: "voz_ia",
+          external_id: data.twilioCallSid,
+          lead_gerado_id: data.leadGeradoId,
+          tags: ["ia"],
+        });
+      } catch (err) {
         console.error("[post-call] erro ao espelhar ligação IA:", err);
-      });
+      }
     }
   }
 }
