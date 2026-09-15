@@ -149,13 +149,15 @@ async function processarLead(
       })
       .eq("id", lead.id);
 
-    await sb().from("lead_attempts").insert({
-      organization_id: orgId,
-      lead_gerado_id: lead.id,
-      tipo: "ligacao",
-      canal: "ligacao",
-      notas: "Motor de prospecção — ligação IA automática",
-    }).catch(() => {});
+    try {
+      await sb().from("lead_attempts").insert({
+        organization_id: orgId,
+        lead_gerado_id: lead.id,
+        tipo: "ligacao",
+        canal: "ligacao",
+        notas: "Motor de prospecção — ligação IA automática",
+      });
+    } catch { /* ignora erro de log */ }
 
     await sb().from("motor_prospeccao_log").insert({
       organization_id: orgId,
@@ -229,13 +231,15 @@ async function processarLead(
     .update(leadUpdate)
     .eq("id", lead.id);
 
-  await sb().from("lead_attempts").insert({
-    organization_id: orgId,
-    lead_gerado_id: lead.id,
-    tipo: "whatsapp",
-    canal: "whatsapp",
-    notas: "Motor de prospecção — WPP automático",
-  }).catch(() => {});
+  try {
+    await sb().from("lead_attempts").insert({
+      organization_id: orgId,
+      lead_gerado_id: lead.id,
+      tipo: "whatsapp",
+      canal: "whatsapp",
+      notas: "Motor de prospecção — WPP automático",
+    });
+  } catch { /* ignora erro de log */ }
 
   await sb().from("motor_prospeccao_log").insert({
     organization_id: orgId,
