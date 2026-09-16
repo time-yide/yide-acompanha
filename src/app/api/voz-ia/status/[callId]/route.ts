@@ -94,9 +94,16 @@ export async function POST(
   } else if (callStatus === "ringing") {
     await sb().from("ai_voice_calls").update({ status: "chamando" }).eq("id", callId);
   } else if (callStatus === "completed") {
-    // Não sobrescreve se AMD já marcou como caixa_postal
-    if (call.status !== "caixa_postal") {
-      const jaFinalizado = call.finalizado_em != null;
+    // AMD é assíncrono — em chamadas curtas (≤5s), espera 3s pro AMD
+    // callback processar antes de decidir se é "perdida" ou "caixa_postal".
+    let currentCall = call;
+    if (callDuration <= 5 && call.status !== "caixa_postal") {
+      await new Promise((r) => setTimeout(r, 3000));
+      currentCall = (await getCallById(callId)) ?? call;
+    }
+
+    if (currentCall.status !== "caixa_postal") {
+      const jaFinalizado = currentCall.finalizado_em != null;
       if (!jaFinalizado) {
         await sb().from("ai_voice_calls").update({
           status: "concluido",
@@ -104,14 +111,14 @@ export async function POST(
           finalizado_em: new Date().toISOString(),
         }).eq("id", callId);
 
-        if (call.lead_gerado_id) {
-          await sb().from("leads_gerados").update({ ai_status: null }).eq("id", call.lead_gerado_id);
+        if (currentCall.lead_gerado_id) {
+          await sb().from("leads_gerados").update({ ai_status: null }).eq("id", currentCall.lead_gerado_id);
         }
       }
 
-      await espelharNoDashboard(call, callDuration > 5 ? "atendida" : "perdida", callDuration);
+      await espelharNoDashboard(currentCall, callDuration > 5 ? "atendida" : "perdida", callDuration);
     } else {
-      await espelharNoDashboard(call, "caixa_postal", callDuration);
+      await espelharNoDashboard(currentCall, "caixa_postal", callDuration);
     }
   } else if (callStatus === "no-answer" || callStatus === "busy") {
     await sb().from("ai_voice_calls").update({
