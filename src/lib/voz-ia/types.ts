@@ -1,5 +1,5 @@
 export const AI_CALL_STATUS = [
-  "iniciando", "chamando", "em_andamento",
+  "iniciando", "chamando", "em_andamento", "concluido", "caixa_postal",
   "reuniao_agendada", "sem_interesse", "nao_atendeu", "erro",
 ] as const;
 export type AICallStatus = (typeof AI_CALL_STATUS)[number];

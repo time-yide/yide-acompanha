@@ -104,6 +104,23 @@ async function initOpenAIConnection(
 
   openaiWs.addEventListener("open", () => {
     openaiWs.send(JSON.stringify(buildSessionUpdate(config)));
+    // Dispara saudação inicial para a IA falar primeiro
+    setTimeout(() => {
+      if (openaiWs.readyState === WebSocket.OPEN) {
+        openaiWs.send(JSON.stringify({
+          type: "conversation.item.create",
+          item: {
+            type: "message",
+            role: "user",
+            content: [{
+              type: "input_text",
+              text: "A pessoa acabou de atender a ligação. Cumprimente-a e se apresente conforme suas instruções. Seja breve e natural.",
+            }],
+          },
+        }));
+        openaiWs.send(JSON.stringify({ type: "response.create" }));
+      }
+    }, 500);
   });
 
   openaiWs.addEventListener("message", (event: any) => {
