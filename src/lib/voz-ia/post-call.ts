@@ -55,7 +55,18 @@ export async function processPostCall(data: PostCallData) {
       });
     } catch { /* ignora erro de log */ }
 
-    // Espelha no dashboard de Ligações
+    // Espelha no dashboard de Ligações.
+    // Re-lê o status da chamada: AMD pode ter marcado como caixa_postal.
+    const { data: callNow } = await sb
+      .from("ai_voice_calls")
+      .select("status")
+      .eq("id", data.callId)
+      .single();
+    const isCaixaPostal = callNow?.status === "caixa_postal";
+    const ligacaoStatus = isCaixaPostal
+      ? "caixa_postal"
+      : data.durationSeconds > 5 ? "atendida" : "perdida";
+
     const { data: leadData } = await sb
       .from("leads_gerados")
       .select("telefone, empresa")
@@ -70,7 +81,7 @@ export async function processPostCall(data: PostCallData) {
           numero: leadData.telefone,
           contato_nome: leadData.empresa ?? null,
           direcao: "saida",
-          status: data.durationSeconds > 5 ? "atendida" : "perdida",
+          status: ligacaoStatus,
           iniciada_em: new Date(now.getTime() - data.durationSeconds * 1000).toISOString(),
           finalizada_em: now.toISOString(),
           duracao_segundos: data.durationSeconds,

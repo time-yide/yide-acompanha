@@ -62,6 +62,14 @@ export async function POST(
     await sb.from("leads_gerados").update({ ai_status: null }).eq("id", call.lead_gerado_id);
   }
 
+  // Corrige ligação que o status callback já criou como "perdida" antes do AMD.
+  if (call.twilio_call_sid) {
+    await sb.from("ligacoes")
+      .update({ status: "caixa_postal" })
+      .eq("external_id", call.twilio_call_sid)
+      .eq("status", "perdida");
+  }
+
   console.log("[voz-ia amd] desligou caixa postal:", callId, call.twilio_call_sid);
   return NextResponse.json({ ok: true, action: "hangup" });
 }
