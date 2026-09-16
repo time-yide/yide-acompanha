@@ -16,6 +16,7 @@ interface BridgeState {
   startTime: number;
   openaiWs: WebSocket | null;
   closed: boolean;
+  greetingSent: boolean;
 }
 
 export function handleMediaStreamConnection(
@@ -35,6 +36,7 @@ export function handleMediaStreamConnection(
     startTime: Date.now(),
     openaiWs: null,
     closed: false,
+    greetingSent: false,
   };
 
   twilioWs.addEventListener("message", async (event: any) => {
@@ -104,23 +106,6 @@ async function initOpenAIConnection(
 
   openaiWs.addEventListener("open", () => {
     openaiWs.send(JSON.stringify(buildSessionUpdate(config)));
-    // Dispara saudação inicial para a IA falar primeiro
-    setTimeout(() => {
-      if (openaiWs.readyState === WebSocket.OPEN) {
-        openaiWs.send(JSON.stringify({
-          type: "conversation.item.create",
-          item: {
-            type: "message",
-            role: "user",
-            content: [{
-              type: "input_text",
-              text: "A pessoa acabou de atender a ligação. Cumprimente-a e se apresente conforme suas instruções. Seja breve e natural.",
-            }],
-          },
-        }));
-        openaiWs.send(JSON.stringify({ type: "response.create" }));
-      }
-    }, 500);
   });
 
   openaiWs.addEventListener("message", (event: any) => {
@@ -156,6 +141,21 @@ function handleOpenAIMessage(
   twilioWs: { send: (data: string) => void; close: () => void },
 ) {
   switch (msg.type) {
+    case "session.updated":
+    case "session.created":
+      if (!state.greetingSent && state.openaiWs?.readyState === WebSocket.OPEN) {
+        state.greetingSent = true;
+        state.openaiWs.send(JSON.stringify({
+          type: "response.create",
+          response: {
+            modalities: ["text", "audio"],
+            instructions: "A pessoa acabou de atender a ligação. Cumprimente-a e se apresente conforme o prompt do sistema. Seja breve e natural.",
+          },
+        }));
+        console.log("[voz-ia] saudação disparada para", state.callId);
+      }
+      break;
+
     case "response.audio.delta":
     case "response.output_audio.delta":
       if (state.streamSid && msg.delta) {
