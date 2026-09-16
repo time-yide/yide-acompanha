@@ -30,7 +30,7 @@ export async function selecionarLeads(
     .in("status", ["novo", "em_contato", "qualificado"])
     .is("arquivado_em", null)
     .lt("ai_tentativas", maxTentativas)
-    .or("ai_status.is.null,ai_status.eq.aguardando")
+    .or("ai_status.is.null,ai_status.eq.aguardando,ai_status.eq.followup_wpp")
     .or(
       "ai_proxima_tentativa.is.null," +
       `ai_proxima_tentativa.lte.${limiteProxTentativa}`,
