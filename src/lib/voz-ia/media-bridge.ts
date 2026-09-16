@@ -149,7 +149,7 @@ function handleOpenAIMessage(
           type: "response.create",
           response: {
             modalities: ["text", "audio"],
-            instructions: "A pessoa acabou de atender a ligação. Cumprimente-a e se apresente conforme o prompt do sistema. Seja breve e natural.",
+            instructions: "A pessoa acabou de atender a ligação. Cumprimente-a e se apresente conforme o prompt do sistema. Seja breve, simpática e natural — como uma pessoa real ligando. Fale em português brasileiro com sotaque natural, sem formalidade excessiva.",
           },
         }));
         console.log("[voz-ia] saudação disparada para", state.callId);
