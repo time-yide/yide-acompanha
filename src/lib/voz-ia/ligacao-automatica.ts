@@ -83,6 +83,10 @@ export async function dispararLigacaoIA(
     StatusCallback: `${appUrl}/api/voz-ia/status/${call.id}`,
     StatusCallbackEvent: "initiated ringing answered completed",
     Record: "true",
+    MachineDetection: "DetectMessageEnd",
+    AsyncAmd: "true",
+    AsyncAmdStatusCallback: `${appUrl}/api/voz-ia/amd/${call.id}`,
+    AsyncAmdStatusCallbackMethod: "POST",
   });
 
   const twilioResp = await fetch(twilioUrl, {
