@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -104,16 +105,14 @@ export function EventForm({ action, defaults = {}, profiles, clientes, videomake
 
   const subOptions = SELECTABLE_SUBS.filter((s) => s !== "videomakers" || canCreateVideomaker);
 
-  // "Confirmar mesmo assim": não é submit nativo. Monta o FormData atual e força
-  // ignorar_bloqueio=true na hora, sem depender do re-render do state (evita o bug
-  // de o submit nativo usar o valor antigo do input escondido).
+  // "Confirmar mesmo assim": flushSync garante que o hidden input já tem "true"
+  // no DOM antes do requestSubmit, que é o caminho recomendado pelo Next.js pra
+  // disparar server actions programaticamente.
   function confirmarMesmoAssim() {
     const formEl = formRef.current;
     if (!formEl) return;
-    const data = new FormData(formEl);
-    data.set("ignorar_bloqueio", "true");
-    setIgnorar(true);
-    formAction(data);
+    flushSync(() => setIgnorar(true));
+    formEl.requestSubmit();
   }
 
   return (
