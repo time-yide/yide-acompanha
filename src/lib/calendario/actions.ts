@@ -394,8 +394,10 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
 
   if (createResult.error) {
     const msg = String(createResult.error.message ?? "");
-    // Defesa em profundidade contra corrida (constraint no_videomaker_overlap).
     if (msg.includes("no_videomaker_overlap")) {
+      if (ignorarBloqueio) {
+        return { error: "Conflito no banco — aplique a migration 20260917000000_drop_videomaker_overlap_constraint.sql e tente de novo." };
+      }
       return { error: "Esse videomaker já tem outra captação nesse horário. Recarregue e tente de novo." };
     }
     // Fallback: se a migration de videomaker_status ainda não foi aplicada,
@@ -647,6 +649,9 @@ export async function updateEventAction(_prevState: ActionResult, formData: Form
   }
   if (error) {
     if (error.includes("no_videomaker_overlap")) {
+      if (ignorarBloqueio) {
+        return { error: "Conflito no banco — aplique a migration 20260917000000_drop_videomaker_overlap_constraint.sql e tente de novo." };
+      }
       return { error: "Esse videomaker já tem outra captação nesse horário. Recarregue e tente de novo." };
     }
     return { error };
