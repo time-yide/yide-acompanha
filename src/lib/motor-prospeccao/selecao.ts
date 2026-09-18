@@ -54,7 +54,8 @@ export async function selecionarLeads(
 
 export async function contarWppEnviadosHoje(orgId: string): Promise<number> {
   const hoje = new Date();
-  hoje.setUTCHours(0, 0, 0, 0);
+  hoje.setUTCHours(3, 0, 0, 0);
+  if (hoje.getTime() > Date.now()) hoje.setDate(hoje.getDate() - 1);
 
   const { count } = await sb()
     .from("motor_prospeccao_log")
