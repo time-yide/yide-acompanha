@@ -24,7 +24,7 @@ export async function selecionarLeads(
     .select(
       "id, empresa, telefone, whatsapp, categoria, cidade, estado, " +
       "google_rating, google_reviews_count, website, porte_empresa, " +
-      "ai_tentativas, ai_status, decisor_nome",
+      "ai_tentativas, ai_status, decisor_nome, dropado_power_dialer",
     )
     .eq("organization_id", orgId)
     .in("status", ["novo", "em_contato", "qualificado"])
@@ -36,6 +36,7 @@ export async function selecionarLeads(
       `ai_proxima_tentativa.lte.${limiteProxTentativa}`,
     )
     .or("telefone.not.is.null,whatsapp.not.is.null")
+    .order("dropado_power_dialer", { ascending: false, nullsFirst: false })
     .order("ai_tentativas", { ascending: true })
     .order("google_rating", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: true })

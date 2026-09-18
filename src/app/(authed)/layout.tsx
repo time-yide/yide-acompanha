@@ -13,6 +13,8 @@ import { listPendenteParaVideomaker } from "@/lib/audiovisual/queries";
 import { CapturaPendenteLockGate } from "@/components/audiovisual/CapturaPendenteLockGate";
 import { countChannelsWithUnread } from "@/lib/escritorio/queries";
 import { HeartbeatProvider } from "@/components/produtividade/HeartbeatProvider";
+import { PowerDialerListener } from "@/components/power-dialer/PowerDialerListener";
+import { PowerDialerBar } from "@/components/power-dialer/PowerDialerBar";
 import { TwilioCallProvider } from "@/components/ligacoes/TwilioCallProvider";
 import { getEffectiveUnitId, getUnitContext } from "@/lib/units/session";
 import { getProfileIdsForActiveUnit } from "@/lib/units/filter-helpers";
@@ -121,6 +123,8 @@ export default async function AuthedLayout({ children }: { children: React.React
         <LockGatesStreamed user={user} />
       </Suspense>
       <HeartbeatProvider />
+      <PowerDialerListener userId={user.id} />
+      <PowerDialerBar userId={user.id} />
     </div>
   );
 }

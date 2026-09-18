@@ -13,6 +13,7 @@ export interface LeadParaProspectar {
   ai_tentativas: number;
   ai_status: string | null;
   decisor_nome: string | null;
+  dropado_power_dialer: boolean | null;
 }
 
 export interface MotorResult {

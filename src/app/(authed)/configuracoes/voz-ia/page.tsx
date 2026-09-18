@@ -4,6 +4,7 @@ import { getActiveConfig } from "@/lib/voz-ia/queries";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { ConfigVozIAForm } from "@/components/voz-ia/ConfigVozIAForm";
 import { TestarLigacaoIA } from "@/components/voz-ia/TestarLigacaoIA";
+import { PowerDialerConfigSection } from "@/components/power-dialer/PowerDialerConfigSection";
 import { ROLES_CONFIG_VOZ_IA } from "@/lib/voz-ia/types";
 import { Bot } from "lucide-react";
 
@@ -22,6 +23,15 @@ export default async function ConfigVozIAPage() {
 
   const config = await getActiveConfig(profile.organization_id);
 
+  const { data: colaboradoresData } = await sb
+    .from("profiles")
+    .select("id, nome")
+    .eq("organization_id", profile.organization_id)
+    .in("role", ["adm", "socio", "comercial", "coordenador", "assessor"])
+    .eq("ativo", true)
+    .order("nome");
+  const colaboradores = colaboradoresData ?? [];
+
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="space-y-1">
@@ -34,6 +44,7 @@ export default async function ConfigVozIAPage() {
       </div>
       <ConfigVozIAForm config={config} />
       <TestarLigacaoIA />
+      <PowerDialerConfigSection config={config} colaboradores={colaboradores} />
     </div>
   );
 }

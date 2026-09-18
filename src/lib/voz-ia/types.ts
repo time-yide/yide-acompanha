@@ -47,6 +47,12 @@ export interface AIVoiceConfig {
   horario_fim_fds: string;
   twilio_wpp_from: string | null;
   ativo: boolean;
+  power_dialer_ativo: boolean;
+  power_dialer_batch_size: number;
+  power_dialer_timeout_s: number;
+  power_dialer_colaborador_id: string | null;
+  power_dialer_greeting: string;
+  power_dialer_goodbye: string;
   created_at: string;
   updated_at: string;
 }

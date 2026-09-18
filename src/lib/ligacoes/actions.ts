@@ -387,9 +387,12 @@ export async function getTwilioVoiceTokenAction(): Promise<{
   token: string | null;
   callerId: string | null;
   instanciaId: string | null;
+  isPowerDialerAgent: boolean;
 }> {
   const actor = await requireAuth();
-  if (!canManage(actor.role)) return { token: null, callerId: null, instanciaId: null };
+  if (!canManage(actor.role)) {
+    return { token: null, callerId: null, instanciaId: null, isPowerDialerAgent: false };
+  }
   const supabase = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
@@ -404,12 +407,36 @@ export async function getTwilioVoiceTokenAction(): Promise<{
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (!inst) return { token: null, callerId: null, instanciaId: null };
-  const token = gerarVoiceToken(actor.id);
+  if (!inst) return { token: null, callerId: null, instanciaId: null, isPowerDialerAgent: false };
+
+  // Descobre a org do ator pra checar se ele é o agente do power dialer
+  // (único identity com incomingAllow: true — recebe as ligações roteadas
+  // pela conference do power dialer).
+  const { data: profile } = await sb
+    .from("profiles")
+    .select("organization_id")
+    .eq("id", actor.id)
+    .single();
+  const orgId = (profile as { organization_id: string } | null)?.organization_id ?? null;
+
+  let isPDAgent = false;
+  if (orgId) {
+    const { data: pdConfig } = await sb
+      .from("ai_voice_configs")
+      .select("power_dialer_colaborador_id")
+      .eq("organization_id", orgId)
+      .eq("ativo", true)
+      .eq("power_dialer_ativo", true)
+      .maybeSingle();
+    isPDAgent = pdConfig?.power_dialer_colaborador_id === actor.id;
+  }
+
+  const token = gerarVoiceToken(actor.id, isPDAgent);
   return {
     token,
     callerId: (inst.numero as string | null) ?? null,
     instanciaId: (inst.id as string) ?? null,
+    isPowerDialerAgent: isPDAgent,
   };
 }
 
