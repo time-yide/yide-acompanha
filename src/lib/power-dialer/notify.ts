@@ -24,10 +24,14 @@ export async function notificarAgente(
   colaboradorId: string,
   payload: NotifyPayload,
 ) {
-  // 1. Broadcast via Supabase Realtime (toast + som in-app)
-  await sb()
-    .channel(`power-dialer:${colaboradorId}`)
-    .send({ type: "broadcast", event: "lead-answered", payload });
+  // 1. Broadcast via Supabase Realtime (toast + som in-app).
+  // Dois canais: o listener (toast) e a barra flutuante (dados do lead).
+  await Promise.all([
+    sb().channel(`power-dialer:${colaboradorId}`)
+      .send({ type: "broadcast", event: "lead-answered", payload }),
+    sb().channel(`power-dialer-bar:${colaboradorId}`)
+      .send({ type: "broadcast", event: "lead-answered", payload }),
+  ]);
 
   // 2. Web Push (se offline ou em outra aba). No-op silencioso se VAPID não
   // estiver configurado ou o colaborador não tiver subscription.

@@ -36,8 +36,6 @@ export function PowerDialerConfigSection({ config, colaboradores }: Props) {
       </div>
 
       <form action={action} className="space-y-4">
-        <input type="hidden" name="configId" value={config.id} />
-
         <label className="flex items-center gap-2 text-sm font-medium">
           <input
             type="checkbox"
