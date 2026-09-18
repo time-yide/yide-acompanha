@@ -11,7 +11,7 @@ export function PowerDialerListener({ userId }: { userId: string }) {
 
     channel
       .on("broadcast", { event: "lead-answered" }, ({ payload }) => {
-        try { new Audio("/sounds/power-dialer-ring.mp3").play(); } catch {}
+        try { new Audio("/sounds/power-dialer-ring.wav").play(); } catch {}
 
         toast.info(`Lead atendeu: ${payload.leadEmpresa}`, {
           description: [payload.leadCategoria, payload.leadCidade]

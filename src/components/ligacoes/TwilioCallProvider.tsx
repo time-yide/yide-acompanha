@@ -105,7 +105,7 @@ export function TwilioCallProvider({ children }: { children: ReactNode }) {
             setStatus("in_call");
             setActiveNumber("Power Dialer");
             try {
-              new Audio("/sounds/power-dialer-ring.mp3").play();
+              new Audio("/sounds/power-dialer-ring.wav").play();
             } catch {
               /* som opcional */
             }
