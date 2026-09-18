@@ -103,6 +103,7 @@ async function processarLead(
   config: any,
   statusUrl: string,
   podeLigar: boolean,
+  podeWpp: boolean,
 ): Promise<{ acao: string; erro?: string }> {
   // Check cadência step
   await seedCadenciaPadrao(config.id);
@@ -171,6 +172,10 @@ async function processarLead(
   }
 
   // --- WhatsApp flow ---
+  if (!podeWpp) {
+    return { acao: "wpp_limite", erro: "Limite diário de WhatsApp atingido" };
+  }
+
   const telefoneRaw = lead.whatsapp || lead.telefone;
   if (!telefoneRaw) return { acao: "erro", erro: "Sem telefone/whatsapp" };
 
@@ -280,14 +285,14 @@ export async function executarMotor(): Promise<MotorGlobalResult> {
 
     const wppHoje = await contarWppEnviadosHoje(orgId);
     const wppRestante = Math.max(0, (config.max_wpp_dia ?? 50) - wppHoje);
-    if (wppRestante === 0) continue;
-
-    const batch = Math.min(MOTOR_BATCH_SIZE, wppRestante);
-    const leads = await selecionarLeads(orgId, config.max_tentativas, batch);
 
     const ligacoesHoje = await contarLigacoesHoje(orgId);
     const maxLigacoes = config.max_chamadas_dia ?? 30;
     let ligacoesRestantes = Math.max(0, maxLigacoes - ligacoesHoje);
+
+    if (wppRestante === 0 && ligacoesRestantes === 0) continue;
+
+    const leads = await selecionarLeads(orgId, config.max_tentativas, MOTOR_BATCH_SIZE);
 
     const orgResult: MotorResult = {
       orgId,
@@ -298,12 +303,16 @@ export async function executarMotor(): Promise<MotorGlobalResult> {
       detalhes: [],
     };
 
+    let wppEnviadosNoBatch = 0;
+
     for (const lead of leads) {
       orgResult.processados++;
+      const podeWpp = (wppRestante - wppEnviadosNoBatch) > 0;
       try {
-        const res = await processarLead(orgId, lead, config, statusUrl, ligacoesRestantes > 0);
+        const res = await processarLead(orgId, lead, config, statusUrl, ligacoesRestantes > 0, podeWpp);
         if (res.acao === "wpp_primeiro_contato") {
           orgResult.wppEnviados++;
+          wppEnviadosNoBatch++;
         } else if (res.acao === "ligacao_ia") {
           orgResult.ligacoesDisparadas++;
           ligacoesRestantes--;
