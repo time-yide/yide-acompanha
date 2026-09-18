@@ -7,6 +7,7 @@ import { gerarMensagemPrimeiroContato } from "./gerar-mensagem";
 import { getStepsDaCadencia, calcularStepAtual, seedCadenciaPadrao } from "./cadencia";
 import { normalizeTelefone } from "@/lib/dispatch/render-template";
 import { dispararLigacaoIA, contarLigacoesHoje } from "@/lib/voz-ia/ligacao-automatica";
+import { dispararPowerDialerBatch } from "@/lib/power-dialer/dispatcher";
 import type { LeadParaProspectar, MotorResult, MotorGlobalResult } from "./types";
 import { MOTOR_BATCH_SIZE, MOTOR_INTERVALO_MIN_HORAS } from "./types";
 
@@ -104,6 +105,7 @@ async function processarLead(
   statusUrl: string,
   podeLigar: boolean,
   podeWpp: boolean,
+  powerDialerAtivo: boolean,
 ): Promise<{ acao: string; erro?: string }> {
   // Check cadência step
   await seedCadenciaPadrao(config.id);
@@ -119,6 +121,10 @@ async function processarLead(
   }
 
   if (step.canal === "ligacao") {
+    if (powerDialerAtivo) {
+      return { acao: "power_dialer_pendente" };
+    }
+
     if (!podeLigar) {
       return { acao: "ligacao_limite", erro: "Limite diário de ligações atingido" };
     }
@@ -304,18 +310,21 @@ export async function executarMotor(): Promise<MotorGlobalResult> {
     };
 
     let wppEnviadosNoBatch = 0;
+    const leadsParaPD: LeadParaProspectar[] = [];
 
     for (const lead of leads) {
       orgResult.processados++;
       const podeWpp = (wppRestante - wppEnviadosNoBatch) > 0;
       try {
-        const res = await processarLead(orgId, lead, config, statusUrl, ligacoesRestantes > 0, podeWpp);
+        const res = await processarLead(orgId, lead, config, statusUrl, ligacoesRestantes > 0, podeWpp, !!config.power_dialer_ativo);
         if (res.acao === "wpp_primeiro_contato") {
           orgResult.wppEnviados++;
           wppEnviadosNoBatch++;
         } else if (res.acao === "ligacao_ia") {
           orgResult.ligacoesDisparadas++;
           ligacoesRestantes--;
+        } else if (res.acao === "power_dialer_pendente") {
+          leadsParaPD.push(lead);
         } else if (res.acao === "erro") {
           orgResult.erros++;
           await sb().from("motor_prospeccao_log").insert({
@@ -331,6 +340,22 @@ export async function executarMotor(): Promise<MotorGlobalResult> {
         orgResult.erros++;
         const msg = err instanceof Error ? err.message : String(err);
         orgResult.detalhes.push({ leadId: lead.id, acao: "erro", erro: msg });
+      }
+    }
+
+    if (leadsParaPD.length > 0) {
+      const pdBatchSize = config.power_dialer_batch_size ?? 3;
+      const batch = leadsParaPD.slice(0, pdBatchSize);
+      const pdResult = await dispararPowerDialerBatch(orgId, batch);
+      if ("success" in pdResult) {
+        orgResult.ligacoesDisparadas += batch.length;
+      } else {
+        orgResult.erros++;
+        orgResult.detalhes.push({
+          leadId: batch[0].id,
+          acao: "power_dialer_erro",
+          erro: pdResult.error,
+        });
       }
     }
 
