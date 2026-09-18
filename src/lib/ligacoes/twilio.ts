@@ -120,7 +120,7 @@ export function parseEventoWebhookTwilio(payload: Record<string, unknown>): Even
  * Gera um Access Token de voz (vida curta) pro navegador. `identity` é o id do
  * colaborador logado. Retorna null se a Twilio não estiver configurada.
  */
-export function gerarVoiceToken(identity: string): string | null {
+export function gerarVoiceToken(identity: string, incomingAllow = false): string | null {
   const c = getTwilioCreds();
   if (!c) return null;
   const AccessToken = twilio.jwt.AccessToken;
@@ -132,7 +132,7 @@ export function gerarVoiceToken(identity: string): string | null {
   token.addGrant(
     new VoiceGrant({
       outgoingApplicationSid: c.twimlAppSid,
-      incomingAllow: false,
+      incomingAllow,
     }),
   );
   return token.toJwt();

@@ -23,6 +23,7 @@ interface TwilioCallCtx {
   error: string | null;
   dial: (numero: string, extra?: Record<string, string>) => void;
   hangup: () => void;
+  isPowerDialerAgent: boolean;
 }
 
 const Ctx = createContext<TwilioCallCtx | null>(null);
@@ -37,6 +38,7 @@ export function useTwilioCall(): TwilioCallCtx {
       error: null,
       dial: () => {},
       hangup: () => {},
+      isPowerDialerAgent: false,
     };
   }
   return c;
@@ -49,6 +51,7 @@ export function TwilioCallProvider({ children }: { children: ReactNode }) {
   const [activeNumber, setActiveNumber] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [micProblem, setMicProblem] = useState(false);
+  const [isPowerDialerAgent, setIsPowerDialerAgent] = useState(false);
   const deviceRef = useRef<Device | null>(null);
   const callRef = useRef<Call | null>(null);
   const instanciaIdRef = useRef<string | null>(null);
@@ -69,6 +72,7 @@ export function TwilioCallProvider({ children }: { children: ReactNode }) {
         if (!alive) return;
         if (!r.token || !r.instanciaId) return;
         instanciaIdRef.current = r.instanciaId;
+        const isPdAgent = r.isPowerDialerAgent;
         const { Device } = await import("@twilio/voice-sdk");
         if (!alive) return;
         const device = new Device(r.token, {
@@ -90,6 +94,38 @@ export function TwilioCallProvider({ children }: { children: ReactNode }) {
         }
         deviceRef.current = device;
         setAvailable(true);
+        setIsPowerDialerAgent(isPdAgent);
+
+        // Agente do power dialer: chamadas entram automaticamente (a
+        // conference já conectou o lead) — sem aceitar manualmente.
+        if (isPdAgent) {
+          device.on("incoming", (call: Call) => {
+            call.accept();
+            callRef.current = call;
+            setStatus("in_call");
+            setActiveNumber("Power Dialer");
+            try {
+              new Audio("/sounds/power-dialer-ring.mp3").play();
+            } catch {
+              /* som opcional */
+            }
+
+            call.on("disconnect", () => {
+              clearWatchdog();
+              setStatus("idle");
+              setActiveNumber(null);
+              setMicProblem(false);
+              callRef.current = null;
+              router.refresh();
+            });
+            call.on("error", (e: { message: string }) => {
+              setError(e.message);
+              setStatus("idle");
+              setActiveNumber(null);
+              setMicProblem(false);
+            });
+          });
+        }
       } catch (e) {
         if (alive) setError((e as Error).message);
       }
@@ -174,7 +210,9 @@ export function TwilioCallProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <Ctx.Provider value={{ available, status, activeNumber, error, dial, hangup }}>
+    <Ctx.Provider
+      value={{ available, status, activeNumber, error, dial, hangup, isPowerDialerAgent }}
+    >
       {children}
       {available && status !== "idle" && (
         <div className="fixed bottom-4 right-4 z-50 flex items-center gap-3 rounded-lg border bg-card px-4 py-3 shadow-lg">
