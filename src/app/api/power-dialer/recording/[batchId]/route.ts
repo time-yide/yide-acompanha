@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getServerEnv } from "@/lib/env";
+import { validarAssinaturaTwilio } from "@/lib/ligacoes/twilio";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function sb() { return createServiceRoleClient() as any; }
@@ -15,8 +16,18 @@ export async function POST(
   { params }: { params: Promise<{ batchId: string }> },
 ) {
   const { batchId } = await params;
+  const env = getServerEnv();
   const form = await req.formData();
-  const recordingSid = form.get("RecordingSid") as string;
+  const p: Record<string, string> = {};
+  form.forEach((v, k) => { p[k] = String(v); });
+
+  const sig = req.headers.get("x-twilio-signature");
+  const webhookUrl = `${env.NEXT_PUBLIC_APP_URL}/api/power-dialer/recording/${batchId}`;
+  if (!validarAssinaturaTwilio(sig, webhookUrl, p)) {
+    return new NextResponse("Forbidden", { status: 403 });
+  }
+
+  const recordingSid = p.RecordingSid ?? "";
 
   if (recordingSid) {
     const appUrl = getServerEnv().NEXT_PUBLIC_APP_URL.replace(/\/$/, "");

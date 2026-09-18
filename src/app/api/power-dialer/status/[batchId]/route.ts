@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { getServerEnv } from "@/lib/env";
+import { validarAssinaturaTwilio } from "@/lib/ligacoes/twilio";
 import { getBatchCallBySid, getBatchById } from "@/lib/power-dialer/queries";
 import { processPowerDialerPostCall } from "@/lib/power-dialer/post-call";
 
@@ -18,10 +20,20 @@ export async function POST(
   { params }: { params: Promise<{ batchId: string }> },
 ) {
   const { batchId } = await params;
+  const env = getServerEnv();
   const form = await req.formData();
-  const callSid = form.get("CallSid") as string;
-  const callStatus = form.get("CallStatus") as string;
-  const duration = form.get("CallDuration") as string | null;
+  const p: Record<string, string> = {};
+  form.forEach((v, k) => { p[k] = String(v); });
+
+  const sig = req.headers.get("x-twilio-signature");
+  const webhookUrl = `${env.NEXT_PUBLIC_APP_URL}/api/power-dialer/status/${batchId}`;
+  if (!validarAssinaturaTwilio(sig, webhookUrl, p)) {
+    return new NextResponse("Forbidden", { status: 403 });
+  }
+
+  const callSid = p.CallSid ?? "";
+  const callStatus = p.CallStatus ?? "";
+  const duration = p.CallDuration ?? null;
 
   const batchCall = await getBatchCallBySid(callSid);
   if (!batchCall) return twimlOk();
