@@ -1,12 +1,14 @@
+import { Suspense } from "react";
 import { requireAuth } from "@/lib/auth/session";
 import { Card } from "@/components/ui/card";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import {
   getMotorStats,
-  getFunilMotor,
+  getFunilCompleto,
   getConversasAtivas,
 } from "@/lib/motor-prospeccao/dashboard-queries";
 import { MotorFunil } from "@/components/motor-prospeccao/MotorFunil";
+import { MotorPeriodoFilter } from "@/components/motor-prospeccao/MotorPeriodoFilter";
 import { ConversasAtivasTable } from "@/components/motor-prospeccao/ConversasAtivasTable";
 
 async function getOrgId(userId: string): Promise<string | null> {
@@ -20,24 +22,36 @@ async function getOrgId(userId: string): Promise<string | null> {
   return data?.organization_id ?? null;
 }
 
-export default async function MotorDashboardPage() {
+export default async function MotorDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ dias?: string }>;
+}) {
   const user = await requireAuth();
   const orgId = await getOrgId(user.id);
   if (!orgId) return <p>Organização não encontrada.</p>;
 
+  const params = await searchParams;
+  const dias = Number(params.dias ?? "30") || 30;
+
   const [stats, funil, conversas] = await Promise.all([
-    getMotorStats(orgId),
-    getFunilMotor(orgId),
+    getMotorStats(orgId, dias),
+    getFunilCompleto(orgId, dias),
     getConversasAtivas(orgId),
   ]);
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-bold tracking-tight">Motor de Prospecção</h1>
-        <p className="text-sm text-muted-foreground">
-          Métricas do disparo automático de WhatsApp e IA conversacional.
-        </p>
+      <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Motor de Prospecção</h1>
+          <p className="text-sm text-muted-foreground">
+            Métricas do disparo automático de WhatsApp e IA conversacional.
+          </p>
+        </div>
+        <Suspense fallback={null}>
+          <MotorPeriodoFilter />
+        </Suspense>
       </header>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -63,6 +77,28 @@ export default async function MotorDashboardPage() {
       <Card className="p-6">
         <h2 className="mb-4 text-lg font-semibold">Funil de conversão</h2>
         <MotorFunil data={funil} />
+      </Card>
+
+      <Card className="p-4">
+        <h3 className="mb-2 text-sm font-semibold">Reengajamento</h3>
+        <div className="grid grid-cols-3 gap-4 text-center">
+          <div>
+            <p className="text-2xl font-bold">{funil.reengajamentoEnviados}</p>
+            <p className="text-xs text-muted-foreground">Enviados</p>
+          </div>
+          <div>
+            <p className="text-2xl font-bold">{funil.reengajamentoResponderam}</p>
+            <p className="text-xs text-muted-foreground">Responderam</p>
+          </div>
+          <div>
+            <p className="text-2xl font-bold">
+              {funil.reengajamentoEnviados > 0
+                ? `${Math.round((funil.reengajamentoResponderam / funil.reengajamentoEnviados) * 100)}%`
+                : "-"}
+            </p>
+            <p className="text-xs text-muted-foreground">Recuperação</p>
+          </div>
+        </div>
       </Card>
 
       <Card className="p-6">
