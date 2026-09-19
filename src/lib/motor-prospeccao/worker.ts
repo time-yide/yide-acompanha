@@ -8,6 +8,7 @@ import { getStepsDaCadencia, calcularStepAtual, seedCadenciaPadrao } from "./cad
 import { normalizeTelefone } from "@/lib/dispatch/render-template";
 import { dispararLigacaoIA, contarLigacoesHoje } from "@/lib/voz-ia/ligacao-automatica";
 import { dispararPowerDialerBatch } from "@/lib/power-dialer/dispatcher";
+import { enviarViaTwilioWpp } from "./enviar-wpp";
 import type { LeadParaProspectar, MotorResult, MotorGlobalResult } from "./types";
 import { MOTOR_BATCH_SIZE, MOTOR_INTERVALO_MIN_HORAS } from "./types";
 
@@ -60,42 +61,6 @@ async function findOrCreateConversation(
   return conv?.id ?? null;
 }
 
-async function enviarViaTwilio(
-  to: string,
-  from: string,
-  body: string,
-  statusCallbackUrl: string,
-): Promise<{ sid: string } | { error: string }> {
-  const env = getServerEnv();
-  const accountSid = env.TWILIO_ACCOUNT_SID;
-  const authToken = env.TWILIO_AUTH_TOKEN;
-  if (!accountSid || !authToken) return { error: "Twilio não configurado" };
-
-  const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
-  const params = new URLSearchParams({
-    From: `whatsapp:${from}`,
-    To: `whatsapp:${to}`,
-    Body: body,
-    StatusCallback: statusCallbackUrl,
-  });
-
-  const resp = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: params.toString(),
-  });
-
-  if (!resp.ok) {
-    const text = await resp.text();
-    return { error: `Twilio ${resp.status}: ${text.slice(0, 200)}` };
-  }
-
-  const result = await resp.json();
-  return { sid: (result as { sid?: string }).sid ?? "" };
-}
 
 async function processarLead(
   orgId: string,
@@ -206,7 +171,7 @@ async function processarLead(
   );
   if (!convId) return { acao: "erro", erro: "Falha ao criar conversa" };
 
-  const sendResult = await enviarViaTwilio(telefone, twilioFrom, msgResult.mensagem, statusUrl);
+  const sendResult = await enviarViaTwilioWpp(telefone, twilioFrom, msgResult.mensagem, statusUrl);
   if ("error" in sendResult) return { acao: "erro", erro: sendResult.error };
 
   await sb().from("wpp_messages").insert({
