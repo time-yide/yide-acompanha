@@ -135,12 +135,49 @@ export async function POST(req: NextRequest) {
     status: "entregue",
   });
 
+  // Score: lead respondeu WPP (+30)
+  try {
+    const { data: convForScore } = await sb
+      .from("wpp_conversations")
+      .select("lead_gerado_id")
+      .eq("id", convId)
+      .single();
+    if (convForScore?.lead_gerado_id) {
+      const { incrementLeadScore } = await import("@/lib/motor-prospeccao/lead-score");
+      await incrementLeadScore(convForScore.lead_gerado_id, 30);
+    }
+  } catch { /* score is best-effort */ }
+
   // Atualizar conversa (último texto + incrementar nao_lidas atomicamente)
   await sb.rpc("increment_nao_lidas", {
     conv_id: convId,
     novo_texto: body.slice(0, 200),
     nova_data: new Date().toISOString(),
   });
+
+  // Reativar IA se lead estava em reengajamento (esgotado)
+  try {
+    const { data: convLeadData } = await sb
+      .from("wpp_conversations")
+      .select("lead_gerado_id")
+      .eq("id", convId)
+      .single();
+    if (convLeadData?.lead_gerado_id) {
+      const { data: leadStatus } = await sb
+        .from("leads_gerados")
+        .select("ai_status")
+        .eq("id", convLeadData.lead_gerado_id)
+        .single();
+      if (leadStatus?.ai_status === "esgotado") {
+        await sb.from("leads_gerados")
+          .update({ ai_status: "aguardando" })
+          .eq("id", convLeadData.lead_gerado_id);
+        await sb.from("wpp_conversations")
+          .update({ ai_ativa: true })
+          .eq("id", convId);
+      }
+    }
+  } catch { /* best-effort */ }
 
   // --- IA Conversacional ---
   const { data: convAI } = await sb

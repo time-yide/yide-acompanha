@@ -41,6 +41,46 @@ function montarContextoLead(lead: LeadParaProspectar): string {
   return parts.join("\n");
 }
 
+const REENGAJAMENTO_PROMPT = `Você é a assistente comercial da Yide Digital. Gere uma mensagem curta e natural de reengajamento para a empresa informada. O tom deve ser amigável e trazer um gancho novo (ex: novidade, oportunidade, pergunta). NÃO mencione que já tentamos contato antes. Máximo 2 frases. Assine como "Equipe Yide".`;
+
+export async function gerarMensagemReengajamento(
+  empresa: string,
+): Promise<{ mensagem: string } | { error: string }> {
+  const env = getServerEnv();
+  if (!env.OPENAI_API_KEY) return { error: "OPENAI_API_KEY não configurada" };
+
+  const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${env.OPENAI_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "gpt-4o",
+      messages: [
+        { role: "system", content: REENGAJAMENTO_PROMPT },
+        {
+          role: "user",
+          content: `Empresa: ${empresa || "empresa local"}\n\nGere a mensagem de reengajamento. Responda APENAS com a mensagem, sem explicações.`,
+        },
+      ],
+      temperature: 0.95,
+      max_tokens: 150,
+    }),
+  });
+
+  if (!resp.ok) {
+    const text = await resp.text();
+    return { error: `OpenAI ${resp.status}: ${text.slice(0, 200)}` };
+  }
+
+  const data = await resp.json();
+  const content = data.choices?.[0]?.message?.content?.trim();
+  if (!content) return { error: "OpenAI retornou resposta vazia" };
+
+  return { mensagem: content };
+}
+
 export async function gerarMensagemPrimeiroContato(
   lead: LeadParaProspectar,
   customPrompt: string | null,

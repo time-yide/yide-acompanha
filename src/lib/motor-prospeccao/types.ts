@@ -14,6 +14,7 @@ export interface LeadParaProspectar {
   ai_status: string | null;
   decisor_nome: string | null;
   dropado_power_dialer: boolean | null;
+  score: number;
 }
 
 export interface MotorResult {
