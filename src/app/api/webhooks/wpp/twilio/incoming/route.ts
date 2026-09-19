@@ -155,6 +155,30 @@ export async function POST(req: NextRequest) {
     nova_data: new Date().toISOString(),
   });
 
+  // Reativar IA se lead estava em reengajamento (esgotado)
+  try {
+    const { data: convLeadData } = await sb
+      .from("wpp_conversations")
+      .select("lead_gerado_id")
+      .eq("id", convId)
+      .single();
+    if (convLeadData?.lead_gerado_id) {
+      const { data: leadStatus } = await sb
+        .from("leads_gerados")
+        .select("ai_status")
+        .eq("id", convLeadData.lead_gerado_id)
+        .single();
+      if (leadStatus?.ai_status === "esgotado") {
+        await sb.from("leads_gerados")
+          .update({ ai_status: "aguardando" })
+          .eq("id", convLeadData.lead_gerado_id);
+        await sb.from("wpp_conversations")
+          .update({ ai_ativa: true })
+          .eq("id", convId);
+      }
+    }
+  } catch { /* best-effort */ }
+
   // --- IA Conversacional ---
   const { data: convAI } = await sb
     .from("wpp_conversations")

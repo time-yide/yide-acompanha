@@ -80,7 +80,11 @@ async function processarLead(
   if (!step) {
     await sb()
       .from("leads_gerados")
-      .update({ ai_status: "esgotado" })
+      .update({
+        ai_status: "esgotado",
+        reengajamento_proxima: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
+        reengajamento_tentativas: 0,
+      })
       .eq("id", lead.id);
     return { acao: "esgotado" };
   }
@@ -321,6 +325,24 @@ export async function executarMotor(): Promise<MotorGlobalResult> {
           acao: "power_dialer_erro",
           erro: pdResult.error,
         });
+      }
+    }
+
+    // --- Reengajamento ---
+    if ((wppRestante - wppEnviadosNoBatch) > 0) {
+      const { selecionarLeadsReengajamento, processarReengajamento } =
+        await import("./reengajamento");
+      const leadsReeng = await selecionarLeadsReengajamento(orgId);
+      for (const lead of leadsReeng) {
+        if ((wppRestante - wppEnviadosNoBatch) <= 0) break;
+        try {
+          const res = await processarReengajamento(
+            orgId, lead, config.twilio_wpp_from, statusUrl,
+          );
+          if (res.sucesso) wppEnviadosNoBatch++;
+        } catch (err) {
+          console.error("[motor] reengajamento erro:", err);
+        }
       }
     }
 
