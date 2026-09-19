@@ -67,6 +67,13 @@ export async function processPostCall(data: PostCallData) {
       ? "caixa_postal"
       : data.durationSeconds > 5 ? "atendida" : "perdida";
 
+    if (ligacaoStatus === "atendida") {
+      try {
+        const { incrementLeadScore } = await import("@/lib/motor-prospeccao/lead-score");
+        await incrementLeadScore(data.leadGeradoId, 20);
+      } catch { /* score is best-effort */ }
+    }
+
     const { data: leadData } = await sb
       .from("leads_gerados")
       .select("telefone, empresa")

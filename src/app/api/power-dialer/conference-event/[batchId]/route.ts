@@ -6,6 +6,7 @@ import { getBatchById, getBatchCalls } from "@/lib/power-dialer/queries";
 import { notificarAgente } from "@/lib/power-dialer/notify";
 import { PD_BATCH_STATUS, PD_CALL_STATUS } from "@/lib/power-dialer/types";
 import type { PDBatch } from "@/lib/power-dialer/types";
+import { incrementLeadScore } from "@/lib/motor-prospeccao/lead-score";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function sb() { return createServiceRoleClient() as any; }
@@ -75,6 +76,8 @@ async function handleFirstAnswer(
     atendeu_em: new Date().toISOString(),
   }).eq("id", answeredCall.id);
 
+  await incrementLeadScore(answeredCall.lead_gerado_id, 20);
+
   if (!env.TWILIO_ACCOUNT_SID || !env.TWILIO_AUTH_TOKEN) {
     console.error("[power-dialer] Twilio não configurado no conference-event");
     return;
@@ -107,6 +110,8 @@ async function handleFirstAnswer(
         dropado_power_dialer: true,
         ai_proxima_tentativa: new Date().toISOString(),
       }).eq("id", other.lead_gerado_id);
+
+      await incrementLeadScore(other.lead_gerado_id, 15);
     } catch (err) {
       console.error("[power-dialer] erro ao dropar call:", err);
     }

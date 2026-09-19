@@ -135,6 +135,19 @@ export async function POST(req: NextRequest) {
     status: "entregue",
   });
 
+  // Score: lead respondeu WPP (+30)
+  try {
+    const { data: convForScore } = await sb
+      .from("wpp_conversations")
+      .select("lead_gerado_id")
+      .eq("id", convId)
+      .single();
+    if (convForScore?.lead_gerado_id) {
+      const { incrementLeadScore } = await import("@/lib/motor-prospeccao/lead-score");
+      await incrementLeadScore(convForScore.lead_gerado_id, 30);
+    }
+  } catch { /* score is best-effort */ }
+
   // Atualizar conversa (último texto + incrementar nao_lidas atomicamente)
   await sb.rpc("increment_nao_lidas", {
     conv_id: convId,
