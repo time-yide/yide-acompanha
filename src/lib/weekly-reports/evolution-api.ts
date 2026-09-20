@@ -91,18 +91,20 @@ export async function listWhatsAppGroups(): Promise<
   if (!apiUrl || !apiKey || !instance) return [];
 
   try {
-    const res = await fetch(`${apiUrl}/group/fetchAllGroups/${instance}?getParticipants=false`, {
-      headers: { apikey: apiKey },
+    const res = await fetch(`${apiUrl}/chat/findChats/${instance}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: apiKey },
+      body: JSON.stringify({}),
     });
     if (!res.ok) return [];
-    const data = await res.json();
-    return (Array.isArray(data) ? data : []).map(
-      (g: { id: string; subject: string; size?: number }) => ({
-        id: g.id,
-        subject: g.subject,
-        size: g.size ?? 0,
-      }),
-    );
+    const data: { remoteJid?: string; pushName?: string }[] = await res.json();
+    return (Array.isArray(data) ? data : [])
+      .filter((c) => c.remoteJid?.includes("@g.us"))
+      .map((g) => ({
+        id: g.remoteJid!,
+        subject: g.pushName ?? "",
+        size: 0,
+      }));
   } catch {
     return [];
   }
