@@ -2,6 +2,7 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 import { formatIsoDate } from "@/lib/datetime/timezone";
+import { sendWhatsAppMessage } from "@/lib/weekly-reports/evolution-api";
 
 const WINDOWS = [45, 15, 5];
 
@@ -42,6 +43,31 @@ export async function detectRenovacoes(counters: { renovacao_contrato: number })
         user_ids_extras: recipients,
       });
       counters.renovacao_contrato++;
+
+      // WhatsApp alert to the assessor
+      if (d.cliente?.assessor_id) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("telefone")
+          .eq("id", d.cliente.assessor_id)
+          .maybeSingle();
+
+        if (profile?.telefone) {
+          const dateParts = d.data.split("-");
+          const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+          const message = [
+            `📋 *Renovação de contrato em ${days} dias*`,
+            "",
+            `Cliente: *${d.cliente.nome}*`,
+            `Data: ${formattedDate}`,
+            ...(d.descricao ? [d.descricao] : []),
+            "",
+            "Verifique se tudo está alinhado para a renovação! ✅",
+          ].join("\n");
+
+          await sendWhatsAppMessage(profile.telefone, message);
+        }
+      }
     }
   }
 }
