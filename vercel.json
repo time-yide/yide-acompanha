@@ -39,6 +39,11 @@
     { "path": "/api/cron/resumo-diario-assessor", "schedule": "0 11 * * 1-5" },
     { "path": "/api/cron/lembrete-deadline", "schedule": "0 21 * * 1-5" },
     { "path": "/api/cron/aniversario-cliente", "schedule": "0 12 * * *" },
-    { "path": "/api/cron/lembrete-cronograma", "schedule": "0 13 20-25 * *" }
+    { "path": "/api/cron/lembrete-cronograma", "schedule": "0 13 20-25 * *" },
+    { "path": "/api/cron/alerta-post-atrasado", "schedule": "0 14 * * 1-5" },
+    { "path": "/api/cron/relatorio-semanal-cliente", "schedule": "0 14 * * 5" },
+    { "path": "/api/cron/auto-agendar-post", "schedule": "*/30 * * * *" },
+    { "path": "/api/cron/videomaker-indisponivel", "schedule": "0 12 * * 1-5" },
+    { "path": "/api/cron/tarefa-nf-auto", "schedule": "0 13 * * 1-5" }
   ]
 }
