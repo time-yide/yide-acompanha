@@ -49,6 +49,11 @@
     { "path": "/api/cron/followup-entrega", "schedule": "0 15 * * 1-5" },
     { "path": "/api/cron/conflito-agenda", "schedule": "0 12 * * *" },
     { "path": "/api/cron/gravacao-cancelada", "schedule": "0 13 * * *" },
-    { "path": "/api/cron/briefing-videomaker-wpp", "schedule": "*/30 * * * *" }
+    { "path": "/api/cron/briefing-videomaker-wpp", "schedule": "*/30 * * * *" },
+    { "path": "/api/cron/resumo-mensal-cliente-wpp", "schedule": "0 13 2 * *" },
+    { "path": "/api/cron/satisfacao-baixa", "schedule": "0 14 * * 1-5" },
+    { "path": "/api/cron/budget-meta-esgotando", "schedule": "0 15 * * 1-5" },
+    { "path": "/api/cron/cobranca-pagamento", "schedule": "0 13 5,15,25 * *" },
+    { "path": "/api/cron/auto-ativar-onboarding", "schedule": "0 12 * * 1-5" }
   ]
 }
