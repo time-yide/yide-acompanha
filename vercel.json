@@ -33,6 +33,12 @@
     { "path": "/api/cron/alerta-inatividade", "schedule": "0 13 * * 3" },
     { "path": "/api/cron/followup-reuniao", "schedule": "0 15 * * *" },
     { "path": "/api/cron/onboarding-wpp", "schedule": "0 12 * * *" },
-    { "path": "/api/cron/nps-wpp", "schedule": "0 13 15 * *" }
+    { "path": "/api/cron/nps-wpp", "schedule": "0 13 15 * *" },
+    { "path": "/api/cron/lembrete-gravacao?tipo=vespera", "schedule": "0 21 * * *" },
+    { "path": "/api/cron/lembrete-gravacao?tipo=dia", "schedule": "0 11 * * *" },
+    { "path": "/api/cron/resumo-diario-assessor", "schedule": "0 11 * * 1-5" },
+    { "path": "/api/cron/lembrete-deadline", "schedule": "0 21 * * 1-5" },
+    { "path": "/api/cron/aniversario-cliente", "schedule": "0 12 * * *" },
+    { "path": "/api/cron/lembrete-cronograma", "schedule": "0 13 20-25 * *" }
   ]
 }
