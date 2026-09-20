@@ -72,7 +72,7 @@ Transcrição:
 ${input.textoCompleto.slice(0, 24000)}`;
 
   try {
-    const resp = await client.messages.create({ model: MODEL, max_tokens: 2048, messages: [{ role: "user", content: prompt }] });
+    const resp = await client.messages.create({ model: MODEL, max_tokens: 2048, system: [{ type: "text", text: "Você é assistente de uma agência de marketing. Analise transcrições de reuniões e extraia resumo, decisões, insights e tarefas em JSON.", cache_control: { type: "ephemeral" } }], messages: [{ role: "user", content: prompt }] });
     const raw = resp.content.map((c) => (c.type === "text" ? c.text : "")).join("");
     const data = parseSummaryResponse(raw);
     if (!data) return { ok: false, skipped: false, error: "resposta sem JSON válido", data: null, custo_estimado_centavos: 0 };

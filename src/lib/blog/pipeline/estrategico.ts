@@ -107,6 +107,7 @@ export async function gerarArtigoEstrategico(tema: string, keywordsAlvo: string[
     const res = await client.messages.create({
       model: BLOG_MODEL,
       max_tokens: 8000,
+      system: [{ type: "text", text: "Você é o editor-chefe de um portal de negócios voltado a PMEs brasileiras, produzindo artigos aprofundados no estilo Forbes/Exame/HBR para a Yide Digital.", cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: prompt }],
     });
     const txt = res.content.map((c) => ("text" in c ? c.text : "")).join("").trim();

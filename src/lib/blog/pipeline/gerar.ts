@@ -57,6 +57,7 @@ Responda SOMENTE com um JSON válido (sem cercas de código, sem texto fora do J
     const res = await client.messages.create({
       model: BLOG_MODEL,
       max_tokens: 3000,
+      system: [{ type: "text", text: "Você é redator(a) da Yide Digital, agência brasileira de marketing e programação.", cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: prompt }],
     });
     const txt = res.content.map((c) => ("text" in c ? c.text : "")).join("").trim();

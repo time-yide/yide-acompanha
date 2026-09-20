@@ -12,6 +12,7 @@ export async function gerarPostPresenca(orgId: string, canal: Canal, tema: strin
   if (!client) { console.error("[presenca] Anthropic não configurado"); return false; }
   try {
     const res = await client.messages.create({ model: MODEL, max_tokens: 1500,
+      system: [{ type: "text", text: "Você é redator(a) de presença digital da Yide Digital.", cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: montarPromptPresenca(canal, tema, selecionarKeywordsAlvo(4)) }] });
     const txt = res.content.map((c) => ("text" in c ? c.text : "")).join("").trim();
     const parsed = parsePostPresenca(extrairJson(txt));

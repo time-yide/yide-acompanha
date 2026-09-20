@@ -37,6 +37,7 @@ export async function polirCase(d: DadosCase): Promise<CasePolido | null> {
   if (!client) { console.error("[cases] Anthropic não configurado"); return null; }
   try {
     const res = await client.messages.create({ model: CASE_MODEL, max_tokens: 2500,
+      system: [{ type: "text", text: "Você é redator(a) da Yide Digital, especialista em cases de sucesso.", cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: montarPromptCase(d) }] });
     const txt = res.content.map((c) => ("text" in c ? c.text : "")).join("").trim();
     return parseCasePolido(extrairJson(txt));

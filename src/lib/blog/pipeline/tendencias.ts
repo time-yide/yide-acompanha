@@ -76,6 +76,7 @@ export async function gerarTendencias(orgId: string): Promise<{ ok: boolean; tot
     const res = await client.messages.create({
       model: BLOG_MODEL,
       max_tokens: 2000,
+      system: [{ type: "text", text: "Você é estrategista de conteúdo da Yide Digital, agência brasileira de marketing e programação.", cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: montarPromptTendencias(noticias.slice(0, 30)) }],
     });
     const txt = res.content.map((c) => ("text" in c ? c.text : "")).join("").trim();
