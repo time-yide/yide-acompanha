@@ -59,6 +59,9 @@
     { "path": "/api/cron/post-viralizou", "schedule": "0 14 * * 1-5" },
     { "path": "/api/cron/melhor-horario-post", "schedule": "0 12 * * 1" },
     { "path": "/api/cron/pauta-reuniao", "schedule": "0 21 * * *" },
-    { "path": "/api/cron/auto-progresso-onboarding", "schedule": "0 11 * * 1-5" }
+    { "path": "/api/cron/auto-progresso-onboarding", "schedule": "0 11 * * 1-5" },
+    { "path": "/api/cron/auto-legenda-ia", "schedule": "0 13 * * 1-5" },
+    { "path": "/api/cron/auto-hashtags-ia", "schedule": "0 13 * * 1-5" },
+    { "path": "/api/cron/auto-tarefas-reuniao", "schedule": "*/30 * * * *" }
   ]
 }
