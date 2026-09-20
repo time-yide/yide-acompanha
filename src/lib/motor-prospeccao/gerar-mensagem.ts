@@ -1,5 +1,5 @@
 import "server-only";
-import { getServerEnv } from "@/lib/env";
+import { getAnthropicClient } from "@/lib/ai/client";
 import type { LeadParaProspectar } from "./types";
 
 const DEFAULT_SYSTEM_PROMPT = `Você é a assistente comercial da Yide Digital, uma agência de marketing e tecnologia de Cuiabá-MT. Seu objetivo é iniciar uma conversa informal e amigável via WhatsApp com um potencial cliente.
@@ -43,82 +43,62 @@ function montarContextoLead(lead: LeadParaProspectar): string {
 
 const REENGAJAMENTO_PROMPT = `Você é a assistente comercial da Yide Digital. Gere uma mensagem curta e natural de reengajamento para a empresa informada. O tom deve ser amigável e trazer um gancho novo (ex: novidade, oportunidade, pergunta). NÃO mencione que já tentamos contato antes. Máximo 2 frases. Assine como "Equipe Yide".`;
 
+const MODEL = "claude-haiku-4-5";
+
 export async function gerarMensagemReengajamento(
   empresa: string,
 ): Promise<{ mensagem: string } | { error: string }> {
-  const env = getServerEnv();
-  if (!env.OPENAI_API_KEY) return { error: "OPENAI_API_KEY não configurada" };
+  const client = getAnthropicClient();
+  if (!client) return { error: "ANTHROPIC_API_KEY não configurada" };
 
-  const resp = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${env.OPENAI_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "gpt-4o",
-      messages: [
-        { role: "system", content: REENGAJAMENTO_PROMPT },
-        {
-          role: "user",
-          content: `Empresa: ${empresa || "empresa local"}\n\nGere a mensagem de reengajamento. Responda APENAS com a mensagem, sem explicações.`,
-        },
-      ],
-      temperature: 0.95,
+  try {
+    const res = await client.messages.create({
+      model: MODEL,
       max_tokens: 150,
-    }),
-  });
+      system: [{ type: "text", text: REENGAJAMENTO_PROMPT, cache_control: { type: "ephemeral" } }],
+      messages: [{
+        role: "user",
+        content: `Empresa: ${empresa || "empresa local"}\n\nGere a mensagem de reengajamento. Responda APENAS com a mensagem, sem explicações.`,
+      }],
+    });
 
-  if (!resp.ok) {
-    const text = await resp.text();
-    return { error: `OpenAI ${resp.status}: ${text.slice(0, 200)}` };
+    const content = res.content.find((b) => b.type === "text");
+    if (!content || content.type !== "text" || !content.text.trim()) {
+      return { error: "IA retornou resposta vazia" };
+    }
+    return { mensagem: content.text.trim() };
+  } catch (e) {
+    return { error: `Claude: ${e instanceof Error ? e.message : String(e)}` };
   }
-
-  const data = await resp.json();
-  const content = data.choices?.[0]?.message?.content?.trim();
-  if (!content) return { error: "OpenAI retornou resposta vazia" };
-
-  return { mensagem: content };
 }
 
 export async function gerarMensagemPrimeiroContato(
   lead: LeadParaProspectar,
   customPrompt: string | null,
 ): Promise<{ mensagem: string } | { error: string }> {
-  const env = getServerEnv();
-  if (!env.OPENAI_API_KEY) return { error: "OPENAI_API_KEY não configurada" };
+  const client = getAnthropicClient();
+  if (!client) return { error: "ANTHROPIC_API_KEY não configurada" };
 
   const systemPrompt = customPrompt?.trim() || DEFAULT_SYSTEM_PROMPT;
   const contexto = montarContextoLead(lead);
 
-  const resp = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${env.OPENAI_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "gpt-4o",
-      messages: [
-        { role: "system", content: systemPrompt },
-        {
-          role: "user",
-          content: `Contexto do lead:\n${contexto}\n\nGere a primeira mensagem de WhatsApp para este lead. Responda APENAS com a mensagem, sem explicações.`,
-        },
-      ],
-      temperature: 0.9,
+  try {
+    const res = await client.messages.create({
+      model: MODEL,
       max_tokens: 200,
-    }),
-  });
+      system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }],
+      messages: [{
+        role: "user",
+        content: `Contexto do lead:\n${contexto}\n\nGere a primeira mensagem de WhatsApp para este lead. Responda APENAS com a mensagem, sem explicações.`,
+      }],
+    });
 
-  if (!resp.ok) {
-    const text = await resp.text();
-    return { error: `OpenAI ${resp.status}: ${text.slice(0, 200)}` };
+    const content = res.content.find((b) => b.type === "text");
+    if (!content || content.type !== "text" || !content.text.trim()) {
+      return { error: "IA retornou resposta vazia" };
+    }
+    return { mensagem: content.text.trim() };
+  } catch (e) {
+    return { error: `Claude: ${e instanceof Error ? e.message : String(e)}` };
   }
-
-  const data = await resp.json();
-  const content = data.choices?.[0]?.message?.content?.trim();
-  if (!content) return { error: "OpenAI retornou resposta vazia" };
-
-  return { mensagem: content };
 }

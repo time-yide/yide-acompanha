@@ -1,8 +1,7 @@
 import "server-only";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { getServerEnv } from "@/lib/env";
+import { getAnthropicClient } from "@/lib/ai/client";
 import {
-  CONVERSA_IA_TOOLS,
   DEFAULT_WPP_SYSTEM_PROMPT,
 } from "./conversa-ia-types";
 import type { ConversaIAContext } from "./conversa-ia-types";
@@ -12,6 +11,54 @@ import {
   handleEscalarHumano,
   handleEncerrarConversa,
 } from "./tool-handlers";
+
+const MODEL = "claude-haiku-4-5";
+
+const ANTHROPIC_TOOLS = [
+  {
+    name: "agendar_reuniao" as const,
+    description: "Agenda reunião quando o lead confirma data e horário.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        data: { type: "string" as const, description: "Data no formato YYYY-MM-DD" },
+        horario: { type: "string" as const, description: "Horário no formato HH:MM" },
+        duracao_minutos: { type: "number" as const, description: "Duração em minutos (padrão 30)" },
+      },
+      required: ["data", "horario"],
+    },
+  },
+  {
+    name: "marcar_sem_interesse" as const,
+    description: "Lead não tem interesse. Usa SOMENTE quando lead recusa pela SEGUNDA vez ou pede explicitamente pra parar.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        motivo: { type: "string" as const, description: "Motivo dado pelo lead" },
+      },
+      required: ["motivo"],
+    },
+  },
+  {
+    name: "escalar_humano" as const,
+    description: "Transfere pra humano. Usa quando lead pede pessoa real ou IA não sabe responder.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        motivo: { type: "string" as const, description: "Motivo da escalação" },
+      },
+      required: ["motivo"],
+    },
+  },
+  {
+    name: "encerrar_conversa" as const,
+    description: "Conversa concluída (reunião marcada ou lead se despediu).",
+    input_schema: {
+      type: "object" as const,
+      properties: {},
+    },
+  },
+];
 
 function sb() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -96,80 +143,67 @@ export async function buildConversaContext(
 export async function gerarRespostaIA(
   ctx: ConversaIAContext,
 ): Promise<{ texto: string; toolCalled?: string } | { error: string }> {
-  const env = getServerEnv();
-  if (!env.OPENAI_API_KEY) return { error: "OPENAI_API_KEY não configurada" };
+  const client = getAnthropicClient();
+  if (!client) return { error: "ANTHROPIC_API_KEY não configurada" };
 
   const systemContent = ctx.leadContext
     ? `${ctx.systemPrompt}\n\n--- Dados do lead ---\n${ctx.leadContext}`
     : ctx.systemPrompt;
 
-  const resp = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${env.OPENAI_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "gpt-4o",
-      messages: [
-        { role: "system", content: systemContent },
-        ...ctx.messages,
-      ],
-      tools: CONVERSA_IA_TOOLS,
-      temperature: 0.7,
+  try {
+    const response = await client.messages.create({
+      model: MODEL,
       max_tokens: 300,
-    }),
-  });
+      system: [{ type: "text", text: systemContent, cache_control: { type: "ephemeral" } }],
+      tools: ANTHROPIC_TOOLS,
+      messages: ctx.messages,
+    });
 
-  if (!resp.ok) {
-    const text = await resp.text();
-    return { error: `OpenAI ${resp.status}: ${text.slice(0, 200)}` };
-  }
+    let texto = "";
+    let toolCalled: string | undefined;
 
-  const data = await resp.json();
-  const choice = data.choices?.[0];
-  if (!choice) return { error: "OpenAI retornou resposta vazia" };
+    for (const block of response.content) {
+      if (block.type === "text") {
+        texto = block.text.trim();
+      } else if (block.type === "tool_use") {
+        toolCalled = block.name;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const fnArgs = block.input as any;
 
-  const msg = choice.message;
-
-  if (msg.tool_calls && msg.tool_calls.length > 0) {
-    const toolCall = msg.tool_calls[0];
-    const fnName = toolCall.function.name;
-    const fnArgs = JSON.parse(toolCall.function.arguments || "{}");
-
-    switch (fnName) {
-      case "agendar_reuniao":
-        await handleAgendarReuniao(
-          ctx.orgId,
-          ctx.leadGeradoId,
-          ctx.conversationId,
-          fnArgs,
-        );
-        break;
-      case "marcar_sem_interesse":
-        await handleMarcarSemInteresse(
-          ctx.orgId,
-          ctx.leadGeradoId,
-          ctx.conversationId,
-          fnArgs,
-        );
-        break;
-      case "escalar_humano":
-        await handleEscalarHumano(
-          ctx.orgId,
-          ctx.leadGeradoId,
-          ctx.conversationId,
-          fnArgs,
-        );
-        break;
-      case "encerrar_conversa":
-        await handleEncerrarConversa(ctx.conversationId);
-        break;
+        switch (block.name) {
+          case "agendar_reuniao":
+            await handleAgendarReuniao(
+              ctx.orgId,
+              ctx.leadGeradoId,
+              ctx.conversationId,
+              fnArgs,
+            );
+            break;
+          case "marcar_sem_interesse":
+            await handleMarcarSemInteresse(
+              ctx.orgId,
+              ctx.leadGeradoId,
+              ctx.conversationId,
+              fnArgs,
+            );
+            break;
+          case "escalar_humano":
+            await handleEscalarHumano(
+              ctx.orgId,
+              ctx.leadGeradoId,
+              ctx.conversationId,
+              fnArgs,
+            );
+            break;
+          case "encerrar_conversa":
+            await handleEncerrarConversa(ctx.conversationId);
+            break;
+        }
+      }
     }
 
-    const texto = msg.content?.trim() || "";
-    return { texto, toolCalled: fnName };
+    return { texto, toolCalled };
+  } catch (e) {
+    return { error: `Claude: ${e instanceof Error ? e.message : String(e)}` };
   }
-
-  return { texto: msg.content?.trim() || "" };
 }

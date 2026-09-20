@@ -2,7 +2,7 @@
 // artigo+FAQ+capa (IA) → rascunho no blog (tipo "estrategico", sem fonte).
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { gerarArtigoEstrategico } from "./estrategico";
-import { gerarCapa } from "./gerar";
+// gerarCapa removida do cron (economia gpt-image); capa adicionada ao publicar
 import { selecionarKeywordsAlvo } from "./keywords";
 import { TEMAS_ESTRATEGICOS, slugDoTema } from "./temas-estrategicos";
 import { slugUnico } from "../slug";
@@ -30,7 +30,7 @@ export async function executarPipelineEstrategico(orgId: string, quantos = 1): P
       const keywordsAlvo = selecionarKeywordsAlvo(4); // SEO local, varia por post
       const artigo = await gerarArtigoEstrategico(tema.pergunta, keywordsAlvo);
       if (!artigo) { erros++; continue; }
-      const capa = await gerarCapa(artigo.titulo); // best-effort (pode ficar sem capa)
+      const capa: string | null = null; // capa adicionada manualmente ao publicar (economia gpt-image)
       const slug = slugUnico(slugDoTema(tema.pergunta), slugs);
       slugs.add(slug);
       // Garante que as keywords-alvo entrem nas keywords do post (dedup).
