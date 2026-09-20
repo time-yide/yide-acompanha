@@ -24,7 +24,8 @@ const ROLES_COORDENADOR_SETOR: Record<string, Setor> = {
 };
 
 export async function getReportRecipients(orgId: string): Promise<ReportRecipients> {
-  const sb = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = createServiceRoleClient() as any;
 
   const [{ data: profilesData }, { data: configData }] = await Promise.all([
     sb
@@ -32,9 +33,7 @@ export async function getReportRecipients(orgId: string): Promise<ReportRecipien
       .select("id, nome, role, telefone, especialidade")
       .eq("organization_id", orgId)
       .eq("ativo", true),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (sb as any)
-      .from("ai_voice_configs")
+    sb.from("ai_voice_configs")
       .select("twilio_wpp_from")
       .eq("organization_id", orgId)
       .eq("ativo", true)
