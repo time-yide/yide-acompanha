@@ -47,6 +47,67 @@ export async function sendWhatsAppMessage(
   }
 }
 
+export async function sendWhatsAppGroupMessage(
+  groupJid: string,
+  message: string,
+): Promise<SendMessageResult> {
+  const apiUrl = process.env.EVOLUTION_API_URL;
+  const apiKey = process.env.EVOLUTION_API_KEY;
+  const instance = process.env.EVOLUTION_INSTANCE_NAME;
+
+  if (!apiUrl || !apiKey || !instance) {
+    return { success: false, error: "Evolution API not configured" };
+  }
+
+  const jid = groupJid.includes("@") ? groupJid : `${groupJid}@g.us`;
+
+  try {
+    const res = await fetch(`${apiUrl}/message/sendText/${instance}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: apiKey },
+      body: JSON.stringify({ number: jid, text: message }),
+    });
+
+    if (!res.ok) {
+      const body = await res.text();
+      console.error("Evolution API group error:", res.status, body);
+      return { success: false, error: `HTTP ${res.status}` };
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error("Evolution API group error:", err);
+    return { success: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+export async function listWhatsAppGroups(): Promise<
+  { id: string; subject: string; size: number }[]
+> {
+  const apiUrl = process.env.EVOLUTION_API_URL;
+  const apiKey = process.env.EVOLUTION_API_KEY;
+  const instance = process.env.EVOLUTION_INSTANCE_NAME;
+
+  if (!apiUrl || !apiKey || !instance) return [];
+
+  try {
+    const res = await fetch(`${apiUrl}/group/fetchAllGroups/${instance}?getParticipants=false`, {
+      headers: { apikey: apiKey },
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (Array.isArray(data) ? data : []).map(
+      (g: { id: string; subject: string; size?: number }) => ({
+        id: g.id,
+        subject: g.subject,
+        size: g.size ?? 0,
+      }),
+    );
+  } catch {
+    return [];
+  }
+}
+
 export function formatWeeklyReportMessage(
   clientNome: string,
   semanaInicio: string,

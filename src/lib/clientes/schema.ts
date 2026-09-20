@@ -111,7 +111,7 @@ export const editClienteSchema = createClienteSchema.extend({
     z.boolean(),
   ),
   quantidade_diaria_stories: z.coerce.number().int().min(0).default(0),
-  // new fields already in base schema - inherited; explicit here for clarity
+  grupo_wpp_jid: z.string().optional().nullable(),
 });
 
 export const churnClienteSchema = z.object({
