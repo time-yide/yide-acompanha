@@ -26,6 +26,7 @@
     { "path": "/api/cron/motor-prospeccao", "schedule": "*/30 * * * *" },
     { "path": "/api/cron/gerador-leads-auto", "schedule": "0 8 * * *" },
     { "path": "/api/cron/relatorio-semanal", "schedule": "0 11 * * 1" },
-    { "path": "/api/cron/relatorio-mensal", "schedule": "0 11 1 * *" }
+    { "path": "/api/cron/relatorio-mensal", "schedule": "0 11 1 * *" },
+    { "path": "/api/cron/lembrete-tarefas", "schedule": "0 12 * * 1-5" }
   ]
 }
