@@ -40,19 +40,17 @@ export async function POST(req: Request) {
     updates: { clientId: string; pageId: string; igId: string | null }[];
   };
 
-  const sb = createServiceRoleClient() as any;
+  const sb = createServiceRoleClient();
   let success = 0;
   let fail = 0;
 
   for (const u of body.updates) {
-    const payload: Record<string, string | null> = {
-      facebook_page_id: u.pageId,
-    };
-    if (u.igId) payload.instagram_business_id = u.igId;
-
     const { error } = await sb
       .from("clients")
-      .update(payload)
+      .update({
+        facebook_page_id: u.pageId,
+        instagram_business_id: u.igId,
+      })
       .eq("id", u.clientId);
 
     if (error) {
@@ -75,7 +73,7 @@ interface Client {
 }
 
 async function fetchActiveClients(): Promise<Client[]> {
-  const sb = createServiceRoleClient() as any;
+  const sb = createServiceRoleClient();
   const { data } = await sb
     .from("clients")
     .select("id, nome, instagram_url, facebook_page_id, instagram_business_id")
