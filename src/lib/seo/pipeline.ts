@@ -29,6 +29,7 @@ export async function gerarPaginaLocal(orgId: string, servico: Servico, loc: Loc
   if (!client) { console.error("[seo] Anthropic não configurado"); return false; }
   try {
     const res = await client.messages.create({ model: SEO_MODEL, max_tokens: 3500,
+      system: [{ type: "text", text: "Você é redator(a) de SEO da Yide Digital, agência de marketing e programação.", cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: montarPromptPagina(servico, loc) }] });
     const txt = res.content.map((c) => ("text" in c ? c.text : "")).join("").trim();
     const parsed = parsePaginaGerada(extrairJson(txt));
