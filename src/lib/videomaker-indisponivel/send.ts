@@ -43,7 +43,7 @@ export async function sendVideomakerIndisponivelAlerta(): Promise<{
 
   const { data: recordings } = await sb
     .from("calendar_events")
-    .select("id, titulo, inicio, fim, client_id, videomaker_id, clients(nome, assessor_id)")
+    .select("id, titulo, inicio, fim, client_id, videomaker_assigned_id, clients(nome, assessor_id)")
     .eq("sub_calendar", "videomakers")
     .in("inicio::date", blockedDates)
     .is("deleted_at", null);
@@ -56,7 +56,7 @@ export async function sendVideomakerIndisponivelAlerta(): Promise<{
     inicio: string;
     fim: string;
     client_id: string;
-    videomaker_id: string | null;
+    videomaker_assigned_id: string | null;
     clients: { nome: string; assessor_id: string | null } | null;
   }
 
@@ -81,7 +81,7 @@ export async function sendVideomakerIndisponivelAlerta(): Promise<{
 
     for (const bl of rows) {
       if (bl.data !== recDate) continue;
-      if (rec.videomaker_id && rec.videomaker_id !== bl.criado_por) continue;
+      if (rec.videomaker_assigned_id && rec.videomaker_assigned_id !== bl.criado_por) continue;
 
       const blStart = `${bl.data}T${bl.hora_inicio}`;
       const blEnd = `${bl.data}T${bl.hora_fim}`;
