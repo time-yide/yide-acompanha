@@ -16,6 +16,7 @@ import { formatIsoDate } from "@/lib/datetime/timezone";
 import { avgRating } from "./queries";
 import { ROLES_QUE_EDITAM } from "./roles";
 import { getCoordenadoresAudiovisualIds } from "@/lib/tarefas/client-team";
+import { sendFollowupGravacao } from "@/lib/followup-gravacao/send";
 
 const RATING_LABEL_BY_NAME = new Map<string, string>(
   RATING_FIELDS.map((f) => [f.name, f.label]),
@@ -211,6 +212,14 @@ export async function createCapturaAction(_prev: ActionResult, formData: FormDat
   revalidateTag(AUDIOVISUAL_PENDENTE_TAG, "default");
 
   after(autoAssignEditor(created.id, actor.id, actor.nome));
+  after(
+    sendFollowupGravacao(
+      parsed.data.client_id,
+      parsed.data.qtd_videos,
+      parsed.data.qtd_fotos,
+      parsed.data.data_captacao,
+    ),
+  );
 
   redirect("/audiovisual?toast=entregue");
 }
@@ -564,6 +573,14 @@ export async function markCapturaEntregueRapidoAction(
   revalidateTag(AUDIOVISUAL_CAPTURAS_TAG, "default");
 
   after(autoAssignEditor(created.id, actor.id, actor.nome));
+  after(
+    sendFollowupGravacao(
+      event.client_id,
+      0,
+      0,
+      dataCaptacao,
+    ),
+  );
 
   return { success: true, capturaId: created.id };
 }
