@@ -15,25 +15,27 @@ export async function GET(req: Request) {
 
   const supabase = createServiceRoleClient();
   const today = getTodayDate();
+  const hour = new Date().toLocaleString("en-US", { timeZone: "America/Cuiaba", hour: "2-digit", hour12: false });
+  const jobKey = `lembrete-tarefas-${hour}`;
 
   const { data: existing } = await supabase
     .from("cron_runs")
     .select("ran_at")
-    .eq("job_name", "lembrete-tarefas")
+    .eq("job_name", jobKey)
     .eq("run_date", today)
     .maybeSingle();
   if (existing) {
-    return NextResponse.json({ skipped: true, reason: "already ran today" });
+    return NextResponse.json({ skipped: true, reason: "already ran this slot" });
   }
 
-  await supabase.from("cron_runs").insert({ job_name: "lembrete-tarefas", run_date: today });
+  await supabase.from("cron_runs").insert({ job_name: jobKey, run_date: today });
 
   const results = await sendLembretesTarefas();
 
   await supabase
     .from("cron_runs")
     .update({ details: results as unknown as import("@/types/database").Json })
-    .eq("job_name", "lembrete-tarefas")
+    .eq("job_name", jobKey)
     .eq("run_date", today);
 
   return NextResponse.json({ results, ran_at: new Date().toISOString() });
