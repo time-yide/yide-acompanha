@@ -63,6 +63,8 @@
     { "path": "/api/cron/auto-legenda-ia", "schedule": "0 13 * * 1-5" },
     { "path": "/api/cron/auto-hashtags-ia", "schedule": "0 13 * * 1-5" },
     { "path": "/api/cron/auto-tarefas-reuniao", "schedule": "*/30 * * * *" },
-    { "path": "/api/cron/nfse-emitir", "schedule": "0 12 3 * *" }
+    { "path": "/api/cron/nfse-emitir", "schedule": "0 12 3 * *" },
+    { "path": "/api/cron/checkin-cliente-wpp", "schedule": "0 12 * * 1,4" },
+    { "path": "/api/cron/planejamento-mensal-wpp", "schedule": "0 13 21 * *" }
   ]
 }

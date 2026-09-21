@@ -50,6 +50,7 @@ export async function sendWhatsAppMessage(
 export async function sendWhatsAppGroupMessage(
   groupJid: string,
   message: string,
+  opts?: { mentionsEveryOne?: boolean },
 ): Promise<SendMessageResult> {
   const apiUrl = process.env.EVOLUTION_API_URL;
   const apiKey = process.env.EVOLUTION_API_KEY;
@@ -62,10 +63,13 @@ export async function sendWhatsAppGroupMessage(
   const jid = groupJid.includes("@") ? groupJid : `${groupJid}@g.us`;
 
   try {
+    const payload: Record<string, unknown> = { number: jid, text: message };
+    if (opts?.mentionsEveryOne) payload.mentionsEveryOne = true;
+
     const res = await fetch(`${apiUrl}/message/sendText/${instance}`, {
       method: "POST",
       headers: { "Content-Type": "application/json", apikey: apiKey },
-      body: JSON.stringify({ number: jid, text: message }),
+      body: JSON.stringify(payload),
     });
 
     if (!res.ok) {
