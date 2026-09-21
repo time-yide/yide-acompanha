@@ -27,8 +27,11 @@ interface EvolutionWebhookPayload {
 
 export async function POST(req: Request) {
   const apiKey = process.env.EVOLUTION_API_KEY;
+  if (!apiKey) {
+    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+  }
   const headerKey = req.headers.get("apikey");
-  if (apiKey && headerKey && headerKey !== apiKey) {
+  if (!headerKey || headerKey !== apiKey) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -79,16 +82,17 @@ export async function POST(req: Request) {
     ?.replace("@s.whatsapp.net", "")
     ?? null;
 
+  const senderNameClean = (data.pushName ?? "")
+    .replace(/[\x00-\x1F]/g, "")
+    .slice(0, 100) || null;
+
   await sb.from("client_group_messages").insert({
     organization_id: client.organization_id,
     client_id: client.id,
     group_jid: jid,
-    sender_name: data.pushName ?? null,
+    sender_name: senderNameClean,
     sender_phone: senderPhone,
-    message_text: text.trim().slice(0, 2000),
-    received_at: data.messageTimestamp
-      ? new Date(data.messageTimestamp * 1000).toISOString()
-      : new Date().toISOString(),
+    message_text: text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "").trim().slice(0, 2000),
   });
 
   return NextResponse.json({ ok: true, stored: true });
