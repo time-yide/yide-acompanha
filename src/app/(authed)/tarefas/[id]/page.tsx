@@ -20,6 +20,7 @@ import { TaskRealtimeWatcher } from "@/components/tarefas/TaskRealtimeWatcher";
 import { getReviewsDaTarefa } from "@/lib/review/queries";
 import { VideoDaTarefa } from "@/components/review/VideoDaTarefa";
 import { Linkify } from "@/lib/utils/linkify";
+import { CriarArteButton } from "@/components/tarefas/CriarArteButton";
 
 function isPrivileged(user: CurrentUser): boolean {
   return (
@@ -265,6 +266,13 @@ export default async function TarefaPage({
               isExecutor={isExecutor}
               isApprover={isApprover}
               canMarkPosted={canMarkPosted}
+            />
+          )}
+
+          {task.tipo === "arte" && canEdit && (
+            <CriarArteButton
+              taskId={id}
+              hasAttachment={Array.isArray(task.attachment_urls) && task.attachment_urls.length > 0}
             />
           )}
 
