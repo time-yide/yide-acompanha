@@ -33,6 +33,7 @@ export async function getStyleGuide(clientId: string): Promise<DesignStyleGuide>
   const sb = createServiceRoleClient() as SB;
 
   const orgId = await getUserOrgId(sb, user.id);
+  if (!orgId) return {};
 
   const { data } = await sb
     .from("clients")
@@ -40,7 +41,7 @@ export async function getStyleGuide(clientId: string): Promise<DesignStyleGuide>
     .eq("id", clientId)
     .single();
 
-  if (!data || (orgId && data.organization_id !== orgId)) return {};
+  if (!data || data.organization_id !== orgId) return {};
   return (data.design_style_guide ?? {}) as DesignStyleGuide;
 }
 
@@ -53,13 +54,15 @@ export async function saveStyleGuideAction(clientId: string, guide: DesignStyleG
   const sb = createServiceRoleClient() as SB;
 
   const orgId = await getUserOrgId(sb, user.id);
+  if (!orgId) return { error: "Sem permissão" };
+
   const { data: client } = await sb
     .from("clients")
     .select("organization_id")
     .eq("id", clientId)
     .single();
 
-  if (!client || (orgId && client.organization_id !== orgId)) {
+  if (!client || client.organization_id !== orgId) {
     return { error: "Sem permissão" };
   }
 
