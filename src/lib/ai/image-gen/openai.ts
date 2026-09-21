@@ -1,6 +1,6 @@
 // src/lib/ai/image-gen/openai.ts
 // SERVER ONLY — gera imagem com GPT-Image-1.
-import OpenAI from "openai";
+import OpenAI, { toFile } from "openai";
 import { getServerEnv } from "@/lib/env";
 import type { GerarImagemParams, GerarImagemResult } from "./tipos";
 
@@ -23,5 +23,33 @@ export async function gerarImagemOpenAI(params: GerarImagemParams): Promise<Gera
     return { ok: true, b64 };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Erro ao gerar imagem" };
+  }
+}
+
+export async function editarImagemOpenAI(params: {
+  imageBuffer: Buffer;
+  prompt: string;
+  size: GerarImagemParams["size"];
+  quality?: "low" | "medium" | "high";
+}): Promise<GerarImagemResult> {
+  const env = getServerEnv();
+  if (!env.OPENAI_API_KEY) {
+    return { ok: false, error: "Geração de imagem não configurada (OPENAI_API_KEY ausente)" };
+  }
+  const client = new OpenAI({ apiKey: env.OPENAI_API_KEY });
+  try {
+    const file = await toFile(params.imageBuffer, "photo.png", { type: "image/png" });
+    const res = await client.images.edit({
+      model: "gpt-image-1",
+      image: file,
+      prompt: params.prompt,
+      size: params.size,
+      n: 1,
+    });
+    const b64 = res.data && res.data[0]?.b64_json;
+    if (!b64) return { ok: false, error: "A IA não retornou imagem editada" };
+    return { ok: true, b64 };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Erro ao editar imagem" };
   }
 }
