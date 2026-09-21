@@ -83,6 +83,16 @@ export async function saveStyleGuideAction(clientId: string, guide: DesignStyleG
   return { ok: true };
 }
 
+function isAllowedImageUrl(raw: string): boolean {
+  try {
+    const u = new URL(raw);
+    if (u.protocol !== "https:") return false;
+    return u.hostname.endsWith(".supabase.co") || u.hostname.endsWith(".supabase.in");
+  } catch {
+    return false;
+  }
+}
+
 async function fetchPostImages(sb: SB, clientId: string, orgId: string): Promise<Buffer[]> {
   const { data: posts } = await sb
     .from("social_media_posts")
@@ -100,7 +110,7 @@ async function fetchPostImages(sb: SB, clientId: string, orgId: string): Promise
   for (const post of posts) {
     const midias = Array.isArray(post.midias) ? post.midias : [];
     for (const url of midias) {
-      if (typeof url === "string" && url.startsWith("http") && !url.endsWith(".mp4")) {
+      if (typeof url === "string" && isAllowedImageUrl(url) && !url.endsWith(".mp4")) {
         urls.push(url);
         if (urls.length >= 4) break;
       }
@@ -111,7 +121,7 @@ async function fetchPostImages(sb: SB, clientId: string, orgId: string): Promise
   const buffers: Buffer[] = [];
   for (const url of urls) {
     try {
-      const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
+      const resp = await fetch(url, { redirect: "error", signal: AbortSignal.timeout(8000) });
       if (!resp.ok) continue;
       const ab = await resp.arrayBuffer();
       if (ab.byteLength > 4 * 1024 * 1024) continue;
