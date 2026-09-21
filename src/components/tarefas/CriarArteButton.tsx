@@ -53,7 +53,7 @@ export function CriarArteButton({ taskId, hasAttachment }: Props) {
       ) : (
         <>
           <Wand2 className="h-3.5 w-3.5 mr-1.5" />
-          Criar arte com IA
+          Criar arte
         </>
       )}
     </Button>
