@@ -148,9 +148,9 @@ export async function moveToFolder(
   itemId: string,
   folderId: string,
 ): Promise<boolean> {
-  const res = await canvaFetch(accessToken, "/folders/move", {
+  const res = await canvaFetch(accessToken, `/folders/${folderId}/items`, {
     method: "POST",
-    body: JSON.stringify({ item_id: itemId, to_folder_id: folderId }),
+    body: JSON.stringify({ item_id: itemId, item_type: "asset" }),
   });
   return res.ok;
 }
