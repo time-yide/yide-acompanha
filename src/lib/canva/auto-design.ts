@@ -50,6 +50,7 @@ async function fetchClientPhoto(sb: SB, clientId: string): Promise<Buffer | null
 export async function generateDesignForTask(ctx: DesignTaskContext): Promise<{
   imageUrl: string | null;
   canvaAssetId: string | null;
+  canvaError: string | null;
   error: string | null;
 }> {
   const sb = createServiceRoleClient() as SB;
@@ -60,7 +61,7 @@ export async function generateDesignForTask(ctx: DesignTaskContext): Promise<{
     .eq("id", ctx.clientId)
     .single();
 
-  if (!client) return { imageUrl: null, canvaAssetId: null, error: "Cliente não encontrado" };
+  if (!client) return { imageUrl: null, canvaAssetId: null, canvaError: null, error: "Cliente não encontrado" };
 
   let canvaFolderId = client.canva_folder_id as string | null;
   if (!canvaFolderId) {
@@ -87,7 +88,7 @@ export async function generateDesignForTask(ctx: DesignTaskContext): Promise<{
     fetchClientPhoto(sb, ctx.clientId),
   ]);
 
-  if (!prompt) return { imageUrl: null, canvaAssetId: null, error: "Falha ao gerar prompt de imagem" };
+  if (!prompt) return { imageUrl: null, canvaAssetId: null, canvaError: null, error: "Falha ao gerar prompt de imagem" };
 
   const size = sizeParaFormato(fmt);
 
@@ -99,11 +100,11 @@ export async function generateDesignForTask(ctx: DesignTaskContext): Promise<{
     if (clientPhoto) {
       const fallback = await gerarImagemOpenAI({ prompt, size, quality: "medium" });
       if (!fallback.ok || !fallback.b64) {
-        return { imageUrl: null, canvaAssetId: null, error: fallback.error ?? "Falha ao gerar imagem" };
+        return { imageUrl: null, canvaAssetId: null, canvaError: null, error: fallback.error ?? "Falha ao gerar imagem" };
       }
       return finishDesign(sb, ctx, canvaFolderId, fallback.b64);
     }
-    return { imageUrl: null, canvaAssetId: null, error: imgResult.error ?? "Falha ao gerar imagem" };
+    return { imageUrl: null, canvaAssetId: null, canvaError: null, error: imgResult.error ?? "Falha ao gerar imagem" };
   }
 
   return finishDesign(sb, ctx, canvaFolderId, imgResult.b64);
@@ -114,7 +115,7 @@ async function finishDesign(
   ctx: DesignTaskContext,
   canvaFolderId: string | null,
   b64: string,
-): Promise<{ imageUrl: string | null; canvaAssetId: string | null; error: string | null }> {
+): Promise<{ imageUrl: string | null; canvaAssetId: string | null; canvaError: string | null; error: string | null }> {
   const imageBuffer = Buffer.from(b64, "base64");
   const storagePath = `design-auto/${ctx.taskId}.png`;
   await sb.storage.from("task-attachments").upload(storagePath, imageBuffer, {
@@ -126,22 +127,31 @@ async function finishDesign(
   const imageUrl = urlData?.publicUrl ?? null;
 
   let canvaAssetId: string | null = null;
+  let canvaError: string | null = null;
 
   if (imageUrl) {
     try {
       const accessToken = await getCanvaAccessToken(ctx.organizationId);
-      if (accessToken) {
+      if (!accessToken) {
+        canvaError = "Canva não conectado";
+      } else {
         const { jobId } = await uploadAssetFromUrl(accessToken, ctx.titulo, imageUrl);
         const result = await pollAssetUpload(accessToken, jobId);
-        if (result) {
+        if (!result) {
+          canvaError = "Upload pro Canva falhou (timeout ou erro de processamento)";
+        } else {
           canvaAssetId = result.assetId;
           if (canvaFolderId) {
-            await moveToFolder(accessToken, result.assetId, canvaFolderId);
+            const moved = await moveToFolder(accessToken, result.assetId, canvaFolderId);
+            if (!moved) {
+              canvaError = "Arte no Canva mas não conseguiu mover pra pasta do cliente";
+            }
           }
         }
       }
     } catch (err) {
-      console.warn("[auto-design] Canva upload failed:", err instanceof Error ? err.message : err);
+      canvaError = err instanceof Error ? err.message : String(err);
+      console.error("[auto-design] Canva upload failed:", canvaError);
     }
   }
 
@@ -155,7 +165,7 @@ async function finishDesign(
       .eq("id", ctx.taskId);
   }
 
-  return { imageUrl, canvaAssetId, error: null };
+  return { imageUrl, canvaAssetId, canvaError, error: null };
 }
 
 async function buildImagePrompt(

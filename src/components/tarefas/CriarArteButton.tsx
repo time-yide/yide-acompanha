@@ -23,7 +23,11 @@ export function CriarArteButton({ taskId, hasAttachment }: Props) {
         return;
       }
       setGenerated(true);
-      toast.success("Arte gerada e enviada pro Canva!");
+      if (result.canvaError) {
+        toast.warning(`Arte gerada, mas falhou no Canva: ${result.canvaError}`);
+      } else {
+        toast.success("Arte gerada e enviada pro Canva!");
+      }
     });
   }
 

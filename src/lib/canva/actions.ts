@@ -67,7 +67,7 @@ export async function generateArteAction(taskId: string) {
   revalidatePath(`/tarefas/${taskId}`);
 
   if (result.error) return { error: result.error };
-  return { imageUrl: result.imageUrl };
+  return { imageUrl: result.imageUrl, canvaError: result.canvaError };
 }
 
 export async function createCanvaFoldersAction() {
