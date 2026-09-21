@@ -10,6 +10,8 @@ export interface PostRecente {
   /** ISO timestamp em UTC. */
   timestamp: string;
   type: PostType;
+  /** URL da imagem (CDN Instagram). Pode expirar após algumas horas. */
+  displayUrl?: string;
 }
 
 export type ScrapeStatus =

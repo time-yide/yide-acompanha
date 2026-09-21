@@ -50,6 +50,7 @@ interface ApifyPostItem {
   timestamp?: string;
   type?: string;          // "Image" | "Video" | "Sidecar"
   productType?: string;   // "clips" pra reel
+  displayUrl?: string;    // URL da imagem (CDN Instagram)
   /** Quando o scrape falha em achar o perfil, vem `error: 'no_items'` ou similar. */
   error?: string;
 }
@@ -188,9 +189,10 @@ async function scrapeOnce(username: string, token: string): Promise<ProfileSnaps
       .filter((p) => p.timestamp && !p.error)
       .map((p) => {
         const url = buildPostUrl(p);
-        return url
-          ? { url, timestamp: p.timestamp!, type: mapPostType(p) }
-          : null;
+        if (!url) return null;
+        const post: PostRecente = { url, timestamp: p.timestamp!, type: mapPostType(p) };
+        if (p.displayUrl) post.displayUrl = p.displayUrl;
+        return post;
       })
       .filter((p): p is PostRecente => p !== null);
 
@@ -238,6 +240,7 @@ interface ApifyProfileItem {
     timestamp?: string;
     type?: string;
     productType?: string;
+    displayUrl?: string;
   }>;
   error?: string;
 }
@@ -294,7 +297,9 @@ async function scrapeOnceFallback(username: string, token: string): Promise<Prof
           p.productType === "clips" ? "reel" :
           p.type === "Video" && (!p.productType || p.productType === "clips") ? "reel" :
           "feed";
-        return { url: u, timestamp: p.timestamp!, type: tipo };
+        const post: PostRecente = { url: u, timestamp: p.timestamp!, type: tipo };
+        if (p.displayUrl) post.displayUrl = p.displayUrl;
+        return post;
       })
       .filter((p): p is PostRecente => p !== null);
 

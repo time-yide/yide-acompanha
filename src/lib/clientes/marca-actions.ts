@@ -87,13 +87,62 @@ function isAllowedImageUrl(raw: string): boolean {
   try {
     const u = new URL(raw);
     if (u.protocol !== "https:") return false;
-    return u.hostname.endsWith(".supabase.co") || u.hostname.endsWith(".supabase.in");
+    return (
+      u.hostname.endsWith(".supabase.co") ||
+      u.hostname.endsWith(".supabase.in") ||
+      u.hostname.endsWith(".cdninstagram.com") ||
+      u.hostname.endsWith(".fbcdn.net")
+    );
   } catch {
     return false;
   }
 }
 
-async function fetchPostImages(sb: SB, clientId: string, orgId: string): Promise<Buffer[]> {
+async function fetchInstagramImages(sb: SB, clientId: string, orgId: string): Promise<Buffer[]> {
+  const { data: snapshot } = await sb
+    .from("client_instagram_snapshots")
+    .select("recent_posts")
+    .eq("client_id", clientId)
+    .eq("organization_id", orgId)
+    .eq("scrape_status", "ok")
+    .order("scraped_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const posts = (snapshot?.recent_posts ?? []) as Array<{
+    displayUrl?: string;
+    type?: string;
+  }>;
+
+  const urls: string[] = [];
+  for (const p of posts) {
+    if (typeof p.displayUrl === "string" && isAllowedImageUrl(p.displayUrl)) {
+      urls.push(p.displayUrl);
+      if (urls.length >= 6) break;
+    }
+  }
+
+  if (urls.length === 0) return fetchPostImagesFallback(sb, clientId, orgId);
+
+  const buffers: Buffer[] = [];
+  for (const url of urls) {
+    try {
+      const resp = await fetch(url, { redirect: "follow", signal: AbortSignal.timeout(8000) });
+      if (!resp.ok) continue;
+      const ab = await resp.arrayBuffer();
+      if (ab.byteLength > 4 * 1024 * 1024) continue;
+      buffers.push(Buffer.from(ab));
+      if (buffers.length >= 4) break;
+    } catch {
+      continue;
+    }
+  }
+
+  if (buffers.length === 0) return fetchPostImagesFallback(sb, clientId, orgId);
+  return buffers;
+}
+
+async function fetchPostImagesFallback(sb: SB, clientId: string, orgId: string): Promise<Buffer[]> {
   const { data: posts } = await sb
     .from("social_media_posts")
     .select("midias")
@@ -160,7 +209,7 @@ export async function autoGenerateStyleGuide(clientId: string): Promise<DesignSt
   const anthropic = getAnthropicClient();
   if (!anthropic) return {};
 
-  const images = await fetchPostImages(sb, clientId, orgId);
+  const images = await fetchInstagramImages(sb, clientId, orgId);
 
   const content: Anthropic.MessageCreateParams["messages"][0]["content"] = [];
 
@@ -173,14 +222,14 @@ export async function autoGenerateStyleGuide(clientId: string): Promise<DesignSt
     }
   }
 
-  const textPrompt = `Analise os dados deste cliente${images.length > 0 ? " e as imagens de posts recentes do Instagram dele" : ""} e sugira uma identidade visual adequada.
+  const textPrompt = `Analise os dados deste cliente${images.length > 0 ? " e as imagens reais do perfil de Instagram dele" : ""} e sugira uma identidade visual adequada.
 
 Cliente: ${client.nome}
 Serviço: ${client.servico_contratado ?? "marketing digital"}
 Nicho: ${nicho || "não especificado"}
 ${instagram ? `Instagram: ${instagram}` : ""}
 ${briefing ? `Briefing:\n${briefing.slice(0, 2000)}` : "Sem briefing"}
-${images.length > 0 ? `\nAs ${images.length} imagens acima são posts recentes do Instagram deste cliente. Analise as cores dominantes, estilo visual, mood e padrões que aparecem.` : ""}
+${images.length > 0 ? `\nAs ${images.length} imagens acima são do perfil real de Instagram deste cliente. Analise a vibe, as cores dominantes, estilo visual, mood e padrões que aparecem no feed.` : ""}
 
 Retorne APENAS um JSON válido (sem markdown, sem explicação) com estes campos:
 {
