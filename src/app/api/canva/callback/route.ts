@@ -14,6 +14,16 @@ export async function GET(req: Request) {
   const user = await requireAuth();
 
   const url = new URL(req.url);
+
+  const canvaError = url.searchParams.get("error");
+  if (canvaError) {
+    const desc = url.searchParams.get("error_description") ?? canvaError;
+    console.error("[canva/callback] Canva returned error:", canvaError, desc);
+    return NextResponse.redirect(
+      `${APP_URL}/configuracoes?canva=error&msg=${encodeURIComponent(desc)}`,
+    );
+  }
+
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
 
