@@ -3,6 +3,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { buscarNoticias, filtrarNovas, apenasRecentes } from "./rss";
 import { gerarArtigo } from "./gerar";
 import { selecionarKeywordsAlvo } from "./keywords";
+import { buscarImagemStock } from "./stock-image";
 import { slugify, slugUnico } from "../slug";
 
 export const BLOG_POSTS_POR_EXECUCAO = 3;
@@ -38,7 +39,7 @@ export async function executarPipelineBlog(orgId: string, quantos = BLOG_POSTS_P
     const keywordsAlvo = selecionarKeywordsAlvo(4); // SEO local, varia por post
     const artigo = await gerarArtigo(n, keywordsAlvo);
     if (!artigo) { erros++; continue; }
-    const capa: string | null = null; // capa adicionada manualmente ao publicar (economia gpt-image)
+    const capa = await buscarImagemStock(artigo.keywords);
     const slug = slugUnico(slugify(artigo.titulo), slugs);
     slugs.add(slug);
     // Garante que as keywords-alvo entrem nas keywords do post (dedup).
