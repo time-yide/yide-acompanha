@@ -5,6 +5,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { requireAuth } from "@/lib/auth/session";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 import { regenerateSinglePost } from "./generator";
+import { generateDesignForTask } from "@/lib/canva/auto-design";
 import type { GeneratedPost, ContentCalendarRow, CalendarBriefing } from "./types";
 import {
   PACOTES_COM_CRONOGRAMA,
@@ -163,7 +164,20 @@ export async function approveCalendarAction(
       .select("id")
       .single();
 
-    if (taskRow) taskIds.push(taskRow.id);
+    if (taskRow) {
+      taskIds.push(taskRow.id);
+      if (!isVideo) {
+        generateDesignForTask({
+          taskId: taskRow.id,
+          clientId: calendar.client_id,
+          organizationId: client.organization_id,
+          titulo: post.tema,
+          descricao: descricao.trim(),
+        }).catch((err) =>
+          console.warn("[content-calendar] auto-design failed for task", taskRow.id, err),
+        );
+      }
+    }
   }
 
   if (taskIds.length > 0) {
