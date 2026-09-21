@@ -17,8 +17,6 @@ const SCOPES = [
   "design:content:write",
   "design:meta:read",
   "profile:read",
-  "brandtemplate:meta:read",
-  "brandtemplate:content:read",
 ].join(" ");
 
 export async function GET() {
