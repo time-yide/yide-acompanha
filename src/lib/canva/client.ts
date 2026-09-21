@@ -113,7 +113,8 @@ export async function uploadAssetBuffer(
   name: string,
   imageBuffer: Buffer,
 ): Promise<{ jobId: string }> {
-  const nameB64 = Buffer.from(name).toString("base64");
+  const safeName = name.replace(/[\r\n"\\]/g, "_").slice(0, 200);
+  const nameB64 = Buffer.from(safeName).toString("base64");
 
   const boundary = `----CanvaUpload${Date.now()}`;
   const parts: Buffer[] = [];
@@ -123,7 +124,7 @@ export async function uploadAssetBuffer(
   ));
 
   parts.push(Buffer.from(
-    `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${name}.png"\r\nContent-Type: image/png\r\n\r\n`,
+    `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${safeName}.png"\r\nContent-Type: image/png\r\n\r\n`,
   ));
   parts.push(imageBuffer);
   parts.push(Buffer.from(`\r\n--${boundary}--\r\n`));
