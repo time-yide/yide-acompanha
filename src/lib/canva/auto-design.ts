@@ -44,6 +44,10 @@ export async function generateDesignForTask(ctx: DesignTaskContext): Promise<{
     tomVoz: sg.tom_voz ?? "",
     mood: sg.mood ?? "",
     evitar: sg.evitar ?? "",
+    coresPrimarias: sg.cores_primarias ?? "",
+    coresSecundarias: sg.cores_secundarias ?? "",
+    fontes: sg.fontes ?? "",
+    observacoes: sg.observacoes ?? "",
   });
 
   if (!prompt) return { imageUrl: null, canvaAssetId: null, error: "Falha ao gerar prompt de imagem" };
@@ -104,12 +108,28 @@ export async function generateDesignForTask(ctx: DesignTaskContext): Promise<{
 async function buildImagePrompt(
   titulo: string,
   descricao: string,
-  style: { clientName: string; tomVoz: string; mood: string; evitar: string },
+  style: {
+    clientName: string;
+    tomVoz: string;
+    mood: string;
+    evitar: string;
+    coresPrimarias: string;
+    coresSecundarias: string;
+    fontes: string;
+    observacoes: string;
+  },
 ): Promise<string | null> {
   const anthropic = getAnthropicClient();
   if (!anthropic) return null;
 
   const tema = descricao.split("\n")[0]?.replace("Tema: ", "") || titulo;
+
+  const brandLines: string[] = [];
+  if (style.coresPrimarias) brandLines.push(`Cores primárias da marca: ${style.coresPrimarias}`);
+  if (style.coresSecundarias) brandLines.push(`Cores secundárias: ${style.coresSecundarias}`);
+  if (style.fontes) brandLines.push(`Fontes: ${style.fontes}`);
+  if (style.observacoes) brandLines.push(`Observações da marca: ${style.observacoes}`);
+  const brandBlock = brandLines.length > 0 ? `\nIdentidade visual:\n${brandLines.join("\n")}` : "";
 
   const res = await anthropic.messages.create({
     model: "claude-haiku-4-5",
@@ -123,11 +143,12 @@ Cliente: ${style.clientName}
 Tema do post: ${tema}
 Estilo visual: ${style.mood || "moderno e profissional"}
 Tom: ${style.tomVoz || "profissional"}
-Evitar: ${style.evitar || "nada específico"}
+Evitar: ${style.evitar || "nada específico"}${brandBlock}
 
 Regras:
 - NÃO inclua texto escrito na imagem (o texto será adicionado no Canva depois)
 - Foque em imagem de fundo/visual atraente que combine com o tema
+- Use as cores da marca do cliente como paleta dominante
 - Seja específico sobre cores, composição e elementos visuais
 - Formato quadrado (1:1)
 
