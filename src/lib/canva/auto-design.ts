@@ -2,6 +2,7 @@ import "server-only";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getAnthropicClient } from "@/lib/ai/client";
 import { gerarImagemOpenAI } from "@/lib/ai/image-gen/openai";
+import { sizeParaFormato, formatoLabel } from "@/lib/ai/image-gen/tipos";
 import { getCanvaAccessToken, uploadAssetFromUrl, pollAssetUpload, moveToFolder } from "./client";
 import { ensureCanvaFolder } from "./ensure-folder";
 
@@ -14,6 +15,7 @@ interface DesignTaskContext {
   organizationId: string;
   titulo: string;
   descricao: string;
+  formato?: string;
 }
 
 export async function generateDesignForTask(ctx: DesignTaskContext): Promise<{
@@ -38,19 +40,25 @@ export async function generateDesignForTask(ctx: DesignTaskContext): Promise<{
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sg = (client.design_style_guide ?? {}) as any;
+  const fmt = ctx.formato || "feed";
 
   const prompt = await buildImagePrompt(ctx.titulo, ctx.descricao, {
     clientName: client.nome,
     tomVoz: sg.tom_voz ?? "",
     mood: sg.mood ?? "",
     evitar: sg.evitar ?? "",
+    coresPrimarias: sg.cores_primarias ?? "",
+    coresSecundarias: sg.cores_secundarias ?? "",
+    fontes: sg.fontes ?? "",
+    observacoes: sg.observacoes ?? "",
+    formato: fmt,
   });
 
   if (!prompt) return { imageUrl: null, canvaAssetId: null, error: "Falha ao gerar prompt de imagem" };
 
   const imgResult = await gerarImagemOpenAI({
     prompt,
-    size: "1024x1024",
+    size: sizeParaFormato(fmt),
     quality: "medium",
   });
 
@@ -104,12 +112,30 @@ export async function generateDesignForTask(ctx: DesignTaskContext): Promise<{
 async function buildImagePrompt(
   titulo: string,
   descricao: string,
-  style: { clientName: string; tomVoz: string; mood: string; evitar: string },
+  style: {
+    clientName: string;
+    tomVoz: string;
+    mood: string;
+    evitar: string;
+    coresPrimarias: string;
+    coresSecundarias: string;
+    fontes: string;
+    observacoes: string;
+    formato: string;
+  },
 ): Promise<string | null> {
   const anthropic = getAnthropicClient();
   if (!anthropic) return null;
 
   const tema = descricao.split("\n")[0]?.replace("Tema: ", "") || titulo;
+  const fmtLabel = formatoLabel(style.formato);
+
+  const brandLines: string[] = [];
+  if (style.coresPrimarias) brandLines.push(`Cores primárias da marca: ${style.coresPrimarias}`);
+  if (style.coresSecundarias) brandLines.push(`Cores secundárias: ${style.coresSecundarias}`);
+  if (style.fontes) brandLines.push(`Fontes: ${style.fontes}`);
+  if (style.observacoes) brandLines.push(`Observações da marca: ${style.observacoes}`);
+  const brandBlock = brandLines.length > 0 ? `\nIdentidade visual:\n${brandLines.join("\n")}` : "";
 
   const res = await anthropic.messages.create({
     model: "claude-haiku-4-5",
@@ -117,19 +143,20 @@ async function buildImagePrompt(
     messages: [
       {
         role: "user",
-        content: `Gere um prompt CURTO (máx 200 palavras) para criar uma imagem de post de Instagram.
+        content: `Gere um prompt CURTO (máx 200 palavras) para criar uma imagem de ${style.formato === "feed" ? "post de Instagram" : style.formato}.
 
 Cliente: ${style.clientName}
-Tema do post: ${tema}
+Tema: ${tema}
 Estilo visual: ${style.mood || "moderno e profissional"}
 Tom: ${style.tomVoz || "profissional"}
-Evitar: ${style.evitar || "nada específico"}
+Evitar: ${style.evitar || "nada específico"}${brandBlock}
 
 Regras:
 - NÃO inclua texto escrito na imagem (o texto será adicionado no Canva depois)
 - Foque em imagem de fundo/visual atraente que combine com o tema
+- Use as cores da marca do cliente como paleta dominante
 - Seja específico sobre cores, composição e elementos visuais
-- Formato quadrado (1:1)
+- Formato: ${fmtLabel}
 
 Retorne APENAS o prompt, sem explicação.`,
       },

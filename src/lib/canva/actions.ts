@@ -16,7 +16,7 @@ export async function generateArteAction(taskId: string) {
 
   const { data: task } = await sb
     .from("tasks")
-    .select("id, tipo, titulo, descricao, client_id, atribuido_a, criado_por, participantes_ids")
+    .select("id, tipo, titulo, descricao, formatos, client_id, atribuido_a, criado_por, participantes_ids")
     .eq("id", taskId)
     .single();
 
@@ -33,6 +33,14 @@ export async function generateArteAction(taskId: string) {
 
   if (!task.client_id) return { error: "Tarefa sem cliente associado" };
 
+  const { data: userProfile } = await sb
+    .from("profiles")
+    .select("organization_id")
+    .eq("id", user.id)
+    .single();
+
+  if (!userProfile?.organization_id) return { error: "Organização do usuário não encontrada" };
+
   const { data: client } = await sb
     .from("clients")
     .select("organization_id")
@@ -40,6 +48,12 @@ export async function generateArteAction(taskId: string) {
     .single();
 
   if (!client?.organization_id) return { error: "Organização do cliente não encontrada" };
+  if (client.organization_id !== userProfile.organization_id) {
+    return { error: "Sem permissão" };
+  }
+
+  const formatos = Array.isArray(task.formatos) ? task.formatos : [];
+  const formato = (formatos[0] as string) || "feed";
 
   const result = await generateDesignForTask({
     taskId: task.id,
@@ -47,6 +61,7 @@ export async function generateArteAction(taskId: string) {
     organizationId: client.organization_id,
     titulo: task.titulo ?? "Post",
     descricao: task.descricao ?? "",
+    formato,
   });
 
   revalidatePath(`/tarefas/${taskId}`);
@@ -77,6 +92,7 @@ export async function createCanvaFoldersAction() {
   const { data: clients } = await sb
     .from("clients")
     .select("id, nome, canva_folder_id")
+    .eq("organization_id", profile.organization_id)
     .is("canva_folder_id", null)
     .eq("status", "ativo")
     .order("nome");

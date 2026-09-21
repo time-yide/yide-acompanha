@@ -173,6 +173,7 @@ export async function approveCalendarAction(
           organizationId: client.organization_id,
           titulo: post.tema,
           descricao: descricao.trim(),
+          formato: "feed",
         }).catch((err) =>
           console.warn("[content-calendar] auto-design failed for task", taskRow.id, err),
         );
