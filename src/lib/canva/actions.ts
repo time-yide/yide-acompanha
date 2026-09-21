@@ -46,7 +46,8 @@ export async function generateArteAction(taskId: string) {
     .single();
 
   if (!client?.organization_id) return { error: "Organização do cliente não encontrada" };
-  if (userProfile?.organization_id && client.organization_id !== userProfile.organization_id) {
+  if (!userProfile?.organization_id) return { error: "Organização do usuário não encontrada" };
+  if (client.organization_id !== userProfile.organization_id) {
     return { error: "Sem permissão" };
   }
 
