@@ -9,8 +9,6 @@ export const dynamic = "force-dynamic";
 type SB = any;
 
 const SCOPES = [
-  "asset:read",
-  "asset:write",
   "folder:read",
   "folder:write",
   "design:content:read",
