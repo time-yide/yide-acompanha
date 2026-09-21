@@ -90,6 +90,19 @@ export async function generateCalendar(
     .single();
   const briefing = (calRow?.briefing_assessor ?? null) as CalendarBriefing | null;
 
+  // 8b. Carregar conversas recentes do grupo do cliente (últimos 30 dias)
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: groupMsgs } = await sbAny
+    .from("client_group_messages")
+    .select("sender_name, message_text, received_at")
+    .eq("client_id", clientId)
+    .gte("received_at", thirtyDaysAgo)
+    .order("received_at", { ascending: true })
+    .limit(30);
+
+  const conversasGrupo: string[] = ((groupMsgs ?? []) as { sender_name: string | null; message_text: string }[])
+    .map((m) => `${m.sender_name ?? "Cliente"}: ${m.message_text}`);
+
   // 9. Salvar pesquisa de tendências no registro
   await sbAny
     .from("content_calendars")
@@ -112,6 +125,7 @@ export async function generateCalendar(
     tendencias,
     modo,
     briefing,
+    conversasGrupo,
   };
 
   const response = await anthropic.messages.create({
