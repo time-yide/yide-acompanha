@@ -3,7 +3,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getAnthropicClient } from "@/lib/ai/client";
 import { gerarImagemOpenAI, editarImagemOpenAI } from "@/lib/ai/image-gen/openai";
 import { sizeParaFormato, formatoLabel } from "@/lib/ai/image-gen/tipos";
-import { getCanvaAccessToken, uploadAssetFromUrl, pollAssetUpload, moveToFolder } from "./client";
+import { getCanvaAccessToken, uploadAssetBuffer, pollAssetUpload, moveToFolder } from "./client";
 import { ensureCanvaFolder } from "./ensure-folder";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -129,30 +129,28 @@ async function finishDesign(
   let canvaAssetId: string | null = null;
   let canvaError: string | null = null;
 
-  if (imageUrl) {
-    try {
-      const accessToken = await getCanvaAccessToken(ctx.organizationId);
-      if (!accessToken) {
-        canvaError = "Canva não conectado";
+  try {
+    const accessToken = await getCanvaAccessToken(ctx.organizationId);
+    if (!accessToken) {
+      canvaError = "Canva não conectado";
+    } else {
+      const { jobId } = await uploadAssetBuffer(accessToken, ctx.titulo, imageBuffer);
+      const result = await pollAssetUpload(accessToken, jobId);
+      if (!result) {
+        canvaError = "Upload pro Canva falhou (timeout ou erro de processamento)";
       } else {
-        const { jobId } = await uploadAssetFromUrl(accessToken, ctx.titulo, imageUrl);
-        const result = await pollAssetUpload(accessToken, jobId);
-        if (!result) {
-          canvaError = "Upload pro Canva falhou (timeout ou erro de processamento)";
-        } else {
-          canvaAssetId = result.assetId;
-          if (canvaFolderId) {
-            const moved = await moveToFolder(accessToken, result.assetId, canvaFolderId);
-            if (!moved) {
-              canvaError = "Arte no Canva mas não conseguiu mover pra pasta do cliente";
-            }
+        canvaAssetId = result.assetId;
+        if (canvaFolderId) {
+          const moved = await moveToFolder(accessToken, result.assetId, canvaFolderId);
+          if (!moved) {
+            canvaError = "Arte no Canva mas não conseguiu mover pra pasta do cliente";
           }
         }
       }
-    } catch (err) {
-      canvaError = err instanceof Error ? err.message : String(err);
-      console.error("[auto-design] Canva upload failed:", canvaError);
     }
+  } catch (err) {
+    canvaError = err instanceof Error ? err.message : String(err);
+    console.error("[auto-design] Canva upload failed:", canvaError);
   }
 
   if (imageUrl) {
