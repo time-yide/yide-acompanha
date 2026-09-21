@@ -61,7 +61,7 @@ export async function approveCalendarAction(
   // Carregar dados do cliente
   const { data: client } = await sbAny
     .from("clients")
-    .select("nome, organization_id, assessor_id")
+    .select("nome, organization_id, assessor_id, designer_id, videomaker_id, editor_id, coordenador_id")
     .eq("id", calendar.client_id)
     .single();
 
@@ -110,31 +110,66 @@ export async function approveCalendarAction(
     }
   }
 
-  // 3. Criar tarefa de revisão/produção do cronograma
+  // 3. Criar tarefas individuais por post (arte separada de vídeo)
+  const taskIds: string[] = [];
   const hasVideos = posts.some((p) => p.tipo === "video");
-  const { data: task } = await sbAny
-    .from("tasks")
-    .insert({
-      titulo: `Cronograma ${calendar.mes_referencia} — ${client.nome}`,
-      descricao: `Cronograma de conteúdo aprovado para ${calendar.mes_referencia}. ${posts.length} posts planejados${hasVideos ? ` (${posts.filter((p) => p.tipo === "video").length} vídeos)` : ""}.`,
-      prioridade: "media",
-      tipo: "geral",
-      atribuido_a: client.assessor_id ?? user.id,
-      client_id: calendar.client_id,
-      due_date: `${calendar.mes_referencia}-01`,
-      criado_por: user.id,
-      participantes_ids: [],
-      links: [],
-      attachment_urls: [],
-    })
-    .select("id")
-    .single();
 
-  if (task) {
-    // Vincular tarefa ao cronograma
+  for (const post of posts) {
+    if (post.estrategia_mes) continue;
+
+    const isVideo = post.tipo === "video";
+
+    const atribuidoA = isVideo
+      ? (client.editor_id ?? client.videomaker_id ?? client.coordenador_id ?? client.assessor_id ?? user.id)
+      : (client.designer_id ?? client.coordenador_id ?? client.assessor_id ?? user.id);
+
+    const taskTipo = isVideo ? "video" : "arte";
+
+    const descricao = isVideo
+      ? [
+          `Tema: ${post.tema}`,
+          post.roteiro ? `\nRoteiro:\n${post.roteiro}` : "",
+          post.material_estudo ? `\nMaterial de estudo:\n${post.material_estudo}` : "",
+        ].filter(Boolean).join("\n")
+      : [
+          `Tema: ${post.tema}`,
+          post.legenda ? `\nLegenda:\n${post.legenda}` : "",
+          post.hashtags?.length ? `\nHashtags: ${post.hashtags.join(" ")}` : "",
+          post.primeiro_comentario ? `\n1º comentário: ${post.primeiro_comentario}` : "",
+        ].filter(Boolean).join("\n");
+
+    const participantes = [];
+    if (client.assessor_id && client.assessor_id !== atribuidoA) {
+      participantes.push(client.assessor_id);
+    }
+
+    const { data: taskRow } = await sbAny
+      .from("tasks")
+      .insert({
+        titulo: `${post.tema} — ${client.nome}`,
+        descricao: descricao.trim(),
+        prioridade: "media",
+        tipo: taskTipo,
+        formatos: ["feed"],
+        atribuido_a: atribuidoA,
+        client_id: calendar.client_id,
+        due_date: post.data_sugerida || `${calendar.mes_referencia}-01`,
+        criado_por: user.id,
+        status_aprovacao: "pendente_envio",
+        participantes_ids: participantes,
+        links: [],
+        attachment_urls: [],
+      })
+      .select("id")
+      .single();
+
+    if (taskRow) taskIds.push(taskRow.id);
+  }
+
+  if (taskIds.length > 0) {
     await sbAny
       .from("content_calendars")
-      .update({ task_id: task.id })
+      .update({ task_id: taskIds[0] })
       .eq("id", calendarId);
   }
 
@@ -156,14 +191,27 @@ export async function approveCalendarAction(
     }
   }
 
-  // 5. Notificar
-  if (client.assessor_id && client.assessor_id !== user.id) {
+  // 5. Notificar equipe
+  const artCount = posts.filter((p) => !p.estrategia_mes && (p.tipo === "imagem" || p.tipo === "carrossel")).length;
+  const vidCount = posts.filter((p) => !p.estrategia_mes && p.tipo === "video").length;
+  const resumo = [
+    artCount > 0 ? `${artCount} arte${artCount > 1 ? "s" : ""}` : "",
+    vidCount > 0 ? `${vidCount} vídeo${vidCount > 1 ? "s" : ""}` : "",
+  ].filter(Boolean).join(" e ");
+
+  const notifyIds = new Set<string>();
+  if (client.assessor_id && client.assessor_id !== user.id) notifyIds.add(client.assessor_id);
+  if (client.designer_id && client.designer_id !== user.id) notifyIds.add(client.designer_id);
+  if (client.editor_id && client.editor_id !== user.id) notifyIds.add(client.editor_id);
+  if (client.videomaker_id && client.videomaker_id !== user.id) notifyIds.add(client.videomaker_id);
+
+  if (notifyIds.size > 0) {
     await dispatchNotification({
       evento_tipo: "task_assigned",
       titulo: "Cronograma aprovado",
-      mensagem: `${user.nome} aprovou o cronograma de ${calendar.mes_referencia} para "${client.nome}".`,
+      mensagem: `${user.nome} aprovou o cronograma de ${calendar.mes_referencia} para "${client.nome}". ${taskIds.length} tarefas criadas (${resumo}).`,
       link: `/content-calendar/${calendar.client_id}?mes=${calendar.mes_referencia}`,
-      user_ids_extras: [client.assessor_id],
+      user_ids_extras: [...notifyIds],
       source_user_id: user.id,
     });
   }
