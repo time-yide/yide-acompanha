@@ -15,6 +15,7 @@ export interface PromptContext {
   tendencias: TrendSearchResult[];
   modo: CalendarMode;
   briefing: CalendarBriefing | null;
+  conversasGrupo: string[];
 }
 
 export function buildSystemPrompt(ctx: PromptContext): string {
@@ -60,6 +61,13 @@ export function buildUserPrompt(ctx: PromptContext): string {
 `
     : "";
 
+  const conversasStr =
+    ctx.conversasGrupo.length > 0
+      ? `\nMensagens recentes do cliente no grupo de WhatsApp (use como contexto para entender o que o cliente quer, o tom que ele usa, e temas que interessam):
+${ctx.conversasGrupo.map((m) => `> ${m}`).join("\n")}
+`
+      : "";
+
   if (ctx.modo === "completo") {
     return `Gere um cronograma COMPLETO com exatamente 12 posts para ${ctx.mesAno}:
 - 8 posts de vídeo (tipo: "video")
@@ -84,7 +92,7 @@ ${datasStr}
 
 Tendências encontradas:
 ${tendenciasStr}
-${briefingStr}
+${briefingStr}${conversasStr}
 Retorne o JSON array diretamente, sem marcadores de código.`;
   }
 
@@ -120,6 +128,6 @@ ${datasStr}
 
 Tendências encontradas:
 ${tendenciasStr}
-${briefingStr}
+${briefingStr}${conversasStr}
 Retorne o JSON array diretamente, sem marcadores de código.`;
 }
