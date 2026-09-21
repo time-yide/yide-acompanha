@@ -33,6 +33,12 @@ export async function generateArteAction(taskId: string) {
 
   if (!task.client_id) return { error: "Tarefa sem cliente associado" };
 
+  const { data: userProfile } = await sb
+    .from("profiles")
+    .select("organization_id")
+    .eq("id", user.id)
+    .single();
+
   const { data: client } = await sb
     .from("clients")
     .select("organization_id")
@@ -40,6 +46,9 @@ export async function generateArteAction(taskId: string) {
     .single();
 
   if (!client?.organization_id) return { error: "Organização do cliente não encontrada" };
+  if (userProfile?.organization_id && client.organization_id !== userProfile.organization_id) {
+    return { error: "Sem permissão" };
+  }
 
   const result = await generateDesignForTask({
     taskId: task.id,
@@ -77,6 +86,7 @@ export async function createCanvaFoldersAction() {
   const { data: clients } = await sb
     .from("clients")
     .select("id, nome, canva_folder_id")
+    .eq("organization_id", profile.organization_id)
     .is("canva_folder_id", null)
     .eq("status", "ativo")
     .order("nome");

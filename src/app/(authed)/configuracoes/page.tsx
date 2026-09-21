@@ -48,6 +48,7 @@ export default async function ConfiguracoesPage() {
     const { count } = await sbService
       .from("clients")
       .select("id", { count: "exact", head: true })
+      .eq("organization_id", profile.organization_id)
       .is("canva_folder_id", null)
       .eq("status", "ativo");
     clientsSemPasta = count ?? 0;

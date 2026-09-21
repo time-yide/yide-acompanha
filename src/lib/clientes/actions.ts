@@ -10,6 +10,7 @@ import { logActivityInternal } from "@/lib/produtividade/actions";
 import { PAINEL_CACHE_TAG } from "@/lib/painel/queries";
 import { createClienteSchema, editClienteSchema, churnClienteSchema, churnMotivoLabel, CHURN_MOTIVO_SLUGS, inferTipoPacote, TIPOS_RELACAO } from "./schema";
 import { getTodayDate } from "@/lib/datetime/timezone";
+import { ensureCanvaFolder } from "@/lib/canva/ensure-folder";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -95,6 +96,10 @@ export async function createClienteAction(formData: FormData) {
     .single();
 
   if (error || !created) return { error: error?.message ?? "Falha ao criar cliente" };
+
+  ensureCanvaFolder(created.id, parsed.data.nome, org.id).catch((err) =>
+    console.warn("[createCliente] Canva folder failed:", err instanceof Error ? err.message : err),
+  );
 
   await logAudit({
     entidade: "clients",
