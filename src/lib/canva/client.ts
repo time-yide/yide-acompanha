@@ -108,15 +108,38 @@ export async function createFolder(
   return data.folder;
 }
 
-export async function uploadAssetFromUrl(
+export async function uploadAssetBuffer(
   accessToken: string,
   name: string,
-  imageUrl: string,
+  imageBuffer: Buffer,
 ): Promise<{ jobId: string }> {
-  const res = await canvaFetch(accessToken, "/url-asset-uploads", {
+  const nameB64 = Buffer.from(name).toString("base64");
+
+  const boundary = `----CanvaUpload${Date.now()}`;
+  const parts: Buffer[] = [];
+
+  parts.push(Buffer.from(
+    `--${boundary}\r\nContent-Disposition: form-data; name="asset_upload"\r\nContent-Type: application/json\r\n\r\n${JSON.stringify({ name_base64: nameB64 })}\r\n`,
+  ));
+
+  parts.push(Buffer.from(
+    `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${name}.png"\r\nContent-Type: image/png\r\n\r\n`,
+  ));
+  parts.push(imageBuffer);
+  parts.push(Buffer.from(`\r\n--${boundary}--\r\n`));
+
+  const body = Buffer.concat(parts);
+
+  const res = await fetch(`${BASE}/asset-uploads`, {
     method: "POST",
-    body: JSON.stringify({ name, url: imageUrl }),
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": `multipart/form-data; boundary=${boundary}`,
+      "Content-Length": String(body.byteLength),
+    },
+    body,
   });
+
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`Canva uploadAsset failed: ${res.status} ${text}`);
@@ -128,11 +151,11 @@ export async function uploadAssetFromUrl(
 export async function pollAssetUpload(
   accessToken: string,
   jobId: string,
-  maxAttempts = 10,
+  maxAttempts = 15,
 ): Promise<{ assetId: string } | null> {
   for (let i = 0; i < maxAttempts; i++) {
     await new Promise((r) => setTimeout(r, 2000));
-    const res = await canvaFetch(accessToken, `/url-asset-uploads/${jobId}`);
+    const res = await canvaFetch(accessToken, `/asset-uploads/${jobId}`);
     if (!res.ok) continue;
     const data = await res.json();
     if (data.job.status === "success") {
