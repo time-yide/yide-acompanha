@@ -117,12 +117,12 @@ async function finishDesign(
 ): Promise<{ imageUrl: string | null; canvaAssetId: string | null; error: string | null }> {
   const imageBuffer = Buffer.from(b64, "base64");
   const storagePath = `design-auto/${ctx.taskId}.png`;
-  await sb.storage.from("attachments").upload(storagePath, imageBuffer, {
+  await sb.storage.from("task-attachments").upload(storagePath, imageBuffer, {
     contentType: "image/png",
     upsert: true,
   });
 
-  const { data: urlData } = sb.storage.from("attachments").getPublicUrl(storagePath);
+  const { data: urlData } = sb.storage.from("task-attachments").getPublicUrl(storagePath);
   const imageUrl = urlData?.publicUrl ?? null;
 
   let canvaAssetId: string | null = null;

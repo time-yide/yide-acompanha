@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Wand2, Loader2, CheckCircle2 } from "lucide-react";
+import { Wand2, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { generateArteAction } from "@/lib/canva/actions";
@@ -13,16 +13,7 @@ interface Props {
 
 export function CriarArteButton({ taskId, hasAttachment }: Props) {
   const [pending, startTransition] = useTransition();
-  const [done, setDone] = useState(false);
-
-  if (done || hasAttachment) {
-    return (
-      <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-400">
-        <CheckCircle2 className="h-3.5 w-3.5" />
-        Arte gerada automaticamente
-      </div>
-    );
-  }
+  const [generated, setGenerated] = useState(false);
 
   function handleClick() {
     startTransition(async () => {
@@ -31,10 +22,12 @@ export function CriarArteButton({ taskId, hasAttachment }: Props) {
         toast.error(result.error);
         return;
       }
-      setDone(true);
+      setGenerated(true);
       toast.success("Arte gerada e enviada pro Canva!");
     });
   }
+
+  const isRegenerate = hasAttachment || generated;
 
   return (
     <Button
@@ -43,17 +36,26 @@ export function CriarArteButton({ taskId, hasAttachment }: Props) {
       disabled={pending}
       size="sm"
       variant="outline"
-      className="border-violet-500/40 text-violet-700 hover:bg-violet-500/10 dark:text-violet-400"
+      className={
+        isRegenerate
+          ? "border-emerald-500/40 text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400"
+          : "border-violet-500/40 text-violet-700 hover:bg-violet-500/10 dark:text-violet-400"
+      }
     >
       {pending ? (
         <>
           <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
           Gerando arte...
         </>
+      ) : isRegenerate ? (
+        <>
+          <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+          Gerar nova arte
+        </>
       ) : (
         <>
           <Wand2 className="h-3.5 w-3.5 mr-1.5" />
-          Criar arte com IA
+          Criar arte
         </>
       )}
     </Button>
