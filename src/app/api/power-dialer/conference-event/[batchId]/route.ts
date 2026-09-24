@@ -58,25 +58,9 @@ async function handleFirstAnswer(
   const env = getServerEnv();
   const appUrl = env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
 
-  // Identifica qual das 2-3 ligações discadas foi a que atendeu
   const calls = await getBatchCalls(batchId);
   const answeredCall = calls.find((c) => c.twilio_call_sid === callSid);
   if (!answeredCall) return;
-
-  // Marca o batch como conectado
-  await sb().from("power_dialer_batches").update({
-    status: PD_BATCH_STATUS.CONECTADO,
-    lead_atendeu_id: answeredCall.lead_gerado_id,
-    conectado_em: new Date().toISOString(),
-  }).eq("id", batchId);
-
-  // Marca essa call como atendida
-  await sb().from("power_dialer_batch_calls").update({
-    status: PD_CALL_STATUS.ATENDEU,
-    atendeu_em: new Date().toISOString(),
-  }).eq("id", answeredCall.id);
-
-  await incrementLeadScore(answeredCall.lead_gerado_id, 20);
 
   if (!env.TWILIO_ACCOUNT_SID || !env.TWILIO_AUTH_TOKEN) {
     console.error("[power-dialer] Twilio não configurado no conference-event");
@@ -84,9 +68,80 @@ async function handleFirstAnswer(
   }
   const authHeader = `Basic ${Buffer.from(`${env.TWILIO_ACCOUNT_SID}:${env.TWILIO_AUTH_TOKEN}`).toString("base64")}`;
 
-  // Derruba as outras ligações (que não atenderam a tempo)
+  // Busca instância + lead em paralelo — necessários pra conectar o agente
+  const [{ data: instancia }, { data: lead }] = await Promise.all([
+    sb()
+      .from("ligacoes_instancias")
+      .select("numero")
+      .eq("organization_id", batch.organization_id)
+      .eq("provedor", "twilio")
+      .is("arquivado_em", null)
+      .limit(1)
+      .maybeSingle(),
+    sb()
+      .from("leads_gerados")
+      .select("decisor_nome, empresa, categoria, cidade")
+      .eq("id", answeredCall.lead_gerado_id)
+      .single(),
+  ]);
+
+  const fromNumber = instancia?.numero;
+  if (!fromNumber) {
+    console.error("[power-dialer] nenhuma instância Twilio encontrada pra org", batch.organization_id);
+  }
+
+  // Conecta o agente à conference + notifica — ANTES de dropar as outras
+  const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${env.TWILIO_ACCOUNT_SID}/Calls.json`;
+  const [callRes] = await Promise.all([
+    fromNumber
+      ? fetch(twilioUrl, {
+          method: "POST",
+          headers: {
+            Authorization: authHeader,
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            To: `client:${batch.colaborador_id}`,
+            From: fromNumber,
+            Url: `${appUrl}/api/power-dialer/twiml/${batchId}/agent`,
+          }).toString(),
+        })
+      : Promise.resolve(null),
+    notificarAgente(batch.colaborador_id, {
+      type: "power_dialer_lead_answered",
+      batchId,
+      leadNome: lead?.decisor_nome ?? "",
+      leadEmpresa: lead?.empresa ?? "Lead",
+      leadCategoria: lead?.categoria ?? null,
+      leadCidade: lead?.cidade ?? null,
+    }),
+  ]);
+
+  if (callRes && !callRes.ok) {
+    const body = await callRes.text().catch(() => "");
+    console.error("[power-dialer] falha ao ligar pro Device do agente:", callRes.status, body);
+  }
+  if (!callRes) {
+    console.error("[power-dialer] chamada ao agente não enviada — sem número From");
+  }
+
+  // DB updates e drop das outras calls em paralelo (não bloqueia o agente)
+  await Promise.all([
+    sb().from("power_dialer_batches").update({
+      status: PD_BATCH_STATUS.CONECTADO,
+      lead_atendeu_id: answeredCall.lead_gerado_id,
+      conectado_em: new Date().toISOString(),
+    }).eq("id", batchId),
+    sb().from("power_dialer_batch_calls").update({
+      status: PD_CALL_STATUS.ATENDEU,
+      atendeu_em: new Date().toISOString(),
+    }).eq("id", answeredCall.id),
+    incrementLeadScore(answeredCall.lead_gerado_id, 20),
+  ]);
+
+  // Derruba as outras ligações em paralelo
   const otherCalls = calls.filter((c) => c.id !== answeredCall.id && c.twilio_call_sid);
-  for (const other of otherCalls) {
+  await Promise.all(otherCalls.map(async (other) => {
     try {
       await fetch(
         `https://api.twilio.com/2010-04-01/Accounts/${env.TWILIO_ACCOUNT_SID}/Calls/${other.twilio_call_sid}.json`,
@@ -99,66 +154,22 @@ async function handleFirstAnswer(
           body: new URLSearchParams({ Status: "completed" }).toString(),
         },
       );
-      await sb().from("power_dialer_batch_calls").update({
-        status: PD_CALL_STATUS.DROPADO,
-        finalizado_em: new Date().toISOString(),
-      }).eq("id", other.id);
-
-      // Lead volta pra fila com prioridade (dropado_power_dialer)
-      await sb().from("leads_gerados").update({
-        ai_status: null,
-        dropado_power_dialer: true,
-        ai_proxima_tentativa: new Date().toISOString(),
-      }).eq("id", other.lead_gerado_id);
-
-      await incrementLeadScore(other.lead_gerado_id, 15);
+      await Promise.all([
+        sb().from("power_dialer_batch_calls").update({
+          status: PD_CALL_STATUS.DROPADO,
+          finalizado_em: new Date().toISOString(),
+        }).eq("id", other.id),
+        sb().from("leads_gerados").update({
+          ai_status: null,
+          dropado_power_dialer: true,
+          ai_proxima_tentativa: new Date().toISOString(),
+        }).eq("id", other.lead_gerado_id),
+        incrementLeadScore(other.lead_gerado_id, 15),
+      ]);
     } catch (err) {
       console.error("[power-dialer] erro ao dropar call:", err);
     }
-  }
-
-  // Busca dados do lead pra notificação
-  const { data: lead } = await sb()
-    .from("leads_gerados")
-    .select("decisor_nome, empresa, categoria, cidade")
-    .eq("id", answeredCall.lead_gerado_id)
-    .single();
-
-  // Notifica o colaborador (push + Realtime)
-  await notificarAgente(batch.colaborador_id, {
-    type: "power_dialer_lead_answered",
-    batchId,
-    leadNome: lead?.decisor_nome ?? "",
-    leadEmpresa: lead?.empresa ?? "Lead",
-    leadCategoria: lead?.categoria ?? null,
-    leadCidade: lead?.cidade ?? null,
-  });
-
-  // Busca a instância Twilio da org pra usar como From (mesma lógica do
-  // dispatcher.ts — não existe env TWILIO_CALLER_ID)
-  const { data: instancia } = await sb()
-    .from("ligacoes_instancias")
-    .select("numero")
-    .eq("organization_id", batch.organization_id)
-    .eq("provedor", "twilio")
-    .is("arquivado_em", null)
-    .limit(1)
-    .maybeSingle();
-
-  // Liga pro Device do colaborador pra entrar na Conference
-  const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${env.TWILIO_ACCOUNT_SID}/Calls.json`;
-  await fetch(twilioUrl, {
-    method: "POST",
-    headers: {
-      Authorization: authHeader,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: new URLSearchParams({
-      To: `client:${batch.colaborador_id}`,
-      From: instancia?.numero ?? "",
-      Url: `${appUrl}/api/power-dialer/twiml/${batchId}/agent`,
-    }).toString(),
-  });
+  }));
 }
 
 async function handleEnd(batchId: string, batch: PDBatch) {
