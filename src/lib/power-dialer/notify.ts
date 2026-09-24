@@ -14,27 +14,31 @@ interface NotifyPayload {
   leadCidade: string | null;
 }
 
-/**
- * Notifica o colaborador (ex: Lucas) que um lead atendeu no power dialer.
- * `colaboradorId` é o mesmo profiles.id usado em todo o schema (convenção
- * colaborador_id -> profiles(id)), então reaproveita a infra de push
- * existente em src/lib/push/server.ts (tabela public.push_subscriptions).
- */
 export async function notificarAgente(
   colaboradorId: string,
   payload: NotifyPayload,
 ) {
-  // 1. Broadcast via Supabase Realtime (toast + som in-app).
-  // Dois canais: o listener (toast) e a barra flutuante (dados do lead).
-  await Promise.all([
-    sb().channel(`power-dialer:${colaboradorId}`)
-      .send({ type: "broadcast", event: "lead-answered", payload }),
-    sb().channel(`power-dialer-bar:${colaboradorId}`)
-      .send({ type: "broadcast", event: "lead-answered", payload }),
-  ]);
+  const channels = [
+    `power-dialer:${colaboradorId}`,
+    `power-dialer-bar:${colaboradorId}`,
+  ];
 
-  // 2. Web Push (se offline ou em outra aba). No-op silencioso se VAPID não
-  // estiver configurado ou o colaborador não tiver subscription.
+  const broadcastResults = await Promise.all(
+    channels.map((name) =>
+      sb().channel(name).send({
+        type: "broadcast",
+        event: "lead-answered",
+        payload,
+      }),
+    ),
+  );
+
+  for (let i = 0; i < broadcastResults.length; i++) {
+    if (broadcastResults[i] !== "ok") {
+      console.error(`[power-dialer] broadcast ${channels[i]} retornou:`, broadcastResults[i]);
+    }
+  }
+
   await sendWebPushToUser(colaboradorId, {
     title: `Lead atendeu: ${payload.leadEmpresa}`,
     body: [payload.leadCategoria, payload.leadCidade].filter(Boolean).join(" — "),
