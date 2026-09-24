@@ -3,6 +3,7 @@ import {
   DollarSign, Calendar, MessageSquare,
   TrendingUp, Video, Trash2, MessagesSquare, Share2, Radar, MessageCircle, Phone,
   IdCard, BookOpen, Inbox, Layers, Zap, MapPin, Target, ShoppingCart, Images, Code2,
+  HardDriveUpload,
   type LucideIcon,
 } from "lucide-react";
 import type { Role } from "@/lib/auth/permissions";
@@ -92,6 +93,7 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
       // (TabsSocialMedia). URLs /d0-d30 e /trafego preservadas.
       { type: "link", href: "/tarefas", icon: ListChecks, label: "Tarefas", roles: "all", badgeKey: null },
       { type: "link", href: "/audiovisual", icon: Video, label: "Audiovisual", roles: ["adm", "socio", "coordenador", "assessor", "videomaker", "fast_midia", "audiovisual_chefe"], badgeKey: null },
+      { type: "link", href: "/audiovisual/upload-drive", icon: HardDriveUpload, label: "Subir pro Drive", roles: ["adm", "socio", "coordenador", "assessor", "videomaker", "fast_midia", "audiovisual_chefe", "editor"], badgeKey: null },
       { type: "link", href: "/fast-media", icon: Images, label: "Fast Mídia", roles: ["adm", "socio", "coordenador", "audiovisual_chefe", "fast_midia"], badgeKey: null },
       { type: "link", href: "/freela-yide", icon: Zap, label: "FreelaYide", roles: ["adm", "socio", "comercial", "coordenador", "assessor", "designer", "videomaker", "fast_midia", "editor", "audiovisual_chefe", "programacao"], badgeKey: null },
       { type: "link", href: "/ecommerce", icon: ShoppingCart, label: "E-commerce", roles: ["adm", "socio", "assessor_ecommerce", "assistente_ecommerce"], badgeKey: null },

@@ -83,6 +83,11 @@ const serverSchema = z.object({
   BUNNY_STREAM_API_KEY: z.string().optional(),
   BUNNY_STREAM_LIBRARY_ID: z.string().optional(),
   BUNNY_STREAM_CDN_HOSTNAME: z.string().optional(),
+  // Google Drive — upload organizado de vídeos brutos. Sem isso, botão
+  // "Subir pro Drive" fica oculto no /audiovisual. A service account precisa
+  // de permissão de Editor na pasta raiz (GOOGLE_DRIVE_ROOT_FOLDER_ID).
+  GOOGLE_SERVICE_ACCOUNT_JSON: z.string().optional(),
+  GOOGLE_DRIVE_ROOT_FOLDER_ID: z.string().optional(),
 });
 
 const clientSchema = z.object({
