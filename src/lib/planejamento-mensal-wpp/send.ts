@@ -85,13 +85,13 @@ export async function sendPlanejamentoMensalWpp(): Promise<{
     grupo_wpp_jid: string;
   }
 
-  const now = new Date();
-  const mesProximo = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  const nomeMes = mesProximo.toLocaleDateString("pt-BR", {
-    month: "long",
-    timeZone: "America/Cuiaba",
-  });
-  const mesSeguinteNum = mesProximo.getMonth() + 1;
+  const nowCuiaba = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Cuiaba" }));
+  const mesAtual = nowCuiaba.getMonth();
+  const anoProximo = mesAtual === 11 ? nowCuiaba.getFullYear() + 1 : nowCuiaba.getFullYear();
+  const mesSeguinteIdx = (mesAtual + 1) % 12;
+  const mesProximo = new Date(anoProximo, mesSeguinteIdx, 15);
+  const nomeMes = mesProximo.toLocaleDateString("pt-BR", { month: "long" });
+  const mesSeguinteNum = mesSeguinteIdx + 1;
   const datas = DATAS_COMEMORATIVAS[mesSeguinteNum] ?? [];
 
   const anthropic = getAnthropicClient();
