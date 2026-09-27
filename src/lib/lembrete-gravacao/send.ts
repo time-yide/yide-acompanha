@@ -87,28 +87,22 @@ export async function sendLembreteGravacao(tipo: "vespera" | "dia"): Promise<{
 
     const msg = tipo === "vespera"
       ? [
-          `📹 *Lembrete: gravação amanhã!*`,
+          `Oi${nome ? ` ${nome}` : ""}! Passando pra lembrar que amanhã, *${dataBr}* às *${horaBr}*, temos gravação agendada`,
           ``,
-          `Olá${nome ? `, *${nome}*` : ""}!`,
+          `*${ev.titulo}*`,
+          ...(ev.localizacao_endereco ? [`${ev.localizacao_endereco}`] : []),
+          ...(ev.observacoes_gravacao ? [`${ev.observacoes_gravacao}`] : []),
           ``,
-          `Amanhã, *${dataBr}* às *${horaBr}*, temos uma gravação agendada:`,
-          `🎬 *${ev.titulo}*`,
-          ...(ev.localizacao_endereco ? [`📍 ${ev.localizacao_endereco}`] : []),
-          ...(ev.observacoes_gravacao ? [`📝 ${ev.observacoes_gravacao}`] : []),
-          ``,
-          `Qualquer imprevisto, avise com antecedência! 🙏`,
+          `Se tiver qualquer imprevisto avisa aqui com antecedência!`,
         ].join("\n")
       : [
-          `🎬 *Hoje é dia de gravação!*`,
+          `Oi${nome ? ` ${nome}` : ""}! Temos gravação hoje às *${horaBr}*`,
           ``,
-          `Olá${nome ? `, *${nome}*` : ""}!`,
+          `*${ev.titulo}*`,
+          ...(ev.localizacao_endereco ? [`${ev.localizacao_endereco}`] : []),
+          ...(ev.observacoes_gravacao ? [`${ev.observacoes_gravacao}`] : []),
           ``,
-          `Gravação de hoje às *${horaBr}*:`,
-          `📹 *${ev.titulo}*`,
-          ...(ev.localizacao_endereco ? [`📍 ${ev.localizacao_endereco}`] : []),
-          ...(ev.observacoes_gravacao ? [`📝 ${ev.observacoes_gravacao}`] : []),
-          ``,
-          `Nos vemos em breve! 🚀`,
+          `Tá tudo certo do lado de vocês? Se precisar reagendar avisa aqui!`,
         ].join("\n");
 
     const result = await sendWhatsAppGroupMessage(c.grupo_wpp_jid, msg);
