@@ -56,17 +56,18 @@ export async function sendCheckinClienteWpp(): Promise<{
         messages: [
           {
             role: "user",
-            content: `Gere UMA mensagem curta e casual de check-in para enviar no grupo de WhatsApp do cliente "${client.nome}" (serviço: ${servico}).
+            content: `Gere UMA mensagem curta e profissional de check-in para enviar no grupo de WhatsApp do cliente "${client.nome}" (serviço: ${servico}).
 
 Regras:
 - Máximo 2-3 frases
-- Tom amigável e descontraído, como se fosse um colega
-- Pergunte como estão as coisas (vendas, movimento, novidades, etc.)
-- Varie o estilo: às vezes use "Oi pessoal!", às vezes "E aí galera!", às vezes "Bom dia equipe!"
-- Hoje é ${diaSemana} — pode mencionar o dia da semana naturalmente
+- Tom profissional mas próximo — você é a equipe de marketing que cuida da conta deles
+- Pergunte se tem alguma novidade, promoção, evento ou conteúdo que gostariam de divulgar nos próximos dias
+- NÃO pergunte sobre vendas, faturamento ou movimento da loja
+- Varie o estilo da saudação: "Oi pessoal!", "Olá!", "Boa tarde!"
+- Hoje é ${diaSemana} — pode mencionar naturalmente
 - Use 1-2 emojis no máximo
 - NÃO assine, NÃO coloque "Equipe Yide" nem nome
-- NÃO use formatação markdown
+- NÃO use formatação markdown (sem * ou _)
 - Responda APENAS com a mensagem, nada mais`,
           },
         ],
