@@ -70,26 +70,26 @@ export async function sendRelatorioSemanalCliente(): Promise<{
     const nome = client.contato_principal || client.nome;
 
     const lines = [
-      `📊 *Resumo da semana*`,
+      `*Resumo da semana*`,
       ``,
-      `Olá${nome ? `, *${nome}*` : ""}! Segue o que foi feito essa semana:`,
+      `Oi${nome ? ` ${nome}` : ""}! Segue o que rolou essa semana:`,
       ``,
     ];
 
     if (posts.length > 0) {
-      lines.push(`📱 *${plural(posts.length, "post publicado", "posts publicados")}*`);
+      lines.push(`- ${plural(posts.length, "post publicado", "posts publicados")}`);
     }
 
     if (gravacoes.length > 0) {
-      lines.push(`🎬 *${plural(gravacoes.length, "gravação realizada", "gravações realizadas")}*`);
+      lines.push(`- ${plural(gravacoes.length, "gravação realizada", "gravações realizadas")}`);
     }
 
     if (reunioes.length > 0) {
-      lines.push(`📋 *${plural(reunioes.length, "reunião realizada", "reuniões realizadas")}*`);
+      lines.push(`- ${plural(reunioes.length, "reunião realizada", "reuniões realizadas")}`);
     }
 
     lines.push(``);
-    lines.push(`Qualquer dúvida ou sugestão, estamos à disposição! 💙`);
+    lines.push(`Qualquer dúvida é só chamar aqui!`);
 
     const result = await sendWhatsAppGroupMessage(client.grupo_wpp_jid, lines.join("\n"));
     if (result.success) sent++;
