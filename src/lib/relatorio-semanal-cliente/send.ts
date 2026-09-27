@@ -4,6 +4,10 @@ import { sendWhatsAppGroupMessage } from "@/lib/weekly-reports/evolution-api";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SB = any;
 
+function plural(n: number, singular: string, pluralForm: string): string {
+  return n === 1 ? `${n} ${singular}` : `${n} ${pluralForm}`;
+}
+
 export async function sendRelatorioSemanalCliente(): Promise<{
   sent: number;
   skipped: number;
@@ -29,33 +33,36 @@ export async function sendRelatorioSemanalCliente(): Promise<{
       continue;
     }
 
-    const [postsRes, tasksRes, eventsRes] = await Promise.all([
+    const [postsRes, eventsRes, meetingsRes] = await Promise.all([
       sb
         .from("social_media_posts")
-        .select("id, status")
+        .select("id, titulo, platform")
         .eq("client_id", client.id)
         .eq("status", "publicado")
-        .gte("updated_at", weekAgoIso),
-      sb
-        .from("tasks")
-        .select("id, status, tipo")
-        .eq("client_id", client.id)
-        .in("status", ["concluida", "aprovada", "postada"])
-        .gte("updated_at", weekAgoIso),
+        .gte("updated_at", weekAgoIso)
+        .order("updated_at", { ascending: false })
+        .limit(10),
       sb
         .from("calendar_events")
-        .select("id, sub_calendar")
+        .select("id, titulo, sub_calendar")
         .eq("client_id", client.id)
         .eq("sub_calendar", "videomakers")
         .gte("inicio", weekAgoIso)
         .is("deleted_at", null),
+      sb
+        .from("calendar_events")
+        .select("id, titulo, sub_calendar")
+        .eq("client_id", client.id)
+        .in("sub_calendar", ["reunioes", "meetings"])
+        .gte("inicio", weekAgoIso)
+        .is("deleted_at", null),
     ]);
 
-    const postsPublicados = (postsRes.data ?? []).length;
-    const tarefasConcluidas = (tasksRes.data ?? []).length;
-    const gravacoesFeitas = (eventsRes.data ?? []).length;
+    const posts = postsRes.data ?? [];
+    const gravacoes = eventsRes.data ?? [];
+    const reunioes = meetingsRes.data ?? [];
 
-    if (postsPublicados === 0 && tarefasConcluidas === 0 && gravacoesFeitas === 0) {
+    if (posts.length === 0 && gravacoes.length === 0 && reunioes.length === 0) {
       skipped++;
       continue;
     }
@@ -65,22 +72,24 @@ export async function sendRelatorioSemanalCliente(): Promise<{
     const lines = [
       `📊 *Resumo da semana*`,
       ``,
-      `Olá${nome ? `, *${nome}*` : ""}! Aqui vai o que rolou essa semana:`,
+      `Olá${nome ? `, *${nome}*` : ""}! Segue o que foi feito essa semana:`,
       ``,
     ];
 
-    if (postsPublicados > 0) {
-      lines.push(`📱 *${postsPublicados}* post(s) publicado(s)`);
+    if (posts.length > 0) {
+      lines.push(`📱 *${plural(posts.length, "post publicado", "posts publicados")}*`);
     }
-    if (tarefasConcluidas > 0) {
-      lines.push(`✅ *${tarefasConcluidas}* tarefa(s) concluída(s)`);
+
+    if (gravacoes.length > 0) {
+      lines.push(`🎬 *${plural(gravacoes.length, "gravação realizada", "gravações realizadas")}*`);
     }
-    if (gravacoesFeitas > 0) {
-      lines.push(`🎬 *${gravacoesFeitas}* gravação(ões) realizada(s)`);
+
+    if (reunioes.length > 0) {
+      lines.push(`📋 *${plural(reunioes.length, "reunião realizada", "reuniões realizadas")}*`);
     }
 
     lines.push(``);
-    lines.push(`Seguimos evoluindo juntos! 🚀💙`);
+    lines.push(`Qualquer dúvida ou sugestão, estamos à disposição! 💙`);
 
     const result = await sendWhatsAppGroupMessage(client.grupo_wpp_jid, lines.join("\n"));
     if (result.success) sent++;
