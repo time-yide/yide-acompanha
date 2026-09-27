@@ -19,11 +19,14 @@ export async function sendLembreteCronograma(): Promise<{
 }> {
   const sb = createServiceRoleClient() as SB;
 
-  const now = new Date();
-  const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const nowCuiaba = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Cuiaba" }));
+  const mesAtual = nowCuiaba.getMonth();
+  const mesSeguinteIdx = (mesAtual + 1) % 12;
+  const anoProximo = mesAtual === 11 ? nowCuiaba.getFullYear() + 1 : nowCuiaba.getFullYear();
+  const nextMonth = new Date(anoProximo, mesSeguinteIdx, 15);
   const { year, month } = getDatePartsInAppTz(nextMonth);
   const mesRef = `${year}-${String(month).padStart(2, "0")}`;
-  const mesLabel = nextMonth.toLocaleString("pt-BR", { month: "long", year: "numeric" });
+  const mesLabel = nextMonth.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
 
   const { data: clients } = await sb
     .from("clients")
