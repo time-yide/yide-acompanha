@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { PhoneOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { useTwilioCall } from "@/components/ligacoes/TwilioCallProvider";
+import { useVoiceCall } from "@/components/ligacoes/VoiceCallProvider";
 
 interface LeadInfo {
   empresa: string;
@@ -12,7 +12,7 @@ interface LeadInfo {
 }
 
 export function PowerDialerBar({ userId }: { userId: string }) {
-  const { status, activeNumber, hangup, isPowerDialerAgent } = useTwilioCall();
+  const { status, activeNumber, hangup, isPowerDialerAgent } = useVoiceCall();
   const [leadInfo, setLeadInfo] = useState<LeadInfo | null>(null);
   const [seconds, setSeconds] = useState(0);
 

@@ -64,18 +64,23 @@ export const TIPO_DEFS: Record<TipoLigacao, { label: string; color: string; icon
 };
 
 export const ORIGENS = [
-  "manual", "twilio", "evolution", "zapi", "ifix", "voip_generic", "mock", "outro",
+  "manual", "api4com", "twilio", "evolution", "zapi", "ifix",
+  "voip_generic", "mock", "power_dialer", "totalvoice", "voz_ia", "outro",
 ] as const;
 export type Origem = (typeof ORIGENS)[number];
 
 export const ORIGEM_LABELS: Record<Origem, string> = {
   manual: "Manual",
+  api4com: "API4COM",
   twilio: "Twilio",
   evolution: "Evolution",
   zapi: "Z-API",
   ifix: "iFix",
   voip_generic: "VoIP",
   mock: "Mock (demo)",
+  power_dialer: "Power Dialer",
+  totalvoice: "Zenvia",
+  voz_ia: "Voz IA",
   outro: "Outro",
 };
 

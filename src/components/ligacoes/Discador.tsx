@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import { Phone } from "lucide-react";
 import { getWebphoneUrlAction } from "@/lib/ligacoes/actions";
 import { DiscadorTwilio } from "./DiscadorTwilio";
+import { useVoiceCall } from "./VoiceCallProvider";
 
 export function Discador() {
+  const voice = useVoiceCall();
   const [state, setState] = useState<{
     url: string | null;
     ramal: string | null;
@@ -28,6 +30,9 @@ export function Discador() {
   }, []);
 
   if (state.loading) return null;
+
+  // API4COM disponível via VoiceCallProvider → usa o discador genérico
+  if (voice.available) return <DiscadorTwilio />;
 
   if (state.provedor === "twilio") return <DiscadorTwilio />;
 

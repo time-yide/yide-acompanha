@@ -16,6 +16,7 @@ import {
 } from "./schema";
 import { iniciarChamada, getWebphoneUrl } from "./zenvia";
 import { gerarVoiceToken } from "./twilio";
+import { getApi4ComCreds, api4comFazerLigacao } from "./api4com";
 
 interface ActionOk { success: true }
 interface ActionErr { error: string }
@@ -560,4 +561,126 @@ export async function definirResultadoLigacaoAction(formData: FormData): Promise
 
   revalidatePath("/ligacoes");
   return { success: true };
+}
+
+// ===========================================================================
+// API4COM — credenciais SIP pro webphone do navegador
+// ===========================================================================
+
+export async function getVoiceCredentialsAction(): Promise<{
+  domain: string;
+  extension: string;
+  password: string;
+  isPowerDialerAgent: boolean;
+} | null> {
+  const creds = getApi4ComCreds();
+  if (!creds) return null;
+
+  const actor = await requireAuth();
+  if (!canManage(actor.role)) return null;
+
+  const supabase = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+
+  const { data: profile } = await sb
+    .from("profiles")
+    .select("organization_id")
+    .eq("id", actor.id)
+    .single();
+  const orgId = (profile as { organization_id: string } | null)?.organization_id ?? null;
+
+  let isPDAgent = false;
+  if (orgId) {
+    const { data: pdConfig } = await sb
+      .from("ai_voice_configs")
+      .select("power_dialer_colaborador_id")
+      .eq("organization_id", orgId)
+      .eq("ativo", true)
+      .eq("power_dialer_ativo", true)
+      .maybeSingle();
+    isPDAgent = pdConfig?.power_dialer_colaborador_id === actor.id;
+  }
+
+  return {
+    domain: creds.domain,
+    extension: creds.defaultExtension,
+    password: creds.defaultExtensionPassword,
+    isPowerDialerAgent: isPDAgent,
+  };
+}
+
+// ===========================================================================
+// API4COM — iniciar ligação via POST /calls
+// ===========================================================================
+
+export async function api4comLigarAction(
+  numero: string,
+  extra?: Record<string, string>,
+): Promise<{ success: true; ligacaoId: string } | { error: string }> {
+  const actor = await requireAuth();
+  if (!canManage(actor.role)) return { error: "Sem permissão" };
+
+  const creds = getApi4ComCreds();
+  if (!creds) return { error: "API4COM não configurado" };
+
+  const supabase = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+
+  const { data: profile } = await sb
+    .from("profiles")
+    .select("organization_id")
+    .eq("id", actor.id)
+    .single();
+  if (!profile) return { error: "Perfil não encontrado" };
+  const orgId = (profile as { organization_id: string }).organization_id;
+
+  const { data: lig, error: insErr } = await sb
+    .from("ligacoes")
+    .insert({
+      organization_id: orgId,
+      tipo: "telefone",
+      direcao: "saida",
+      colaborador_id: actor.id,
+      numero,
+      contato_nome: extra?.contato_nome ?? null,
+      lead_id: extra?.lead_id ?? null,
+      lead_gerado_id: extra?.lead_gerado_id ?? null,
+      status: "em_andamento",
+      iniciada_em: new Date().toISOString(),
+      origem: "api4com",
+    })
+    .select("id")
+    .single();
+  if (insErr || !lig) return { error: insErr?.message ?? "Erro ao registrar ligação" };
+  const ligacaoId = (lig as { id: string }).id;
+
+  const result = await api4comFazerLigacao({
+    caller: creds.defaultExtension,
+    called: numero,
+    extension: creds.defaultExtension,
+    metadata: {
+      gateway: "yide-acompanha",
+      ligacao_id: ligacaoId,
+      colaborador_id: actor.id,
+      ...(extra?.lead_id ? { lead_id: extra.lead_id } : {}),
+      ...(extra?.lead_gerado_id ? { lead_gerado_id: extra.lead_gerado_id } : {}),
+    },
+  });
+
+  if ("error" in result) {
+    await sb.from("ligacoes")
+      .update({ status: "cancelada", finalizada_em: new Date().toISOString() })
+      .eq("id", ligacaoId);
+    return { error: result.error };
+  }
+
+  await sb.from("ligacoes")
+    .update({ external_id: result.callId })
+    .eq("id", ligacaoId);
+
+  revalidatePath("/ligacoes");
+  revalidateTag("batidas", "default");
+  return { success: true, ligacaoId };
 }
