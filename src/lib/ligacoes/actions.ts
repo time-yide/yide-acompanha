@@ -624,6 +624,12 @@ export async function api4comLigarAction(
   const creds = getApi4ComCreds();
   if (!creds) return { error: "API4COM não configurado" };
 
+  const cleaned = numero.replace(/\D/g, "");
+  if (!/^55\d{10,11}$/.test(cleaned)) {
+    return { error: "Número inválido — use formato BR com DDI 55" };
+  }
+  const numeroPadrao = `+${cleaned}`;
+
   const supabase = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
@@ -643,7 +649,7 @@ export async function api4comLigarAction(
       tipo: "telefone",
       direcao: "saida",
       colaborador_id: actor.id,
-      numero,
+      numero: numeroPadrao,
       contato_nome: extra?.contato_nome ?? null,
       lead_id: extra?.lead_id ?? null,
       lead_gerado_id: extra?.lead_gerado_id ?? null,
@@ -658,7 +664,7 @@ export async function api4comLigarAction(
 
   const result = await api4comFazerLigacao({
     caller: creds.defaultExtension,
-    called: numero,
+    called: numeroPadrao,
     extension: creds.defaultExtension,
     metadata: {
       gateway: "yide-acompanha",
