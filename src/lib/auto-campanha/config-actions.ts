@@ -36,14 +36,12 @@ export async function saveAutoCampanhaConfigAction(
   }
 
   const metaAtendidas = Math.min(50, Math.max(1, parseInt(formData.get("auto_campanha_meta_atendidas") as string) || 10));
-  const maxTentativas = Math.min(200, Math.max(1, parseInt(formData.get("auto_campanha_max_tentativas") as string) || 50));
   const horarioInicio = (formData.get("auto_campanha_horario_inicio") as string) || "08:00";
   const horarioFim = (formData.get("auto_campanha_horario_fim") as string) || "18:00";
 
   const payload = {
     auto_campanha_ativo: formData.get("auto_campanha_ativo") === "true",
     auto_campanha_meta_atendidas: metaAtendidas,
-    auto_campanha_max_tentativas: maxTentativas,
     auto_campanha_horario_inicio: horarioInicio,
     auto_campanha_horario_fim: horarioFim,
     power_dialer_colaborador_id: colaboradorId,

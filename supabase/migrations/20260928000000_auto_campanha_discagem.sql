@@ -2,7 +2,6 @@
 ALTER TABLE ai_voice_configs
   ADD COLUMN IF NOT EXISTS auto_campanha_ativo boolean NOT NULL DEFAULT false,
   ADD COLUMN IF NOT EXISTS auto_campanha_meta_atendidas integer NOT NULL DEFAULT 10,
-  ADD COLUMN IF NOT EXISTS auto_campanha_max_tentativas integer NOT NULL DEFAULT 50,
   ADD COLUMN IF NOT EXISTS auto_campanha_horario_inicio time NOT NULL DEFAULT '08:00',
   ADD COLUMN IF NOT EXISTS auto_campanha_horario_fim time NOT NULL DEFAULT '18:00';
 

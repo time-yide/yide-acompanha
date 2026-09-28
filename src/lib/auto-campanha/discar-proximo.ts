@@ -1,15 +1,19 @@
 import "server-only";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getApi4ComCreds, api4comFazerLigacao } from "@/lib/ligacoes/api4com";
+import { sendWebPushToUser } from "@/lib/push/server";
 import {
   getCampanhaHoje,
   incrementarCampanha,
   finalizarCampanha,
+  temLigacaoAtivaCampanha,
   type AutoCampanhaConfig,
 } from "./queries";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function sb() { return createServiceRoleClient() as any; }
+
+const DELAY_PREPARAR_MS = 15_000;
 
 function agora() {
   const d = new Date();
@@ -46,9 +50,6 @@ async function selecionarProximoLead(orgId: string): Promise<ProximoLead | null>
       "ai_proxima_tentativa.is.null," +
       `ai_proxima_tentativa.lte.${new Date().toISOString()}`,
     )
-    .neq("ai_status", "em_ligacao")
-    .neq("ai_status", "convertido")
-    .neq("ai_status", "esgotado")
     .order("score", { ascending: false })
     .order("ai_tentativas", { ascending: true })
     .order("created_at", { ascending: true })
@@ -58,10 +59,34 @@ async function selecionarProximoLead(orgId: string): Promise<ProximoLead | null>
   return data as ProximoLead | null;
 }
 
+async function notificarColaborador(
+  colaboradorId: string | null,
+  title: string,
+  body: string,
+): Promise<void> {
+  if (!colaboradorId) return;
+  try {
+    await sendWebPushToUser(colaboradorId, {
+      title,
+      body,
+      url: "/ligacoes",
+      tag: "auto-campanha",
+      urgent: true,
+    });
+  } catch {
+    // push is best-effort
+  }
+}
+
+function delay(ms: number) {
+  return new Promise<void>((r) => setTimeout(r, ms));
+}
+
 export async function discarProximoLead(
   orgId: string,
   config: AutoCampanhaConfig,
   campanhaId: string,
+  opts?: { aguardarAbertura?: boolean },
 ): Promise<{ discou: boolean; motivo?: string }> {
   if (!dentroDoHorario(config)) {
     await finalizarCampanha(campanhaId);
@@ -75,21 +100,24 @@ export async function discarProximoLead(
 
   if (campanha.atendidas >= config.auto_campanha_meta_atendidas) {
     await finalizarCampanha(campanhaId);
+    await notificarColaborador(
+      config.power_dialer_colaborador_id,
+      "Meta atingida!",
+      `${campanha.atendidas}/${config.auto_campanha_meta_atendidas} atendidas hoje. Campanha concluida.`,
+    );
     return { discou: false, motivo: "meta_atingida" };
-  }
-
-  if (campanha.tentativas >= config.auto_campanha_max_tentativas) {
-    await finalizarCampanha(campanhaId);
-    return { discou: false, motivo: "max_tentativas" };
   }
 
   const creds = getApi4ComCreds();
   if (!creds) return { discou: false, motivo: "api4com_nao_configurado" };
 
+  if (await temLigacaoAtivaCampanha(orgId)) {
+    return { discou: false, motivo: "ligacao_em_andamento" };
+  }
+
   const lead = await selecionarProximoLead(orgId);
   if (!lead) {
-    await finalizarCampanha(campanhaId);
-    return { discou: false, motivo: "sem_leads" };
+    return { discou: false, motivo: "sem_leads_aguardando" };
   }
 
   const telefone = lead.telefone || lead.whatsapp;
@@ -97,6 +125,17 @@ export async function discarProximoLead(
 
   const cleaned = telefone.replace(/\D/g, "");
   const numeroPadrao = cleaned.startsWith("55") ? `+${cleaned}` : `+55${cleaned}`;
+
+  // Quando vem do cron, o app pode estar em background no celular.
+  // Push + delay de 15s dá tempo pro Lucas abrir e o JsSIP reconectar.
+  if (opts?.aguardarAbertura) {
+    await notificarColaborador(
+      config.power_dialer_colaborador_id,
+      "Preparando ligação...",
+      `${lead.empresa} — abra o app pra atender.`,
+    );
+    await delay(DELAY_PREPARAR_MS);
+  }
 
   await sb()
     .from("leads_gerados")
@@ -115,7 +154,7 @@ export async function discarProximoLead(
       lead_gerado_id: lead.id,
       status: "em_andamento",
       iniciada_em: new Date().toISOString(),
-      origem: "power_dialer",
+      origem: "auto_campanha",
     })
     .select("id")
     .single();
@@ -159,13 +198,13 @@ export async function processarFimLigacaoCampanha(
   campanhaId: string,
   orgId: string,
   atendida: boolean,
+  contatoNome?: string,
 ): Promise<void> {
   const { data: configData } = await sb()
     .from("ai_voice_configs")
     .select(
       "organization_id, auto_campanha_ativo, auto_campanha_meta_atendidas, " +
-      "auto_campanha_max_tentativas, auto_campanha_horario_inicio, " +
-      "auto_campanha_horario_fim, power_dialer_colaborador_id",
+      "auto_campanha_horario_inicio, auto_campanha_horario_fim, power_dialer_colaborador_id",
     )
     .eq("organization_id", orgId)
     .eq("ativo", true)
@@ -177,22 +216,27 @@ export async function processarFimLigacaoCampanha(
 
   const campanha = await incrementarCampanha(campanhaId, atendida);
 
+  if (atendida) {
+    await notificarColaborador(
+      config.power_dialer_colaborador_id,
+      "Lead atendeu!",
+      contatoNome
+        ? `${contatoNome} atendeu. ${campanha.atendidas}/${config.auto_campanha_meta_atendidas} atendidas.`
+        : `${campanha.atendidas}/${config.auto_campanha_meta_atendidas} atendidas hoje.`,
+    );
+  }
+
   if (campanha.status !== "em_andamento") return;
   if (campanha.atendidas >= config.auto_campanha_meta_atendidas) {
     await finalizarCampanha(campanhaId);
-    return;
-  }
-  if (campanha.tentativas >= config.auto_campanha_max_tentativas) {
-    await finalizarCampanha(campanhaId);
-    return;
-  }
-
-  if (atendida) {
-    // Não disca o próximo enquanto o Lucas está em ligação atendida.
-    // O webhook vai ser chamado de novo quando ESSA ligação terminar.
+    await notificarColaborador(
+      config.power_dialer_colaborador_id,
+      "Meta atingida!",
+      `${campanha.atendidas}/${config.auto_campanha_meta_atendidas} atendidas hoje. Campanha concluida.`,
+    );
     return;
   }
 
-  // Não atendeu → disca o próximo imediatamente
+  // Encadeando após uma ligação — Lucas já está com o app aberto, sem delay
   await discarProximoLead(orgId, config, campanhaId);
 }
