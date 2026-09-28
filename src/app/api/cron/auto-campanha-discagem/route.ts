@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getOrgsComAutoCampanha, criarCampanhaHoje, getCampanhaHoje } from "@/lib/auto-campanha/queries";
+import { getOrgsComAutoCampanha, criarCampanhaHoje, getCampanhaHoje, temLigacaoAtivaCampanha } from "@/lib/auto-campanha/queries";
 import { discarProximoLead, dentroDoHorario } from "@/lib/auto-campanha/discar-proximo";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +28,11 @@ export async function GET(req: Request) {
     const existente = await getCampanhaHoje(config.organization_id);
     if (existente && existente.status !== "em_andamento") {
       resultados.push({ orgId: config.organization_id, resultado: "campanha_ja_concluida" });
+      continue;
+    }
+
+    if (await temLigacaoAtivaCampanha(config.organization_id)) {
+      resultados.push({ orgId: config.organization_id, resultado: "ligacao_ativa" });
       continue;
     }
 

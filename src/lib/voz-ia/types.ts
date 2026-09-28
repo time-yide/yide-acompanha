@@ -55,7 +55,6 @@ export interface AIVoiceConfig {
   power_dialer_goodbye: string;
   auto_campanha_ativo: boolean;
   auto_campanha_meta_atendidas: number;
-  auto_campanha_max_tentativas: number;
   auto_campanha_horario_inicio: string;
   auto_campanha_horario_fim: string;
   created_at: string;

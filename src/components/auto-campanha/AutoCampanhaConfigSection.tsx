@@ -8,7 +8,6 @@ interface AutoCampanhaConfig {
   id: string;
   auto_campanha_ativo: boolean;
   auto_campanha_meta_atendidas: number;
-  auto_campanha_max_tentativas: number;
   auto_campanha_horario_inicio: string;
   auto_campanha_horario_fim: string;
   power_dialer_colaborador_id: string | null;
@@ -65,36 +64,22 @@ export function AutoCampanhaConfigSection({ config, colaboradores }: Props) {
           </select>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <label htmlFor="ac_meta" className="text-sm font-medium">
-              Meta de atendidas por dia
-            </label>
-            <input
-              id="ac_meta"
-              name="auto_campanha_meta_atendidas"
-              type="number"
-              min={1}
-              max={50}
-              defaultValue={config.auto_campanha_meta_atendidas ?? 10}
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="ac_max" className="text-sm font-medium">
-              Max tentativas por dia
-            </label>
-            <input
-              id="ac_max"
-              name="auto_campanha_max_tentativas"
-              type="number"
-              min={1}
-              max={200}
-              defaultValue={config.auto_campanha_max_tentativas ?? 50}
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-            />
-          </div>
+        <div className="space-y-2">
+          <label htmlFor="ac_meta" className="text-sm font-medium">
+            Meta de atendidas por dia
+          </label>
+          <input
+            id="ac_meta"
+            name="auto_campanha_meta_atendidas"
+            type="number"
+            min={1}
+            max={50}
+            defaultValue={config.auto_campanha_meta_atendidas ?? 10}
+            className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+          />
+          <p className="text-xs text-muted-foreground">
+            A campanha continua ligando ate bater essa meta, sem limite de tentativas.
+          </p>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
