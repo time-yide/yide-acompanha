@@ -164,6 +164,10 @@ export function VoiceCallProvider({ children }: { children: ReactNode }) {
 
         ua.on("registered", () => {
           if (alive) setAvailable(true);
+          // Pedir permissão de notificação ao registrar SIP
+          if (typeof Notification !== "undefined" && Notification.permission === "default") {
+            Notification.requestPermission().catch(() => {});
+          }
         });
 
         ua.on("unregistered", () => {
@@ -258,6 +262,16 @@ export function VoiceCallProvider({ children }: { children: ReactNode }) {
                       }
                       setMuted(false);
                       playAlertBeep(ctx);
+                      // Notificação nativa do sistema (desktop/celular)
+                      try {
+                        if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+                          new Notification("Lead atendeu!", {
+                            body: "Alguém na linha — volte pro app.",
+                            tag: "lead-atendeu",
+                            requireInteraction: true,
+                          });
+                        }
+                      } catch { /* ignore */ }
                       stopMonitor();
                     }
                   }
