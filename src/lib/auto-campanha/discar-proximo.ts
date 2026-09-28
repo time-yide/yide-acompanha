@@ -37,7 +37,29 @@ interface ProximoLead {
   whatsapp: string | null;
 }
 
+function limparTelefone(t: string | null): string {
+  if (!t) return "";
+  return t.replace(/\D/g, "").replace(/^55/, "");
+}
+
+async function getTelefonesClientes(orgId: string): Promise<Set<string>> {
+  const { data } = await sb()
+    .from("clients")
+    .select("telefone")
+    .eq("organization_id", orgId)
+    .not("telefone", "is", null);
+
+  const set = new Set<string>();
+  for (const c of data ?? []) {
+    const clean = limparTelefone(c.telefone);
+    if (clean.length >= 8) set.add(clean);
+  }
+  return set;
+}
+
 async function selecionarProximoLead(orgId: string): Promise<ProximoLead | null> {
+  const telefonesClientes = await getTelefonesClientes(orgId);
+
   const { data } = await sb()
     .from("leads_gerados")
     .select("id, empresa, telefone, whatsapp")
@@ -53,10 +75,18 @@ async function selecionarProximoLead(orgId: string): Promise<ProximoLead | null>
     .order("score", { ascending: false })
     .order("ai_tentativas", { ascending: true })
     .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+    .limit(20);
 
-  return data as ProximoLead | null;
+  if (!data || data.length === 0) return null;
+
+  // Excluir leads cujo telefone já é de um cliente (ativo ou churn)
+  for (const lead of data as ProximoLead[]) {
+    const tel = limparTelefone(lead.telefone) || limparTelefone(lead.whatsapp);
+    if (tel && telefonesClientes.has(tel)) continue;
+    return lead;
+  }
+
+  return null;
 }
 
 async function notificarColaborador(
