@@ -47,9 +47,6 @@ async function selecionarProximoLead(orgId: string): Promise<ProximoLead | null>
       "ai_proxima_tentativa.is.null," +
       `ai_proxima_tentativa.lte.${new Date().toISOString()}`,
     )
-    .neq("ai_status", "em_ligacao")
-    .neq("ai_status", "convertido")
-    .neq("ai_status", "esgotado")
     .order("score", { ascending: false })
     .order("ai_tentativas", { ascending: true })
     .order("created_at", { ascending: true })
@@ -77,6 +74,11 @@ export async function discarProximoLead(
   if (campanha.atendidas >= config.auto_campanha_meta_atendidas) {
     await finalizarCampanha(campanhaId);
     return { discou: false, motivo: "meta_atingida" };
+  }
+
+  if (campanha.tentativas >= config.auto_campanha_max_tentativas) {
+    await finalizarCampanha(campanhaId);
+    return { discou: false, motivo: "max_tentativas" };
   }
 
   const creds = getApi4ComCreds();
@@ -164,7 +166,8 @@ export async function processarFimLigacaoCampanha(
     .from("ai_voice_configs")
     .select(
       "organization_id, auto_campanha_ativo, auto_campanha_meta_atendidas, " +
-      "auto_campanha_horario_inicio, auto_campanha_horario_fim, power_dialer_colaborador_id",
+      "auto_campanha_max_tentativas, auto_campanha_horario_inicio, " +
+      "auto_campanha_horario_fim, power_dialer_colaborador_id",
     )
     .eq("organization_id", orgId)
     .eq("ativo", true)
@@ -178,6 +181,10 @@ export async function processarFimLigacaoCampanha(
 
   if (campanha.status !== "em_andamento") return;
   if (campanha.atendidas >= config.auto_campanha_meta_atendidas) {
+    await finalizarCampanha(campanhaId);
+    return;
+  }
+  if (campanha.tentativas >= config.auto_campanha_max_tentativas) {
     await finalizarCampanha(campanhaId);
     return;
   }
