@@ -106,6 +106,8 @@ export function VoiceCallProvider({ children }: { children: ReactNode }) {
   const statusRef = useRef<Status>("idle");
   const audioCtxRef = useRef<AudioContext | null>(null);
   const monitorRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const wakeLockRef = useRef<any>(null);
 
   const updateStatus = useCallback((s: Status) => {
     statusRef.current = s;
@@ -124,6 +126,22 @@ export function VoiceCallProvider({ children }: { children: ReactNode }) {
     setMuted(false);
     stopMonitor();
   }, [stopMonitor]);
+
+  const requestWakeLock = useCallback(async () => {
+    try {
+      if ("wakeLock" in navigator && !wakeLockRef.current) {
+        wakeLockRef.current = await navigator.wakeLock.request("screen");
+        wakeLockRef.current.addEventListener("release", () => {
+          wakeLockRef.current = null;
+        });
+      }
+    } catch { /* wake lock not available */ }
+  }, []);
+
+  const releaseWakeLock = useCallback(() => {
+    wakeLockRef.current?.release().catch(() => {});
+    wakeLockRef.current = null;
+  }, []);
 
   const toggleMute = useCallback(() => {
     setMuted((prev) => {
@@ -207,6 +225,7 @@ export function VoiceCallProvider({ children }: { children: ReactNode }) {
 
           sessionRef.current = session;
           updateStatus("in_call");
+          requestWakeLock();
 
           session.on("peerconnection", () => {
             const pc = session.connection;
@@ -289,6 +308,7 @@ export function VoiceCallProvider({ children }: { children: ReactNode }) {
             setMicProblem(false);
             sessionRef.current = null;
             resetCallState();
+            releaseWakeLock();
             if (audioRef.current) {
               audioRef.current.srcObject = null;
               audioRef.current.muted = false;
@@ -303,6 +323,7 @@ export function VoiceCallProvider({ children }: { children: ReactNode }) {
             setMicProblem(false);
             sessionRef.current = null;
             resetCallState();
+            releaseWakeLock();
             if (audioRef.current) {
               audioRef.current.muted = false;
             }
@@ -337,11 +358,12 @@ export function VoiceCallProvider({ children }: { children: ReactNode }) {
       sessionRef.current?.terminate();
       uaRef.current?.stop();
       stopMonitor();
+      releaseWakeLock();
       if (audioRef.current) {
         audioRef.current.srcObject = null;
       }
     };
-  }, [updateStatus, router, stopMonitor, resetCallState]);
+  }, [updateStatus, router, stopMonitor, resetCallState, requestWakeLock, releaseWakeLock]);
 
   const dial = useCallback(
     async (numero: string, extra?: Record<string, string>) => {
@@ -390,11 +412,12 @@ export function VoiceCallProvider({ children }: { children: ReactNode }) {
     setActiveNumber(null);
     setMicProblem(false);
     resetCallState();
+    releaseWakeLock();
     if (audioRef.current) {
       audioRef.current.srcObject = null;
       audioRef.current.muted = false;
     }
-  }, [updateStatus, resetCallState]);
+  }, [updateStatus, resetCallState, releaseWakeLock]);
 
   return (
     <Ctx.Provider
