@@ -5,6 +5,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { ConfigVozIAForm } from "@/components/voz-ia/ConfigVozIAForm";
 import { TestarLigacaoIA } from "@/components/voz-ia/TestarLigacaoIA";
 import { PowerDialerConfigSection } from "@/components/power-dialer/PowerDialerConfigSection";
+import { AutoCampanhaConfigSection } from "@/components/auto-campanha/AutoCampanhaConfigSection";
 import { ROLES_CONFIG_VOZ_IA } from "@/lib/voz-ia/types";
 import { Bot } from "lucide-react";
 
@@ -45,6 +46,7 @@ export default async function ConfigVozIAPage() {
       <ConfigVozIAForm config={config} />
       <TestarLigacaoIA />
       <PowerDialerConfigSection config={config} colaboradores={colaboradores} />
+      <AutoCampanhaConfigSection config={config} colaboradores={colaboradores} />
     </div>
   );
 }
