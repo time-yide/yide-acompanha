@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getServerEnv } from "@/lib/env";
 import { mapStatusApi4Com } from "@/lib/ligacoes/api4com";
+import { processarFimLigacaoCampanha } from "@/lib/auto-campanha/discar-proximo";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,7 @@ interface Api4ComWebhookPayload {
     colaborador_id?: string;
     lead_id?: string;
     lead_gerado_id?: string;
+    campanha_id?: string;
     [key: string]: unknown;
   };
 }
@@ -112,6 +114,20 @@ export async function POST(req: Request) {
         .from("leads_gerados")
         .update({ ai_status: null, ai_ultima_ligacao: new Date().toISOString() })
         .eq("id", leadGeradoId);
+    }
+  }
+
+  const campanhaId = payload.metadata?.campanha_id;
+  if (campanhaId) {
+    const { data: ligRow } = await sb
+      .from("ligacoes")
+      .select("organization_id")
+      .eq("id", ligacaoId)
+      .single();
+
+    if (ligRow) {
+      const atendida = statusInterno === "atendida";
+      await processarFimLigacaoCampanha(campanhaId, ligRow.organization_id, atendida);
     }
   }
 

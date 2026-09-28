@@ -66,6 +66,7 @@
     { "path": "/api/cron/nfse-emitir", "schedule": "0 12 3 * *" },
     { "path": "/api/cron/checkin-cliente-wpp", "schedule": "0 18 * * 1,4" },
     { "path": "/api/cron/planejamento-mensal-wpp", "schedule": "0 13 21 * *" },
-    { "path": "/api/cron/lembrete-reuniao-wpp", "schedule": "0 12 * * 1-5" }
+    { "path": "/api/cron/lembrete-reuniao-wpp", "schedule": "0 12 * * 1-5" },
+    { "path": "/api/cron/auto-campanha-discagem", "schedule": "0 11 * * 1-5" }
   ]
 }
