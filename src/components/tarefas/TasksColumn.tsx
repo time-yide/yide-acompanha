@@ -19,7 +19,7 @@ const COLUMN_LABEL: Record<Status, string> = {
   aberta: "A fazer",
   em_andamento: "Em andamento",
   concluida: "Concluído Operacional",
-  em_aprovacao: "Aprovação",
+  em_aprovacao: "Aprovação Cliente",
   alteracao: "Alteração",
   aprovada: "Aprovado",
   agendado: "Agendado",
