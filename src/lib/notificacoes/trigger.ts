@@ -48,6 +48,25 @@ export async function notifyTaskAssigned(args: {
   });
 }
 
+export async function notifyDriveUploadPronto(args: {
+  editorId: string;
+  uploaderId: string;
+  uploaderName: string;
+  clientName: string;
+  categoria: string;
+  fileCount: number;
+  folderUrl: string;
+}): Promise<void> {
+  await notify({
+    recipientId: args.editorId,
+    sourceId: args.uploaderId,
+    tipo: "drive_upload_pronto",
+    titulo: `Vídeos prontos: ${args.clientName}`,
+    mensagem: `${args.uploaderName} subiu ${args.fileCount} vídeo(s) de ${args.categoria} — abra a pasta pra editar`,
+    link: args.folderUrl,
+  });
+}
+
 export async function notifyTaskCompleted(args: {
   taskId: string;
   completerId: string;
