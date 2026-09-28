@@ -4,8 +4,6 @@ import { getApi4ComCreds, api4comFazerLigacao } from "@/lib/ligacoes/api4com";
 import { getPowerDialerConfig, getActiveBatchForColaborador } from "./queries";
 import { PD_BATCH_STATUS } from "./types";
 import type { LeadParaProspectar } from "@/lib/motor-prospeccao/types";
-import { getServerEnv } from "@/lib/env";
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function sb() { return createServiceRoleClient() as any; }
 
@@ -36,8 +34,6 @@ export async function dispararPowerDialerBatch(
   if (active) return { error: "Batch ativo em andamento" };
 
   const conferenceName = `pd-${crypto.randomUUID().slice(0, 8)}`;
-  const env = getServerEnv();
-  const appUrl = env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
 
   const { data: batch, error: batchErr } = await sb()
     .from("power_dialer_batches")
@@ -81,8 +77,6 @@ export async function dispararPowerDialerBatch(
     .select("id")
     .single();
 
-  const webhookSecret = env.API4COM_WEBHOOK_SECRET || "";
-
   const result = await api4comFazerLigacao({
     caller: creds.defaultExtension,
     called: telefone,
@@ -93,7 +87,6 @@ export async function dispararPowerDialerBatch(
       lead_gerado_id: firstLead.id,
       batch_call_id: batchCall?.id,
       colaborador_id: config.power_dialer_colaborador_id,
-      webhook_url: `${appUrl}/api/webhooks/api4com?secret=${webhookSecret}`,
     },
   });
 

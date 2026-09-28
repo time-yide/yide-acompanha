@@ -35,7 +35,7 @@ export async function POST(req: Request) {
   const secret = searchParams.get("secret");
   const expected = getServerEnv().API4COM_WEBHOOK_SECRET;
 
-  if (expected && secret !== expected) {
+  if (!expected || !secret || secret !== expected) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -70,10 +70,22 @@ export async function POST(req: Request) {
     duracao_segundos: payload.duration,
     finalizada_em: payload.endedAt || new Date().toISOString(),
     external_id: payload.id,
-    raw_data: payload,
+    raw_data: {
+      eventType: payload.eventType,
+      id: payload.id,
+      direction: payload.direction,
+      caller: payload.caller,
+      called: payload.called,
+      startedAt: payload.startedAt,
+      answeredAt: payload.answeredAt,
+      endedAt: payload.endedAt,
+      duration: payload.duration,
+      hangupCause: payload.hangupCause,
+      hangupCauseCode: payload.hangupCauseCode,
+    },
   };
 
-  if (payload.recordUrl) {
+  if (payload.recordUrl && /^https:\/\//.test(payload.recordUrl)) {
     update.gravacao_url = payload.recordUrl;
   }
 
@@ -96,17 +108,10 @@ export async function POST(req: Request) {
         .update({ ai_status: "convertido", ai_ultima_ligacao: new Date().toISOString() })
         .eq("id", leadGeradoId);
     } else {
-      await sb.rpc("increment_field", {
-        table_name: "leads_gerados",
-        field_name: "ai_tentativas",
-        row_id: leadGeradoId,
-      }).catch(() => {
-        // RPC pode não existir; fallback direto
-        return sb
-          .from("leads_gerados")
-          .update({ ai_status: null, ai_ultima_ligacao: new Date().toISOString() })
-          .eq("id", leadGeradoId);
-      });
+      await sb
+        .from("leads_gerados")
+        .update({ ai_status: null, ai_ultima_ligacao: new Date().toISOString() })
+        .eq("id", leadGeradoId);
     }
   }
 
