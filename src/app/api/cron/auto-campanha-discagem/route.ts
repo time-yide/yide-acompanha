@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getOrgsComAutoCampanha, criarCampanhaHoje, getCampanhaHoje, temLigacaoAtivaCampanha } from "@/lib/auto-campanha/queries";
 import { discarProximoLead, dentroDoHorario } from "@/lib/auto-campanha/discar-proximo";
+import { sendWebPushToUser } from "@/lib/push/server";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -36,10 +37,23 @@ export async function GET(req: Request) {
       continue;
     }
 
+    const novaCampanha = !existente;
     const campanha = existente ?? await criarCampanhaHoje(
       config.organization_id,
       config.power_dialer_colaborador_id,
     );
+
+    if (novaCampanha && config.power_dialer_colaborador_id) {
+      try {
+        await sendWebPushToUser(config.power_dialer_colaborador_id, {
+          title: "Campanha iniciou!",
+          body: `Meta: ${config.auto_campanha_meta_atendidas} atendidas. Horario: ${config.auto_campanha_horario_inicio}-${config.auto_campanha_horario_fim}.`,
+          url: "/ligacoes",
+          tag: "auto-campanha",
+          urgent: true,
+        });
+      } catch { /* push is best-effort */ }
+    }
 
     const r = await discarProximoLead(config.organization_id, config, campanha.id);
     resultados.push({ orgId: config.organization_id, resultado: r.discou ? "discando" : (r.motivo ?? "erro") });

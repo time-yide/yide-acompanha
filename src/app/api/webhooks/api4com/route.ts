@@ -121,13 +121,13 @@ export async function POST(req: Request) {
   if (campanhaId) {
     const { data: ligRow } = await sb
       .from("ligacoes")
-      .select("organization_id")
+      .select("organization_id, contato_nome")
       .eq("id", ligacaoId)
       .single();
 
     if (ligRow) {
       const atendida = statusInterno === "atendida";
-      await processarFimLigacaoCampanha(campanhaId, ligRow.organization_id, atendida);
+      await processarFimLigacaoCampanha(campanhaId, ligRow.organization_id, atendida, ligRow.contato_nome ?? undefined);
     }
   }
 
