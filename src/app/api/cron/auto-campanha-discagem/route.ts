@@ -55,7 +55,7 @@ export async function GET(req: Request) {
       } catch { /* push is best-effort */ }
     }
 
-    const r = await discarProximoLead(config.organization_id, config, campanha.id);
+    const r = await discarProximoLead(config.organization_id, config, campanha.id, { aguardarAbertura: true });
     resultados.push({ orgId: config.organization_id, resultado: r.discou ? "discando" : (r.motivo ?? "erro") });
   }
 

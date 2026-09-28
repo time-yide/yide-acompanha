@@ -13,6 +13,8 @@ import {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function sb() { return createServiceRoleClient() as any; }
 
+const DELAY_PREPARAR_MS = 15_000;
+
 function agora() {
   const d = new Date();
   const cuiaba = new Date(d.toLocaleString("en-US", { timeZone: "America/Cuiaba" }));
@@ -76,10 +78,15 @@ async function notificarColaborador(
   }
 }
 
+function delay(ms: number) {
+  return new Promise<void>((r) => setTimeout(r, ms));
+}
+
 export async function discarProximoLead(
   orgId: string,
   config: AutoCampanhaConfig,
   campanhaId: string,
+  opts?: { aguardarAbertura?: boolean },
 ): Promise<{ discou: boolean; motivo?: string }> {
   if (!dentroDoHorario(config)) {
     await finalizarCampanha(campanhaId);
@@ -118,6 +125,17 @@ export async function discarProximoLead(
 
   const cleaned = telefone.replace(/\D/g, "");
   const numeroPadrao = cleaned.startsWith("55") ? `+${cleaned}` : `+55${cleaned}`;
+
+  // Quando vem do cron, o app pode estar em background no celular.
+  // Push + delay de 15s dá tempo pro Lucas abrir e o JsSIP reconectar.
+  if (opts?.aguardarAbertura) {
+    await notificarColaborador(
+      config.power_dialer_colaborador_id,
+      "Preparando ligação...",
+      `${lead.empresa} — abra o app pra atender.`,
+    );
+    await delay(DELAY_PREPARAR_MS);
+  }
 
   await sb()
     .from("leads_gerados")
@@ -219,5 +237,6 @@ export async function processarFimLigacaoCampanha(
     return;
   }
 
+  // Encadeando após uma ligação — Lucas já está com o app aberto, sem delay
   await discarProximoLead(orgId, config, campanhaId);
 }
