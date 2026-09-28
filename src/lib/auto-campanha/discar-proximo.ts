@@ -76,11 +76,6 @@ export async function discarProximoLead(
     return { discou: false, motivo: "meta_atingida" };
   }
 
-  if (campanha.tentativas >= config.auto_campanha_max_tentativas) {
-    await finalizarCampanha(campanhaId);
-    return { discou: false, motivo: "max_tentativas" };
-  }
-
   const creds = getApi4ComCreds();
   if (!creds) return { discou: false, motivo: "api4com_nao_configurado" };
 
@@ -90,8 +85,9 @@ export async function discarProximoLead(
 
   const lead = await selecionarProximoLead(orgId);
   if (!lead) {
-    await finalizarCampanha(campanhaId);
-    return { discou: false, motivo: "sem_leads" };
+    // Nao finaliza — fica em_andamento. O cron a cada 15min tenta de novo
+    // (o gerador de leads pode ter produzido mais ate la).
+    return { discou: false, motivo: "sem_leads_aguardando" };
   }
 
   const telefone = lead.telefone || lead.whatsapp;
@@ -166,8 +162,7 @@ export async function processarFimLigacaoCampanha(
     .from("ai_voice_configs")
     .select(
       "organization_id, auto_campanha_ativo, auto_campanha_meta_atendidas, " +
-      "auto_campanha_max_tentativas, auto_campanha_horario_inicio, " +
-      "auto_campanha_horario_fim, power_dialer_colaborador_id",
+      "auto_campanha_horario_inicio, auto_campanha_horario_fim, power_dialer_colaborador_id",
     )
     .eq("organization_id", orgId)
     .eq("ativo", true)
@@ -181,10 +176,6 @@ export async function processarFimLigacaoCampanha(
 
   if (campanha.status !== "em_andamento") return;
   if (campanha.atendidas >= config.auto_campanha_meta_atendidas) {
-    await finalizarCampanha(campanhaId);
-    return;
-  }
-  if (campanha.tentativas >= config.auto_campanha_max_tentativas) {
     await finalizarCampanha(campanhaId);
     return;
   }
