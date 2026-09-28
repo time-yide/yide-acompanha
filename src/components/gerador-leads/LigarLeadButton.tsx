@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Phone, Loader2 } from "lucide-react";
 import { registrarLigacaoLeadAction, registrarResultadoLigacaoAction } from "@/lib/ligacoes/actions";
-import { useTwilioCall } from "@/components/ligacoes/TwilioCallProvider";
+import { useVoiceCall } from "@/components/ligacoes/VoiceCallProvider";
 
 interface Props {
   leadGeradoId: string;
@@ -29,7 +29,7 @@ const RESULTADOS: Array<{ value: string; label: string }> = [
 
 export function LigarLeadButton({ leadGeradoId, numero, contatoNome }: Props) {
   const router = useRouter();
-  const twilio = useTwilioCall();
+  const twilio = useVoiceCall();
   const [pending, start] = useTransition();
   const [savingResult, startResult] = useTransition();
   const [ligacaoId, setLigacaoId] = useState<string | null>(null);

@@ -71,6 +71,14 @@ const serverSchema = z.object({
   // Account Auth Token (dashboard) — usado SÓ pra validar X-Twilio-Signature
   // nos webhooks/rota de voz. Diferente da API Key.
   TWILIO_AUTH_TOKEN: z.string().optional(),
+  // API4COM — ligações de voz pelo navegador (SIP/WebRTC) no módulo /ligacoes.
+  // Substitui o Twilio. Sem essas envs o caminho API4COM fica inerte.
+  API4COM_API_TOKEN: z.string().optional(),
+  API4COM_API_URL: z.string().optional(),
+  API4COM_DOMAIN: z.string().optional(),
+  API4COM_DEFAULT_EXTENSION: z.string().optional(),
+  API4COM_DEFAULT_EXTENSION_PASSWORD: z.string().optional(),
+  API4COM_WEBHOOK_SECRET: z.string().optional(),
   // OpenAI - usado pelo Design Studio pra gerar imagens com GPT-Image-1.
   // Sem isso, o comando "gerar imagem" retorna erro amigável e o resto do
   // Studio continua funcionando. Gerar em platform.openai.com → API Keys.

@@ -37,6 +37,7 @@
     "gsap": "^3.15.0",
     "hls.js": "^1.6.16",
     "html-to-image": "^1.11.13",
+    "jssip": "^3.13.8",
     "lucide-react": "^1.11.0",
     "next": "16.2.4",
     "next-themes": "^0.4.6",
