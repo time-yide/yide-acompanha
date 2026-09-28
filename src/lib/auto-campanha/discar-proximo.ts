@@ -1,6 +1,7 @@
 import "server-only";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getApi4ComCreds, api4comFazerLigacao } from "@/lib/ligacoes/api4com";
+import { sendWebPushToUser } from "@/lib/push/server";
 import {
   getCampanhaHoje,
   incrementarCampanha,
@@ -56,6 +57,25 @@ async function selecionarProximoLead(orgId: string): Promise<ProximoLead | null>
   return data as ProximoLead | null;
 }
 
+async function notificarColaborador(
+  colaboradorId: string | null,
+  title: string,
+  body: string,
+): Promise<void> {
+  if (!colaboradorId) return;
+  try {
+    await sendWebPushToUser(colaboradorId, {
+      title,
+      body,
+      url: "/ligacoes",
+      tag: "auto-campanha",
+      urgent: true,
+    });
+  } catch {
+    // push is best-effort
+  }
+}
+
 export async function discarProximoLead(
   orgId: string,
   config: AutoCampanhaConfig,
@@ -73,6 +93,11 @@ export async function discarProximoLead(
 
   if (campanha.atendidas >= config.auto_campanha_meta_atendidas) {
     await finalizarCampanha(campanhaId);
+    await notificarColaborador(
+      config.power_dialer_colaborador_id,
+      "Meta atingida!",
+      `${campanha.atendidas}/${config.auto_campanha_meta_atendidas} atendidas hoje. Campanha concluida.`,
+    );
     return { discou: false, motivo: "meta_atingida" };
   }
 
@@ -85,8 +110,6 @@ export async function discarProximoLead(
 
   const lead = await selecionarProximoLead(orgId);
   if (!lead) {
-    // Nao finaliza — fica em_andamento. O cron a cada 15min tenta de novo
-    // (o gerador de leads pode ter produzido mais ate la).
     return { discou: false, motivo: "sem_leads_aguardando" };
   }
 
@@ -157,6 +180,7 @@ export async function processarFimLigacaoCampanha(
   campanhaId: string,
   orgId: string,
   atendida: boolean,
+  contatoNome?: string,
 ): Promise<void> {
   const { data: configData } = await sb()
     .from("ai_voice_configs")
@@ -174,9 +198,24 @@ export async function processarFimLigacaoCampanha(
 
   const campanha = await incrementarCampanha(campanhaId, atendida);
 
+  if (atendida) {
+    await notificarColaborador(
+      config.power_dialer_colaborador_id,
+      "Lead atendeu!",
+      contatoNome
+        ? `${contatoNome} atendeu. ${campanha.atendidas}/${config.auto_campanha_meta_atendidas} atendidas.`
+        : `${campanha.atendidas}/${config.auto_campanha_meta_atendidas} atendidas hoje.`,
+    );
+  }
+
   if (campanha.status !== "em_andamento") return;
   if (campanha.atendidas >= config.auto_campanha_meta_atendidas) {
     await finalizarCampanha(campanhaId);
+    await notificarColaborador(
+      config.power_dialer_colaborador_id,
+      "Meta atingida!",
+      `${campanha.atendidas}/${config.auto_campanha_meta_atendidas} atendidas hoje. Campanha concluida.`,
+    );
     return;
   }
 
