@@ -9,12 +9,13 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
-import { Phone, PhoneOff, Loader2, MicOff } from "lucide-react";
+import { Phone, PhoneOff, Loader2, MicOff, VolumeX, Volume2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { api4comLigarAction, getVoiceCredentialsAction } from "@/lib/ligacoes/actions";
 
 type Status = "idle" | "connecting" | "ringing" | "in_call";
+type CallPhase = "ringing_lead" | "lead_answered" | null;
 
 interface VoiceCallCtx {
   available: boolean;
@@ -24,6 +25,7 @@ interface VoiceCallCtx {
   dial: (numero: string, extra?: Record<string, string>) => void;
   hangup: () => void;
   isPowerDialerAgent: boolean;
+  callPhase: CallPhase;
 }
 
 const Ctx = createContext<VoiceCallCtx | null>(null);
@@ -39,6 +41,7 @@ export function useVoiceCall(): VoiceCallCtx {
       dial: () => {},
       hangup: () => {},
       isPowerDialerAgent: false,
+      callPhase: null,
     };
   }
   return c;
@@ -54,6 +57,35 @@ interface SipCredentials {
   isPowerDialerAgent: boolean;
 }
 
+function playAlertBeep(ctx: AudioContext) {
+  try {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.4, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.25);
+    // Segundo bip
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.frequency.value = 1100;
+    gain2.gain.setValueAtTime(0.4, ctx.currentTime + 0.35);
+    gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
+    osc2.start(ctx.currentTime + 0.35);
+    osc2.stop(ctx.currentTime + 0.6);
+  } catch { /* ignore */ }
+}
+
+const MONITOR_INTERVAL_MS = 200;
+const MONITOR_WINDOW = 15; // 3 seconds of samples
+const ACTIVE_RATIO_THRESHOLD = 0.5;
+const RMS_THRESHOLD = 0.02;
+
 export function VoiceCallProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [available, setAvailable] = useState(false);
@@ -62,6 +94,8 @@ export function VoiceCallProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [micProblem, setMicProblem] = useState(false);
   const [isPowerDialerAgent, setIsPowerDialerAgent] = useState(false);
+  const [callPhase, setCallPhase] = useState<CallPhase>(null);
+  const [muted, setMuted] = useState(false);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const uaRef = useRef<any>(null);
@@ -70,10 +104,33 @@ export function VoiceCallProvider({ children }: { children: ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const credsRef = useRef<SipCredentials | null>(null);
   const statusRef = useRef<Status>("idle");
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const monitorRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const updateStatus = useCallback((s: Status) => {
     statusRef.current = s;
     setStatus(s);
+  }, []);
+
+  const stopMonitor = useCallback(() => {
+    if (monitorRef.current) {
+      clearInterval(monitorRef.current);
+      monitorRef.current = null;
+    }
+  }, []);
+
+  const resetCallState = useCallback(() => {
+    setCallPhase(null);
+    setMuted(false);
+    stopMonitor();
+  }, [stopMonitor]);
+
+  const toggleMute = useCallback(() => {
+    setMuted((prev) => {
+      const next = !prev;
+      if (audioRef.current) audioRef.current.muted = next;
+      return next;
+    });
   }, []);
 
   useEffect(() => {
@@ -129,6 +186,7 @@ export function VoiceCallProvider({ children }: { children: ReactNode }) {
           // Auto-atender chamadas da API (click-to-call)
           const isApiCall =
             session.request?.getHeader?.("X-Api4comintegratedcall") === "true";
+          const isAutomatedCall = statusRef.current !== "connecting";
 
           if (isApiCall || statusRef.current === "connecting") {
             session.answer({
@@ -155,6 +213,58 @@ export function VoiceCallProvider({ children }: { children: ReactNode }) {
                 audioRef.current.autoplay = true;
               }
               audioRef.current.srcObject = ev.streams[0];
+
+              // Chamadas automaticas (campanha/power dialer): mutar durante ringback
+              if (isAutomatedCall) {
+                audioRef.current.muted = true;
+                setMuted(true);
+              }
+              setCallPhase("ringing_lead");
+
+              // Monitorar audio pra detectar quando o lead atende
+              try {
+                const ctx = audioCtxRef.current || new AudioContext();
+                audioCtxRef.current = ctx;
+                ctx.resume().catch(() => {});
+
+                const source = ctx.createMediaStreamSource(ev.streams[0]);
+                const analyser = ctx.createAnalyser();
+                analyser.fftSize = 256;
+                source.connect(analyser);
+
+                const dataArray = new Uint8Array(analyser.frequencyBinCount);
+                const history: boolean[] = [];
+
+                stopMonitor();
+                monitorRef.current = setInterval(() => {
+                  analyser.getByteTimeDomainData(dataArray);
+                  let sum = 0;
+                  for (let i = 0; i < dataArray.length; i++) {
+                    const v = (dataArray[i] - 128) / 128;
+                    sum += v * v;
+                  }
+                  const rms = Math.sqrt(sum / dataArray.length);
+
+                  history.push(rms > RMS_THRESHOLD);
+                  if (history.length > MONITOR_WINDOW) history.shift();
+
+                  if (history.length >= MONITOR_WINDOW) {
+                    const activeRatio =
+                      history.filter(Boolean).length / history.length;
+                    if (activeRatio > ACTIVE_RATIO_THRESHOLD) {
+                      setCallPhase("lead_answered");
+                      if (audioRef.current) {
+                        audioRef.current.muted = false;
+                      }
+                      setMuted(false);
+                      playAlertBeep(ctx);
+                      stopMonitor();
+                    }
+                  }
+                }, MONITOR_INTERVAL_MS);
+              } catch {
+                // AudioContext indisponivel — detecção desativada
+              }
             };
           });
 
@@ -164,8 +274,10 @@ export function VoiceCallProvider({ children }: { children: ReactNode }) {
             setActiveNumber(null);
             setMicProblem(false);
             sessionRef.current = null;
+            resetCallState();
             if (audioRef.current) {
               audioRef.current.srcObject = null;
+              audioRef.current.muted = false;
             }
             router.refresh();
           });
@@ -176,6 +288,10 @@ export function VoiceCallProvider({ children }: { children: ReactNode }) {
             setActiveNumber(null);
             setMicProblem(false);
             sessionRef.current = null;
+            resetCallState();
+            if (audioRef.current) {
+              audioRef.current.muted = false;
+            }
           });
 
           // Verificar mic
@@ -206,11 +322,12 @@ export function VoiceCallProvider({ children }: { children: ReactNode }) {
       alive = false;
       sessionRef.current?.terminate();
       uaRef.current?.stop();
+      stopMonitor();
       if (audioRef.current) {
         audioRef.current.srcObject = null;
       }
     };
-  }, [updateStatus, router]);
+  }, [updateStatus, router, stopMonitor, resetCallState]);
 
   const dial = useCallback(
     async (numero: string, extra?: Record<string, string>) => {
@@ -258,10 +375,12 @@ export function VoiceCallProvider({ children }: { children: ReactNode }) {
     updateStatus("idle");
     setActiveNumber(null);
     setMicProblem(false);
+    resetCallState();
     if (audioRef.current) {
       audioRef.current.srcObject = null;
+      audioRef.current.muted = false;
     }
-  }, [updateStatus]);
+  }, [updateStatus, resetCallState]);
 
   return (
     <Ctx.Provider
@@ -273,6 +392,7 @@ export function VoiceCallProvider({ children }: { children: ReactNode }) {
         dial,
         hangup,
         isPowerDialerAgent,
+        callPhase,
       }}
     >
       {children}
@@ -280,6 +400,8 @@ export function VoiceCallProvider({ children }: { children: ReactNode }) {
         <div className="fixed bottom-4 right-4 z-50 flex items-center gap-3 rounded-lg border bg-card px-4 py-3 shadow-lg">
           {status === "connecting" ? (
             <Loader2 className="h-4 w-4 animate-spin text-emerald-500" />
+          ) : callPhase === "lead_answered" ? (
+            <Phone className="h-4 w-4 animate-pulse text-emerald-400" />
           ) : (
             <Phone className="h-4 w-4 text-emerald-500" />
           )}
@@ -289,10 +411,25 @@ export function VoiceCallProvider({ children }: { children: ReactNode }) {
                 ? "Chamando…"
                 : status === "ringing"
                   ? "Tocando…"
-                  : "Em ligação"}
+                  : callPhase === "lead_answered"
+                    ? "Atendeu!"
+                    : "Tocando pro lead…"}
             </p>
             <p className="text-xs text-muted-foreground">{activeNumber}</p>
           </div>
+          {status === "in_call" && (
+            <button
+              onClick={toggleMute}
+              className="rounded p-1 hover:bg-muted"
+              title={muted ? "Ativar som" : "Mutar"}
+            >
+              {muted ? (
+                <VolumeX className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <Volume2 className="h-4 w-4 text-muted-foreground" />
+              )}
+            </button>
+          )}
           {micProblem && (
             <span className="flex items-center gap-1 text-xs text-destructive">
               <MicOff className="h-3 w-3" /> Mic sem áudio
