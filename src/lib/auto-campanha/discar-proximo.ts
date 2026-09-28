@@ -5,6 +5,7 @@ import {
   getCampanhaHoje,
   incrementarCampanha,
   finalizarCampanha,
+  temLigacaoAtivaCampanha,
   type AutoCampanhaConfig,
 } from "./queries";
 
@@ -78,13 +79,12 @@ export async function discarProximoLead(
     return { discou: false, motivo: "meta_atingida" };
   }
 
-  if (campanha.tentativas >= config.auto_campanha_max_tentativas) {
-    await finalizarCampanha(campanhaId);
-    return { discou: false, motivo: "max_tentativas" };
-  }
-
   const creds = getApi4ComCreds();
   if (!creds) return { discou: false, motivo: "api4com_nao_configurado" };
+
+  if (await temLigacaoAtivaCampanha(orgId)) {
+    return { discou: false, motivo: "ligacao_em_andamento" };
+  }
 
   const lead = await selecionarProximoLead(orgId);
   if (!lead) {
@@ -115,7 +115,7 @@ export async function discarProximoLead(
       lead_gerado_id: lead.id,
       status: "em_andamento",
       iniciada_em: new Date().toISOString(),
-      origem: "power_dialer",
+      origem: "auto_campanha",
     })
     .select("id")
     .single();
@@ -164,8 +164,7 @@ export async function processarFimLigacaoCampanha(
     .from("ai_voice_configs")
     .select(
       "organization_id, auto_campanha_ativo, auto_campanha_meta_atendidas, " +
-      "auto_campanha_max_tentativas, auto_campanha_horario_inicio, " +
-      "auto_campanha_horario_fim, power_dialer_colaborador_id",
+      "auto_campanha_horario_inicio, auto_campanha_horario_fim, power_dialer_colaborador_id",
     )
     .eq("organization_id", orgId)
     .eq("ativo", true)
@@ -182,17 +181,6 @@ export async function processarFimLigacaoCampanha(
     await finalizarCampanha(campanhaId);
     return;
   }
-  if (campanha.tentativas >= config.auto_campanha_max_tentativas) {
-    await finalizarCampanha(campanhaId);
-    return;
-  }
 
-  if (atendida) {
-    // Não disca o próximo enquanto o Lucas está em ligação atendida.
-    // O webhook vai ser chamado de novo quando ESSA ligação terminar.
-    return;
-  }
-
-  // Não atendeu → disca o próximo imediatamente
   await discarProximoLead(orgId, config, campanhaId);
 }
