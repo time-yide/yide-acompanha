@@ -29,8 +29,6 @@ import { ProximosEventosList } from "./ProximosEventosList";
 import { AlertaAprovacao } from "./AlertaAprovacao";
 import { RemuneracaoCard } from "./RemuneracaoCard";
 import { Section } from "./Section";
-import { InstagramPostsCard } from "./InstagramPostsCard";
-import { listClientesComUltimoSnapshot } from "@/lib/instagram-snapshots/queries";
 
 // Charts via wrappers *Lazy (ChartCarteiraTimelineLazy / ChartEntradaChurnLazy).
 // Cada wrapper é "use client" e usa next/dynamic({ ssr: false }), tirando o
@@ -187,30 +185,3 @@ export function RemuneracaoSkeleton() {
  * - Assessor: passa o próprio `userId` (só carteira dele).
  * - Só clientes com pacote yide_360/estrategia/trafego_estrategia entram.
  */
-export async function InstagramPostsSection({
-  assessorId,
-  titulo,
-  exigirSelecaoAssessor = false,
-}: {
-  assessorId: string | null;
-  titulo?: string;
-  /** Coordenador/sócio: não despeja a lista inteira — começa sem assessor
-   * selecionado e só mostra as postagens depois de escolher um no filtro. */
-  exigirSelecaoAssessor?: boolean;
-}) {
-  const unitId = await getEffectiveUnitId();
-  const clientes = await listClientesComUltimoSnapshot({
-    unitId,
-    assessorId,
-  });
-  // Quando assessorId !== null, é o assessor logado vendo a própria carteira:
-  // o filtro de assessor não faz sentido (mostraria 1 opção só) — esconde.
-  return (
-    <InstagramPostsCard
-      clientes={clientes}
-      titulo={titulo}
-      esconderFiltroAssessor={assessorId !== null}
-      exigirSelecaoAssessor={exigirSelecaoAssessor}
-    />
-  );
-}

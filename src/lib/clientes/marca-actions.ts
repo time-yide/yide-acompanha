@@ -83,105 +83,6 @@ export async function saveStyleGuideAction(clientId: string, guide: DesignStyleG
   return { ok: true };
 }
 
-function isAllowedImageUrl(raw: string): boolean {
-  try {
-    const u = new URL(raw);
-    if (u.protocol !== "https:") return false;
-    return (
-      u.hostname.endsWith(".supabase.co") ||
-      u.hostname.endsWith(".supabase.in") ||
-      u.hostname.endsWith(".cdninstagram.com") ||
-      u.hostname.endsWith(".fbcdn.net")
-    );
-  } catch {
-    return false;
-  }
-}
-
-async function fetchInstagramImages(sb: SB, clientId: string, orgId: string): Promise<Buffer[]> {
-  const { data: snapshot } = await sb
-    .from("client_instagram_snapshots")
-    .select("recent_posts")
-    .eq("client_id", clientId)
-    .eq("organization_id", orgId)
-    .eq("scrape_status", "ok")
-    .order("scraped_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  const posts = (snapshot?.recent_posts ?? []) as Array<{
-    displayUrl?: string;
-    type?: string;
-  }>;
-
-  const urls: string[] = [];
-  for (const p of posts) {
-    if (typeof p.displayUrl === "string" && isAllowedImageUrl(p.displayUrl)) {
-      urls.push(p.displayUrl);
-      if (urls.length >= 6) break;
-    }
-  }
-
-  if (urls.length === 0) return fetchPostImagesFallback(sb, clientId, orgId);
-
-  const buffers: Buffer[] = [];
-  for (const url of urls) {
-    try {
-      const resp = await fetch(url, { redirect: "follow", signal: AbortSignal.timeout(8000) });
-      if (!resp.ok) continue;
-      const ab = await resp.arrayBuffer();
-      if (ab.byteLength > 4 * 1024 * 1024) continue;
-      buffers.push(Buffer.from(ab));
-      if (buffers.length >= 4) break;
-    } catch {
-      continue;
-    }
-  }
-
-  if (buffers.length === 0) return fetchPostImagesFallback(sb, clientId, orgId);
-  return buffers;
-}
-
-async function fetchPostImagesFallback(sb: SB, clientId: string, orgId: string): Promise<Buffer[]> {
-  const { data: posts } = await sb
-    .from("social_media_posts")
-    .select("midias")
-    .eq("client_id", clientId)
-    .eq("organization_id", orgId)
-    .not("midias", "is", null)
-    .eq("status", "publicado")
-    .order("publicado_em", { ascending: false })
-    .limit(6);
-
-  if (!posts || posts.length === 0) return [];
-
-  const urls: string[] = [];
-  for (const post of posts) {
-    const midias = Array.isArray(post.midias) ? post.midias : [];
-    for (const url of midias) {
-      if (typeof url === "string" && isAllowedImageUrl(url) && !url.endsWith(".mp4")) {
-        urls.push(url);
-        if (urls.length >= 4) break;
-      }
-    }
-    if (urls.length >= 4) break;
-  }
-
-  const buffers: Buffer[] = [];
-  for (const url of urls) {
-    try {
-      const resp = await fetch(url, { redirect: "error", signal: AbortSignal.timeout(8000) });
-      if (!resp.ok) continue;
-      const ab = await resp.arrayBuffer();
-      if (ab.byteLength > 4 * 1024 * 1024) continue;
-      buffers.push(Buffer.from(ab));
-    } catch {
-      continue;
-    }
-  }
-  return buffers;
-}
-
 export async function autoGenerateStyleGuide(clientId: string): Promise<DesignStyleGuide> {
   const user = await requireAuth();
   const sb = createServiceRoleClient() as SB;
@@ -196,7 +97,7 @@ export async function autoGenerateStyleGuide(clientId: string): Promise<DesignSt
   if (!clientCheck || clientCheck.organization_id !== orgId) return {};
 
   const [{ data: client }, { data: briefingRow }] = await Promise.all([
-    sb.from("clients").select("nome, servico_contratado, nicho_id, nichos(nome), instagram_url").eq("id", clientId).single(),
+    sb.from("clients").select("nome, servico_contratado, nicho_id, nichos(nome)").eq("id", clientId).single(),
     sb.from("client_briefing").select("texto_markdown").eq("client_id", clientId).maybeSingle(),
   ]);
 
@@ -204,36 +105,22 @@ export async function autoGenerateStyleGuide(clientId: string): Promise<DesignSt
 
   const briefing = briefingRow?.texto_markdown ?? "";
   const nicho = (client.nichos as { nome: string } | null)?.nome ?? "";
-  const instagram = client.instagram_url ?? "";
 
   const anthropic = getAnthropicClient();
   if (!anthropic) return {};
 
-  const images = await fetchInstagramImages(sb, clientId, orgId);
-
   const content: Anthropic.MessageCreateParams["messages"][0]["content"] = [];
 
-  if (images.length > 0) {
-    for (const buf of images) {
-      content.push({
-        type: "image",
-        source: { type: "base64", media_type: "image/jpeg", data: buf.toString("base64") },
-      });
-    }
-  }
-
-  const textPrompt = `Analise os dados deste cliente${images.length > 0 ? " e as imagens reais do perfil de Instagram dele" : ""} e sugira uma identidade visual adequada.
+  const textPrompt = `Analise os dados deste cliente e sugira uma identidade visual adequada.
 
 Cliente: ${client.nome}
 Serviço: ${client.servico_contratado ?? "marketing digital"}
 Nicho: ${nicho || "não especificado"}
-${instagram ? `Instagram: ${instagram}` : ""}
 ${briefing ? `Briefing:\n${briefing.slice(0, 2000)}` : "Sem briefing"}
-${images.length > 0 ? `\nAs ${images.length} imagens acima são do perfil real de Instagram deste cliente. Analise a vibe, as cores dominantes, estilo visual, mood e padrões que aparecem no feed.` : ""}
 
 Retorne APENAS um JSON válido (sem markdown, sem explicação) com estes campos:
 {
-  "cores_primarias": "2-3 cores hex separadas por vírgula, extraídas das imagens se disponíveis",
+  "cores_primarias": "2-3 cores hex separadas por vírgula",
   "cores_secundarias": "1-2 cores hex complementares",
   "fontes": "nome de 1-2 fontes Google Fonts que combinam com o estilo",
   "tom_voz": "2-3 palavras descrevendo o tom",
@@ -264,7 +151,6 @@ Retorne APENAS um JSON válido (sem markdown, sem explicação) com estes campos
       mood: json.mood ?? "",
       evitar: json.evitar ?? "",
       observacoes: json.observacoes ?? "",
-      referencias_instagram: instagram,
     };
 
     await sb

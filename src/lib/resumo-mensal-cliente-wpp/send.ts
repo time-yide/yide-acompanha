@@ -31,14 +31,7 @@ export async function sendResumoMensalClienteWpp(): Promise<{
   for (const client of clients ?? []) {
     if (!client.grupo_wpp_jid) { skipped++; continue; }
 
-    const [postsRes, tasksRes, eventsRes, reunioesRes] = await Promise.all([
-      sb
-        .from("social_media_posts")
-        .select("id")
-        .eq("client_id", client.id)
-        .eq("status", "publicado")
-        .gte("publicado_em", fromIso)
-        .lt("publicado_em", toIso),
+    const [tasksRes, eventsRes, reunioesRes] = await Promise.all([
       sb
         .from("tasks")
         .select("id")
@@ -64,12 +57,11 @@ export async function sendResumoMensalClienteWpp(): Promise<{
         .is("deleted_at", null),
     ]);
 
-    const posts = (postsRes.data ?? []).length;
     const tarefas = (tasksRes.data ?? []).length;
     const gravacoes = (eventsRes.data ?? []).length;
     const reunioes = (reunioesRes.data ?? []).length;
 
-    if (posts === 0 && tarefas === 0 && gravacoes === 0 && reunioes === 0) {
+    if (tarefas === 0 && gravacoes === 0 && reunioes === 0) {
       skipped++;
       continue;
     }
@@ -83,7 +75,6 @@ export async function sendResumoMensalClienteWpp(): Promise<{
       ``,
     ];
 
-    if (posts > 0) lines.push(`📱 *${posts}* post(s) publicado(s)`);
     if (tarefas > 0) lines.push(`✅ *${tarefas}* tarefa(s) concluída(s)`);
     if (gravacoes > 0) lines.push(`🎬 *${gravacoes}* gravação(ões)`);
     if (reunioes > 0) lines.push(`🤝 *${reunioes}* reunião(ões)`);

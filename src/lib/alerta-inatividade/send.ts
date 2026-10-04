@@ -47,14 +47,7 @@ export async function sendAlertasInatividade(): Promise<{
 
   // 2. For each client, check most recent activity across 3 tables
   for (const client of realClients) {
-    const [postsRes, tasksRes, eventsRes] = await Promise.all([
-      supabase
-        .from("social_media_posts")
-        .select("created_at")
-        .eq("client_id", client.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
+    const [tasksRes, eventsRes] = await Promise.all([
       supabase
         .from("tasks")
         .select("created_at")
@@ -72,7 +65,6 @@ export async function sendAlertasInatividade(): Promise<{
     ]);
 
     const dates = [
-      postsRes.data?.created_at,
       tasksRes.data?.created_at,
       eventsRes.data?.inicio,
     ].filter(Boolean) as string[];

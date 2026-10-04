@@ -76,7 +76,6 @@ async function _getProdutividadeSetorImpl(periodo: Periodo): Promise<Produtivida
     { data: anunciosData },
     { data: entreguesData },
     { data: atrasadasData },
-    { data: postagensData },
     { data: artesData },
     { data: progData },
   ] = await Promise.all([
@@ -94,10 +93,6 @@ async function _getProdutividadeSetorImpl(periodo: Periodo): Promise<Produtivida
     sb.from("tasks").select("atribuido_a")
       .is("deleted_at", null).neq("status", "postada").lt("due_date", hoje)
       .not("atribuido_a", "is", null),
-    sb.from("social_media_posts").select("criado_por")
-      .is("archived_at", null).eq("status", "publicado")
-      .gte("publicado_em", sinceStartUtc).lt("publicado_em", tomorrowStartUtc)
-      .not("criado_por", "is", null),
     sb.from("design_artes").select("criado_por")
       .is("archived_at", null).eq("status", "aprovado")
       .gte("aprovado_em", sinceStartUtc).lt("aprovado_em", tomorrowStartUtc)
@@ -133,9 +128,6 @@ async function _getProdutividadeSetorImpl(periodo: Periodo): Promise<Produtivida
   }
   for (const t of (atrasadasData ?? []) as Array<{ atribuido_a: string }>) {
     get(t.atribuido_a).tarefas_atrasadas++;
-  }
-  for (const p of (postagensData ?? []) as Array<{ criado_por: string }>) {
-    get(p.criado_por).postagens++;
   }
   for (const a of (artesData ?? []) as Array<{ criado_por: string }>) {
     get(a.criado_por).artes++;

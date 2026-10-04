@@ -33,15 +33,7 @@ export async function sendRelatorioSemanalCliente(): Promise<{
       continue;
     }
 
-    const [postsRes, eventsRes, meetingsRes] = await Promise.all([
-      sb
-        .from("social_media_posts")
-        .select("id, titulo, platform")
-        .eq("client_id", client.id)
-        .eq("status", "publicado")
-        .gte("updated_at", weekAgoIso)
-        .order("updated_at", { ascending: false })
-        .limit(10),
+    const [eventsRes, meetingsRes] = await Promise.all([
       sb
         .from("calendar_events")
         .select("id, titulo, sub_calendar")
@@ -58,11 +50,10 @@ export async function sendRelatorioSemanalCliente(): Promise<{
         .is("deleted_at", null),
     ]);
 
-    const posts = postsRes.data ?? [];
     const gravacoes = eventsRes.data ?? [];
     const reunioes = meetingsRes.data ?? [];
 
-    if (posts.length === 0 && gravacoes.length === 0 && reunioes.length === 0) {
+    if (gravacoes.length === 0 && reunioes.length === 0) {
       skipped++;
       continue;
     }
@@ -75,10 +66,6 @@ export async function sendRelatorioSemanalCliente(): Promise<{
       `Oi${nome ? ` ${nome}` : ""}! Segue o que rolou essa semana:`,
       ``,
     ];
-
-    if (posts.length > 0) {
-      lines.push(`- ${plural(posts.length, "post publicado", "posts publicados")}`);
-    }
 
     if (gravacoes.length > 0) {
       lines.push(`- ${plural(gravacoes.length, "gravação realizada", "gravações realizadas")}`);
