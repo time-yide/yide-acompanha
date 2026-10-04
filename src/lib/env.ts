@@ -30,16 +30,6 @@ const serverSchema = z.object({
   // Free tier: 100 consultas/mês. Plano Basic R$99/mês = 15k consultas.
   // Cadastro em https://cnpja.com → Dashboard → API Keys.
   CNPJA_API_KEY: z.string().optional(),
-  // Apify - usado pra scraping de perfis de Instagram (pega bio, contato, etc).
-  // Free tier: $5/mês de créditos (~100 perfis).
-  // Settings → Integrations → API tokens em apify.com
-  APIFY_API_TOKEN: z.string().optional(),
-  // Meta Ads (Facebook) - System User access token gerado na BM da Yide.
-  // Sem isso, sync com Meta fica desabilitado (módulo /trafego ainda funciona
-  // pra cadastro manual). Doc de setup em docs/trafego-meta-setup.md
-  META_SYSTEM_USER_TOKEN: z.string().optional(),
-  // Versão da Graph API a usar. Default: v21.0 (atual em mai/2026).
-  META_GRAPH_API_VERSION: z.string().optional(),
   // Apresenta Yide - HMAC secret pra autorizar Puppeteer a buscar a rota
   // interna de HTML do PDF. Sem isso, geração de PDF falha amigavelmente.
   // Gere com: openssl rand -hex 32

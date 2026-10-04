@@ -45,19 +45,13 @@ export async function sendPautaReuniaoAuto(): Promise<{
     const assessorId = reuniao.clients?.assessor_id ?? reuniao.user_id;
     if (!assessorId) { skipped++; continue; }
 
-    const [tasksRes, postsRes, satRes] = await Promise.all([
+    const [tasksRes, satRes] = await Promise.all([
       sb
         .from("tasks")
         .select("titulo, status, due_date")
         .eq("client_id", reuniao.client_id)
         .not("status", "in", "(concluida,aprovada,postada,cancelada)")
         .order("due_date", { ascending: true })
-        .limit(10),
-      sb
-        .from("social_media_posts")
-        .select("id, status, legenda")
-        .eq("client_id", reuniao.client_id)
-        .in("status", ["rascunho", "aguardando_aprovacao", "ajustes_solicitados", "agendado"])
         .limit(10),
       sb
         .from("satisfaction_synthesis")
@@ -69,11 +63,9 @@ export async function sendPautaReuniaoAuto(): Promise<{
     ]);
 
     interface TaskRow { titulo: string; status: string; due_date: string | null }
-    interface PostRow { id: string; status: string; legenda: string | null }
     interface SatRow { score_final: number; cor_final: string; resumo_ia: string | null }
 
     const tarefas = (tasksRes.data ?? []) as TaskRow[];
-    const posts = (postsRes.data ?? []) as PostRow[];
     const sat = satRes.data as SatRow | null;
 
     const clienteNome = reuniao.clients?.nome ?? "Cliente";
@@ -96,19 +88,6 @@ export async function sendPautaReuniaoAuto(): Promise<{
       lines.push(``);
     }
 
-    if (posts.length > 0) {
-      const statusCount = new Map<string, number>();
-      for (const p of posts) {
-        statusCount.set(p.status, (statusCount.get(p.status) ?? 0) + 1);
-      }
-      lines.push(`*Posts em andamento (${posts.length}):*`);
-      for (const [status, count] of statusCount) {
-        const label = status.replace(/_/g, " ");
-        lines.push(`  • ${count} ${label}`);
-      }
-      lines.push(``);
-    }
-
     if (sat) {
       const icon = sat.cor_final === "verde" ? "🟢" : sat.cor_final === "amarelo" ? "🟡" : "🔴";
       lines.push(`*Satisfação:* ${icon} ${sat.score_final}/10`);
@@ -119,7 +98,7 @@ export async function sendPautaReuniaoAuto(): Promise<{
       lines.push(``);
     }
 
-    if (tarefas.length === 0 && posts.length === 0 && !sat) {
+    if (tarefas.length === 0 && !sat) {
       lines.push(`Nenhum dado pendente encontrado.`);
       lines.push(``);
     }

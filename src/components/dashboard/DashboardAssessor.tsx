@@ -17,7 +17,7 @@ import { PainelAudiovisualSection } from "./audiovisual/PainelAudiovisualSection
 import { AlertaOnboardingAtrasadoSection } from "./AlertaOnboardingAtrasado";
 import { Section } from "./Section";
 import { HiddenValuesProvider, HiddenValueToggle } from "./HiddenValuesContext";
-import { InstagramPostsSection, KpiRowSkeleton, ChartSkeleton, ListSkeleton, RemuneracaoSkeleton } from "./sections";
+import { KpiRowSkeleton, ChartSkeleton, ListSkeleton, RemuneracaoSkeleton } from "./sections";
 import { MesSelector } from "./MesSelector";
 import { EspecialidadeBadge } from "@/components/colaboradores/EspecialidadeBadge";
 
@@ -104,14 +104,6 @@ export function DashboardAssessor({ userId, nome, especialidade, mes, mesAtual, 
             <HiddenValueToggle />
           </div>
         </header>
-
-        {/* Postagem no topo: primeira coisa que o assessor vê (decisão Yasmin). */}
-        <Suspense fallback={<ListSkeleton rows={5} />}>
-          <InstagramPostsSection
-            assessorId={userId}
-            titulo="Suas postagens no Instagram"
-          />
-        </Suspense>
 
         <Suspense fallback={null}>
           <AlertaOnboardingAtrasadoSection userId={userId} role="assessor" />

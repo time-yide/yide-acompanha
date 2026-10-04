@@ -70,7 +70,6 @@ export async function getWeeklyData(orgId: string): Promise<WeeklyData> {
     { data: anunciosData },
     { data: entreguesData },
     { data: atrasadasData },
-    { data: postagensData },
     { data: artesData },
     { data: gravacoesData },
   ] = await Promise.all([
@@ -89,10 +88,6 @@ export async function getWeeklyData(orgId: string): Promise<WeeklyData> {
     sb.from("tasks").select("atribuido_a")
       .is("deleted_at", null).neq("status", "postada").lt("due_date", hoje)
       .not("atribuido_a", "is", null),
-    sb.from("social_media_posts").select("criado_por")
-      .is("archived_at", null).eq("status", "publicado")
-      .gte("publicado_em", sinceUtc).lt("publicado_em", tomorrowUtc)
-      .not("criado_por", "is", null),
     sb.from("design_artes").select("criado_por")
       .is("archived_at", null).eq("status", "aprovado")
       .gte("aprovado_em", sinceUtc).lt("aprovado_em", tomorrowUtc)
@@ -146,10 +141,6 @@ export async function getWeeklyData(orgId: string): Promise<WeeklyData> {
   for (const t of (atrasadasData ?? []) as Array<{ atribuido_a: string }>) {
     const m = getM(t.atribuido_a);
     if (m) m.tarefas_atrasadas++;
-  }
-  for (const p of (postagensData ?? []) as Array<{ criado_por: string }>) {
-    const m = getM(p.criado_por);
-    if (m) m.postagens++;
   }
   for (const a of (artesData ?? []) as Array<{ criado_por: string }>) {
     const m = getM(a.criado_por);
