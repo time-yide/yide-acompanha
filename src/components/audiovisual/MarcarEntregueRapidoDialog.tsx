@@ -72,7 +72,7 @@ export function MarcarEntregueRapidoDialog({ open, onOpenChange, eventId, titulo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CheckCircle2 className="h-5 w-5 text-emerald-500" />
