@@ -5,6 +5,7 @@ import { AUDIOVISUAL_PENDENTE_TAG, AUDIOVISUAL_CAPTURAS_TAG } from "./queries";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { autoAssignEditor } from "./auto-delegate";
 import { requireAuth } from "@/lib/auth/session";
 import { logAudit } from "@/lib/audit/log";
@@ -473,7 +474,7 @@ export async function deleteCapturaAction(capturaId: string): Promise<{ error?: 
  * Pra adicionar feedback completo depois, editar a captação normalmente.
  */
 export async function markCapturaEntregueRapidoAction(
-  input: { event_id: string; drive_url?: string; observacoes?: string | null },
+  input: { event_id: string; client_id?: string; drive_url?: string; observacoes?: string | null },
 ): Promise<{ error?: string; success?: boolean; capturaId?: string }> {
   const actor = await requireAuth();
 
@@ -499,18 +500,30 @@ export async function markCapturaEntregueRapidoAction(
     participantes_ids: string[] | null;
   };
 
-  if (!event.client_id) {
-    return {
-      error:
-        "Esse evento não tem cliente vinculado. Abra o formulário completo (clicando no card) e selecione o cliente lá.",
-    };
-  }
-
   // Permissão: precisa ser participante do evento OU adm/socio/audiovisual_chefe
   const isParticipant = (event.participantes_ids ?? []).includes(actor.id);
   const isPriv = ["adm", "socio", "audiovisual_chefe", "coordenador"].includes(actor.role);
   if (!isParticipant && !isPriv) {
     return { error: "Sem permissão pra marcar entrega deste evento" };
+  }
+
+  // Evento sem cliente: usa o cliente escolhido no modal e já vincula ao
+  // evento, pra agenda/relatórios ficarem certos daqui pra frente.
+  if (!event.client_id) {
+    if (!parsed.data.client_id) {
+      return { error: "Essa gravação não tem cliente vinculado. Selecione o cliente pra marcar como entregue." };
+    }
+    const { data: cliente } = await sb
+      .from("clients")
+      .select("id")
+      .eq("id", parsed.data.client_id)
+      .maybeSingle();
+    if (!cliente) return { error: "Cliente não encontrado" };
+    event.client_id = parsed.data.client_id;
+    await createServiceRoleClient()
+      .from("calendar_events")
+      .update({ client_id: event.client_id })
+      .eq("id", event.id);
   }
 
   // videomaker_id: prefere o ator se for participante, senão pega primeiro participante

@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { markCapturaEntregueRapidoAction } from "@/lib/audiovisual/actions";
 
 interface Props {
@@ -17,6 +18,9 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   eventId: string;
   titulo: string;
+  /** Quando o evento não tem cliente vinculado, pede pra escolher aqui. */
+  semCliente?: boolean;
+  clientes?: Array<{ id: string; nome: string }>;
   /** Pra quando o user quiser preencher form completo em vez do rápido. */
   onPedirFormCompleto?: () => void;
 }
@@ -34,18 +38,24 @@ interface Props {
  *
  * Pra adicionar feedback completo depois, basta editar a captação criada.
  */
-export function MarcarEntregueRapidoDialog({ open, onOpenChange, eventId, titulo, onPedirFormCompleto }: Props) {
+export function MarcarEntregueRapidoDialog({ open, onOpenChange, eventId, titulo, semCliente = false, clientes = [], onPedirFormCompleto }: Props) {
   const router = useRouter();
   const [driveUrl, setDriveUrl] = useState("");
+  const [clientId, setClientId] = useState("");
   const [observacoes, setObservacoes] = useState("");
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
   function handleConfirm() {
     setError(null);
+    if (semCliente && !clientId) {
+      setError("Selecione o cliente dessa gravação.");
+      return;
+    }
     startTransition(async () => {
       const r = await markCapturaEntregueRapidoAction({
         event_id: eventId,
+        client_id: semCliente ? clientId : undefined,
         drive_url: driveUrl.trim() || undefined,
         observacoes: observacoes.trim() || undefined,
       });
@@ -62,7 +72,7 @@ export function MarcarEntregueRapidoDialog({ open, onOpenChange, eventId, titulo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CheckCircle2 className="h-5 w-5 text-emerald-500" />
@@ -82,6 +92,22 @@ export function MarcarEntregueRapidoDialog({ open, onOpenChange, eventId, titulo
               adicionar avaliação completa.
             </p>
           </div>
+
+          {semCliente && (
+            <div className="space-y-1.5">
+              <Label>Cliente</Label>
+              <SearchableSelect
+                options={clientes.map((c) => ({ value: c.id, label: c.nome }))}
+                value={clientId || null}
+                onChange={(v) => setClientId(v ?? "")}
+                placeholder="Selecione o cliente"
+                emptyText="Nenhum cliente encontrado"
+              />
+              <p className="text-xs text-muted-foreground">
+                Essa gravação está sem cliente na agenda. O cliente escolhido também fica salvo no evento.
+              </p>
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <Label htmlFor="drive_url_rapido">

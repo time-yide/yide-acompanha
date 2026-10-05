@@ -205,6 +205,8 @@ export function PendenteEntregaAba({ rows, showVideomaker, canDeliver, canQuickM
           open={openRapidoEvent !== null}
           onOpenChange={(o) => { if (!o) setOpenRapidoEvent(null); }}
           eventId={openRapidoEvent.event_id}
+          semCliente={!openRapidoEvent.client_id}
+          clientes={clientes}
           titulo={`${openRapidoEvent.titulo}${openRapidoEvent.client_nome ? ` · ${openRapidoEvent.client_nome}` : ""}`}
           onPedirFormCompleto={() => {
             const ev = openRapidoEvent;
