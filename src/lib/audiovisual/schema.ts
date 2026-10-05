@@ -43,6 +43,7 @@ export type CreateCapturaInput = z.infer<typeof createCapturaSchema>;
  */
 export const markEntregueRapidoSchema = z.object({
   event_id: z.string().uuid(),
+  client_id: z.string().uuid().optional(),
   drive_url: z.union([
     z.string().url("Link do Drive inválido").max(500),
     z.literal(""),
