@@ -186,9 +186,12 @@ export default async function AudiovisualPage({
       />
     );
   } else if (activeTab === "pendente_entrega") {
+    const canQuickMark = isVideomaker || ROLES_GESTAO.includes(user.role);
     const [rows, { data: clientesData = [] }] = await Promise.all([
       listEventosSemCaptura(isVideomaker ? { videomakerId: user.id } : {}),
-      isVideomaker
+      // Gestão também precisa da lista: o "Entregue" rápido pede o cliente
+      // quando a gravação foi agendada sem cliente.
+      canQuickMark
         ? supabase.from("clients").select("id, nome").in("status", ["ativo", "em_onboarding"]).is("deleted_at", null).order("nome") // inclui onboarding (ver aba capturas)
         : Promise.resolve({ data: [] as Array<{ id: string; nome: string }> }),
     ]);
@@ -198,7 +201,7 @@ export default async function AudiovisualPage({
         rows={rows}
         showVideomaker={!isVideomaker}
         canDeliver={isVideomaker}
-        canQuickMark={isVideomaker || ROLES_GESTAO.includes(user.role)}
+        canQuickMark={canQuickMark}
         clientes={clientes}
       />
     );
