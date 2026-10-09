@@ -8,9 +8,9 @@ const ratingField = z.coerce
 
 export const createCapturaSchema = z.object({
   event_id: z.string().uuid().nullable().optional(),
-  client_id: z.string().uuid("Selecione o cliente"),
-  data_captacao: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida"),
-  drive_url: z.string().url("Link do Drive inválido").max(500),
+  client_id: z.string({ error: "Selecione o cliente" }).uuid("Selecione o cliente"),
+  data_captacao: z.string({ error: "Informe a data da captação" }).regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida"),
+  drive_url: z.string({ error: "Cole o link do Google Drive" }).url("Link do Drive inválido").max(500),
   qtd_videos: z.coerce.number().int().min(0).default(0),
   qtd_fotos: z.coerce.number().int().min(0).default(0),
   observacoes: z.string().max(2000).optional().nullable(),
