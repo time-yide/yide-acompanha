@@ -304,6 +304,57 @@ export type Database = {
           },
         ]
       }
+      drive_uploads: {
+        Row: {
+          id: string
+          client_id: string
+          uploaded_by: string
+          categoria: string
+          nome_original: string
+          nome_drive: string
+          size_bytes: number | null
+          folder_url: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          uploaded_by: string
+          categoria: string
+          nome_original: string
+          nome_drive: string
+          size_bytes?: number | null
+          folder_url: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          uploaded_by?: string
+          categoria?: string
+          nome_original?: string
+          nome_drive?: string
+          size_bytes?: number | null
+          folder_url?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drive_uploads_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drive_uploads_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_files: {
         Row: {
           categoria: Database["public"]["Enums"]["file_category"]

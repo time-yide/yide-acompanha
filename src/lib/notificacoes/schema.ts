@@ -7,6 +7,7 @@ export const NOTIFICATION_TYPES = [
   "design_ajustes_solicitados",
   "social_post_aprovado",
   "social_post_ajustes_solicitados",
+  "drive_upload_pronto",
 ] as const;
 
 export type NotificationType = typeof NOTIFICATION_TYPES[number];
