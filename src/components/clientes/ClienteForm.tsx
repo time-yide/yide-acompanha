@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useActionState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -78,12 +78,21 @@ const MODALIDADE_LABELS: Record<string, string> = {
 };
 
 export function ClienteForm({ action, defaults = {}, assessores, coordenadores, designers, videomakers, editors, nichos = [], canEditAlocacao, submitLabel = "Salvar" }: Props) {
+  const [state, formAction, isPending] = useActionState(
+    async (_prev: { error?: string } | null, formData: FormData) => action(formData),
+    null,
+  );
   const [tipoRelacao, setTipoRelacao] = useState<TipoRelacaoCliente>(
     (defaults.tipo_relacao as TipoRelacaoCliente) ?? "comum"
   );
 
   return (
-    <form action={action} className="space-y-5">
+    <form action={formAction} className="space-y-5">
+      {state?.error && (
+        <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+          {state.error}
+        </div>
+      )}
       {defaults.id && <input type="hidden" name="id" value={defaults.id} />}
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -430,7 +439,9 @@ export function ClienteForm({ action, defaults = {}, assessores, coordenadores, 
         </div>
       </div>
 
-      <Button type="submit">{submitLabel}</Button>
+      <Button type="submit" disabled={isPending}>
+        {isPending ? "Salvando…" : submitLabel}
+      </Button>
     </form>
   );
 }
