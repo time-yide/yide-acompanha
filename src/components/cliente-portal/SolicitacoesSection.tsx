@@ -3,12 +3,8 @@
 import { useState } from "react";
 import { Plus, Inbox, CheckCircle2, Clock, X, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  CATEGORIA_LABEL,
-  STATUS_LABEL,
-  type RequestRow,
-  type Status,
-} from "@/lib/portal-requests/schema";
+import { CATEGORIA_LABEL, STATUS_LABEL, type Status } from "@/lib/portal-requests/constants";
+import type { RequestRow } from "@/lib/portal-requests/schema";
 import { NovaSolicitacaoDialog } from "./NovaSolicitacaoDialog";
 import { SolicitacaoDetailDialog } from "./SolicitacaoDetailDialog";
 

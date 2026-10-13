@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { DRELine } from "./DRELine";
 import { OverrideDialog } from "./OverrideDialog";
-import { type ExpenseCategoria } from "@/lib/financeiro/schema";
+import { type ExpenseCategoria } from "@/lib/financeiro/constants";
 import type { ColaboradorBreakdown, DREData, DRELine as DRELineData } from "@/lib/financeiro/queries";
 import { roleLabel } from "@/lib/auth/permissions";
 

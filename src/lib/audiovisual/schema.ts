@@ -1,4 +1,5 @@
 import { z } from "zod";
+export * from "./constants";
 
 const ratingField = z.coerce
   .number()
@@ -68,12 +69,3 @@ export const subirEdicaoManualSchema = z.object({
 
 export type SubirEdicaoManualInput = z.infer<typeof subirEdicaoManualSchema>;
 
-export const RATING_FIELDS = [
-  { name: "rating_organizacao", label: "Organização do cliente" },
-  { name: "rating_facilidade", label: "Facilidade na gravação" },
-  { name: "rating_execucao_roteiro", label: "Execução do roteiro" },
-  { name: "rating_atrasos", label: "Pontualidade (sem atrasos)" },
-  { name: "rating_comunicacao", label: "Comunicação" },
-  { name: "rating_retrabalho", label: "Sem retrabalho" },
-  { name: "rating_colaboracao", label: "Colaboração durante a captação" },
-] as const;

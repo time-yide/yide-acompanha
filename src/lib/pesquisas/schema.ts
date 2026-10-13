@@ -1,23 +1,6 @@
 import { z } from "zod";
-
-export const PESQUISA_STATUS = ["rascunho", "aberta", "encerrada"] as const;
-export type PesquisaStatus = (typeof PESQUISA_STATUS)[number];
-
-export const PESQUISA_STATUS_LABEL: Record<PesquisaStatus, string> = {
-  rascunho: "Rascunho",
-  aberta: "Aberta",
-  encerrada: "Encerrada",
-};
-
-export const PERGUNTA_TIPOS = ["multipla_escolha", "escala", "sim_nao", "texto"] as const;
-export type PerguntaTipo = (typeof PERGUNTA_TIPOS)[number];
-
-export const PERGUNTA_TIPO_LABEL: Record<PerguntaTipo, string> = {
-  multipla_escolha: "Múltipla escolha",
-  escala: "Escala / nota",
-  sim_nao: "Sim / Não",
-  texto: "Texto aberto",
-};
+import { PERGUNTA_TIPOS, type PesquisaStatus, type PerguntaTipo } from "./constants";
+export * from "./constants";
 
 export const createPesquisaSchema = z.object({
   titulo: z.string().min(2, "Título muito curto"),

@@ -16,7 +16,7 @@ import {
   STATUS_LABEL,
   STATUSES,
   type Status,
-} from "@/lib/portal-requests/schema";
+} from "@/lib/portal-requests/constants";
 import type { RequestWithCliente } from "@/lib/portal-requests/queries";
 
 interface Props {

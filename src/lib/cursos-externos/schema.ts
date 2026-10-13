@@ -1,22 +1,7 @@
 import { z } from "zod";
+export * from "./constants";
 
 const optionalText = z.string().trim().max(2000).optional().nullable();
-
-/**
- * Lista canônica de plataformas pra mostrar como sugestão. Campo é texto
- * livre no banco - usuário pode digitar uma plataforma fora dessa lista.
- */
-export const PLATAFORMAS_SUGERIDAS = [
-  "Hotmart",
-  "Eduzz",
-  "Kiwify",
-  "Udemy",
-  "Alura",
-  "Coursera",
-  "Membro Plus",
-  "Youtube Premium",
-  "Outro",
-] as const;
 
 const baseFields = {
   nome: z.string().trim().min(2, "Nome do curso é obrigatório").max(200),
