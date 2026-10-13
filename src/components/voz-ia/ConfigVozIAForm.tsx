@@ -158,54 +158,114 @@ export function ConfigVozIAForm({ config }: Props) {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <label htmlFor="horario_inicio" className="text-sm font-medium">
-              Início (seg-sex)
-            </label>
-            <input
-              id="horario_inicio"
-              name="horario_inicio"
-              type="time"
-              defaultValue={config?.horario_inicio ?? "08:00"}
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-            />
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold">Horário do WhatsApp</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label htmlFor="horario_inicio" className="text-sm font-medium">
+                Início (seg-sex)
+              </label>
+              <input
+                id="horario_inicio"
+                name="horario_inicio"
+                type="time"
+                defaultValue={config?.horario_inicio ?? "08:00"}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="horario_fim" className="text-sm font-medium">
+                Fim (seg-sex)
+              </label>
+              <input
+                id="horario_fim"
+                name="horario_fim"
+                type="time"
+                defaultValue={config?.horario_fim ?? "20:00"}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="horario_inicio_fds" className="text-sm font-medium">
+                Início (sáb-dom)
+              </label>
+              <input
+                id="horario_inicio_fds"
+                name="horario_inicio_fds"
+                type="time"
+                defaultValue={config?.horario_inicio_fds ?? "09:00"}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="horario_fim_fds" className="text-sm font-medium">
+                Fim (sáb-dom)
+              </label>
+              <input
+                id="horario_fim_fds"
+                name="horario_fim_fds"
+                type="time"
+                defaultValue={config?.horario_fim_fds ?? "17:00"}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              />
+            </div>
           </div>
-          <div className="space-y-2">
-            <label htmlFor="horario_fim" className="text-sm font-medium">
-              Fim (seg-sex)
-            </label>
-            <input
-              id="horario_fim"
-              name="horario_fim"
-              type="time"
-              defaultValue={config?.horario_fim ?? "18:00"}
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-            />
-          </div>
-          <div className="space-y-2">
-            <label htmlFor="horario_inicio_fds" className="text-sm font-medium">
-              Início (sáb-dom)
-            </label>
-            <input
-              id="horario_inicio_fds"
-              name="horario_inicio_fds"
-              type="time"
-              defaultValue={config?.horario_inicio_fds ?? "09:00"}
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-            />
-          </div>
-          <div className="space-y-2">
-            <label htmlFor="horario_fim_fds" className="text-sm font-medium">
-              Fim (sáb-dom)
-            </label>
-            <input
-              id="horario_fim_fds"
-              name="horario_fim_fds"
-              type="time"
-              defaultValue={config?.horario_fim_fds ?? "17:00"}
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-            />
+        </div>
+
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold">Horário das Ligações IA</h3>
+          <p className="text-xs text-muted-foreground">
+            Ligações param mais cedo que WhatsApp — ligar tarde incomoda.
+          </p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label htmlFor="horario_inicio_ligacao" className="text-sm font-medium">
+                Início (seg-sex)
+              </label>
+              <input
+                id="horario_inicio_ligacao"
+                name="horario_inicio_ligacao"
+                type="time"
+                defaultValue={config?.horario_inicio_ligacao ?? "08:30"}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="horario_fim_ligacao" className="text-sm font-medium">
+                Fim (seg-sex)
+              </label>
+              <input
+                id="horario_fim_ligacao"
+                name="horario_fim_ligacao"
+                type="time"
+                defaultValue={config?.horario_fim_ligacao ?? "19:00"}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="horario_inicio_ligacao_fds" className="text-sm font-medium">
+                Início (sáb-dom)
+              </label>
+              <input
+                id="horario_inicio_ligacao_fds"
+                name="horario_inicio_ligacao_fds"
+                type="time"
+                defaultValue={config?.horario_inicio_ligacao_fds ?? "09:00"}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="horario_fim_ligacao_fds" className="text-sm font-medium">
+                Fim (sáb-dom)
+              </label>
+              <input
+                id="horario_fim_ligacao_fds"
+                name="horario_fim_ligacao_fds"
+                type="time"
+                defaultValue={config?.horario_fim_ligacao_fds ?? "17:00"}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              />
+            </div>
           </div>
         </div>
 
