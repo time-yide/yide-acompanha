@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TIPOS_PACOTE, tipoPacoteBadge } from "@/lib/painel/pacote-matrix";
-import { CADENCIAS_REUNIAO, MODALIDADES, TIPOS_RELACAO } from "@/lib/clientes/schema";
+import { CADENCIAS_REUNIAO, MODALIDADES, TIPOS_RELACAO } from "@/lib/clientes/constants";
 import type { TipoRelacaoCliente } from "@/lib/clientes/schema";
 
 interface ProfileOption {

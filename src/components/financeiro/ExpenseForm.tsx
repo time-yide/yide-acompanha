@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { createExpenseAction, updateExpenseAction } from "@/lib/financeiro/actions";
-import { EXPENSE_CATEGORIAS, CATEGORIA_LABEL, type ExpenseCategoria, type ExpenseTipo } from "@/lib/financeiro/schema";
+import { EXPENSE_CATEGORIAS, CATEGORIA_LABEL, type ExpenseCategoria, type ExpenseTipo } from "@/lib/financeiro/constants";
 
 interface Props {
   defaults?: {

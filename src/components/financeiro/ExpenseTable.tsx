@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Pencil, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ExpenseForm } from "./ExpenseForm";
-import { BULK_DELETE_MAX, CATEGORIA_LABEL } from "@/lib/financeiro/schema";
+import { BULK_DELETE_MAX, CATEGORIA_LABEL } from "@/lib/financeiro/constants";
 import { bulkDeleteExpensesAction, deactivateExpenseAction, deleteExpenseAction } from "@/lib/financeiro/actions";
 import type { ExpenseListRow } from "@/lib/financeiro/queries";
 

@@ -21,7 +21,7 @@ import {
   reagirRecadoAction,
 } from "@/lib/recados/actions";
 import type { RecadoRow, RecadoViewer } from "@/lib/recados/queries";
-import { REACAO_EMOJIS } from "@/lib/recados/schema";
+import { REACAO_EMOJIS } from "@/lib/recados/constants";
 import { cn } from "@/lib/utils";
 import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 

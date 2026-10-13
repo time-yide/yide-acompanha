@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { QUESTOES_POR_CURSO } from "@/lib/academy/schema";
+import { QUESTOES_POR_CURSO } from "@/lib/academy/constants";
 
 interface ProfileOption {
   id: string;

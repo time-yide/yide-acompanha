@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createInstanciaAction, updateInstanciaAction, type InstanciaRow } from "@/lib/ligacoes/instancia-actions";
-import { env } from "@/lib/env";
+import { publicEnv as env } from "@/lib/env-public";
 
 interface Props {
   open: boolean;

@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { Plus } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { reagirRecadoAction } from "@/lib/recados/actions";
-import { REACAO_EMOJIS } from "@/lib/recados/schema";
+import { REACAO_EMOJIS } from "@/lib/recados/constants";
 import { cn } from "@/lib/utils";
 
 export function EmojiReactionPicker({ recadoId }: { recadoId: string }) {

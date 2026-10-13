@@ -1,4 +1,4 @@
-import { EXPENSE_CATEGORIAS, EXPENSE_TIPOS, type ExpenseCategoria, type ExpenseTipo } from "./schema";
+import { EXPENSE_CATEGORIAS, EXPENSE_TIPOS, type ExpenseCategoria, type ExpenseTipo } from "./constants";
 
 export interface ImportRow {
   descricao: string;

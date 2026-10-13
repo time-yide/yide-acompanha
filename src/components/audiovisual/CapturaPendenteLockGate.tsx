@@ -1,14 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Lock, AlertTriangle, Upload, ArrowRight } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { CapturaForm } from "./CapturaForm";
 import type { PendenteEvento } from "@/lib/audiovisual/queries";
 import { APP_TIMEZONE } from "@/lib/datetime/timezone";
+
+// Esse gate é montado em TODA página logada (layout). O form de entrega só
+// aparece quando o videomaker abre o dialog, então carrega sob demanda — senão
+// o form (e o que ele importa) entra no bundle inicial de todo mundo.
+const CapturaForm = dynamic(() => import("./CapturaForm").then((m) => m.CapturaForm), { ssr: false });
 
 interface Props {
   /** Lista de pendências expiradas (já passaram do prazo D+1 09h). */

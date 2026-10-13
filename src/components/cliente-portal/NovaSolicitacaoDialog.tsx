@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createPortalRequestAction } from "@/lib/portal-requests/actions";
-import { CATEGORIA_LABEL, CATEGORIAS, type Categoria } from "@/lib/portal-requests/schema";
+import { CATEGORIA_LABEL, CATEGORIAS, type Categoria } from "@/lib/portal-requests/constants";
 
 interface Props {
   open: boolean;

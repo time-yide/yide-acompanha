@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Globe, ClipboardList, Wallet, Calendar, Rocket } from "lucide-react";
 import { StageTransitionButtons } from "./StageTransitionButtons";
 import type { LeadRow } from "@/lib/leads/queries";
-import { canInteractWithStage, type Stage } from "@/lib/leads/schema";
+import { canInteractWithStage, type Stage } from "@/lib/leads/constants";
 
 const priorityClass: Record<string, string> = {
   alta: "border-rose-500/40 text-rose-600 dark:text-rose-400",

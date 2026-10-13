@@ -1,8 +1,6 @@
 import { z } from "zod";
-
-export const QUESTOES_POR_CURSO = 10;
-export const NOTA_MINIMA = 7;
-export const PONTOS_POR_CURSO = 100;
+import { QUESTOES_POR_CURSO } from "./constants";
+export * from "./constants";
 
 const questaoSchema = z.object({
   enunciado: z.string().trim().min(1, "Enunciado vazio").max(500, "Enunciado muito longo"),
