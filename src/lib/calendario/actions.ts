@@ -165,7 +165,14 @@ async function validateVideomakerAssignment(
         hour: "2-digit",
         minute: "2-digit",
       });
-      return { blockWarning: `${vm.nome} já tem captação "${conflict.titulo}" às ${inicioBR}` };
+      const fimBR = new Date(conflict.fim).toLocaleString("pt-BR", {
+        timeZone: APP_TIMEZONE,
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      return { blockWarning: `${vm.nome} já tem captação "${conflict.titulo}" de ${inicioBR} até ${fimBR}` };
     }
   }
 
@@ -234,6 +241,12 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
 
   if (new Date(fimUtc) <= new Date(inicioUtc)) {
     return { error: "Horário de fim deve ser posterior ao início" };
+  }
+  // Gravação é sempre no mesmo dia. Fim em outro dia (ex.: mudaram a data do
+  // Início e o Fim ficou na data antiga) fazia a gravação ocupar semanas e
+  // "conflitar" com toda captação nova do videomaker.
+  if (parsed.data.sub_calendar === "videomakers" && parsed.data.fim.slice(0, 10) !== dataLocal) {
+    return { error: "A gravação precisa começar e terminar no mesmo dia — confira a data do Fim" };
   }
 
   const supabase = await createClient();
@@ -516,6 +529,12 @@ export async function updateEventAction(_prevState: ActionResult, formData: Form
 
   if (new Date(fimUtc) <= new Date(inicioUtc)) {
     return { error: "Horário de fim deve ser posterior ao início" };
+  }
+  // Gravação é sempre no mesmo dia. Fim em outro dia (ex.: mudaram a data do
+  // Início e o Fim ficou na data antiga) fazia a gravação ocupar semanas e
+  // "conflitar" com toda captação nova do videomaker.
+  if (parsed.data.sub_calendar === "videomakers" && parsed.data.fim.slice(0, 10) !== dataLocal) {
+    return { error: "A gravação precisa começar e terminar no mesmo dia — confira a data do Fim" };
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

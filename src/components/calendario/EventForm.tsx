@@ -96,7 +96,11 @@ export function EventForm({ action, defaults = {}, profiles, clientes, videomake
   const [fim, setFim] = useState<string>(defaults.fim ?? "");
   function onChangeInicio(v: string) {
     setInicio(v);
-    if (v && (!fim || fim <= v)) setFim(maisUmaHora(v));
+    if (!v) return;
+    // Fim acompanha o dia do Início (mantém a hora). Sem isso, mudar a data do
+    // Início deixava o Fim na data antiga e o evento ocupava vários dias.
+    const fimMesmoDia = fim ? `${v.slice(0, 10)}${fim.slice(10)}` : "";
+    setFim(fimMesmoDia && fimMesmoDia > v ? fimMesmoDia : maisUmaHora(v));
   }
 
   const subOptions = SELECTABLE_SUBS.filter((s) => s !== "videomakers" || canCreateVideomaker);
