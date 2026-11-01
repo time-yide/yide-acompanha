@@ -141,6 +141,31 @@ export async function publicarPostAction(formData: FormData): Promise<Result> {
   return { success: true };
 }
 
+/** Publica todos os rascunhos da org de uma vez. Rascunho sem conteúdo fica de fora (post em branco no blog público). */
+export async function publicarTodosRascunhosAction(): Promise<{ success: true; publicados: number } | Err> {
+  const g = await gate();
+  if ("error" in g) return g;
+
+  const sb = sbAdmin();
+  const agora = new Date().toISOString();
+  // Seta published_at só na 1ª publicação (mantém a data original em re-publicações).
+  const novos = await sb.from("blog_posts")
+    .update({ status: "publicado", published_at: agora, updated_at: agora })
+    .eq("organization_id", g.orgId).eq("status", "rascunho").neq("conteudo_md", "").is("published_at", null)
+    .select("slug");
+  if (novos.error) return { error: novos.error.message };
+  const republicados = await sb.from("blog_posts")
+    .update({ status: "publicado", updated_at: agora })
+    .eq("organization_id", g.orgId).eq("status", "rascunho").neq("conteudo_md", "")
+    .select("slug");
+
+  const slugs = [...(novos.data ?? []), ...(republicados.data ?? [])] as Array<{ slug: string }>;
+  revalida();
+  for (const { slug } of slugs) revalidatePath(`/blog/${slug}`);
+  if (republicados.error) return { error: republicados.error.message };
+  return { success: true, publicados: slugs.length };
+}
+
 interface GerarOk { success: true; gerados: number; semNovas: boolean }
 export async function gerarRascunhosAgoraAction(): Promise<GerarOk | Err> {
   const g = await gate();
