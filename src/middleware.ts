@@ -20,6 +20,7 @@ const CANONICAL_HOST = "sistemaacompanha.yidedigital.com.br";
 // Site institucional público (marketing). NÃO exige login e é indexável.
 const MARKETING_APEX = "yidedigital.com.br";
 const MARKETING_WWW = "www.yidedigital.com.br";
+const BLOG_HOST = "blog.yidedigital.com.br";
 const PUBLIC_MARKETING_PREFIXES = ["/site", "/servicos", "/cases", "/blog", "/sitemap", "/robots"];
 
 function isMarketingPath(pathname: string): boolean {
@@ -38,6 +39,10 @@ export async function middleware(request: NextRequest) {
   }
 
   const { pathname } = request.nextUrl;
+
+  if (host === BLOG_HOST && pathname === "/") {
+    return NextResponse.redirect(new URL("/blog", `https://${BLOG_HOST}`), { status: 308 });
+  }
 
   // Domínio institucional (yidedigital.com.br): serve o site público.
   if (host === MARKETING_WWW) {

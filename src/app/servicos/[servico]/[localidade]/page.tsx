@@ -8,9 +8,9 @@ import { caminhoPagina } from "@/lib/seo/slug";
 import { Markdown } from "@/components/blog/Markdown";
 import { Faq } from "@/components/seo/Faq";
 import { Reveal } from "@/components/site/Reveal";
+import { SITE_URL } from "@/lib/blog/config";
 
 export const dynamic = "force-dynamic";
-const SITE = "https://yidedigital.com.br";
 
 async function carregar(servico: string, localidade: string) {
   const orgId = await getOrgPadrao();
@@ -29,7 +29,7 @@ export default async function PaginaServicoLocal({ params }: { params: Promise<{
   const { servico, localidade } = await params;
   const p = await carregar(servico, localidade);
   if (!p) notFound();
-  const url = `${SITE}${caminhoPagina(p.servicoSlug, p.localidadeSlug)}`;
+  const url = `${SITE_URL}${caminhoPagina(p.servicoSlug, p.localidadeSlug)}`;
   // JSON-LD: escapa `<` pra impedir quebra de </script>. Conteúdo é 100% da nossa
   // função jsonLdServicoLocal (sem entrada externa), mesmo padrão do post do blog.
   const jsonld = JSON.stringify(jsonLdServicoLocal({ servicoNome: p.servicoNome, descricao: p.meta_description || p.titulo, url,
