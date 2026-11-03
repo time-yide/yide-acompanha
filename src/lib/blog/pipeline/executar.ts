@@ -4,6 +4,7 @@ import { buscarNoticias, filtrarNovas, apenasRecentes } from "./rss";
 import { gerarArtigo } from "./gerar";
 import { selecionarKeywordsAlvo } from "./keywords";
 import { buscarImagemStock } from "./stock-image";
+import { camposDePublicacao } from "./publicacao";
 import { slugify, slugUnico } from "../slug";
 
 export const BLOG_POSTS_POR_EXECUCAO = 3;
@@ -15,7 +16,7 @@ export interface ResultadoPipeline {
   semNovas: boolean;
 }
 
-export async function executarPipelineBlog(orgId: string, quantos = BLOG_POSTS_POR_EXECUCAO): Promise<ResultadoPipeline> {
+export async function executarPipelineBlog(orgId: string, quantos = BLOG_POSTS_POR_EXECUCAO, publicar = false): Promise<ResultadoPipeline> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
 
@@ -51,7 +52,7 @@ export async function executarPipelineBlog(orgId: string, quantos = BLOG_POSTS_P
       resumo: artigo.resumo || null,
       conteudo_md: artigo.conteudo_md,
       cover_image_url: capa,
-      status: "rascunho",
+      ...camposDePublicacao(artigo.conteudo_md, publicar, new Date().toISOString()),
       keywords,
       meta_title: artigo.meta_title || null,
       meta_description: artigo.meta_description || null,
