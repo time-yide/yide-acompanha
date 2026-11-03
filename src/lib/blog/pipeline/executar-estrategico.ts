@@ -3,6 +3,7 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { gerarArtigoEstrategico } from "./estrategico";
 import { buscarImagemStock } from "./stock-image";
+import { camposDePublicacao } from "./publicacao";
 import { selecionarKeywordsAlvo } from "./keywords";
 import { TEMAS_ESTRATEGICOS, slugDoTema } from "./temas-estrategicos";
 import { slugUnico } from "../slug";
@@ -12,7 +13,7 @@ export interface ResultadoPipelineEstrategico {
   erros: number;
 }
 
-export async function executarPipelineEstrategico(orgId: string, quantos = 1): Promise<ResultadoPipelineEstrategico> {
+export async function executarPipelineEstrategico(orgId: string, quantos = 1, publicar = false): Promise<ResultadoPipelineEstrategico> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
 
@@ -42,7 +43,7 @@ export async function executarPipelineEstrategico(orgId: string, quantos = 1): P
         resumo: artigo.resumo || null,
         conteudo_md: artigo.conteudo_md,
         cover_image_url: capa,
-        status: "rascunho",
+        ...camposDePublicacao(artigo.conteudo_md, publicar, new Date().toISOString()),
         tipo: "estrategico",
         faq: artigo.faq,
         keywords,

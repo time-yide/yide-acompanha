@@ -1,14 +1,15 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { revalidatePath } from "next/cache";
 import { getOrgPadraoBlog } from "@/lib/blog/queries";
-import { executarPipelineBlog } from "@/lib/blog/pipeline/executar";
+import { executarPipelineBlog, BLOG_POSTS_POR_EXECUCAO } from "@/lib/blog/pipeline/executar";
 import { executarPipelineEstrategico } from "@/lib/blog/pipeline/executar-estrategico";
 import { gerarTendencias } from "@/lib/blog/pipeline/tendencias";
 
 /**
- * Cron: gera rascunhos de blog por dia via IA. Mix diário: 2 notícia (RSS) +
- * 1 estratégico (banco de temas, GEO/EEAT). Claude escreve o texto original em
- * pt-br e gpt-image-1 faz a capa. Os posts entram como RASCUNHO, a Programação
- * revisa e publica. Nada vai pro ar automaticamente.
+ * Cron: gera e PUBLICA 3 posts de blog por dia via IA, sem revisão. Mix diário:
+ * 2 notícia (RSS) + 1 estratégico (banco de temas, GEO/EEAT); se faltar um tipo,
+ * o outro completa. Claude escreve o texto original em pt-br e a capa vem do Pexels.
+ * Os botões de gerar na tela do Blog continuam criando rascunho.
  *
  * Schedule (vercel.json): 0 10 * * * (10h UTC = 7h Cuiabá).
  * Autenticado por CRON_SECRET. Best-effort: falha de item não derruba o cron.
@@ -26,8 +27,9 @@ export async function GET(request: NextRequest) {
   const orgId = await getOrgPadraoBlog();
   if (!orgId) return NextResponse.json({ error: "sem organização" }, { status: 500 });
 
-  const r = await executarPipelineBlog(orgId, 2); // 2 notícia
-  const est = await executarPipelineEstrategico(orgId, 1); // 1 estratégico
+  const r = await executarPipelineBlog(orgId, 2, true); // 2 notícia
+  const est = await executarPipelineEstrategico(orgId, BLOG_POSTS_POR_EXECUCAO - r.gerados, true); // 1 estratégico + o que faltou de notícia
+  if (r.gerados + est.gerados > 0) revalidatePath("/blog");
   // Atualiza o ranking de "Assuntos em alta" (best-effort; não derruba o cron).
   const trend = await gerarTendencias(orgId).catch((e) => {
     console.error("[cron blog] tendências:", e);
