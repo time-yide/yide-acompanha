@@ -25,10 +25,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     : [];
 
   return [
-    { url: `${SITE_URL}/`, changeFrequency: "weekly", priority: 1 },
     { url: `${SITE_URL}/servicos`, changeFrequency: "monthly", priority: 0.8 },
     { url: `${SITE_URL}/cases`, changeFrequency: "monthly", priority: 0.7 },
-    { url: `${SITE_URL}/blog`, changeFrequency: "daily", priority: 0.8 },
+    { url: `${SITE_URL}/blog`, changeFrequency: "daily", priority: 1 },
     ...servicos.map((s) => ({ url: `${SITE_URL}/servicos/${s.slug}`, changeFrequency: "monthly" as const, priority: 0.7 })),
     ...paginasServico.map((path) => ({ url: `${SITE_URL}/servicos/${path}`, changeFrequency: "monthly" as const, priority: 0.7 })),
     ...cases.map((c) => ({ url: `${SITE_URL}/cases/${c.slug}`, changeFrequency: "monthly" as const, priority: 0.6 })),

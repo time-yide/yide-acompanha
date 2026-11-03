@@ -7,10 +7,10 @@ import { getCasePublicado } from "@/lib/seo/case-queries";
 import { jsonLdCase } from "@/lib/seo/case-schema";
 import { Markdown } from "@/components/blog/Markdown";
 import { Reveal } from "@/components/site/Reveal";
+import { SITE_URL } from "@/lib/blog/config";
 
 export const dynamic = "force-dynamic";
 
-const SITE = "https://yidedigital.com.br";
 
 async function carregar(slug: string) {
   const o = await getOrgPadrao();
@@ -35,7 +35,7 @@ export default async function CasePage({ params }: { params: Promise<{ slug: str
   const c = await carregar(slug);
   if (!c) notFound();
 
-  const url = `${SITE}/cases/${c.slug}`;
+  const url = `${SITE_URL}/cases/${c.slug}`;
   // JSON-LD: escapa `<` pra impedir quebra de </script>.
   const jsonldStr = JSON.stringify(
     jsonLdCase({
