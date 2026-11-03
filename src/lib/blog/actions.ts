@@ -7,6 +7,8 @@ import { requireAuth } from "@/lib/auth/session";
 import { getOrganizationId } from "@/lib/gerador-leads/queries";
 import { podeGerenciarBlog } from "./acesso";
 import { parseBoolCampo } from "./form";
+import { precisaTrocarCapa } from "./capas";
+import { buscarFotoParaCapa } from "./pipeline/stock-image";
 import { slugify, slugUnico } from "./slug";
 import { slugsExistentes } from "./queries";
 import { executarPipelineBlog } from "./pipeline/executar";
@@ -164,6 +166,47 @@ export async function publicarTodosRascunhosAction(): Promise<{ success: true; p
   for (const { slug } of slugs) revalidatePath(`/blog/${slug}`);
   if (republicados.error) return { error: republicados.error.message };
   return { success: true, publicados: slugs.length };
+}
+
+// Abaixo do limite do Pexels (200 buscas/hora), contando as buscas extras de quem não acha foto de primeira.
+const CAPAS_POR_CLIQUE = 150;
+
+interface TrocarCapasOk { success: true; trocadas: number; faltam: number; limitePexels: boolean }
+
+/** Troca capas de IA (e posts sem capa) por fotos reais do Pexels, publicados primeiro. */
+export async function trocarCapasPorFotosReaisAction(): Promise<TrocarCapasOk | Err> {
+  const g = await gate();
+  if ("error" in g) return g;
+  if (!process.env.PEXELS_API_KEY) return { error: "Chave do Pexels não configurada" };
+
+  const sb = sbAdmin();
+  const { data, error } = await sb.from("blog_posts")
+    .select("id, slug, titulo, keywords, cover_image_url, status")
+    .eq("organization_id", g.orgId).neq("status", "arquivado");
+  if (error) return { error: error.message };
+
+  const posts = (data ?? []) as Array<{ id: string; slug: string; titulo: string; keywords: string[] | null; cover_image_url: string | null; status: string }>;
+  const usadas = new Set(posts.map((p) => p.cover_image_url).filter((u): u is string => !!u));
+  const pendentes = posts
+    .filter((p) => precisaTrocarCapa(p.cover_image_url))
+    .sort((a, b) => Number(b.status === "publicado") - Number(a.status === "publicado"));
+
+  let trocadas = 0;
+  let limitePexels = false;
+  for (const p of pendentes.slice(0, CAPAS_POR_CLIQUE)) {
+    const foto = await buscarFotoParaCapa(p.keywords ?? [], p.titulo, usadas);
+    if ("limite" in foto) { limitePexels = true; break; }
+    if ("semFoto" in foto) continue;
+    // updated_at fica como está: trocar a capa não muda o artigo nem a ordem da lista.
+    const { error: erroUpdate } = await sb.from("blog_posts").update({ cover_image_url: foto.url })
+      .eq("id", p.id).eq("organization_id", g.orgId);
+    if (erroUpdate) { console.error("[blog] trocar capa:", erroUpdate.message); continue; }
+    usadas.add(foto.url);
+    trocadas++;
+    revalidatePath(`/blog/${p.slug}`);
+  }
+  revalida();
+  return { success: true, trocadas, faltam: pendentes.length - trocadas, limitePexels };
 }
 
 interface GerarOk { success: true; gerados: number; semNovas: boolean }
