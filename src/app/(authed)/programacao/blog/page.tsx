@@ -10,6 +10,8 @@ import { GerarRascunhosButton } from "@/components/blog/GerarRascunhosButton";
 import { GerarEstrategicosButton } from "@/components/blog/GerarEstrategicosButton";
 import { AprovarPublicarButton } from "@/components/blog/AprovarPublicarButton";
 import { PublicarTodosButton } from "@/components/blog/PublicarTodosButton";
+import { TrocarCapasButton } from "@/components/blog/TrocarCapasButton";
+import { precisaTrocarCapa } from "@/lib/blog/capas";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +28,7 @@ export default async function BlogAdminPage() {
 
   const posts = await listPostsAdmin(orgId);
   const rascunhosProntos = posts.filter((p) => p.status === "rascunho" && p.conteudo_md !== "").length;
+  const capasParaTrocar = posts.filter((p) => precisaTrocarCapa(p.cover_image_url)).length;
 
   return (
     <div className="space-y-5">
@@ -46,6 +49,7 @@ export default async function BlogAdminPage() {
           </Link>
           <GerarRascunhosButton />
           <GerarEstrategicosButton />
+          {capasParaTrocar > 0 && <TrocarCapasButton total={capasParaTrocar} />}
           {rascunhosProntos > 0 && <PublicarTodosButton total={rascunhosProntos} />}
           <NovoPostButton />
         </div>

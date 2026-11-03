@@ -1,7 +1,5 @@
-// SERVER — geração de artigo (Claude) + capa (gpt-image-1) a partir de uma notícia.
+// SERVER — geração de artigo (Claude) a partir de uma notícia.
 import { getAnthropicClient } from "@/lib/ai/client";
-import { gerarImagemOpenAI } from "@/lib/ai/image-gen/openai";
-import { uploadCapaBlog } from "./storage";
 import { semTravessao } from "../texto";
 import type { NoticiaItem } from "./rss";
 
@@ -76,12 +74,4 @@ Responda SOMENTE com um JSON válido (sem cercas de código, sem texto fora do J
     console.error("[blog-pipeline] gerarArtigo:", e);
     return null;
   }
-}
-
-/** Gera uma capa ilustrativa (sem texto) e devolve a URL pública, ou null. */
-export async function gerarCapa(titulo: string): Promise<string | null> {
-  const prompt = `Ilustração de capa de blog, estilo editorial moderno, limpo e conceitual, sobre o tema: "${titulo}". Paleta em tons de teal/ciano e violeta. Sem nenhum texto ou letra na imagem. Composição abstrata e profissional.`;
-  const r = await gerarImagemOpenAI({ prompt, size: "1536x1024", quality: "low" });
-  if (!r.ok || !r.b64) { console.error("[blog-pipeline] gerarCapa:", r.error); return null; }
-  return uploadCapaBlog(r.b64);
 }

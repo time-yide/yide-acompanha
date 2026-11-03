@@ -3,7 +3,8 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getAnthropicClient } from "@/lib/ai/client";
 import { buscarNoticias, apenasRecentes, type NoticiaItem } from "./rss";
-import { gerarArtigo, gerarCapa, extrairJson } from "./gerar";
+import { gerarArtigo, extrairJson } from "./gerar";
+import { buscarImagemStock } from "./stock-image";
 import { selecionarKeywordsAlvo } from "./keywords";
 import { slugify, slugUnico } from "../slug";
 import { semTravessao } from "../texto";
@@ -121,7 +122,7 @@ export async function gerarRascunhoDeTema(orgId: string, tema: string, angulo: s
   };
   const artigo = await gerarArtigo(noticia, keywordsAlvo);
   if (!artigo) return null;
-  const capa = await gerarCapa(artigo.titulo);
+  const capa = await buscarImagemStock(artigo.keywords);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
