@@ -3,6 +3,7 @@ import { listPostsPublicados } from "@/lib/blog/queries";
 import { getOrgPadrao, listServicosComPaginas, listPaginasPublicadasDoServico } from "@/lib/seo/queries";
 import { listCasesPublicados } from "@/lib/seo/case-queries";
 import { SITE_URL } from "@/lib/blog/config";
+import { postIndexavel } from "@/lib/blog/fora-do-indice";
 
 // Dinâmica (não gera no build): usa service-role, cuja env só existe em runtime.
 export const dynamic = "force-dynamic";
@@ -31,6 +32,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...servicos.map((s) => ({ url: `${SITE_URL}/servicos/${s.slug}`, changeFrequency: "monthly" as const, priority: 0.7 })),
     ...paginasServico.map((path) => ({ url: `${SITE_URL}/servicos/${path}`, changeFrequency: "monthly" as const, priority: 0.7 })),
     ...cases.map((c) => ({ url: `${SITE_URL}/cases/${c.slug}`, changeFrequency: "monthly" as const, priority: 0.6 })),
-    ...posts.map((p) => ({ url: `${SITE_URL}/blog/${p.slug}`, lastModified: p.updated_at, changeFrequency: "weekly" as const, priority: 0.6 })),
+    ...posts.filter((p) => postIndexavel(p.slug)).map((p) => ({ url: `${SITE_URL}/blog/${p.slug}`, lastModified: p.updated_at, changeFrequency: "weekly" as const, priority: 0.6 })),
   ];
 }
