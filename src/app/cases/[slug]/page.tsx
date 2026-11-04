@@ -110,7 +110,7 @@ export default async function CasePage({ params }: { params: Promise<{ slug: str
             <p className="text-2xl font-extrabold [font-family:var(--font-display)] sm:text-3xl">Quer resultados assim?</p>
             <p className="mt-3 text-white/65">Fale com a Yide Digital e comece a crescer sua empresa.</p>
             <a
-              href="https://wa.me/5565981447380"
+              href="https://wa.me/556593063452"
               target="_blank"
               rel="noopener noreferrer"
               className="group mt-7 inline-flex items-center gap-2 rounded-full bg-teal-500 px-8 py-3.5 text-base font-semibold text-neutral-950 shadow-[0_8px_30px_rgba(45,230,230,0.25)] transition-all hover:bg-cyan-400 hover:shadow-[0_10px_40px_rgba(45,230,230,0.4)]"

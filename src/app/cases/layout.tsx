@@ -34,7 +34,7 @@ export default function CasesLayout({ children }: { children: React.ReactNode })
               Blog
             </Link>
             <a
-              href="https://wa.me/5565981447380"
+              href="https://wa.me/556593063452"
               target="_blank"
               rel="noopener noreferrer"
               className="rounded-full bg-teal-600 px-4 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-teal-700"

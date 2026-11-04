@@ -25,6 +25,6 @@ export const SEED_LOCALIDADES: SeedLocalidade[] = [
 ];
 
 export const YIDE_NAP = {
-  nome: "Yide Digital", telefone: "+55 65 98144-7380", email: "yidedigital@gmail.com",
+  nome: "Yide Digital", telefone: "+55 65 9306-3452", email: "yidedigital@gmail.com",
   cidade: "Cuiabá", uf: "MT", pais: "BR", site: "https://yidedigital.com.br",
 };

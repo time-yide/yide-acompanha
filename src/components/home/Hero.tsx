@@ -102,7 +102,7 @@ export function Hero({ titulo, sub }: HeroProps) {
 
         <div data-fade className="mt-9 flex flex-wrap items-center justify-center gap-3">
           <a
-            href="https://wa.me/5565981447380"
+            href="https://wa.me/556593063452"
             target="_blank"
             rel="noopener noreferrer"
             className="group inline-flex items-center gap-2 rounded-full bg-teal-500 px-7 py-3 text-base font-semibold text-neutral-950 shadow-[0_8px_30px_rgba(45,230,230,0.25)] transition-all hover:bg-cyan-400 hover:shadow-[0_10px_40px_rgba(45,230,230,0.4)]"

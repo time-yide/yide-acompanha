@@ -28,7 +28,7 @@ export default async function CasesIndex() {
           <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-cyan-400">Resultados reais</p>
           <h1 className="mt-4 text-4xl font-extrabold leading-[1.05] tracking-tight [font-family:var(--font-display)] sm:text-6xl">Cases</h1>
           <p className="mt-5 max-w-xl text-lg text-white/65">Resultados reais de quem confiou na Yide Digital.</p>
-          <a href="https://wa.me/5565981447380" target="_blank" rel="noopener noreferrer"
+          <a href="https://wa.me/556593063452" target="_blank" rel="noopener noreferrer"
             className="group mt-8 inline-flex items-center gap-2 rounded-full bg-teal-500 px-7 py-3 text-base font-semibold text-neutral-950 shadow-[0_8px_30px_rgba(45,230,230,0.25)] transition-all hover:bg-cyan-400 hover:shadow-[0_10px_40px_rgba(45,230,230,0.4)]">
             Quero resultados assim
             <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
@@ -86,7 +86,7 @@ export default async function CasesIndex() {
           <div className="relative mx-auto max-w-2xl">
             <h2 className="text-3xl font-extrabold tracking-tight [font-family:var(--font-display)] sm:text-4xl">Quer resultados assim?</h2>
             <p className="mt-4 text-white/65">Fale com a Yide Digital e comece a crescer sua empresa.</p>
-            <a href="https://wa.me/5565981447380" target="_blank" rel="noopener noreferrer"
+            <a href="https://wa.me/556593063452" target="_blank" rel="noopener noreferrer"
               className="group mt-8 inline-flex items-center gap-2 rounded-full bg-teal-500 px-8 py-3.5 text-base font-semibold text-neutral-950 shadow-[0_8px_30px_rgba(45,230,230,0.25)] transition-all hover:bg-cyan-400 hover:shadow-[0_10px_40px_rgba(45,230,230,0.4)]">
               Falar no WhatsApp
               <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
