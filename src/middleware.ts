@@ -22,7 +22,7 @@ const CANONICAL_HOST = "sistemaacompanha.yidedigital.com.br";
 const MARKETING_APEX = "yidedigital.com.br";
 const MARKETING_WWW = "www.yidedigital.com.br";
 const BLOG_HOST = "blog.yidedigital.com.br";
-const PUBLIC_MARKETING_PREFIXES = ["/site", "/servicos", "/cases", "/blog", "/sitemap", "/robots", INDEXNOW_ARQUIVO];
+const PUBLIC_MARKETING_PREFIXES = ["/site", "/servicos", "/cases", "/blog", "/sitemap", "/robots", "/llms.txt", INDEXNOW_ARQUIVO];
 
 function isMarketingPath(pathname: string): boolean {
   return PUBLIC_MARKETING_PREFIXES.some((p) => pathname === p || pathname.startsWith(p));

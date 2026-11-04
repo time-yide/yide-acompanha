@@ -1,11 +1,10 @@
 import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
-import { Sora, IBM_Plex_Sans } from "next/font/google";
+import { display, sans } from "@/fonts";
 import { SITE_URL } from "@/lib/blog/config";
+import { JsonLdOrganizacao } from "@/components/seo/JsonLdOrganizacao";
 
-const display = Sora({ subsets: ["latin"], weight: ["500", "600", "700", "800"], variable: "--font-display", display: "swap" });
-const sans = IBM_Plex_Sans({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-sans-blog", display: "swap" });
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -16,6 +15,7 @@ export default function CasesLayout({ children }: { children: React.ReactNode })
     <div
       className={`${display.variable} ${sans.variable} min-h-screen bg-[#faf9f7] text-neutral-900 antialiased [font-family:var(--font-sans-blog)] [color-scheme:light]`}
     >
+      <JsonLdOrganizacao />
       {/* Masthead escuro — o logo ciano brilha no preto */}
       <header className="sticky top-0 z-20 bg-neutral-950">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
