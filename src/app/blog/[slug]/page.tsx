@@ -11,6 +11,7 @@ import { tempoLeituraMin } from "@/lib/blog/leitura";
 import { Markdown } from "@/components/blog/Markdown";
 import { Faq } from "@/components/seo/Faq";
 import { SITE_URL } from "@/lib/blog/config";
+import { postIndexavel } from "@/lib/blog/fora-do-indice";
 
 // Dinâmica (não pré-renderiza no build): usa service-role, cuja env só existe em runtime.
 export const dynamic = "force-dynamic";
@@ -36,6 +37,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     title: `${title} · Yide Blog`,
     description,
     alternates: { canonical: `/blog/${post.slug}` },
+    robots: postIndexavel(post.slug) ? undefined : { index: false, follow: true },
     openGraph: {
       title, description, type: "article",
       publishedTime: post.published_at ?? undefined,
