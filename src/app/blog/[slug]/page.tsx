@@ -83,7 +83,7 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
           {post.titulo}
         </h1>
         <p className="mt-4 text-sm text-neutral-500">
-          {fmtData(post.published_at)} · {tempoLeituraMin(post.conteudo_md)} min de leitura{post.autor_nome ? ` · ${post.autor_nome}` : ""}
+          {fmtData(post.published_at)} · {tempoLeituraMin(post.conteudo_md)} min de leitura{` · ${post.autor_nome ?? "Equipe Yide Digital"}`}
         </p>
       </header>
 
@@ -95,6 +95,15 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
       <div className="mt-8">
         <Markdown light>{post.conteudo_md}</Markdown>
       </div>
+
+      {post.fonte_url && (
+        <p className="mt-8 text-sm text-neutral-500">
+          Fonte:{" "}
+          <a href={post.fonte_url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-neutral-900">
+            {post.fonte_nome ?? "notícia original"}
+          </a>
+        </p>
+      )}
 
       {post.faq.length > 0 && (
         <section className="mt-12">

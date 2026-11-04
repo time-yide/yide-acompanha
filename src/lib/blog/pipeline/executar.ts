@@ -1,6 +1,6 @@
 // SERVER — orquestra o pipeline: notícias → artigo+capa (IA) → rascunho no blog.
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { buscarNoticias, filtrarNovas, apenasRecentes } from "./rss";
+import { buscarNoticias, filtrarNovas, apenasRecentes, ehRelevante } from "./rss";
 import { gerarArtigo } from "./gerar";
 import { selecionarKeywordsAlvo } from "./keywords";
 import { buscarImagemStock } from "./stock-image";
@@ -22,7 +22,7 @@ export async function executarPipelineBlog(orgId: string, quantos = BLOG_POSTS_P
   const sb = createServiceRoleClient() as any;
 
   const todas = await buscarNoticias();
-  const noticias = apenasRecentes(todas, DIAS_QUENTE, Date.now()); // só as quentes
+  const noticias = apenasRecentes(todas, DIAS_QUENTE, Date.now()).filter(ehRelevante); // só as quentes e do nosso assunto
   if (noticias.length === 0) return { gerados: 0, erros: 0, semNovas: true, publicados: [] };
 
   const [{ data: usadosData }, { data: slugsData }] = await Promise.all([
