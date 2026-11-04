@@ -11,6 +11,7 @@ import { slugUnico } from "../slug";
 export interface ResultadoPipelineEstrategico {
   gerados: number;
   erros: number;
+  publicados: string[]; // slugs que foram pro ar
 }
 
 export async function executarPipelineEstrategico(orgId: string, quantos = 1, publicar = false): Promise<ResultadoPipelineEstrategico> {
@@ -22,10 +23,11 @@ export async function executarPipelineEstrategico(orgId: string, quantos = 1, pu
 
   // Temas cujo slug ainda não existe no blog da org.
   const temasNaoUsados = TEMAS_ESTRATEGICOS.filter((t) => !slugs.has(slugDoTema(t.pergunta))).slice(0, quantos);
-  if (temasNaoUsados.length === 0) return { gerados: 0, erros: 0 };
+  if (temasNaoUsados.length === 0) return { gerados: 0, erros: 0, publicados: [] };
 
   let gerados = 0;
   let erros = 0;
+  const publicados: string[] = [];
   for (const tema of temasNaoUsados) {
     try {
       const keywordsAlvo = selecionarKeywordsAlvo(4); // SEO local, varia por post
@@ -36,6 +38,7 @@ export async function executarPipelineEstrategico(orgId: string, quantos = 1, pu
       slugs.add(slug);
       // Garante que as keywords-alvo entrem nas keywords do post (dedup).
       const keywords = [...new Set([...artigo.keywords, ...keywordsAlvo])];
+      const publicacao = camposDePublicacao(artigo.conteudo_md, publicar, new Date().toISOString());
       const { error } = await sb.from("blog_posts").insert({
         organization_id: orgId,
         slug,
@@ -43,7 +46,7 @@ export async function executarPipelineEstrategico(orgId: string, quantos = 1, pu
         resumo: artigo.resumo || null,
         conteudo_md: artigo.conteudo_md,
         cover_image_url: capa,
-        ...camposDePublicacao(artigo.conteudo_md, publicar, new Date().toISOString()),
+        ...publicacao,
         tipo: "estrategico",
         faq: artigo.faq,
         keywords,
@@ -53,10 +56,11 @@ export async function executarPipelineEstrategico(orgId: string, quantos = 1, pu
       });
       if (error) { console.error("[blog-estrategico] insert:", error.message); erros++; continue; }
       gerados++;
+      if (publicacao.status === "publicado") publicados.push(slug);
     } catch (e) {
       console.error("[blog-estrategico] pipeline item:", e);
       erros++;
     }
   }
-  return { gerados, erros };
+  return { gerados, erros, publicados };
 }

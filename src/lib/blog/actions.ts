@@ -8,6 +8,7 @@ import { getOrganizationId } from "@/lib/gerador-leads/queries";
 import { podeGerenciarBlog } from "./acesso";
 import { parseBoolCampo } from "./form";
 import { precisaTrocarCapa } from "./capas";
+import { avisarBuscadores } from "./indexnow";
 import { buscarFotoParaCapa } from "./pipeline/stock-image";
 import { slugify, slugUnico } from "./slug";
 import { slugsExistentes } from "./queries";
@@ -139,7 +140,9 @@ export async function publicarPostAction(formData: FormData): Promise<Result> {
     .eq("id", parsed.data.id).eq("organization_id", g.orgId).select("slug");
   if (error) return { error: error.message };
   if (!data || data.length === 0) return { error: "Post não encontrado" };
-  revalida((data[0] as { slug: string }).slug);
+  const { slug } = data[0] as { slug: string };
+  revalida(slug);
+  if (parsed.data.publicar) await avisarBuscadores([slug]);
   return { success: true };
 }
 
@@ -164,6 +167,7 @@ export async function publicarTodosRascunhosAction(): Promise<{ success: true; p
   const slugs = [...(novos.data ?? []), ...(republicados.data ?? [])] as Array<{ slug: string }>;
   revalida();
   for (const { slug } of slugs) revalidatePath(`/blog/${slug}`);
+  await avisarBuscadores(slugs.map((s) => s.slug));
   if (republicados.error) return { error: republicados.error.message };
   return { success: true, publicados: slugs.length };
 }
