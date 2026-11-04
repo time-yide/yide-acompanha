@@ -1,4 +1,4 @@
-import { YIDE_NAP } from "./config";
+import { SEED_SERVICOS, YIDE_NAP, YIDE_PERFIS } from "./config";
 
 export interface JsonLdInput {
   servicoNome: string; descricao: string; url: string;
@@ -23,4 +23,21 @@ export function jsonLdServicoLocal(i: JsonLdInput): { "@context": string; "@grap
       "@type": "Question", name: f.pergunta, acceptedAnswer: { "@type": "Answer", text: f.resposta } })) });
   }
   return { "@context": "https://schema.org", "@graph": graph };
+}
+
+/** Quem é a Yide, com os mesmos dados em todas as páginas: ajuda Google e IAs a reconhecerem a marca. */
+export function jsonLdOrganizacao() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "ProfessionalService",
+    "@id": `${YIDE_NAP.site}/#organizacao`,
+    name: YIDE_NAP.nome,
+    url: YIDE_NAP.site,
+    telephone: YIDE_NAP.telefone,
+    email: YIDE_NAP.email,
+    address: { "@type": "PostalAddress", addressLocality: YIDE_NAP.cidade, addressRegion: YIDE_NAP.uf, addressCountry: YIDE_NAP.pais },
+    areaServed: { "@type": "City", name: YIDE_NAP.cidade },
+    knowsAbout: SEED_SERVICOS.map((s) => s.nome),
+    sameAs: YIDE_PERFIS,
+  };
 }
