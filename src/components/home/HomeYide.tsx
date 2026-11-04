@@ -52,7 +52,7 @@ export function HomeYide({ data }: { data: HomeData }) {
             <Link href="/blog" className="hidden text-sm font-medium text-white/60 transition-colors hover:text-white sm:inline">Blog</Link>
             <a href="#contato" className="hidden text-sm font-medium text-white/60 transition-colors hover:text-white sm:inline">Contato</a>
             <a
-              href="https://wa.me/5565981447380"
+              href="https://wa.me/556593063452"
               target="_blank"
               rel="noopener noreferrer"
               className="rounded-full bg-teal-500 px-4 py-1.5 text-sm font-semibold text-neutral-950 transition-colors hover:bg-cyan-400"
