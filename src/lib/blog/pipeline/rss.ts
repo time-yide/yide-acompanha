@@ -35,6 +35,13 @@ export function filtrarNovas(itens: NoticiaItem[], jaUsados: Set<string>): Notic
   });
 }
 
+const TERMOS_RELEVANTES = /(?<![\p{L}\p{N}])(seo|google|facebook|instagram|tiktok|whatsapp|linkedin|youtube|reddit|an[uú]ncios?|ads|advertis\w*|tr[aá]fego|m[ií]dia paga|search|social media|redes sociais|crm|leads?|e-?commerce|marketing digital|influenc\w*|creators?|criadores|ai|ia|intelig[eê]ncia artificial|chatgpt|automa\w+)(?![\p{L}\p{N}])/iu;
+
+/** Feeds de marketing também trazem campanha de marca grande, que não ajuda dono de PME. */
+export function ehRelevante(it: NoticiaItem): boolean {
+  return TERMOS_RELEVANTES.test(`${it.titulo} ${it.resumo}`);
+}
+
 /** Busca as notícias de todos os feeds (best-effort: feed que falha é ignorado). */
 export async function buscarNoticias(limitePorFeed = 5): Promise<NoticiaItem[]> {
   const parser = new Parser({ timeout: 12000 });

@@ -48,7 +48,10 @@ export function jsonLdArtigo(p: PostSeoInput, url: string): Record<string, unkno
   };
   if (p.cover_image_url) jsonld.image = [p.cover_image_url];
   if (p.published_at) jsonld.datePublished = p.published_at;
-  if (p.autor_nome) jsonld.author = { "@type": "Person", name: p.autor_nome };
+  jsonld.author = p.autor_nome
+    ? { "@type": "Person", name: p.autor_nome }
+    : { "@type": "Organization", name: BLOG_PUBLISHER };
+  if (p.fonte_url) jsonld.isBasedOn = p.fonte_url;
   return jsonld;
 }
 
