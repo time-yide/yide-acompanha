@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { env } from "@/lib/env";
+import { INDEXNOW_ARQUIVO } from "@/lib/blog/indexnow";
 
 const PUBLIC_PATHS = ["/login", "/recuperar-senha", "/definir-senha", "/auth/callback", "/monitoring", "/aprovacao-design", "/aprovacao-post", "/cliente/login", "/apresenta-yide-pdf"];
 
@@ -21,7 +22,7 @@ const CANONICAL_HOST = "sistemaacompanha.yidedigital.com.br";
 const MARKETING_APEX = "yidedigital.com.br";
 const MARKETING_WWW = "www.yidedigital.com.br";
 const BLOG_HOST = "blog.yidedigital.com.br";
-const PUBLIC_MARKETING_PREFIXES = ["/site", "/servicos", "/cases", "/blog", "/sitemap", "/robots"];
+const PUBLIC_MARKETING_PREFIXES = ["/site", "/servicos", "/cases", "/blog", "/sitemap", "/robots", INDEXNOW_ARQUIVO];
 
 function isMarketingPath(pathname: string): boolean {
   return PUBLIC_MARKETING_PREFIXES.some((p) => pathname === p || pathname.startsWith(p));

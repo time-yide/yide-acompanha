@@ -4,6 +4,7 @@ import { getOrgPadraoBlog } from "@/lib/blog/queries";
 import { executarPipelineBlog, BLOG_POSTS_POR_EXECUCAO } from "@/lib/blog/pipeline/executar";
 import { executarPipelineEstrategico } from "@/lib/blog/pipeline/executar-estrategico";
 import { gerarTendencias } from "@/lib/blog/pipeline/tendencias";
+import { avisarBuscadores } from "@/lib/blog/indexnow";
 
 /**
  * Cron: gera e PUBLICA 3 posts de blog por dia via IA, sem revisão. Mix diário:
@@ -30,6 +31,7 @@ export async function GET(request: NextRequest) {
   const r = await executarPipelineBlog(orgId, 2, true); // 2 notícia
   const est = await executarPipelineEstrategico(orgId, BLOG_POSTS_POR_EXECUCAO - r.gerados, true); // 1 estratégico + o que faltou de notícia
   if (r.gerados + est.gerados > 0) revalidatePath("/blog");
+  await avisarBuscadores([...r.publicados, ...est.publicados]);
   // Atualiza o ranking de "Assuntos em alta" (best-effort; não derruba o cron).
   const trend = await gerarTendencias(orgId).catch((e) => {
     console.error("[cron blog] tendências:", e);
