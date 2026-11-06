@@ -18,7 +18,12 @@ const baseEventFields = {
   localizacao_maps_url: z.string().optional().nullable(),
   link_roteiro: z.string().optional().nullable(),
   roteiro_tipo: z.enum(["link", "pdf"]).optional().nullable(),
-  roteiro_pdf_path: z.string().optional().nullable(),
+  roteiro_pdf_path: z
+    .string()
+    .regex(/^eventos\/[\w-]+\/[0-9a-f-]{36}\.pdf$/i, "Anexo de roteiro inválido")
+    .optional()
+    .nullable()
+    .or(z.literal("")),
   observacoes_gravacao: z.string().optional().nullable(),
   videomaker_assigned_id: z.string().uuid().optional().nullable(),
 };
@@ -32,8 +37,6 @@ function refineEventoRegras(data: any, ctx: z.RefinementCtx) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["client_id"], message: "Selecione o cliente desta reunião" });
   }
   // Roteiro é OBRIGATÓRIO na gravação (agenda de videomaker) — link ou PDF.
-  // O PDF só anexa depois de salvar (precisa do evento), então na criação
-  // o roteiro entra por link.
   if (data.sub_calendar === "videomakers") {
     const temLink = typeof data.link_roteiro === "string" && data.link_roteiro.trim().length > 0;
     const temPdf = typeof data.roteiro_pdf_path === "string" && data.roteiro_pdf_path.trim().length > 0;
