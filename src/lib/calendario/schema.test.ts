@@ -54,8 +54,12 @@ describe("createEventSchema — roteiro obrigatório na gravação", () => {
     expect(r.success).toBe(true);
   });
   it("aceita gravação com PDF de roteiro", () => {
-    const r = createEventSchema.safeParse({ ...gravacao, roteiro_pdf_path: "roteiros/x.pdf", roteiro_tipo: "pdf" });
+    const r = createEventSchema.safeParse({ ...gravacao, roteiro_pdf_path: "eventos/novos/0b5f7c1e-3d2a-4c8b-9f1e-2a3b4c5d6e7f.pdf", roteiro_tipo: "pdf" });
     expect(r.success).toBe(true);
+  });
+  it("recusa caminho de PDF fora da pasta de roteiros", () => {
+    const r = createEventSchema.safeParse({ ...gravacao, roteiro_pdf_path: "../outro-bucket/x.pdf", roteiro_tipo: "pdf" });
+    expect(r.success).toBe(false);
   });
   it("não exige roteiro em outros tipos (agência)", () => {
     const r = createEventSchema.safeParse({ ...base, sub_calendar: "agencia" });

@@ -6,7 +6,8 @@ import { requireAuth } from "@/lib/auth/session";
 import { logAudit } from "@/lib/audit/log";
 import { podeMarcarCheck } from "./permissions";
 import { podeUploadRoteiro } from "./permissions";
-import { uploadRoteiroPdf } from "./storage";
+import { ROTEIROS_BUCKET, validatePdfFile } from "./storage";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 type Result = { ok: true } | { error: string };
 
@@ -105,35 +106,45 @@ export async function registrarBriefingGeradoAction(
   return { ok: true };
 }
 
-export async function uploadRoteiroPdfAction(
-  eventoId: string,
-  formData: FormData,
-): Promise<{ path: string } | { error: string }> {
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Prepara o upload do PDF do roteiro DIRETO do browser pro Storage.
+ *
+ * O arquivo NÃO passa por Server Action: o teto de corpo do projeto é 2MB e
+ * PDF de roteiro (até 10MB) estourava antes da action rodar, sem mensagem.
+ * Aqui só geramos um token de upload assinado; o browser manda os bytes via
+ * `uploadToSignedUrl`. Mesmo padrão dos anexos de tarefa.
+ *
+ * `eventoId` é null na criação (evento ainda não existe): o PDF vai pra
+ * `eventos/novos/` e o path é salvo junto com o evento.
+ */
+export async function prepareRoteiroPdfUpload(
+  eventoId: string | null,
+  fileType: string,
+  fileSize: number,
+): Promise<{ path: string; token: string } | { error: string }> {
   const user = await requireAuth();
-  if (!podeUploadRoteiro(user.role)) return { error: "Sem permissao" };
+  if (!podeUploadRoteiro(user.role)) return { error: "Sem permissão pra anexar roteiro" };
+  if (eventoId && !UUID_RE.test(eventoId)) return { error: "Evento inválido" };
 
-  const file = formData.get("arquivo");
-  if (!(file instanceof File)) return { error: "Arquivo invalido" };
+  const v = validatePdfFile({ size: fileSize, type: fileType });
+  if (!v.ok) return { error: v.erro ?? "Arquivo inválido" };
 
-  const buffer = await file.arrayBuffer();
-  const result = await uploadRoteiroPdf({
-    eventoId,
-    file: buffer,
-    contentType: file.type,
-  });
-  if ("erro" in result) return { error: result.erro };
+  const path = `eventos/${eventoId ?? "novos"}/${crypto.randomUUID()}.pdf`;
+  const admin = createServiceRoleClient();
+  const { data, error } = await admin.storage.from(ROTEIROS_BUCKET).createSignedUploadUrl(path);
+  if (error || !data?.token) return { error: error?.message ?? "Erro ao preparar upload" };
 
-  await logAudit({
-    ator_id: user.id,
-    entidade: "calendar_events",
-    entidade_id: eventoId,
-    acao: "update",
-    dados_depois: {
-      acao_custom: "briefing.upload_pdf",
-      path: result.path,
-      size: file.size,
-    },
-  });
+  if (eventoId) {
+    await logAudit({
+      ator_id: user.id,
+      entidade: "calendar_events",
+      entidade_id: eventoId,
+      acao: "update",
+      dados_depois: { acao_custom: "briefing.upload_pdf", path, size: fileSize },
+    });
+  }
 
-  return { path: result.path };
+  return { path: data.path ?? path, token: data.token };
 }

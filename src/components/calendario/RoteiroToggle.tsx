@@ -6,7 +6,8 @@ import { FileText, FileUp, Loader2, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { uploadRoteiroPdfAction } from "@/lib/briefing-gravacao/actions";
+import { prepareRoteiroPdfUpload } from "@/lib/briefing-gravacao/actions";
+import { createClient } from "@/lib/supabase/client";
 
 // Mirrors storage.ts constants (not imported directly — storage.ts is server-only).
 const MAX_PDF_BYTES = 10 * 1024 * 1024; // 10 MB
@@ -28,7 +29,7 @@ function validatePdfFile(file: { size: number; type: string }): {
 type Tipo = "link" | "pdf";
 
 interface Props {
-  eventoId: string | null; // null no create (upload acontece após criar)
+  eventoId: string | null; // null no create (PDF vai pra eventos/novos/)
   defaultTipo: Tipo | null;
   defaultLink: string | null;
   defaultPdfPath: string | null;
@@ -54,18 +55,29 @@ export function RoteiroToggle({
       setErro(v.erro ?? "Arquivo invalido");
       return;
     }
-    if (!eventoId) {
-      setErro(
-        "Pra anexar PDF, salve o evento primeiro com um link de roteiro e depois troque pra PDF na edição.",
-      );
-      return;
-    }
-    const fd = new FormData();
-    fd.append("arquivo", file);
     startTransition(async () => {
-      const r = await uploadRoteiroPdfAction(eventoId, fd);
-      if ("error" in r) setErro(r.error);
-      else setPdfPath(r.path);
+      try {
+        // 1) só gera o token (o arquivo NÃO passa pelo servidor, que tem teto de 2MB)
+        const prep = await prepareRoteiroPdfUpload(eventoId, file.type, file.size);
+        if ("error" in prep) {
+          setErro(prep.error);
+          return;
+        }
+        // 2) manda o PDF direto pro Storage
+        const supabase = createClient();
+        const { error } = await supabase.storage
+          .from("roteiros")
+          .uploadToSignedUrl(prep.path, prep.token, file, { contentType: file.type });
+        if (error) {
+          setErro(`Falha no upload: ${error.message}`);
+          return;
+        }
+        setPdfPath(prep.path);
+      } catch {
+        setErro("Falha no upload. Verifique a internet e tente de novo.");
+      } finally {
+        if (inputRef.current) inputRef.current.value = "";
+      }
     });
   }
 
@@ -149,7 +161,7 @@ export function RoteiroToggle({
               type="button"
               variant="outline"
               onClick={() => inputRef.current?.click()}
-              disabled={pending || !eventoId}
+              disabled={pending}
               className="w-full"
             >
               {pending ? (
