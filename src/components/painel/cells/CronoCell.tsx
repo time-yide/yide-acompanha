@@ -34,6 +34,15 @@ export function CronoCell({
 }: Props) {
   const [open, setOpen] = useState(false);
   const hasLink = !!(cronogramaUrl && cronogramaUrl.trim().length > 0);
+  // Só abre link http(s): bloqueia "javascript:" e afins salvos no campo.
+  const safeUrl = (() => {
+    try {
+      const u = new URL(cronogramaUrl ?? "");
+      return u.protocol === "https:" || u.protocol === "http:" ? u.href : null;
+    } catch {
+      return null;
+    }
+  })();
   const isPronto = status === "pronto" || hasLink;
   const qtd = pacotePost ?? 0;
   const qtdVideos = pacoteVideo ?? 0;
@@ -64,9 +73,9 @@ export function CronoCell({
   return (
     <>
       <div className="inline-flex flex-col items-center gap-0.5">
-        {isPronto && hasLink ? (
+        {isPronto && safeUrl ? (
           <a
-            href={cronogramaUrl!}
+            href={safeUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex h-7 items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 text-[11px] font-medium text-emerald-700 transition-colors hover:bg-emerald-500/20 dark:text-emerald-300"
