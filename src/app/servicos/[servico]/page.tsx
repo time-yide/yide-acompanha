@@ -79,7 +79,7 @@ export default async function ServicoAncora({ params }: { params: Promise<{ serv
           <section className="grid gap-10 lg:grid-cols-[1fr_1.4fr]">
             <div>
               <h2 className="text-3xl font-extrabold tracking-tight [font-family:var(--font-display)]">O que está incluído</h2>
-              <p className="mt-3 text-neutral-600">Tudo o que a Yide faz no serviço de {sv.nome.toLowerCase()}.</p>
+              <p className="mt-3 text-neutral-600">Tudo o que a Yide faz em {sv.nome}.</p>
             </div>
             <ul className="grid gap-3 sm:grid-cols-2">
               {c.entregas.map((e) => (
