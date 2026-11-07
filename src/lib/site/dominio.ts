@@ -3,7 +3,7 @@
 export const APEX = "yidedigital.com.br";
 const BLOG_HOST = "blog.yidedigital.com.br";
 const SISTEMA_HOST = "sistemaacompanha.yidedigital.com.br";
-const PREFIXOS_PUBLICOS = ["/blog", "/servicos", "/cases", "/sobre", "/diagnostico", "/politica-de-privacidade"];
+const PREFIXOS_PUBLICOS = ["/blog", "/servicos", "/cases", "/sobre", "/diagnostico", "/politica-de-privacidade", "/perguntas-frequentes"];
 
 function ehPrefixo(pathname: string, p: string): boolean {
   return pathname === p || pathname.startsWith(`${p}/`);
