@@ -32,10 +32,18 @@ describe("montarLlmsTxt", () => {
     siteUrl: "https://blog.exemplo.com.br",
     servicos: [{ nome: "Tráfego", slug: "trafego", descricao_base: "Anúncios" }],
     posts: [{ titulo: "Post", slug: "post", resumo: null }],
+    cases: [{ cliente: "Kai Poke", segmento: "Restaurante", slug: "kai" }],
   });
   it("lista empresa, serviços e artigos com links completos", () => {
     expect(txt).toContain(`# ${YIDE_NAP.nome}`);
     expect(txt).toContain("- [Tráfego](https://blog.exemplo.com.br/servicos/trafego): Anúncios");
     expect(txt).toContain("- [Post](https://blog.exemplo.com.br/blog/post)\n");
+  });
+  it("traz endereço, horário, áreas atendidas e cases", () => {
+    expect(txt).toContain("Endereço: R. Martinica, 280 - Jardim das Américas, Cuiabá - MT, 78060-644");
+    expect(txt).toContain("WhatsApp: +55 65 99306-3452");
+    expect(txt).toContain("Atendimento: 24 horas, todos os dias");
+    expect(txt).toContain("Atende: Cuiabá, Várzea Grande, Mato Grosso e todo o Brasil");
+    expect(txt).toContain("- [Kai Poke (Restaurante)](https://blog.exemplo.com.br/cases/kai)");
   });
 });
