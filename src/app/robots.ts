@@ -1,27 +1,13 @@
 import type { MetadataRoute } from "next";
 import { headers } from "next/headers";
 import { SITE_URL } from "@/lib/blog/config";
+import { regrasRobots } from "@/lib/site/robots";
 
-// Robots ciente do host: no domínio público (blog.yidedigital.com.br) libera o
-// conteúdo e bloqueia as áreas internas; no subdomínio do sistema
-// (sistemaacompanha...) não indexa nada.
+// Robots ciente do host: domínio público libera o conteúdo e bloqueia as áreas
+// internas; o subdomínio do sistema (sistemaacompanha...) fica fora do índice.
 export const dynamic = "force-dynamic";
-
-const MARKETING_HOSTS = new Set(["blog.yidedigital.com.br", "yidedigital.com.br", "www.yidedigital.com.br"]);
-const INTERNO = [
-  "/site$", "/programacao", // "$": sem ele, "/site" bloquearia também o /sitemap.xml "/clientes", "/cliente", "/login", "/api", "/auth",
-  "/aprovacao-design", "/aprovacao-post", "/definir-senha", "/recuperar-senha",
-  "/relatorio-redes-sociais-pdf", "/relatorio-trafego-pdf", "/apresenta-yide-pdf",
-];
 
 export default async function robots(): Promise<MetadataRoute.Robots> {
   const host = (await headers()).get("host") ?? "";
-  if (!MARKETING_HOSTS.has(host)) {
-    // Sistema interno: fora do índice.
-    return { rules: [{ userAgent: "*", disallow: "/" }] };
-  }
-  return {
-    rules: [{ userAgent: "*", allow: "/", disallow: INTERNO }],
-    sitemap: `${SITE_URL}/sitemap.xml`,
-  };
+  return regrasRobots(host, SITE_URL);
 }
