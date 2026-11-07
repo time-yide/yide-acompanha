@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { env } from "@/lib/env";
 import { INDEXNOW_ARQUIVO } from "@/lib/blog/indexnow";
+import { destinoCanonico, apexAtivo } from "@/lib/site/dominio";
 
 const PUBLIC_PATHS = ["/login", "/recuperar-senha", "/definir-senha", "/auth/callback", "/monitoring", "/aprovacao-design", "/aprovacao-post", "/cliente/login", "/apresenta-yide-pdf"];
 
@@ -40,6 +41,10 @@ export async function middleware(request: NextRequest) {
   }
 
   const { pathname } = request.nextUrl;
+
+  // Conteúdo público (blog., /site, /blog do host do sistema) vai para o domínio principal.
+  const destino = destinoCanonico(host, pathname, request.nextUrl.search, apexAtivo());
+  if (destino) return NextResponse.redirect(destino, { status: 308 });
 
   if (host === BLOG_HOST && pathname === "/") {
     return NextResponse.redirect(new URL("/blog", `https://${BLOG_HOST}`), { status: 308 });
