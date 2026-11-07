@@ -10,6 +10,11 @@ import { Faq } from "@/components/seo/Faq";
 import { Reveal } from "@/components/site/Reveal";
 import { SITE_URL } from "@/lib/blog/config";
 import { WHATSAPP_SITE } from "@/lib/site/contato";
+import { paginaLocal } from "@/lib/site/paginas-locais";
+import { cidadePorSlug } from "@/lib/site/cidades";
+import { conteudoDoServico } from "@/lib/site/servicos-conteudo";
+import { SEED_SERVICOS } from "@/lib/seo/config";
+import { PaginaCidade } from "@/components/site/PaginaCidade";
 
 export const dynamic = "force-dynamic";
 
@@ -17,8 +22,22 @@ async function carregar(servico: string, localidade: string) {
   const orgId = await getOrgPadrao();
   return orgId ? getPaginaPublica(orgId, servico, localidade) : null;
 }
+// Páginas escritas no código têm prioridade sobre as geradas no banco.
+function paginaDoCodigo(servico: string, localidade: string) {
+  const pagina = paginaLocal(servico, localidade);
+  const cidade = cidadePorSlug(localidade);
+  const nome = SEED_SERVICOS.find((s) => s.slug === servico)?.nome;
+  return pagina && cidade && nome ? { pagina, cidade, nome } : null;
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ servico: string; localidade: string }> }): Promise<Metadata> {
   const { servico, localidade } = await params;
+  const local = paginaDoCodigo(servico, localidade);
+  if (local) {
+    return { title: local.pagina.metaTitulo, description: local.pagina.metaDescricao,
+      alternates: { canonical: caminhoPagina(servico, localidade) },
+      openGraph: { title: local.pagina.metaTitulo, description: local.pagina.metaDescricao, type: "website" } };
+  }
   const p = await carregar(servico, localidade);
   if (!p) return { title: "Página não encontrada · Yide Digital" };
   const title = p.meta_title || `${p.servicoNome} em ${p.localidadeNome} · Yide Digital`;
@@ -28,6 +47,11 @@ export async function generateMetadata({ params }: { params: Promise<{ servico: 
 }
 export default async function PaginaServicoLocal({ params }: { params: Promise<{ servico: string; localidade: string }> }) {
   const { servico, localidade } = await params;
+  const local = paginaDoCodigo(servico, localidade);
+  if (local) {
+    return <PaginaCidade pagina={local.pagina} cidade={local.cidade} servicoNome={local.nome}
+      servico={conteudoDoServico(servico)} url={`${SITE_URL}${caminhoPagina(servico, localidade)}`} />;
+  }
   const p = await carregar(servico, localidade);
   if (!p) notFound();
   const url = `${SITE_URL}${caminhoPagina(p.servicoSlug, p.localidadeSlug)}`;
