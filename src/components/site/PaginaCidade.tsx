@@ -9,6 +9,7 @@ import { jsonLdServicoLocal } from "@/lib/seo/schema";
 import { YIDE_NAP } from "@/lib/seo/config";
 import { WHATSAPP_SITE } from "@/lib/site/contato";
 import { FaqAberto } from "./FaqAberto";
+import { CidadeVisitante } from "./CidadeVisitante";
 
 interface Props {
   pagina: PaginaLocal;
@@ -51,6 +52,11 @@ export function PaginaCidade({ pagina, cidade, servicoNome, servico, url }: Prop
               <MapPin className="h-3.5 w-3.5" aria-hidden /> {cidade.nome} · {cidade.uf}
             </span>
             <h1 className="mt-5 text-4xl font-extrabold leading-[1.05] tracking-tight [font-family:var(--font-display)] sm:text-5xl">{pagina.titulo}</h1>
+            {cidade.tipo === "estado" && (
+              <p className="mt-4 text-base font-semibold text-cyan-300">
+                <CidadeVisitante padrao="Para empresas de todas as cidades de Mato Grosso." comCidade="Sua empresa em {cidade}? A Yide atende a sua cidade." />
+              </p>
+            )}
             <p className="mt-6 max-w-2xl text-lg leading-relaxed text-white/75">{pagina.resposta}</p>
             <div className="mt-8 flex flex-wrap gap-3">
               <a href={WHATSAPP_SITE} target="_blank" rel="noopener noreferrer"
@@ -139,7 +145,7 @@ export function PaginaCidade({ pagina, cidade, servicoNome, servico, url }: Prop
         <div className="relative overflow-hidden rounded-[2rem] bg-neutral-950 px-7 py-14 text-center text-white sm:px-14 sm:py-16">
           <div aria-hidden className="pointer-events-none absolute -top-24 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-teal-500/20 blur-[110px]" />
           <div className="relative mx-auto max-w-2xl">
-            <h2 className="text-3xl font-extrabold tracking-tight [font-family:var(--font-display)]">Vamos crescer sua empresa em {cidade.nome}?</h2>
+            <h2 className="text-3xl font-extrabold tracking-tight [font-family:var(--font-display)]">Vamos crescer sua empresa em {cidade.tipo === "estado" ? <CidadeVisitante padrao={cidade.nome} /> : cidade.nome}?</h2>
             <p className="mt-4 text-white/65">Diagnóstico gratuito, resposta no mesmo dia e atendimento 24 horas.</p>
             <a href={WHATSAPP_SITE} target="_blank" rel="noopener noreferrer"
               className="mt-8 inline-flex items-center gap-2 rounded-full bg-teal-500 px-8 py-3.5 text-base font-semibold text-neutral-950 transition-all hover:bg-cyan-400">

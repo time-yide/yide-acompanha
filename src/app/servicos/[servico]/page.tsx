@@ -9,6 +9,7 @@ import { SITE_URL } from "@/lib/blog/config";
 import { Reveal } from "@/components/site/Reveal";
 import { FaqAberto } from "@/components/site/FaqAberto";
 import { WHATSAPP_SITE } from "@/lib/site/contato";
+import { CidadeVisitante } from "@/components/site/CidadeVisitante";
 import { paginasLocaisDoServico } from "@/lib/site/paginas-locais";
 import { cidadePorSlug } from "@/lib/site/cidades";
 
@@ -64,6 +65,9 @@ export default async function ServicoAncora({ params }: { params: Promise<{ serv
               {c?.titulo ?? sv.nome}
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-relaxed text-white/75">{c?.resposta ?? sv.descricao_base}</p>
+            <p className="mt-4 text-sm font-medium text-cyan-300">
+              Atendemos empresas de <CidadeVisitante padrao="Cuiabá, Várzea Grande, todo o Mato Grosso e o Brasil" comCidade="{cidade} e de todo o Mato Grosso" />.
+            </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <a href={WHATSAPP_SITE} target="_blank" rel="noopener noreferrer"
                 className="group inline-flex items-center gap-2 rounded-full bg-teal-500 px-7 py-3 text-base font-semibold text-neutral-950 shadow-[0_8px_30px_rgba(45,230,230,0.25)] transition-all hover:bg-cyan-400">
@@ -152,7 +156,7 @@ export default async function ServicoAncora({ params }: { params: Promise<{ serv
         <div className="relative overflow-hidden rounded-[2rem] bg-neutral-950 px-7 py-14 text-center text-white sm:px-14 sm:py-20">
           <div aria-hidden className="pointer-events-none absolute -top-24 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-teal-500/20 blur-[110px]" />
           <div className="relative mx-auto max-w-2xl">
-            <h2 className="text-3xl font-extrabold tracking-tight [font-family:var(--font-display)] sm:text-4xl">Vamos conversar sobre a sua empresa?</h2>
+            <h2 className="text-3xl font-extrabold tracking-tight [font-family:var(--font-display)] sm:text-4xl">Vamos conversar sobre a sua empresa<CidadeVisitante padrao="" comCidade=" em {cidade}" />?</h2>
             <p className="mt-4 text-white/65">Diagnóstico gratuito e resposta no mesmo dia. Atendimento 24 horas.</p>
             <a href={WHATSAPP_SITE} target="_blank" rel="noopener noreferrer"
               className="group mt-8 inline-flex items-center gap-2 rounded-full bg-teal-500 px-8 py-3.5 text-base font-semibold text-neutral-950 transition-all hover:bg-cyan-400">
