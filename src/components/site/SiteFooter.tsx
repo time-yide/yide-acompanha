@@ -30,6 +30,7 @@ export function SiteFooter() {
               <li><Link href="/cases" className="transition-colors hover:text-white">Cases</Link></li>
               <li><Link href="/blog" className="transition-colors hover:text-white">Blog</Link></li>
               <li><Link href="/diagnostico" className="transition-colors hover:text-white">Diagnóstico grátis</Link></li>
+              <li><Link href="/perguntas-frequentes" className="transition-colors hover:text-white">Perguntas frequentes</Link></li>
               <li><Link href="/politica-de-privacidade" className="transition-colors hover:text-white">Política de privacidade</Link></li>
             </ul>
           </div>
