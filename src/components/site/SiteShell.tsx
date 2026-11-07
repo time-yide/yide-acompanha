@@ -5,6 +5,7 @@ import { SiteHeader } from "./SiteHeader";
 import { SiteFooter } from "./SiteFooter";
 import { SiteTags } from "./SiteTags";
 import { WhatsAppFlutuante } from "./WhatsAppFlutuante";
+import { AvisoCookies } from "./AvisoCookies";
 
 /** Moldura única das páginas públicas: cabeçalho, rodapé, WhatsApp, tags e JSON-LD da Yide. */
 export function SiteShell({ children, conteudoLargo = false }: { children: React.ReactNode; conteudoLargo?: boolean }) {
@@ -17,6 +18,7 @@ export function SiteShell({ children, conteudoLargo = false }: { children: React
       {conteudoLargo ? <main>{children}</main> : <main className="mx-auto max-w-6xl px-5 py-10 sm:py-14">{children}</main>}
       <SiteFooter />
       <WhatsAppFlutuante />
+      <AvisoCookies />
     </div>
   );
 }
