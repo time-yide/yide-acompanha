@@ -4,6 +4,7 @@ import { ArrowUpRight, BarChart3, Code2, Share2, Database, Megaphone, Sparkles, 
 import type { LucideIcon } from "lucide-react";
 import { getOrgPadrao, listServicosOuSeed } from "@/lib/seo/queries";
 import { Reveal } from "@/components/site/Reveal";
+import { WHATSAPP_SITE } from "@/lib/site/contato";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Serviços · Yide Digital",
   description: "Marketing, tráfego, sites e IA para empresas em Cuiabá, Salvador, Vila Velha e região.",
@@ -34,7 +35,7 @@ export default async function ServicosIndex() {
             Marketing, tráfego, sites e IA para empresas de Cuiabá, Várzea Grande, Salvador, Vila Velha e além.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
-            <a href="https://wa.me/556593063452" target="_blank" rel="noopener noreferrer"
+            <a href={WHATSAPP_SITE} target="_blank" rel="noopener noreferrer"
               className="group inline-flex items-center gap-2 rounded-full bg-teal-500 px-7 py-3 text-base font-semibold text-neutral-950 shadow-[0_8px_30px_rgba(45,230,230,0.25)] transition-all hover:bg-cyan-400 hover:shadow-[0_10px_40px_rgba(45,230,230,0.4)]">
               Falar no WhatsApp
               <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
@@ -103,7 +104,7 @@ export default async function ServicosIndex() {
           <div className="relative mx-auto max-w-2xl">
             <h2 className="text-3xl font-extrabold tracking-tight [font-family:var(--font-display)] sm:text-4xl">Vamos crescer sua empresa?</h2>
             <p className="mt-4 text-white/65">A Yide Digital cuida do seu marketing, tráfego, site e IA de ponta a ponta.</p>
-            <a href="https://wa.me/556593063452" target="_blank" rel="noopener noreferrer"
+            <a href={WHATSAPP_SITE} target="_blank" rel="noopener noreferrer"
               className="group mt-8 inline-flex items-center gap-2 rounded-full bg-teal-500 px-8 py-3.5 text-base font-semibold text-neutral-950 shadow-[0_8px_30px_rgba(45,230,230,0.25)] transition-all hover:bg-cyan-400 hover:shadow-[0_10px_40px_rgba(45,230,230,0.4)]">
               Falar no WhatsApp
               <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />

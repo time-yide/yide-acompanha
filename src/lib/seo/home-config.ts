@@ -4,16 +4,16 @@ export interface HomeConfig {
   sobre_titulo: string; sobre_texto: string; cta_titulo: string; clientes: string[];
 }
 export const HOME_DEFAULTS: HomeConfig = {
-  hero_titulo: "Marketing e tecnologia que fazem sua empresa crescer",
-  hero_sub: "Tráfego, sites, redes sociais e IA para negócios de Cuiabá, Salvador, Vila Velha e todo o Brasil.",
+  hero_titulo: "Agência de marketing, vendas e IA em Cuiabá",
+  hero_sub: "Mais clientes chamando no seu WhatsApp, todo mês. Anúncios, conteúdo, site e o Lyide, CRM com IA, para empresas de Cuiabá, Várzea Grande, Mato Grosso e todo o Brasil.",
   stats: [
     { valor: "+100", rotulo: "clientes ativos" },
-    { valor: "4", rotulo: "praças no Brasil" },
+    { valor: "+R$ 18 mi", rotulo: "em anúncios geridos" },
+    { valor: "24h", rotulo: "de atendimento" },
     { valor: "5+", rotulo: "anos de estrada" },
-    { valor: "24/7", rotulo: "acompanhamento" },
   ],
   sobre_titulo: "A Yide Digital",
-  sobre_texto: "Somos uma agência de marketing e programação em Cuiabá que une performance, dados e tecnologia para gerar resultado de verdade.",
+  sobre_texto: "Somos uma agência de marketing, vendas e IA em Cuiabá. Cuidamos do caminho inteiro: do anúncio ao atendimento no WhatsApp, com o Lyide, nosso CRM com inteligência artificial.",
   cta_titulo: "Vamos crescer sua empresa?",
   clientes: [],
 };

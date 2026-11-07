@@ -3,6 +3,7 @@ import { useRef } from "react";
 import { ArrowRight, Mail, MapPin, Phone } from "lucide-react";
 import { YIDE_NAP } from "@/lib/seo/config";
 import { useRevealOnView } from "./useRevealOnView";
+import { WHATSAPP_SITE } from "@/lib/site/contato";
 
 interface CtaContatoProps {
   titulo: string;
@@ -27,7 +28,7 @@ export function CtaContato({ titulo }: CtaContatoProps) {
             </h2>
             <div data-reveal className="mt-8">
               <a
-                href="https://wa.me/556593063452"
+                href={WHATSAPP_SITE}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group inline-flex items-center gap-2 rounded-full bg-teal-500 px-8 py-3.5 text-base font-semibold text-neutral-950 shadow-[0_8px_30px_rgba(45,230,230,0.25)] transition-all hover:bg-cyan-400 hover:shadow-[0_10px_40px_rgba(45,230,230,0.4)]"

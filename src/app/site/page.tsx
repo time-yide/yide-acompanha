@@ -8,8 +8,8 @@ import { HomeYide } from "@/components/home/HomeYide";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Yide Digital · Marketing, tecnologia e IA",
-  description: HOME_DEFAULTS.hero_sub,
+  title: "Agência de Marketing em Cuiabá | Marketing, Vendas e IA · Yide Digital",
+  description: "Agência de marketing, vendas e IA em Cuiabá: tráfego pago, CRM com IA, vídeos, redes sociais, sites, e-commerce e Mercado Livre. Atende todo o Brasil.",
   alternates: { canonical: "/" },
 };
 
