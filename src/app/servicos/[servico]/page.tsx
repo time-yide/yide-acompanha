@@ -9,6 +9,8 @@ import { SITE_URL } from "@/lib/blog/config";
 import { Reveal } from "@/components/site/Reveal";
 import { FaqAberto } from "@/components/site/FaqAberto";
 import { WHATSAPP_SITE } from "@/lib/site/contato";
+import { paginasLocaisDoServico } from "@/lib/site/paginas-locais";
+import { cidadePorSlug } from "@/lib/site/cidades";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +33,9 @@ export default async function ServicoAncora({ params }: { params: Promise<{ serv
   const sv = await getServicoOuSeed(orgId, servico);
   if (!sv) notFound();
   const c = conteudoDoServico(sv.slug);
-  const paginas = orgId ? await listPaginasPublicadasDoServico(orgId, servico) : [];
+  const doBanco = orgId ? await listPaginasPublicadasDoServico(orgId, servico) : [];
+  const doCodigo = paginasLocaisDoServico(sv.slug).map((p) => ({ localidadeSlug: p.cidade, localidadeNome: cidadePorSlug(p.cidade)?.nome ?? p.cidade }));
+  const paginas = [...doCodigo, ...doBanco.filter((b) => !doCodigo.some((c) => c.localidadeSlug === b.localidadeSlug))];
   const url = `${SITE_URL}/servicos/${sv.slug}`;
   const jsonLd = JSON.stringify(
     jsonLdServicoNacional({ nome: sv.nome, descricao: c?.resposta ?? sv.descricao_base, url, faq: c?.faq ?? [] }),
