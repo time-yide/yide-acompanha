@@ -13,6 +13,33 @@ export interface TemaEstrategico {
  * garante que um mesmo tema não seja gerado duas vezes.
  */
 export const TEMAS_ESTRATEGICOS: TemaEstrategico[] = [
+  // Nichos e cidades da prospecção ativa (vêm primeiro: o pipeline pega os não usados na ordem)
+  { pilar: "Alimentação", pergunta: "Quanto custa tráfego pago para restaurante em Cuiabá em 2027?" },
+  { pilar: "Alimentação", pergunta: "Vale a pena anunciar no Instagram em Primavera do Leste?" },
+  { pilar: "Alimentação", pergunta: "Como uma pizzaria aumenta os pedidos pelo WhatsApp com anúncios?" },
+  { pilar: "Alimentação", pergunta: "Hamburgueria em Cuiabá: Instagram, iFood ou WhatsApp, onde investir?" },
+  { pilar: "Alimentação", pergunta: "Como um restaurante consegue mais avaliações no Google em Mato Grosso?" },
+  { pilar: "Varejo", pergunta: "Como uma loja de roupas vende pelo WhatsApp sem ter site?" },
+  { pilar: "Varejo", pergunta: "Quanto investir em anúncios para uma loja física em Cuiabá?" },
+  { pilar: "Varejo", pergunta: "Joalheria e semijoias: como vender mais pelo Instagram?" },
+  { pilar: "Varejo", pergunta: "Como uma loja de materiais de construção atrai clientes pelo Google?" },
+  { pilar: "Automotivo", pergunta: "Google ou Instagram: onde anunciar uma oficina mecânica?" },
+  { pilar: "Automotivo", pergunta: "Como uma loja de autopeças aparece no Google Maps em Cuiabá?" },
+  { pilar: "Automotivo", pergunta: "Lava jato: como lotar a agenda com marketing digital?" },
+  { pilar: "Construção", pergunta: "Como uma construtora gera clientes com tráfego pago em Mato Grosso?" },
+  { pilar: "Construção", pergunta: "Energia solar: como conseguir orçamentos pelo WhatsApp com anúncios?" },
+  { pilar: "Beleza e fitness", pergunta: "Como uma academia em Cuiabá consegue mais alunos com anúncios?" },
+  { pilar: "Beleza e fitness", pergunta: "Studio de pilates: Instagram ou Google para atrair alunas?" },
+  { pilar: "Beleza e fitness", pergunta: "Barbearia: como encher a agenda usando o Instagram?" },
+  { pilar: "Educação", pergunta: "Escola de idiomas: como captar alunos com tráfego pago?" },
+  { pilar: "Educação", pergunta: "Escola particular em Cuiabá: como fazer marketing para matrículas?" },
+  { pilar: "Pet e serviços", pergunta: "Pet shop: como vender banho e tosa pelo WhatsApp?" },
+  { pilar: "Pet e serviços", pergunta: "Lavanderia: como conseguir clientes no bairro com anúncios locais?" },
+  { pilar: "Turismo", pergunta: "Pousada e hotel em Mato Grosso: como vender reservas sem depender de site de reserva?" },
+  { pilar: "Agência", pergunta: "Quanto tempo leva para o tráfego pago dar resultado?" },
+  { pilar: "Agência", pergunta: "Agência ou freelancer: o que vale mais para uma pequena empresa?" },
+  { pilar: "Agência", pergunta: "O que uma agência de marketing faz por uma empresa de Primavera do Leste?" },
+
   // Tráfego pago (Meta/Google Ads)
   { pilar: "Tráfego pago", pergunta: "Como reduzir o custo por lead no Meta Ads?" },
   { pilar: "Tráfego pago", pergunta: "Vale a pena anunciar no Google Ads para loja de iPhone?" },
