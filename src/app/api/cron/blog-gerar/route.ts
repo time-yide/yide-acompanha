@@ -8,7 +8,7 @@ import { avisarBuscadores } from "@/lib/blog/indexnow";
 
 /**
  * Cron: gera e PUBLICA 3 posts de blog por dia via IA, sem revisão. Mix diário:
- * 2 notícia (RSS) + 1 estratégico (banco de temas, GEO/EEAT); se faltar um tipo,
+ * 1 notícia (RSS) + 2 estratégicos (banco de temas, GEO/EEAT); se faltar um tipo,
  * o outro completa. Claude escreve o texto original em pt-br e a capa vem do Pexels.
  * Os botões de gerar na tela do Blog continuam criando rascunho.
  *
@@ -28,8 +28,9 @@ export async function GET(request: NextRequest) {
   const orgId = await getOrgPadraoBlog();
   if (!orgId) return NextResponse.json({ error: "sem organização" }, { status: 500 });
 
-  const r = await executarPipelineBlog(orgId, 2, true); // 2 notícia
-  const est = await executarPipelineEstrategico(orgId, BLOG_POSTS_POR_EXECUCAO - r.gerados, true); // 1 estratégico + o que faltou de notícia
+  // Estratégico primeiro (é o que traz cliente e é citado pelas IAs); notícia completa o dia.
+  const est = await executarPipelineEstrategico(orgId, 2, true);
+  const r = await executarPipelineBlog(orgId, BLOG_POSTS_POR_EXECUCAO - est.gerados, true);
   if (r.gerados + est.gerados > 0) revalidatePath("/blog");
   await avisarBuscadores([...r.publicados, ...est.publicados]);
   // Atualiza o ranking de "Assuntos em alta" (best-effort; não derruba o cron).
