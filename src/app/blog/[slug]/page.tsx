@@ -114,17 +114,17 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
         </section>
       )}
 
-      <div className="mt-12 rounded-2xl border border-neutral-200 bg-white p-6 text-center">
-        <p className="text-lg font-semibold [font-family:var(--font-display)]">Gostou do conteúdo?</p>
-        <p className="mt-1 text-sm text-neutral-600">A Yide Digital faz marketing, tráfego e sistemas sob medida pro seu negócio.</p>
-        <a
-          href="https://yidedigital.com.br"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-4 inline-block rounded-full bg-teal-600 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-teal-700"
+      <div className="mt-12 rounded-2xl bg-neutral-950 p-7 text-center text-white">
+        <p className="text-lg font-semibold [font-family:var(--font-display)]">Quer aplicar isso na sua empresa?</p>
+        <p className="mx-auto mt-1 max-w-md text-sm text-white/70">
+          No diagnóstico gratuito a Yide olha seus anúncios, seu atendimento no WhatsApp e sua presença no Google, e mostra o que fazer primeiro.
+        </p>
+        <Link
+          href="/diagnostico"
+          className="mt-5 inline-block rounded-full bg-teal-500 px-6 py-2.5 text-sm font-semibold text-neutral-950 transition-colors hover:bg-cyan-400"
         >
-          Falar com a Yide
-        </a>
+          Quero o diagnóstico gratuito
+        </Link>
       </div>
     </article>
   );
