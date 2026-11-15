@@ -26,6 +26,17 @@ export const TEMAS_ESTRATEGICOS: TemaEstrategico[] = [
   { pilar: "Vendas", pergunta: "Quantas mensagens de follow-up mandar para um cliente que sumiu no WhatsApp?" },
   { pilar: "CRM e IA", pergunta: "CRM com IA no WhatsApp: como funciona na prática numa loja?" },
   { pilar: "Tráfego pago", pergunta: "Por que esperar o momento certo para anunciar faz a empresa perder clientes?" },
+  // Nacionais (sem cidade): e-commerce, marketplace, delivery e agência para todo o Brasil
+  { pilar: "E-commerce", pergunta: "Quanto custa uma agência de e-commerce em 2027?" },
+  { pilar: "E-commerce", pergunta: "Como escolher uma agência de Mercado Livre?" },
+  { pilar: "E-commerce", pergunta: "Shopee ou Mercado Livre: onde uma pequena empresa deve vender primeiro?" },
+  { pilar: "E-commerce", pergunta: "Loja virtual própria ou marketplace: qual dá mais lucro?" },
+  { pilar: "E-commerce", pergunta: "TikTok Shop vale a pena para pequenas empresas?" },
+  { pilar: "Alimentação", pergunta: "Gestão de iFood: o que faz e quanto custa?" },
+  { pilar: "Alimentação", pergunta: "Como subir no ranking do iFood?" },
+  { pilar: "Alimentação", pergunta: "Como montar um delivery próprio pelo WhatsApp sem depender do iFood?" },
+  { pilar: "Agência", pergunta: "Como funciona uma agência de marketing 100% online?" },
+  { pilar: "Agência", pergunta: "Quanto custa uma gestão de tráfego pago em 2027?" },
   // Nichos e cidades da prospecção ativa (vêm primeiro: o pipeline pega os não usados na ordem)
   { pilar: "Alimentação", pergunta: "Quanto custa tráfego pago para restaurante em Cuiabá em 2027?" },
   { pilar: "Alimentação", pergunta: "Vale a pena anunciar no Instagram em Primavera do Leste?" },

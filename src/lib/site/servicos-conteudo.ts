@@ -21,10 +21,10 @@ export interface ConteudoServico {
 export const CONTEUDO_SERVICOS: ConteudoServico[] = [
   {
     slug: "gestao-de-trafego",
-    titulo: "Gestão de tráfego pago em Cuiabá e no Brasil",
-    metaTitulo: "Gestão de Tráfego Pago em Cuiabá | Google e Meta Ads · Yide",
+    titulo: "Gestão de tráfego pago para empresas de todo o Brasil",
+    metaTitulo: "Gestão de Tráfego Pago em Todo o Brasil | Google e Meta Ads",
     metaDescricao: "Gestão de tráfego pago no Google Ads, Meta Ads e Instagram para gerar conversas e vendas. Agência em Cuiabá que atende todo o Brasil.",
-    resposta: "A Yide cuida dos seus anúncios no Google, no Instagram e no Facebook para trazer conversas no WhatsApp e vendas, não só cliques. Cada campanha é acompanhada pelo custo por conversa e por venda, com relatório de qual anúncio trouxe cada cliente.",
+    resposta: "A Yide cuida dos seus anúncios no Google, no Instagram e no Facebook para trazer conversas no WhatsApp e vendas, não só cliques. Cada campanha é acompanhada pelo custo por conversa e por venda, com relatório de qual anúncio trouxe cada cliente. Atendemos empresas de todo o Brasil, com reuniões por vídeo e a mesma equipe do começo ao fim.",
     entregas: [
       "Planejamento de campanhas no Google Ads, Meta Ads e Instagram",
       "Criação e teste de anúncios, públicos e palavras-chave",
@@ -41,7 +41,7 @@ export const CONTEUDO_SERVICOS: ConteudoServico[] = [
     ],
     paraQuem: ["Comércio e varejo local", "Restaurantes e delivery", "Clínicas e profissionais de saúde", "Empresas B2B e prestadores de serviço"],
     faq: [
-      { pergunta: "Quanto investir em tráfego pago para começar?", resposta: "Depende do ticket e da região. Para negócios locais em Cuiabá e Várzea Grande, é comum começar com R$ 20 a R$ 50 por dia em anúncios, além da gestão. No diagnóstico indicamos a verba ideal para o seu caso." },
+      { pergunta: "Quanto investir em tráfego pago para começar?", resposta: "Depende do ticket e da região. Para negócios locais, é comum começar com R$ 20 a R$ 50 por dia em anúncios, além da gestão. No diagnóstico indicamos a verba ideal para o seu caso." },
       { pergunta: "Em quanto tempo aparecem os resultados?", resposta: "As primeiras conversas costumam chegar na primeira semana. A leitura confiável de custo por resultado vem com 2 a 4 semanas de dados, e a otimização continua todo mês." },
       { pergunta: "Google Ads ou Instagram: qual é melhor?", resposta: "O Google pega quem já está procurando o que você vende. O Instagram e o Facebook criam demanda e funcionam bem com oferta visual. Muitos negócios usam os dois, com pesos diferentes." },
       { pergunta: "Vocês atendem fora de Cuiabá?", resposta: "Sim. A Yide fica em Cuiabá e atende empresas de todo o Mato Grosso e do Brasil, com reuniões online." },
@@ -52,7 +52,7 @@ export const CONTEUDO_SERVICOS: ConteudoServico[] = [
     titulo: "CRM com IA para WhatsApp: Lyide",
     metaTitulo: "CRM com IA para WhatsApp | Lyide by Yide Digital",
     metaDescricao: "Lyide é o CRM com IA da Yide: responde leads no WhatsApp em segundos, organiza o funil e mostra qual anúncio trouxe cada venda.",
-    resposta: "O Lyide é o CRM com inteligência artificial da Yide, feito para quem vende pelo WhatsApp. A IA responde cada contato em segundos, qualifica e passa para o vendedor, e o painel mostra qual anúncio trouxe cada venda.",
+    resposta: "O Lyide é o CRM com inteligência artificial da Yide, feito para quem vende pelo WhatsApp. A IA responde cada contato em segundos, qualifica e passa para o vendedor, e o painel mostra qual anúncio trouxe cada venda. Atendemos empresas de todo o Brasil, com reuniões por vídeo e a mesma equipe do começo ao fim.",
     entregas: [
       "WhatsApp centralizado com vários atendentes no mesmo número",
       "IA de pré-atendimento treinada com seus produtos e preços",
@@ -73,6 +73,7 @@ export const CONTEUDO_SERVICOS: ConteudoServico[] = [
       { pergunta: "Preciso trocar meu número de WhatsApp?", resposta: "Não. O Lyide funciona com o número que você já usa." },
       { pergunta: "Funciona com os anúncios que já rodam?", resposta: "Sim. O Lyide registra de qual anúncio veio cada conversa e pode devolver as vendas para o Google Ads e a Meta otimizarem as campanhas." },
       { pergunta: "Atende empresas de outras cidades?", resposta: "Sim. O Lyide é online e atende empresas de todo o Brasil." },
+      { pergunta: "Vocês atendem empresas de outros estados?", resposta: "Sim. O Lyide é um sistema on-line e a implantação é feita por vídeo, para empresas de qualquer estado." },
     ],
   },
   {
@@ -105,9 +106,9 @@ export const CONTEUDO_SERVICOS: ConteudoServico[] = [
   {
     slug: "redes-sociais",
     titulo: "Gestão de redes sociais focada em vendas",
-    metaTitulo: "Gestão de Redes Sociais em Cuiabá | Instagram que Vende · Yide",
+    metaTitulo: "Gestão de Redes Sociais | Instagram que Vende · Yide Digital",
     metaDescricao: "Gestão de Instagram e redes sociais com calendário editorial, conteúdo e foco em gerar conversas e vendas. Cuiabá e todo o Brasil.",
-    resposta: "A Yide planeja, cria e publica o conteúdo das suas redes sociais com foco em gerar conversas e vendas. O Instagram deixa de ser vitrine parada e passa a trabalhar junto com os anúncios e o WhatsApp.",
+    resposta: "A Yide planeja, cria e publica o conteúdo das suas redes sociais com foco em gerar conversas e vendas. O Instagram deixa de ser vitrine parada e passa a trabalhar junto com os anúncios e o WhatsApp. Atendemos empresas de todo o Brasil, com reuniões por vídeo e a mesma equipe do começo ao fim.",
     entregas: [
       "Planejamento mensal e calendário editorial",
       "Criação de posts, carrosséis, stories e reels",
@@ -127,14 +128,15 @@ export const CONTEUDO_SERVICOS: ConteudoServico[] = [
       { pergunta: "Quantos posts por semana?", resposta: "Depende do plano e do objetivo. Constância vale mais que volume, e todo plano inclui reels e stories." },
       { pergunta: "Eu aprovo o conteúdo antes?", resposta: "Sim. Você aprova o calendário e as peças pelo sistema antes da publicação." },
       { pergunta: "Redes sociais sozinhas trazem vendas?", resposta: "Ajudam, mas o resultado vem mais rápido junto com anúncios e um bom atendimento no WhatsApp." },
+      { pergunta: "Vocês atendem empresas de outros estados?", resposta: "Sim. Planejamento, criação e aprovação são online. Quando o projeto pede gravação, organizamos com um parceiro na sua cidade ou gravamos na sua visita a Cuiabá." },
     ],
   },
   {
     slug: "criacao-de-sites",
     titulo: "Criação de sites e landing pages que vendem",
-    metaTitulo: "Criação de Sites e Landing Pages em Cuiabá | Yide Digital",
+    metaTitulo: "Criação de Sites e Landing Pages que Vendem | Yide Digital",
     metaDescricao: "Sites e landing pages rápidos, otimizados para Google e para conversão, ligados ao WhatsApp e ao CRM. Cuiabá e todo o Brasil.",
-    resposta: "A Yide cria sites e landing pages rápidos, prontos para aparecer no Google e para transformar visita em conversa no WhatsApp. Cada página nasce ligada ao CRM e às tags de anúncio, para medir de onde vem cada cliente.",
+    resposta: "A Yide cria sites e landing pages rápidos, prontos para aparecer no Google e para transformar visita em conversa no WhatsApp. Cada página nasce ligada ao CRM e às tags de anúncio, para medir de onde vem cada cliente. Atendemos empresas de todo o Brasil, com reuniões por vídeo e a mesma equipe do começo ao fim.",
     entregas: [
       "Site institucional e landing pages de campanha",
       "Textos pensados para o Google e para as respostas de IA",
@@ -154,14 +156,15 @@ export const CONTEUDO_SERVICOS: ConteudoServico[] = [
       { pergunta: "Quanto tempo leva para fazer um site?", resposta: "Uma landing page fica pronta em poucos dias. Um site institucional completo leva algumas semanas, conforme o número de páginas." },
       { pergunta: "O site aparece no Google?", resposta: "Ele sai pronto para isso: rápido, com textos, dados estruturados e sitemap. Aparecer bem também depende de conteúdo e de tempo." },
       { pergunta: "Consigo editar depois?", resposta: "Sim. Combinamos como fica a edição de textos e imagens no seu caso." },
+      { pergunta: "Vocês atendem empresas de outros estados?", resposta: "Sim. Site e landing page são feitos 100% online, para empresas de qualquer estado." },
     ],
   },
   {
     slug: "ecommerce",
-    titulo: "E-commerce e loja virtual",
-    metaTitulo: "Criação e Gestão de Loja Virtual | E-commerce · Yide Digital",
+    titulo: "Agência de e-commerce e loja virtual",
+    metaTitulo: "Agência de E-commerce | Criação e Gestão de Loja Virtual · Yide",
     metaDescricao: "Criação e gestão de loja virtual: catálogo, checkout, tráfego e recuperação de vendas. Agência em Cuiabá que atende todo o Brasil.",
-    resposta: "A Yide monta e gerencia sua loja virtual, do catálogo ao checkout, e traz tráfego para ela. Cuidamos dos produtos, das campanhas e da recuperação de carrinhos para a loja vender todo dia.",
+    resposta: "A Yide monta e gerencia sua loja virtual, do catálogo ao checkout, e traz tráfego para ela. Cuidamos dos produtos, das campanhas e da recuperação de carrinhos para a loja vender todo dia. Atendemos empresas de todo o Brasil, com reuniões por vídeo e a mesma equipe do começo ao fim.",
     entregas: [
       "Criação ou migração da loja virtual",
       "Cadastro e otimização de produtos e fotos",
@@ -181,14 +184,15 @@ export const CONTEUDO_SERVICOS: ConteudoServico[] = [
       { pergunta: "Qual plataforma de loja virtual usar?", resposta: "Depende do volume e do tipo de produto. Indicamos a melhor opção no diagnóstico, considerando custos e integrações." },
       { pergunta: "Vocês cuidam dos anúncios da loja?", resposta: "Sim. Loja e tráfego andam juntos: anúncios de catálogo, Google Shopping e remarketing." },
       { pergunta: "Dá para integrar com marketplaces?", resposta: "Sim. A loja pode trabalhar junto com Mercado Livre, Shopee e Amazon." },
+      { pergunta: "Vocês atendem empresas de outros estados?", resposta: "Sim. A loja virtual vende para o Brasil inteiro e atendemos lojistas de qualquer estado, com reuniões por vídeo e acompanhamento pelo sistema da Yide." },
     ],
   },
   {
     slug: "marketplaces",
     titulo: "Marketplaces: Mercado Livre, Shopee e Amazon",
-    metaTitulo: "Gestão de Mercado Livre e Marketplaces | Yide Digital",
+    metaTitulo: "Agência de Mercado Livre, Shopee e Amazon | Yide Digital",
     metaDescricao: "Venda mais no Mercado Livre, Shopee e Amazon: cadastro, anúncios, reputação e Mercado Ads. Agência em Cuiabá que atende todo o Brasil.",
-    resposta: "A Yide coloca e faz crescer sua empresa no Mercado Livre, na Shopee e na Amazon. Cuidamos do cadastro, dos títulos e fotos, da reputação e dos anúncios pagos dentro do marketplace.",
+    resposta: "A Yide coloca e faz crescer sua empresa no Mercado Livre, na Shopee e na Amazon. Cuidamos do cadastro, dos títulos e fotos, da reputação e dos anúncios pagos dentro do marketplace. Atendemos empresas de todo o Brasil, com reuniões por vídeo e a mesma equipe do começo ao fim.",
     entregas: [
       "Abertura e configuração de conta nos marketplaces",
       "Cadastro de produtos com títulos e fichas otimizados para a busca",
@@ -213,9 +217,9 @@ export const CONTEUDO_SERVICOS: ConteudoServico[] = [
   {
     slug: "assessoria-de-marketing",
     titulo: "Assessoria de marketing e vendas",
-    metaTitulo: "Assessoria de Marketing e Vendas em Cuiabá | Yide Digital",
+    metaTitulo: "Assessoria de Marketing e Vendas para Empresas | Yide Digital",
     metaDescricao: "Assessoria de marketing e vendas para empresas que querem crescer com método: planejamento, acompanhamento e metas. Cuiabá e todo o Brasil.",
-    resposta: "A assessoria da Yide junta marketing e vendas num plano só, com metas, rotina e acompanhamento. Você tem uma equipe que pensa o crescimento da empresa e cuida da execução de anúncios, conteúdo, atendimento e CRM.",
+    resposta: "A assessoria da Yide junta marketing e vendas num plano só, com metas, rotina e acompanhamento. Você tem uma equipe que pensa o crescimento da empresa e cuida da execução de anúncios, conteúdo, atendimento e CRM. Atendemos empresas de todo o Brasil, com reuniões por vídeo e a mesma equipe do começo ao fim.",
     entregas: [
       "Diagnóstico de marketing e do processo comercial",
       "Plano com metas, canais e verba",
@@ -235,14 +239,15 @@ export const CONTEUDO_SERVICOS: ConteudoServico[] = [
       { pergunta: "Qual a diferença entre assessoria e contratar só tráfego?", resposta: "Na assessoria cuidamos do caminho inteiro: anúncio, conteúdo, site, atendimento e CRM. O tráfego sozinho cuida só de trazer o contato." },
       { pergunta: "Como funciona o acompanhamento?", resposta: "Você acompanha tudo pelo sistema da Yide e tem reuniões de resultado com a equipe." },
       { pergunta: "Tem contrato de fidelidade?", resposta: "As condições são combinadas no diagnóstico, conforme o escopo do projeto." },
+      { pergunta: "Vocês atendem empresas de outros estados?", resposta: "Sim. A assessoria funciona por reuniões de vídeo e pelo sistema da Yide, onde você acompanha tudo em tempo real." },
     ],
   },
   {
     slug: "seo-google",
     titulo: "SEO e Perfil da Empresa no Google",
-    metaTitulo: "SEO e Perfil da Empresa no Google em Cuiabá | Yide Digital",
+    metaTitulo: "SEO e GEO: Apareça no Google, no Maps e nas IAs | Yide Digital",
     metaDescricao: "Apareça no Google, no Maps e nas respostas de IA: SEO, Perfil da Empresa, avaliações e conteúdo. Agência em Cuiabá que atende todo o Brasil.",
-    resposta: "A Yide faz sua empresa aparecer no Google, no Maps e nas respostas de IA como ChatGPT e Gemini. Cuidamos do Perfil da Empresa no Google, das avaliações, do site e do conteúdo que responde o que seu cliente pergunta.",
+    resposta: "A Yide faz sua empresa aparecer no Google, no Maps e nas respostas de IA como ChatGPT e Gemini. Cuidamos do Perfil da Empresa no Google, das avaliações, do site e do conteúdo que responde o que seu cliente pergunta. Atendemos empresas de todo o Brasil, com reuniões por vídeo e a mesma equipe do começo ao fim.",
     entregas: [
       "Otimização do Perfil da Empresa no Google (Maps)",
       "Estratégia para conseguir mais avaliações",
@@ -262,6 +267,7 @@ export const CONTEUDO_SERVICOS: ConteudoServico[] = [
       { pergunta: "Quanto tempo leva para aparecer no Google?", resposta: "No Maps, ajustes no perfil e novas avaliações têm efeito em semanas. No site, o SEO costuma mostrar resultado consistente em alguns meses." },
       { pergunta: "O que é GEO?", resposta: "É o trabalho para sua empresa ser citada nas respostas de IA, como ChatGPT, Gemini e o resumo de IA do Google. Envolve conteúdo claro, dados estruturados e menções em outros sites." },
       { pergunta: "Avaliações ajudam no Google?", resposta: "Sim. Quantidade, nota e texto das avaliações pesam no Maps e na escolha do cliente." },
+      { pergunta: "Vocês atendem empresas de outros estados?", resposta: "Sim. SEO, Perfil da Empresa e presença nas IAs são trabalhados a distância para empresas de todo o Brasil." },
     ],
   },
   {
@@ -269,7 +275,7 @@ export const CONTEUDO_SERVICOS: ConteudoServico[] = [
     titulo: "Gestão de iFood e delivery",
     metaTitulo: "Gestão de iFood e Delivery para Restaurantes | Yide Digital",
     metaDescricao: "Gestão de iFood e delivery próprio: cardápio, fotos, ranking no app, anúncios na hora da fome e pedidos no WhatsApp. Agência em Cuiabá.",
-    resposta: "A Yide cuida do delivery do seu restaurante dentro e fora do iFood. Organizamos cardápio, fotos e combos para subir no ranking do app, e montamos o delivery próprio pelo WhatsApp com anúncios na hora da fome, para você depender menos da taxa do aplicativo.",
+    resposta: "A Yide cuida do delivery do seu restaurante dentro e fora do iFood. Organizamos cardápio, fotos e combos para subir no ranking do app, e montamos o delivery próprio pelo WhatsApp com anúncios na hora da fome, para você depender menos da taxa do aplicativo. Atendemos empresas de todo o Brasil, com reuniões por vídeo e a mesma equipe do começo ao fim.",
     entregas: [
       "Revisão do cardápio, combos e preços no iFood",
       "Fotos e vídeos de produto pensados para o celular",
@@ -289,6 +295,7 @@ export const CONTEUDO_SERVICOS: ConteudoServico[] = [
       { pergunta: "Vale a pena sair do iFood?", resposta: "Não é preciso sair. O iFood traz cliente novo; o delivery próprio pelo WhatsApp traz a recompra sem taxa. O ideal é usar os dois juntos." },
       { pergunta: "Como subir no ranking do iFood?", resposta: "Ranking depende de avaliação, tempo de entrega, taxa de conversão do cardápio e participação em campanhas. Trabalhamos cada um desses pontos." },
       { pergunta: "Vocês fazem as fotos dos pratos?", resposta: "Sim. A Yide tem estúdio e equipe de audiovisual, e também grava no seu restaurante." },
+      { pergunta: "Vocês atendem empresas de outros estados?", resposta: "Sim. O trabalho no iFood e no delivery próprio é feito a distância, para restaurantes de qualquer cidade. As fotos podem ser feitas por um fotógrafo local seguindo o nosso roteiro." },
     ],
   },
 ];
