@@ -21,6 +21,7 @@ export function montarLlmsTxt({ siteUrl, servicos, posts, cases = [] }: LlmsInpu
     `E-mail: ${YIDE_NAP.email}`,
     `Endereço: ${YIDE_NAP.rua}, ${YIDE_NAP.cidade} - ${YIDE_NAP.uf}, ${YIDE_NAP.cep}`,
     "Atendimento: 24 horas, todos os dias",
+    "Preço: planos a partir de R$ 1.000; verba de anúncios à parte",
     "Atende: Cuiabá, Várzea Grande, Mato Grosso e todo o Brasil",
     `Versão completa: ${siteUrl}/llms-full.txt`,
     "",
