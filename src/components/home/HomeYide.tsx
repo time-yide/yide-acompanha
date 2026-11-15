@@ -12,6 +12,7 @@ import { Depoimentos } from "./Depoimentos";
 import { Sobre } from "./Sobre";
 import { Clientes } from "./Clientes";
 import { CtaContato } from "./CtaContato";
+import { BlogDestaque } from "./BlogDestaque";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -20,10 +21,11 @@ export interface HomeData {
   servicos: { id: string; nome: string; slug: string; descricao_base: string }[];
   cases: { slug: string; cliente: string; segmento: string; resultados: { rotulo: string; valor: string }[]; cover_image_url: string | null }[];
   depoimentos: { texto: string; autor: string; cliente: string }[];
+  posts: { slug: string; titulo: string; resumo: string | null; cover_image_url: string | null }[];
 }
 
 export function HomeYide({ data }: { data: HomeData }) {
-  const { config, servicos, cases, depoimentos } = data;
+  const { config, servicos, cases, depoimentos, posts } = data;
 
   useLayoutEffect(() => {
     // Garante que os triggers medem o layout depois das fontes/imagens.
@@ -43,6 +45,7 @@ export function HomeYide({ data }: { data: HomeData }) {
         <ServicosBento servicos={servicos} />
         <CasesDestaque cases={cases} />
         <Depoimentos depoimentos={depoimentos} />
+        <BlogDestaque posts={posts} />
         <Sobre titulo={config.sobre_titulo} texto={config.sobre_texto} />
         <Clientes clientes={config.clientes} />
         <CtaContato titulo={config.cta_titulo} />

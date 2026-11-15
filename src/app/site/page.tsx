@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import { getOrgPadrao, listServicosOuSeed } from "@/lib/seo/queries";
 import { listCasesPublicados } from "@/lib/seo/case-queries";
+import { CASES_ESTATICOS } from "@/lib/site/cases-estaticos";
 import { getHomeConfig } from "@/lib/seo/home-queries";
 import { HOME_DEFAULTS } from "@/lib/seo/home-config";
 import { HomeYide } from "@/components/home/HomeYide";
+import { getOrgPadraoBlog, listPostsPublicados } from "@/lib/blog/queries";
+import { separarPosts } from "@/lib/blog/temas-empresario";
 
 export const dynamic = "force-dynamic";
 
@@ -18,8 +21,13 @@ export default async function SitePage() {
   const [config, servicos, cases] = await Promise.all([
     orgId ? getHomeConfig(orgId) : Promise.resolve(HOME_DEFAULTS),
     listServicosOuSeed(orgId),
-    orgId ? listCasesPublicados(orgId) : Promise.resolve([]),
+    orgId ? listCasesPublicados(orgId) : Promise.resolve(CASES_ESTATICOS),
   ]);
+  const orgBlog = await getOrgPadraoBlog();
+  const todosPosts = orgBlog ? await listPostsPublicados(orgBlog) : [];
+  // Só artigo do empresário (estratégico) na home: notícia de mercado fica no blog.
+  const posts = separarPosts(todosPosts.filter((p) => !p.fonte_url)).doEmpresario.slice(0, 3)
+    .map((p) => ({ slug: p.slug, titulo: p.titulo, resumo: p.resumo, cover_image_url: p.cover_image_url }));
 
   const servicosLimpos = servicos.map((s) => ({
     id: s.id,
@@ -39,5 +47,5 @@ export default async function SitePage() {
     .slice(0, 6)
     .map((c) => ({ texto: c.depoimento_texto, autor: c.depoimento_autor, cliente: c.cliente }));
 
-  return <HomeYide data={{ config, servicos: servicosLimpos, cases: casesTop, depoimentos }} />;
+  return <HomeYide data={{ config, servicos: servicosLimpos, cases: casesTop, depoimentos, posts }} />;
 }

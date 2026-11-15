@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { listPostsPublicados } from "@/lib/blog/queries";
 import { getOrgPadrao, listServicosComPaginas, listPaginasPublicadasDoServico } from "@/lib/seo/queries";
 import { listCasesPublicados } from "@/lib/seo/case-queries";
+import { CASES_ESTATICOS } from "@/lib/site/cases-estaticos";
 import { SITE_URL } from "@/lib/blog/config";
 import { postIndexavel } from "@/lib/blog/fora-do-indice";
 import { PAGINAS_LOCAIS } from "@/lib/site/paginas-locais";
@@ -15,7 +16,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [posts, servicos, cases] = await Promise.all([
     orgId ? listPostsPublicados(orgId) : Promise.resolve([]),
     orgId ? listServicosComPaginas(orgId) : Promise.resolve([]),
-    orgId ? listCasesPublicados(orgId) : Promise.resolve([]),
+    orgId ? listCasesPublicados(orgId) : Promise.resolve(CASES_ESTATICOS),
   ]);
 
   // Páginas serviço × localidade publicadas (uma consulta por serviço).

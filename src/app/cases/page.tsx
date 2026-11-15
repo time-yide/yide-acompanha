@@ -5,19 +5,19 @@ import { getOrgPadrao } from "@/lib/seo/queries";
 import { listCasesPublicados } from "@/lib/seo/case-queries";
 import { Reveal } from "@/components/site/Reveal";
 import { WHATSAPP_SITE } from "@/lib/site/contato";
-import { CASES_VIDEO } from "@/lib/site/cases-video";
+import { CASES_ESTATICOS } from "@/lib/site/cases-estaticos";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Cases · Yide Digital",
-  description: "Resultados reais de clientes da Yide Digital em vídeo: delivery de R$ 20 mil para R$ 400 mil por mês, joalheria de R$ 25 mil por mês a 7 dígitos por ano e mais.",
+  description: "Resultados reais de clientes da Yide Digital: delivery de R$ 20 mil para R$ 400 mil por mês, joalheria de R$ 25 mil por mês a 7 dígitos por ano, 10x de retorno no Google e mais.",
   alternates: { canonical: "/cases" },
 };
 
 export default async function CasesIndex() {
   const orgId = await getOrgPadrao();
-  const cases = orgId ? await listCasesPublicados(orgId) : [];
+  const cases = orgId ? await listCasesPublicados(orgId) : CASES_ESTATICOS;
   return (
     <div className="space-y-16 sm:space-y-24">
       {/* Hero */}
@@ -39,62 +39,24 @@ export default async function CasesIndex() {
         <div className="relative z-10 mt-10 h-px w-full bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent" />
       </header>
 
-      <section aria-labelledby="cases-video">
-        <h2 id="cases-video" className="text-3xl font-extrabold tracking-tight [font-family:var(--font-display)]">Cases em vídeo</h2>
-        <p className="mt-3 max-w-2xl text-neutral-600">Em menos de 2 minutos cada: o que a empresa tinha, o que a Yide fez e o resultado.</p>
-        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {CASES_VIDEO.map((c, i) => (
-            <Reveal key={c.youtubeId} delay={(i % 3) * 80}>
-              <a
-                href={`https://www.youtube.com/shorts/${c.youtubeId}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group flex h-full flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-teal-300 hover:shadow-[0_18px_50px_-20px_rgba(13,148,136,0.35)]"
-              >
-                <div className="relative aspect-[4/3] w-full overflow-hidden bg-neutral-950">
-                  {/* eslint-disable-next-line @next/next/no-img-element -- miniatura do YouTube */}
-                  <img src={`https://i.ytimg.com/vi/${c.youtubeId}/hqdefault.jpg`} alt={`Vídeo do case ${c.cliente}`} loading="lazy"
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                  <span className="absolute left-3 top-3 rounded-full bg-neutral-950/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-cyan-300 backdrop-blur-sm">
-                    {c.segmento}
-                  </span>
-                  <span aria-hidden className="absolute inset-0 m-auto flex h-14 w-14 items-center justify-center rounded-full bg-white/90 text-xl text-neutral-950 shadow-lg transition-transform group-hover:scale-110">▶</span>
-                </div>
-                <div className="flex flex-1 flex-col p-6">
-                  <h3 className="text-lg font-bold tracking-tight [font-family:var(--font-display)] group-hover:text-teal-700">
-                    {c.cliente}{c.local && <span className="ml-2 text-sm font-medium text-neutral-400">{c.local}</span>}
-                  </h3>
-                  <p className="mt-3">
-                    <span className="text-2xl font-extrabold text-teal-600 [font-family:var(--font-display)]">{c.destaque}</span>
-                    <span className="ml-1.5 text-sm text-neutral-500">{c.rotulo}</span>
-                  </p>
-                  <p className="mt-3 text-sm leading-relaxed text-neutral-600">{c.resumo}</p>
-                  <span className="mt-auto inline-flex items-center gap-1 pt-5 text-sm font-semibold text-teal-600">
-                    Assistir o case
-                    <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                  </span>
-                </div>
-              </a>
-            </Reveal>
-          ))}
-        </div>
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
-          "@context": "https://schema.org",
-          "@graph": CASES_VIDEO.map((c) => ({
-            "@type": "VideoObject",
-            name: `Case ${c.cliente} | Yide Digital`,
-            description: `${c.destaque} ${c.rotulo}. ${c.resumo}`,
-            thumbnailUrl: `https://i.ytimg.com/vi/${c.youtubeId}/hqdefault.jpg`,
-            uploadDate: "2026-11-14",
-            duration: c.duracao,
-            embedUrl: `https://www.youtube-nocookie.com/embed/${c.youtubeId}`,
-            url: `https://www.youtube.com/shorts/${c.youtubeId}`,
-            about: { "@type": "Organization", name: "Yide Digital", url: "https://yidedigital.com.br" },
-          })),
-        }) }} />
-      </section>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+        "@context": "https://schema.org",
+        "@graph": CASES_ESTATICOS.filter((c) => c.youtubeId).map((c) => ({
+          "@type": "VideoObject",
+          name: `Case ${c.cliente} | Yide Digital`,
+          description: c.meta_description ?? c.desafio,
+          thumbnailUrl: `https://i.ytimg.com/vi/${c.youtubeId}/hqdefault.jpg`,
+          uploadDate: "2026-11-14",
+          duration: c.duracao ?? undefined,
+          embedUrl: `https://www.youtube-nocookie.com/embed/${c.youtubeId}`,
+          url: `https://www.youtube.com/shorts/${c.youtubeId}`,
+          about: { "@type": "Organization", name: "Yide Digital", url: "https://yidedigital.com.br" },
+        })),
+      }).replace(/</g, "\\u003c") }} />
 
-      {cases.length === 0 ? null : (
+      {cases.length === 0 ? (
+        <p className="text-neutral-500">Em breve.</p>
+      ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {cases.map((c, i) => (
             <Reveal key={c.slug} delay={(i % 3) * 80}>
@@ -116,13 +78,16 @@ export default async function CasesIndex() {
                   )}
                 </div>
                 <div className="flex flex-1 flex-col p-6">
-                  <h2 className="text-lg font-bold tracking-tight [font-family:var(--font-display)] group-hover:text-teal-700">{c.cliente}</h2>
+                  <h2 className="text-lg font-bold tracking-tight [font-family:var(--font-display)] group-hover:text-teal-700">
+                    {c.cliente}{c.localidade && <span className="ml-2 text-sm font-medium text-neutral-400">{c.localidade}</span>}
+                  </h2>
                   {c.resultados[0] && (
                     <p className="mt-3">
                       <span className="text-2xl font-extrabold text-teal-600 [font-family:var(--font-display)]">{c.resultados[0].valor}</span>
                       <span className="ml-1.5 text-sm text-neutral-500">{c.resultados[0].rotulo}</span>
                     </p>
                   )}
+                  {c.solucao && <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-neutral-600">{c.solucao}</p>}
                   <span className="mt-auto inline-flex items-center gap-1 pt-5 text-sm font-semibold text-teal-600">
                     Ver case
                     <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
