@@ -1,13 +1,10 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
-export interface Resultado { rotulo: string; valor: string }
+import { CASES_ESTATICOS, caseEstaticoPorSlug } from "@/lib/site/cases-estaticos";
+import type { CasePublico } from "./case-tipos";
+export type { Resultado, CasePublico } from "./case-tipos";
 export interface CaseLista { id: string; slug: string; cliente: string; segmento: string; status: string; updated_at: string }
-export interface CasePublico {
-  slug: string; cliente: string; segmento: string; localidade: string;
-  desafio: string; solucao: string; conteudo_md: string;
-  resultados: Resultado[]; depoimento_texto: string; depoimento_autor: string;
-  cover_image_url: string | null; meta_title: string | null; meta_description: string | null;
-}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function sb(): any { return createServiceRoleClient(); }
 
@@ -25,13 +22,16 @@ export async function listCasesPublicados(orgId: string): Promise<CasePublico[]>
     .select("slug, cliente, segmento, localidade, desafio, solucao, conteudo_md, resultados, depoimento_texto, depoimento_autor, cover_image_url, meta_title, meta_description")
     .eq("organization_id", orgId).eq("status", "publicado").order("updated_at", { ascending: false });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return ((data ?? []) as any[]).map((d) => ({ ...d, resultados: Array.isArray(d.resultados) ? d.resultados : [] }));
+  const doBanco = ((data ?? []) as any[]).map((d) => ({ ...d, resultados: Array.isArray(d.resultados) ? d.resultados : [] })) as CasePublico[];
+  // Cases escritos no código (vídeos de case) completam a lista; o do banco vence no mesmo slug.
+  const slugs = new Set(doBanco.map((c) => c.slug));
+  return [...doBanco, ...CASES_ESTATICOS.filter((c) => !slugs.has(c.slug))];
 }
 export async function getCasePublicado(orgId: string, slug: string): Promise<CasePublico | null> {
   const { data } = await sb().from("seo_cases")
     .select("slug, cliente, segmento, localidade, desafio, solucao, conteudo_md, resultados, depoimento_texto, depoimento_autor, cover_image_url, meta_title, meta_description")
     .eq("organization_id", orgId).eq("slug", slug).eq("status", "publicado").maybeSingle();
-  if (!data) return null;
+  if (!data) return caseEstaticoPorSlug(slug);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const d = data as any;
   return { ...d, resultados: Array.isArray(d.resultados) ? d.resultados : [] };

@@ -3,6 +3,7 @@ import { postIndexavel } from "@/lib/blog/fora-do-indice";
 import { listPostsPublicados } from "@/lib/blog/queries";
 import { getOrgPadrao } from "@/lib/seo/queries";
 import { listCasesPublicados } from "@/lib/seo/case-queries";
+import { CASES_ESTATICOS } from "@/lib/site/cases-estaticos";
 import { montarLlmsFull } from "@/lib/site/llms-full";
 
 // Dinâmica (não gera no build): usa service-role, cuja env só existe em runtime.
@@ -14,7 +15,7 @@ export async function GET() {
   const orgId = await getOrgPadrao();
   const [posts, cases] = await Promise.all([
     orgId ? listPostsPublicados(orgId) : Promise.resolve([]),
-    orgId ? listCasesPublicados(orgId) : Promise.resolve([]),
+    orgId ? listCasesPublicados(orgId) : Promise.resolve(CASES_ESTATICOS),
   ]);
   const texto = montarLlmsFull({
     siteUrl: SITE_URL,

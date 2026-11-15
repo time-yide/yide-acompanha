@@ -4,6 +4,7 @@ import { listPostsPublicados } from "@/lib/blog/queries";
 import { montarLlmsTxt } from "@/lib/seo/llms";
 import { getOrgPadrao, listServicosOuSeed } from "@/lib/seo/queries";
 import { listCasesPublicados } from "@/lib/seo/case-queries";
+import { CASES_ESTATICOS } from "@/lib/site/cases-estaticos";
 
 // Dinâmica (não gera no build): usa service-role, cuja env só existe em runtime.
 export const dynamic = "force-dynamic";
@@ -15,7 +16,7 @@ export async function GET() {
   const [servicos, posts, cases] = await Promise.all([
     listServicosOuSeed(orgId),
     orgId ? listPostsPublicados(orgId) : Promise.resolve([]),
-    orgId ? listCasesPublicados(orgId) : Promise.resolve([]),
+    orgId ? listCasesPublicados(orgId) : Promise.resolve(CASES_ESTATICOS),
   ]);
   const texto = montarLlmsTxt({
     siteUrl: SITE_URL,
