@@ -13,6 +13,19 @@ export interface TemaEstrategico {
  * garante que um mesmo tema não seja gerado duas vezes.
  */
 export const TEMAS_ESTRATEGICOS: TemaEstrategico[] = [
+  // Alta intenção de contratar (vêm primeiro: o pipeline pega os não usados na ordem)
+  { pilar: "Agência", pergunta: "Como escolher uma agência de marketing em Cuiabá?" },
+  { pilar: "Agência", pergunta: "Quanto custa uma agência de marketing em Cuiabá em 2027?" },
+  { pilar: "Agência", pergunta: "Gestor de tráfego em Cuiabá: o que ele faz e como cobra?" },
+  { pilar: "Agência", pergunta: "Agência de marketing em Várzea Grande: o que avaliar antes de contratar?" },
+  { pilar: "Agência", pergunta: "Dá certo contratar uma agência de marketing de outra cidade?" },
+  { pilar: "Alimentação", pergunta: "Marketing para delivery em Cuiabá: como vender mais sem depender só do iFood?" },
+  { pilar: "Planejamento", pergunta: "Como calcular quanto investir em anúncios a partir da meta de faturamento?" },
+  { pilar: "Planejamento", pergunta: "Como vender mais em janeiro, o mês mais fraco do comércio?" },
+  { pilar: "Planejamento", pergunta: "Como vender no Carnaval sem fechar a empresa?" },
+  { pilar: "Vendas", pergunta: "Quantas mensagens de follow-up mandar para um cliente que sumiu no WhatsApp?" },
+  { pilar: "CRM e IA", pergunta: "CRM com IA no WhatsApp: como funciona na prática numa loja?" },
+  { pilar: "Tráfego pago", pergunta: "Por que esperar o momento certo para anunciar faz a empresa perder clientes?" },
   // Nichos e cidades da prospecção ativa (vêm primeiro: o pipeline pega os não usados na ordem)
   { pilar: "Alimentação", pergunta: "Quanto custa tráfego pago para restaurante em Cuiabá em 2027?" },
   { pilar: "Alimentação", pergunta: "Vale a pena anunciar no Instagram em Primavera do Leste?" },
