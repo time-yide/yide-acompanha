@@ -298,6 +298,76 @@ export const PAGINAS_LOCAIS: PaginaLocal[] = [
       { pergunta: "Atendem qualquer cidade de MT?", resposta: "Sim. Atendemos empresas de todo o estado." },
     ],
   },
+  // ---------------------------------------------------------------- E-commerce, marketplace e delivery
+  {
+    servico: "ecommerce",
+    cidade: "cuiaba",
+    titulo: "Agência de e-commerce e loja virtual em Cuiabá",
+    metaTitulo: "Agência de E-commerce em Cuiabá | Loja Virtual · Yide Digital",
+    metaDescricao: "Agência de e-commerce em Cuiabá: criação e gestão de loja virtual, catálogo, checkout, anúncios e recuperação de carrinho. Sede no Jardim das Américas.",
+    resposta: "A Yide é uma agência de e-commerce com sede em Cuiabá, no Jardim das Américas. Montamos e cuidamos da loja virtual de empresas da capital, do cadastro dos produtos ao checkout, e trazemos tráfego para ela, para a loja física passar a vender para Mato Grosso e para o resto do Brasil.",
+    contexto: [
+      "Muita loja de Cuiabá já vende bem no balcão e no WhatsApp, mas depende de quem passa na porta ou chama no direct. A loja virtual abre o catálogo para o interior do estado, onde o cliente muitas vezes não tem a mesma variedade, e para outros estados, onde o frete a partir de Cuiabá é competitivo para muitos segmentos.",
+      "Por isso o trabalho começa pelo que já vende na loja física: os produtos campeões viram as primeiras vitrines, com foto e descrição pensadas para a busca. Depois entram anúncios de catálogo e remarketing para quem visitou a loja e não comprou. Temos time de e-commerce e estúdio na sede para produzir as fotos.",
+    ],
+    focos: [
+      "Criação ou migração da loja virtual na plataforma certa",
+      "Cadastro de produtos com fotos feitas no nosso estúdio em Cuiabá",
+      "Frete e retirada na loja para clientes da capital",
+      "Anúncios de catálogo e remarketing no Google e na Meta",
+    ],
+    faq: [
+      { pergunta: "Vale a pena ter loja virtual tendo loja física em Cuiabá?", resposta: "Sim, quando o catálogo é bom e o frete fecha a conta. A loja virtual vende para o interior de MT e para outros estados, e também serve de vitrine para quem é da capital e prefere ver antes de ir até a loja." },
+      { pergunta: "Quanto custa a gestão de e-commerce?", resposta: "Os planos da Yide começam em R$ 1.000 por mês, e a verba de anúncios é à parte. No diagnóstico gratuito indicamos o formato para o tamanho do seu catálogo." },
+      { pergunta: "Dá para vender também no Mercado Livre e na Shopee?", resposta: "Sim. A loja virtual pode andar junto com os marketplaces, com estoque e preços organizados nos dois canais." },
+    ],
+  },
+  {
+    servico: "marketplaces",
+    cidade: "cuiaba",
+    titulo: "Gestão de Mercado Livre e Shopee em Cuiabá",
+    metaTitulo: "Gestão de Mercado Livre e Shopee em Cuiabá · Yide Digital",
+    metaDescricao: "Agência de marketplace em Cuiabá: Mercado Livre, Shopee e Amazon, com cadastro, anúncios, reputação e Mercado Ads. Atendimento presencial na capital.",
+    resposta: "A Yide faz a gestão de Mercado Livre, Shopee e Amazon para empresas de Cuiabá. Cuidamos do cadastro, dos títulos e fotos, da reputação e dos anúncios pagos dentro do marketplace, com o time de e-commerce trabalhando na nossa sede no Jardim das Américas.",
+    contexto: [
+      "Para quem vende a partir de Cuiabá, o marketplace é o jeito mais rápido de chegar ao Brasil inteiro sem montar estrutura de venda em outro estado. O cuidado está na logística: prazo de envio, uso do Full quando faz sentido e preço que considere o frete a partir de Mato Grosso.",
+      "Não apostamos tudo em um canal só. Marketplace traz volume, mas a margem e o cliente ficam com a plataforma; por isso combinamos com loja própria e WhatsApp quando o negócio pede. Já acompanhamos de perto operações de fábrica e de varejo que vendem em marketplace a partir de MT.",
+    ],
+    focos: [
+      "Abertura e organização de contas no Mercado Livre, Shopee e Amazon",
+      "Títulos, fichas técnicas e fotos para aparecer na busca",
+      "Mercado Ads e anúncios patrocinados com controle de margem",
+      "Reputação, perguntas e prazos de envio a partir de Cuiabá",
+    ],
+    faq: [
+      { pergunta: "Empresa de Cuiabá consegue vender bem no Mercado Livre?", resposta: "Sim. O que define o resultado é preço, reputação e prazo de envio. Ajustamos esses pontos considerando o frete a partir de Mato Grosso." },
+      { pergunta: "Vocês trabalham com Shopee e Amazon também?", resposta: "Sim. Organizamos os três canais com o mesmo catálogo e acompanhamos a margem de cada um." },
+      { pergunta: "A reunião pode ser presencial?", resposta: "Sim. A sede da Yide fica no Jardim das Américas e também vamos até a sua empresa." },
+    ],
+  },
+  {
+    servico: "delivery-ifood",
+    cidade: "cuiaba",
+    titulo: "Gestão de iFood e delivery em Cuiabá",
+    metaTitulo: "Gestão de iFood e Delivery em Cuiabá · Yide Digital",
+    metaDescricao: "Gestão de iFood e delivery em Cuiabá: cardápio, fotos, ranking no app, anúncios na hora da fome e pedidos no WhatsApp. Cases Nazca Sushi e Kai Poke.",
+    resposta: "A Yide faz a gestão de iFood e de delivery próprio para restaurantes de Cuiabá. Ajustamos cardápio, fotos e campanhas no app e montamos o pedido pelo WhatsApp com anúncio na hora da fome. Foi assim que a Nazca Sushi saiu de R$ 20 mil para mais de R$ 400 mil por mês.",
+    contexto: [
+      "Em Cuiabá o delivery tem picos bem marcados, no almoço e principalmente à noite e no fim de semana, e o calor faz muita gente preferir pedir a sair. Concentramos verba de anúncio nesses horários e nos bairros que mais pedem de cada restaurante, em vez de espalhar pelo dia inteiro.",
+      "O iFood traz cliente novo, mas cobra taxa em cada pedido. Por isso trabalhamos os dois lados: posição e conversão dentro do app e um canal próprio pelo WhatsApp para a recompra, com resposta rápida e oferta no dia certo. A Kai Poke, que começou do zero no delivery, passou de R$ 50 mil por mês em um ano.",
+    ],
+    focos: [
+      "Cardápio, combos e fotos para subir no ranking do iFood",
+      "Anúncios no Instagram nos horários e bairros que mais pedem",
+      "Pedido pelo WhatsApp com cardápio digital e resposta rápida",
+      "Recompra: chamar de volta quem já pediu, sem taxa do app",
+    ],
+    faq: [
+      { pergunta: "Quanto custa a gestão de delivery em Cuiabá?", resposta: "Os planos da Yide começam em R$ 1.000 por mês, e a verba de anúncios é à parte. Para delivery, é comum começar com R$ 20 a R$ 50 por dia nos horários de pico." },
+      { pergunta: "Preciso sair do iFood?", resposta: "Não. O iFood continua trazendo cliente novo. O delivery próprio entra para a recompra, sem a taxa do aplicativo." },
+      { pergunta: "Vocês fazem as fotos dos pratos em Cuiabá?", resposta: "Sim. Gravamos e fotografamos no seu restaurante ou no estúdio da Yide, no Jardim das Américas." },
+    ],
+  },
 ];
 
 export function paginaLocal(servico: string, cidade: string): PaginaLocal | null {

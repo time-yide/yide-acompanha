@@ -20,6 +20,8 @@ export const SEED_SERVICOS: SeedServico[] = [
     descricao_base: "Planejamento e acompanhamento de marketing e vendas para empresas que querem crescer com método." },
   { nome: "SEO e Perfil da Empresa no Google", slug: "seo-google", ordem: 9,
     descricao_base: "Posicionamento no Google e nas respostas de IA: SEO, Perfil da Empresa, avaliações e conteúdo." },
+  { nome: "Delivery e iFood", slug: "delivery-ifood", ordem: 10,
+    descricao_base: "Gestão de iFood e de delivery próprio: cardápio, fotos, ranking no app, anúncios na hora da fome e pedidos pelo WhatsApp." },
 ];
 
 export const SEED_LOCALIDADES: SeedLocalidade[] = [

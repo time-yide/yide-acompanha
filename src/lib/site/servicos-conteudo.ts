@@ -264,6 +264,33 @@ export const CONTEUDO_SERVICOS: ConteudoServico[] = [
       { pergunta: "Avaliações ajudam no Google?", resposta: "Sim. Quantidade, nota e texto das avaliações pesam no Maps e na escolha do cliente." },
     ],
   },
+  {
+    slug: "delivery-ifood",
+    titulo: "Gestão de iFood e delivery",
+    metaTitulo: "Gestão de iFood e Delivery para Restaurantes | Yide Digital",
+    metaDescricao: "Gestão de iFood e delivery próprio: cardápio, fotos, ranking no app, anúncios na hora da fome e pedidos no WhatsApp. Agência em Cuiabá.",
+    resposta: "A Yide cuida do delivery do seu restaurante dentro e fora do iFood. Organizamos cardápio, fotos e combos para subir no ranking do app, e montamos o delivery próprio pelo WhatsApp com anúncios na hora da fome, para você depender menos da taxa do aplicativo.",
+    entregas: [
+      "Revisão do cardápio, combos e preços no iFood",
+      "Fotos e vídeos de produto pensados para o celular",
+      "Campanhas e promoções dentro do iFood",
+      "Delivery próprio pelo WhatsApp com cardápio digital",
+      "Anúncios no Instagram e no Google nos horários e bairros que mais pedem",
+      "CRM para responder rápido e chamar de volta quem já pediu",
+    ],
+    etapas: [
+      { titulo: "Diagnóstico", texto: "Olhamos ranking, avaliações, cardápio e o custo das taxas no app." },
+      { titulo: "Cardápio e fotos", texto: "Ajustamos combos, preços e imagens para vender mais por pedido." },
+      { titulo: "Canal próprio", texto: "Ligamos o WhatsApp com anúncio na hora da fome e cardápio digital." },
+      { titulo: "Recompra", texto: "Chamamos de volta quem já pediu, com oferta no dia certo." },
+    ],
+    paraQuem: ["Restaurantes e lanchonetes", "Pizzarias e hamburguerias", "Sushi, poke e açaí", "Dark kitchens e marcas novas no delivery"],
+    faq: [
+      { pergunta: "Vale a pena sair do iFood?", resposta: "Não é preciso sair. O iFood traz cliente novo; o delivery próprio pelo WhatsApp traz a recompra sem taxa. O ideal é usar os dois juntos." },
+      { pergunta: "Como subir no ranking do iFood?", resposta: "Ranking depende de avaliação, tempo de entrega, taxa de conversão do cardápio e participação em campanhas. Trabalhamos cada um desses pontos." },
+      { pergunta: "Vocês fazem as fotos dos pratos?", resposta: "Sim. A Yide tem estúdio e equipe de audiovisual, e também grava no seu restaurante." },
+    ],
+  },
 ];
 
 export function conteudoDoServico(slug: string): ConteudoServico | null {
