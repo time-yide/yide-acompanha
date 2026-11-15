@@ -16,6 +16,18 @@ const NUMEROS = [
   { valor: "5+", rotulo: "anos de estrada" },
 ];
 
+// Citações de fora (podcasts, matérias). Ajudam Google e IAs a confirmar quem é a Yide.
+const NA_MIDIA = [
+  {
+    veiculo: "NagelCast · Guilherme Nagel",
+    titulo: "Como cobrar por performance de um cliente de marketplace",
+    resumo: "Guilherme Nagel, mentor de donos de agência, veio a Cuiabá conhecer a operação da Yide: e-commerce e marketplace, estúdio, time comercial e cultura.",
+    data: "2026-09-17",
+    dataTexto: "setembro de 2026",
+    videoId: "S0UghCxQPno",
+  },
+];
+
 const METODO = [
   { titulo: "Atrair", texto: "Anúncios no Google e no Instagram, conteúdo, vídeos e presença no Google para trazer quem já procura o que você vende." },
   { titulo: "Atender", texto: "O lead cai no Lyide, o CRM com IA da Yide, que responde em segundos, qualifica e passa para o seu time." },
@@ -72,6 +84,42 @@ export default function SobrePage() {
             </li>
           ))}
         </ul>
+      </section>
+
+      <section aria-labelledby="na-midia">
+        <h2 id="na-midia" className="text-3xl font-extrabold tracking-tight [font-family:var(--font-display)]">Na mídia</h2>
+        <p className="mt-3 max-w-2xl text-neutral-600">Quem já veio conhecer a Yide por dentro.</p>
+        <ul className="mt-8 grid gap-4 md:grid-cols-2">
+          {NA_MIDIA.map((m) => (
+            <li key={m.videoId}>
+              <a href={`https://www.youtube.com/watch?v=${m.videoId}`} target="_blank" rel="noopener noreferrer"
+                className="group block h-full overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm transition-colors hover:border-teal-300">
+                {/* eslint-disable-next-line @next/next/no-img-element -- miniatura do YouTube, sem cookie */}
+                <img src={`https://i.ytimg.com/vi/${m.videoId}/hqdefault.jpg`} alt={`Episódio: ${m.titulo}`} loading="lazy"
+                  className="aspect-video w-full object-cover" />
+                <div className="p-5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-700">{m.veiculo} · {m.dataTexto}</p>
+                  <h3 className="mt-2 text-lg font-bold text-neutral-900 group-hover:text-teal-700">{m.titulo}</h3>
+                  <p className="mt-2 text-sm text-neutral-600">{m.resumo}</p>
+                  <span className="mt-3 inline-block text-sm font-semibold text-teal-700">Assistir no YouTube ↗</span>
+                </div>
+              </a>
+            </li>
+          ))}
+        </ul>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@graph": NA_MIDIA.map((m) => ({
+            "@type": "VideoObject",
+            name: m.titulo,
+            description: m.resumo,
+            uploadDate: m.data,
+            thumbnailUrl: `https://i.ytimg.com/vi/${m.videoId}/hqdefault.jpg`,
+            embedUrl: `https://www.youtube-nocookie.com/embed/${m.videoId}`,
+            url: `https://www.youtube.com/watch?v=${m.videoId}`,
+            about: { "@type": "Organization", name: "Yide Digital", url: "https://yidedigital.com.br" },
+          })),
+        }) }} />
       </section>
 
       <section className="grid gap-8 rounded-[2rem] bg-neutral-950 p-8 text-white sm:p-12 lg:grid-cols-2">
