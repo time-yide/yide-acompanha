@@ -6,6 +6,8 @@ import { extrairJson } from "./gerar";
 import { semTravessao } from "../texto";
 import type { FaqItem } from "../queries";
 
+import { VOZ_EMPRESARIO } from "./voz";
+
 const BLOG_MODEL = "claude-haiku-4-5";
 
 export interface ArtigoEstrategico {
@@ -31,6 +33,8 @@ export function montarPromptEstrategico(tema: string, keywordsAlvo: string[] = [
 
 PERGUNTA (tema do artigo): ${tema}
 
+${VOZ_EMPRESARIO}
+
 ESTILO (Forbes / Exame / HBR): storytelling + estratégia + exemplos concretos. Linguagem simples e direta, sem jargão desnecessário. Sempre explique o PORQUÊ de cada recomendação. Nunca encha linguiça: cada parágrafo precisa entregar valor.
 
 ESTRUTURA:
@@ -49,7 +53,7 @@ EEAT HONESTO: escreva com a autoridade da Yide (agência de marketing e programa
 
 GEO (otimização para respostas de IA/buscadores): seja objetivo, use listas, definições claras, comparações e passo a passo. Responda a pergunta de forma direta logo no começo e detalhe depois.
 
-LINKS INTERNOS: quando fizer sentido no fluxo do texto, insira links markdown para os serviços da Yide (sem forçar): [gestão de tráfego](/servicos/gestao-de-trafego), [criação de sites](/servicos/criacao-de-sites), [redes sociais](/servicos/redes-sociais), [CRM, IA e dados](/servicos/crm-ia-dados), [audiovisual](/servicos/audiovisual).${alvoTxt}
+LINKS INTERNOS: quando fizer sentido no fluxo do texto, insira links markdown para os serviços da Yide (sem forçar): [gestão de tráfego](/servicos/gestao-de-trafego), [criação de sites](/servicos/criacao-de-sites), [redes sociais](/servicos/redes-sociais), [CRM, IA e dados](/servicos/crm-ia-dados), [audiovisual](/servicos/audiovisual), [e-commerce](/servicos/ecommerce), [Mercado Livre e marketplaces](/servicos/marketplaces), [iFood e delivery](/servicos/delivery-ifood), [assessoria de marketing](/servicos/assessoria-de-marketing), [SEO e Google](/servicos/seo-google).${alvoTxt}
 
 REGRA DE PONTUAÇÃO: NUNCA use travessão nem meia-risca ("—" ou "–") em nenhum lugar (título, resumo, corpo, meta tags, FAQ). No lugar, use vírgula, dois-pontos, ponto ou parênteses.
 

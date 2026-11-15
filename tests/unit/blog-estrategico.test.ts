@@ -112,3 +112,13 @@ describe("slugDoTema", () => {
     expect(new Set(slugs).size).toBe(slugs.length);
   });
 });
+
+describe("voz do blog", () => {
+  it("o prompt estratégico fala com o empresário", async () => {
+    const { montarPromptEstrategico } = await import("@/lib/blog/pipeline/estrategico");
+    const p = montarPromptEstrategico("Como vender mais em janeiro?");
+    expect(p).toContain("SEMPRE para o empresário");
+    expect(p).toContain("o que fazer na sua empresa nesta semana");
+    expect(p).toContain("/servicos/delivery-ifood");
+  });
+});
