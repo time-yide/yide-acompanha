@@ -46,7 +46,7 @@ export default function LyidePage() {
         thumbnailUrl: `${SITE_URL}/videos/lyide-apresentacao.jpg`,
         contentUrl: `${SITE_URL}/videos/lyide-apresentacao.mp4`,
         uploadDate: "2026-11-15",
-        duration: "PT1M9S",
+        duration: "PT1M18S",
       },
     ],
   };
