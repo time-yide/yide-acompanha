@@ -36,7 +36,7 @@ export const PAGINAS_LOCAIS: PaginaLocal[] = [
       "Medição de conversas no WhatsApp pelo CRM Lyide",
     ],
     faq: [
-      { pergunta: "Quanto custa tráfego pago em Cuiabá?", resposta: "Há duas partes: a gestão da Yide e a verba paga ao Google e à Meta. Para negócios locais da capital, é comum começar com R$ 20 a R$ 50 por dia de verba. No diagnóstico gratuito indicamos o valor para o seu caso." },
+      { pergunta: "Quanto custa tráfego pago em Cuiabá?", resposta: "Há duas partes: a gestão da Yide e a verba paga ao Google e à Meta. A gestão começa a partir de R$ 1.000. Para negócios locais da capital, é comum começar com R$ 20 a R$ 50 por dia de verba. No diagnóstico gratuito indicamos o valor para o seu caso." },
       { pergunta: "A Yide faz reunião presencial em Cuiabá?", resposta: "Sim. A sede fica no Jardim das Américas e também vamos até a sua empresa para reuniões e gravações." },
       { pergunta: "Dá para anunciar só para alguns bairros de Cuiabá?", resposta: "Sim. Dá para limitar os anúncios por bairro, por raio a partir da loja ou por região, o que costuma baixar o custo por cliente em negócios de atendimento local." },
     ],

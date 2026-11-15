@@ -12,6 +12,7 @@ import { WHATSAPP_SITE } from "@/lib/site/contato";
 import { CidadeVisitante } from "@/components/site/CidadeVisitante";
 import { paginasLocaisDoServico } from "@/lib/site/paginas-locais";
 import { cidadePorSlug } from "@/lib/site/cidades";
+import { PRECO_A_PARTIR, perguntaPreco } from "@/lib/site/preco";
 
 export const dynamic = "force-dynamic";
 
@@ -38,8 +39,9 @@ export default async function ServicoAncora({ params }: { params: Promise<{ serv
   const doCodigo = paginasLocaisDoServico(sv.slug).map((p) => ({ localidadeSlug: p.cidade, localidadeNome: cidadePorSlug(p.cidade)?.nome ?? p.cidade }));
   const paginas = [...doCodigo, ...doBanco.filter((b) => !doCodigo.some((c) => c.localidadeSlug === b.localidadeSlug))];
   const url = `${SITE_URL}/servicos/${sv.slug}`;
+  const faq = c ? [...c.faq, perguntaPreco(sv.nome)] : [];
   const jsonLd = JSON.stringify(
-    jsonLdServicoNacional({ nome: sv.nome, descricao: c?.resposta ?? sv.descricao_base, url, faq: c?.faq ?? [] }),
+    jsonLdServicoNacional({ nome: sv.nome, descricao: c?.resposta ?? sv.descricao_base, url, faq }),
   ).replace(/</g, "\\u003c");
 
   return (
@@ -67,6 +69,9 @@ export default async function ServicoAncora({ params }: { params: Promise<{ serv
             <p className="mt-6 max-w-2xl text-lg leading-relaxed text-white/75">{c?.resposta ?? sv.descricao_base}</p>
             <p className="mt-4 text-sm font-medium text-cyan-300">
               Atendemos empresas de <CidadeVisitante padrao="Cuiabá, Várzea Grande, todo o Mato Grosso e o Brasil" comCidade="{cidade} e de todo o Mato Grosso" />.
+            </p>
+            <p className="mt-2 text-sm text-white/60">
+              Planos a partir de <strong className="font-semibold text-white">{PRECO_A_PARTIR}</strong>. Verba de anúncios à parte.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <a href={WHATSAPP_SITE} target="_blank" rel="noopener noreferrer"
@@ -145,10 +150,10 @@ export default async function ServicoAncora({ params }: { params: Promise<{ serv
         </section>
       )}
 
-      {c && c.faq.length > 0 && (
+      {c && faq.length > 0 && (
         <section className="mx-auto max-w-3xl">
           <h2 className="text-3xl font-extrabold tracking-tight [font-family:var(--font-display)]">Perguntas frequentes</h2>
-          <div className="mt-6"><FaqAberto itens={c.faq} /></div>
+          <div className="mt-6"><FaqAberto itens={faq} /></div>
         </section>
       )}
 
