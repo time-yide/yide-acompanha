@@ -7,9 +7,9 @@ import { gerarTendencias } from "@/lib/blog/pipeline/tendencias";
 import { avisarBuscadores } from "@/lib/blog/indexnow";
 
 /**
- * Cron: gera e PUBLICA 3 posts de blog por dia via IA, sem revisão. Mix diário:
- * 1 notícia (RSS) + 2 estratégicos (banco de temas, GEO/EEAT); se faltar um tipo,
- * o outro completa. Claude escreve o texto original em pt-br e a capa vem do Pexels.
+ * Cron: gera e PUBLICA 3 posts de blog por dia via IA, sem revisão. Os 3 vêm do
+ * banco de temas estratégicos (perguntas de empresário, GEO/EEAT): o blog é pra atrair
+ * dono de empresa, não leitor aleatório. Notícia (RSS) só completa o dia se acabar tema. Claude escreve o texto original em pt-br e a capa vem do Pexels.
  * Os botões de gerar na tela do Blog continuam criando rascunho.
  *
  * Schedule (vercel.json): 0 10 * * * (10h UTC = 7h Cuiabá).
@@ -28,8 +28,8 @@ export async function GET(request: NextRequest) {
   const orgId = await getOrgPadraoBlog();
   if (!orgId) return NextResponse.json({ error: "sem organização" }, { status: 500 });
 
-  // Estratégico primeiro (é o que traz cliente e é citado pelas IAs); notícia completa o dia.
-  const est = await executarPipelineEstrategico(orgId, 2, true);
+  // Só temas de empresário (é o que traz cliente e é citado pelas IAs); notícia só se acabar tema.
+  const est = await executarPipelineEstrategico(orgId, BLOG_POSTS_POR_EXECUCAO, true);
   const r = await executarPipelineBlog(orgId, BLOG_POSTS_POR_EXECUCAO - est.gerados, true);
   if (r.gerados + est.gerados > 0) revalidatePath("/blog");
   await avisarBuscadores([...r.publicados, ...est.publicados]);
