@@ -11,8 +11,8 @@ export const metadata: Metadata = { title: "Serviços · Yide Digital",
   alternates: { canonical: "/servicos" } };
 
 const ICONS: LucideIcon[] = [BarChart3, Code2, Share2, Database, Video, Megaphone, Sparkles];
-// Bento: 1º card grande, 4º ocupa 2 colunas — mesmo ritmo da home.
-const SPANS = ["sm:col-span-2 sm:row-span-2", "", "", "sm:col-span-2", "", ""];
+// Bento sem row-span (card alto ficava vazio no meio): linhas alternam largo + normal, como na home.
+const SPANS = ["sm:col-span-2", "", "", "sm:col-span-2"];
 const PRACAS = ["Cuiabá", "Várzea Grande", "Salvador", "Vila Velha"];
 
 export default async function ServicosIndex() {
@@ -55,7 +55,7 @@ export default async function ServicosIndex() {
             {servicos.map((s, i) => {
               const Icon = ICONS[i % ICONS.length];
               const span = SPANS[i % SPANS.length];
-              const grande = span.includes("row-span-2");
+              const grande = span.includes("col-span-2");
               return (
                 <Reveal key={s.id} delay={(i % 3) * 80} className={span}>
                   <Link href={`/servicos/${s.slug}`}
