@@ -5,6 +5,7 @@ import { WHATSAPP_SITE } from "@/lib/site/contato";
 const LINKS = [
   { href: "/servicos", rotulo: "Serviços" },
   { href: "/cases", rotulo: "Cases" },
+  { href: "/lyide", rotulo: "Lyide" },
   { href: "/blog", rotulo: "Blog" },
   { href: "/sobre", rotulo: "Sobre" },
 ];

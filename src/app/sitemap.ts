@@ -42,6 +42,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/perguntas-frequentes`, changeFrequency: "monthly", priority: 0.6 },
     { url: `${SITE_URL}/politica-de-privacidade`, changeFrequency: "yearly", priority: 0.2 },
     { url: `${SITE_URL}/cases`, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${SITE_URL}/lyide`, changeFrequency: "monthly", priority: 0.7 },
     { url: `${SITE_URL}/blog`, changeFrequency: "daily", priority: 1 },
     ...slugsServico.map((slug) => ({ url: `${SITE_URL}/servicos/${slug}`, changeFrequency: "monthly" as const, priority: 0.7 })),
     ...paginasCidade.map((path) => ({ url: `${SITE_URL}/servicos/${path}`, changeFrequency: "monthly" as const, priority: 0.7 })),
