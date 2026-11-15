@@ -11,8 +11,8 @@ type Fbq = (...args: unknown[]) => void;
 
 /**
  * Tags de medição do site público com Modo de Consentimento do Google (LGPD): tudo começa
- * negado e só libera quando o visitante aceita no aviso de cookies. Pixel da Meta e pixel do
- * CRM só carregam com aceite. Todo clique em link de WhatsApp conta como conversão (beacon,
+ * negado e só libera quando o visitante aceita no aviso de cookies. Pixel da Meta, pixel do
+ * CRM e Microsoft Clarity só carregam com aceite. Todo clique em link de WhatsApp conta como conversão (beacon,
  * sem segurar a navegação).
  */
 export function SiteTags({ tags }: { tags: TagsSite }) {
@@ -48,6 +48,11 @@ export function SiteTags({ tags }: { tags: TagsSite }) {
       {aceito && tags.metaPixelId && (
         <Script id="meta-pixel" strategy="afterInteractive">
           {`!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','${tags.metaPixelId}');fbq('track','PageView');`}
+        </Script>
+      )}
+      {aceito && tags.clarityId && (
+        <Script id="ms-clarity" strategy="afterInteractive">
+          {`(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script",${JSON.stringify(tags.clarityId)});`}
         </Script>
       )}
       {aceito && tags.lyideCompanyId && (

@@ -1,11 +1,12 @@
 // IDs das tags de medição do site público. Google Ads tem padrão (conta Yide);
-// GA4, pixel da Meta e pixel do CRM só carregam se a variável estiver definida.
+// GA4, pixel da Meta, pixel do CRM e Clarity só carregam se a variável estiver definida.
 export interface TagsSite {
   googleAdsId: string;
   adsWhatsappSendTo: string;
   ga4Id: string | null;
   metaPixelId: string | null;
   lyideCompanyId: string | null;
+  clarityId: string | null;
 }
 
 type Env = Record<string, string | undefined>;
@@ -22,5 +23,6 @@ export function lerTags(env: Env): TagsSite {
     ga4Id: valor(env, "NEXT_PUBLIC_GA4_ID"),
     metaPixelId: valor(env, "NEXT_PUBLIC_META_PIXEL_ID"),
     lyideCompanyId: valor(env, "NEXT_PUBLIC_LYIDE_COMPANY_ID"),
+    clarityId: valor(env, "NEXT_PUBLIC_CLARITY_ID"),
   };
 }
