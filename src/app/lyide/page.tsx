@@ -21,9 +21,10 @@ const RECURSOS = [
 ];
 
 const CASES = [
-  { href: "/cases/ccr-montagens-industriais", nome: "CCR Montagens Industriais", texto: "10x de retorno no Google, medido venda por venda." },
+  { href: "/cases/porto-motos", nome: "Porto Motos", texto: "Todas as lojas no mesmo WhatsApp, cada conversa acompanhada." },
   { href: "/cases/pantanal-auto-parts", nome: "Pantanal Auto Parts", texto: "Tempo de resposta de cada vendedor, de menos de 1 minuto a 44." },
   { href: "/cases/recanto-country", nome: "Recanto Country", texto: "Duas lojas e todos os vendedores atendendo no mesmo lugar." },
+  { href: "/cases/centra-mt", nome: "Centra MT", texto: "Cada botão da bio medido: sabe quanto vende por canal." },
 ];
 
 export default function LyidePage() {
@@ -105,7 +106,7 @@ export default function LyidePage() {
 
       <section>
         <h2 className="text-3xl font-extrabold tracking-tight [font-family:var(--font-display)]">Quem já usa</h2>
-        <ul className="mt-8 grid gap-4 md:grid-cols-3">
+        <ul className="mt-8 grid gap-4 sm:grid-cols-2">
           {CASES.map((c) => (
             <li key={c.href}>
               <Link href={c.href} className="block h-full rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm transition-colors hover:border-teal-300">
