@@ -3,6 +3,8 @@ import { getAnthropicClient } from "@/lib/ai/client";
 import { semTravessao } from "../texto";
 import type { NoticiaItem } from "./rss";
 
+import { VOZ_EMPRESARIO } from "./voz";
+
 const BLOG_MODEL = "claude-haiku-4-5";
 
 export interface ArtigoGerado {
@@ -40,6 +42,10 @@ export async function gerarArtigo(noticia: NoticiaItem, keywordsAlvo: string[] =
     : "";
 
   const prompt = `Você é redator(a) da Yide Digital, uma agência de marketing e programação brasileira. A partir da notícia abaixo, escreva um artigo de blog ORIGINAL em português brasileiro para donos de pequenas e médias empresas. NÃO copie nem traduza literalmente: produza sua própria análise, com contexto e implicações práticas pro mercado brasileiro. Tom informativo e acessível.
+
+${VOZ_EMPRESARIO}
+
+ÂNGULO: a notícia é só o gancho. O artigo responde "o que isso muda na empresa de quem está lendo". Se a notícia for de tecnologia, gadget ou mercado de fora, explique a consequência prática para o empresário brasileiro (custo, cliente, venda, ferramenta que ele pode usar) e não a tecnologia em si.
 
 PRIMEIRO PARÁGRAFO: diga em até 3 frases o que aconteceu e o que isso muda pro dono de empresa, citando pelo nome o veículo que publicou a notícia.
 
