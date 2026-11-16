@@ -2,7 +2,7 @@ import type { Pergunta } from "./servicos-conteudo";
 
 // Perguntas sobre a Yide em si (as de cada serviço ficam em servicos-conteudo).
 export const FAQ_GERAL: Pergunta[] = [
-  { pergunta: "Onde fica a Yide Digital?", resposta: "A sede fica na R. Martinica, 280, Jardim das Américas, em Cuiabá, Mato Grosso." },
+  { pergunta: "Onde fica a Yide Digital?", resposta: "A sede fica na R. Martinica, 267, Jardim das Américas, em Cuiabá, Mato Grosso." },
   { pergunta: "A Yide atende empresas fora de Cuiabá?", resposta: "Sim. Atendemos Cuiabá e Várzea Grande presencialmente, todo o Mato Grosso com reuniões online e visitas programadas, e empresas de outros estados, como Salvador, de forma online." },
   { pergunta: "Qual o horário de atendimento?", resposta: "O atendimento é 24 horas, todos os dias, pelo WhatsApp (65) 99306-3452 e pelo sistema de acompanhamento da Yide." },
   { pergunta: "Como começar a trabalhar com a Yide?", resposta: "Peça um diagnóstico gratuito pelo site ou pelo WhatsApp. Avaliamos seus canais, anúncios e atendimento e indicamos o plano e a verba para o seu caso." },
