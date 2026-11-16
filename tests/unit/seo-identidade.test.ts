@@ -8,7 +8,7 @@ describe("jsonLdOrganizacao", () => {
     const ld = jsonLdOrganizacao();
     expect(ld.name).toBe("Yide Digital");
     expect(ld.telephone).toBe("+55 65 99306-3452");
-    expect(ld.address.streetAddress).toBe("R. Martinica, 280 - Jardim das Américas");
+    expect(ld.address.streetAddress).toBe("R. Martinica, 267 - Jardim das Américas");
     expect(ld.address.addressLocality).toBe("Cuiabá");
     expect(ld.address.postalCode).toBe("78060-644");
     expect(ld.sameAs).toContain("https://www.instagram.com/yide.digital/");
@@ -40,7 +40,7 @@ describe("montarLlmsTxt", () => {
     expect(txt).toContain("- [Post](https://blog.exemplo.com.br/blog/post)\n");
   });
   it("traz endereço, horário, áreas atendidas e cases", () => {
-    expect(txt).toContain("Endereço: R. Martinica, 280 - Jardim das Américas, Cuiabá - MT, 78060-644");
+    expect(txt).toContain("Endereço: R. Martinica, 267 - Jardim das Américas, Cuiabá - MT, 78060-644");
     expect(txt).toContain("WhatsApp: +55 65 99306-3452");
     expect(txt).toContain("Atendimento: 24 horas, todos os dias");
     expect(txt).toContain("Atende: Cuiabá, Várzea Grande, Mato Grosso e todo o Brasil");

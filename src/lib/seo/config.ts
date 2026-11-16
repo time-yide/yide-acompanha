@@ -48,7 +48,7 @@ export const YIDE_PERFIS = [
 
 export const YIDE_NAP = {
   nome: "Yide Digital", telefone: "+55 65 99306-3452", email: "yidedigital@gmail.com",
-  rua: "R. Martinica, 280 - Jardim das Américas", cep: "78060-644",
+  rua: "R. Martinica, 267 - Jardim das Américas", cep: "78060-644",
   cidade: "Cuiabá", uf: "MT", pais: "BR", site: "https://yidedigital.com.br",
   geo: { lat: -15.6059688, lng: -56.0671207 },
 };
