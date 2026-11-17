@@ -92,6 +92,11 @@ export function CapturaForm({ clientes, pendentes, hidePendenteSelect = false }:
   const ratingRowsRef = useRef<Record<string, HTMLDivElement | null>>({});
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    if (!clientId) {
+      e.preventDefault();
+      setClientError("Selecione o cliente.");
+      return;
+    }
     if (qtdVideos + qtdFotos < 1) {
       e.preventDefault();
       setClientError("Informe a quantidade de vídeos e/ou fotos.");
@@ -164,7 +169,7 @@ export function CapturaForm({ clientes, pendentes, hidePendenteSelect = false }:
             <SearchableSelect
               options={clientes.map((c) => ({ value: c.id, label: c.nome }))}
               value={clientId || null}
-              onChange={(v) => setClientId(v ?? "")}
+              onChange={(v) => { setClientId(v ?? ""); if (clientError) setClientError(null); }}
               placeholder="Selecione o cliente"
               emptyText="Nenhum cliente encontrado"
             />
