@@ -2,7 +2,7 @@ import {
   LayoutGrid, Users, KanbanSquare, ListChecks,
   DollarSign, Calendar, MessageSquare,
   TrendingUp, Video, Trash2, Radar, MessageCircle, Phone,
-  IdCard, BookOpen, Inbox, Layers, Zap, MapPin, Target, ShoppingCart, Images, Code2,
+  IdCard, BookOpen, Inbox, Layers, Zap, ShoppingCart, Images, Code2,
   type LucideIcon,
 } from "lucide-react";
 import type { Role } from "@/lib/auth/permissions";
@@ -68,15 +68,10 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
     id: "comercial-ligacao",
     label: "Comercial",
     items: [
-      { type: "link", href: "/batidas", icon: Target, label: "14 Batidas", roles: ["adm", "socio", "comercial", "coordenador", "assessor", "programacao"], badgeKey: null },
       { type: "link", href: "/ligacoes", icon: Phone, label: "Ligações", roles: ["adm", "socio", "comercial", "coordenador", "assessor", "programacao"], badgeKey: null },
       { type: "link", href: "/onboarding?canal=ligacao", icon: KanbanSquare, label: "Onboarding Ligação", roles: ["adm", "socio", "comercial", "assessor", "coordenador", "audiovisual_chefe", "programacao"], badgeKey: null },
       { type: "link", href: "/gerador-leads", icon: Radar, label: "Gerador de Leads", roles: ["adm", "socio", "comercial", "coordenador", "assessor", "programacao"], badgeKey: null },
       { type: "link", href: "/conversas", icon: MessageCircle, label: "Conversas", roles: ["adm", "socio", "comercial", "coordenador", "assessor", "programacao"], badgeKey: null },
-      // Sub-seção "Rua" dentro do Comercial.
-      { type: "subheader", label: "Rua" },
-      { type: "link", href: "/visitas", icon: MapPin, label: "Visitas", roles: ["adm", "socio", "comercial", "coordenador", "assessor", "programacao"], badgeKey: null },
-      { type: "link", href: "/onboarding?canal=rua", icon: KanbanSquare, label: "Onboarding Rua", roles: ["adm", "socio", "comercial", "assessor", "coordenador", "audiovisual_chefe", "programacao"], badgeKey: null },
     ],
   },
 
