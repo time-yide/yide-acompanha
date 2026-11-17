@@ -92,14 +92,15 @@ async function processarLead(
   }
 
   if (step.canal === "ligacao") {
-    if (powerDialerAtivo) {
-      return { acao: "power_dialer_pendente" };
-    }
-
     // Fora do horário de ligação o lead espera o próximo ciclo dentro da janela
     // (não pula pro WhatsApp); os passos de WPP de outros leads seguem normais.
+    // Vale também pro Power Dialer, que não tem janela própria no dispatcher.
     if (!dentroHorarioLigacao) {
       return { acao: "ligacao_fora_horario" };
+    }
+
+    if (powerDialerAtivo) {
+      return { acao: "power_dialer_pendente" };
     }
 
     if (!podeLigar) {

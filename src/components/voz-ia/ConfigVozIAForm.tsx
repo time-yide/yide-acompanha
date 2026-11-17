@@ -186,7 +186,7 @@ export function ConfigVozIAForm({ config }: Props) {
         <div className="space-y-3">
           <h3 className="text-sm font-semibold">Horário das Ligações IA</h3>
           <p className="text-xs text-muted-foreground">
-            Ligações param mais cedo que o WhatsApp — ligar tarde incomoda. Fora desse horário o motor
+            Ligações param mais cedo que o WhatsApp — ligar tarde incomoda. Permitido entre 08:00 e 20:00. Fora desse horário o motor
             não liga; o lead espera a próxima janela e os WhatsApps seguem normalmente.
           </p>
           <div className="grid grid-cols-2 gap-4">
@@ -205,6 +205,8 @@ export function ConfigVozIAForm({ config }: Props) {
                   name={campo.name}
                   type="time"
                   defaultValue={campo.value}
+                  min="08:00"
+                  max="20:00"
                   className="w-full rounded-md border bg-background px-3 py-2 text-sm"
                 />
               </div>

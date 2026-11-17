@@ -21,22 +21,29 @@ export function funcionaNoFds(categoria: string | null): boolean {
   return FDS_KEYWORDS.some((kw) => lower.includes(kw));
 }
 
-function paraMinutos(hhmm: string): number {
-  // Aceita "08:30" e "08:30:00" (colunas time do Postgres)
-  const [h, m] = hhmm.split(":").map(Number);
-  return (h || 0) * 60 + (m || 0);
+const HORARIO_RE = /^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/;
+
+/**
+ * Converte "HH:MM" ou "HH:MM:SS" (colunas time do Postgres) em minutos do dia.
+ * Valor fora do formato retorna null — quem chama decide o fallback (nunca 0).
+ */
+export function parseHorario(valor: unknown): number | null {
+  if (typeof valor !== "string") return null;
+  const m = HORARIO_RE.exec(valor.trim());
+  if (!m) return null;
+  return Number(m[1]) * 60 + Number(m[2]);
 }
 
-function dentroDaJanela(
-  now: Date,
-  semana: { inicio: string; fim: string },
-  fds: { inicio: string; fim: string },
-): boolean {
+interface Janela { inicio: number | null; fim: number | null }
+
+function dentroDaJanela(now: Date, semana: Janela, fds: Janela): boolean {
   const brt = new Date(now.getTime() - 3 * 60 * 60 * 1000);
   const minutos = brt.getUTCHours() * 60 + brt.getUTCMinutes();
   const day = brt.getUTCDay();
   const janela = day >= 1 && day <= 5 ? semana : fds;
-  return minutos >= paraMinutos(janela.inicio) && minutos < paraMinutos(janela.fim);
+  // Fail closed: janela inválida (valor malformado ou fim <= início) nunca libera.
+  if (janela.inicio === null || janela.fim === null || janela.fim <= janela.inicio) return false;
+  return minutos >= janela.inicio && minutos < janela.fim;
 }
 
 /** Janela em que o motor pode mandar WhatsApp. */
@@ -48,8 +55,8 @@ export function isHorarioComercial(now: Date, config: {
 }): boolean {
   return dentroDaJanela(
     now,
-    { inicio: config.horario_inicio, fim: config.horario_fim },
-    { inicio: config.horario_inicio_fds, fim: config.horario_fim_fds },
+    { inicio: parseHorario(config.horario_inicio), fim: parseHorario(config.horario_fim) },
+    { inicio: parseHorario(config.horario_inicio_fds), fim: parseHorario(config.horario_fim_fds) },
   );
 }
 
@@ -72,17 +79,47 @@ export function isHorarioLigacao(now: Date, config: {
   horario_fim_ligacao_fds?: string | null;
 }): boolean {
   const p = HORARIO_LIGACAO_PADRAO;
+  // Ausente ou malformado → janela padrão inteira (nunca mistura campo válido
+  // com campo do padrão, pra não alargar a janela sem querer).
+  const janela = (ini?: string | null, fim?: string | null, iniPad?: string, fimPad?: string): Janela => {
+    const i = parseHorario(ini);
+    const f = parseHorario(fim);
+    if (i === null || f === null || f <= i) return { inicio: parseHorario(iniPad), fim: parseHorario(fimPad) };
+    return { inicio: i, fim: f };
+  };
   return dentroDaJanela(
     now,
-    {
-      inicio: config.horario_inicio_ligacao || p.horario_inicio_ligacao,
-      fim: config.horario_fim_ligacao || p.horario_fim_ligacao,
-    },
-    {
-      inicio: config.horario_inicio_ligacao_fds || p.horario_inicio_ligacao_fds,
-      fim: config.horario_fim_ligacao_fds || p.horario_fim_ligacao_fds,
-    },
+    janela(config.horario_inicio_ligacao, config.horario_fim_ligacao, p.horario_inicio_ligacao, p.horario_fim_ligacao),
+    janela(config.horario_inicio_ligacao_fds, config.horario_fim_ligacao_fds, p.horario_inicio_ligacao_fds, p.horario_fim_ligacao_fds),
   );
+}
+
+/** Limites absolutos pra ligação IA (o usuário não consegue configurar fora disso). */
+export const LIGACAO_LIMITE_MIN = "08:00";
+export const LIGACAO_LIMITE_MAX = "20:00";
+
+/**
+ * Valida uma janela de horário vinda do formulário. Retorna mensagem de erro
+ * em português ou null se ok.
+ */
+export function validarJanelaHorario(
+  rotulo: string,
+  inicio: unknown,
+  fim: unknown,
+  limites?: { min: string; max: string },
+): string | null {
+  const i = parseHorario(inicio);
+  const f = parseHorario(fim);
+  if (i === null || f === null) return `${rotulo}: horário inválido (use HH:MM)`;
+  if (f <= i) return `${rotulo}: o fim precisa ser depois do início`;
+  if (limites) {
+    const min = parseHorario(limites.min)!;
+    const max = parseHorario(limites.max)!;
+    if (i < min || f > max) {
+      return `${rotulo}: precisa ficar entre ${limites.min} e ${limites.max}`;
+    }
+  }
+  return null;
 }
 
 export function isDiaUtil(now: Date): boolean {
