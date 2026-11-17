@@ -4,6 +4,8 @@ import {
   isHorarioComercial,
   isHorarioLigacao,
   parseHorario,
+  janelaLigacaoEfetiva,
+  minutosNaJanelaLigacao,
   validarJanelaHorario,
   LIGACAO_LIMITE_MIN,
   LIGACAO_LIMITE_MAX,
@@ -136,5 +138,53 @@ describe("validarJanelaHorario", () => {
   it("limita ligações a 08:00–20:00", () => {
     expect(validarJanelaHorario("Ligações IA", "07:30", "19:00", lim)).toMatch(/entre 08:00 e 20:00/);
     expect(validarJanelaHorario("Ligações IA", "09:00", "21:00", lim)).toMatch(/entre 08:00 e 20:00/);
+  });
+});
+
+describe("limite 08:00–20:00 aplicado na hora de decidir", () => {
+  it("janela salva mais larga é cortada no limite", () => {
+    const larga = { ...ligacao, horario_inicio_ligacao: "06:00", horario_fim_ligacao: "23:00" };
+    expect(isHorarioLigacao(seg("07:30"), larga)).toBe(false);
+    expect(isHorarioLigacao(seg("08:00"), larga)).toBe(true);
+    expect(isHorarioLigacao(seg("19:59"), larga)).toBe(true);
+    expect(isHorarioLigacao(seg("20:00"), larga)).toBe(false);
+    expect(isHorarioLigacao(seg("22:00"), larga)).toBe(false);
+  });
+
+  it("janela salva toda fora do limite cai na janela padrão", () => {
+    const madrugada = { ...ligacao, horario_inicio_ligacao: "01:00", horario_fim_ligacao: "05:00" };
+    expect(isHorarioLigacao(seg("02:00"), madrugada)).toBe(false);
+    expect(isHorarioLigacao(seg("10:00"), madrugada)).toBe(true);
+    expect(janelaLigacaoEfetiva("21:00", "23:00", { inicio: "08:30", fim: "19:00" })).toEqual({ inicio: 510, fim: 1140 });
+  });
+
+  it("fim de semana também respeita o limite", () => {
+    const larga = { ...ligacao, horario_inicio_ligacao_fds: "00:00", horario_fim_ligacao_fds: "23:59" };
+    expect(isHorarioLigacao(sab("03:00"), larga)).toBe(false);
+    expect(isHorarioLigacao(sab("21:00"), larga)).toBe(false);
+    expect(isHorarioLigacao(sab("12:00"), larga)).toBe(true);
+  });
+});
+
+describe("minutosNaJanelaLigacao (campanha automática)", () => {
+  const padrao = { inicio: "08:00", fim: "18:00" };
+  const m = (hh: number, mm = 0) => hh * 60 + mm;
+
+  it("compara em minutos, aceitando coluna time (HH:MM:SS)", () => {
+    expect(minutosNaJanelaLigacao(m(8), "08:00:00", "18:00:00", padrao)).toBe(true);
+    expect(minutosNaJanelaLigacao(m(17, 59), "08:00:00", "18:00:00", padrao)).toBe(true);
+    expect(minutosNaJanelaLigacao(m(18), "08:00:00", "18:00:00", padrao)).toBe(false);
+  });
+
+  it("valor malformado cai na janela padrão", () => {
+    expect(minutosNaJanelaLigacao(m(2), "lixo", "23:00", padrao)).toBe(false);
+    expect(minutosNaJanelaLigacao(m(19), "lixo", "23:00", padrao)).toBe(false);
+    expect(minutosNaJanelaLigacao(m(9), "lixo", "23:00", padrao)).toBe(true);
+  });
+
+  it("limita a 08:00–20:00 mesmo com valor salvo maior", () => {
+    expect(minutosNaJanelaLigacao(m(7), "06:00", "22:00", padrao)).toBe(false);
+    expect(minutosNaJanelaLigacao(m(19, 30), "06:00", "22:00", padrao)).toBe(true);
+    expect(minutosNaJanelaLigacao(m(21), "06:00", "22:00", padrao)).toBe(false);
   });
 });
