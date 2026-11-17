@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { isChunkLoadError, reloadForFreshVersion } from "@/lib/chunk-recovery";
+import { isChunkLoadError, reloadForFreshVersion, onAppMounted } from "@/lib/chunk-recovery";
 
 /**
  * Recupera automaticamente da "tela preta" depois de um deploy. Headless: não
@@ -15,6 +15,10 @@ import { isChunkLoadError, reloadForFreshVersion } from "@/lib/chunk-recovery";
  */
 export function ChunkErrorRecovery() {
   useEffect(() => {
+    // Limpa o `_fresh=` da URL deixado por uma recuperação anterior. (A trava
+    // de reload expira sozinha — ver onAppMounted.)
+    onAppMounted();
+
     const onError = (event: ErrorEvent) => {
       if (isChunkLoadError(event.error) || isChunkLoadError(event.message)) {
         reloadForFreshVersion();
