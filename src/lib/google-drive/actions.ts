@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { requireAuth } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getServerEnv } from "@/lib/env";
 import { notifyDriveUploadPronto } from "@/lib/notificacoes/trigger";
 import {
@@ -125,7 +126,9 @@ export async function confirmDriveUpload(input: ConfirmDriveUploadInput): Promis
     .maybeSingle();
   if (!client) return { error: "Cliente não encontrado" };
 
-  const { error } = await supabase.from("drive_uploads").insert(
+  // Sem policy de INSERT na tabela: grava com service role, só depois de
+  // validar papel, cliente (lido acima com o client da sessão, sob RLS) e URL.
+  const { error } = await createServiceRoleClient().from("drive_uploads").insert(
     files.map((f) => ({
       client_id: clientId,
       uploaded_by: user.id,

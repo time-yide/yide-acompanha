@@ -6,7 +6,7 @@ import { ExternalLink } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { SearchableSelect, type SearchableOption } from "@/components/ui/searchable-select";
 import { formatShortDateTimeBR } from "@/lib/datetime/timezone";
-import { CATEGORIAS_VIDEO } from "@/lib/google-drive/naming";
+import { CATEGORIAS_VIDEO, hrefPastaDrive } from "@/lib/google-drive/naming";
 import type { DriveUploadRecente } from "@/lib/google-drive/actions";
 import { DriveUploader, formatBytes } from "./DriveUploader";
 
@@ -58,7 +58,9 @@ export function UploadDriveView({ clients, hoje, recentes }: Props) {
         <section className="space-y-2">
           <h2 className="text-sm font-semibold">Envios recentes</h2>
           <Card className="max-h-96 divide-y overflow-y-auto">
-            {recentes.map((u) => (
+            {recentes.map((u) => {
+              const href = hrefPastaDrive(u.folder_url);
+              return (
               <div key={u.id} className="flex items-center justify-between gap-2 px-4 py-2.5 text-sm">
                 <div className="min-w-0 truncate">
                   <span className="font-medium">{u.client_nome ?? "—"}</span>
@@ -68,12 +70,15 @@ export function UploadDriveView({ clients, hoje, recentes }: Props) {
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <span className="text-xs text-muted-foreground">{formatShortDateTimeBR(u.created_at)}</span>
-                  <a href={u.folder_url} target="_blank" rel="noopener noreferrer" title="Abrir pasta no Drive" aria-label="Abrir pasta no Drive">
-                    <ExternalLink className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
-                  </a>
+                  {href && (
+                    <a href={href} target="_blank" rel="noopener noreferrer" title="Abrir pasta no Drive" aria-label="Abrir pasta no Drive">
+                      <ExternalLink className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+                    </a>
+                  )}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </Card>
         </section>
       )}

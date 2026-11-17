@@ -77,7 +77,7 @@ export const confirmDriveUploadSchema = z.object({
       z.object({
         originalName: z.string().min(1).max(500),
         driveFileName: z.string().min(1).max(200),
-        driveFileId: z.string().max(200).nullable().optional(),
+        driveFileId: z.string().regex(/^[A-Za-z0-9_-]+$/).max(200).nullable().optional(),
         sizeBytes: z.number().int().nonnegative(),
       }),
     )

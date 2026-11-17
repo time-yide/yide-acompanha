@@ -11,6 +11,7 @@ import {
   DRIVE_UPLOAD_MAX_ARQUIVOS,
   DRIVE_UPLOAD_MAX_BYTES,
   escolherLinkEntrega,
+  hrefPastaDrive,
   isArquivoVideo,
   mimeVideo,
   type CategoriaVideo,
@@ -120,7 +121,8 @@ export function DriveUploader({
       return;
     }
 
-    setPasta({ url: prep.folderUrl, caminho: prep.caminho });
+    const pastaHref = hrefPastaDrive(prep.folderUrl);
+    if (pastaHref) setPasta({ url: pastaHref, caminho: prep.caminho });
     setProgresso(prep.uploads.map((u, i) => ({ nome: lote[i].name, driveFileName: u.driveFileName, pct: 0, status: "pendente" })));
     setFase("enviando");
 

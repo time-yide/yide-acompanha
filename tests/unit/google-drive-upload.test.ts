@@ -4,6 +4,7 @@ import {
   escapeDriveQuery,
   escolherLinkEntrega,
   extensaoArquivo,
+  hrefPastaDrive,
   isArquivoVideo,
   mimeVideo,
   nomeArquivoDrive,
@@ -125,6 +126,16 @@ describe("escolherLinkEntrega", () => {
 
   it("nenhum envio → null", () => {
     expect(escolherLinkEntrega([])).toBeNull();
+  });
+});
+
+describe("hrefPastaDrive", () => {
+  it("só libera URL de pasta do Drive pra usar em href", () => {
+    expect(hrefPastaDrive("https://drive.google.com/drive/folders/abc_DEF-1")).toBe("https://drive.google.com/drive/folders/abc_DEF-1");
+    expect(hrefPastaDrive("javascript:alert(1)")).toBeNull();
+    expect(hrefPastaDrive("https://drive.google.com.evil.com/drive/folders/x")).toBeNull();
+    expect(hrefPastaDrive("https://drive.google.com/drive/folders/x?y=1")).toBeNull();
+    expect(hrefPastaDrive(null)).toBeNull();
   });
 });
 

@@ -125,6 +125,14 @@ export function driveFolderUrl(folderId: string): string {
 export const DRIVE_FOLDER_URL_RE = /^https:\/\/drive\.google\.com\/drive\/folders\/[A-Za-z0-9_-]+$/;
 
 /**
+ * Só devolve a URL se for exatamente uma pasta do Drive — pra usar em `href`
+ * sem risco de `javascript:` ou link pra outro domínio vindo do banco.
+ */
+export function hrefPastaDrive(url: string | null | undefined): string | null {
+  return typeof url === "string" && DRIVE_FOLDER_URL_RE.test(url) ? url : null;
+}
+
+/**
  * Link que vai no campo "Link do Google Drive" da entrega de captação:
  * se tudo foi pra uma categoria só, a pasta dela; se foi pra mais de uma,
  * a pasta do mês (que contém as categorias).
