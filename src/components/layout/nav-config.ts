@@ -1,7 +1,7 @@
 import {
   LayoutGrid, Users, KanbanSquare, ListChecks,
   DollarSign, Calendar, MessageSquare,
-  TrendingUp, Video, Trash2, MessagesSquare, Radar, MessageCircle, Phone,
+  TrendingUp, Video, Trash2, Radar, MessageCircle, Phone,
   IdCard, BookOpen, Inbox, Layers, Zap, MapPin, Target, ShoppingCart, Images, Code2,
   type LucideIcon,
 } from "lucide-react";
@@ -58,7 +58,6 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
     alwaysExpanded: true,
     items: [
       { type: "link", href: "/recados", icon: MessageSquare, label: "Recados", roles: "all", badgeKey: "recados" },
-      { type: "link", href: "/escritorio", icon: MessagesSquare, label: "Escritório Virtual", roles: ["adm", "socio", "coordenador", "assessor", "designer", "videomaker", "fast_midia", "editor", "audiovisual_chefe", "assessor_ecommerce", "assistente_ecommerce", "programacao", "financeiro"], badgeKey: "escritorio" },
     ],
   },
 
