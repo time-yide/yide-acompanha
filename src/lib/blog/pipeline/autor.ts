@@ -12,12 +12,24 @@ export function autorDoDia(data: Date, autores: readonly string[] = AUTORES_DO_B
   return autores[dia % autores.length];
 }
 
+/** Perfis que podem assinar artigo: só sócios e administradores da Yide. */
+const PAPEIS_AUTOR = ["socio", "adm"];
+
 /**
- * SERVER. Acha o id do perfil do autor do dia na organização. Se não achar, tenta o outro
- * nome do rodízio; se nenhum existir, devolve null (o site mostra "Equipe Yide Digital").
+ * SERVER. Acha o id do perfil do autor do dia. Prioridade:
+ * 1) BLOG_AUTOR_IDS (UUIDs separados por vírgula, na ordem do rodízio), se definido;
+ * 2) perfil de sócio/adm da organização cujo nome começa com o nome do dia, aceito só
+ *    se houver exatamente 1 resultado (nome ambíguo não assina).
+ * Sem match, devolve null (o site mostra "Equipe Yide Digital").
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function buscarAutorDoDia(sb: any, orgId: string, data = new Date()): Promise<string | null> {
+  const ids = (process.env.BLOG_AUTOR_IDS ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+  if (ids.length > 0) {
+    const id = autorDoDia(data, ids);
+    const { data: rows } = await sb.from("profiles").select("id").eq("id", id).eq("organization_id", orgId).limit(1);
+    return (rows as Array<{ id: string }> | null)?.[0]?.id ?? null;
+  }
   const primeiro = autorDoDia(data);
   const ordem = [primeiro, ...AUTORES_DO_BLOG.filter((n) => n !== primeiro)];
   for (const nome of ordem) {
@@ -25,10 +37,11 @@ export async function buscarAutorDoDia(sb: any, orgId: string, data = new Date()
       .from("profiles")
       .select("id")
       .eq("organization_id", orgId)
+      .in("role", PAPEIS_AUTOR)
       .ilike("nome", `${nome}%`)
-      .limit(1);
-    const id = (rows as Array<{ id: string }> | null)?.[0]?.id;
-    if (id) return id;
+      .limit(2);
+    const lista = (rows as Array<{ id: string }> | null) ?? [];
+    if (lista.length === 1) return lista[0].id;
   }
   return null;
 }
