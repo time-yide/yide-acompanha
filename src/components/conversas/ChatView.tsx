@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { MessageCircle, Lock, Loader2, ExternalLink } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { MessageCircle, Lock, Loader2, ExternalLink, SendHorizontal } from "lucide-react";
 import { ChatHeader } from "./ChatHeader";
 import { MessageBubble } from "./MessageBubble";
 import type { WppConversation, WppMessage } from "@/lib/conversas/types";
+import { responderConversaAction } from "@/lib/conversas/actions";
+import { janelaFechada } from "@/lib/conversas/janela";
 import { APP_TIMEZONE, getTodayDate } from "@/lib/datetime/timezone";
 
 interface Props {
@@ -64,20 +66,20 @@ export function ChatView({ conversa, initialMessages }: Props) {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
 
+  const recarregar = useCallback(async () => {
+    if (!conversa) return;
+    try {
+      const r = await fetch(`/api/conversas/messages?conversationId=${conversa.id}`);
+      if (r.ok) setMessages((await r.json()) as WppMessage[]);
+    } catch {}
+  }, [conversa?.id]);
+
   // Poll for new messages every 5s
   useEffect(() => {
     if (!conversa) return;
-    const interval = setInterval(async () => {
-      try {
-        const r = await fetch(`/api/conversas/messages?conversationId=${conversa.id}`);
-        if (r.ok) {
-          const data = await r.json();
-          setMessages(data as WppMessage[]);
-        }
-      } catch {}
-    }, 5000);
+    const interval = setInterval(recarregar, 5000);
     return () => clearInterval(interval);
-  }, [conversa?.id]);
+  }, [conversa?.id, recarregar]);
 
   if (!conversa) {
     return (
@@ -93,7 +95,7 @@ export function ChatView({ conversa, initialMessages }: Props) {
         </div>
         <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
           <Lock className="h-3 w-3" />
-          Só leitura. Para responder, abra a conversa no Lyide.
+          Responda com texto aqui. Modelos e mídia, pelo Lyide.
         </p>
       </div>
     );
@@ -131,20 +133,115 @@ export function ChatView({ conversa, initialMessages }: Props) {
         <div ref={bottomRef} />
       </div>
 
-      <div className="border-t bg-card px-3 py-2.5">
-        {conversa.lyide_url ? (
-          <a
-            href={conversa.lyide_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex w-full items-center justify-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
-          >
-            <ExternalLink className="h-4 w-4" />
-            Responder no Lyide
-          </a>
-        ) : (
-          <p className="text-center text-xs text-muted-foreground">Responda essa conversa pelo Lyide.</p>
-        )}
+      <Composer
+        conversaId={conversa.id}
+        lyideUrl={conversa.lyide_url ?? null}
+        fechada={!loading && messages.length > 0 && janelaFechada(messages)}
+        onEnviada={recarregar}
+      />
+    </div>
+  );
+}
+
+function Composer({
+  conversaId,
+  lyideUrl,
+  fechada,
+  onEnviada,
+}: {
+  conversaId: string;
+  lyideUrl: string | null;
+  fechada: boolean;
+  onEnviada: () => Promise<void>;
+}) {
+  const [texto, setTexto] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  // O Lyide pode recusar mesmo com a janela parecendo aberta aqui.
+  const [fechadaNoEnvio, setFechadaNoEnvio] = useState(false);
+  const bloqueada = fechada || fechadaNoEnvio;
+
+  const enviar = async () => {
+    const t = texto.trim();
+    if (!t || enviando || bloqueada) return;
+    setEnviando(true);
+    setErro(null);
+    try {
+      const r = await responderConversaAction(conversaId, t);
+      if (r.ok) {
+        setTexto("");
+        await onEnviada();
+      } else {
+        if (r.janelaFechada) setFechadaNoEnvio(true);
+        setErro(r.erro);
+      }
+    } catch {
+      setErro("Não foi possível enviar agora. Tente de novo.");
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  const linkLyide = lyideUrl ? (
+    <a
+      href={lyideUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-1 font-medium text-emerald-700 hover:underline dark:text-emerald-400"
+    >
+      <ExternalLink className="h-3 w-3" />
+      Abrir no Lyide
+    </a>
+  ) : null;
+
+  if (bloqueada) {
+    return (
+      <div className="border-t bg-card px-3 py-3 text-center text-xs text-muted-foreground">
+        <p>
+          Janela de 24h fechada: o cliente não escreve há mais de 24h, então só dá pra enviar modelo aprovado.
+        </p>
+        {linkLyide ? <p className="mt-1.5">{linkLyide} para enviar um modelo.</p> : null}
+      </div>
+    );
+  }
+
+  return (
+    <div className="border-t bg-card px-3 py-2.5">
+      <form
+        className="flex items-end gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void enviar();
+        }}
+      >
+        <textarea
+          value={texto}
+          onChange={(e) => setTexto(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+              e.preventDefault();
+              void enviar();
+            }
+          }}
+          rows={1}
+          maxLength={4000}
+          placeholder="Digite uma mensagem"
+          aria-label="Mensagem"
+          disabled={enviando}
+          className="max-h-32 min-h-[40px] flex-1 resize-none rounded-2xl border bg-background px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500/40 disabled:opacity-60"
+        />
+        <button
+          type="submit"
+          disabled={enviando || !texto.trim()}
+          aria-label="Enviar"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
+        >
+          {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizontal className="h-4 w-4" />}
+        </button>
+      </form>
+      <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2 px-1 text-[11px] text-muted-foreground">
+        {erro ? <span className="text-red-600 dark:text-red-400">{erro}</span> : <span>Modelos e mídia, pelo Lyide.</span>}
+        {linkLyide}
       </div>
     </div>
   );

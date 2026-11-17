@@ -5,7 +5,7 @@ import type { AutorMensagem, StatusMensagem, WppConversation, WppMessage } from 
 /**
  * Espelho das conversas do número da API (WhatsApp) da conta da agência no
  * Lyide. Lê da API externa do Lyide (/api/external/conversas), protegida por
- * Bearer. Só leitura: responder é no próprio Lyide (link "Responder no Lyide").
+ * Bearer. Responde com texto pelo POST da mesma API (modelo e mídia: no Lyide).
  *
  * Env: LYIDE_API_URL (ex.: https://app.lyide.com.br) e LYIDE_API_SECRET
  * (mesmo valor de ACOMPANHA_API_SECRET no Lyide).
@@ -144,4 +144,42 @@ export async function listarMensagensLyide(conversationId: string): Promise<Lyid
   );
   if (!r.ok) return r;
   return { ok: true, data: (r.data.mensagens ?? []).map((m) => mapMensagem(conversationId, m)) };
+}
+
+export type EnvioResultado = { ok: true } | { ok: false; erro: string; janelaFechada?: boolean };
+
+/**
+ * Responde com texto uma conversa pelo Lyide (mesmo fluxo do chat do Lyide).
+ * autorEmail: quem está logado aqui; se for usuário da empresa no Lyide, a
+ * mensagem sai no nome dele.
+ */
+export async function enviarMensagemLyide(
+  conversationId: string,
+  texto: string,
+  autorEmail: string | null,
+): Promise<EnvioResultado> {
+  const cfg = config();
+  if (!cfg) return { ok: false, erro: "Conversas ainda não conectadas ao Lyide." };
+  const path = `/api/external/conversas/${encodeURIComponent(conversationId)}/mensagens`;
+  try {
+    const r = await fetch(`${cfg.url}${path}`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${cfg.secret}`, "content-type": "application/json" },
+      body: JSON.stringify({ texto, autorEmail }),
+      cache: "no-store",
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (r.ok) return { ok: true };
+    const body = (await r.json().catch(() => null)) as { error?: string; janelaFechada?: boolean } | null;
+    console.error(`[conversas/lyide] POST ${path} -> ${r.status}`, body?.error);
+    if (r.status === 401 || r.status === 503) return { ok: false, erro: "Conexão com o Lyide não autorizada." };
+    return {
+      ok: false,
+      erro: body?.error || "Não foi possível enviar agora. Tente de novo.",
+      ...(body?.janelaFechada ? { janelaFechada: true } : {}),
+    };
+  } catch (e) {
+    console.error(`[conversas/lyide] POST ${path} falhou:`, e instanceof Error ? e.message : e);
+    return { ok: false, erro: "Não foi possível falar com o Lyide agora. Tente de novo." };
+  }
 }
