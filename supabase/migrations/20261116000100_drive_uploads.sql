@@ -8,9 +8,12 @@ create table if not exists public.drive_uploads (
   categoria text not null,
   nome_original text not null,
   nome_drive text not null,
-  drive_file_id text
+  -- ID do arquivo no Drive, conferido pela server action (files.get) antes de
+  -- gravar. Único: reenviar o mesmo "confirmar" não duplica histórico.
+  drive_file_id text not null
+    constraint drive_uploads_drive_file_id_key unique
     constraint drive_uploads_drive_file_id_check
-    check (drive_file_id is null or drive_file_id ~ '^[A-Za-z0-9_-]+$'),
+    check (drive_file_id ~ '^[A-Za-z0-9_-]+$'),
   size_bytes bigint,
   folder_url text not null
     constraint drive_uploads_folder_url_check
@@ -23,20 +26,34 @@ create index if not exists idx_drive_uploads_created on public.drive_uploads(cre
 
 alter table public.drive_uploads enable row level security;
 
--- Escopo: além do papel, só enxerga upload de cliente que o próprio
--- usuário enxerga. O subselect em clients roda sob a RLS de clients
--- ("clients select by unit"), então o histórico respeita a unidade.
--- Papéis operacionais (videomaker/fast_midia/editor) são filtrados de novo na
--- aplicação (só os próprios envios / clientes onde é o editor).
-
+-- Escopo de leitura (espelhado em escopoHistoricoDrive, src/lib/google-drive/schema.ts):
+--  - gestão (adm, socio, coordenador, assessor, audiovisual_chefe): uploads de
+--    clientes que o usuário enxerga. O subselect em clients roda sob a RLS de
+--    clients ("clients select by unit"), então respeita a unidade;
+--  - videomaker, fast_midia, editor: só linhas que ele mesmo subiu ou de
+--    cliente em que ele é o editor (e que ele enxerga);
+--  - qualquer outro papel: nada.
 create policy "drive_uploads_select" on public.drive_uploads
   for select to authenticated
   using (
-    (select role::text from public.profiles where id = auth.uid())
-    in ('adm','socio','coordenador','assessor','audiovisual_chefe','videomaker','fast_midia','editor')
-    and exists (select 1 from public.clients c where c.id = drive_uploads.client_id)
+    exists (select 1 from public.clients c where c.id = drive_uploads.client_id)
+    and (
+      (select role::text from public.profiles where id = auth.uid())
+        in ('adm','socio','coordenador','assessor','audiovisual_chefe')
+      or (
+        (select role::text from public.profiles where id = auth.uid())
+          in ('videomaker','fast_midia','editor')
+        and (
+          drive_uploads.uploaded_by = auth.uid()
+          or exists (
+            select 1 from public.clients c2
+            where c2.id = drive_uploads.client_id and c2.editor_id = auth.uid()
+          )
+        )
+      )
+    )
   );
 
--- Sem policy de INSERT: só a server action escreve (service role), depois de
--- validar o papel, o cliente (pelo client da sessão, sob a RLS de clients) e
--- o formato da URL.
+-- Sem policy de INSERT/UPDATE/DELETE: só a server action escreve (service
+-- role), com cliente/categoria/pasta tirados de um token assinado no
+-- "preparar envio" e cada arquivo conferido no Drive.

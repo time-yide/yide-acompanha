@@ -9,10 +9,12 @@ import { notifyDriveUploadPronto } from "@/lib/notificacoes/trigger";
 import {
   driveConfigurado,
   ensureFolderHierarchy,
+  getDriveFile,
   initResumableUpload,
   listFileNamesInFolder,
 } from "./client";
 import {
+  driveFolderUrl,
   mimeVideo,
   nomeArquivoDrive,
   nomePastaCategoria,
@@ -28,10 +30,18 @@ import {
   type ConfirmDriveUploadInput,
   type PrepareDriveUploadInput,
 } from "./schema";
+import {
+  DRIVE_UPLOAD_TOKEN_TTL_MS,
+  assinarSessaoUpload,
+  derivarChaveToken,
+  verificarSessaoUpload,
+} from "./token";
 
 export type PrepareDriveUploadResult =
   | { error: string }
   | {
+      /** Token assinado que o confirm exige (cliente/categoria/pasta/arquivos). */
+      token: string;
       folderUrl: string;
       mesFolderUrl: string;
       caminho: string;
@@ -46,10 +56,18 @@ async function origemDoNavegador(): Promise<string> {
   return new URL(getServerEnv().NEXT_PUBLIC_APP_URL).origin;
 }
 
+function chaveToken(): Buffer {
+  const env = getServerEnv();
+  return derivarChaveToken(env.GOOGLE_DRIVE_UPLOAD_TOKEN_SECRET ?? env.SUPABASE_SERVICE_ROLE_KEY);
+}
+
 /**
  * Prepara o envio: cria (se faltar) Cliente / Mês / Categoria no Drive e abre
  * uma sessão de upload resumável por arquivo. O navegador sobe cada vídeo
  * direto pro Google — nada do arquivo passa pelo nosso servidor.
+ *
+ * Devolve um token assinado com tudo que foi decidido aqui; o confirm só
+ * aceita esse token.
  */
 export async function prepareDriveUpload(input: PrepareDriveUploadInput): Promise<PrepareDriveUploadResult> {
   const user = await requireAuth();
@@ -58,7 +76,7 @@ export async function prepareDriveUpload(input: PrepareDriveUploadInput): Promis
 
   const parsed = prepareDriveUploadSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos" };
-  const { clientId, categoria, dataReferencia, files } = parsed.data;
+  const { clientId, categoria, dataReferencia, files, notificarEditor } = parsed.data;
 
   // Client da sessão (RLS de clients por unidade): cliente de outra unidade
   // volta null e o envio é recusado antes de mexer no Drive.
@@ -85,7 +103,7 @@ export async function prepareDriveUpload(input: PrepareDriveUploadInput): Promis
         const driveFileName = nomeArquivoDrive(inicio + i, file.name);
         const uploadUri = await initResumableUpload({
           fileName: driveFileName,
-          mimeType: mimeVideo(file.name, file.type),
+          mimeType: mimeVideo(file.name),
           folderId,
           fileSize: file.size,
           origin,
@@ -94,7 +112,22 @@ export async function prepareDriveUpload(input: PrepareDriveUploadInput): Promis
       }),
     );
 
+    const token = assinarSessaoUpload(
+      {
+        v: 1,
+        uid: user.id,
+        clientId: client.id,
+        categoria,
+        folderId,
+        notificarEditor,
+        arquivos: uploads.map((u) => ({ driveFileName: u.driveFileName, originalName: u.originalName })),
+        exp: Date.now() + DRIVE_UPLOAD_TOKEN_TTL_MS,
+      },
+      chaveToken(),
+    );
+
     return {
+      token,
       folderUrl,
       mesFolderUrl,
       caminho: `${pastaCliente} / ${pastaMes} / ${pastaCategoria}`,
@@ -109,53 +142,88 @@ export async function prepareDriveUpload(input: PrepareDriveUploadInput): Promis
 /**
  * Registra os vídeos que subiram (histórico) e, na página avulsa, avisa o
  * editor do cliente. Na entrega de captação o aviso já sai pela própria entrega.
+ *
+ * Cliente, categoria, pasta e nomes esperados vêm do token assinado no
+ * prepare. Cada arquivo é conferido no Drive (existe, nome bate e está na
+ * pasta da sessão) antes de virar linha no histórico.
  */
 export async function confirmDriveUpload(input: ConfirmDriveUploadInput): Promise<{ error?: string; count?: number }> {
   const user = await requireAuth();
   if (!podeSubirProDrive(user.role)) return { error: "Sem permissão" };
+  if (!driveConfigurado()) return { error: "Upload pro Google Drive não está configurado" };
 
   const parsed = confirmDriveUploadSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos" };
-  const { clientId, categoria, folderUrl, files, notificarEditor } = parsed.data;
+
+  const verif = verificarSessaoUpload(parsed.data.token, chaveToken(), { uid: user.id });
+  if (!verif.ok) return { error: "Sessão de envio inválida ou expirada" };
+  const sessao = verif.sessao;
+  const folderUrl = driveFolderUrl(sessao.folderId);
 
   const supabase = await createClient();
   const { data: client } = await supabase
     .from("clients")
     .select("id, nome, editor_id")
-    .eq("id", clientId)
+    .eq("id", sessao.clientId)
     .maybeSingle();
   if (!client) return { error: "Cliente não encontrado" };
 
-  // Sem policy de INSERT na tabela: grava com service role, só depois de
-  // validar papel, cliente (lido acima com o client da sessão, sob RLS) e URL.
-  const { error } = await createServiceRoleClient().from("drive_uploads").insert(
-    files.map((f) => ({
-      client_id: clientId,
-      uploaded_by: user.id,
-      categoria,
-      nome_original: f.originalName,
-      nome_drive: f.driveFileName,
-      drive_file_id: f.driveFileId ?? null,
-      size_bytes: f.sizeBytes,
-      folder_url: folderUrl,
-    })),
-  );
+  const esperados = new Map(sessao.arquivos.map((a) => [a.driveFileName, a.originalName]));
+  const vistos = new Set<string>();
+  const pedidos = parsed.data.files.filter((f) => {
+    if (!esperados.has(f.driveFileName) || vistos.has(f.driveFileName)) return false;
+    vistos.add(f.driveFileName);
+    return true;
+  });
+
+  const conferidos = (
+    await Promise.all(
+      pedidos.map(async (f) => {
+        const info = await getDriveFile(f.driveFileId);
+        if (!info || info.trashed || info.name !== f.driveFileName || !info.parents.includes(sessao.folderId)) return null;
+        return { ...f, sizeBytes: info.size };
+      }),
+    )
+  ).filter((f): f is NonNullable<typeof f> => f !== null);
+
+  if (conferidos.length === 0) return { error: "Nenhum arquivo conferido no Drive" };
+
+  // Sem policy de INSERT na tabela: grava com service role, só com dados
+  // derivados do token + conferidos no Drive. drive_file_id é único, então
+  // reenviar o mesmo confirm não duplica histórico nem notificação.
+  const { data: inseridos, error } = await createServiceRoleClient()
+    .from("drive_uploads")
+    .upsert(
+      conferidos.map((f) => ({
+        client_id: client.id,
+        uploaded_by: user.id,
+        categoria: sessao.categoria,
+        nome_original: esperados.get(f.driveFileName) ?? f.driveFileName,
+        nome_drive: f.driveFileName,
+        drive_file_id: f.driveFileId,
+        size_bytes: f.sizeBytes,
+        folder_url: folderUrl,
+      })),
+      { onConflict: "drive_file_id", ignoreDuplicates: true },
+    )
+    .select("id");
   // Histórico é secundário: os vídeos já estão no Drive. Não trava o fluxo.
   if (error) console.error("[google-drive/confirm] insert drive_uploads:", error.message);
+  const novos = inseridos?.length ?? 0;
 
-  if (notificarEditor && client.editor_id) {
+  if (sessao.notificarEditor && client.editor_id && novos > 0) {
     await notifyDriveUploadPronto({
       editorId: client.editor_id,
       uploaderId: user.id,
       uploaderName: user.nome,
       clientName: client.nome,
-      categoria: nomePastaCategoria(categoria),
-      fileCount: files.length,
+      categoria: nomePastaCategoria(sessao.categoria),
+      fileCount: novos,
       folderUrl,
     }).catch(() => {});
   }
 
-  return { count: files.length };
+  return { count: conferidos.length };
 }
 
 export interface DriveUploadRecente {
@@ -172,8 +240,8 @@ export interface DriveUploadRecente {
 
 /**
  * Últimos envios (histórico da página avulsa). Lê com o client da sessão (RLS:
- * só clientes visíveis pro usuário, ou seja, da unidade dele) e restringe
- * videomaker/fast_midia/editor aos próprios envios. Vazio se a tabela não existir.
+ * gestão vê clientes visíveis/unidade; demais, só os próprios envios ou de
+ * clientes onde é o editor). Vazio se a tabela não existir.
  */
 export async function listRecentDriveUploads(limit = 30): Promise<DriveUploadRecente[]> {
   const user = await requireAuth();
@@ -188,11 +256,9 @@ export async function listRecentDriveUploads(limit = 30): Promise<DriveUploadRec
     .limit(Math.min(Math.max(limit, 1), 100));
 
   if (escopo.tipo === "proprios") {
-    let clientIds: string[] = [];
-    if (escopo.incluiClientesDoEditor) {
-      const { data: meus } = await supabase.from("clients").select("id").eq("editor_id", escopo.userId);
-      clientIds = (meus ?? []).map((c) => c.id);
-    }
+    // Redundante com a policy (que já filtra), mantido em sincronia com ela.
+    const { data: meus } = await supabase.from("clients").select("id").eq("editor_id", escopo.userId);
+    const clientIds = (meus ?? []).map((c) => c.id);
     query = clientIds.length > 0
       ? query.or(`uploaded_by.eq.${escopo.userId},client_id.in.(${clientIds.join(",")})`)
       : query.eq("uploaded_by", escopo.userId);

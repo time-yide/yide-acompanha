@@ -93,6 +93,10 @@ const serverSchema = z.object({
   GOOGLE_DRIVE_OAUTH_CLIENT_ID: z.string().optional(),
   GOOGLE_DRIVE_OAUTH_CLIENT_SECRET: z.string().optional(),
   GOOGLE_DRIVE_OAUTH_REFRESH_TOKEN: z.string().optional(),
+  // Segredo do HMAC que amarra o "preparar envio" ao "confirmar envio".
+  // Opcional: sem ele, a chave é derivada do SUPABASE_SERVICE_ROLE_KEY.
+  // Gere com: openssl rand -hex 32
+  GOOGLE_DRIVE_UPLOAD_TOKEN_SECRET: z.string().min(32).optional(),
 });
 
 const clientSchema = z.object({

@@ -112,7 +112,8 @@ export function DriveUploader({
       clientId,
       categoria,
       dataReferencia,
-      files: lote.map((f) => ({ name: f.name, size: f.size, type: mimeVideo(f.name, f.type) })),
+      notificarEditor,
+      files: lote.map((f) => ({ name: f.name, size: f.size, type: f.type })),
     }).catch(() => ({ error: "Falha de conexão ao preparar o envio" }));
 
     if ("error" in prep) {
@@ -143,14 +144,11 @@ export function DriveUploader({
       }
     }
 
+    const paraConfirmar = concluidos.flatMap((c) => (c.driveFileId ? [{ driveFileName: c.driveFileName, driveFileId: c.driveFileId }] : []));
+    if (paraConfirmar.length > 0) {
+      await confirmDriveUpload({ token: prep.token, files: paraConfirmar }).catch(() => undefined);
+    }
     if (concluidos.length > 0) {
-      await confirmDriveUpload({
-        clientId,
-        categoria,
-        folderUrl: prep.folderUrl,
-        notificarEditor,
-        files: concluidos,
-      }).catch(() => undefined);
       envios.current.push({ folderUrl: prep.folderUrl, mesFolderUrl: prep.mesFolderUrl });
       const link = escolherLinkEntrega(envios.current);
       if (link) onConcluido?.({ linkEntrega: link, enviados: concluidos.length });
@@ -292,7 +290,7 @@ function putComProgresso(uploadUri: string, file: File, onProgress: (pct: number
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open("PUT", uploadUri, true);
-    xhr.setRequestHeader("Content-Type", mimeVideo(file.name, file.type));
+    xhr.setRequestHeader("Content-Type", mimeVideo(file.name));
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable) onProgress(Math.min(99, Math.round((e.loaded / e.total) * 100)));
     };

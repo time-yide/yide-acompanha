@@ -210,3 +210,33 @@ export async function initResumableUpload(args: {
   if (!uploadUri) throw new Error("DRIVE_RESUMABLE_SEM_URI");
   return uploadUri;
 }
+
+// ─── Conferência pós-upload ─────────────────────────────────────────────────
+
+export interface DriveFileInfo {
+  id: string;
+  name: string;
+  parents: string[];
+  size: number | null;
+  trashed: boolean;
+}
+
+/** Metadados de um arquivo (null se não existir / sem acesso). */
+export async function getDriveFile(fileId: string): Promise<DriveFileInfo | null> {
+  if (!/^[A-Za-z0-9_-]+$/.test(fileId)) return null;
+  try {
+    const f = await driveJson<{ id: string; name: string; parents?: string[]; size?: string; trashed?: boolean }>(
+      `/files/${fileId}`,
+      { query: { fields: "id,name,parents,size,trashed" } },
+    );
+    return {
+      id: f.id,
+      name: f.name,
+      parents: f.parents ?? [],
+      size: f.size ? Number(f.size) : null,
+      trashed: !!f.trashed,
+    };
+  } catch {
+    return null;
+  }
+}

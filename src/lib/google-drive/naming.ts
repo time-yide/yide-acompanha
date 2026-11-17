@@ -62,32 +62,56 @@ export function escapeDriveQuery(value: string): string {
   return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 }
 
-const VIDEO_EXTENSOES = ["mp4", "mov", "avi", "mkv", "webm", "m4v", "mpg", "mpeg", "mts", "m2ts", "3gp"] as const;
+/** Extensões aceitas → MIME enviado pro Drive (allowlist). */
+const VIDEO_MIME_POR_EXTENSAO = {
+  mp4: "video/mp4",
+  m4v: "video/x-m4v",
+  mov: "video/quicktime",
+  avi: "video/x-msvideo",
+  mkv: "video/x-matroska",
+  webm: "video/webm",
+  mpg: "video/mpeg",
+  mpeg: "video/mpeg",
+  mts: "video/mp2t",
+  m2ts: "video/mp2t",
+  "3gp": "video/3gpp",
+} as const;
 
-/** Extensão em minúsculas (sem ponto); "mp4" quando não dá pra saber. */
-export function extensaoArquivo(nome: string): string {
+type ExtensaoVideo = keyof typeof VIDEO_MIME_POR_EXTENSAO;
+
+export const VIDEO_EXTENSOES = Object.keys(VIDEO_MIME_POR_EXTENSAO) as ExtensaoVideo[];
+
+function extensaoBruta(nome: string): string | null {
   const m = /\.([A-Za-z0-9]{1,5})$/.exec(nome.trim());
-  return m ? m[1].toLowerCase() : "mp4";
+  return m ? m[1].toLowerCase() : null;
 }
 
-/** Aceita pelo MIME `video/*` ou, se o navegador não informou, pela extensão. */
+function isExtensaoVideo(ext: string | null): ext is ExtensaoVideo {
+  return ext !== null && Object.prototype.hasOwnProperty.call(VIDEO_MIME_POR_EXTENSAO, ext);
+}
+
+/**
+ * Extensão canônica (da allowlist) pro nome no Drive; "mp4" quando o arquivo
+ * não tem extensão de vídeo conhecida. Nunca repassa extensão arbitrária.
+ */
+export function extensaoArquivo(nome: string): ExtensaoVideo {
+  const ext = extensaoBruta(nome);
+  return isExtensaoVideo(ext) ? ext : "mp4";
+}
+
+/**
+ * Só aceita arquivo com extensão de vídeo da allowlist. O MIME do navegador,
+ * se vier, tem que ser `video/*` (ou vazio/octet-stream, comum em .mts/.mkv).
+ */
 export function isArquivoVideo(nome: string, mime: string | null | undefined): boolean {
-  if (mime && mime.startsWith("video/")) return true;
-  if (mime && mime !== "application/octet-stream") return false;
-  const m = /\.([A-Za-z0-9]{1,5})$/.exec(nome.trim());
-  return !!m && (VIDEO_EXTENSOES as readonly string[]).includes(m[1].toLowerCase());
+  if (!isExtensaoVideo(extensaoBruta(nome))) return false;
+  if (!mime || mime === "application/octet-stream") return true;
+  return mime.startsWith("video/");
 }
 
-/** MIME a mandar pro Drive: o do navegador ou um palpite pela extensão. */
-export function mimeVideo(nome: string, mime: string | null | undefined): string {
-  if (mime && mime.startsWith("video/")) return mime;
-  const ext = extensaoArquivo(nome);
-  const porExt: Record<string, string> = {
-    mp4: "video/mp4", m4v: "video/x-m4v", mov: "video/quicktime", avi: "video/x-msvideo",
-    mkv: "video/x-matroska", webm: "video/webm", mpg: "video/mpeg", mpeg: "video/mpeg",
-    mts: "video/mp2t", m2ts: "video/mp2t", "3gp": "video/3gpp",
-  };
-  return porExt[ext] ?? "video/mp4";
+/** MIME enviado pro Drive: sempre o da allowlist pela extensão (ignora o do navegador). */
+export function mimeVideo(nome: string): string {
+  return VIDEO_MIME_POR_EXTENSAO[extensaoArquivo(nome)];
 }
 
 export const DRIVE_UPLOAD_MAX_BYTES = 10 * 1024 * 1024 * 1024; // 10 GB por arquivo

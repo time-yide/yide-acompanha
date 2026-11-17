@@ -1163,7 +1163,7 @@ export type Database = {
           categoria: string
           client_id: string
           created_at: string
-          drive_file_id: string | null
+          drive_file_id: string
           folder_url: string
           id: string
           nome_drive: string
@@ -1175,7 +1175,7 @@ export type Database = {
           categoria: string
           client_id: string
           created_at?: string
-          drive_file_id?: string | null
+          drive_file_id: string
           folder_url: string
           id?: string
           nome_drive: string
@@ -1187,7 +1187,7 @@ export type Database = {
           categoria?: string
           client_id?: string
           created_at?: string
-          drive_file_id?: string | null
+          drive_file_id?: string
           folder_url?: string
           id?: string
           nome_drive?: string

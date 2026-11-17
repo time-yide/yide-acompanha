@@ -2,7 +2,6 @@ import { z } from "zod";
 import type { Role } from "@/lib/auth/permissions";
 import {
   CATEGORIA_VALUES,
-  DRIVE_FOLDER_URL_RE,
   DRIVE_UPLOAD_MAX_ARQUIVOS,
   DRIVE_UPLOAD_MAX_BYTES,
   isArquivoVideo,
@@ -19,22 +18,26 @@ export function podeSubirProDrive(role: Role): boolean {
 }
 
 /** Papéis que veem o histórico de envios de todos (dentro da unidade, via RLS). */
-const ROLES_HISTORICO_GERAL: readonly Role[] = ["adm", "socio", "coordenador", "assessor", "audiovisual_chefe"];
+export const ROLES_HISTORICO_GERAL: readonly Role[] = ["adm", "socio", "coordenador", "assessor", "audiovisual_chefe"];
 
 export type EscopoHistoricoDrive =
   | { tipo: "nenhum" }
   | { tipo: "todos" }
-  /** Só o que o usuário subiu + (editor) envios de clientes onde ele é o editor. */
-  | { tipo: "proprios"; userId: string; incluiClientesDoEditor: boolean };
+  /** Só o que o usuário subiu + envios de clientes onde ele é o editor. */
+  | { tipo: "proprios"; userId: string };
 
 /**
- * Escopo do histórico de /audiovisual/upload-drive. A RLS já limita à unidade
- * (clientes visíveis); isto restringe os papéis operacionais aos próprios envios.
+ * Escopo do histórico de /audiovisual/upload-drive. ESPELHA a policy
+ * "drive_uploads_select" da migration 20261116000100 — mudou um, muda o outro:
+ *  - gestão (adm, socio, coordenador, assessor, audiovisual_chefe): uploads de
+ *    clientes que enxerga (RLS de clients por unidade);
+ *  - demais papéis com acesso: só linhas com uploaded_by = ele OU cliente cujo
+ *    editor_id = ele.
  */
 export function escopoHistoricoDrive(role: Role, userId: string): EscopoHistoricoDrive {
   if (!podeSubirProDrive(role)) return { tipo: "nenhum" };
   if (ROLES_HISTORICO_GERAL.includes(role)) return { tipo: "todos" };
-  return { tipo: "proprios", userId, incluiClientesDoEditor: role === "editor" };
+  return { tipo: "proprios", userId };
 }
 
 const dataIso = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida");
@@ -44,6 +47,8 @@ export const prepareDriveUploadSchema = z.object({
   categoria: z.enum(CATEGORIA_VALUES, { error: "Categoria inválida" }),
   /** Data de referência da pasta do mês (ex.: data da captação). */
   dataReferencia: dataIso,
+  /** Página avulsa: avisa o editor do próprio cliente (vai assinado no token). */
+  notificarEditor: z.boolean().default(false),
   files: z
     .array(
       z
@@ -67,18 +72,13 @@ export const prepareDriveUploadSchema = z.object({
 export type PrepareDriveUploadInput = z.input<typeof prepareDriveUploadSchema>;
 
 export const confirmDriveUploadSchema = z.object({
-  clientId: z.string().uuid(),
-  categoria: z.enum(CATEGORIA_VALUES),
-  folderUrl: z.string().regex(DRIVE_FOLDER_URL_RE, "URL de pasta do Drive inválida"),
-  /** true na página avulsa: avisa o editor do cliente que tem vídeo novo. */
-  notificarEditor: z.boolean().default(false),
+  /** Token assinado devolvido pelo prepare — cliente, categoria e pasta vêm dele. */
+  token: z.string().min(10).max(20_000),
   files: z
     .array(
       z.object({
-        originalName: z.string().min(1).max(500),
         driveFileName: z.string().min(1).max(200),
-        driveFileId: z.string().regex(/^[A-Za-z0-9_-]+$/).max(200).nullable().optional(),
-        sizeBytes: z.number().int().nonnegative(),
+        driveFileId: z.string().regex(/^[A-Za-z0-9_-]+$/, "ID de arquivo inválido").max(200),
       }),
     )
     .min(1)
