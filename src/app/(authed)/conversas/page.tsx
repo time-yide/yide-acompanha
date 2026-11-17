@@ -46,7 +46,7 @@ export default async function ConversasPage({
       : null;
 
   return (
-    <div className="-m-3 md:-m-6 flex h-[calc(100dvh-56px)] flex-col">
+    <div className="-m-3 md:-mx-6 md:-mt-6 md:-mb-3 flex h-[calc(100dvh-56px)] flex-col">
       {aviso && (
         <div className="flex items-center justify-center gap-2 border-b bg-amber-500/10 px-4 py-1.5 text-[11px] text-amber-700 dark:text-amber-300">
           <span>{aviso}</span>
