@@ -32,6 +32,7 @@ import { roleParaSetor } from "./setor-metricas";
 const DESIGN_STATUS_APROVADA = ["aprovado", "agendado", "publicado"];
 import {
   aggregateEntregaMaterial,
+  montarLinhasEntregaMaterial,
   type EntregaMaterialStats,
   type EntregueInput,
   type PendenteInput,
@@ -772,7 +773,6 @@ export async function getEntregaMaterialStats(
       .filter((id): id is string => id !== null),
   );
   const profiles = (profilesData ?? []) as Array<{ id: string; nome: string; role: string }>;
-  const profileById = new Map(profiles.map((p) => [p.id, p]));
 
   // Precisa do fim da gravação das capturas entregues (a captura só guarda a
   // data, não o horário) — busca os eventos por id.
@@ -805,27 +805,8 @@ export async function getEntregaMaterialStats(
 
   const statsByUser = aggregateEntregaMaterial(entreguesInput, pendentesInput, now);
 
-  const rows: EntregaMaterialUserRow[] = [];
-  for (const [user_id, stats] of statsByUser) {
-    const prof = profileById.get(user_id);
-    // Pula quem não é mais perfil ativo (removido/inativo) — não mostra
-    // linha "(usuário removido)" na tabela de entrega de material.
-    if (!prof) continue;
-    rows.push({
-      user_id,
-      nome: prof.nome,
-      role: prof.role,
-      ...stats,
-    });
-  }
-  // Pendentes mais críticas primeiro, depois quem entregou mais.
-  rows.sort(
-    (a, b) =>
-      b.pendentes - a.pendentes ||
-      (b.pendente_mais_antiga_seg ?? 0) - (a.pendente_mais_antiga_seg ?? 0) ||
-      b.entregues - a.entregues,
-  );
-  return rows;
+  // Time de captura inteiro (mesmo zerado) + quem teve entrega/pendência.
+  return montarLinhasEntregaMaterial(statsByUser, profiles);
 }
 
 export interface RecentEventRow {

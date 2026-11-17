@@ -24,8 +24,9 @@ function Valor({ seg }: { seg: number | null }) {
 
 /**
  * "Tempo pra entregar" material de gravação, por pessoa: quanto levou entre o
- * FIM da gravação e subir o material no Drive. Só aparece pra quem teve
- * entrega ou pendência no período.
+ * FIM da gravação e subir o material no Drive. Lista sempre o time de captura
+ * inteiro (videomaker/fast_midia, mesmo zerado) + quem mais teve entrega ou
+ * pendência no período.
  */
 export function EntregaMaterialSection({ rows }: Props) {
   if (rows.length === 0) return null;
