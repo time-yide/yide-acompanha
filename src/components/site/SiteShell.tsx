@@ -1,4 +1,3 @@
-import { Analytics } from "@vercel/analytics/next";
 import { display, sans } from "@/fonts";
 import { JsonLdOrganizacao } from "@/components/seo/JsonLdOrganizacao";
 import { lerTags } from "@/lib/site/tags";
@@ -7,6 +6,7 @@ import { SiteFooter } from "./SiteFooter";
 import { SiteTags } from "./SiteTags";
 import { WhatsAppFlutuante } from "./WhatsAppFlutuante";
 import { AvisoCookies } from "./AvisoCookies";
+import { ContadorVisitas } from "./ContadorVisitas";
 
 /** Moldura única das páginas públicas: cabeçalho, rodapé, WhatsApp, tags, JSON-LD e contador de visitas sem cookie. */
 export function SiteShell({ children, conteudoLargo = false }: { children: React.ReactNode; conteudoLargo?: boolean }) {
@@ -20,8 +20,7 @@ export function SiteShell({ children, conteudoLargo = false }: { children: React
       <SiteFooter />
       <WhatsAppFlutuante />
       <AvisoCookies />
-      {/* Contagem de visitas sem cookie (Vercel Web Analytics): não depende do aviso de cookies. */}
-      <Analytics />
+      <ContadorVisitas />
     </div>
   );
 }
