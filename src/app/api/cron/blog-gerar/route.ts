@@ -1,13 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { revalidatePath } from "next/cache";
 import { getOrgPadraoBlog } from "@/lib/blog/queries";
-import { executarPipelineBlog, BLOG_POSTS_POR_EXECUCAO } from "@/lib/blog/pipeline/executar";
+import { executarPipelineBlog } from "@/lib/blog/pipeline/executar";
 import { executarPipelineEstrategico } from "@/lib/blog/pipeline/executar-estrategico";
 import { gerarTendencias } from "@/lib/blog/pipeline/tendencias";
 import { avisarBuscadores } from "@/lib/blog/indexnow";
 
 /**
- * Cron: gera e PUBLICA 3 posts de blog por dia via IA, sem revisão. Os 3 vêm do
+ * Cron: gera e PUBLICA 1 post de blog por dia via IA, sem revisão (era 3: volume alto
+ * de texto gerado arrisca a política de conteúdo em escala do Google). O post vem do
  * banco de temas estratégicos (perguntas de empresário, GEO/EEAT): o blog é pra atrair
  * dono de empresa, não leitor aleatório. Notícia (RSS) só completa o dia se acabar tema. Claude escreve o texto original em pt-br e a capa vem do Pexels.
  * Os botões de gerar na tela do Blog continuam criando rascunho.
@@ -17,6 +18,9 @@ import { avisarBuscadores } from "@/lib/blog/indexnow";
  */
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
+
+/** Quantos artigos o cron publica por dia. */
+const BLOG_POSTS_CRON_POR_DIA = 1;
 
 export async function GET(request: NextRequest) {
   const auth = request.headers.get("authorization");
@@ -29,8 +33,8 @@ export async function GET(request: NextRequest) {
   if (!orgId) return NextResponse.json({ error: "sem organização" }, { status: 500 });
 
   // Só temas de empresário (é o que traz cliente e é citado pelas IAs); notícia só se acabar tema.
-  const est = await executarPipelineEstrategico(orgId, BLOG_POSTS_POR_EXECUCAO, true);
-  const r = await executarPipelineBlog(orgId, BLOG_POSTS_POR_EXECUCAO - est.gerados, true);
+  const est = await executarPipelineEstrategico(orgId, BLOG_POSTS_CRON_POR_DIA, true);
+  const r = await executarPipelineBlog(orgId, BLOG_POSTS_CRON_POR_DIA - est.gerados, true);
   if (r.gerados + est.gerados > 0) revalidatePath("/blog");
   await avisarBuscadores([...r.publicados, ...est.publicados]);
   // Atualiza o ranking de "Assuntos em alta" (best-effort; não derruba o cron).
