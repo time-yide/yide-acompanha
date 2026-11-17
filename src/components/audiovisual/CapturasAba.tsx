@@ -19,6 +19,8 @@ interface Props {
   clientes: Array<{ id: string; nome: string }>;
   capturas: CapturaRow[];
   editores: Array<{ id: string; nome: string; role?: string }>;
+  /** Upload pro Google Drive configurado (mostra o envio direto no form). */
+  driveUploadEnabled?: boolean;
 }
 
 export function CapturasAba({
@@ -30,6 +32,7 @@ export function CapturasAba({
   clientes,
   capturas,
   editores,
+  driveUploadEnabled = false,
 }: Props) {
   return (
     <div className="space-y-6">
@@ -63,8 +66,8 @@ export function CapturasAba({
 
       {canUpload && (
         isVideomaker
-          ? <CapturaForm clientes={clientes} pendentes={pendentes} />
-          : <CollapsibleCapturaForm clientes={clientes} pendentes={pendentes} />
+          ? <CapturaForm clientes={clientes} pendentes={pendentes} driveUploadEnabled={driveUploadEnabled} />
+          : <CollapsibleCapturaForm clientes={clientes} pendentes={pendentes} driveUploadEnabled={driveUploadEnabled} />
       )}
 
       <section className="space-y-4">
