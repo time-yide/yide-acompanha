@@ -5,6 +5,7 @@ import {
   DEFAULT_WPP_SYSTEM_PROMPT,
 } from "./conversa-ia-types";
 import type { ConversaIAContext } from "./conversa-ia-types";
+import { perfilPublico } from "./primeira-mensagem";
 import {
   handleAgendarReuniao,
   handleMarcarSemInteresse,
@@ -102,6 +103,11 @@ export async function buildConversaContext(
     if (lead) {
       const parts = [`Empresa: ${lead.empresa}`];
       if (lead.categoria) parts.push(`Categoria: ${lead.categoria}`);
+      parts.push(
+        perfilPublico(lead.categoria) === "b2b"
+          ? "Perfil: INDÚSTRIA / B2B (use linguagem B2B)"
+          : "Perfil: COMÉRCIO / SERVIÇO LOCAL (use linguagem local)",
+      );
       if (lead.cidade)
         parts.push(
           `Cidade: ${lead.cidade}${lead.estado ? `-${lead.estado}` : ""}`,

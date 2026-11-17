@@ -1,9 +1,10 @@
 import "server-only";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getServerEnv } from "@/lib/env";
-import { isHorarioComercial } from "./categorias";
+import { isHorarioComercial, isHorarioLigacao } from "./categorias";
 import { selecionarLeads, contarWppEnviadosHoje, getOrgsComMotorAtivo } from "./selecao";
 import { gerarMensagemPrimeiroContato } from "./gerar-mensagem";
+import { ehPrimeiraMensagem, montarPrimeiraMensagemCasual } from "./primeira-mensagem";
 import { getStepsDaCadencia, calcularStepAtual, seedCadenciaPadrao } from "./cadencia";
 import { normalizeTelefone } from "@/lib/dispatch/render-template";
 import { dispararLigacaoIA, contarLigacoesHoje } from "@/lib/voz-ia/ligacao-automatica";
@@ -71,6 +72,7 @@ async function processarLead(
   podeLigar: boolean,
   podeWpp: boolean,
   powerDialerAtivo: boolean,
+  dentroHorarioLigacao: boolean,
 ): Promise<{ acao: string; erro?: string }> {
   // Check cadência step
   await seedCadenciaPadrao(config.id);
@@ -92,6 +94,12 @@ async function processarLead(
   if (step.canal === "ligacao") {
     if (powerDialerAtivo) {
       return { acao: "power_dialer_pendente" };
+    }
+
+    // Fora do horário de ligação o lead espera o próximo ciclo dentro da janela
+    // (não pula pro WhatsApp); os passos de WPP de outros leads seguem normais.
+    if (!dentroHorarioLigacao) {
+      return { acao: "ligacao_fora_horario" };
     }
 
     if (!podeLigar) {
@@ -167,7 +175,11 @@ async function processarLead(
     promptOverride = `Você é da Yide Digital. Esta é a ÚLTIMA tentativa de contato com esse lead. Mande uma mensagem final, curta e respeitosa. Diga que é a última mensagem e que está à disposição se mudar de ideia. Máximo 2 linhas.`;
   }
 
-  const msgResult = await gerarMensagemPrimeiroContato(lead, promptOverride);
+  // Primeiro contato sem prompt customizado: só um "oi, tudo bem?" casual.
+  // A IA conversacional se apresenta quando a pessoa responder.
+  const msgResult = ehPrimeiraMensagem(step.template_tipo, lead.ai_tentativas) && !promptOverride?.trim()
+    ? { mensagem: montarPrimeiraMensagemCasual(lead.id) }
+    : await gerarMensagemPrimeiroContato(lead, promptOverride);
   if ("error" in msgResult) return { acao: "erro", erro: msgResult.error };
 
   const convId = await findOrCreateConversation(
@@ -264,6 +276,7 @@ export async function executarMotor(): Promise<MotorGlobalResult> {
     const ligacoesHoje = await contarLigacoesHoje(orgId);
     const maxLigacoes = config.max_chamadas_dia ?? 30;
     let ligacoesRestantes = Math.max(0, maxLigacoes - ligacoesHoje);
+    const dentroHorarioLigacao = isHorarioLigacao(now, config);
 
     if (wppRestante === 0 && ligacoesRestantes === 0) continue;
 
@@ -285,7 +298,7 @@ export async function executarMotor(): Promise<MotorGlobalResult> {
       orgResult.processados++;
       const podeWpp = (wppRestante - wppEnviadosNoBatch) > 0;
       try {
-        const res = await processarLead(orgId, lead, config, statusUrl, ligacoesRestantes > 0, podeWpp, !!config.power_dialer_ativo);
+        const res = await processarLead(orgId, lead, config, statusUrl, ligacoesRestantes > 0, podeWpp, !!config.power_dialer_ativo, dentroHorarioLigacao);
         if (res.acao === "wpp_primeiro_contato") {
           orgResult.wppEnviados++;
           wppEnviadosNoBatch++;
