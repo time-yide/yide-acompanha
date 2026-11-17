@@ -1,7 +1,14 @@
 // Palavras-chave-alvo pra SEO local — a IA tece essas frases naturalmente nos posts
 // e nas meta tags. Edite CIDADES/TEMPLATES à vontade pra mirar novas praças/serviços.
 
-export const CIDADES = ["Cuiabá", "Várzea Grande", "Salvador", "Vila Velha"];
+/** Praças com equipe presencial da Yide: aparecem na maior parte das keywords. */
+export const CIDADES = ["Cuiabá", "Várzea Grande", "Salvador", "Vitória", "Vila Velha"];
+
+/** Outras cidades do Brasil, atendidas online: entram de vez em quando para ampliar o alcance. */
+export const CIDADES_BRASIL = [
+  "São Paulo", "Rio de Janeiro", "Belo Horizonte", "Brasília", "Goiânia", "Campo Grande",
+  "Curitiba", "Porto Alegre", "Recife", "Fortaleza", "Florianópolis", "Rondonópolis", "Sinop",
+];
 
 // {cidade} é substituído pelas CIDADES. Marketing + programação (serviços da Yide).
 export const TEMPLATES_LOCAIS = [
@@ -34,11 +41,33 @@ export function frasesLocais(): string[] {
   return out;
 }
 
-/** Escolhe N keywords-alvo pra um post (mistura local + geral), variando a cada geração. */
-export function selecionarKeywordsAlvo(n = 4): string[] {
+/**
+ * Escolhe N keywords-alvo pra um post (mistura local + geral), variando a cada geração.
+ * As frases locais vêm das praças com equipe presencial; com `aleatorio() < 0.3`, uma
+ * delas troca por uma cidade de fora (atendida online).
+ */
+export function selecionarKeywordsAlvo(n = 4, aleatorio: () => number = Math.random): string[] {
   const locais = frasesLocais();
-  const embaralhadas = [...locais].sort(() => Math.random() - 0.5);
-  const geral = KEYWORDS_GERAIS[Math.floor(Math.random() * KEYWORDS_GERAIS.length)];
+  const embaralhadas = [...locais].sort(() => aleatorio() - 0.5);
+  const geral = KEYWORDS_GERAIS[Math.floor(aleatorio() * KEYWORDS_GERAIS.length)];
   const nLocais = Math.max(1, n - 1);
-  return [...embaralhadas.slice(0, nLocais), geral];
+  const escolhidas = embaralhadas.slice(0, nLocais);
+  if (nLocais > 1 && aleatorio() < 0.3) {
+    const cidade = CIDADES_BRASIL[Math.floor(aleatorio() * CIDADES_BRASIL.length)];
+    const tpl = TEMPLATES_LOCAIS[Math.floor(aleatorio() * TEMPLATES_LOCAIS.length)];
+    escolhidas[escolhidas.length - 1] = tpl.replace("{cidade}", cidade);
+  }
+  return [...escolhidas, geral];
+}
+
+/** Praças com equipe presencial, para o contexto local do artigo (rodízio). */
+export const PRACAS = [
+  { nome: "Cuiabá e Várzea Grande (MT)", contexto: "agro, comércio e serviços, calor e período de chuvas, distância dos grandes centros, cidades do interior de Mato Grosso" },
+  { nome: "Salvador (BA)", contexto: "turismo, comércio de bairro, serviços, alta temporada e eventos como o Carnaval, Região Metropolitana" },
+  { nome: "Vitória e Vila Velha (ES)", contexto: "porto e logística, comércio, serviços, Grande Vitória com cidades muito próximas" },
+] as const;
+
+/** PURA. Escolhe a praça do artigo: as três com equipe presencial em rodízio. */
+export function escolherPraca(aleatorio: () => number = Math.random) {
+  return PRACAS[Math.floor(aleatorio() * PRACAS.length) % PRACAS.length];
 }
