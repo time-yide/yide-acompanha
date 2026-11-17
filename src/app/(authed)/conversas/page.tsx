@@ -11,7 +11,7 @@ type Filtro = "todas" | "nao_lidas";
 
 /**
  * Espelho das conversas do número da API da conta da agência no Lyide.
- * Só leitura: a resposta é feita no Lyide (botão "Responder no Lyide").
+ * Responde com texto aqui (pelo Lyide); modelo e mídia, no próprio Lyide.
  */
 export default async function ConversasPage({
   searchParams,
