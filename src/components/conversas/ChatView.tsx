@@ -1,11 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import { MessageCircle, Lock, Loader2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { MessageCircle, Lock, Loader2, ExternalLink } from "lucide-react";
 import { ChatHeader } from "./ChatHeader";
-import { ChatInput } from "./ChatInput";
 import { MessageBubble } from "./MessageBubble";
-import { sendWppMessageAction, markConversationReadAction } from "@/lib/conversas/actions";
 import type { WppConversation, WppMessage } from "@/lib/conversas/types";
 import { APP_TIMEZONE, getTodayDate } from "@/lib/datetime/timezone";
 
@@ -48,7 +46,6 @@ const WALLPAPER_CLASSES =
 export function ChatView({ conversa, initialMessages }: Props) {
   const [messages, setMessages] = useState<WppMessage[]>(initialMessages ?? []);
   const [loading, setLoading] = useState(!initialMessages && !!conversa);
-  const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -60,7 +57,6 @@ export function ChatView({ conversa, initialMessages }: Props) {
         .catch(() => setMessages([]))
         .finally(() => setLoading(false));
     }
-    markConversationReadAction(conversa.id).catch(() => {});
   }, [conversa?.id, initialMessages]);
 
   // Scroll to bottom on new messages
@@ -83,27 +79,6 @@ export function ChatView({ conversa, initialMessages }: Props) {
     return () => clearInterval(interval);
   }, [conversa?.id]);
 
-  const handleSend = useCallback(async (texto: string) => {
-    if (!conversa || sending) return;
-    setSending(true);
-    try {
-      const result = await sendWppMessageAction(conversa.id, texto);
-      if ("error" in result) {
-        alert(result.error);
-      } else {
-        // Refresh messages
-        const r = await fetch(`/api/conversas/messages?conversationId=${conversa.id}`);
-        if (r.ok) {
-          setMessages(await r.json() as WppMessage[]);
-        }
-      }
-    } catch {
-      alert("Erro ao enviar mensagem");
-    } finally {
-      setSending(false);
-    }
-  }, [conversa?.id, sending]);
-
   if (!conversa) {
     return (
       <div className={`flex h-full flex-1 flex-col items-center justify-center gap-4 ${WALLPAPER_CLASSES} bg-muted/20`}>
@@ -113,12 +88,12 @@ export function ChatView({ conversa, initialMessages }: Props) {
         <div className="max-w-md text-center space-y-2 px-6">
           <h2 className="text-xl font-light tracking-tight">Conversas Yide</h2>
           <p className="text-sm text-muted-foreground">
-            Inbox unificada de WhatsApp. Selecione uma conversa à esquerda pra começar.
+            Espelho do WhatsApp da agência no Lyide. Selecione uma conversa à esquerda.
           </p>
         </div>
         <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
           <Lock className="h-3 w-3" />
-          Mensagens via Twilio WhatsApp Business API.
+          Só leitura. Para responder, abra a conversa no Lyide.
         </p>
       </div>
     );
@@ -156,7 +131,21 @@ export function ChatView({ conversa, initialMessages }: Props) {
         <div ref={bottomRef} />
       </div>
 
-      <ChatInput onSend={handleSend} sending={sending} />
+      <div className="border-t bg-card px-3 py-2.5">
+        {conversa.lyide_url ? (
+          <a
+            href={conversa.lyide_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+          >
+            <ExternalLink className="h-4 w-4" />
+            Responder no Lyide
+          </a>
+        ) : (
+          <p className="text-center text-xs text-muted-foreground">Responda essa conversa pelo Lyide.</p>
+        )}
+      </div>
     </div>
   );
 }

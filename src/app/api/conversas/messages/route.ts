@@ -1,24 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth/session";
-import { listMessages, getConversation, getOrganizationIdByUser } from "@/lib/conversas/queries";
+import { listarMensagensLyide } from "@/lib/conversas/lyide";
 
+const ALLOWED_ROLES = ["adm", "socio", "comercial", "coordenador", "assessor", "programacao"];
+
+/** Mensagens de uma conversa do Lyide (polling da tela Conversas). */
 export async function GET(req: NextRequest) {
-  const { id: userId } = await requireAuth();
+  const user = await requireAuth();
+  if (!ALLOWED_ROLES.includes(user.role)) {
+    return NextResponse.json({ error: "Sem acesso" }, { status: 403 });
+  }
 
   const conversationId = req.nextUrl.searchParams.get("conversationId");
   if (!conversationId) {
     return NextResponse.json({ error: "conversationId obrigatório" }, { status: 400 });
   }
 
-  const [conv, orgId] = await Promise.all([
-    getConversation(conversationId),
-    getOrganizationIdByUser(userId),
-  ]);
-
-  if (!conv || !orgId || conv.organization_id !== orgId) {
-    return NextResponse.json({ error: "Conversa não encontrada" }, { status: 404 });
-  }
-
-  const messages = await listMessages(conversationId);
-  return NextResponse.json(messages);
+  const r = await listarMensagensLyide(conversationId);
+  if (!r.ok) return NextResponse.json({ error: "Falha ao carregar" }, { status: 502 });
+  return NextResponse.json(r.data);
 }

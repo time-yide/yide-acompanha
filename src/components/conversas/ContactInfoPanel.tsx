@@ -1,7 +1,4 @@
-import Link from "next/link";
-import {
-  Phone, Briefcase, Tag, Archive, BellOff, Trash2, ExternalLink,
-} from "lucide-react";
+import { Bot, Tag, ExternalLink } from "lucide-react";
 import { Avatar } from "./Avatar";
 import type { WppConversation } from "@/lib/conversas/types";
 
@@ -17,20 +14,10 @@ export function ContactInfoPanel({ conversa }: Props) {
       </header>
 
       <div className="flex flex-col items-center gap-3 border-b px-4 py-6 text-center">
-        <Avatar nome={conversa.contato_nome || conversa.contato_telefone} size="lg" />
+        <Avatar nome={conversa.contato_nome || conversa.contato_telefone} avatarUrl={conversa.avatar_url} size="lg" />
         <div>
           <p className="font-medium">{conversa.contato_nome || conversa.contato_telefone}</p>
           <p className="text-xs text-muted-foreground">{conversa.contato_telefone}</p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            className="rounded-full bg-muted p-2 hover:bg-muted/70"
-            aria-label="Ligar"
-            title="Em breve"
-          >
-            <Phone className="h-4 w-4" />
-          </button>
         </div>
       </div>
 
@@ -39,45 +26,23 @@ export function ContactInfoPanel({ conversa }: Props) {
           <h4 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             Atendimento
           </h4>
-          <Linha
-            icon={Tag}
-            label="Canal"
-            value="WhatsApp"
-          />
-          <Linha
-            icon={Phone}
-            label="Número"
-            value={conversa.twilio_from ?? "—"}
-          />
+          <Linha icon={Tag} label="Canal" value="WhatsApp (API da agência)" />
+          <Linha icon={Bot} label="IA" value={conversa.ai_ativa ? "Ativa" : "Pausada"} />
         </div>
 
-        <div className="space-y-3 border-b px-4 py-4">
-          <h4 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Lead vinculado
-          </h4>
-          {conversa.lead_gerado_id && conversa.lead_nome ? (
-            <Link
-              href={`/gerador-leads/${conversa.lead_gerado_id}`}
+        {conversa.lyide_url && (
+          <div className="px-4 py-4">
+            <a
+              href={conversa.lyide_url}
+              target="_blank"
+              rel="noopener noreferrer"
               className="flex items-center justify-between gap-2 rounded-lg border bg-muted/30 px-3 py-2 text-xs hover:bg-muted/50"
             >
-              <div className="flex items-center gap-2 min-w-0">
-                <Briefcase className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
-                <span className="truncate font-medium">{conversa.lead_nome}</span>
-              </div>
+              <span className="font-medium">Abrir conversa no Lyide</span>
               <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
-            </Link>
-          ) : (
-            <p className="text-xs text-muted-foreground">
-              Nenhum lead vinculado.
-            </p>
-          )}
-        </div>
-
-        <div className="space-y-1 px-2 py-2 text-sm">
-          <AcaoBotao icon={BellOff} label="Silenciar notificações" tom="muted" />
-          <AcaoBotao icon={Archive} label="Arquivar conversa" tom="muted" />
-          <AcaoBotao icon={Trash2} label="Apagar conversa" tom="destructive" />
-        </div>
+            </a>
+          </div>
+        )}
       </div>
     </aside>
   );
@@ -98,28 +63,5 @@ function Linha({
         <p className="truncate font-medium">{value}</p>
       </div>
     </div>
-  );
-}
-
-function AcaoBotao({
-  icon: Icon, label, tom,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  tom: "muted" | "destructive";
-}) {
-  const tomClasses = tom === "destructive"
-    ? "text-rose-600 dark:text-rose-400 hover:bg-rose-500/10"
-    : "text-foreground hover:bg-muted";
-  return (
-    <button
-      type="button"
-      className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-xs ${tomClasses} disabled:cursor-not-allowed`}
-      title="Em breve"
-      disabled
-    >
-      <Icon className="h-4 w-4" />
-      {label}
-    </button>
   );
 }

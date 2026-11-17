@@ -13,7 +13,8 @@ interface Props {
  * - Hora + status (✓ ✓✓ azul=lida) no canto inferior direito da bubble
  */
 export function MessageBubble({ mensagem }: Props) {
-  const eMinha = mensagem.autor === "comercial";
+  // Nossas (atendente ou IA) à direita; do cliente à esquerda.
+  const eMinha = mensagem.autor === "comercial" || mensagem.autor === "ia";
 
   return (
     <div className={`flex w-full ${eMinha ? "justify-end" : "justify-start"}`}>
@@ -24,6 +25,9 @@ export function MessageBubble({ mensagem }: Props) {
             : "bg-card border rounded-tl-sm"
         }`}
       >
+        {mensagem.autor === "ia" && (
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">IA</p>
+        )}
         <p className="whitespace-pre-wrap break-words text-sm leading-snug pr-14">
           {mensagem.texto}
         </p>

@@ -20,7 +20,7 @@ export function ConversaItem({ conversa, selecionada }: Props) {
           : "hover:bg-muted/40"
       }`}
     >
-      <Avatar nome={conversa.contato_nome || conversa.contato_telefone} />
+      <Avatar nome={conversa.contato_nome || conversa.contato_telefone} avatarUrl={conversa.avatar_url} />
 
       <div className="min-w-0 flex-1 space-y-0.5">
         <div className="flex items-center justify-between gap-2">
@@ -46,9 +46,11 @@ export function ConversaItem({ conversa, selecionada }: Props) {
               <Pin className="h-3 w-3 text-muted-foreground" />
             )}
             {conversa.nao_lidas > 0 && (
-              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-500 px-1.5 text-[11px] font-semibold text-white">
-                {conversa.nao_lidas}
-              </span>
+              <span
+                className="h-2.5 w-2.5 rounded-full bg-emerald-500"
+                aria-label="Aguardando resposta"
+                title="Aguardando resposta"
+              />
             )}
           </div>
         </div>
