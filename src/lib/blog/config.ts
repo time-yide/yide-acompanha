@@ -1,4 +1,5 @@
 // URL pública base do site institucional (pro canonical, JSON-LD e sitemap).
-// Tudo consolidado no domínio da marca: yidedigital.com.br (home em /, blog em /blog,
-// serviços em /servicos, cases em /cases). Ajustável por env NEXT_PUBLIC_SITE_URL.
-export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://yidedigital.com.br").replace(/\/+$/, "");
+// Conteúdo público (blog em /blog, serviços em /servicos, cases em /cases) fica em
+// blog.yidedigital.com.br: o domínio principal é outro site, fora deste projeto, e
+// dá 404 nessas páginas. Ajustável por env NEXT_PUBLIC_SITE_URL.
+export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://blog.yidedigital.com.br").replace(/\/+$/, "");

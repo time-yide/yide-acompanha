@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { savePerguntasAction } from "@/lib/pesquisas/actions";
-import { PERGUNTA_TIPOS, PERGUNTA_TIPO_LABEL, type PerguntaTipo, type PerguntaRow } from "@/lib/pesquisas/schema";
+import { PERGUNTA_TIPOS, PERGUNTA_TIPO_LABEL, type PerguntaTipo } from "@/lib/pesquisas/constants";
+import type { PerguntaRow } from "@/lib/pesquisas/schema";
 import { DispararModal, type PublicoOptions } from "./DispararModal";
 
 interface PerguntaDraft {

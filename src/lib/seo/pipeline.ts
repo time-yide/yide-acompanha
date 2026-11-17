@@ -17,6 +17,7 @@ Regras:
 - Foque em "${servico.nome.toLowerCase()} em ${loc.nome}"; use variações naturais.
 - Conteúdo DISTINTO pra esta localidade (realidade local, tipos de negócio da praça). NÃO escreva algo genérico que sirva pra qualquer cidade.
 - Tom profissional e acessível. Posicione a Yide como referência local.
+- NÃO invente números, resultados, nomes de clientes, prêmios, endereço nem tempo de mercado. Fale da realidade local de forma geral, sem dados que você não recebeu.
 - NUNCA use travessão nem meia-risca. Use vírgula, dois-pontos, ponto ou parênteses.
 
 Responda SOMENTE com JSON válido (sem cercas, sem texto fora):

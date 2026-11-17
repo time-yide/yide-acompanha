@@ -1,30 +1,6 @@
 import { z } from "zod";
-
-export const EXPENSE_CATEGORIAS = [
-  "aluguel",
-  "software",
-  "contabilidade",
-  "impostos",
-  "marketing_proprio",
-  "equipamento",
-  "pro_labore",
-  "outros",
-] as const;
-export type ExpenseCategoria = (typeof EXPENSE_CATEGORIAS)[number];
-
-export const CATEGORIA_LABEL: Record<ExpenseCategoria, string> = {
-  aluguel: "Aluguel",
-  software: "Software",
-  contabilidade: "Contabilidade",
-  impostos: "Impostos",
-  marketing_proprio: "Marketing próprio",
-  equipamento: "Equipamento",
-  pro_labore: "Pró-labore",
-  outros: "Outros",
-};
-
-export const EXPENSE_TIPOS = ["fixa", "avulsa"] as const;
-export type ExpenseTipo = (typeof EXPENSE_TIPOS)[number];
+import { EXPENSE_CATEGORIAS, EXPENSE_TIPOS, BULK_DELETE_MAX } from "./constants";
+export * from "./constants";
 
 const monthRegex = /^\d{4}-\d{2}$/;
 
@@ -69,8 +45,6 @@ export const overrideSchema = z.object({
   valor: z.coerce.number().min(0),
   motivo: z.string().trim().max(500).optional().nullable(),
 });
-
-export const BULK_DELETE_MAX = 50;
 
 export const bulkDeleteExpensesSchema = z.object({
   ids: z.array(z.string().uuid()).min(1, "Selecione pelo menos uma despesa")

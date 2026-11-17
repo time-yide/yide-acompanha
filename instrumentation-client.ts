@@ -30,10 +30,17 @@ if (dsn) {
 
   // Inicializa o Replay só quando o main-thread estiver ocioso, pra não competir
   // com a hidratação e os primeiros toques (o pior momento de INP no celular).
+  // Vem da CDN do Sentry (lazyLoadIntegration) em vez do bundle: referenciar
+  // `Sentry.replayIntegration` aqui colocava ~40KB (gzip) no JS inicial de
+  // todas as páginas. Se a CDN falhar (adblock), só fica sem replay.
   const startReplay = () => {
-    Sentry.getClient()?.addIntegration(
-      Sentry.replayIntegration({ maskAllText: true, blockAllMedia: true }),
-    );
+    Sentry.lazyLoadIntegration("replayIntegration")
+      .then((replayIntegration) => {
+        Sentry.getClient()?.addIntegration(
+          replayIntegration({ maskAllText: true, blockAllMedia: true }),
+        );
+      })
+      .catch(() => {});
   };
   const ric = (window as Window & {
     requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => void;

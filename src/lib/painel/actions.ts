@@ -277,7 +277,10 @@ export async function setMonthlyPostsAction(formData: FormData): Promise<ActionR
 const uploadCronogramaSchema = z.object({
   client_id: uuidLike,
   mes_referencia: z.string().regex(/^\d{4}-\d{2}$/, "Formato esperado YYYY-MM"),
-  cronograma_url: z.string().url("Link inválido"),
+  cronograma_url: z
+    .string()
+    .url("Link inválido")
+    .refine((v) => /^https?:\/\//i.test(v), "O link precisa começar com http:// ou https://"),
   // Artes/posts (pacote_post) e vídeos (pacote_video) do cronograma.
   quantidade: z.coerce.number().int().min(0),
   quantidade_videos: z.coerce.number().int().min(0).default(0),

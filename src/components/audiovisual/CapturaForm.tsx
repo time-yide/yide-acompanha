@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { createCapturaAction } from "@/lib/audiovisual/actions";
-import { RATING_FIELDS } from "@/lib/audiovisual/schema";
+import { RATING_FIELDS } from "@/lib/audiovisual/constants";
 import { cn } from "@/lib/utils";
 import { formatBrtDateOnly } from "@/lib/calendario/timezone";
 import { formatDateBR, getTodayDate } from "@/lib/datetime/timezone";

@@ -4,18 +4,20 @@ import { ArrowUpRight } from "lucide-react";
 import { getOrgPadrao } from "@/lib/seo/queries";
 import { listCasesPublicados } from "@/lib/seo/case-queries";
 import { Reveal } from "@/components/site/Reveal";
+import { WHATSAPP_SITE } from "@/lib/site/contato";
+import { CASES_ESTATICOS } from "@/lib/site/cases-estaticos";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Cases · Yide Digital",
-  description: "Resultados reais de clientes da Yide Digital.",
+  description: "Resultados reais de clientes da Yide Digital: delivery de R$ 20 mil para R$ 400 mil por mês, joalheria de R$ 25 mil por mês a 7 dígitos por ano, 10x de retorno no Google e mais.",
   alternates: { canonical: "/cases" },
 };
 
 export default async function CasesIndex() {
   const orgId = await getOrgPadrao();
-  const cases = orgId ? await listCasesPublicados(orgId) : [];
+  const cases = orgId ? await listCasesPublicados(orgId) : CASES_ESTATICOS;
   return (
     <div className="space-y-16 sm:space-y-24">
       {/* Hero */}
@@ -28,7 +30,7 @@ export default async function CasesIndex() {
           <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-cyan-400">Resultados reais</p>
           <h1 className="mt-4 text-4xl font-extrabold leading-[1.05] tracking-tight [font-family:var(--font-display)] sm:text-6xl">Cases</h1>
           <p className="mt-5 max-w-xl text-lg text-white/65">Resultados reais de quem confiou na Yide Digital.</p>
-          <a href="https://wa.me/5565981447380" target="_blank" rel="noopener noreferrer"
+          <a href={WHATSAPP_SITE} target="_blank" rel="noopener noreferrer"
             className="group mt-8 inline-flex items-center gap-2 rounded-full bg-teal-500 px-7 py-3 text-base font-semibold text-neutral-950 shadow-[0_8px_30px_rgba(45,230,230,0.25)] transition-all hover:bg-cyan-400 hover:shadow-[0_10px_40px_rgba(45,230,230,0.4)]">
             Quero resultados assim
             <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
@@ -36,6 +38,21 @@ export default async function CasesIndex() {
         </div>
         <div className="relative z-10 mt-10 h-px w-full bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent" />
       </header>
+
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+        "@context": "https://schema.org",
+        "@graph": CASES_ESTATICOS.filter((c) => c.youtubeId).map((c) => ({
+          "@type": "VideoObject",
+          name: `Case ${c.cliente} | Yide Digital`,
+          description: c.meta_description ?? c.desafio,
+          thumbnailUrl: `https://i.ytimg.com/vi/${c.youtubeId}/hqdefault.jpg`,
+          uploadDate: "2026-11-14",
+          duration: c.duracao ?? undefined,
+          embedUrl: `https://www.youtube-nocookie.com/embed/${c.youtubeId}`,
+          url: `https://www.youtube.com/shorts/${c.youtubeId}`,
+          about: { "@type": "Organization", name: "Yide Digital", url: "https://yidedigital.com.br" },
+        })),
+      }).replace(/</g, "\\u003c") }} />
 
       {cases.length === 0 ? (
         <p className="text-neutral-500">Em breve.</p>
@@ -61,13 +78,16 @@ export default async function CasesIndex() {
                   )}
                 </div>
                 <div className="flex flex-1 flex-col p-6">
-                  <h2 className="text-lg font-bold tracking-tight [font-family:var(--font-display)] group-hover:text-teal-700">{c.cliente}</h2>
+                  <h2 className="text-lg font-bold tracking-tight [font-family:var(--font-display)] group-hover:text-teal-700">
+                    {c.cliente}{c.localidade && <span className="ml-2 text-sm font-medium text-neutral-400">{c.localidade}</span>}
+                  </h2>
                   {c.resultados[0] && (
                     <p className="mt-3">
                       <span className="text-2xl font-extrabold text-teal-600 [font-family:var(--font-display)]">{c.resultados[0].valor}</span>
                       <span className="ml-1.5 text-sm text-neutral-500">{c.resultados[0].rotulo}</span>
                     </p>
                   )}
+                  {c.solucao && <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-neutral-600">{c.solucao}</p>}
                   <span className="mt-auto inline-flex items-center gap-1 pt-5 text-sm font-semibold text-teal-600">
                     Ver case
                     <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
@@ -86,7 +106,7 @@ export default async function CasesIndex() {
           <div className="relative mx-auto max-w-2xl">
             <h2 className="text-3xl font-extrabold tracking-tight [font-family:var(--font-display)] sm:text-4xl">Quer resultados assim?</h2>
             <p className="mt-4 text-white/65">Fale com a Yide Digital e comece a crescer sua empresa.</p>
-            <a href="https://wa.me/5565981447380" target="_blank" rel="noopener noreferrer"
+            <a href={WHATSAPP_SITE} target="_blank" rel="noopener noreferrer"
               className="group mt-8 inline-flex items-center gap-2 rounded-full bg-teal-500 px-8 py-3.5 text-base font-semibold text-neutral-950 shadow-[0_8px_30px_rgba(45,230,230,0.25)] transition-all hover:bg-cyan-400 hover:shadow-[0_10px_40px_rgba(45,230,230,0.4)]">
               Falar no WhatsApp
               <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />

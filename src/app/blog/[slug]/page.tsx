@@ -11,6 +11,7 @@ import { tempoLeituraMin } from "@/lib/blog/leitura";
 import { Markdown } from "@/components/blog/Markdown";
 import { Faq } from "@/components/seo/Faq";
 import { SITE_URL } from "@/lib/blog/config";
+import { postIndexavel } from "@/lib/blog/fora-do-indice";
 
 // Dinâmica (não pré-renderiza no build): usa service-role, cuja env só existe em runtime.
 export const dynamic = "force-dynamic";
@@ -36,6 +37,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     title: `${title} · Yide Blog`,
     description,
     alternates: { canonical: `/blog/${post.slug}` },
+    robots: postIndexavel(post.slug) ? undefined : { index: false, follow: true },
     openGraph: {
       title, description, type: "article",
       publishedTime: post.published_at ?? undefined,
@@ -83,7 +85,7 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
           {post.titulo}
         </h1>
         <p className="mt-4 text-sm text-neutral-500">
-          {fmtData(post.published_at)} · {tempoLeituraMin(post.conteudo_md)} min de leitura{post.autor_nome ? ` · ${post.autor_nome}` : ""}
+          {fmtData(post.published_at)} · {tempoLeituraMin(post.conteudo_md)} min de leitura{` · ${post.autor_nome ?? "Equipe Yide Digital"}`}
         </p>
       </header>
 
@@ -96,6 +98,15 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
         <Markdown light>{post.conteudo_md}</Markdown>
       </div>
 
+      {post.fonte_url && (
+        <p className="mt-8 text-sm text-neutral-500">
+          Fonte:{" "}
+          <a href={post.fonte_url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-neutral-900">
+            {post.fonte_nome ?? "notícia original"}
+          </a>
+        </p>
+      )}
+
       {post.faq.length > 0 && (
         <section className="mt-12">
           <h2 className="mb-4 text-xl font-bold tracking-tight [font-family:var(--font-display)]">Perguntas frequentes</h2>
@@ -103,17 +114,17 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
         </section>
       )}
 
-      <div className="mt-12 rounded-2xl border border-neutral-200 bg-white p-6 text-center">
-        <p className="text-lg font-semibold [font-family:var(--font-display)]">Gostou do conteúdo?</p>
-        <p className="mt-1 text-sm text-neutral-600">A Yide Digital faz marketing, tráfego e sistemas sob medida pro seu negócio.</p>
-        <a
-          href="https://yidedigital.com.br"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-4 inline-block rounded-full bg-teal-600 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-teal-700"
+      <div className="mt-12 rounded-2xl bg-neutral-950 p-7 text-center text-white">
+        <p className="text-lg font-semibold [font-family:var(--font-display)]">Quer aplicar isso na sua empresa?</p>
+        <p className="mx-auto mt-1 max-w-md text-sm text-white/70">
+          No diagnóstico gratuito a Yide olha seus anúncios, seu atendimento no WhatsApp e sua presença no Google, e mostra o que fazer primeiro.
+        </p>
+        <Link
+          href="/diagnostico"
+          className="mt-5 inline-block rounded-full bg-teal-500 px-6 py-2.5 text-sm font-semibold text-neutral-950 transition-colors hover:bg-cyan-400"
         >
-          Falar com a Yide
-        </a>
+          Quero o diagnóstico gratuito
+        </Link>
       </div>
     </article>
   );

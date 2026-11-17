@@ -7,6 +7,9 @@ import { requireAuth } from "@/lib/auth/session";
 import { getOrganizationId } from "@/lib/gerador-leads/queries";
 import { podeGerenciarBlog } from "./acesso";
 import { parseBoolCampo } from "./form";
+import { precisaTrocarCapa } from "./capas";
+import { avisarBuscadores } from "./indexnow";
+import { buscarFotoParaCapa } from "./pipeline/stock-image";
 import { slugify, slugUnico } from "./slug";
 import { slugsExistentes } from "./queries";
 import { executarPipelineBlog } from "./pipeline/executar";
@@ -137,8 +140,77 @@ export async function publicarPostAction(formData: FormData): Promise<Result> {
     .eq("id", parsed.data.id).eq("organization_id", g.orgId).select("slug");
   if (error) return { error: error.message };
   if (!data || data.length === 0) return { error: "Post não encontrado" };
-  revalida((data[0] as { slug: string }).slug);
+  const { slug } = data[0] as { slug: string };
+  revalida(slug);
+  if (parsed.data.publicar) await avisarBuscadores([slug]);
   return { success: true };
+}
+
+/** Publica todos os rascunhos da org de uma vez. Rascunho sem conteúdo fica de fora (post em branco no blog público). */
+export async function publicarTodosRascunhosAction(): Promise<{ success: true; publicados: number } | Err> {
+  const g = await gate();
+  if ("error" in g) return g;
+
+  const sb = sbAdmin();
+  const agora = new Date().toISOString();
+  // Seta published_at só na 1ª publicação (mantém a data original em re-publicações).
+  const novos = await sb.from("blog_posts")
+    .update({ status: "publicado", published_at: agora, updated_at: agora })
+    .eq("organization_id", g.orgId).eq("status", "rascunho").neq("conteudo_md", "").is("published_at", null)
+    .select("slug");
+  if (novos.error) return { error: novos.error.message };
+  const republicados = await sb.from("blog_posts")
+    .update({ status: "publicado", updated_at: agora })
+    .eq("organization_id", g.orgId).eq("status", "rascunho").neq("conteudo_md", "")
+    .select("slug");
+
+  const slugs = [...(novos.data ?? []), ...(republicados.data ?? [])] as Array<{ slug: string }>;
+  revalida();
+  for (const { slug } of slugs) revalidatePath(`/blog/${slug}`);
+  await avisarBuscadores(slugs.map((s) => s.slug));
+  if (republicados.error) return { error: republicados.error.message };
+  return { success: true, publicados: slugs.length };
+}
+
+// Abaixo do limite do Pexels (200 buscas/hora), contando as buscas extras de quem não acha foto de primeira.
+const CAPAS_POR_CLIQUE = 150;
+
+interface TrocarCapasOk { success: true; trocadas: number; faltam: number; limitePexels: boolean }
+
+/** Troca capas de IA (e posts sem capa) por fotos reais do Pexels, publicados primeiro. */
+export async function trocarCapasPorFotosReaisAction(): Promise<TrocarCapasOk | Err> {
+  const g = await gate();
+  if ("error" in g) return g;
+  if (!process.env.PEXELS_API_KEY) return { error: "Chave do Pexels não configurada" };
+
+  const sb = sbAdmin();
+  const { data, error } = await sb.from("blog_posts")
+    .select("id, slug, titulo, keywords, cover_image_url, status")
+    .eq("organization_id", g.orgId).neq("status", "arquivado");
+  if (error) return { error: error.message };
+
+  const posts = (data ?? []) as Array<{ id: string; slug: string; titulo: string; keywords: string[] | null; cover_image_url: string | null; status: string }>;
+  const usadas = new Set(posts.map((p) => p.cover_image_url).filter((u): u is string => !!u));
+  const pendentes = posts
+    .filter((p) => precisaTrocarCapa(p.cover_image_url))
+    .sort((a, b) => Number(b.status === "publicado") - Number(a.status === "publicado"));
+
+  let trocadas = 0;
+  let limitePexels = false;
+  for (const p of pendentes.slice(0, CAPAS_POR_CLIQUE)) {
+    const foto = await buscarFotoParaCapa(p.keywords ?? [], p.titulo, usadas);
+    if ("limite" in foto) { limitePexels = true; break; }
+    if ("semFoto" in foto) continue;
+    // updated_at fica como está: trocar a capa não muda o artigo nem a ordem da lista.
+    const { error: erroUpdate } = await sb.from("blog_posts").update({ cover_image_url: foto.url })
+      .eq("id", p.id).eq("organization_id", g.orgId);
+    if (erroUpdate) { console.error("[blog] trocar capa:", erroUpdate.message); continue; }
+    usadas.add(foto.url);
+    trocadas++;
+    revalidatePath(`/blog/${p.slug}`);
+  }
+  revalida();
+  return { success: true, trocadas, faltam: pendentes.length - trocadas, limitePexels };
 }
 
 interface GerarOk { success: true; gerados: number; semNovas: boolean }

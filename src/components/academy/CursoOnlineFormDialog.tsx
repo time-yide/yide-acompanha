@@ -19,10 +19,8 @@ import {
   createCursoExternoAction,
   updateCursoExternoAction,
 } from "@/lib/cursos-externos/actions";
-import {
-  PLATAFORMAS_SUGERIDAS,
-  type CursoExternoRow,
-} from "@/lib/cursos-externos/schema";
+import { PLATAFORMAS_SUGERIDAS } from "@/lib/cursos-externos/constants";
+import type { CursoExternoRow } from "@/lib/cursos-externos/schema";
 
 interface Props {
   open: boolean;

@@ -9,6 +9,9 @@ import { NovoPostButton } from "@/components/blog/NovoPostButton";
 import { GerarRascunhosButton } from "@/components/blog/GerarRascunhosButton";
 import { GerarEstrategicosButton } from "@/components/blog/GerarEstrategicosButton";
 import { AprovarPublicarButton } from "@/components/blog/AprovarPublicarButton";
+import { PublicarTodosButton } from "@/components/blog/PublicarTodosButton";
+import { TrocarCapasButton } from "@/components/blog/TrocarCapasButton";
+import { precisaTrocarCapa } from "@/lib/blog/capas";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +27,8 @@ export default async function BlogAdminPage() {
   if (!orgId) notFound();
 
   const posts = await listPostsAdmin(orgId);
+  const rascunhosProntos = posts.filter((p) => p.status === "rascunho" && p.conteudo_md !== "").length;
+  const capasParaTrocar = posts.filter((p) => precisaTrocarCapa(p.cover_image_url)).length;
 
   return (
     <div className="space-y-5">
@@ -35,7 +40,7 @@ export default async function BlogAdminPage() {
           <h1 className="text-2xl font-bold tracking-tight">Blog</h1>
           <p className="text-sm text-muted-foreground">Conteúdo da Yide pra SEO e autoridade. Rascunhos ficam privados; publicados vão pro blog público.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Link href="/programacao/blog/insights" className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted/40 hover:text-foreground">
             <BarChart3 className="h-4 w-4" /> Insights
           </Link>
@@ -44,6 +49,8 @@ export default async function BlogAdminPage() {
           </Link>
           <GerarRascunhosButton />
           <GerarEstrategicosButton />
+          {capasParaTrocar > 0 && <TrocarCapasButton total={capasParaTrocar} />}
+          {rascunhosProntos > 0 && <PublicarTodosButton total={rascunhosProntos} />}
           <NovoPostButton />
         </div>
       </div>

@@ -2,17 +2,20 @@
 // artigo+FAQ+capa (IA) → rascunho no blog (tipo "estrategico", sem fonte).
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { gerarArtigoEstrategico } from "./estrategico";
-// gerarCapa removida do cron (economia gpt-image); capa adicionada ao publicar
-import { selecionarKeywordsAlvo } from "./keywords";
+import { buscarImagemStock } from "./stock-image";
+import { camposDePublicacao } from "./publicacao";
+import { escolherPraca, selecionarKeywordsAlvo } from "./keywords";
 import { TEMAS_ESTRATEGICOS, slugDoTema } from "./temas-estrategicos";
 import { slugUnico } from "../slug";
+import { buscarAutorDoDia } from "./autor";
 
 export interface ResultadoPipelineEstrategico {
   gerados: number;
   erros: number;
+  publicados: string[]; // slugs que foram pro ar
 }
 
-export async function executarPipelineEstrategico(orgId: string, quantos = 1): Promise<ResultadoPipelineEstrategico> {
+export async function executarPipelineEstrategico(orgId: string, quantos = 1, publicar = false): Promise<ResultadoPipelineEstrategico> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
 
@@ -21,20 +24,25 @@ export async function executarPipelineEstrategico(orgId: string, quantos = 1): P
 
   // Temas cujo slug ainda não existe no blog da org.
   const temasNaoUsados = TEMAS_ESTRATEGICOS.filter((t) => !slugs.has(slugDoTema(t.pergunta))).slice(0, quantos);
-  if (temasNaoUsados.length === 0) return { gerados: 0, erros: 0 };
+  if (temasNaoUsados.length === 0) return { gerados: 0, erros: 0, publicados: [] };
 
   let gerados = 0;
   let erros = 0;
+  const publicados: string[] = [];
+  // Artigo publicado direto sai assinado por uma pessoa da Yide (rodízio diário).
+  const autorId = publicar ? await buscarAutorDoDia(sb, orgId).catch(() => null) : null;
   for (const tema of temasNaoUsados) {
     try {
       const keywordsAlvo = selecionarKeywordsAlvo(4); // SEO local, varia por post
-      const artigo = await gerarArtigoEstrategico(tema.pergunta, keywordsAlvo);
+      const praca = escolherPraca(); // Cuiabá/VG, Salvador ou Vitória/Vila Velha
+      const artigo = await gerarArtigoEstrategico(tema.pergunta, keywordsAlvo, praca);
       if (!artigo) { erros++; continue; }
-      const capa: string | null = null; // capa adicionada manualmente ao publicar (economia gpt-image)
+      const capa = await buscarImagemStock(artigo.keywords);
       const slug = slugUnico(slugDoTema(tema.pergunta), slugs);
       slugs.add(slug);
       // Garante que as keywords-alvo entrem nas keywords do post (dedup).
       const keywords = [...new Set([...artigo.keywords, ...keywordsAlvo])];
+      const publicacao = camposDePublicacao(artigo.conteudo_md, publicar, new Date().toISOString());
       const { error } = await sb.from("blog_posts").insert({
         organization_id: orgId,
         slug,
@@ -42,20 +50,21 @@ export async function executarPipelineEstrategico(orgId: string, quantos = 1): P
         resumo: artigo.resumo || null,
         conteudo_md: artigo.conteudo_md,
         cover_image_url: capa,
-        status: "rascunho",
+        ...publicacao,
         tipo: "estrategico",
         faq: artigo.faq,
         keywords,
         meta_title: artigo.meta_title || null,
         meta_description: artigo.meta_description || null,
-        autor_id: null, // gerado pelo sistema (pipeline)
+        autor_id: autorId, // pessoa da Yide quando publicado pelo cron; null em rascunho
       });
       if (error) { console.error("[blog-estrategico] insert:", error.message); erros++; continue; }
       gerados++;
+      if (publicacao.status === "publicado") publicados.push(slug);
     } catch (e) {
       console.error("[blog-estrategico] pipeline item:", e);
       erros++;
     }
   }
-  return { gerados, erros };
+  return { gerados, erros, publicados };
 }

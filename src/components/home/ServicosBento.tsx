@@ -16,8 +16,9 @@ interface ServicosBentoProps {
 }
 
 const ICONS: LucideIcon[] = [BarChart3, Code2, Share2, Database, Video, Megaphone, Sparkles];
-// Padrão de span do bento (repete pra qualquer quantidade).
-const SPANS = ["sm:col-span-2 sm:row-span-2", "", "", "sm:col-span-2", "", ""];
+// Padrão do bento (repete): linhas alternam [largo + normal] e [normal + largo].
+// Sem row-span: card alto ficava com um vazio enorme entre o ícone e o texto.
+const SPANS = ["sm:col-span-2", "", "", "sm:col-span-2"];
 
 export function ServicosBento({ servicos }: ServicosBentoProps) {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -40,7 +41,7 @@ export function ServicosBento({ servicos }: ServicosBentoProps) {
           {servicos.map((s, i) => {
             const Icon = ICONS[i % ICONS.length];
             const span = SPANS[i % SPANS.length];
-            const grande = span.includes("row-span-2");
+            const grande = span.includes("col-span-2");
             return (
               <Link
                 key={s.id}

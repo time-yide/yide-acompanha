@@ -1,43 +1,7 @@
 import { z } from "zod";
 import { clienteObrigatorio } from "./reuniao-gravacao";
-
-export const SUB_CALENDARS = [
-  "agencia",
-  "onboarding",
-  "aniversarios",
-  "videomakers",
-  "assessores",
-  "coordenadores",
-  "programacao",
-  "comercial",
-] as const;
-export type SubCalendar = typeof SUB_CALENDARS[number];
-
-// Sub-calendars que o usuário pode escolher ao criar um evento manual.
-// 'aniversarios' é gerado automaticamente a partir de profiles/clients, então
-// ficou de fora pra evitar duplicação.
-export const SELECTABLE_SUBS = [
-  "agencia",
-  "videomakers",
-  "assessores",
-  "coordenadores",
-  "programacao",
-  "comercial",
-] as const;
-export type SelectableSub = typeof SELECTABLE_SUBS[number];
-
-// Papéis autorizados a criar evento de videomaker (quem agenda a gravação).
-// audiovisual_chefe (Coordenador audiovisual) inclui-se aqui: ele delega o
-// videomaker e é obrigado a escolher um, então precisa poder criar o tipo.
-export const ROLES_PODEM_CRIAR_VIDEOMAKER = ["socio", "adm", "coordenador", "assessor", "audiovisual_chefe"] as const;
-
-/**
- * Fonte única (client form + server action) de quem pode criar/editar evento
- * do tipo "Videomaker (gravação)". Evita drift entre a UI e a validação.
- */
-export function podeCriarVideomaker(role: string): boolean {
-  return (ROLES_PODEM_CRIAR_VIDEOMAKER as readonly string[]).includes(role);
-}
+import { SELECTABLE_SUBS, type SubCalendar } from "./constants";
+export * from "./constants";
 
 const baseEventFields = {
   titulo: z.string().min(2, "Título muito curto"),
@@ -54,7 +18,12 @@ const baseEventFields = {
   localizacao_maps_url: z.string().optional().nullable(),
   link_roteiro: z.string().optional().nullable(),
   roteiro_tipo: z.enum(["link", "pdf"]).optional().nullable(),
-  roteiro_pdf_path: z.string().optional().nullable(),
+  roteiro_pdf_path: z
+    .string()
+    .regex(/^eventos\/[\w-]+\/[0-9a-f-]{36}\.pdf$/i, "Anexo de roteiro inválido")
+    .optional()
+    .nullable()
+    .or(z.literal("")),
   observacoes_gravacao: z.string().optional().nullable(),
   videomaker_assigned_id: z.string().uuid().optional().nullable(),
 };
@@ -68,8 +37,6 @@ function refineEventoRegras(data: any, ctx: z.RefinementCtx) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["client_id"], message: "Selecione o cliente desta reunião" });
   }
   // Roteiro é OBRIGATÓRIO na gravação (agenda de videomaker) — link ou PDF.
-  // O PDF só anexa depois de salvar (precisa do evento), então na criação
-  // o roteiro entra por link.
   if (data.sub_calendar === "videomakers") {
     const temLink = typeof data.link_roteiro === "string" && data.link_roteiro.trim().length > 0;
     const temPdf = typeof data.roteiro_pdf_path === "string" && data.roteiro_pdf_path.trim().length > 0;

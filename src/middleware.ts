@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { env } from "@/lib/env";
+import { INDEXNOW_ARQUIVO } from "@/lib/blog/indexnow";
+import { destinoCanonico, apexAtivo } from "@/lib/site/dominio";
 
 const PUBLIC_PATHS = ["/login", "/recuperar-senha", "/definir-senha", "/auth/callback", "/monitoring", "/aprovacao-design", "/aprovacao-post", "/cliente/login", "/apresenta-yide-pdf"];
 
@@ -20,7 +22,8 @@ const CANONICAL_HOST = "sistemaacompanha.yidedigital.com.br";
 // Site institucional público (marketing). NÃO exige login e é indexável.
 const MARKETING_APEX = "yidedigital.com.br";
 const MARKETING_WWW = "www.yidedigital.com.br";
-const PUBLIC_MARKETING_PREFIXES = ["/site", "/servicos", "/cases", "/blog", "/sitemap", "/robots"];
+const BLOG_HOST = "blog.yidedigital.com.br";
+const PUBLIC_MARKETING_PREFIXES = ["/site", "/servicos", "/cases", "/lyide", "/videos/", "/blog", "/sobre", "/diagnostico", "/politica-de-privacidade", "/perguntas-frequentes", "/llms-full.txt", "/sitemap", "/robots", "/llms.txt", INDEXNOW_ARQUIVO];
 
 function isMarketingPath(pathname: string): boolean {
   return PUBLIC_MARKETING_PREFIXES.some((p) => pathname === p || pathname.startsWith(p));
@@ -38,6 +41,14 @@ export async function middleware(request: NextRequest) {
   }
 
   const { pathname } = request.nextUrl;
+
+  // Conteúdo público (blog., /site, /blog do host do sistema) vai para o domínio principal.
+  const destino = destinoCanonico(host, pathname, request.nextUrl.search, apexAtivo());
+  if (destino) return NextResponse.redirect(destino, { status: 308 });
+
+  if (host === BLOG_HOST && pathname === "/") {
+    return NextResponse.redirect(new URL("/blog", `https://${BLOG_HOST}`), { status: 308 });
+  }
 
   // Domínio institucional (yidedigital.com.br): serve o site público.
   if (host === MARKETING_WWW) {
