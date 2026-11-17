@@ -95,3 +95,67 @@ export function aggregateEntregaMaterial(
   }
   return out;
 }
+
+/**
+ * Cargos que vão pra gravação e sobem material (equipe de captura). Aparecem
+ * SEMPRE na tabela de "tempo pra entregar", mesmo zerados no período — assim a
+ * coordenação vê o time todo, não só quem tem pendência. fast_midia funciona
+ * como videomaker, por isso entra junto.
+ */
+export const ROLES_CAPTURA = ["videomaker", "fast_midia"] as const;
+
+export function isRoleCaptura(role: string | null | undefined): boolean {
+  return (ROLES_CAPTURA as readonly string[]).includes(role ?? "");
+}
+
+/** Stats zeradas — pra quem é da captura mas não teve entrega/pendência. */
+export const EMPTY_ENTREGA_STATS: EntregaMaterialStats = {
+  entregues: 0,
+  turnaround_medio_seg: null,
+  mais_lenta_seg: null,
+  pendentes: 0,
+  pendente_mais_antiga_seg: null,
+};
+
+export interface EntregaMaterialProfile {
+  id: string;
+  nome: string;
+  role: string;
+}
+
+export interface EntregaMaterialRow extends EntregaMaterialStats {
+  user_id: string;
+  nome: string;
+  role: string;
+}
+
+/**
+ * Monta as linhas da tabela: o time de captura INTEIRO (videomaker/fast_midia,
+ * mesmo zerado) + qualquer outro perfil ativo que teve entrega/pendência.
+ * Quem não está em `profiles` (removido/inativo) fica de fora.
+ * Ordem: pendentes mais críticas, depois quem entregou mais, depois nome.
+ */
+export function montarLinhasEntregaMaterial(
+  statsByUser: Map<string, EntregaMaterialStats>,
+  profiles: EntregaMaterialProfile[],
+): EntregaMaterialRow[] {
+  const rows: EntregaMaterialRow[] = [];
+  for (const p of profiles) {
+    const stats = statsByUser.get(p.id);
+    if (!stats && !isRoleCaptura(p.role)) continue;
+    rows.push({
+      user_id: p.id,
+      nome: p.nome,
+      role: p.role,
+      ...(stats ?? EMPTY_ENTREGA_STATS),
+    });
+  }
+  rows.sort(
+    (a, b) =>
+      b.pendentes - a.pendentes ||
+      (b.pendente_mais_antiga_seg ?? 0) - (a.pendente_mais_antiga_seg ?? 0) ||
+      b.entregues - a.entregues ||
+      a.nome.localeCompare(b.nome, "pt-BR"),
+  );
+  return rows;
+}
