@@ -7,14 +7,16 @@ interface Props {
   conversas: WppConversation[];
   conversaSelecionadaId: string | null;
   filtroAtivo: "todas" | "nao_lidas";
+  /** Nome da conexão do Lyide espelhada (ex.: "Yide API"). */
+  conexaoNome?: string | null;
 }
 
 const FILTROS = [
   { id: "todas", label: "Todas" },
-  { id: "nao_lidas", label: "Não lidas" },
+  { id: "nao_lidas", label: "Aguardando resposta" },
 ] as const;
 
-export function ConversasList({ conversas, conversaSelecionadaId, filtroAtivo }: Props) {
+export function ConversasList({ conversas, conversaSelecionadaId, filtroAtivo, conexaoNome }: Props) {
   const ordenadas = [...conversas].sort((a, b) => {
     if (a.fixada && !b.fixada) return -1;
     if (!a.fixada && b.fixada) return 1;
@@ -26,7 +28,10 @@ export function ConversasList({ conversas, conversaSelecionadaId, filtroAtivo }:
       <header className="flex items-center justify-between gap-2 border-b px-4 py-3">
         <div className="flex items-center gap-2">
           <MessageCircle className="h-5 w-5 text-emerald-500" />
-          <h2 className="font-semibold">Conversas</h2>
+          <div className="min-w-0">
+            <h2 className="font-semibold leading-tight">Conversas</h2>
+            {conexaoNome && <p className="truncate text-[11px] text-muted-foreground">{conexaoNome} · Lyide</p>}
+          </div>
         </div>
         <div className="flex items-center gap-1 text-muted-foreground">
           <button

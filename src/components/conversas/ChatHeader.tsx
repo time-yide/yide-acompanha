@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { Phone, Video, MoreVertical, Search, ArrowLeft } from "lucide-react";
+import { ArrowLeft, Bot, ExternalLink } from "lucide-react";
 import { Avatar } from "./Avatar";
-import { BadgeIAAtiva } from "./BadgeIAAtiva";
 import type { WppConversation } from "@/lib/conversas/types";
 
 interface Props {
@@ -20,7 +19,7 @@ export function ChatHeader({ conversa }: Props) {
         >
           <ArrowLeft className="h-5 w-5" />
         </Link>
-        <Avatar nome={conversa.contato_nome || conversa.contato_telefone} size="sm" />
+        <Avatar nome={conversa.contato_nome || conversa.contato_telefone} avatarUrl={conversa.avatar_url} size="sm" />
         <div className="min-w-0">
           <p className="truncate text-sm font-medium">
             {conversa.contato_nome || conversa.contato_telefone}
@@ -30,42 +29,28 @@ export function ChatHeader({ conversa }: Props) {
             {conversa.lead_nome ? ` · ${conversa.lead_nome}` : ""}
           </p>
         </div>
-        <BadgeIAAtiva conversationId={conversa.id} aiAtiva={conversa.ai_ativa ?? false} />
+        <span
+          className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+            conversa.ai_ativa
+              ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+              : "bg-muted text-muted-foreground"
+          }`}
+        >
+          <Bot className="h-3 w-3" />
+          {conversa.ai_ativa ? "IA ativa" : "IA pausada"}
+        </span>
       </div>
-      <div className="flex items-center gap-1 text-muted-foreground shrink-0">
-        <button
-          type="button"
-          className="rounded-full p-1.5 hover:bg-muted hover:text-foreground"
-          aria-label="Chamada de vídeo"
-          title="Em breve"
+      {conversa.lyide_url && (
+        <a
+          href={conversa.lyide_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
         >
-          <Video className="h-4 w-4" />
-        </button>
-        <button
-          type="button"
-          className="rounded-full p-1.5 hover:bg-muted hover:text-foreground"
-          aria-label="Ligar"
-          title="Em breve"
-        >
-          <Phone className="h-4 w-4" />
-        </button>
-        <button
-          type="button"
-          className="rounded-full p-1.5 hover:bg-muted hover:text-foreground"
-          aria-label="Buscar"
-          title="Em breve"
-        >
-          <Search className="h-4 w-4" />
-        </button>
-        <button
-          type="button"
-          className="rounded-full p-1.5 hover:bg-muted hover:text-foreground"
-          aria-label="Mais opções"
-          title="Em breve"
-        >
-          <MoreVertical className="h-4 w-4" />
-        </button>
-      </div>
+          <ExternalLink className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Abrir no Lyide</span>
+        </a>
+      )}
     </header>
   );
 }

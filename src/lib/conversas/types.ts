@@ -20,6 +20,10 @@ export interface WppConversation {
   ai_config_id: string | null;
   created_at: string;
   updated_at: string;
+  /** Foto do contato (espelho do Lyide). */
+  avatar_url?: string | null;
+  /** Link da conversa no Lyide, pra responder lá. */
+  lyide_url?: string | null;
 }
 
 export interface WppMessage {
