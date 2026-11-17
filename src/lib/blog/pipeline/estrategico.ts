@@ -51,6 +51,8 @@ ESTRUTURA:
 
 EEAT HONESTO: escreva com a autoridade da Yide (agência de marketing e programação em Cuiabá, Mato Grosso), SEM inventar cifras específicas ("R$ X mil de faturamento", "aumentou 300% as vendas"), SEM inventar nomes de clientes e SEM inventar resultados numéricos precisos. Use exemplos genéricos e ilustrativos. Prefira faixas e princípios a números falsos.
 
+CONTEXTO LOCAL: inclua pelo menos um trecho que conecte o tema à realidade de Cuiabá, Várzea Grande e Mato Grosso (ex.: perfil das empresas da região, agro, comércio e serviços locais, sazonalidade como calor e período de chuvas, distância dos grandes centros, cidades do interior). Use só fatos gerais e verdadeiros; NÃO invente estatística local. Quando fizer sentido, convide a ver os [cases da Yide](/cases).
+
 GEO (otimização para respostas de IA/buscadores): seja objetivo, use listas, definições claras, comparações e passo a passo. Responda a pergunta de forma direta logo no começo e detalhe depois.
 
 LINKS INTERNOS: quando fizer sentido no fluxo do texto, insira links markdown para os serviços da Yide (sem forçar): [gestão de tráfego](/servicos/gestao-de-trafego), [criação de sites](/servicos/criacao-de-sites), [redes sociais](/servicos/redes-sociais), [CRM, IA e dados](/servicos/crm-ia-dados), [audiovisual](/servicos/audiovisual), [e-commerce](/servicos/ecommerce), [Mercado Livre e marketplaces](/servicos/marketplaces), [iFood e delivery](/servicos/delivery-ifood), [assessoria de marketing](/servicos/assessoria-de-marketing), [SEO e Google](/servicos/seo-google).${alvoTxt}

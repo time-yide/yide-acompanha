@@ -7,6 +7,7 @@ import { camposDePublicacao } from "./publicacao";
 import { selecionarKeywordsAlvo } from "./keywords";
 import { TEMAS_ESTRATEGICOS, slugDoTema } from "./temas-estrategicos";
 import { slugUnico } from "../slug";
+import { buscarAutorDoDia } from "./autor";
 
 export interface ResultadoPipelineEstrategico {
   gerados: number;
@@ -28,6 +29,8 @@ export async function executarPipelineEstrategico(orgId: string, quantos = 1, pu
   let gerados = 0;
   let erros = 0;
   const publicados: string[] = [];
+  // Artigo publicado direto sai assinado por uma pessoa da Yide (rodízio diário).
+  const autorId = publicar ? await buscarAutorDoDia(sb, orgId).catch(() => null) : null;
   for (const tema of temasNaoUsados) {
     try {
       const keywordsAlvo = selecionarKeywordsAlvo(4); // SEO local, varia por post
@@ -52,7 +55,7 @@ export async function executarPipelineEstrategico(orgId: string, quantos = 1, pu
         keywords,
         meta_title: artigo.meta_title || null,
         meta_description: artigo.meta_description || null,
-        autor_id: null, // gerado pelo sistema (pipeline)
+        autor_id: autorId, // pessoa da Yide quando publicado pelo cron; null em rascunho
       });
       if (error) { console.error("[blog-estrategico] insert:", error.message); erros++; continue; }
       gerados++;
