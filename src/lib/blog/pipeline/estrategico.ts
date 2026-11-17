@@ -24,7 +24,11 @@ export interface ArtigoEstrategico {
  * PURA. Monta o prompt do editor-chefe. Persona + regras de EEAT honesto, GEO,
  * links internos, SEO local natural e saída JSON estrita (FAQ separada).
  */
-export function montarPromptEstrategico(tema: string, keywordsAlvo: string[] = []): string {
+export function montarPromptEstrategico(
+  tema: string,
+  keywordsAlvo: string[] = [],
+  praca: { nome: string; contexto: string } = { nome: "Cuiabá e Várzea Grande (MT)", contexto: "agro, comércio e serviços, calor e período de chuvas, cidades do interior de Mato Grosso" },
+): string {
   const alvoTxt = keywordsAlvo.length
     ? `\n\nSEO LOCAL: a Yide atua com marketing e programação. Trabalhe estas expressões de forma NATURAL no texto (sem keyword stuffing, que o Google penaliza) e inclua as mais relevantes nas meta tags. Use só as que couberem com naturalidade:\n- ${keywordsAlvo.join("\n- ")}`
     : "";
@@ -49,9 +53,9 @@ ESTRUTURA:
 - Uma tabela em markdown quando ajudar a comparar opções.
 - Conclusão que resume e orienta o próximo passo.
 
-EEAT HONESTO: escreva com a autoridade da Yide (agência de marketing e programação em Cuiabá, Mato Grosso), SEM inventar cifras específicas ("R$ X mil de faturamento", "aumentou 300% as vendas"), SEM inventar nomes de clientes e SEM inventar resultados numéricos precisos. Use exemplos genéricos e ilustrativos. Prefira faixas e princípios a números falsos.
+EEAT HONESTO: escreva com a autoridade da Yide (agência de marketing e programação com sede em Cuiabá-MT, equipe presencial em Cuiabá/Várzea Grande, Salvador e Vitória/Vila Velha, e atendimento online em todo o Brasil), SEM inventar cifras específicas ("R$ X mil de faturamento", "aumentou 300% as vendas"), SEM inventar nomes de clientes e SEM inventar resultados numéricos precisos. Use exemplos genéricos e ilustrativos. Prefira faixas e princípios a números falsos.
 
-CONTEXTO LOCAL: inclua pelo menos um trecho que conecte o tema à realidade de Cuiabá, Várzea Grande e Mato Grosso (ex.: perfil das empresas da região, agro, comércio e serviços locais, sazonalidade como calor e período de chuvas, distância dos grandes centros, cidades do interior). Use só fatos gerais e verdadeiros; NÃO invente estatística local. Quando fizer sentido, convide a ver os [cases da Yide](/cases).
+CONTEXTO LOCAL: a praça deste artigo é ${praca.nome}. Inclua pelo menos um trecho que conecte o tema à realidade das empresas de lá (ex.: ${praca.contexto}). Se couber, mostre que vale para empresas de outras cidades do Brasil também, já que a Yide atende online. Use só fatos gerais e verdadeiros; NÃO invente estatística local. Quando fizer sentido, convide a ver os [cases da Yide](/cases).
 
 GEO (otimização para respostas de IA/buscadores): seja objetivo, use listas, definições claras, comparações e passo a passo. Responda a pergunta de forma direta logo no começo e detalhe depois.
 
@@ -104,11 +108,15 @@ export function parseArtigoEstrategico(json: Record<string, unknown> | null): Ar
 }
 
 /** SERVER. Gera um artigo estratégico a partir de um tema (pergunta). */
-export async function gerarArtigoEstrategico(tema: string, keywordsAlvo: string[] = []): Promise<ArtigoEstrategico | null> {
+export async function gerarArtigoEstrategico(
+  tema: string,
+  keywordsAlvo: string[] = [],
+  praca?: { nome: string; contexto: string },
+): Promise<ArtigoEstrategico | null> {
   const client = getAnthropicClient();
   if (!client) { console.error("[blog-estrategico] Anthropic não configurado"); return null; }
 
-  const prompt = montarPromptEstrategico(tema, keywordsAlvo);
+  const prompt = montarPromptEstrategico(tema, keywordsAlvo, praca);
   try {
     const res = await client.messages.create({
       model: BLOG_MODEL,

@@ -4,7 +4,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { gerarArtigoEstrategico } from "./estrategico";
 import { buscarImagemStock } from "./stock-image";
 import { camposDePublicacao } from "./publicacao";
-import { selecionarKeywordsAlvo } from "./keywords";
+import { escolherPraca, selecionarKeywordsAlvo } from "./keywords";
 import { TEMAS_ESTRATEGICOS, slugDoTema } from "./temas-estrategicos";
 import { slugUnico } from "../slug";
 import { buscarAutorDoDia } from "./autor";
@@ -34,7 +34,8 @@ export async function executarPipelineEstrategico(orgId: string, quantos = 1, pu
   for (const tema of temasNaoUsados) {
     try {
       const keywordsAlvo = selecionarKeywordsAlvo(4); // SEO local, varia por post
-      const artigo = await gerarArtigoEstrategico(tema.pergunta, keywordsAlvo);
+      const praca = escolherPraca(); // Cuiabá/VG, Salvador ou Vitória/Vila Velha
+      const artigo = await gerarArtigoEstrategico(tema.pergunta, keywordsAlvo, praca);
       if (!artigo) { erros++; continue; }
       const capa = await buscarImagemStock(artigo.keywords);
       const slug = slugUnico(slugDoTema(tema.pergunta), slugs);
