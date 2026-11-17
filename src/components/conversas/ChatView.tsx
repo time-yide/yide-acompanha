@@ -48,7 +48,7 @@ const WALLPAPER_CLASSES =
 export function ChatView({ conversa, initialMessages }: Props) {
   const [messages, setMessages] = useState<WppMessage[]>(initialMessages ?? []);
   const [loading, setLoading] = useState(!initialMessages && !!conversa);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const listaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!conversa) return;
@@ -61,9 +61,12 @@ export function ChatView({ conversa, initialMessages }: Props) {
     }
   }, [conversa?.id, initialMessages]);
 
-  // Scroll to bottom on new messages
+  // Rola só a lista de mensagens até o fim. scrollIntoView rolava também a
+  // página inteira (o <main>), empurrando a tela pra cima e deixando um vão
+  // preto embaixo ao abrir um chat.
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const lista = listaRef.current;
+    if (lista) lista.scrollTo({ top: lista.scrollHeight, behavior: "smooth" });
   }, [messages.length]);
 
   const recarregar = useCallback(async () => {
@@ -107,7 +110,7 @@ export function ChatView({ conversa, initialMessages }: Props) {
     <div className={`flex h-full flex-1 flex-col ${WALLPAPER_CLASSES}`}>
       <ChatHeader conversa={conversa} />
 
-      <div className="flex-1 space-y-4 overflow-y-auto px-3 py-4 sm:px-6">
+      <div ref={listaRef} className="flex-1 space-y-4 overflow-y-auto px-3 py-4 sm:px-6">
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -130,7 +133,6 @@ export function ChatView({ conversa, initialMessages }: Props) {
             </div>
           ))
         )}
-        <div ref={bottomRef} />
       </div>
 
       <Composer
