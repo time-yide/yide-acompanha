@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { AlertTriangle, Clapperboard } from "lucide-react";
+import { AlertTriangle, Clapperboard, Lock, Palette } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import { canAccess } from "@/lib/auth/permissions";
 import { createClient } from "@/lib/supabase/server";
@@ -26,13 +26,15 @@ import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { SubirEdicaoButton } from "@/components/audiovisual/SubirEdicaoButton";
 import { isEditorIaEnabled, canUseEditorIa } from "@/lib/editor-ia/feature-flag";
+import { listTasks } from "@/lib/tarefas/queries";
+import { TasksGroupedList } from "@/components/tarefas/TasksGroupedList";
 
 const ROLES_QUE_VEEM = ["videomaker", "fast_midia", "audiovisual_chefe", "coordenador", "assessor", "adm", "socio"];
 const ROLES_QUE_DELEGAM = ["audiovisual_chefe", "adm", "socio"];
 const ROLES_GESTAO = ["audiovisual_chefe", "coordenador", "assessor", "adm", "socio"];
 const ROLES_QUE_EXCLUEM = ["audiovisual_chefe", "coordenador", "adm", "socio"];
 
-type TabKey = "capturas" | "pendente_entrega" | "pendente_delegacao" | "em_edicao" | "aguardando_videomaker" | "meus_bloqueios" | "solicitacoes_bloqueio";
+type TabKey = "capturas" | "pendente_entrega" | "pendente_delegacao" | "em_edicao" | "aguardando_videomaker" | "tarefas_video" | "meus_bloqueios" | "solicitacoes_bloqueio";
 
 const TAB_LABELS: Record<TabKey, string> = {
   capturas: "Capturas",
@@ -40,6 +42,7 @@ const TAB_LABELS: Record<TabKey, string> = {
   pendente_delegacao: "Pendente edição",
   em_edicao: "Em edição",
   aguardando_videomaker: "Captações futuras",
+  tarefas_video: "Tarefas de vídeo",
   meus_bloqueios: "Meus bloqueios",
   solicitacoes_bloqueio: "Solicitações de bloqueio",
 };
@@ -90,6 +93,7 @@ export default async function AudiovisualPage({
   if (canSeeAguardando) availableTabs.push("aguardando_videomaker");
   if (canSeeDelegacao) availableTabs.push("pendente_delegacao");
   if (canSeeDelegacao) availableTabs.push("em_edicao");
+  availableTabs.push("tarefas_video");
   if (isVideomaker) availableTabs.push("meus_bloqueios");
   // Só quem realmente aprova (coord. audiovisual + adm/sócio) vê a fila de
   // solicitações — assessor/coordenador geral não aprovam, então não faz
@@ -182,9 +186,12 @@ export default async function AudiovisualPage({
       />
     );
   } else if (activeTab === "pendente_entrega") {
+    const canQuickMark = isVideomaker || ROLES_GESTAO.includes(user.role);
     const [rows, { data: clientesData = [] }] = await Promise.all([
       listEventosSemCaptura(isVideomaker ? { videomakerId: user.id } : {}),
-      isVideomaker
+      // Gestão também precisa da lista: o "Entregue" rápido pede o cliente
+      // quando a gravação foi agendada sem cliente.
+      canQuickMark
         ? supabase.from("clients").select("id, nome").in("status", ["ativo", "em_onboarding"]).is("deleted_at", null).order("nome") // inclui onboarding (ver aba capturas)
         : Promise.resolve({ data: [] as Array<{ id: string; nome: string }> }),
     ]);
@@ -194,7 +201,7 @@ export default async function AudiovisualPage({
         rows={rows}
         showVideomaker={!isVideomaker}
         canDeliver={isVideomaker}
-        canQuickMark={isVideomaker || ROLES_GESTAO.includes(user.role)}
+        canQuickMark={canQuickMark}
         clientes={clientes}
       />
     );
@@ -249,6 +256,14 @@ export default async function AudiovisualPage({
         canDelegate={canDelegateVideomaker}
       />
     );
+  } else if (activeTab === "tarefas_video") {
+    const videoTasks = await listTasks({
+      tipo: ["video"],
+      unitClientIds: unitClientIdsForFilter,
+    });
+    content = (
+      <TasksGroupedList tasks={videoTasks} groupBy="prazo" userRole={user.role} />
+    );
   } else if (activeTab === "meus_bloqueios") {
     content = <MeusBloqueiosAba userId={user.id} />;
   } else if (activeTab === "solicitacoes_bloqueio") {
@@ -275,6 +290,14 @@ export default async function AudiovisualPage({
               Editor IA
             </Link>
           )}
+          <Link
+            href="/audiovisual/designer"
+            prefetch={false}
+            className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors"
+          >
+            <Palette className="h-4 w-4" />
+            Designer
+          </Link>
           {canAccess(user.role, "manage:review") && (
             <Link
               href="/audiovisual/review"
@@ -330,6 +353,7 @@ export default async function AudiovisualPage({
                     : "border-transparent text-muted-foreground hover:border-muted-foreground/30 hover:text-foreground",
                 )}
               >
+                {t === "solicitacoes_bloqueio" && <Lock className="h-3.5 w-3.5" />}
                 {TAB_LABELS[t]}
                 {badge !== undefined && badge > 0 && (
                   <span

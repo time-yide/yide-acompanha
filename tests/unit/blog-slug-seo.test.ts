@@ -60,9 +60,9 @@ describe("jsonLdArtigo", () => {
     expect(ld.author).toEqual({ "@type": "Person", name: "Ana" });
     expect((ld.publisher as { name: string }).name).toBe("Yide Digital");
   });
-  it("omite image/author quando não há", () => {
+  it("sem autor, assina como a empresa e omite image", () => {
     const ld = jsonLdArtigo(base, "https://y/blog/x");
     expect(ld.image).toBeUndefined();
-    expect(ld.author).toBeUndefined();
+    expect(ld.author).toEqual({ "@type": "Organization", name: "Yide Digital" });
   });
 });

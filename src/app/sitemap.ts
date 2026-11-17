@@ -2,7 +2,11 @@ import type { MetadataRoute } from "next";
 import { listPostsPublicados } from "@/lib/blog/queries";
 import { getOrgPadrao, listServicosComPaginas, listPaginasPublicadasDoServico } from "@/lib/seo/queries";
 import { listCasesPublicados } from "@/lib/seo/case-queries";
+import { CASES_ESTATICOS } from "@/lib/site/cases-estaticos";
 import { SITE_URL } from "@/lib/blog/config";
+import { postIndexavel } from "@/lib/blog/fora-do-indice";
+import { PAGINAS_LOCAIS } from "@/lib/site/paginas-locais";
+import { SEED_SERVICOS } from "@/lib/seo/config";
 
 // Dinâmica (não gera no build): usa service-role, cuja env só existe em runtime.
 export const dynamic = "force-dynamic";
@@ -12,7 +16,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [posts, servicos, cases] = await Promise.all([
     orgId ? listPostsPublicados(orgId) : Promise.resolve([]),
     orgId ? listServicosComPaginas(orgId) : Promise.resolve([]),
-    orgId ? listCasesPublicados(orgId) : Promise.resolve([]),
+    orgId ? listCasesPublicados(orgId) : Promise.resolve(CASES_ESTATICOS),
   ]);
 
   // Páginas serviço × localidade publicadas (uma consulta por serviço).
@@ -24,14 +28,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       )).flat()
     : [];
 
+  // Todas as páginas de serviço que o site renderiza (banco + seed), sem repetir.
+  const slugsServico = [...new Set([...servicos.map((s) => s.slug), ...SEED_SERVICOS.map((s) => s.slug)])];
+
+  // Páginas de cidade escritas no código, sem repetir as que também existem no banco.
+  const paginasCidade = [...new Set([...PAGINAS_LOCAIS.map((p) => `${p.servico}/${p.cidade}`), ...paginasServico])];
+
   return [
     { url: `${SITE_URL}/`, changeFrequency: "weekly", priority: 1 },
     { url: `${SITE_URL}/servicos`, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${SITE_URL}/sobre`, changeFrequency: "monthly", priority: 0.6 },
+    { url: `${SITE_URL}/diagnostico`, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${SITE_URL}/perguntas-frequentes`, changeFrequency: "monthly", priority: 0.6 },
+    { url: `${SITE_URL}/politica-de-privacidade`, changeFrequency: "yearly", priority: 0.2 },
     { url: `${SITE_URL}/cases`, changeFrequency: "monthly", priority: 0.7 },
-    { url: `${SITE_URL}/blog`, changeFrequency: "daily", priority: 0.8 },
-    ...servicos.map((s) => ({ url: `${SITE_URL}/servicos/${s.slug}`, changeFrequency: "monthly" as const, priority: 0.7 })),
-    ...paginasServico.map((path) => ({ url: `${SITE_URL}/servicos/${path}`, changeFrequency: "monthly" as const, priority: 0.7 })),
+    { url: `${SITE_URL}/lyide`, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${SITE_URL}/blog`, changeFrequency: "daily", priority: 1 },
+    ...slugsServico.map((slug) => ({ url: `${SITE_URL}/servicos/${slug}`, changeFrequency: "monthly" as const, priority: 0.7 })),
+    ...paginasCidade.map((path) => ({ url: `${SITE_URL}/servicos/${path}`, changeFrequency: "monthly" as const, priority: 0.7 })),
     ...cases.map((c) => ({ url: `${SITE_URL}/cases/${c.slug}`, changeFrequency: "monthly" as const, priority: 0.6 })),
-    ...posts.map((p) => ({ url: `${SITE_URL}/blog/${p.slug}`, lastModified: p.updated_at, changeFrequency: "weekly" as const, priority: 0.6 })),
+    ...posts.filter((p) => postIndexavel(p.slug)).map((p) => ({ url: `${SITE_URL}/blog/${p.slug}`, lastModified: p.updated_at, changeFrequency: "weekly" as const, priority: 0.6 })),
   ];
 }

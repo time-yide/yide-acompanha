@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { extrairJson } from "@/lib/blog/pipeline/gerar";
-import { ordenarPorData, filtrarNovas, apenasRecentes, type NoticiaItem } from "@/lib/blog/pipeline/rss";
+import { ordenarPorData, filtrarNovas, apenasRecentes, ehRelevante, type NoticiaItem } from "@/lib/blog/pipeline/rss";
 import { frasesLocais, selecionarKeywordsAlvo } from "@/lib/blog/pipeline/keywords";
 
 const n = (link: string, publicadoEm: string | null): NoticiaItem =>
@@ -57,5 +57,20 @@ describe("keywords SEO local", () => {
     const ks = selecionarKeywordsAlvo(4);
     expect(ks).toHaveLength(4);
     expect(ks.every((k) => k.length > 0)).toBe(true);
+  });
+});
+
+describe("ehRelevante", () => {
+  const item = (titulo: string) => ({ titulo, link: "l", resumo: "", publicadoEm: null, fonteNome: "F" });
+  it("aceita assunto de marketing digital", () => {
+    expect(ehRelevante(item("Reddit tests ads in search results"))).toBe(true);
+    expect(ehRelevante(item("Novos anúncios no WhatsApp para empresas"))).toBe(true);
+    expect(ehRelevante(item("IA muda a compra de mídia"))).toBe(true);
+  });
+  it("recusa campanha de marca sem relação", () => {
+    expect(ehRelevante(item("Riachuelo convida João Gomes para celebrar o fim do ano"))).toBe(false);
+  });
+  it("não confunde pedaço de palavra com termo", () => {
+    expect(ehRelevante(item("Dia de festa na padaria"))).toBe(false);
   });
 });

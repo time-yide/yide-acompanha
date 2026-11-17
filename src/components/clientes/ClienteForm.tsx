@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TIPOS_PACOTE, tipoPacoteBadge } from "@/lib/painel/pacote-matrix";
-import { CADENCIAS_REUNIAO, MODALIDADES, TIPOS_RELACAO } from "@/lib/clientes/schema";
+import { CADENCIAS_REUNIAO, MODALIDADES, TIPOS_RELACAO } from "@/lib/clientes/constants";
 import type { TipoRelacaoCliente } from "@/lib/clientes/schema";
 
 interface ProfileOption {
@@ -54,6 +54,7 @@ interface Props {
     tipo_relacao: string | null;
     modalidade: string | null;
     nicho_id: string | null;
+    grupo_wpp_jid: string | null;
   }>;
   assessores: ProfileOption[];
   coordenadores: ProfileOption[];
@@ -342,6 +343,21 @@ export function ClienteForm({ action, defaults = {}, assessores, coordenadores, 
               placeholder="0"
               className="mt-1 block w-full h-9 rounded-md border bg-card px-2 text-sm"
             />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="text-xs font-medium text-muted-foreground">
+              Grupo WhatsApp (JID)
+            </label>
+            <input
+              type="text"
+              name="grupo_wpp_jid"
+              defaultValue={defaults.grupo_wpp_jid ?? ""}
+              placeholder="5565...@g.us"
+              className="mt-1 block w-full h-9 rounded-md border bg-card px-2 text-sm"
+            />
+            <p className="mt-1 text-[10px] text-muted-foreground">
+              ID do grupo no WhatsApp. Quando preenchido, follow-ups de gravação são enviados automaticamente ao grupo.
+            </p>
           </div>
         </div>
       </div>

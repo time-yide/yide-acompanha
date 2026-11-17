@@ -163,6 +163,7 @@ export async function updateClienteAction(formData: FormData) {
     tipo_pacote_revisado: fd(formData, "tipo_pacote_revisado"),
     tipo_relacao: fd(formData, "tipo_relacao") ?? "comum",
     modalidade: fd(formData, "modalidade") ?? "mensal",
+    grupo_wpp_jid: fd(formData, "grupo_wpp_jid"),
   });
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
@@ -209,6 +210,7 @@ export async function updateClienteAction(formData: FormData) {
     tipo_relacao: tipoRelacaoEdit,
     modalidade: parsed.data.modalidade ?? "mensal",
     nicho_id: fd(formData, "nicho_id") || null,
+    grupo_wpp_jid: parsed.data.grupo_wpp_jid || null,
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

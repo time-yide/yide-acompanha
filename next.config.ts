@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "*.supabase.co" },
+      { protocol: "https", hostname: "i.ytimg.com" }, // capas dos vídeos de case
     ],
     // AVIF é ~30% menor que WebP, mas demora um pouco mais pra codificar.
     // Next.js cacheia o resultado, então o custo é só na primeira requisição.

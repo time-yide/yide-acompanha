@@ -9,7 +9,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Video, MapPin, Link as LinkIcon, Users as UsersIcon } from "lucide-react";
 import { RoteiroToggle } from "./RoteiroToggle";
 import { RecurrenceFields } from "@/components/calendario/RecurrenceFields";
-import { SELECTABLE_SUBS, type SelectableSub } from "@/lib/calendario/schema";
+import { SELECTABLE_SUBS, type SelectableSub } from "@/lib/calendario/constants";
 import { clienteObrigatorio } from "@/lib/calendario/reuniao-gravacao";
 import { cn } from "@/lib/utils";
 
@@ -81,7 +81,6 @@ function maisUmaHora(v: string): string {
 export function EventForm({ action, defaults = {}, profiles, clientes, videomakers, canCreateVideomaker, canDelegateVideomaker, videomakerRequired, submitLabel = "Salvar", formId }: Props) {
   const [state, formAction, pending] = useActionState(action, undefined);
   const formRef = useRef<HTMLFormElement>(null);
-  const [ignorar, setIgnorar] = useState(false);
   const selected = new Set(defaults.participantes_ids ?? []);
   const [sub, setSub] = useState<SelectableSub>(defaults.sub_calendar ?? "agencia");
   const [clientId, setClientId] = useState<string | null>(defaults.client_id ?? null);
@@ -97,28 +96,17 @@ export function EventForm({ action, defaults = {}, profiles, clientes, videomake
   const [fim, setFim] = useState<string>(defaults.fim ?? "");
   function onChangeInicio(v: string) {
     setInicio(v);
-    setIgnorar(false);
-    // Se o Fim está vazio ou não é depois do início, sugere início + 1h.
-    if (v && (!fim || fim <= v)) setFim(maisUmaHora(v));
+    if (!v) return;
+    // Fim acompanha o dia do Início (mantém a hora). Sem isso, mudar a data do
+    // Início deixava o Fim na data antiga e o evento ocupava vários dias.
+    const fimMesmoDia = fim ? `${v.slice(0, 10)}${fim.slice(10)}` : "";
+    setFim(fimMesmoDia && fimMesmoDia > v ? fimMesmoDia : maisUmaHora(v));
   }
 
   const subOptions = SELECTABLE_SUBS.filter((s) => s !== "videomakers" || canCreateVideomaker);
 
-  // "Confirmar mesmo assim": não é submit nativo. Monta o FormData atual e força
-  // ignorar_bloqueio=true na hora, sem depender do re-render do state (evita o bug
-  // de o submit nativo usar o valor antigo do input escondido).
-  function confirmarMesmoAssim() {
-    const formEl = formRef.current;
-    if (!formEl) return;
-    const data = new FormData(formEl);
-    data.set("ignorar_bloqueio", "true");
-    setIgnorar(true);
-    formAction(data);
-  }
-
   return (
     <form id={formId} ref={formRef} action={formAction} className="space-y-5">
-      <input type="hidden" name="ignorar_bloqueio" value={ignorar ? "true" : "false"} />
       {defaults.id && <input type="hidden" name="id" value={defaults.id} />}
 
       <div className="space-y-2">
@@ -173,7 +161,7 @@ export function EventForm({ action, defaults = {}, profiles, clientes, videomake
         </div>
         <div className="space-y-2">
           <Label htmlFor="fim">Fim <span className="text-xs text-muted-foreground">(mesmo dia — hora que termina)</span></Label>
-          <Input id="fim" name="fim" type="datetime-local" required value={fim} onChange={(e) => { setFim(e.target.value); setIgnorar(false); }} />
+          <Input id="fim" name="fim" type="datetime-local" required value={fim} onChange={(e) => setFim(e.target.value)} />
         </div>
       </div>
 
@@ -263,12 +251,7 @@ export function EventForm({ action, defaults = {}, profiles, clientes, videomake
               <SearchableSelect
                 options={videomakers.map((v) => ({ value: v.id, label: v.nome }))}
                 value={videomakerId}
-                onChange={(v) => {
-                  setVideomakerId(v ?? null);
-                  // Trocou o videomaker → o bloqueio pode não valer mais; volta a
-                  // checar no próximo submit normal ao invés de bypassar silencioso.
-                  setIgnorar(false);
-                }}
+                onChange={(v) => setVideomakerId(v ?? null)}
                 placeholder="Escolha o videomaker"
                 emptyText="Nenhum videomaker ativo"
                 clearLabel={videomakerRequired ? undefined : "Deixar pro coordenador delegar"}
@@ -362,11 +345,12 @@ export function EventForm({ action, defaults = {}, profiles, clientes, videomake
             Verifique se o conflito é real. Se quiser prosseguir, clique abaixo.
           </p>
           <Button
-            type="button"
+            type="submit"
+            name="ignorar_bloqueio"
+            value="true"
             variant="outline"
             className="mt-2"
             disabled={pending}
-            onClick={confirmarMesmoAssim}
           >
             Confirmar mesmo assim
           </Button>

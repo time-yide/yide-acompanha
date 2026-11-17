@@ -47,6 +47,73 @@ export async function sendWhatsAppMessage(
   }
 }
 
+export async function sendWhatsAppGroupMessage(
+  groupJid: string,
+  message: string,
+  opts?: { mentionsEveryOne?: boolean },
+): Promise<SendMessageResult> {
+  const apiUrl = process.env.EVOLUTION_API_URL;
+  const apiKey = process.env.EVOLUTION_API_KEY;
+  const instance = process.env.EVOLUTION_INSTANCE_NAME;
+
+  if (!apiUrl || !apiKey || !instance) {
+    return { success: false, error: "Evolution API not configured" };
+  }
+
+  const jid = groupJid.includes("@") ? groupJid : `${groupJid}@g.us`;
+
+  try {
+    const payload: Record<string, unknown> = { number: jid, text: message };
+    if (opts?.mentionsEveryOne) payload.mentionsEveryOne = true;
+
+    const res = await fetch(`${apiUrl}/message/sendText/${instance}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: apiKey },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const body = await res.text();
+      console.error("Evolution API group error:", res.status, body);
+      return { success: false, error: `HTTP ${res.status}` };
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error("Evolution API group error:", err);
+    return { success: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+export async function listWhatsAppGroups(): Promise<
+  { id: string; subject: string; size: number }[]
+> {
+  const apiUrl = process.env.EVOLUTION_API_URL;
+  const apiKey = process.env.EVOLUTION_API_KEY;
+  const instance = process.env.EVOLUTION_INSTANCE_NAME;
+
+  if (!apiUrl || !apiKey || !instance) return [];
+
+  try {
+    const res = await fetch(`${apiUrl}/chat/findChats/${instance}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: apiKey },
+      body: JSON.stringify({}),
+    });
+    if (!res.ok) return [];
+    const data: { remoteJid?: string; pushName?: string }[] = await res.json();
+    return (Array.isArray(data) ? data : [])
+      .filter((c) => c.remoteJid?.includes("@g.us"))
+      .map((g) => ({
+        id: g.remoteJid!,
+        subject: g.pushName ?? "",
+        size: 0,
+      }));
+  } catch {
+    return [];
+  }
+}
+
 export function formatWeeklyReportMessage(
   clientNome: string,
   semanaInicio: string,

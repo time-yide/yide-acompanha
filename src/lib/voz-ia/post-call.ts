@@ -45,13 +45,64 @@ export async function processPostCall(data: PostCallData) {
         .eq("id", data.leadGeradoId);
     }
 
-    await sb.from("lead_attempts").insert({
-      organization_id: data.orgId,
-      lead_gerado_id: data.leadGeradoId,
-      tipo: "ligacao",
-      canal: "telefone",
-      notas: "Ligação IA automática",
-    }).catch(() => {});
+    try {
+      await sb.from("lead_attempts").insert({
+        organization_id: data.orgId,
+        lead_gerado_id: data.leadGeradoId,
+        tipo: "ligacao",
+        canal: "telefone",
+        notas: "Ligação IA automática",
+      });
+    } catch { /* ignora erro de log */ }
+
+    // Espelha no dashboard de Ligações.
+    // Re-lê o status da chamada: AMD pode ter marcado como caixa_postal.
+    const { data: callNow } = await sb
+      .from("ai_voice_calls")
+      .select("status")
+      .eq("id", data.callId)
+      .single();
+    const isCaixaPostal = callNow?.status === "caixa_postal";
+    const ligacaoStatus = isCaixaPostal
+      ? "caixa_postal"
+      : data.durationSeconds > 5 ? "atendida" : "perdida";
+
+    if (ligacaoStatus === "atendida") {
+      try {
+        const { incrementLeadScore } = await import("@/lib/motor-prospeccao/lead-score");
+        await incrementLeadScore(data.leadGeradoId, 20);
+      } catch { /* score is best-effort */ }
+    }
+
+    const { data: leadData } = await sb
+      .from("leads_gerados")
+      .select("telefone, empresa")
+      .eq("id", data.leadGeradoId)
+      .single();
+    if (leadData?.telefone) {
+      const now = new Date();
+      try {
+        await sb.from("ligacoes").insert({
+          organization_id: data.orgId,
+          tipo: "telefone",
+          numero: leadData.telefone,
+          contato_nome: leadData.empresa ?? null,
+          direcao: "saida",
+          status: ligacaoStatus,
+          iniciada_em: new Date(now.getTime() - data.durationSeconds * 1000).toISOString(),
+          finalizada_em: now.toISOString(),
+          duracao_segundos: data.durationSeconds,
+          gravacao_url: gravacaoUrl,
+          transcricao: data.transcription?.length ? JSON.stringify(data.transcription) : null,
+          origem: "voz_ia",
+          external_id: data.twilioCallSid,
+          lead_gerado_id: data.leadGeradoId,
+          tags: ["ia"],
+        });
+      } catch (err) {
+        console.error("[post-call] erro ao espelhar ligação IA:", err);
+      }
+    }
   }
 }
 

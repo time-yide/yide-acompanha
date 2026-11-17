@@ -1,16 +1,6 @@
 import { z } from "zod";
-
-export const STAGES = [
-  "leads_potencial",
-  "leads_ativos",
-  "reuniao_comercial",
-  "proposta_enviada",
-  "contrato",
-  "marco_zero",
-  "ativo",
-] as const;
-export const PRIORITIES = ["alta", "media", "baixa"] as const;
-export type Stage = typeof STAGES[number];
+import { STAGES, PRIORITIES } from "./constants";
+export * from "./constants";
 
 export const createLeadSchema = z.object({
   nome_prospect: z.string().min(2, "Nome do prospect muito curto"),
@@ -67,25 +57,6 @@ export const importClientToOnboardingSchema = z.object({
   servico_proposto: z.string().optional().nullable(),
   info_briefing: z.string().optional().nullable(),
 });
-
-/**
- * Quem pode interagir (mover, marcar perdido, arrastar) com um card baseado
- * no estágio atual. Mapa compartilhado entre server (actions) e client
- * (LeadCard) pra UI esconder botões e action bloquear.
- */
-export const STAGE_INTERACTORS: Record<Stage, readonly string[]> = {
-  leads_potencial: ["adm", "socio", "comercial", "programacao"],
-  leads_ativos: ["adm", "socio", "comercial", "programacao"],
-  proposta_enviada: ["adm", "socio", "comercial", "programacao"],
-  reuniao_comercial: ["adm", "socio", "comercial", "programacao"],
-  contrato: ["adm", "socio", "coordenador"],
-  marco_zero: ["adm", "socio", "coordenador", "assessor"],
-  ativo: ["socio", "coordenador", "assessor"],
-};
-
-export function canInteractWithStage(role: string, stage: Stage): boolean {
-  return STAGE_INTERACTORS[stage]?.includes(role) ?? false;
-}
 
 export type CreateLeadInput = z.infer<typeof createLeadSchema>;
 export type EditLeadInput = z.infer<typeof editLeadSchema>;

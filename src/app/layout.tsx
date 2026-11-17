@@ -1,4 +1,4 @@
-import { Inter } from "next/font/google";
+import { inter } from "@/fonts";
 import type { Metadata, Viewport } from "next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
@@ -8,7 +8,6 @@ import { PWARegister } from "@/components/pwa/PWARegister";
 import { IOSInstallBanner } from "@/components/pwa/IOSInstallBanner";
 import { ChunkErrorRecovery } from "@/components/pwa/ChunkErrorRecovery";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 
 // Ícones vêm dos arquivos em src/app/: icon.svg (favicon), apple-icon.tsx
 // (180x180), icon0.tsx (192x192), icon1.tsx (512x512). Não definir

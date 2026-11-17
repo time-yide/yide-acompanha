@@ -19,6 +19,19 @@ export interface FunilItem {
   valor: number;
 }
 
+export interface FunilCompleto {
+  wppEnviados: number;
+  responderam: number;
+  ligacoesFeitas: number;
+  ligacoesAtendidas: number;
+  reunioesAgendadas: number;
+  semInteresse: number;
+  escalados: number;
+  viramCliente: number;
+  reengajamentoEnviados: number;
+  reengajamentoResponderam: number;
+}
+
 export interface ConversaAtiva {
   id: string;
   contato_nome: string;
@@ -27,14 +40,28 @@ export interface ConversaAtiva {
   ultima_msg_em: string | null;
 }
 
-export async function getMotorStats(orgId: string): Promise<MotorStats> {
+function calcDesde(dias: number): string | null {
+  if (dias === 0) return null;
+  const d = new Date();
+  d.setDate(d.getDate() - dias);
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString();
+}
+
+export async function getMotorStats(orgId: string, dias = 0): Promise<MotorStats> {
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
   const hojeISO = hoje.toISOString();
+  const desde = calcDesde(dias);
 
   const inicioSemana = new Date();
   inicioSemana.setDate(inicioSemana.getDate() - inicioSemana.getDay());
   inicioSemana.setHours(0, 0, 0, 0);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function filtrarPeriodo(q: any) {
+    return desde ? q.gte("criado_em", desde) : q;
+  }
 
   const [wppHoje, config, conversasAtivas, reunioes, totalEnviados, totalResponderam] =
     await Promise.all([
@@ -61,16 +88,20 @@ export async function getMotorStats(orgId: string): Promise<MotorStats> {
         .eq("organization_id", orgId)
         .eq("acao", "reuniao_agendada")
         .gte("criado_em", inicioSemana.toISOString()),
-      sb()
-        .from("motor_prospeccao_log")
-        .select("id", { count: "exact", head: true })
-        .eq("organization_id", orgId)
-        .eq("acao", "wpp_primeiro_contato"),
-      sb()
-        .from("motor_prospeccao_log")
-        .select("id", { count: "exact", head: true })
-        .eq("organization_id", orgId)
-        .in("acao", ["reuniao_agendada", "sem_interesse", "escalado_humano"]),
+      filtrarPeriodo(
+        sb()
+          .from("motor_prospeccao_log")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", orgId)
+          .eq("acao", "wpp_primeiro_contato"),
+      ),
+      filtrarPeriodo(
+        sb()
+          .from("motor_prospeccao_log")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", orgId)
+          .in("acao", ["reuniao_agendada", "sem_interesse", "escalado_humano"]),
+      ),
     ]);
 
   const total = totalEnviados.count ?? 0;
@@ -105,6 +136,98 @@ export async function getFunilMotor(orgId: string): Promise<FunilItem[]> {
     { label: "Sem interesse", valor: counts["sem_interesse"] ?? 0 },
     { label: "Escalado", valor: counts["escalado_humano"] ?? 0 },
   ];
+}
+
+export async function getFunilCompleto(orgId: string, dias: number): Promise<FunilCompleto> {
+  const desde = calcDesde(dias);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function logCount(acoes: string | string[]): any {
+    const q = sb()
+      .from("motor_prospeccao_log")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", orgId);
+    const q2 = Array.isArray(acoes) ? q.in("acao", acoes) : q.eq("acao", acoes);
+    return desde ? q2.gte("criado_em", desde) : q2;
+  }
+
+  const [
+    wppEnviados,
+    responderam,
+    ligacoesFeitas,
+    ligacoesAtendidas,
+    reunioesAgendadas,
+    semInteresse,
+    escalados,
+    viramCliente,
+    reengajamentoEnviados,
+    reengajamentoResponderam,
+  ] = await Promise.all([
+    // 1. WPP enviados (primeiro contato + reengajamento)
+    logCount(["wpp_primeiro_contato", "reengajamento_wpp"]),
+    // 2. Responderam (qualquer ação que indica engajamento)
+    logCount(["reuniao_agendada", "sem_interesse", "escalado_humano", "wpp_resposta_ia"]),
+    // 3. Ligações feitas
+    (() => {
+      const q = sb()
+        .from("ligacoes")
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", orgId)
+        .in("origem", ["voz_ia", "power_dialer"])
+        .eq("direcao", "saida");
+      return desde ? q.gte("criado_em", desde) : q;
+    })(),
+    // 4. Ligações atendidas
+    (() => {
+      const q = sb()
+        .from("ligacoes")
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", orgId)
+        .in("origem", ["voz_ia", "power_dialer"])
+        .eq("status", "atendida");
+      return desde ? q.gte("criado_em", desde) : q;
+    })(),
+    // 5. Reuniões agendadas
+    logCount("reuniao_agendada"),
+    // 6. Sem interesse
+    logCount("sem_interesse"),
+    // 7. Escalados
+    logCount("escalado_humano"),
+    // 8. Viraram cliente
+    (() => {
+      const q = sb()
+        .from("leads_gerados")
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", orgId)
+        .eq("status", "cliente");
+      return desde ? q.gte("updated_at", desde) : q;
+    })(),
+    // 9. Reengajamento enviados
+    logCount("reengajamento_wpp"),
+    // 10. Reengajamento responderam (voltaram ao funil)
+    (() => {
+      const q = sb()
+        .from("leads_gerados")
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", orgId)
+        .gt("reengajamento_tentativas", 0)
+        .not("ai_status", "in", "(esgotado,descartado_definitivo)");
+      return desde ? q.gte("updated_at", desde) : q;
+    })(),
+  ]);
+
+  return {
+    wppEnviados: wppEnviados.count ?? 0,
+    responderam: responderam.count ?? 0,
+    ligacoesFeitas: ligacoesFeitas.count ?? 0,
+    ligacoesAtendidas: ligacoesAtendidas.count ?? 0,
+    reunioesAgendadas: reunioesAgendadas.count ?? 0,
+    semInteresse: semInteresse.count ?? 0,
+    escalados: escalados.count ?? 0,
+    viramCliente: viramCliente.count ?? 0,
+    reengajamentoEnviados: reengajamentoEnviados.count ?? 0,
+    reengajamentoResponderam: reengajamentoResponderam.count ?? 0,
+  };
 }
 
 export async function getConversasAtivas(orgId: string): Promise<ConversaAtiva[]> {

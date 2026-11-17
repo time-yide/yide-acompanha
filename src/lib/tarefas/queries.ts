@@ -132,6 +132,8 @@ export interface TaskFilters {
   criadoPor?: string;
   clientId?: string;
   prioridade?: ("alta" | "media" | "baixa")[];
+  /** Filtra por tipo de tarefa (video, arte, geral). */
+  tipo?: TaskTipo[];
   /** Busca textual (ILIKE no titulo). Trim aplicado no caller. */
   q?: string;
   /** Multi-tenant: lista de client_ids da unidade ativa. Quando passado e
@@ -175,6 +177,7 @@ async function _listTasksImpl(filters?: TaskFilters): Promise<TaskRow[]> {
   }
   if (filters?.criadoPor) query = query.eq("criado_por", filters.criadoPor);
   if (filters?.clientId) query = query.eq("client_id", filters.clientId);
+  if (filters?.tipo && filters.tipo.length > 0) query = query.in("tipo", filters.tipo);
   // Multi-tenant: filtra por client_ids da unidade ativa.
   // - undefined/null = sem filtro (master vendo consolidado)
   // - [] = unidade nova sem clients = nenhuma task (resultado vazio)

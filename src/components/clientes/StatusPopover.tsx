@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { churnClienteAction, reactivateClienteAction } from "@/lib/clientes/actions";
-import { CHURN_MOTIVOS } from "@/lib/clientes/schema";
+import { CHURN_MOTIVOS } from "@/lib/clientes/constants";
 import { getTodayDate } from "@/lib/datetime/timezone";
 
 interface Props {

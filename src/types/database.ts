@@ -736,6 +736,7 @@ export type Database = {
           gmn_location_id: string | null
           gmn_url: string | null
           google_ads_customer_id: string | null
+          grupo_wpp_jid: string | null
           id: string
           instagram_business_id: string | null
           instagram_url: string | null
@@ -783,6 +784,7 @@ export type Database = {
           gmn_location_id?: string | null
           gmn_url?: string | null
           google_ads_customer_id?: string | null
+          grupo_wpp_jid?: string | null
           id?: string
           instagram_business_id?: string | null
           instagram_url?: string | null
@@ -830,6 +832,7 @@ export type Database = {
           gmn_location_id?: string | null
           gmn_url?: string | null
           google_ads_customer_id?: string | null
+          grupo_wpp_jid?: string | null
           id?: string
           instagram_business_id?: string | null
           instagram_url?: string | null

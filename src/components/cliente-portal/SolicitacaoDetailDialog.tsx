@@ -14,11 +14,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { cancelPortalRequestAction } from "@/lib/portal-requests/actions";
-import {
-  CATEGORIA_LABEL,
-  STATUS_LABEL,
-  type RequestRow,
-} from "@/lib/portal-requests/schema";
+import { CATEGORIA_LABEL, STATUS_LABEL } from "@/lib/portal-requests/constants";
+import type { RequestRow } from "@/lib/portal-requests/schema";
 
 interface Props {
   request: RequestRow;

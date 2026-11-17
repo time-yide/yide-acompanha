@@ -8,6 +8,7 @@ import { criarVideo, assinaturaUpload, statusVideo, reencodeVideo, type UploadTu
 import { podeTransicionar, type ReviewStatus } from "./schema";
 import { destravado } from "./gate";
 import { syncTarefaComReview } from "./task-sync";
+import { sendWhatsAppGroupMessage } from "@/lib/weekly-reports/evolution-api";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SB = any;
@@ -139,14 +140,43 @@ export async function resolverComentarioAction(reviewId: string, comentarioId: s
 
 export async function aprovarInternoAction(reviewId: string): Promise<Res<{ ok: true }>> {
   const user = await requireAuth();
-  // Mesmo gate de aprovar/pedir alteração (gestor de tarefa, ex.: assessor),
-  // não só manage:review — é quem decide enviar o vídeo pro cliente aprovar.
   if (!podeRevisar(user.role)) return { error: "Sem permissão" };
   const sb = createServiceRoleClient() as SB;
-  const { data: rv } = await sb.from("review_video").select("status").eq("id", reviewId).maybeSingle();
+  const { data: rv } = await sb.from("review_video").select("status, aprovacao_token, task_id").eq("id", reviewId).maybeSingle();
   if (!rv) return { error: "Review não encontrado" };
   if (!podeTransicionar(rv.status as ReviewStatus, "revisao_cliente")) return { error: "Esse review não está em revisão interna" };
   await sb.from("review_video").update({ status: "revisao_cliente", updated_at: new Date().toISOString() }).eq("id", reviewId);
+
+  // WhatsApp: avisa o cliente que o vídeo está pronto pra aprovação
+  const token = rv.aprovacao_token as string | null;
+  const taskId = rv.task_id as string | null;
+  if (token && taskId) {
+    const { data: task } = await sb.from("tasks").select("titulo, client_id").eq("id", taskId).maybeSingle();
+    if (task?.client_id) {
+      const { data: client } = await sb.from("clients").select("nome, grupo_wpp_jid, contato_principal").eq("id", task.client_id).maybeSingle();
+      if (client?.grupo_wpp_jid) {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://sistemaacompanha.yidedigital.com.br";
+        const link = `${appUrl}/aprovacao-video/${token}`;
+        const nome = client.contato_principal || client.nome;
+        const msg = [
+          `🎬 *Seus vídeos estão prontos!*`,
+          ``,
+          `Olá${nome ? `, *${nome}*` : ""}! Temos um vídeo aguardando sua aprovação:`,
+          ``,
+          `📹 *${task.titulo}*`,
+          ``,
+          `👉 Acesse o link abaixo pra assistir, comentar e aprovar:`,
+          link,
+          ``,
+          `Qualquer ajuste, é só pedir por lá! 💙`,
+        ].join("\n");
+        sendWhatsAppGroupMessage(client.grupo_wpp_jid, msg).catch((err: unknown) =>
+          console.error("[aprovarInterno] Falha ao enviar WPP:", err),
+        );
+      }
+    }
+  }
+
   revalidatePath(`/audiovisual/review/${reviewId}`);
   revalidatePath("/audiovisual/review");
   return { ok: true };

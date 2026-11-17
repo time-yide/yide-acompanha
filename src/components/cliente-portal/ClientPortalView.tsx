@@ -23,12 +23,10 @@ import { CredenciaisPortalSection } from "./CredenciaisPortalSection";
 import { InfoContratoPortalSection } from "./InfoContratoPortalSection";
 import { HeroSection } from "./HeroSection";
 import { ContratoSection } from "./ContratoSection";
-import { TrafegoSection } from "./TrafegoSection";
 import { PastaSection } from "./PastaSection";
 import { SatisfacaoSection } from "./SatisfacaoSection";
 import { ReunioesSection } from "./ReunioesSection";
 import { CRMPlaceholderSection } from "./CRMPlaceholderSection";
-import { RelatoriosSection } from "./RelatoriosSection";
 import { NotificacoesSection } from "./NotificacoesSection";
 import { UnidadesSection } from "./UnidadesSection";
 import { GmbSection } from "./GmbSection";
@@ -126,13 +124,8 @@ export async function ClientPortalView({ clientId, nomeContato, previewMode = fa
         <InfoContratoPortalSection info={previewMode ? null : contratoInfo} previewMode={previewMode} />
         <UnidadesSection unidades={unidades} />
         <TarefasPortalSection tarefas={tarefas} />
-        <RelatoriosSection clientId={clientId} />
         <RelatoriosSemanaisSection clientId={clientId} />
         <ReunioesSection reunioes={reunioes} />
-        <TrafegoSection
-          google={data.cliente.valor_trafego_google}
-          meta={data.cliente.valor_trafego_meta}
-        />
         <GmbSection
           gmb_link={data.cliente.gmb_link}
           gmb_rating={data.cliente.gmb_rating}

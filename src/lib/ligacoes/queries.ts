@@ -131,7 +131,8 @@ async function _listLigacoesImpl(
     numero: row.numero as string,
     contato_nome: (row.contato_nome as string | null) ?? null,
     colaborador_id: (row.colaborador_id as string | null) ?? null,
-    colaborador_nome: ((row.colaborador as { nome?: string } | null) ?? null)?.nome ?? null,
+    colaborador_nome: ((row.colaborador as { nome?: string } | null) ?? null)?.nome
+      ?? (row.origem === "voz_ia" ? "Ana (IA)" : null),
     instancia_id: (row.instancia_id as string | null) ?? null,
     iniciada_em: row.iniciada_em as string,
     finalizada_em: (row.finalizada_em as string | null) ?? null,

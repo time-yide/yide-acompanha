@@ -11,7 +11,8 @@ export async function contarLigacoesHoje(orgId: string): Promise<number> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
   const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
+  hoje.setUTCHours(3, 0, 0, 0);
+  if (hoje.getTime() > Date.now()) hoje.setDate(hoje.getDate() - 1);
   const { count } = await sb
     .from("ai_voice_calls")
     .select("id", { count: "exact", head: true })
@@ -83,6 +84,10 @@ export async function dispararLigacaoIA(
     StatusCallback: `${appUrl}/api/voz-ia/status/${call.id}`,
     StatusCallbackEvent: "initiated ringing answered completed",
     Record: "true",
+    MachineDetection: "DetectMessageEnd",
+    AsyncAmd: "true",
+    AsyncAmdStatusCallback: `${appUrl}/api/voz-ia/amd/${call.id}`,
+    AsyncAmdStatusCallbackMethod: "POST",
   });
 
   const twilioResp = await fetch(twilioUrl, {

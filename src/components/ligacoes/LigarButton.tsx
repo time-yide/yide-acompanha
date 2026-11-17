@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Phone, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { iniciarLigacaoAction } from "@/lib/ligacoes/actions";
-import { useTwilioCall } from "./TwilioCallProvider";
+import { useVoiceCall } from "./VoiceCallProvider";
 
 interface Props {
   numero: string;
@@ -16,7 +16,7 @@ interface Props {
 
 export function LigarButton({ numero, instanciaId, contatoNome, size = "sm" }: Props) {
   const router = useRouter();
-  const twilio = useTwilioCall();
+  const twilio = useVoiceCall();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
 

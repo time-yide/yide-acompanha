@@ -276,10 +276,23 @@ export function TaskForm({
           <div className="space-y-2 border-t pt-3">
             <Label>Formato <span className="text-destructive">*</span></Label>
             <div className="flex flex-wrap gap-2">
-              {[
-                { value: "feed", label: "Feed" },
-                { value: "story", label: "Story" },
-              ].map((f) => {
+              {(tipo === "arte"
+                ? [
+                    { value: "feed", label: "Feed" },
+                    { value: "story", label: "Story/Reels" },
+                    { value: "carrossel", label: "Carrossel" },
+                    { value: "banner", label: "Banner" },
+                    { value: "capa_site", label: "Capa de Site" },
+                    { value: "capa_youtube", label: "Capa YouTube" },
+                    { value: "thumbnail", label: "Thumbnail" },
+                    { value: "capa_facebook", label: "Capa Facebook" },
+                    { value: "apresentacao", label: "Apresentação" },
+                  ]
+                : [
+                    { value: "feed", label: "Feed" },
+                    { value: "story", label: "Story" },
+                  ]
+              ).map((f) => {
                 const checked = formatos.includes(f.value);
                 return (
                   <button

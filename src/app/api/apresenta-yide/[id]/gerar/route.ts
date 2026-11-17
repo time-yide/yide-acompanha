@@ -94,7 +94,7 @@ export async function POST(
         const claudeStream = client.messages.stream({
           model: MODEL,
           max_tokens: 8192,
-          system: APRESENTACAO_SYSTEM,
+          system: [{ type: "text" as const, text: APRESENTACAO_SYSTEM, cache_control: { type: "ephemeral" as const } }],
           messages: [{ role: "user", content: userPrompt }],
         });
 

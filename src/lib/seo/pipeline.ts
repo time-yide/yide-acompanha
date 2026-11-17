@@ -17,6 +17,7 @@ Regras:
 - Foque em "${servico.nome.toLowerCase()} em ${loc.nome}"; use variações naturais.
 - Conteúdo DISTINTO pra esta localidade (realidade local, tipos de negócio da praça). NÃO escreva algo genérico que sirva pra qualquer cidade.
 - Tom profissional e acessível. Posicione a Yide como referência local.
+- NÃO invente números, resultados, nomes de clientes, prêmios, endereço nem tempo de mercado. Fale da realidade local de forma geral, sem dados que você não recebeu.
 - NUNCA use travessão nem meia-risca. Use vírgula, dois-pontos, ponto ou parênteses.
 
 Responda SOMENTE com JSON válido (sem cercas, sem texto fora):
@@ -29,6 +30,7 @@ export async function gerarPaginaLocal(orgId: string, servico: Servico, loc: Loc
   if (!client) { console.error("[seo] Anthropic não configurado"); return false; }
   try {
     const res = await client.messages.create({ model: SEO_MODEL, max_tokens: 3500,
+      system: [{ type: "text", text: "Você é redator(a) de SEO da Yide Digital, agência de marketing e programação.", cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: montarPromptPagina(servico, loc) }] });
     const txt = res.content.map((c) => ("text" in c ? c.text : "")).join("").trim();
     const parsed = parsePaginaGerada(extrairJson(txt));

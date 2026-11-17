@@ -1,5 +1,5 @@
 import { Card } from "@/components/ui/card";
-import { Bot, Calendar, XCircle, PhoneMissed, AlertCircle } from "lucide-react";
+import { Bot, Calendar, XCircle, PhoneMissed, AlertCircle, CheckCircle, Voicemail } from "lucide-react";
 import { TranscricaoExpandivel } from "./TranscricaoExpandivel";
 import type { AIVoiceCall } from "@/lib/voz-ia/types";
 
@@ -8,6 +8,8 @@ const STATUS_ICONS: Record<string, { icon: typeof Bot; color: string; label: str
   sem_interesse: { icon: XCircle, color: "text-red-600", label: "Sem interesse" },
   nao_atendeu: { icon: PhoneMissed, color: "text-amber-600", label: "Não atendeu" },
   erro: { icon: AlertCircle, color: "text-red-600", label: "Erro" },
+  concluido: { icon: CheckCircle, color: "text-green-600", label: "Concluída" },
+  caixa_postal: { icon: Voicemail, color: "text-muted-foreground", label: "Caixa postal" },
   em_andamento: { icon: Bot, color: "text-blue-600", label: "Em andamento" },
   chamando: { icon: Bot, color: "text-amber-600", label: "Chamando" },
   iniciando: { icon: Bot, color: "text-muted-foreground", label: "Iniciando" },

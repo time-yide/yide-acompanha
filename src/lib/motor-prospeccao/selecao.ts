@@ -24,18 +24,20 @@ export async function selecionarLeads(
     .select(
       "id, empresa, telefone, whatsapp, categoria, cidade, estado, " +
       "google_rating, google_reviews_count, website, porte_empresa, " +
-      "ai_tentativas, ai_status, decisor_nome",
+      "ai_tentativas, ai_status, decisor_nome, dropado_power_dialer, score",
     )
     .eq("organization_id", orgId)
     .in("status", ["novo", "em_contato", "qualificado"])
     .is("arquivado_em", null)
     .lt("ai_tentativas", maxTentativas)
-    .or("ai_status.is.null,ai_status.eq.aguardando")
+    .or("ai_status.is.null,ai_status.eq.aguardando,ai_status.eq.followup_wpp")
     .or(
       "ai_proxima_tentativa.is.null," +
       `ai_proxima_tentativa.lte.${limiteProxTentativa}`,
     )
     .or("telefone.not.is.null,whatsapp.not.is.null")
+    .order("dropado_power_dialer", { ascending: false, nullsFirst: false })
+    .order("score", { ascending: false })
     .order("ai_tentativas", { ascending: true })
     .order("google_rating", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: true })
@@ -54,7 +56,8 @@ export async function selecionarLeads(
 
 export async function contarWppEnviadosHoje(orgId: string): Promise<number> {
   const hoje = new Date();
-  hoje.setUTCHours(0, 0, 0, 0);
+  hoje.setUTCHours(3, 0, 0, 0);
+  if (hoje.getTime() > Date.now()) hoje.setDate(hoje.getDate() - 1);
 
   const { count } = await sb()
     .from("motor_prospeccao_log")

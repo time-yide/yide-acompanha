@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { EXPENSE_CATEGORIAS, CATEGORIA_LABEL } from "@/lib/financeiro/schema";
+import { EXPENSE_CATEGORIAS, CATEGORIA_LABEL } from "@/lib/financeiro/constants";
 
 export function ExpenseFilters() {
   const router = useRouter();

@@ -13,7 +13,9 @@ import { listPendenteParaVideomaker } from "@/lib/audiovisual/queries";
 import { CapturaPendenteLockGate } from "@/components/audiovisual/CapturaPendenteLockGate";
 import { countChannelsWithUnread } from "@/lib/escritorio/queries";
 import { HeartbeatProvider } from "@/components/produtividade/HeartbeatProvider";
-import { TwilioCallProvider } from "@/components/ligacoes/TwilioCallProvider";
+import { PowerDialerListener } from "@/components/power-dialer/PowerDialerListener";
+import { PowerDialerBar } from "@/components/power-dialer/PowerDialerBar";
+import { VoiceCallProvider } from "@/components/ligacoes/VoiceCallProvider";
 import { getEffectiveUnitId, getUnitContext } from "@/lib/units/session";
 import { getProfileIdsForActiveUnit } from "@/lib/units/filter-helpers";
 import { countRequestsAbertas } from "@/lib/portal-requests/queries";
@@ -111,16 +113,15 @@ export default async function AuthedLayout({ children }: { children: React.React
           className="flex-1 overflow-auto bg-muted/20 p-3 md:p-6"
           style={{ paddingBottom: "max(env(safe-area-inset-bottom), 0.75rem)" }}
         >
-          {/* Provider do Device Twilio em nível de layout: o discador e os botões
-              "Ligar" (Ligações, Gerador de Leads, etc.) usam o mesmo telefone do
-              navegador em qualquer tela. Inerte se o colaborador não tem Twilio. */}
-          <TwilioCallProvider>{children}</TwilioCallProvider>
+          <VoiceCallProvider>{children}</VoiceCallProvider>
         </main>
       </div>
       <Suspense fallback={null}>
         <LockGatesStreamed user={user} />
       </Suspense>
       <HeartbeatProvider />
+      <PowerDialerListener userId={user.id} />
+      <PowerDialerBar userId={user.id} />
     </div>
   );
 }

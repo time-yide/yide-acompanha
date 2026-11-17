@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { Bell, Bot, Hash, Lock, Tags } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
@@ -18,6 +19,8 @@ import {
 import { Card } from "@/components/ui/card";
 import { AvatarUpload } from "@/components/colaboradores/AvatarUpload";
 import { NotificacoesGravacaoToggle } from "@/components/configuracoes/NotificacoesGravacaoToggle";
+import { CanvaCard } from "@/components/configuracoes/CanvaCard";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export default async function ConfiguracoesPage() {
   const user = await requireAuth();
@@ -26,9 +29,29 @@ export default async function ConfiguracoesPage() {
   const sb = supabase as any;
   const { data: profile } = await sb
     .from("profiles")
-    .select("nome, telefone, tema_preferido, avatar_url, notif_alerta_gravacao_pendente")
+    .select("nome, telefone, tema_preferido, avatar_url, notif_alerta_gravacao_pendente, organization_id")
     .eq("id", user.id)
     .single();
+
+  let canvaConnected = false;
+  let clientsSemPasta = 0;
+  if ((user.role === "adm" || user.role === "socio") && profile?.organization_id) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sbService = createServiceRoleClient() as any;
+    const { data: token } = await sbService
+      .from("canva_tokens")
+      .select("id")
+      .eq("organization_id", profile.organization_id)
+      .maybeSingle();
+    canvaConnected = !!token;
+
+    const { count } = await sbService
+      .from("clients")
+      .select("id", { count: "exact", head: true })
+      .is("canva_folder_id", null)
+      .eq("status", "ativo");
+    clientsSemPasta = count ?? 0;
+  }
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -166,6 +189,12 @@ export default async function ConfiguracoesPage() {
             Gerenciar nichos →
           </Link>
         </Card>
+      )}
+
+      {(user.role === "socio" || user.role === "adm") && (
+        <Suspense>
+          <CanvaCard connected={canvaConnected} clientsSemPasta={clientsSemPasta} />
+        </Suspense>
       )}
 
       <Card className="p-6">

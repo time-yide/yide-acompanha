@@ -1,8 +1,10 @@
 // SERVER — orquestra o pipeline: notícias → artigo+capa (IA) → rascunho no blog.
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { buscarNoticias, filtrarNovas, apenasRecentes } from "./rss";
-import { gerarArtigo, gerarCapa } from "./gerar";
+import { buscarNoticias, filtrarNovas, apenasRecentes, ehRelevante } from "./rss";
+import { gerarArtigo } from "./gerar";
 import { selecionarKeywordsAlvo } from "./keywords";
+import { buscarImagemStock } from "./stock-image";
+import { camposDePublicacao } from "./publicacao";
 import { slugify, slugUnico } from "../slug";
 
 export const BLOG_POSTS_POR_EXECUCAO = 3;
@@ -12,15 +14,16 @@ export interface ResultadoPipeline {
   gerados: number;
   erros: number;
   semNovas: boolean;
+  publicados: string[]; // slugs que foram pro ar
 }
 
-export async function executarPipelineBlog(orgId: string, quantos = BLOG_POSTS_POR_EXECUCAO): Promise<ResultadoPipeline> {
+export async function executarPipelineBlog(orgId: string, quantos = BLOG_POSTS_POR_EXECUCAO, publicar = false): Promise<ResultadoPipeline> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
 
   const todas = await buscarNoticias();
-  const noticias = apenasRecentes(todas, DIAS_QUENTE, Date.now()); // só as quentes
-  if (noticias.length === 0) return { gerados: 0, erros: 0, semNovas: true };
+  const noticias = apenasRecentes(todas, DIAS_QUENTE, Date.now()).filter(ehRelevante); // só as quentes e do nosso assunto
+  if (noticias.length === 0) return { gerados: 0, erros: 0, semNovas: true, publicados: [] };
 
   const [{ data: usadosData }, { data: slugsData }] = await Promise.all([
     sb.from("blog_posts").select("fonte_url").eq("organization_id", orgId).not("fonte_url", "is", null),
@@ -30,19 +33,21 @@ export async function executarPipelineBlog(orgId: string, quantos = BLOG_POSTS_P
   const slugs = new Set(((slugsData ?? []) as Array<{ slug: string }>).map((r) => r.slug));
 
   const candidatas = filtrarNovas(noticias, usados).slice(0, quantos);
-  if (candidatas.length === 0) return { gerados: 0, erros: 0, semNovas: true };
+  if (candidatas.length === 0) return { gerados: 0, erros: 0, semNovas: true, publicados: [] };
 
   let gerados = 0;
   let erros = 0;
+  const publicados: string[] = [];
   for (const n of candidatas) {
     const keywordsAlvo = selecionarKeywordsAlvo(4); // SEO local, varia por post
     const artigo = await gerarArtigo(n, keywordsAlvo);
     if (!artigo) { erros++; continue; }
-    const capa = await gerarCapa(artigo.titulo); // best-effort (pode ficar sem capa)
+    const capa = await buscarImagemStock(artigo.keywords);
     const slug = slugUnico(slugify(artigo.titulo), slugs);
     slugs.add(slug);
     // Garante que as keywords-alvo entrem nas keywords do post (dedup).
     const keywords = [...new Set([...artigo.keywords, ...keywordsAlvo])];
+    const publicacao = camposDePublicacao(artigo.conteudo_md, publicar, new Date().toISOString());
     const { error } = await sb.from("blog_posts").insert({
       organization_id: orgId,
       slug,
@@ -50,7 +55,7 @@ export async function executarPipelineBlog(orgId: string, quantos = BLOG_POSTS_P
       resumo: artigo.resumo || null,
       conteudo_md: artigo.conteudo_md,
       cover_image_url: capa,
-      status: "rascunho",
+      ...publicacao,
       keywords,
       meta_title: artigo.meta_title || null,
       meta_description: artigo.meta_description || null,
@@ -60,6 +65,7 @@ export async function executarPipelineBlog(orgId: string, quantos = BLOG_POSTS_P
     });
     if (error) { console.error("[blog-pipeline] insert:", error.message); erros++; continue; }
     gerados++;
+    if (publicacao.status === "publicado") publicados.push(slug);
   }
-  return { gerados, erros, semNovas: false };
+  return { gerados, erros, semNovas: false, publicados };
 }

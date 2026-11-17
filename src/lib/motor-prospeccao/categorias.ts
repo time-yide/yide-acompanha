@@ -27,7 +27,7 @@ export function isHorarioComercial(now: Date, config: {
   horario_inicio_fds: string;
   horario_fim_fds: string;
 }): boolean {
-  const brt = new Date(now.getTime() - 4 * 60 * 60 * 1000);
+  const brt = new Date(now.getTime() - 3 * 60 * 60 * 1000);
   const hhmm = brt.getUTCHours() * 100 + brt.getUTCMinutes();
   const day = brt.getUTCDay();
   const isWeekday = day >= 1 && day <= 5;
@@ -44,7 +44,7 @@ export function isHorarioComercial(now: Date, config: {
 }
 
 export function isDiaUtil(now: Date): boolean {
-  const brt = new Date(now.getTime() - 4 * 60 * 60 * 1000);
+  const brt = new Date(now.getTime() - 3 * 60 * 60 * 1000);
   const day = brt.getUTCDay();
   return day >= 1 && day <= 5;
 }

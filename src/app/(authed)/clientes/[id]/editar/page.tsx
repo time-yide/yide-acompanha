@@ -106,6 +106,7 @@ export default async function EditClientePage({ params }: { params: Promise<{ id
             tipo_relacao: (cliente as { tipo_relacao?: string | null }).tipo_relacao ?? "comum",
             modalidade: (cliente as { modalidade?: string | null }).modalidade ?? "mensal",
             nicho_id: (cliente as { nicho_id?: string | null }).nicho_id ?? null,
+            grupo_wpp_jid: (cliente as { grupo_wpp_jid?: string | null }).grupo_wpp_jid ?? null,
           }}
           assessores={assessores}
           coordenadores={coordenadores}

@@ -1,5 +1,5 @@
 export const AI_CALL_STATUS = [
-  "iniciando", "chamando", "em_andamento",
+  "iniciando", "chamando", "em_andamento", "concluido", "caixa_postal",
   "reuniao_agendada", "sem_interesse", "nao_atendeu", "erro",
 ] as const;
 export type AICallStatus = (typeof AI_CALL_STATUS)[number];
@@ -47,6 +47,16 @@ export interface AIVoiceConfig {
   horario_fim_fds: string;
   twilio_wpp_from: string | null;
   ativo: boolean;
+  power_dialer_ativo: boolean;
+  power_dialer_batch_size: number;
+  power_dialer_timeout_s: number;
+  power_dialer_colaborador_id: string | null;
+  power_dialer_greeting: string;
+  power_dialer_goodbye: string;
+  auto_campanha_ativo: boolean;
+  auto_campanha_meta_atendidas: number;
+  auto_campanha_horario_inicio: string;
+  auto_campanha_horario_fim: string;
   created_at: string;
   updated_at: string;
 }

@@ -3,7 +3,7 @@
  */
 
 export const PROVEDORES = [
-  "twilio", "ifix", "3cx", "totalvoice", "vonage",
+  "api4com", "twilio", "ifix", "3cx", "totalvoice", "vonage",
   "evolution", "zapi", "chatpro", "manual", "outro",
 ] as const;
 export type Provedor = (typeof PROVEDORES)[number];
@@ -33,6 +33,15 @@ export interface ProvedorCampo {
  * em src/app/api/webhooks/ligacoes/[provedor]/route.ts
  */
 export const PROVEDOR_DEFS: ProvedorDef[] = [
+  {
+    value: "api4com",
+    label: "API4COM (ligar pelo sistema)",
+    tipo: "telefone",
+    status: "pronto",
+    webhookHint:
+      "Configuração automática via API. As chaves (API Token, Domain, Extension) vão nas envs do Vercel.",
+    campos: [],
+  },
   {
     value: "ifix",
     label: "iFix",

@@ -7,6 +7,8 @@ import { gerarMensagemPrimeiroContato } from "./gerar-mensagem";
 import { getStepsDaCadencia, calcularStepAtual, seedCadenciaPadrao } from "./cadencia";
 import { normalizeTelefone } from "@/lib/dispatch/render-template";
 import { dispararLigacaoIA, contarLigacoesHoje } from "@/lib/voz-ia/ligacao-automatica";
+import { dispararPowerDialerBatch } from "@/lib/power-dialer/dispatcher";
+import { enviarViaTwilioWpp } from "./enviar-wpp";
 import type { LeadParaProspectar, MotorResult, MotorGlobalResult } from "./types";
 import { MOTOR_BATCH_SIZE, MOTOR_INTERVALO_MIN_HORAS } from "./types";
 
@@ -59,42 +61,6 @@ async function findOrCreateConversation(
   return conv?.id ?? null;
 }
 
-async function enviarViaTwilio(
-  to: string,
-  from: string,
-  body: string,
-  statusCallbackUrl: string,
-): Promise<{ sid: string } | { error: string }> {
-  const env = getServerEnv();
-  const accountSid = env.TWILIO_ACCOUNT_SID;
-  const authToken = env.TWILIO_AUTH_TOKEN;
-  if (!accountSid || !authToken) return { error: "Twilio não configurado" };
-
-  const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
-  const params = new URLSearchParams({
-    From: `whatsapp:${from}`,
-    To: `whatsapp:${to}`,
-    Body: body,
-    StatusCallback: statusCallbackUrl,
-  });
-
-  const resp = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: params.toString(),
-  });
-
-  if (!resp.ok) {
-    const text = await resp.text();
-    return { error: `Twilio ${resp.status}: ${text.slice(0, 200)}` };
-  }
-
-  const result = await resp.json();
-  return { sid: (result as { sid?: string }).sid ?? "" };
-}
 
 async function processarLead(
   orgId: string,
@@ -103,6 +69,8 @@ async function processarLead(
   config: any,
   statusUrl: string,
   podeLigar: boolean,
+  podeWpp: boolean,
+  powerDialerAtivo: boolean,
 ): Promise<{ acao: string; erro?: string }> {
   // Check cadência step
   await seedCadenciaPadrao(config.id);
@@ -112,12 +80,20 @@ async function processarLead(
   if (!step) {
     await sb()
       .from("leads_gerados")
-      .update({ ai_status: "esgotado" })
+      .update({
+        ai_status: "esgotado",
+        reengajamento_proxima: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
+        reengajamento_tentativas: 0,
+      })
       .eq("id", lead.id);
     return { acao: "esgotado" };
   }
 
   if (step.canal === "ligacao") {
+    if (powerDialerAtivo) {
+      return { acao: "power_dialer_pendente" };
+    }
+
     if (!podeLigar) {
       return { acao: "ligacao_limite", erro: "Limite diário de ligações atingido" };
     }
@@ -149,13 +125,15 @@ async function processarLead(
       })
       .eq("id", lead.id);
 
-    await sb().from("lead_attempts").insert({
-      organization_id: orgId,
-      lead_gerado_id: lead.id,
-      tipo: "ligacao",
-      canal: "ligacao",
-      notas: "Motor de prospecção — ligação IA automática",
-    }).catch(() => {});
+    try {
+      await sb().from("lead_attempts").insert({
+        organization_id: orgId,
+        lead_gerado_id: lead.id,
+        tipo: "ligacao",
+        canal: "ligacao",
+        notas: "Motor de prospecção — ligação IA automática",
+      });
+    } catch { /* ignora erro de log */ }
 
     await sb().from("motor_prospeccao_log").insert({
       organization_id: orgId,
@@ -169,6 +147,10 @@ async function processarLead(
   }
 
   // --- WhatsApp flow ---
+  if (!podeWpp) {
+    return { acao: "wpp_limite", erro: "Limite diário de WhatsApp atingido" };
+  }
+
   const telefoneRaw = lead.whatsapp || lead.telefone;
   if (!telefoneRaw) return { acao: "erro", erro: "Sem telefone/whatsapp" };
 
@@ -193,7 +175,7 @@ async function processarLead(
   );
   if (!convId) return { acao: "erro", erro: "Falha ao criar conversa" };
 
-  const sendResult = await enviarViaTwilio(telefone, twilioFrom, msgResult.mensagem, statusUrl);
+  const sendResult = await enviarViaTwilioWpp(telefone, twilioFrom, msgResult.mensagem, statusUrl);
   if ("error" in sendResult) return { acao: "erro", erro: sendResult.error };
 
   await sb().from("wpp_messages").insert({
@@ -229,13 +211,15 @@ async function processarLead(
     .update(leadUpdate)
     .eq("id", lead.id);
 
-  await sb().from("lead_attempts").insert({
-    organization_id: orgId,
-    lead_gerado_id: lead.id,
-    tipo: "whatsapp",
-    canal: "whatsapp",
-    notas: "Motor de prospecção — WPP automático",
-  }).catch(() => {});
+  try {
+    await sb().from("lead_attempts").insert({
+      organization_id: orgId,
+      lead_gerado_id: lead.id,
+      tipo: "whatsapp",
+      canal: "whatsapp",
+      notas: "Motor de prospecção — WPP automático",
+    });
+  } catch { /* ignora erro de log */ }
 
   await sb().from("motor_prospeccao_log").insert({
     organization_id: orgId,
@@ -276,14 +260,14 @@ export async function executarMotor(): Promise<MotorGlobalResult> {
 
     const wppHoje = await contarWppEnviadosHoje(orgId);
     const wppRestante = Math.max(0, (config.max_wpp_dia ?? 50) - wppHoje);
-    if (wppRestante === 0) continue;
-
-    const batch = Math.min(MOTOR_BATCH_SIZE, wppRestante);
-    const leads = await selecionarLeads(orgId, config.max_tentativas, batch);
 
     const ligacoesHoje = await contarLigacoesHoje(orgId);
     const maxLigacoes = config.max_chamadas_dia ?? 30;
     let ligacoesRestantes = Math.max(0, maxLigacoes - ligacoesHoje);
+
+    if (wppRestante === 0 && ligacoesRestantes === 0) continue;
+
+    const leads = await selecionarLeads(orgId, config.max_tentativas, MOTOR_BATCH_SIZE);
 
     const orgResult: MotorResult = {
       orgId,
@@ -294,15 +278,22 @@ export async function executarMotor(): Promise<MotorGlobalResult> {
       detalhes: [],
     };
 
+    let wppEnviadosNoBatch = 0;
+    const leadsParaPD: LeadParaProspectar[] = [];
+
     for (const lead of leads) {
       orgResult.processados++;
+      const podeWpp = (wppRestante - wppEnviadosNoBatch) > 0;
       try {
-        const res = await processarLead(orgId, lead, config, statusUrl, ligacoesRestantes > 0);
+        const res = await processarLead(orgId, lead, config, statusUrl, ligacoesRestantes > 0, podeWpp, !!config.power_dialer_ativo);
         if (res.acao === "wpp_primeiro_contato") {
           orgResult.wppEnviados++;
+          wppEnviadosNoBatch++;
         } else if (res.acao === "ligacao_ia") {
           orgResult.ligacoesDisparadas++;
           ligacoesRestantes--;
+        } else if (res.acao === "power_dialer_pendente") {
+          leadsParaPD.push(lead);
         } else if (res.acao === "erro") {
           orgResult.erros++;
           await sb().from("motor_prospeccao_log").insert({
@@ -318,6 +309,40 @@ export async function executarMotor(): Promise<MotorGlobalResult> {
         orgResult.erros++;
         const msg = err instanceof Error ? err.message : String(err);
         orgResult.detalhes.push({ leadId: lead.id, acao: "erro", erro: msg });
+      }
+    }
+
+    if (leadsParaPD.length > 0) {
+      const pdBatchSize = config.power_dialer_batch_size ?? 3;
+      const batch = leadsParaPD.slice(0, pdBatchSize);
+      const pdResult = await dispararPowerDialerBatch(orgId, batch);
+      if ("success" in pdResult) {
+        orgResult.ligacoesDisparadas += batch.length;
+      } else {
+        orgResult.erros++;
+        orgResult.detalhes.push({
+          leadId: batch[0].id,
+          acao: "power_dialer_erro",
+          erro: pdResult.error,
+        });
+      }
+    }
+
+    // --- Reengajamento ---
+    if ((wppRestante - wppEnviadosNoBatch) > 0) {
+      const { selecionarLeadsReengajamento, processarReengajamento } =
+        await import("./reengajamento");
+      const leadsReeng = await selecionarLeadsReengajamento(orgId);
+      for (const lead of leadsReeng) {
+        if ((wppRestante - wppEnviadosNoBatch) <= 0) break;
+        try {
+          const res = await processarReengajamento(
+            orgId, lead, config.twilio_wpp_from, statusUrl,
+          );
+          if (res.sucesso) wppEnviadosNoBatch++;
+        } catch (err) {
+          console.error("[motor] reengajamento erro:", err);
+        }
       }
     }
 

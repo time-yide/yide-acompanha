@@ -3,7 +3,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { deletarVideo, bunnyConfigurado } from "@/lib/bunny/client";
 
 /**
- * Cron diário: apaga do Bunny Stream os vídeos de review aprovados há 60+ dias.
+ * Cron diário: apaga do Bunny Stream os vídeos de review aprovados/postados há 3+ dias.
  *
  * Cron schedule: 0 5 * * * (5h UTC = 2h BRT)
  *

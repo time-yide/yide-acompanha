@@ -30,16 +30,6 @@ const serverSchema = z.object({
   // Free tier: 100 consultas/mês. Plano Basic R$99/mês = 15k consultas.
   // Cadastro em https://cnpja.com → Dashboard → API Keys.
   CNPJA_API_KEY: z.string().optional(),
-  // Apify - usado pra scraping de perfis de Instagram (pega bio, contato, etc).
-  // Free tier: $5/mês de créditos (~100 perfis).
-  // Settings → Integrations → API tokens em apify.com
-  APIFY_API_TOKEN: z.string().optional(),
-  // Meta Ads (Facebook) - System User access token gerado na BM da Yide.
-  // Sem isso, sync com Meta fica desabilitado (módulo /trafego ainda funciona
-  // pra cadastro manual). Doc de setup em docs/trafego-meta-setup.md
-  META_SYSTEM_USER_TOKEN: z.string().optional(),
-  // Versão da Graph API a usar. Default: v21.0 (atual em mai/2026).
-  META_GRAPH_API_VERSION: z.string().optional(),
   // Apresenta Yide - HMAC secret pra autorizar Puppeteer a buscar a rota
   // interna de HTML do PDF. Sem isso, geração de PDF falha amigavelmente.
   // Gere com: openssl rand -hex 32
@@ -71,6 +61,14 @@ const serverSchema = z.object({
   // Account Auth Token (dashboard) — usado SÓ pra validar X-Twilio-Signature
   // nos webhooks/rota de voz. Diferente da API Key.
   TWILIO_AUTH_TOKEN: z.string().optional(),
+  // API4COM — ligações de voz pelo navegador (SIP/WebRTC) no módulo /ligacoes.
+  // Substitui o Twilio. Sem essas envs o caminho API4COM fica inerte.
+  API4COM_API_TOKEN: z.string().optional(),
+  API4COM_API_URL: z.string().optional(),
+  API4COM_DOMAIN: z.string().optional(),
+  API4COM_DEFAULT_EXTENSION: z.string().optional(),
+  API4COM_DEFAULT_EXTENSION_PASSWORD: z.string().optional(),
+  API4COM_WEBHOOK_SECRET: z.string().optional(),
   // OpenAI - usado pelo Design Studio pra gerar imagens com GPT-Image-1.
   // Sem isso, o comando "gerar imagem" retorna erro amigável e o resto do
   // Studio continua funcionando. Gerar em platform.openai.com → API Keys.

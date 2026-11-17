@@ -1,10 +1,6 @@
 import { z } from "zod";
-
-export const NOTIF_SCOPES = ["todos", "meu_time", "nenhum"] as const;
-export const REACAO_EMOJIS = ["👍", "❤️", "✅", "🎉"] as const;
-
-export type NotifScope = (typeof NOTIF_SCOPES)[number];
-export type ReacaoEmoji = (typeof REACAO_EMOJIS)[number];
+import { NOTIF_SCOPES } from "./constants";
+export * from "./constants";
 
 export const criarRecadoSchema = z
   .object({

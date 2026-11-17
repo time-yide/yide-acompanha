@@ -1,7 +1,7 @@
 "use client";
 
 import { Phone, Loader2 } from "lucide-react";
-import { useTwilioCall } from "@/components/ligacoes/TwilioCallProvider";
+import { useVoiceCall } from "@/components/ligacoes/VoiceCallProvider";
 
 interface Props {
   /** id do prospect = id na tabela `leads` → vira lead_id da ligação. */
@@ -24,7 +24,7 @@ function toE164BR(raw: string): string {
  * (celular), cai no discador do aparelho via tel:.
  */
 export function LigarProspectButton({ leadId, numero, contatoNome }: Props) {
-  const twilio = useTwilioCall();
+  const twilio = useVoiceCall();
   const tel = numero.replace(/[^\d+]/g, "");
 
   function ligar() {

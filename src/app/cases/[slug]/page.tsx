@@ -7,14 +7,16 @@ import { getCasePublicado } from "@/lib/seo/case-queries";
 import { jsonLdCase } from "@/lib/seo/case-schema";
 import { Markdown } from "@/components/blog/Markdown";
 import { Reveal } from "@/components/site/Reveal";
+import { SITE_URL } from "@/lib/blog/config";
+import { WHATSAPP_SITE } from "@/lib/site/contato";
+import { caseEstaticoPorSlug } from "@/lib/site/cases-estaticos";
 
 export const dynamic = "force-dynamic";
 
-const SITE = "https://yidedigital.com.br";
 
 async function carregar(slug: string) {
   const o = await getOrgPadrao();
-  return o ? getCasePublicado(o, slug) : null;
+  return o ? getCasePublicado(o, slug) : caseEstaticoPorSlug(slug);
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -34,8 +36,9 @@ export default async function CasePage({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const c = await carregar(slug);
   if (!c) notFound();
+  const video = caseEstaticoPorSlug(c.slug)?.youtubeId ?? null;
 
-  const url = `${SITE}/cases/${c.slug}`;
+  const url = `${SITE_URL}/cases/${c.slug}`;
   // JSON-LD: escapa `<` pra impedir quebra de </script>.
   const jsonldStr = JSON.stringify(
     jsonLdCase({
@@ -67,10 +70,22 @@ export default async function CasePage({ params }: { params: Promise<{ slug: str
             {c.localidade ? ` · ${c.localidade}` : ""}
           </span>
           <h1 className="mt-4 text-4xl font-extrabold leading-[1.05] tracking-tight [font-family:var(--font-display)] sm:text-6xl">{c.cliente}</h1>
+          {c.desafio && <p className="mt-5 max-w-2xl text-lg text-white/65">{c.desafio}</p>}
         </div>
       </header>
 
-      {c.cover_image_url && (
+      {video ? (
+        <div className="mx-auto mt-7 aspect-[9/16] w-full max-w-sm overflow-hidden rounded-[1.75rem] border border-neutral-200 bg-neutral-950">
+          <iframe
+            src={`https://www.youtube-nocookie.com/embed/${video}`}
+            title={`Vídeo do case ${c.cliente}`}
+            loading="lazy"
+            allow="accelerometer; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            className="h-full w-full"
+          />
+        </div>
+      ) : c.cover_image_url && (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={c.cover_image_url} alt="" className="mt-7 aspect-[16/9] w-full rounded-[1.75rem] border border-neutral-200 object-cover" />
       )}
@@ -110,7 +125,7 @@ export default async function CasePage({ params }: { params: Promise<{ slug: str
             <p className="text-2xl font-extrabold [font-family:var(--font-display)] sm:text-3xl">Quer resultados assim?</p>
             <p className="mt-3 text-white/65">Fale com a Yide Digital e comece a crescer sua empresa.</p>
             <a
-              href="https://wa.me/5565981447380"
+              href={WHATSAPP_SITE}
               target="_blank"
               rel="noopener noreferrer"
               className="group mt-7 inline-flex items-center gap-2 rounded-full bg-teal-500 px-8 py-3.5 text-base font-semibold text-neutral-950 shadow-[0_8px_30px_rgba(45,230,230,0.25)] transition-all hover:bg-cyan-400 hover:shadow-[0_10px_40px_rgba(45,230,230,0.4)]"

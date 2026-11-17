@@ -3,7 +3,8 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getAnthropicClient } from "@/lib/ai/client";
 import { buscarNoticias, apenasRecentes, type NoticiaItem } from "./rss";
-import { gerarArtigo, gerarCapa, extrairJson } from "./gerar";
+import { gerarArtigo, extrairJson } from "./gerar";
+import { buscarImagemStock } from "./stock-image";
 import { selecionarKeywordsAlvo } from "./keywords";
 import { slugify, slugUnico } from "../slug";
 import { semTravessao } from "../texto";
@@ -76,6 +77,7 @@ export async function gerarTendencias(orgId: string): Promise<{ ok: boolean; tot
     const res = await client.messages.create({
       model: BLOG_MODEL,
       max_tokens: 2000,
+      system: [{ type: "text", text: "Você é estrategista de conteúdo da Yide Digital, agência brasileira de marketing e programação.", cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: montarPromptTendencias(noticias.slice(0, 30)) }],
     });
     const txt = res.content.map((c) => ("text" in c ? c.text : "")).join("").trim();
@@ -120,7 +122,7 @@ export async function gerarRascunhoDeTema(orgId: string, tema: string, angulo: s
   };
   const artigo = await gerarArtigo(noticia, keywordsAlvo);
   if (!artigo) return null;
-  const capa = await gerarCapa(artigo.titulo);
+  const capa = await buscarImagemStock(artigo.keywords);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;

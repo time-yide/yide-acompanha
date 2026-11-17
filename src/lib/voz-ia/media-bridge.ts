@@ -16,6 +16,7 @@ interface BridgeState {
   startTime: number;
   openaiWs: WebSocket | null;
   closed: boolean;
+  greetingSent: boolean;
 }
 
 export function handleMediaStreamConnection(
@@ -35,6 +36,7 @@ export function handleMediaStreamConnection(
     startTime: Date.now(),
     openaiWs: null,
     closed: false,
+    greetingSent: false,
   };
 
   twilioWs.addEventListener("message", async (event: any) => {
@@ -139,6 +141,21 @@ function handleOpenAIMessage(
   twilioWs: { send: (data: string) => void; close: () => void },
 ) {
   switch (msg.type) {
+    case "session.updated":
+    case "session.created":
+      if (!state.greetingSent && state.openaiWs?.readyState === WebSocket.OPEN) {
+        state.greetingSent = true;
+        state.openaiWs.send(JSON.stringify({
+          type: "response.create",
+          response: {
+            modalities: ["text", "audio"],
+            instructions: "A pessoa acabou de atender a ligação. Cumprimente-a e se apresente conforme o prompt do sistema. Seja breve, simpática e natural — como uma pessoa real ligando. Fale em português brasileiro com sotaque natural, sem formalidade excessiva.",
+          },
+        }));
+        console.log("[voz-ia] saudação disparada para", state.callId);
+      }
+      break;
+
     case "response.audio.delta":
     case "response.output_audio.delta":
       if (state.streamSid && msg.delta) {

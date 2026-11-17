@@ -1,9 +1,9 @@
-// SERVER — geração de artigo (Claude) + capa (gpt-image-1) a partir de uma notícia.
+// SERVER — geração de artigo (Claude) a partir de uma notícia.
 import { getAnthropicClient } from "@/lib/ai/client";
-import { gerarImagemOpenAI } from "@/lib/ai/image-gen/openai";
-import { uploadCapaBlog } from "./storage";
 import { semTravessao } from "../texto";
 import type { NoticiaItem } from "./rss";
+
+import { VOZ_EMPRESARIO } from "./voz";
 
 const BLOG_MODEL = "claude-haiku-4-5";
 
@@ -41,7 +41,15 @@ export async function gerarArtigo(noticia: NoticiaItem, keywordsAlvo: string[] =
     ? `\n\nSEO LOCAL: a Yide atua com marketing e programação. Trabalhe estas expressões de forma NATURAL no texto (de preferência num parágrafo de fechamento que conecta a notícia aos serviços da Yide) e inclua as mais relevantes nas meta tags. NÃO force nem repita à exaustão (nada de keyword stuffing, o Google penaliza); só use as que couberem com naturalidade:\n- ${keywordsAlvo.join("\n- ")}`
     : "";
 
-  const prompt = `Você é redator(a) da Yide Digital, uma agência de marketing e programação brasileira. A partir da notícia abaixo (fonte internacional), escreva um artigo de blog ORIGINAL em português brasileiro. NÃO copie nem traduza literalmente: produza sua própria análise, com contexto e implicações pro mercado brasileiro. Tom informativo e acessível. NÃO cite a fonte nem escreva "Fonte:" no texto; apresente como conteúdo próprio da Yide.
+  const prompt = `Você é redator(a) da Yide Digital, uma agência de marketing e programação brasileira. A partir da notícia abaixo, escreva um artigo de blog ORIGINAL em português brasileiro para donos de pequenas e médias empresas. NÃO copie nem traduza literalmente: produza sua própria análise, com contexto e implicações práticas pro mercado brasileiro. Tom informativo e acessível.
+
+${VOZ_EMPRESARIO}
+
+ÂNGULO: a notícia é só o gancho. O artigo responde "o que isso muda na empresa de quem está lendo". Se a notícia for de tecnologia, gadget ou mercado de fora, explique a consequência prática para o empresário brasileiro (custo, cliente, venda, ferramenta que ele pode usar) e não a tecnologia em si.
+
+PRIMEIRO PARÁGRAFO: diga em até 3 frases o que aconteceu e o que isso muda pro dono de empresa, citando pelo nome o veículo que publicou a notícia.
+
+FATOS: use só os fatos informados abaixo. NÃO invente números, datas, nomes, falas nem resultados. Se a notícia não trouxer um detalhe, não complete: escreva sua análise deixando claro que é análise.
 
 REGRA DE PONTUAÇÃO: NUNCA use travessão nem meia-risca ("—" ou "–") em nenhum lugar (título, resumo, corpo, meta tags). No lugar, use vírgula, dois-pontos, ponto ou parênteses.${alvoTxt}
 
@@ -57,6 +65,7 @@ Responda SOMENTE com um JSON válido (sem cercas de código, sem texto fora do J
     const res = await client.messages.create({
       model: BLOG_MODEL,
       max_tokens: 3000,
+      system: [{ type: "text", text: "Você é redator(a) da Yide Digital, agência brasileira de marketing e programação.", cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: prompt }],
     });
     const txt = res.content.map((c) => ("text" in c ? c.text : "")).join("").trim();
@@ -75,12 +84,4 @@ Responda SOMENTE com um JSON válido (sem cercas de código, sem texto fora do J
     console.error("[blog-pipeline] gerarArtigo:", e);
     return null;
   }
-}
-
-/** Gera uma capa ilustrativa (sem texto) e devolve a URL pública, ou null. */
-export async function gerarCapa(titulo: string): Promise<string | null> {
-  const prompt = `Ilustração de capa de blog, estilo editorial moderno, limpo e conceitual, sobre o tema: "${titulo}". Paleta em tons de teal/ciano e violeta. Sem nenhum texto ou letra na imagem. Composição abstrata e profissional.`;
-  const r = await gerarImagemOpenAI({ prompt, size: "1536x1024", quality: "low" });
-  if (!r.ok || !r.b64) { console.error("[blog-pipeline] gerarCapa:", r.error); return null; }
-  return uploadCapaBlog(r.b64);
 }

@@ -23,6 +23,7 @@ import { TaskRealtimeWatcher } from "@/components/tarefas/TaskRealtimeWatcher";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Linkify } from "@/lib/utils/linkify";
+import { CriarArteButton } from "@/components/tarefas/CriarArteButton";
 
 const STATUS_LABEL: Record<string, string> = {
   aberta: "A fazer",
@@ -157,6 +158,13 @@ export default async function TarefaModalPage({
             isExecutor={isExecutor}
             isApprover={isApprover}
             canMarkPosted={isMember}
+          />
+        )}
+
+        {task.tipo === "arte" && canEdit && (
+          <CriarArteButton
+            taskId={id}
+            hasAttachment={Array.isArray(task.attachment_urls) && task.attachment_urls.length > 0}
           />
         )}
 

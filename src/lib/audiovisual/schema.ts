@@ -1,4 +1,5 @@
 import { z } from "zod";
+export * from "./constants";
 
 const ratingField = z.coerce
   .number()
@@ -43,6 +44,7 @@ export type CreateCapturaInput = z.infer<typeof createCapturaSchema>;
  */
 export const markEntregueRapidoSchema = z.object({
   event_id: z.string().uuid(),
+  client_id: z.string().uuid().optional(),
   drive_url: z.union([
     z.string().url("Link do Drive inválido").max(500),
     z.literal(""),
@@ -67,12 +69,3 @@ export const subirEdicaoManualSchema = z.object({
 
 export type SubirEdicaoManualInput = z.infer<typeof subirEdicaoManualSchema>;
 
-export const RATING_FIELDS = [
-  { name: "rating_organizacao", label: "Organização do cliente" },
-  { name: "rating_facilidade", label: "Facilidade na gravação" },
-  { name: "rating_execucao_roteiro", label: "Execução do roteiro" },
-  { name: "rating_atrasos", label: "Pontualidade (sem atrasos)" },
-  { name: "rating_comunicacao", label: "Comunicação" },
-  { name: "rating_retrabalho", label: "Sem retrabalho" },
-  { name: "rating_colaboracao", label: "Colaboração durante a captação" },
-] as const;
