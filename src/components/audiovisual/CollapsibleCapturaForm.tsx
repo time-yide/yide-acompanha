@@ -9,9 +9,10 @@ import type { PendenteEvento } from "@/lib/audiovisual/queries";
 interface Props {
   clientes: Array<{ id: string; nome: string }>;
   pendentes: PendenteEvento[];
+  driveUploadEnabled?: boolean;
 }
 
-export function CollapsibleCapturaForm({ clientes, pendentes }: Props) {
+export function CollapsibleCapturaForm({ clientes, pendentes, driveUploadEnabled = false }: Props) {
   const [open, setOpen] = useState(false);
 
   if (!open) {
@@ -24,5 +25,5 @@ export function CollapsibleCapturaForm({ clientes, pendentes }: Props) {
     );
   }
 
-  return <CapturaForm clientes={clientes} pendentes={pendentes} />;
+  return <CapturaForm clientes={clientes} pendentes={pendentes} driveUploadEnabled={driveUploadEnabled} />;
 }

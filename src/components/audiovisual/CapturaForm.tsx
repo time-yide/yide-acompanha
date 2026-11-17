@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useRef, useState } from "react";
-import { Star } from "lucide-react";
+import { ChevronDown, HardDriveUpload, Star } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,7 @@ import { RATING_FIELDS } from "@/lib/audiovisual/constants";
 import { cn } from "@/lib/utils";
 import { formatBrtDateOnly } from "@/lib/calendario/timezone";
 import { formatDateBR, getTodayDate } from "@/lib/datetime/timezone";
+import { DriveUploader } from "./DriveUploader";
 
 type ActionResult = { error?: string } | undefined;
 
@@ -26,6 +27,9 @@ interface Props {
    * (ou nenhum se vazia). Usado em contextos onde o pendente já foi escolhido
    * (ex.: gate de captação atrasada). */
   hidePendenteSelect?: boolean;
+  /** Upload pro Google Drive configurado: mostra "Subir vídeos pro Drive" que
+   * cria as pastas, sobe os arquivos e preenche o link + quantidade sozinho. */
+  driveUploadEnabled?: boolean;
 }
 
 function StarPicker({ name, value, onChange, disabled, error }: {
@@ -74,7 +78,7 @@ function todayBR(): string {
   return getTodayDate();
 }
 
-export function CapturaForm({ clientes, pendentes, hidePendenteSelect = false }: Props) {
+export function CapturaForm({ clientes, pendentes, hidePendenteSelect = false, driveUploadEnabled = false }: Props) {
   const [state, formAction, pending] = useActionState<ActionResult, FormData>(createCapturaAction, undefined);
 
   // Pré-seleciona quando o caller já escolheu o pendente (uso no gate de
@@ -89,9 +93,17 @@ export function CapturaForm({ clientes, pendentes, hidePendenteSelect = false }:
   const [qtdFotos, setQtdFotos] = useState<number>(0);
   const [ratings, setRatings] = useState<Record<string, number>>({});
   const [clientError, setClientError] = useState<string | null>(null);
+  const [driveUrl, setDriveUrl] = useState<string>("");
+  const [driveAberto, setDriveAberto] = useState(false);
+  const [driveEnviando, setDriveEnviando] = useState(false);
   const ratingRowsRef = useRef<Record<string, HTMLDivElement | null>>({});
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    if (driveEnviando) {
+      e.preventDefault();
+      setClientError("Espere o envio dos vídeos pro Drive terminar.");
+      return;
+    }
     if (!clientId) {
       e.preventDefault();
       setClientError("Selecione o cliente.");
@@ -187,9 +199,51 @@ export function CapturaForm({ clientes, pendentes, hidePendenteSelect = false }:
           </div>
         </div>
 
+        {driveUploadEnabled && (
+          <div className="rounded-lg border bg-muted/20">
+            <button
+              type="button"
+              onClick={() => setDriveAberto((v) => !v)}
+              className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left text-sm font-medium"
+              aria-expanded={driveAberto}
+            >
+              <span className="flex items-center gap-2">
+                <HardDriveUpload className="h-4 w-4" />
+                Subir os vídeos direto pro Drive
+              </span>
+              <ChevronDown className={cn("h-4 w-4 transition-transform", driveAberto && "rotate-180")} />
+            </button>
+            {/* Fica montado (só escondido) pra não perder o envio em andamento ao recolher. */}
+            <div className={cn("border-t px-4 pb-4 pt-3", !driveAberto && "hidden")}>
+              <p className="mb-3 text-xs text-muted-foreground">
+                As pastas Cliente / Mês da captação / Categoria são criadas sozinhas. Ao terminar,
+                o link e a quantidade de vídeos abaixo são preenchidos.
+              </p>
+              <DriveUploader
+                clientId={clientId || null}
+                dataReferencia={/^\d{4}-\d{2}-\d{2}$/.test(dataCaptacao) ? dataCaptacao : todayBR()}
+                onEnviandoChange={setDriveEnviando}
+                onConcluido={({ linkEntrega, enviados }) => {
+                  setDriveUrl(linkEntrega);
+                  setQtdVideos((n) => n + enviados);
+                  if (clientError) setClientError(null);
+                }}
+              />
+            </div>
+          </div>
+        )}
+
         <div className="space-y-2">
           <Label htmlFor="drive_url">Link do Google Drive</Label>
-          <Input id="drive_url" name="drive_url" type="url" placeholder="https://drive.google.com/..." required />
+          <Input
+            id="drive_url"
+            name="drive_url"
+            type="url"
+            placeholder="https://drive.google.com/..."
+            value={driveUrl}
+            onChange={(e) => setDriveUrl(e.target.value)}
+            required
+          />
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
@@ -287,7 +341,7 @@ export function CapturaForm({ clientes, pendentes, hidePendenteSelect = false }:
         )}
 
         <div className="flex justify-end">
-          <Button type="submit" disabled={pending}>
+          <Button type="submit" disabled={pending || driveEnviando}>
             {pending ? "Enviando..." : "Entregar captação"}
           </Button>
         </div>

@@ -26,6 +26,8 @@ interface Props {
    */
   canQuickMark?: boolean;
   clientes: Array<{ id: string; nome: string }>;
+  /** Upload pro Google Drive configurado (mostra o envio direto no form). */
+  driveUploadEnabled?: boolean;
 }
 
 function formatDateBR(iso: string): string {
@@ -36,7 +38,7 @@ function formatTimeBR(iso: string): string {
   return new Date(iso).toLocaleTimeString("pt-BR", { timeZone: APP_TIMEZONE, hour: "2-digit", minute: "2-digit" });
 }
 
-export function PendenteEntregaAba({ rows, showVideomaker, canDeliver, canQuickMark = false, clientes }: Props) {
+export function PendenteEntregaAba({ rows, showVideomaker, canDeliver, canQuickMark = false, clientes, driveUploadEnabled = false }: Props) {
   const [openEvent, setOpenEvent] = useState<EventoSemCapturaRow | null>(null);
   const [openRapidoEvent, setOpenRapidoEvent] = useState<EventoSemCapturaRow | null>(null);
 
@@ -195,6 +197,7 @@ export function PendenteEntregaAba({ rows, showVideomaker, canDeliver, canQuickM
                 client_nome: openEvent.client_nome,
               }]}
               hidePendenteSelect
+              driveUploadEnabled={driveUploadEnabled}
             />
           </DialogContent>
         </Dialog>

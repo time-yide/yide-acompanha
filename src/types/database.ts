@@ -1158,6 +1158,60 @@ export type Database = {
         }
         Relationships: []
       }
+      drive_uploads: {
+        Row: {
+          categoria: string
+          client_id: string
+          created_at: string
+          drive_file_id: string | null
+          folder_url: string
+          id: string
+          nome_drive: string
+          nome_original: string
+          size_bytes: number | null
+          uploaded_by: string
+        }
+        Insert: {
+          categoria: string
+          client_id: string
+          created_at?: string
+          drive_file_id?: string | null
+          folder_url: string
+          id?: string
+          nome_drive: string
+          nome_original: string
+          size_bytes?: number | null
+          uploaded_by: string
+        }
+        Update: {
+          categoria?: string
+          client_id?: string
+          created_at?: string
+          drive_file_id?: string | null
+          folder_url?: string
+          id?: string
+          nome_drive?: string
+          nome_original?: string
+          size_bytes?: number | null
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drive_uploads_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drive_uploads_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_attempts: {
         Row: {
           autor_id: string

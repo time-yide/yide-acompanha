@@ -28,6 +28,7 @@ import { SubirEdicaoButton } from "@/components/audiovisual/SubirEdicaoButton";
 import { isEditorIaEnabled, canUseEditorIa } from "@/lib/editor-ia/feature-flag";
 import { listTasks } from "@/lib/tarefas/queries";
 import { TasksGroupedList } from "@/components/tarefas/TasksGroupedList";
+import { driveConfigurado } from "@/lib/google-drive/client";
 
 const ROLES_QUE_VEEM = ["videomaker", "fast_midia", "audiovisual_chefe", "coordenador", "assessor", "adm", "socio"];
 const ROLES_QUE_DELEGAM = ["audiovisual_chefe", "adm", "socio"];
@@ -183,6 +184,7 @@ export default async function AudiovisualPage({
         clientes={clientes}
         capturas={capturas}
         editores={editores}
+        driveUploadEnabled={canUpload && driveConfigurado()}
       />
     );
   } else if (activeTab === "pendente_entrega") {
@@ -203,6 +205,7 @@ export default async function AudiovisualPage({
         canDeliver={isVideomaker}
         canQuickMark={canQuickMark}
         clientes={clientes}
+        driveUploadEnabled={isVideomaker && driveConfigurado()}
       />
     );
   } else if (activeTab === "pendente_delegacao") {

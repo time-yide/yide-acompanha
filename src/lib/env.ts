@@ -81,6 +81,18 @@ const serverSchema = z.object({
   BUNNY_STREAM_API_KEY: z.string().optional(),
   BUNNY_STREAM_LIBRARY_ID: z.string().optional(),
   BUNNY_STREAM_CDN_HOSTNAME: z.string().optional(),
+  // Google Drive — upload de vídeos direto do sistema, organizado em
+  // Cliente / Mês / Categoria. Sem a pasta raiz + uma credencial, a entrega de
+  // captação continua pedindo o link colado e /audiovisual/upload-drive mostra
+  // aviso de setup. Ver .env.example (seção Google Drive).
+  GOOGLE_DRIVE_ROOT_FOLDER_ID: z.string().optional(),
+  // Opção A: service account (JSON cru ou base64). A pasta raiz tem que estar
+  // num Drive compartilhado, com a service account como "Gerente de conteúdo".
+  GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON: z.string().optional(),
+  // Opção B: OAuth de um usuário Google (arquivos no Meu Drive dele).
+  GOOGLE_DRIVE_OAUTH_CLIENT_ID: z.string().optional(),
+  GOOGLE_DRIVE_OAUTH_CLIENT_SECRET: z.string().optional(),
+  GOOGLE_DRIVE_OAUTH_REFRESH_TOKEN: z.string().optional(),
 });
 
 const clientSchema = z.object({
