@@ -73,6 +73,9 @@ export default async function ServicoAncora({ params }: { params: Promise<{ serv
             <p className="mt-2 text-sm text-white/60">
               Planos a partir de <strong className="font-semibold text-white">{PRECO_A_PARTIR}</strong>. Verba de anúncios à parte.
             </p>
+            <p className="mt-2 text-sm text-white/60">
+              Um serviço da <Link href="/" className="font-semibold text-cyan-300 underline-offset-2 hover:underline">Yide Digital, agência de marketing em Cuiabá</Link>.
+            </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <a href={WHATSAPP_SITE} target="_blank" rel="noopener noreferrer"
                 className="group inline-flex items-center gap-2 rounded-full bg-teal-500 px-7 py-3 text-base font-semibold text-neutral-950 shadow-[0_8px_30px_rgba(45,230,230,0.25)] transition-all hover:bg-cyan-400">
