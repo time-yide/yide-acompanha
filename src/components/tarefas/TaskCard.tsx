@@ -11,6 +11,8 @@ interface Props {
   userRole: string;
   /** Quando true, card é arrastável (Quadro). Padrão: false (Lista). */
   draggable?: boolean;
+  /** Mostra em destaque quem está com a tarefa (ex.: editor no Audiovisual). */
+  showResponsavel?: boolean;
 }
 
 // Card minimalista: só título, cliente, quem criou, prazo. Status,
@@ -25,7 +27,7 @@ const PRIORITY_BORDER: Record<string, string> = {
   baixa: "border-l-4 border-l-slate-400",
 };
 
-export function TaskCard({ task, draggable = false }: Props) {
+export function TaskCard({ task, draggable = false, showResponsavel = false }: Props) {
   const router = useRouter();
 
   function onDragStart(e: React.DragEvent) {
@@ -81,6 +83,13 @@ export function TaskCard({ task, draggable = false }: Props) {
         {clienteNome && (
           <p className="truncate text-xs font-semibold text-primary">
             {clienteNome}
+          </p>
+        )}
+
+        {showResponsavel && (
+          <p className="truncate text-xs">
+            <span className="text-muted-foreground">Editor: </span>
+            <span className="font-semibold">{task.atribuido?.nome ?? "sem editor"}</span>
           </p>
         )}
 

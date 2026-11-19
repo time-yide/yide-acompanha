@@ -255,7 +255,7 @@ export default async function AudiovisualPage({
         <p className="text-sm text-muted-foreground">
           Vídeos que voltaram pra ajuste (cliente ou equipe pediu alteração) — vindos de gravação ou pedidos por tarefa.
         </p>
-        <TasksGroupedList tasks={tasks} groupBy="prazo" userRole={user.role} />
+        <TasksGroupedList tasks={tasks} groupBy="prazo" userRole={user.role} showResponsavel />
       </div>
     );
   } else if (activeTab === "aguardando_videomaker") {
@@ -289,7 +289,7 @@ export default async function AudiovisualPage({
       unitClientIds: unitClientIdsForFilter,
     });
     content = (
-      <TasksGroupedList tasks={videoTasks} groupBy="prazo" userRole={user.role} />
+      <TasksGroupedList tasks={videoTasks} groupBy="prazo" userRole={user.role} showResponsavel />
     );
   } else if (activeTab === "meus_bloqueios") {
     content = <MeusBloqueiosAba userId={user.id} />;
