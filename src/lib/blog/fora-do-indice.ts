@@ -172,6 +172,11 @@ const SLUGS_FORA_DO_INDICE = new Set([
   "waymo-em-singapura-o-futuro-dos-taxis-autonomos-chega-a-asia",
 ]);
 
-export function postIndexavel(slug: string): boolean {
+/**
+ * O post vai pro Google, sitemap e llms.txt? Notícia (tem fonte_url) nunca vai: o blog
+ * concentra no que a Yide vende. Artigo próprio vai, salvo se estiver na lista acima.
+ */
+export function postIndexavel(slug: string, fonteUrl?: string | null): boolean {
+  if (fonteUrl) return false;
   return !SLUGS_FORA_DO_INDICE.has(slug);
 }

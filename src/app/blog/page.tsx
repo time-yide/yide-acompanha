@@ -55,7 +55,8 @@ function Diagnostico() {
 export default async function BlogIndex({ searchParams }: { searchParams: Promise<{ tema?: string }> }) {
   const { tema } = await searchParams;
   const orgId = await getOrgPadraoBlog();
-  const todos = orgId ? await listPostsPublicados(orgId) : [];
+  // Notícia de mercado (fonte_url) saiu da listagem: o blog mostra só artigo próprio do empresário.
+  const todos = (orgId ? await listPostsPublicados(orgId) : []).filter((p) => !p.fonte_url);
   const { doEmpresario: posts, mercado } = separarPosts(todos, tema);
   const temaAtivo = TEMAS_EMPRESARIO.find((t) => t.slug === tema) ?? null;
   const [destaque, ...resto] = posts;

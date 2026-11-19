@@ -47,6 +47,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...slugsServico.map((slug) => ({ url: `${SITE_URL}/servicos/${slug}`, changeFrequency: "monthly" as const, priority: 0.7 })),
     ...paginasCidade.map((path) => ({ url: `${SITE_URL}/servicos/${path}`, changeFrequency: "monthly" as const, priority: 0.7 })),
     ...cases.map((c) => ({ url: `${SITE_URL}/cases/${c.slug}`, changeFrequency: "monthly" as const, priority: 0.6 })),
-    ...posts.filter((p) => postIndexavel(p.slug)).map((p) => ({ url: `${SITE_URL}/blog/${p.slug}`, lastModified: p.updated_at, changeFrequency: "weekly" as const, priority: 0.6 })),
+    ...posts.filter((p) => postIndexavel(p.slug, p.fonte_url)).map((p) => ({ url: `${SITE_URL}/blog/${p.slug}`, lastModified: p.updated_at, changeFrequency: "weekly" as const, priority: 0.6 })),
   ];
 }
