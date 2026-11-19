@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
 import { listTasks } from "@/lib/tarefas/queries";
 import { TasksGroupedList } from "@/components/tarefas/TasksGroupedList";
 import { TarefasVideoAvulsasSection } from "@/components/audiovisual/TarefasVideoAvulsasSection";
-import { listTarefasVideoAvulsas, listTarefasVideoEmAlteracao } from "@/lib/audiovisual/tarefas-video";
+import { listTarefasVideoAvulsas, listTarefasVideoEmAlteracao, listTarefasArteEmAlteracao } from "@/lib/audiovisual/tarefas-video";
 
 const ROLES_QUE_VEEM = ["videomaker", "fast_midia", "audiovisual_chefe", "coordenador", "assessor", "adm", "socio"];
 const ROLES_QUE_DELEGAM = ["audiovisual_chefe", "adm", "socio"];
@@ -51,7 +51,7 @@ const TAB_LABELS: Record<TabKey, string> = {
   solicitacoes_bloqueio: "Solicitações de bloqueio",
 };
 
-interface SearchParams { tab?: string; novo?: string; }
+interface SearchParams { tab?: string; novo?: string; sub?: string; }
 
 export default async function AudiovisualPage({
   searchParams,
@@ -94,8 +94,11 @@ export default async function AudiovisualPage({
   }
   const canSeeAlteracao = ROLES_VEEM_ALTERACAO.includes(user.role);
   if (canSeeAlteracao) {
-    const emAlteracao = await listTarefasVideoEmAlteracao(unitClientIdsForFilter);
-    pendingCounts.alteracao = emAlteracao.length;
+    const [altVideo, altArte] = await Promise.all([
+      listTarefasVideoEmAlteracao(unitClientIdsForFilter),
+      listTarefasArteEmAlteracao(unitClientIdsForFilter),
+    ]);
+    pendingCounts.alteracao = altVideo.length + altArte.length;
   }
 
   const availableTabs: TabKey[] = ["capturas", "pendente_entrega"];
@@ -112,7 +115,7 @@ export default async function AudiovisualPage({
   const canAprovarBloqueio = ["audiovisual_chefe", "adm", "socio"].includes(user.role);
   if (canAprovarBloqueio) availableTabs.push("solicitacoes_bloqueio");
 
-  const { tab: tabParam, novo: novoEventoId } = await searchParams;
+  const { tab: tabParam, novo: novoEventoId, sub: subParam } = await searchParams;
   // Gestão (adm/sócio) não usa Capturas no dia a dia: a aba fica oculta e a
   // página abre em "Pendente edição". Continua acessível pelo botão
   // "Ver capturas" no topo (?tab=capturas).
@@ -251,11 +254,41 @@ export default async function AudiovisualPage({
       </div>
     );
   } else if (activeTab === "alteracao") {
-    const tasks = await listTarefasVideoEmAlteracao(unitClientIdsForFilter);
+    // Subabas: "Alterações vídeo" (padrão) e "Alterações arte" (?sub=arte).
+    const sub: "video" | "arte" = subParam === "arte" ? "arte" : "video";
+    const [altVideo, altArte] = await Promise.all([
+      listTarefasVideoEmAlteracao(unitClientIdsForFilter),
+      listTarefasArteEmAlteracao(unitClientIdsForFilter),
+    ]);
+    const tasks = sub === "arte" ? altArte : altVideo;
+    const subTabs = [
+      { key: "video" as const, label: "Alterações vídeo", count: altVideo.length, href: "/audiovisual?tab=alteracao" },
+      { key: "arte" as const, label: "Alterações arte", count: altArte.length, href: "/audiovisual?tab=alteracao&sub=arte" },
+    ];
     content = (
       <div className="space-y-3">
+        <div className="inline-flex rounded-lg border bg-muted/30 p-1">
+          {subTabs.map((st) => (
+            <Link
+              key={st.key}
+              href={st.href}
+              prefetch={false}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                st.key === sub
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {st.label}
+              <span className="text-xs tabular-nums text-muted-foreground">{st.count}</span>
+            </Link>
+          ))}
+        </div>
         <p className="text-sm text-muted-foreground">
-          Vídeos que voltaram pra ajuste (cliente ou equipe pediu alteração) — vindos de gravação ou pedidos por tarefa.
+          {sub === "arte"
+            ? "Artes que voltaram pra ajuste (cliente ou equipe pediu alteração)."
+            : "Vídeos que voltaram pra ajuste (cliente ou equipe pediu alteração) — vindos de gravação ou pedidos por tarefa."}
         </p>
         <TasksGroupedList tasks={tasks} groupBy="prazo" userRole={user.role} showResponsavel />
       </div>
