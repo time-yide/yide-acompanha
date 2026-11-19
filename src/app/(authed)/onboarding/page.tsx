@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LigacoesSubnav } from "@/components/ligacoes/LigacoesSubnav";
 import { redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth/session";
 import { listLeadsByStage } from "@/lib/leads/queries";
@@ -46,6 +47,7 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
     <div className="space-y-5">
       {/* Kanban atualiza ao vivo quando qualquer um move/cria/marca lead. */}
       <OnboardingRealtimeWatcher />
+      {canal === "ligacao" && <LigacoesSubnav active="onboarding" />}
       <TabsOnboardingProspeccao active="onboarding" />
       <TabsOnboarding active="kanban" />
       <header className="flex flex-wrap items-center justify-between gap-3">

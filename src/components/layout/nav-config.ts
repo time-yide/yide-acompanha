@@ -1,7 +1,7 @@
 import {
-  LayoutGrid, Users, KanbanSquare, ListChecks,
+  LayoutGrid, Users, ListChecks,
   DollarSign, Calendar, MessageSquare,
-  TrendingUp, Video, Trash2, Radar, MessageCircle, Phone,
+  TrendingUp, Video, Trash2, MessageCircle, Phone,
   IdCard, BookOpen, Inbox, Layers, Zap, ShoppingCart, Code2,
   type LucideIcon,
 } from "lucide-react";
@@ -69,8 +69,6 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
     label: "Comercial",
     items: [
       { type: "link", href: "/ligacoes", icon: Phone, label: "Ligações", roles: ["adm", "socio", "comercial", "coordenador", "assessor", "programacao"], badgeKey: null },
-      { type: "link", href: "/onboarding?canal=ligacao", icon: KanbanSquare, label: "Onboarding Ligação", roles: ["adm", "socio", "comercial", "assessor", "coordenador", "audiovisual_chefe", "programacao"], badgeKey: null },
-      { type: "link", href: "/gerador-leads", icon: Radar, label: "Gerador de Leads", roles: ["adm", "socio", "comercial", "coordenador", "assessor", "programacao"], badgeKey: null },
       { type: "link", href: "/conversas", icon: MessageCircle, label: "Conversas", roles: ["adm", "socio", "comercial", "coordenador", "assessor", "programacao"], badgeKey: null },
     ],
   },
