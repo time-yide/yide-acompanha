@@ -21,7 +21,7 @@ export async function GET() {
   const texto = montarLlmsTxt({
     siteUrl: SITE_URL,
     servicos,
-    posts: posts.filter((p) => postIndexavel(p.slug)).slice(0, MAX_ARTIGOS),
+    posts: posts.filter((p) => postIndexavel(p.slug, p.fonte_url)).slice(0, MAX_ARTIGOS),
     cases,
   });
   return new Response(texto, { headers: { "Content-Type": "text/plain; charset=utf-8" } });

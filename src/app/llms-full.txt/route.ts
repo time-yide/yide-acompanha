@@ -20,7 +20,7 @@ export async function GET() {
   const texto = montarLlmsFull({
     siteUrl: SITE_URL,
     cases,
-    posts: posts.filter((p) => postIndexavel(p.slug)).slice(0, MAX_ARTIGOS),
+    posts: posts.filter((p) => postIndexavel(p.slug, p.fonte_url)).slice(0, MAX_ARTIGOS),
   });
   return new Response(texto, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
 }

@@ -37,7 +37,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     title: `${title} · Yide Blog`,
     description,
     alternates: { canonical: `/blog/${post.slug}` },
-    robots: postIndexavel(post.slug) ? undefined : { index: false, follow: true },
+    robots: postIndexavel(post.slug, post.fonte_url) ? undefined : { index: false, follow: true },
     openGraph: {
       title, description, type: "article",
       publishedTime: post.published_at ?? undefined,
