@@ -36,7 +36,7 @@ const ROLES_QUE_EXCLUEM = ["audiovisual_chefe", "coordenador", "adm", "socio"];
 // coordenador audiovisual + adm/sócio.
 const ROLES_VEEM_ALTERACAO = ["audiovisual_chefe", "adm", "socio"];
 
-type TabKey = "capturas" | "pendente_entrega" | "pendente_delegacao" | "em_edicao" | "alteracao" | "aguardando_videomaker" | "tarefas_video" | "meus_bloqueios" | "solicitacoes_bloqueio";
+type TabKey = "capturas" | "pendente_entrega" | "pendente_delegacao" | "em_edicao" | "alteracao" | "aguardando_videomaker" | "tarefas_video" | "tarefas_arte" | "meus_bloqueios" | "solicitacoes_bloqueio";
 
 const TAB_LABELS: Record<TabKey, string> = {
   capturas: "Capturas",
@@ -46,6 +46,7 @@ const TAB_LABELS: Record<TabKey, string> = {
   alteracao: "Alteração",
   aguardando_videomaker: "Captações futuras",
   tarefas_video: "Tarefas de vídeo",
+  tarefas_arte: "Tarefas de arte",
   meus_bloqueios: "Meus bloqueios",
   solicitacoes_bloqueio: "Solicitações de bloqueio",
 };
@@ -103,6 +104,7 @@ export default async function AudiovisualPage({
   if (canSeeDelegacao) availableTabs.push("em_edicao");
   if (canSeeAlteracao) availableTabs.push("alteracao");
   availableTabs.push("tarefas_video");
+  availableTabs.push("tarefas_arte");
   if (isVideomaker) availableTabs.push("meus_bloqueios");
   // Só quem realmente aprova (coord. audiovisual + adm/sócio) vê a fila de
   // solicitações — assessor/coordenador geral não aprovam, então não faz
@@ -290,6 +292,14 @@ export default async function AudiovisualPage({
     });
     content = (
       <TasksGroupedList tasks={videoTasks} groupBy="prazo" userRole={user.role} showResponsavel />
+    );
+  } else if (activeTab === "tarefas_arte") {
+    const arteTasks = await listTasks({
+      tipo: ["arte"],
+      unitClientIds: unitClientIdsForFilter,
+    });
+    content = (
+      <TasksGroupedList tasks={arteTasks} groupBy="prazo" userRole={user.role} showResponsavel />
     );
   } else if (activeTab === "meus_bloqueios") {
     content = <MeusBloqueiosAba userId={user.id} />;
