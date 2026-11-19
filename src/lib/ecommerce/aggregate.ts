@@ -1,4 +1,6 @@
 export interface AnuncioAggRow {
+  /** "yideecom" = veio automático do Yide Ecom (sem assessor, não editável). */
+  origem?: "yideecom";
   data: string; // YYYY-MM-DD
   quantidade: number;
   marketplace: string;
@@ -35,8 +37,11 @@ export function aggregateAnuncios(rows: AnuncioAggRow[]): EcommerceAggregate {
     const q = r.quantidade;
     total += q;
 
-    const aId = r.colaborador_id ?? "sem";
-    const aNome = r.colaborador_id ? (r.colaborador_nome ?? "—") : "Sem assessor";
+    const aId = r.origem === "yideecom" ? "yideecom" : (r.colaborador_id ?? "sem");
+    const aNome =
+      r.origem === "yideecom"
+        ? "Automático (Yide Ecom)"
+        : r.colaborador_id ? (r.colaborador_nome ?? "—") : "Sem assessor";
     const a = assessor.get(aId);
     if (a) a.total += q;
     else assessor.set(aId, { nome: aNome, total: q });
