@@ -66,6 +66,10 @@ function fdArray(formData: FormData, key: string): unknown[] {
 export async function createTaskAction(_prevState: ActionResult, formData: FormData): Promise<ActionResult> {
   const actor = await requirePermission("create:tasks");
 
+  // Tipo é obrigatório na criação (Vídeo, Arte ou Outro/"geral") — sem isso a
+  // tarefa de vídeo caía em "geral" e não entrava no fluxo do Audiovisual.
+  if (!fd(formData, "tipo")) return { error: "Escolha o tipo da tarefa: Vídeo, Arte ou Outro." };
+
   const parsed = createTaskSchema.safeParse({
     id: fd(formData, "id"),
     titulo: fd(formData, "titulo"),

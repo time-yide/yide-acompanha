@@ -27,6 +27,12 @@ interface ClientOption { id: string; nome: string; }
  * - videomaker / videomaker_mobile / editor / audiovisual_chefe → "video"
  * - demais              → null (mantém o que tava)
  */
+const TIPO_LABEL: Record<string, string> = {
+  video: "Vídeo",
+  arte: "Arte",
+  geral: "Outro (não é vídeo nem arte)",
+};
+
 function tipoFromRole(role: string | null | undefined): "arte" | "video" | null {
   if (role === "designer") return "arte";
   if (role === "videomaker" || role === "videomaker_mobile" || role === "editor" || role === "audiovisual_chefe") {
@@ -86,7 +92,11 @@ export function TaskForm({
   const [attachments, setAttachments] = useState<string[]>(defaults.attachment_urls ?? []);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploading, startUpload] = useTransition();
-  const [tipo, setTipo] = useState<string>(defaults.tipo ?? "geral");
+  // Tarefa nova começa SEM tipo: quem cria é obrigado a escolher (Vídeo, Arte
+  // ou Outro). Antes caía em "geral" sem ninguém perceber e o vídeo sumia do
+  // fluxo do Audiovisual.
+  const [tipo, setTipo] = useState<string>(defaults.tipo ?? "");
+  const [tipoError, setTipoError] = useState<string | null>(null);
   const [formatos, setFormatos] = useState<string[]>(defaults.formatos ?? []);
   // Marca se o usuário trocou o tipo manualmente - quando true, não auto-deriva
   // mais ao trocar de responsável (evita sobrescrever escolha consciente).
@@ -111,6 +121,7 @@ export function TaskForm({
     const auto = tipoFromRole(role);
     if (auto && tipo !== auto) {
       setTipo(auto);
+      setTipoError(null);
       // Default razoável: feed (usuário pode adicionar story depois).
       if (formatos.length === 0) setFormatos(["feed"]);
       addCoordenadoresAvIfVideo(auto);
@@ -119,6 +130,7 @@ export function TaskForm({
 
   function onTipoChange(v: string) {
     setTipo(v);
+    setTipoError(null);
     setTipoManuallySet(true);
     addCoordenadoresAvIfVideo(v);
   }
@@ -222,7 +234,17 @@ export function TaskForm({
   const linksValidos = links.filter((l) => l.url.trim().length > 0);
 
   return (
-    <form action={formAction} className="space-y-5">
+    <form
+      action={formAction}
+      onSubmit={(e) => {
+        if (!tipo) {
+          e.preventDefault();
+          setTipoError("Escolha o tipo da tarefa: Vídeo, Arte ou Outro.");
+          document.getElementById("tipo-select")?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }}
+      className="space-y-5"
+    >
       <input type="hidden" name="id" value={taskId} />
       <input type="hidden" name="participantes_ids" value={JSON.stringify(participantesVisiveis)} />
       <input type="hidden" name="links" value={JSON.stringify(linksValidos)} />
@@ -244,7 +266,7 @@ export function TaskForm({
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-2">
             <Label htmlFor="tipo-select">
-              Tipo {requiresFormato && <span className="text-destructive">*</span>}
+              Tipo <span className="text-destructive">*</span>
             </Label>
             {tipoAutoDetected && (
               <span className="inline-flex items-center rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-300">
@@ -252,15 +274,22 @@ export function TaskForm({
               </span>
             )}
           </div>
-          <Select value={tipo} onValueChange={(v) => onTipoChange(v ?? "geral")}>
-            <SelectTrigger id="tipo-select"><SelectValue /></SelectTrigger>
+          <Select value={tipo || null} onValueChange={(v) => onTipoChange((v as string | null) ?? "")}>
+            <SelectTrigger id="tipo-select" aria-invalid={!!tipoError}>
+              <SelectValue>
+                {(v: string | null) =>
+                  v ? TIPO_LABEL[v] ?? v : <span className="text-muted-foreground">Escolha: é vídeo ou arte?</span>
+                }
+              </SelectValue>
+            </SelectTrigger>
             <SelectContent>
-              <SelectItem value="geral">Geral</SelectItem>
-              <SelectItem value="video">Vídeo</SelectItem>
-              <SelectItem value="arte">Arte</SelectItem>
+              <SelectItem value="video">{TIPO_LABEL.video}</SelectItem>
+              <SelectItem value="arte">{TIPO_LABEL.arte}</SelectItem>
+              <SelectItem value="geral">{TIPO_LABEL.geral}</SelectItem>
             </SelectContent>
           </Select>
-          {!requiresFormato && (
+          {tipoError && <p className="text-xs font-medium text-destructive">{tipoError}</p>}
+          {tipo === "geral" && (
             <p className="text-[11px] text-muted-foreground">
               Marque como <strong>Vídeo</strong> ou <strong>Arte</strong> pra ativar formato, fluxo de aprovação e contagem no painel mensal.
             </p>
