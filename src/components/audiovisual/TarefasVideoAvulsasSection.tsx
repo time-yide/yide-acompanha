@@ -35,7 +35,7 @@ export function TarefasVideoAvulsasSection({
       ) : (
         <div className="space-y-2">
           {tasks.map((t) => (
-            <TaskCard key={t.id} task={t} userRole={userRole} />
+            <TaskCard key={t.id} task={t} userRole={userRole} showResponsavel />
           ))}
         </div>
       )}

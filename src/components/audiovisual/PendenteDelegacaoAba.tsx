@@ -21,7 +21,7 @@ export function PendenteDelegacaoAba({ rows, editores, canDelegate, canDelete = 
   if (rows.length === 0) {
     return (
       <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-        Nenhuma captação aguardando delegação. ✨
+        Nenhuma captação aguardando delegação.
       </p>
     );
   }
