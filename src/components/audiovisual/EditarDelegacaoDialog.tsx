@@ -120,7 +120,7 @@ export function EditarDelegacaoDialog({
           <DialogHeader>
             <DialogTitle>Editar delegação</DialogTitle>
             <DialogDescription>
-              Trocar videomaker ou coord audiovisual de &ldquo;{eventTitulo}&rdquo;.
+              Trocar videomaker ou assistente de &ldquo;{eventTitulo}&rdquo;.
             </DialogDescription>
           </DialogHeader>
 
@@ -150,7 +150,7 @@ export function EditarDelegacaoDialog({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor={`coord-edit-${eventId}`}>Coord audiovisual</Label>
+              <Label htmlFor={`coord-edit-${eventId}`}>Assistente</Label>
               <select
                 id={`coord-edit-${eventId}`}
                 value={coordId}

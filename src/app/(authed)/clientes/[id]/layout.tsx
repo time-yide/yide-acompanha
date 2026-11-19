@@ -27,11 +27,13 @@ export default async function ClienteFolderLayout({
   const canDelete = ["adm", "socio"].includes(user.role);
   const canLancarAjuste = ["adm", "socio"].includes(user.role);
   // Credenciais (cofre de senhas externas): socio/adm sempre; assessor/coord
-  // só se forem responsáveis pelo cliente.
+  // só se forem responsáveis pelo cliente; Assistente (audiovisual_chefe) só se
+  // for o "Assistente responsável" (designer_id). Espelha canAccessClientCredentials.
   const canSeeCredenciais =
     ["socio", "adm"].includes(user.role) ||
     (["assessor", "coordenador"].includes(user.role) &&
-      (user.id === cliente.assessor_id || user.id === cliente.coordenador_id));
+      (user.id === cliente.assessor_id || user.id === cliente.coordenador_id)) ||
+    (user.role === "audiovisual_chefe" && user.id === cliente.designer_id);
 
   // Ajuste do mês atual
   const now = new Date();

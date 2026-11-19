@@ -207,7 +207,7 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
   const sub = parseSub(fd(formData, "sub_calendar"));
 
   if (sub === "videomakers" && !podeCriarVideomaker(actor.role)) {
-    return { error: "Apenas Sócio, ADM, Coordenador, Assessor ou Coordenador audiovisual podem criar eventos de videomaker" };
+    return { error: "Apenas Sócio, ADM, Coordenador, Assessor ou Assistente podem criar eventos de videomaker" };
   }
 
   const parsed = createEventSchema.safeParse({
@@ -494,7 +494,7 @@ export async function updateEventAction(_prevState: ActionResult, formData: Form
   const sub = parseSub(fd(formData, "sub_calendar"));
 
   if (sub === "videomakers" && !podeCriarVideomaker(actor.role)) {
-    return { error: "Apenas Sócio, ADM, Coordenador, Assessor ou Coordenador audiovisual podem editar eventos de videomaker" };
+    return { error: "Apenas Sócio, ADM, Coordenador, Assessor ou Assistente podem editar eventos de videomaker" };
   }
 
   const parsed = editEventSchema.safeParse({

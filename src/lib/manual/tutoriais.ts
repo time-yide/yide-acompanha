@@ -19,9 +19,9 @@ export const SETOR_LABEL: Record<TutorialSetor, string> = {
   coordenador: "Coordenador",
   assessor: "Assessor",
   videomaker: "Videomaker",
-  designer: "Designer",
+  designer: "Designer (legado)",
   editor: "Editor",
-  audiovisual_chefe: "Coord. Audiovisual",
+  audiovisual_chefe: "Assistente",
 };
 
 export const SETOR_ORDER: TutorialSetor[] = [

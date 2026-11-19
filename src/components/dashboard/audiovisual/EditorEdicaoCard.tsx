@@ -6,7 +6,7 @@ import { getDatePartsInAppTz } from "@/lib/datetime/timezone";
 function roleLabel(role: string): string {
   if (role === "videomaker") return "Videomaker";
   if (role === "fast_midia") return "Fast Mídia";
-  if (role === "audiovisual_chefe") return "Coordenador audiovisual";
+  if (role === "audiovisual_chefe") return "Assistente";
   if (role === "editor") return "Editor";
   return role;
 }

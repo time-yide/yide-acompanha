@@ -39,7 +39,9 @@ export default async function EditClientePage({ params }: { params: Promise<{ id
     : [];
 
   const [designersResp, videomakersResp, editorsResp] = await Promise.all([
-    supabase.from("profiles").select("id, nome").eq("role", "designer").eq("ativo", true).order("nome"),
+    // "Assistente responsável" (designer_id): cargo Assistente (audiovisual_chefe)
+    // + designers legados ainda não migrados.
+    supabase.from("profiles").select("id, nome").in("role", ["audiovisual_chefe", "designer"]).eq("ativo", true).order("nome"),
     // Fast Mídia exerce a função de videomaker, então também é um videomaker
     // atribuível ao cliente.
     supabase.from("profiles").select("id, nome").in("role", ["videomaker", "fast_midia"]).eq("ativo", true).order("nome"),

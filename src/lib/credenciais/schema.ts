@@ -1,6 +1,8 @@
 import { z } from "zod";
 
-export const ROLES_PODEM_ACESSAR_CREDENCIAIS = ["socio", "adm", "assessor", "coordenador"] as const;
+// audiovisual_chefe = cargo "Assistente" (reúne os acessos do cliente; só nos clientes
+// em que é o "Assistente responsável" = clients.designer_id).
+export const ROLES_PODEM_ACESSAR_CREDENCIAIS = ["socio", "adm", "assessor", "coordenador", "audiovisual_chefe"] as const;
 export type RolePodeAcessarCredenciais = (typeof ROLES_PODEM_ACESSAR_CREDENCIAIS)[number];
 
 export const credentialFormSchema = z.object({

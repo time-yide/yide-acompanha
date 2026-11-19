@@ -77,9 +77,8 @@ export function ColaboradorCreateForm({
                 {canAssign("socio") && <SelectItem value="socio">Coordenador</SelectItem>}
                 {canAssign("comercial") && <SelectItem value="comercial">Comercial</SelectItem>}
                 {canAssign("assessor") && <SelectItem value="assessor">Assessor</SelectItem>}
-                {canAssign("audiovisual_chefe") && <SelectItem value="audiovisual_chefe">Coordenador audiovisual</SelectItem>}
+                {canAssign("audiovisual_chefe") && <SelectItem value="audiovisual_chefe">Assistente</SelectItem>}
                 {canAssign("videomaker") && <SelectItem value="videomaker">Videomaker</SelectItem>}
-                {canAssign("designer") && <SelectItem value="designer">Designer</SelectItem>}
                 {canAssign("editor") && <SelectItem value="editor">Editor</SelectItem>}
                 {canAssign("assessor_ecommerce") && <SelectItem value="assessor_ecommerce">Assessor de e-commerce</SelectItem>}
                 {canAssign("assistente_ecommerce") && <SelectItem value="assistente_ecommerce">Assistente de e-commerce</SelectItem>}

@@ -378,7 +378,7 @@ export default async function AudiovisualPage({
 
       {novoEventoId && activeTab === "aguardando_videomaker" && (
         <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
-          ✓ Captação criada. Coord audiovisual vai delegar qual videomaker grava.
+          ✓ Captação criada. Assistente vai delegar qual videomaker grava.
         </div>
       )}
 

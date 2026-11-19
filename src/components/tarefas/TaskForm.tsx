@@ -24,7 +24,8 @@ interface ClientOption { id: string; nome: string; }
  * Mapeia role do responsável → tipo de tarefa pro painel mensal conseguir
  * derivar a step "edicao" automaticamente.
  * - designer            → "arte"
- * - videomaker / videomaker_mobile / editor / audiovisual_chefe → "video"
+ * - videomaker / videomaker_mobile / editor → "video"
+ * - audiovisual_chefe (Assistente: faz vídeo e arte) → null
  * - demais              → null (mantém o que tava)
  */
 const TIPO_LABEL: Record<string, string> = {
@@ -35,7 +36,7 @@ const TIPO_LABEL: Record<string, string> = {
 
 function tipoFromRole(role: string | null | undefined): "arte" | "video" | null {
   if (role === "designer") return "arte";
-  if (role === "videomaker" || role === "videomaker_mobile" || role === "editor" || role === "audiovisual_chefe") {
+  if (role === "videomaker" || role === "videomaker_mobile" || role === "editor") {
     return "video";
   }
   return null;

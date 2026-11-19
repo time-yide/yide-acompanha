@@ -39,7 +39,7 @@ export function SolicitarBloqueioModal() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Solicitar bloqueio de agenda</DialogTitle>
-            <DialogDescription>Vai pro coordenador audiovisual aprovar.</DialogDescription>
+            <DialogDescription>Vai pro assistente aprovar.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div><Label>Dia</Label><Input type="date" value={data} onChange={(e) => setData(e.target.value)} /></div>
