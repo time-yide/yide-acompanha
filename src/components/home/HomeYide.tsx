@@ -9,6 +9,7 @@ import { Numeros } from "./Numeros";
 import { ServicosBento } from "./ServicosBento";
 import { CasesDestaque } from "./CasesDestaque";
 import { Depoimentos } from "./Depoimentos";
+import { AgenciaCuiaba } from "./AgenciaCuiaba";
 import { Sobre } from "./Sobre";
 import { Clientes } from "./Clientes";
 import { CtaContato } from "./CtaContato";
@@ -45,6 +46,7 @@ export function HomeYide({ data }: { data: HomeData }) {
         <ServicosBento servicos={servicos} />
         <CasesDestaque cases={cases} />
         <Depoimentos depoimentos={depoimentos} />
+        <AgenciaCuiaba />
         <BlogDestaque posts={posts} />
         <Sobre titulo={config.sobre_titulo} texto={config.sobre_texto} />
         <Clientes clientes={config.clientes} />

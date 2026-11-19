@@ -7,6 +7,18 @@ import { HOME_DEFAULTS } from "@/lib/seo/home-config";
 import { HomeYide } from "@/components/home/HomeYide";
 import { getOrgPadraoBlog, listPostsPublicados } from "@/lib/blog/queries";
 import { separarPosts } from "@/lib/blog/temas-empresario";
+import { FAQ_LOCAL } from "@/lib/site/faq-local";
+
+// FAQ da seção "Agência de marketing em Cuiabá" como dado estruturado (rich result e IAs).
+const FAQ_LOCAL_JSONLD = JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: FAQ_LOCAL.map((f) => ({
+    "@type": "Question",
+    name: f.pergunta,
+    acceptedAnswer: { "@type": "Answer", text: f.resposta },
+  })),
+}).replace(/</g, "\\u003c");
 
 export const dynamic = "force-dynamic";
 
@@ -47,5 +59,10 @@ export default async function SitePage() {
     .slice(0, 6)
     .map((c) => ({ texto: c.depoimento_texto, autor: c.depoimento_autor, cliente: c.cliente }));
 
-  return <HomeYide data={{ config, servicos: servicosLimpos, cases: casesTop, depoimentos, posts }} />;
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: FAQ_LOCAL_JSONLD }} />
+      <HomeYide data={{ config, servicos: servicosLimpos, cases: casesTop, depoimentos, posts }} />
+    </>
+  );
 }

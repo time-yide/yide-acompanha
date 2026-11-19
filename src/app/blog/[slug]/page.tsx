@@ -126,6 +126,9 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
           Quero o diagnóstico gratuito
         </Link>
       </div>
+      <p className="mt-6 text-center text-sm text-neutral-500">
+        Escrito pela equipe da <Link href="/" className="font-medium text-teal-700 hover:underline">Yide Digital, agência de marketing em Cuiabá</Link>.
+      </p>
     </article>
   );
 }
