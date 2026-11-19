@@ -34,9 +34,9 @@ const ROLE_OPTIONS = [
   { value: "comercial", label: "Comercial" },
   { value: "coordenador", label: "Coordenador (legado)" },
   { value: "assessor", label: "Assessor" },
-  { value: "audiovisual_chefe", label: "Coordenador audiovisual" },
+  { value: "audiovisual_chefe", label: "Assistente" },
   { value: "videomaker", label: "Videomaker" },
-  { value: "designer", label: "Designer" },
+  { value: "designer", label: "Designer (legado)" },
   { value: "editor", label: "Editor" },
 ];
 

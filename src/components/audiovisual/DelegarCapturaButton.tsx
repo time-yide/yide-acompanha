@@ -22,7 +22,7 @@ interface Editor {
 const ROLE_LABEL: Record<string, string> = {
   editor: "Editor",
   videomaker: "Videomaker",
-  audiovisual_chefe: "Coord. audiovisual",
+  audiovisual_chefe: "Assistente",
 };
 
 interface Props {
@@ -284,7 +284,7 @@ export function DelegarCapturaButton({ capturaId, delegated, concluidaEm, editor
               </select>
               {sortedEditores.length === 0 && (
                 <p className="text-xs text-muted-foreground">
-                  Ninguém ativo pra receber edição (editor, videomaker ou coord. audiovisual).
+                  Ninguém ativo pra receber edição (editor, videomaker ou assistente).
                 </p>
               )}
             </div>

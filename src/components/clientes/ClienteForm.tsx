@@ -232,13 +232,13 @@ export function ClienteForm({ action, defaults = {}, assessores, coordenadores, 
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div>
-            <label className="text-xs font-medium text-muted-foreground">Designer responsável</label>
+            <label className="text-xs font-medium text-muted-foreground">Assistente responsável</label>
             <select
               name="designer_id"
               defaultValue={defaults.designer_id ?? ""}
               className="mt-1 block w-full h-9 rounded-md border bg-card px-2 text-sm"
             >
-              <option value="">Sem designer</option>
+              <option value="">Sem assistente</option>
               {designers.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
             </select>
           </div>

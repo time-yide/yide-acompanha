@@ -82,7 +82,7 @@ async function responder(
   motivoRecusa?: string,
 ): Promise<Result> {
   if (!ROLES_APROVAM.includes(actor.role)) {
-    return { error: "Apenas coordenador audiovisual, adm ou sócio podem responder" };
+    return { error: "Apenas assistente, adm ou sócio podem responder" };
   }
   const supabase = await createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

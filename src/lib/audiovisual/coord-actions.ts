@@ -308,7 +308,7 @@ export async function updateDelegacaoAction(
       .eq("id", newCoordId)
       .single();
     if (!coord || !ROLES_COORD_DELEGATE.has(coord.role) || !coord.ativo) {
-      return { error: "Coord audiovisual inválido ou inativo" };
+      return { error: "Assistente inválido ou inativo" };
     }
     updates.videomaker_delegado_por = newCoordId;
   }

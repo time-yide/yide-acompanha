@@ -88,7 +88,7 @@ export function TaskCard({ task, draggable = false, showResponsavel = false }: P
 
         {showResponsavel && (
           <p className="truncate text-xs">
-            <span className="text-muted-foreground">{task.tipo === "arte" ? "Designer: " : "Editor: "}</span>
+            <span className="text-muted-foreground">{task.tipo === "arte" ? "Responsável: " : "Editor: "}</span>
             <span className="font-semibold">{task.atribuido?.nome ?? "sem editor"}</span>
           </p>
         )}

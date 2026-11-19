@@ -57,6 +57,7 @@ export interface AccessLogRow {
  * Verifica se o usuário pode acessar credenciais do cliente especificado.
  * - socio/adm: tudo
  * - assessor/coordenador: só clientes onde é responsável (assessor_id ou coordenador_id)
+ * - assistente (audiovisual_chefe): só clientes onde é o Assistente responsável (designer_id)
  * - outros: não
  */
 export async function canAccessClientCredentials(params: {
@@ -70,14 +71,15 @@ export async function canAccessClientCredentials(params: {
   if (params.userRole === "socio" || params.userRole === "adm") {
     return true;
   }
-  // assessor/coordenador: confirma que é responsável pelo cliente
+  // assessor/coordenador/assistente: confirma que é responsável pelo cliente
   const supabase = createServiceRoleClient();
   const { data } = await supabase
     .from("clients")
-    .select("assessor_id, coordenador_id")
+    .select("assessor_id, coordenador_id, designer_id")
     .eq("id", params.clientId)
     .single();
   if (!data) return false;
+  if (params.userRole === "audiovisual_chefe") return data.designer_id === params.userId;
   return data.assessor_id === params.userId || data.coordenador_id === params.userId;
 }
 

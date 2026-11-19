@@ -251,7 +251,7 @@ interface DelegateResult {
 export async function delegateCapturaAction(formData: FormData): Promise<DelegateResult> {
   const actor = await requireAuth();
   if (!ROLES_QUE_DELEGAM.has(actor.role)) {
-    return { error: "Apenas coord. audiovisual, adm ou sócio podem delegar" };
+    return { error: "Apenas assistente, adm ou sócio podem delegar" };
   }
 
   const capturaId = String(formData.get("captura_id") ?? "");
@@ -296,7 +296,7 @@ export async function delegateCapturaAction(formData: FormData): Promise<Delegat
     .maybeSingle();
   if (!editor || !editor.ativo) return { error: "Pessoa não encontrada ou inativa" };
   if (!(ROLES_QUE_EDITAM as readonly string[]).includes(editor.role)) {
-    return { error: "Pessoa selecionada não pode receber edição (precisa ser editor, videomaker ou coord. audiovisual)" };
+    return { error: "Pessoa selecionada não pode receber edição (precisa ser editor, videomaker ou assistente)" };
   }
 
   // Monta título e descrição da task
@@ -629,7 +629,7 @@ export async function unmarkCapturaConcluidaAction(capturaId: string): Promise<{
 export async function redelegarCapturaAction(formData: FormData): Promise<{ error?: string; success?: boolean }> {
   const actor = await requireAuth();
   if (!ROLES_QUE_DELEGAM.has(actor.role)) {
-    return { error: "Apenas coord. audiovisual, adm ou sócio podem trocar editor" };
+    return { error: "Apenas assistente, adm ou sócio podem trocar editor" };
   }
 
   const capturaId = String(formData.get("captura_id") ?? "");
@@ -721,7 +721,7 @@ export async function subirEdicaoManualAction(
 ): Promise<{ error?: string; success?: boolean }> {
   const actor = await requireAuth();
   if (!ROLES_QUE_DELEGAM.has(actor.role)) {
-    return { error: "Apenas coord. audiovisual, adm ou sócio podem subir edição manual" };
+    return { error: "Apenas assistente, adm ou sócio podem subir edição manual" };
   }
 
   const parsed = subirEdicaoManualSchema.safeParse(input);

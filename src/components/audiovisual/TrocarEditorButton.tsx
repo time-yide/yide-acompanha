@@ -18,7 +18,7 @@ interface Editor {
 const ROLE_LABEL: Record<string, string> = {
   editor: "Editor",
   videomaker: "Videomaker",
-  audiovisual_chefe: "Coord. audiovisual",
+  audiovisual_chefe: "Assistente",
   fast_midia: "Fast Mídia",
 };
 

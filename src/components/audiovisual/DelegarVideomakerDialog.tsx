@@ -60,7 +60,7 @@ export function DelegarVideomakerDialog({
     return (
       <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1.5 text-xs font-medium text-amber-700 dark:text-amber-300">
         <Video className="h-3.5 w-3.5" />
-        Aguardando coord audiovisual
+        Aguardando assistente
       </span>
     );
   }
@@ -117,7 +117,7 @@ export function DelegarVideomakerDialog({
             <div className="space-y-1.5">
               <Label htmlFor={`vm-select-${eventId}`}>Videomaker</Label>
               {/* Select HTML nativo - evita problemas de Portal/z-index do
-                  SearchableSelect dentro do Dialog (Radix). Coord audiovisual
+                  SearchableSelect dentro do Dialog (Radix). Assistente
                   reportou que não conseguia abrir o dropdown. */}
               <select
                 id={`vm-select-${eventId}`}

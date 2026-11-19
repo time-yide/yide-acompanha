@@ -91,7 +91,7 @@ export const CHANNEL_KIND_TO_ROLES: Record<ChannelKind, readonly string[]> = {
   assessores_coordenadores: ["assessor", "coordenador", "adm", "socio"],
   coordenadores_estrategico: ["coordenador", "audiovisual_chefe", "adm", "socio"],
   audiovisual_geral: ["videomaker", "fast_midia", "editor", "audiovisual_chefe", "adm", "socio"],
-  designers: ["designer", "adm", "socio"],
+  designers: ["designer", "audiovisual_chefe", "adm", "socio"],
   comercial: ["comercial", "adm", "socio"],
   administrativo: ["adm", "socio"],
   // 'direct' e 'grupo' não usam role-based access - controle é via member_ids

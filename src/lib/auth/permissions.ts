@@ -16,9 +16,9 @@ export const ROLE_LABELS: Record<string, string> = {
   coordenador: "Coordenador (legado)",
   assessor: "Assessor",
   videomaker: "Videomaker",
-  designer: "Designer",
+  designer: "Designer (legado)",
   editor: "Editor",
-  audiovisual_chefe: "Coordenador audiovisual",
+  audiovisual_chefe: "Assistente",
   assessor_ecommerce: "Assessor de e-commerce",
   assistente_ecommerce: "Assistente de e-commerce",
   programacao: "Programação",
@@ -238,7 +238,6 @@ export function canAccess(role: Role | string, action: Action): boolean {
 const AUDIOVISUAL_CHEFE_ASSIGNABLE_ROLES: Role[] = [
   "videomaker",
   "editor",
-  "designer",
   "fast_midia",
 ];
 
