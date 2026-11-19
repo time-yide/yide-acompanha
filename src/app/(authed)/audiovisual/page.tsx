@@ -111,9 +111,17 @@ export default async function AudiovisualPage({
   if (canAprovarBloqueio) availableTabs.push("solicitacoes_bloqueio");
 
   const { tab: tabParam, novo: novoEventoId } = await searchParams;
+  // Gestão (adm/sócio) não usa Capturas no dia a dia: a aba fica oculta e a
+  // página abre em "Pendente edição". Continua acessível pelo botão
+  // "Ver capturas" no topo (?tab=capturas).
+  const isGestaoGeral = user.role === "adm" || user.role === "socio";
+  const defaultTab: TabKey = isGestaoGeral ? "pendente_delegacao" : "capturas";
   const activeTab: TabKey = availableTabs.includes(tabParam as TabKey)
     ? (tabParam as TabKey)
-    : "capturas";
+    : defaultTab;
+  const visibleTabs: TabKey[] = isGestaoGeral && activeTab !== "capturas"
+    ? availableTabs.filter((t) => t !== "capturas")
+    : availableTabs;
 
   const supabase = await createClient();
 
@@ -298,6 +306,15 @@ export default async function AudiovisualPage({
             Entregas de captação, gravações pendentes e fila de delegação.
           </p>
         </div>
+        {isGestaoGeral && activeTab !== "capturas" && (
+          <Link
+            href="/audiovisual?tab=capturas"
+            prefetch={false}
+            className="inline-flex items-center rounded-md border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+          >
+            Ver capturas
+          </Link>
+        )}
       </header>
 
       {overdueForBanner.length > 0 && (
@@ -325,13 +342,13 @@ export default async function AudiovisualPage({
       {/* Tabs nav */}
       <div className="border-b">
         <nav className="-mb-px flex flex-wrap gap-1" aria-label="Abas de audiovisual">
-          {availableTabs.map((t) => {
+          {visibleTabs.map((t) => {
             const active = t === activeTab;
             const badge = pendingCounts[t];
             return (
               <Link
                 key={t}
-                href={t === "capturas" ? "/audiovisual" : `/audiovisual?tab=${t}`}
+                href={t === defaultTab ? "/audiovisual" : `/audiovisual?tab=${t}`}
                 className={cn(
                   "inline-flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition-colors",
                   active
