@@ -1,5 +1,6 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
+import { notificarAlteracao } from "@/lib/tarefas/notificar-alteracao";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SB = any;
@@ -60,16 +61,16 @@ export async function syncTarefaComReview(
     const msg = actor
       ? "Foram pedidas alterações no Frame — veja os comentários no vídeo."
       : "O cliente pediu alterações — veja os comentários no vídeo.";
-    if (dedup.length > 0) {
-      await dispatchNotification({
-        evento_tipo: "task_alteracao_solicitada",
-        titulo: actor ? `Ajustes solicitados: ${task.titulo}` : `Cliente pediu alteração: ${task.titulo}`,
-        mensagem: msg,
-        link: `/tarefas/${taskId}`,
-        user_ids_extras: dedup,
-        source_user_id: actor?.id,
-      });
-    }
+    // Aviso obrigatório (app + push + WhatsApp) — fonte única com os outros caminhos.
+    await notificarAlteracao({
+      taskId,
+      titulo: task.titulo,
+      envolvidos: dedup,
+      actorId: actor?.id,
+      tituloNotif: actor ? `Ajustes solicitados: ${task.titulo}` : `Cliente pediu alteração: ${task.titulo}`,
+      mensagemNotif: msg,
+      motivo: msg,
+    });
   } else if (destino === "em_aprovacao") {
     if (task.criado_por && task.criado_por !== actor?.id) {
       await dispatchNotification({

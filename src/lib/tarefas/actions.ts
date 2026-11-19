@@ -8,6 +8,7 @@ import { canManageAnyTask } from "@/lib/auth/permissions";
 import { logAudit } from "@/lib/audit/log";
 import { logActivityInternal } from "@/lib/produtividade/actions";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
+import { notificarAlteracao } from "./notificar-alteracao";
 import { getCoordenadoresAudiovisualIds } from "./client-team";
 import { isRoleQueEntrega, isRoleEntregaSempre, isVideoDelivery, precisaModalDeEntrega } from "./delivery-roles";
 import {
@@ -540,6 +541,19 @@ export async function moveTaskStatusAction(formData: FormData) {
     ator_id: actor.id,
   });
 
+  // Arrastar o card pra "Alteração" também avisa os envolvidos (antes não
+  // avisava ninguém). Mesma fonte única dos outros caminhos.
+  if (parsed.data.to_status === "alteracao" && before.status !== "alteracao") {
+    await notificarAlteracao({
+      taskId: parsed.data.id,
+      titulo: before.titulo,
+      envolvidos: [before.atribuido_a, ...(beforeParticipantes ?? [])],
+      actorId: actor.id,
+      tituloNotif: `Tarefa voltou pra alteração: ${before.titulo}`,
+      mensagemNotif: `${actor.nome} moveu "${before.titulo}" pra Alteração.`,
+    });
+  }
+
   if (parsed.data.to_status === "concluida" && before.status !== "concluida") {
     await dispatchNotification({
       evento_tipo: "task_completed",
@@ -771,29 +785,15 @@ export async function requestAdjustmentsAction(formData: FormData): Promise<Appr
     observacoes: parsed.data.observacoes,
   });
 
-  const recipients = [task.atribuido_a, ...(task.participantes_ids ?? [])].filter(
-    (id): id is string => !!id && id !== actor.id,
-  );
-  if (recipients.length > 0) {
-    await dispatchNotification({
-      evento_tipo: "task_assigned",
-      titulo: "Ajustes solicitados",
-      mensagem: `${actor.nome} pediu ajustes: "${task.titulo}"`,
-      link: `/tarefas/${parsed.data.id}`,
-      user_ids_extras: recipients,
-      source_user_id: actor.id,
-    });
-  }
-
-  // Notifica o responsável que a tarefa precisa de ajustes. Mandatory por
-  // design - usuário não pode perder isso.
-  await dispatchNotification({
-    evento_tipo: "task_alteracao_solicitada",
-    titulo: `Ajustes solicitados: ${task.titulo}`,
-    mensagem: parsed.data.observacoes.slice(0, 200),
-    link: `/tarefas/${parsed.data.id}`,
-    user_ids_extras: [task.atribuido_a],
-    source_user_id: actor.id,
+  // Aviso obrigatório (app + push + WhatsApp) pra todos os envolvidos.
+  await notificarAlteracao({
+    taskId: parsed.data.id,
+    titulo: task.titulo,
+    envolvidos: [task.atribuido_a, ...(task.participantes_ids ?? [])],
+    actorId: actor.id,
+    tituloNotif: `Ajustes solicitados: ${task.titulo}`,
+    mensagemNotif: `${actor.nome}: ${parsed.data.observacoes.slice(0, 200)}`,
+    motivo: parsed.data.observacoes,
   });
 
   await logActivityInternal(actor.id, "tarefa_alteracao", {
