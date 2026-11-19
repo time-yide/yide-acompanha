@@ -2,7 +2,7 @@ import {
   LayoutGrid, Users, KanbanSquare, ListChecks,
   DollarSign, Calendar, MessageSquare,
   TrendingUp, Video, Trash2, Radar, MessageCircle, Phone,
-  IdCard, BookOpen, Inbox, Layers, Zap, ShoppingCart, Images, Code2,
+  IdCard, BookOpen, Inbox, Layers, Zap, ShoppingCart, Code2,
   type LucideIcon,
 } from "lucide-react";
 import type { Role } from "@/lib/auth/permissions";
@@ -84,7 +84,6 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
       { type: "link", href: "/clientes", icon: Users, label: "Clientes", roles: "all", badgeKey: null },
       { type: "link", href: "/tarefas", icon: ListChecks, label: "Tarefas", roles: "all", badgeKey: null },
       { type: "link", href: "/audiovisual", icon: Video, label: "Audiovisual", roles: ["adm", "socio", "coordenador", "assessor", "videomaker", "fast_midia", "audiovisual_chefe"], badgeKey: null },
-      { type: "link", href: "/fast-media", icon: Images, label: "Fast Mídia", roles: ["adm", "socio", "coordenador", "audiovisual_chefe", "fast_midia"], badgeKey: null },
       { type: "link", href: "/freela-yide", icon: Zap, label: "FreelaYide", roles: ["adm", "socio", "comercial", "coordenador", "assessor", "designer", "videomaker", "fast_midia", "editor", "audiovisual_chefe", "programacao"], badgeKey: null },
       { type: "link", href: "/ecommerce", icon: ShoppingCart, label: "E-commerce", roles: ["adm", "socio", "assessor_ecommerce", "assistente_ecommerce"], badgeKey: null },
       { type: "link", href: "/programacao", icon: Code2, label: "Programação", roles: ["adm", "socio", "programacao"], badgeKey: null },
