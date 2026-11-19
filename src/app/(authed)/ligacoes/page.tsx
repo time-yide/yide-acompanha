@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LigacoesSubnav } from "@/components/ligacoes/LigacoesSubnav";
 import { notFound } from "next/navigation";
 import { Phone, Settings } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
@@ -101,6 +102,7 @@ export default async function LigacoesPage({
 
   return (
     <div className="space-y-5">
+      <LigacoesSubnav active="ligacoes" />
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
