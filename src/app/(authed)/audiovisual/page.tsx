@@ -28,19 +28,25 @@ import { SubirEdicaoButton } from "@/components/audiovisual/SubirEdicaoButton";
 import { isEditorIaEnabled, canUseEditorIa } from "@/lib/editor-ia/feature-flag";
 import { listTasks } from "@/lib/tarefas/queries";
 import { TasksGroupedList } from "@/components/tarefas/TasksGroupedList";
+import { TarefasVideoAvulsasSection } from "@/components/audiovisual/TarefasVideoAvulsasSection";
+import { listTarefasVideoAvulsas, listTarefasVideoEmAlteracao } from "@/lib/audiovisual/tarefas-video";
 
 const ROLES_QUE_VEEM = ["videomaker", "fast_midia", "audiovisual_chefe", "coordenador", "assessor", "adm", "socio"];
 const ROLES_QUE_DELEGAM = ["audiovisual_chefe", "adm", "socio"];
 const ROLES_GESTAO = ["audiovisual_chefe", "coordenador", "assessor", "adm", "socio"];
 const ROLES_QUE_EXCLUEM = ["audiovisual_chefe", "coordenador", "adm", "socio"];
+// Aba "Alteração": fila de vídeos que voltaram pra ajuste — controle do
+// coordenador audiovisual + adm/sócio.
+const ROLES_VEEM_ALTERACAO = ["audiovisual_chefe", "adm", "socio"];
 
-type TabKey = "capturas" | "pendente_entrega" | "pendente_delegacao" | "em_edicao" | "aguardando_videomaker" | "tarefas_video" | "meus_bloqueios" | "solicitacoes_bloqueio";
+type TabKey = "capturas" | "pendente_entrega" | "pendente_delegacao" | "em_edicao" | "alteracao" | "aguardando_videomaker" | "tarefas_video" | "meus_bloqueios" | "solicitacoes_bloqueio";
 
 const TAB_LABELS: Record<TabKey, string> = {
   capturas: "Capturas",
   pendente_entrega: "Pendente de entrega",
   pendente_delegacao: "Pendente edição",
   em_edicao: "Em edição",
+  alteracao: "Alteração",
   aguardando_videomaker: "Captações futuras",
   tarefas_video: "Tarefas de vídeo",
   meus_bloqueios: "Meus bloqueios",
@@ -88,11 +94,17 @@ export default async function AudiovisualPage({
     const pending = await listPendingDelegations(unitClientIdsForFilter);
     pendingCounts.aguardando_videomaker = pending.length;
   }
+  const canSeeAlteracao = ROLES_VEEM_ALTERACAO.includes(user.role);
+  if (canSeeAlteracao) {
+    const emAlteracao = await listTarefasVideoEmAlteracao(unitClientIdsForFilter);
+    pendingCounts.alteracao = emAlteracao.length;
+  }
 
   const availableTabs: TabKey[] = ["capturas", "pendente_entrega"];
   if (canSeeAguardando) availableTabs.push("aguardando_videomaker");
   if (canSeeDelegacao) availableTabs.push("pendente_delegacao");
   if (canSeeDelegacao) availableTabs.push("em_edicao");
+  if (canSeeAlteracao) availableTabs.push("alteracao");
   availableTabs.push("tarefas_video");
   if (isVideomaker) availableTabs.push("meus_bloqueios");
   // Só quem realmente aprova (coord. audiovisual + adm/sócio) vê a fila de
@@ -206,7 +218,7 @@ export default async function AudiovisualPage({
       />
     );
   } else if (activeTab === "pendente_delegacao") {
-    const [rows, editoresData] = await Promise.all([
+    const [rows, editoresData, avulsas] = await Promise.all([
       listCapturasSemDelegacao(),
       supabase
         .from("profiles")
@@ -215,12 +227,21 @@ export default async function AudiovisualPage({
         .eq("ativo", true)
         .order("nome")
         .then((r) => ((r.data ?? []) as Array<{ id: string; nome: string; role: string }>)),
+      listTarefasVideoAvulsas("aberta", unitClientIdsForFilter),
     ]);
     content = (
-      <PendenteDelegacaoAba rows={rows} editores={editoresData} canDelegate={canDelegate} canDelete={canDelete} />
+      <div className="space-y-6">
+        <PendenteDelegacaoAba rows={rows} editores={editoresData} canDelegate={canDelegate} canDelete={canDelete} />
+        <TarefasVideoAvulsasSection
+          titulo="Pedidas por tarefa (ainda não começaram)"
+          descricao="Edições e vídeos pedidos direto em Tarefas, sem gravação. Abra a tarefa pra ver o pedido ou trocar o editor."
+          tasks={avulsas}
+          userRole={user.role}
+        />
+      </div>
     );
   } else if (activeTab === "em_edicao") {
-    const [rows, editoresData] = await Promise.all([
+    const [rows, editoresData, avulsas] = await Promise.all([
       listCapturasEmEdicao(),
       supabase
         .from("profiles")
@@ -229,8 +250,29 @@ export default async function AudiovisualPage({
         .eq("ativo", true)
         .order("nome")
         .then((r) => ((r.data ?? []) as Array<{ id: string; nome: string; role: string }>)),
+      listTarefasVideoAvulsas("em_andamento", unitClientIdsForFilter),
     ]);
-    content = <EmEdicaoAba rows={rows} editores={editoresData} canDelegate={canDelegate} />;
+    content = (
+      <div className="space-y-6">
+        <EmEdicaoAba rows={rows} editores={editoresData} canDelegate={canDelegate} />
+        <TarefasVideoAvulsasSection
+          titulo="Pedidas por tarefa (em andamento)"
+          descricao="Edições e vídeos pedidos direto em Tarefas, sem gravação, que o editor já está fazendo."
+          tasks={avulsas}
+          userRole={user.role}
+        />
+      </div>
+    );
+  } else if (activeTab === "alteracao") {
+    const tasks = await listTarefasVideoEmAlteracao(unitClientIdsForFilter);
+    content = (
+      <div className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          Vídeos que voltaram pra ajuste (cliente ou equipe pediu alteração) — vindos de gravação ou pedidos por tarefa.
+        </p>
+        <TasksGroupedList tasks={tasks} groupBy="prazo" userRole={user.role} />
+      </div>
+    );
   } else if (activeTab === "aguardando_videomaker") {
     const [pending, scheduled, videomakersList, coordsList] = await Promise.all([
       listPendingDelegations(unitClientIdsForFilter),
