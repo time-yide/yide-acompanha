@@ -59,7 +59,7 @@ CONTEXTO LOCAL: a praça deste artigo é ${praca.nome}. Inclua pelo menos um tre
 
 GEO (otimização para respostas de IA/buscadores): seja objetivo, use listas, definições claras, comparações e passo a passo. Responda a pergunta de forma direta logo no começo e detalhe depois.
 
-LINKS INTERNOS: quando fizer sentido no fluxo do texto, insira links markdown para os serviços da Yide (sem forçar): [gestão de tráfego](/servicos/gestao-de-trafego), [criação de sites](/servicos/criacao-de-sites), [redes sociais](/servicos/redes-sociais), [CRM, IA e dados](/servicos/crm-ia-dados), [audiovisual](/servicos/audiovisual), [e-commerce](/servicos/ecommerce), [Mercado Livre e marketplaces](/servicos/marketplaces), [iFood e delivery](/servicos/delivery-ifood), [assessoria de marketing](/servicos/assessoria-de-marketing), [SEO e Google](/servicos/seo-google).${alvoTxt}
+LINKS INTERNOS: quando fizer sentido no fluxo do texto, insira links markdown para os serviços da Yide (sem forçar): [gestão de tráfego](/servicos/gestao-de-trafego), [criação de sites](/servicos/criacao-de-sites), [redes sociais](/servicos/redes-sociais), [CRM, IA e dados](/servicos/crm-ia-dados), [audiovisual](/servicos/audiovisual), [e-commerce](/servicos/ecommerce), [Mercado Livre e marketplaces](/servicos/marketplaces), [iFood e delivery](/servicos/delivery-ifood), [assessoria de marketing](/servicos/assessoria-de-marketing), [SEO e Google](/servicos/seo-google), [fotos e vídeo para eventos](/servicos/fotos-e-video-para-eventos).${alvoTxt}
 
 REGRA DE PONTUAÇÃO: NUNCA use travessão nem meia-risca ("—" ou "–") em nenhum lugar (título, resumo, corpo, meta tags, FAQ). No lugar, use vírgula, dois-pontos, ponto ou parênteses.
 

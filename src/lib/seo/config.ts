@@ -22,6 +22,8 @@ export const SEED_SERVICOS: SeedServico[] = [
     descricao_base: "Posicionamento no Google e nas respostas de IA: SEO, Perfil da Empresa, avaliações e conteúdo." },
   { nome: "Delivery e iFood", slug: "delivery-ifood", ordem: 10,
     descricao_base: "Gestão de iFood e de delivery próprio: cardápio, fotos, ranking no app, anúncios na hora da fome e pedidos pelo WhatsApp." },
+  { nome: "Fotos e Vídeo para Eventos", slug: "fotos-e-video-para-eventos", ordem: 11,
+    descricao_base: "Cobertura de fotos e vídeo para eventos corporativos, inaugurações, lançamentos e confraternizações, com entrega rápida para as redes." },
 ];
 
 export const SEED_LOCALIDADES: SeedLocalidade[] = [

@@ -39,7 +39,7 @@ export default async function ServicoAncora({ params }: { params: Promise<{ serv
   const doCodigo = paginasLocaisDoServico(sv.slug).map((p) => ({ localidadeSlug: p.cidade, localidadeNome: cidadePorSlug(p.cidade)?.nome ?? p.cidade }));
   const paginas = [...doCodigo, ...doBanco.filter((b) => !doCodigo.some((c) => c.localidadeSlug === b.localidadeSlug))];
   const url = `${SITE_URL}/servicos/${sv.slug}`;
-  const faq = c ? [...c.faq, perguntaPreco(sv.nome)] : [];
+  const faq = c ? (c.precoProprio ? c.faq : [...c.faq, perguntaPreco(sv.nome)]) : [];
   const jsonLd = JSON.stringify(
     jsonLdServicoNacional({ nome: sv.nome, descricao: c?.resposta ?? sv.descricao_base, url, faq }),
   ).replace(/</g, "\\u003c");
@@ -71,7 +71,7 @@ export default async function ServicoAncora({ params }: { params: Promise<{ serv
               Atendemos empresas de <CidadeVisitante padrao="Cuiabá, Várzea Grande, todo o Mato Grosso e o Brasil" comCidade="{cidade} e de todo o Mato Grosso" />.
             </p>
             <p className="mt-2 text-sm text-white/60">
-              Planos a partir de <strong className="font-semibold text-white">{PRECO_A_PARTIR}</strong>. Verba de anúncios à parte.
+              {c?.precoProprio ?? <>Planos a partir de <strong className="font-semibold text-white">{PRECO_A_PARTIR}</strong>. Verba de anúncios à parte.</>}
             </p>
             <p className="mt-2 text-sm text-white/60">
               Um serviço da <Link href="/" className="font-semibold text-cyan-300 underline-offset-2 hover:underline">Yide Digital, agência de marketing em Cuiabá</Link>.
