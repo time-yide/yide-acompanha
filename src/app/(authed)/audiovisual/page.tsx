@@ -1,8 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { AlertTriangle, Clapperboard, Lock, Palette } from "lucide-react";
+import { AlertTriangle, Lock } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
-import { canAccess } from "@/lib/auth/permissions";
 import { createClient } from "@/lib/supabase/server";
 import {
   listCapturas,
@@ -24,8 +23,6 @@ import { listPendingDelegations, listScheduledFutureCaptures, listVideomakersAti
 import { canRoleDelegateVideomaker, canRoleViewCoord } from "@/lib/audiovisual/coord-roles";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { SubirEdicaoButton } from "@/components/audiovisual/SubirEdicaoButton";
-import { isEditorIaEnabled, canUseEditorIa } from "@/lib/editor-ia/feature-flag";
 import { listTasks } from "@/lib/tarefas/queries";
 import { TasksGroupedList } from "@/components/tarefas/TasksGroupedList";
 import { TarefasVideoAvulsasSection } from "@/components/audiovisual/TarefasVideoAvulsasSection";
@@ -119,26 +116,6 @@ export default async function AudiovisualPage({
     : "capturas";
 
   const supabase = await createClient();
-
-  // Dados do header (botão "Subir edição") — só carrega pra quem pode delegar
-  const [headerClientes, headerEditores] = canDelegate
-    ? await Promise.all([
-        supabase
-          .from("clients")
-          .select("id, nome")
-          .in("status", ["ativo", "em_onboarding"])
-          .is("deleted_at", null)
-          .order("nome")
-          .then((r) => (r.data ?? []) as Array<{ id: string; nome: string }>),
-        supabase
-          .from("profiles")
-          .select("id, nome, role")
-          .in("role", ROLES_QUE_EDITAM)
-          .eq("ativo", true)
-          .order("nome")
-          .then((r) => (r.data ?? []) as Array<{ id: string; nome: string; role?: string }>),
-      ])
-    : [[] as Array<{ id: string; nome: string }>, [] as Array<{ id: string; nome: string; role?: string }>];
 
   // Carrega dados conforme a aba ativa (lazy: aba inativa não dispara queries pesadas)
   let content: React.ReactNode = null;
@@ -320,39 +297,6 @@ export default async function AudiovisualPage({
           <p className="text-sm text-muted-foreground">
             Entregas de captação, gravações pendentes e fila de delegação.
           </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {isEditorIaEnabled() && canUseEditorIa(user.role) && (
-            <Link
-              href="/audiovisual/editor-ia"
-              prefetch={false}
-              className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors"
-            >
-              <Clapperboard className="h-4 w-4" />
-              Editor IA
-            </Link>
-          )}
-          <Link
-            href="/audiovisual/designer"
-            prefetch={false}
-            className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors"
-          >
-            <Palette className="h-4 w-4" />
-            Designer
-          </Link>
-          {canAccess(user.role, "manage:review") && (
-            <Link
-              href="/audiovisual/review"
-              prefetch={false}
-              className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors"
-            >
-              <Clapperboard className="h-4 w-4" />
-              Reviews de vídeo
-            </Link>
-          )}
-          {canDelegate && (
-            <SubirEdicaoButton clientes={headerClientes} editores={headerEditores} />
-          )}
         </div>
       </header>
 
