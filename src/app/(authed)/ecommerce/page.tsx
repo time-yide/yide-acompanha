@@ -15,6 +15,8 @@ import { AnunciosResumo } from "@/components/ecommerce/AnunciosResumo";
 import { PainelEcommerce } from "@/components/ecommerce/PainelEcommerce";
 import { FiltroPeriodo } from "@/components/ecommerce/FiltroPeriodo";
 import { canAccessEcommerce } from "@/lib/ecommerce/access";
+import { listPublicadosYideEcom } from "@/lib/ecommerce/yideecom";
+import { casarPublicados, juntarAnuncios } from "@/lib/ecommerce/yideecom-match";
 
 function inicioDoMes(): string {
   const d = new Date();
@@ -42,11 +44,16 @@ export default async function EcommercePage({
   const ate = sp.ate && DATE_RE.test(sp.ate) ? sp.ate : hoje();
   const assessorId = chefia && sp.assessor ? sp.assessor : null;
 
-  const [clientes, anuncios, assessores] = await Promise.all([
+  const [clientes, manuais, assessores, yideEcom] = await Promise.all([
     listClientesEcommerce(orgId),
     listAnuncios(orgId, user.role, user.id, { de, ate, assessorId }),
     chefia ? listAssessoresEcommerce(orgId) : Promise.resolve([]),
+    // Automáticos do Yide Ecom não têm assessor: somem quando filtra por assessor.
+    assessorId ? Promise.resolve(null) : listPublicadosYideEcom(de, ate),
   ]);
+  const { rows: automaticos, semCliente } =
+    yideEcom?.ok ? casarPublicados(yideEcom.publicados, clientes) : { rows: [], semCliente: [] };
+  const anuncios = juntarAnuncios(manuais, automaticos);
   const agg = aggregateAnuncios(anuncios);
 
   const tabHref = (t: string) => {
@@ -64,7 +71,7 @@ export default async function EcommercePage({
         <div>
           <h1 className="text-2xl font-bold tracking-tight">E-commerce</h1>
           <p className="text-sm text-muted-foreground">
-            Registre os anúncios subidos por cliente e acompanhe a produtividade.
+            Mercado Livre e Tray entram sozinhos do Yide Ecom. Lance à mão os outros marketplaces.
           </p>
         </div>
         <NovoAnuncioButton clientes={clientes} />
@@ -100,6 +107,21 @@ export default async function EcommercePage({
             Painel
           </Link>
         </nav>
+      )}
+
+      {chefia && yideEcom && !yideEcom.ok && (
+        <p className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
+          {yideEcom.erro === "nao_configurado"
+            ? "Ligação com o Yide Ecom ainda não configurada: os anúncios automáticos não aparecem."
+            : "Não foi possível buscar os anúncios do Yide Ecom agora. Mostrando só os lançamentos manuais."}
+        </p>
+      )}
+
+      {chefia && semCliente.length > 0 && (
+        <p className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
+          Clientes do Yide Ecom sem cliente e-commerce com o mesmo nome aqui (os anúncios deles não entram):{" "}
+          <span className="font-medium">{semCliente.join(", ")}</span>. Deixe o nome igual nos dois sistemas.
+        </p>
       )}
 
       <FiltroPeriodo

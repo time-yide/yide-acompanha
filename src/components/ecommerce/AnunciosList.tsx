@@ -76,6 +76,11 @@ export function AnunciosList({ anuncios, clientes, mostrarAssessor, podeArquivar
                     {marketplaceLabel(a.marketplace)}
                   </span>
                   <span className="tabular-nums">{formatarDataBR(a.data)}</span>
+                  {a.origem === "yideecom" ? (
+                    <span className="inline-flex items-center rounded-full border border-primary/25 bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+                      Automático · Yide Ecom
+                    </span>
+                  ) : null}
                   {mostrarAssessor && a.colaborador_nome ? (
                     <span className="inline-flex items-center gap-1.5">
                       {a.colaborador_avatar_url ? (
@@ -100,7 +105,7 @@ export function AnunciosList({ anuncios, clientes, mostrarAssessor, podeArquivar
               </div>
             </div>
 
-            {podeArquivar && (
+            {podeArquivar && a.origem !== "yideecom" && (
               <div className="flex shrink-0 items-center gap-0.5 opacity-70 transition-opacity group-hover:opacity-100">
                 <Button
                   type="button"

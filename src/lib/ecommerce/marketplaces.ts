@@ -16,8 +16,11 @@ export const MARKETPLACE_LABELS: Record<Marketplace, string> = {
   outro: "Outro",
 };
 
+/** Canais que só chegam automáticos do Yide Ecom (fora do lançamento manual). */
+const EXTRA_LABELS: Record<string, string> = { tray: "Tray" };
+
 export function marketplaceLabel(m: string): string {
-  return (MARKETPLACE_LABELS as Record<string, string>)[m] ?? m;
+  return (MARKETPLACE_LABELS as Record<string, string>)[m] ?? EXTRA_LABELS[m] ?? m;
 }
 
 /**
@@ -37,6 +40,10 @@ export const MARKETPLACE_COLORS: Record<Marketplace, MarketplaceStyle> = {
   outro: { bar: "bg-zinc-400", pill: "border-zinc-400/25 bg-zinc-400/10 text-zinc-600 dark:text-zinc-300" },
 };
 
+const EXTRA_COLORS: Record<string, MarketplaceStyle> = {
+  tray: { bar: "bg-emerald-500", pill: "border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
+};
+
 export function marketplaceStyle(m: string): MarketplaceStyle {
-  return (MARKETPLACE_COLORS as Record<string, MarketplaceStyle>)[m] ?? MARKETPLACE_COLORS.outro;
+  return (MARKETPLACE_COLORS as Record<string, MarketplaceStyle>)[m] ?? EXTRA_COLORS[m] ?? MARKETPLACE_COLORS.outro;
 }
