@@ -54,3 +54,10 @@ export async function listTarefasVideoEmAlteracao(
 ): Promise<TaskRow[]> {
   return listTasks({ tipo: ["video"], status: ["alteracao"], unitClientIds });
 }
+
+/** Toda tarefa de arte em alteração (aba Alteração → subaba "Alterações arte"). */
+export async function listTarefasArteEmAlteracao(
+  unitClientIds: string[] | null,
+): Promise<TaskRow[]> {
+  return listTasks({ tipo: ["arte"], status: ["alteracao"], unitClientIds });
+}
