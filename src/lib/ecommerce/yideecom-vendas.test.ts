@@ -97,4 +97,9 @@ describe("diasNoPeriodo", () => {
     expect(diasNoPeriodo("2026-11-01", "2026-11-01")).toBe(1);
     expect(diasNoPeriodo("2026-11-01", "2026-11-30")).toBe(30);
   });
+  it("data que não existe vira NaN", () => {
+    expect(diasNoPeriodo("2026-02-31", "2026-03-01")).toBeNaN();
+    expect(diasNoPeriodo("2026-13-01", "2026-13-02")).toBeNaN();
+    expect(resumirVendas([], { clienteId: null, canal: null }, { de: "2026-02-31", ate: "2026-03-01" }).porDia).toEqual([]);
+  });
 });

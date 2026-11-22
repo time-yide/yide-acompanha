@@ -28,7 +28,7 @@ interface Props {
 /** Aba Vendas: pedidos do Mercado Livre e da Tray vindos do Yide Ecom. */
 export async function VendasYideEcom({ de, ate, clienteId, canal, mostrarLucro, clientesOrg }: Props) {
   const dias = diasNoPeriodo(de, ate);
-  if (dias < 1 || dias > MAX_DIAS_VENDAS) {
+  if (!Number.isFinite(dias) || dias < 1 || dias > MAX_DIAS_VENDAS) {
     return (
       <p className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
         Escolha um período de até 3 meses (com &quot;De&quot; antes de &quot;Até&quot;) para ver as vendas.

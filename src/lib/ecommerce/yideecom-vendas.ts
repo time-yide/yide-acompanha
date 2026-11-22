@@ -89,7 +89,8 @@ export function resumirVendas(
     erros: [],
   };
   const dias = new Map<string, { faturamento: number; pedidos: number }>();
-  for (let d = periodo.de; d <= periodo.ate; d = proximoDia(d)) dias.set(d, { faturamento: 0, pedidos: 0 });
+  const n = Math.min(diasNoPeriodo(periodo.de, periodo.ate) || 0, MAX_DIAS_VENDAS);
+  for (let i = 0, d = periodo.de; i < n; i++, d = proximoDia(d)) dias.set(d, { faturamento: 0, pedidos: 0 });
 
   for (const c of clientes) {
     if (filtro.clienteId && c.cliente_id !== filtro.clienteId) continue;
@@ -183,7 +184,14 @@ export function linkSeguro(link: string | null | undefined): string | null {
 
 export const MAX_DIAS_VENDAS = 93;
 
-/** Dias entre de e ate (inclusive). */
+/** Data AAAA-MM-DD que existe no calendário (31/02 não). */
+function dataValida(iso: string): boolean {
+  const t = Date.parse(`${iso}T12:00:00Z`);
+  return /^\d{4}-\d{2}-\d{2}$/.test(iso) && Number.isFinite(t) && new Date(t).toISOString().slice(0, 10) === iso;
+}
+
+/** Dias entre de e ate (inclusive); NaN se alguma data não existe. */
 export function diasNoPeriodo(de: string, ate: string): number {
+  if (!dataValida(de) || !dataValida(ate)) return NaN;
   return Math.round((Date.parse(`${ate}T12:00:00Z`) - Date.parse(`${de}T12:00:00Z`)) / 86_400_000) + 1;
 }
