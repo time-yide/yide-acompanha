@@ -307,7 +307,8 @@ export interface CapturaEmEdicaoRow {
   editor_nome: string | null;
 }
 
-const TASK_STATUS_TERMINAL = ["concluida", "aprovada", "postada"];
+// "agendado" também sai: o vídeo já foi editado, só falta postar.
+const TASK_STATUS_TERMINAL = ["concluida", "aprovada", "agendado", "postada"];
 
 export async function listCapturasEmEdicao(): Promise<CapturaEmEdicaoRow[]> {
   const cached = unstable_cache(
