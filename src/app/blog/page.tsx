@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   title: "Blog do empresário · Yide Digital",
   description: "Para dono de empresa que quer vender mais: anúncios, vendas no WhatsApp, Google, e-commerce, delivery e IA, com exemplos reais e sem enrolação.",
   alternates: { canonical: "/blog" },
-  openGraph: { title: "Blog do empresário · Yide Digital", description: "Anúncios, vendas no WhatsApp, Google e IA para quem é dono de empresa.", type: "website" },
+  openGraph: { title: "Blog do empresário · Yide Digital", description: "Anúncios, vendas no WhatsApp, Google e IA para quem é dono de empresa.", type: "website", images: ["/opengraph-image"] },
 };
 
 function fmtData(iso: string | null): string {

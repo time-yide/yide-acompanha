@@ -147,11 +147,14 @@ export const config = {
   // etc). Sem essa exclusão, o POST da Twilio na rota de voz leva 307 pro
   // /login e a chamada toca "an application error has occurred".
   //
+  // A imagem de compartilhamento (opengraph-image) também é rota next/og e
+  // precisa ser pública: WhatsApp e LinkedIn buscam sem cookie.
+  //
   // E os ícones do app (apple-icon, icon0/1/2) são rotas dinâmicas geradas
   // por next/og — NÃO terminam em .png, então precisam ser excluídos
   // explicitamente, senão o auth redireciona pro /login e o ícone não
   // carrega (manifest é público mas apontaria pra ícone gated).
   matcher: [
-    "/((?!_next/static|_next/image|favicon|public|manifest\\.webmanifest|sw\\.js|api/cron|api/webhooks|api/ligacoes/twilio/voice|api/voz-ia/twiml|api/voz-ia/status|api/voz-ia/media-stream|api/power-dialer|apple-icon|icon0|icon1|icon2|.*\\.svg|.*\\.png).*)",
+    "/((?!_next/static|_next/image|favicon|public|manifest\\.webmanifest|sw\\.js|api/cron|api/webhooks|api/ligacoes/twilio/voice|api/voz-ia/twiml|api/voz-ia/status|api/voz-ia/media-stream|api/power-dialer|apple-icon|icon0|icon1|icon2|opengraph-image|.*\\.svg|.*\\.png).*)",
   ],
 };

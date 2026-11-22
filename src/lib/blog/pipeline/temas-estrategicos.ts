@@ -14,6 +14,13 @@ export interface TemaEstrategico {
  */
 export const TEMAS_ESTRATEGICOS: TemaEstrategico[] = [
   // Alta intenção de contratar (vêm primeiro: o pipeline pega os não usados na ordem)
+  // Lote 22/11/2026: buscas que já dão impressão no Search Console e têm página de serviço por cidade
+  { pilar: "E-commerce", pergunta: "Criação de loja virtual em Cuiabá: quanto custa e quanto tempo leva?" },
+  { pilar: "Alimentação", pergunta: "Agência de iFood em Cuiabá: o que faz e quando vale a pena contratar?" },
+  { pilar: "Tráfego pago", pergunta: "Quanto custa tráfego pago em Cuiabá para uma pequena empresa?" },
+  { pilar: "Google e presença", pergunta: "Criação de site em Cuiabá: o que avaliar antes de contratar?" },
+  { pilar: "E-commerce", pergunta: "Agência de Mercado Livre em Cuiabá: como vender para todo o Brasil saindo de Mato Grosso?" },
+  { pilar: "Audiovisual", pergunta: "Fotos e vídeo para evento de empresa em Cuiabá: o que contratar e quanto custa?" },
   { pilar: "Agência", pergunta: "Como escolher uma agência de marketing em Cuiabá?" },
   { pilar: "Agência", pergunta: "Quanto custa uma agência de marketing em Cuiabá em 2027?" },
   { pilar: "Agência", pergunta: "Gestor de tráfego em Cuiabá: o que ele faz e como cobra?" },

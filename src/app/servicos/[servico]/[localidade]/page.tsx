@@ -36,14 +36,14 @@ export async function generateMetadata({ params }: { params: Promise<{ servico: 
   if (local) {
     return { title: local.pagina.metaTitulo, description: local.pagina.metaDescricao,
       alternates: { canonical: caminhoPagina(servico, localidade) },
-      openGraph: { title: local.pagina.metaTitulo, description: local.pagina.metaDescricao, type: "website" } };
+      openGraph: { title: local.pagina.metaTitulo, description: local.pagina.metaDescricao, type: "website", images: ["/opengraph-image"] } };
   }
   const p = await carregar(servico, localidade);
   if (!p) return { title: "Página não encontrada · Yide Digital" };
   const title = p.meta_title || `${p.servicoNome} em ${p.localidadeNome} · Yide Digital`;
   return { title, description: p.meta_description || undefined,
     alternates: { canonical: caminhoPagina(p.servicoSlug, p.localidadeSlug) },
-    openGraph: { title, description: p.meta_description || undefined, type: "website" } };
+    openGraph: { title, description: p.meta_description || undefined, type: "website", images: ["/opengraph-image"] } };
 }
 export default async function PaginaServicoLocal({ params }: { params: Promise<{ servico: string; localidade: string }> }) {
   const { servico, localidade } = await params;
