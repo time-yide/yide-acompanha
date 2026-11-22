@@ -5,6 +5,7 @@ import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 import { logAudit } from "@/lib/audit/log";
 import { checarFreelaVideomaker } from "@/lib/calendario/freela-check";
 import { getCoordenadoresAudiovisualIds } from "@/lib/tarefas/client-team";
+import { escolherEditor } from "./escolher-editor";
 
 // ─── Auto-delegação de videomaker a gravação ────────────────────────────────
 
@@ -155,12 +156,12 @@ async function _autoAssignVideomakerImpl(
 
 // ─── Auto-delegação de edição a editor/videomaker ───────────────────────────
 
-const DIAS_SEM_GRAVACAO_PARA_EDITAR = 5;
+const DIAS_GRAVACAO_PROXIMA = 5;
 
 /**
  * Tenta auto-delegar a edição de uma captação recém-entregue.
- * Escolhe o editor (ou videomaker sem gravações próximas) com MENOS
- * tarefas de edição abertas.
+ * Rodízio entre editores/videomakers: vai pra quem tem MENOS tarefas abertas
+ * (ver escolherEditor).
  *
  * Best-effort: se falhar, a captação fica na fila manual.
  */
@@ -189,12 +190,12 @@ async function _autoAssignEditorImpl(
     .select(`
       id, client_id, drive_url, qtd_videos, qtd_fotos,
       pontos_positivos, pontos_dificuldade, sugestoes, observacoes,
-      task_id, data_captacao,
+      task_id, data_captacao, concluida_em,
       cliente:clients(id, nome, assessor_id)
     `)
     .eq("id", capturaId)
     .maybeSingle();
-  if (!captura || captura.task_id) return;
+  if (!captura || captura.task_id || captura.concluida_em) return;
 
   const { data: editores } = await sb
     .from("profiles")
@@ -209,7 +210,7 @@ async function _autoAssignEditorImpl(
     .from("tasks")
     .select("atribuido_a")
     .in("atribuido_a", editorIds)
-    .in("status", ["aberta", "em_andamento"]);
+    .in("status", ["aberta", "em_andamento", "alteracao"]);
 
   const taskCount = new Map<string, number>();
   for (const id of editorIds) taskCount.set(id, 0);
@@ -217,53 +218,32 @@ async function _autoAssignEditorImpl(
     taskCount.set(row.atribuido_a, (taskCount.get(row.atribuido_a) ?? 0) + 1);
   }
 
-  // Videomakers com gravação nos próximos N dias ficam FORA da edição
+  // Gravação nos próximos N dias só pesa no desempate (não tira ninguém da roda).
   const now = new Date();
-  const vmCutoff = new Date(now.getTime() + DIAS_SEM_GRAVACAO_PARA_EDITAR * 24 * 60 * 60 * 1000);
-  const vmIds = (editores as { id: string; role: string }[])
-    .filter((e) => e.role === "videomaker" || e.role === "fast_midia")
-    .map((e) => e.id);
-
+  const vmCutoff = new Date(now.getTime() + DIAS_GRAVACAO_PROXIMA * 24 * 60 * 60 * 1000);
   const busyVms = new Set<string>();
-  if (vmIds.length > 0) {
-    const { data: upcoming } = await sb
-      .from("calendar_events")
-      .select("videomaker_assigned_id")
-      .eq("sub_calendar", "videomakers")
-      .eq("videomaker_status", "scheduled")
-      .in("videomaker_assigned_id", vmIds)
-      .gte("inicio", now.toISOString())
-      .lte("inicio", vmCutoff.toISOString());
-    for (const row of (upcoming ?? []) as { videomaker_assigned_id: string }[]) {
-      busyVms.add(row.videomaker_assigned_id);
-    }
+  const { data: upcoming } = await sb
+    .from("calendar_events")
+    .select("videomaker_assigned_id")
+    .eq("sub_calendar", "videomakers")
+    .eq("videomaker_status", "scheduled")
+    .in("videomaker_assigned_id", editorIds)
+    .gte("inicio", now.toISOString())
+    .lte("inicio", vmCutoff.toISOString());
+  for (const row of (upcoming ?? []) as { videomaker_assigned_id: string }[]) {
+    busyVms.add(row.videomaker_assigned_id);
   }
 
-  type Candidate = { id: string; nome: string; role: string; openTasks: number };
-  const candidates: Candidate[] = (editores as { id: string; nome: string; role: string }[])
-    .filter((e) => {
-      if (e.role === "videomaker" || e.role === "fast_midia") {
-        return !busyVms.has(e.id);
-      }
-      return true;
-    })
-    .map((e) => ({
+  const chosen = escolherEditor(
+    (editores as { id: string; nome: string; role: string }[]).map((e) => ({
       id: e.id,
-      nome: e.nome,
+      nome: e.nome ?? "",
       role: e.role,
-      openTasks: taskCount.get(e.id) ?? 0,
-    }));
-  // Editores primeiro (são dedicados a edição), depois videomakers livres
-  candidates.sort((a, b) => {
-    const aIsEditor = a.role === "editor" ? 0 : 1;
-    const bIsEditor = b.role === "editor" ? 0 : 1;
-    if (aIsEditor !== bIsEditor) return aIsEditor - bIsEditor;
-    return a.openTasks - b.openTasks;
-  });
-
-  if (candidates.length === 0) return;
-
-  const chosen = candidates[0];
+      tarefasAbertas: taskCount.get(e.id) ?? 0,
+      temGravacaoProxima: busyVms.has(e.id),
+    })),
+  );
+  if (!chosen) return;
 
   const clienteNome = captura.cliente?.nome ?? "";
   const dataBr = captura.data_captacao
@@ -315,7 +295,8 @@ async function _autoAssignEditorImpl(
   const { error: linkErr } = await sb
     .from("audiovisual_capturas")
     .update({ task_id: createdTask.id })
-    .eq("id", capturaId);
+    .eq("id", capturaId)
+    .is("task_id", null);
   if (linkErr) {
     console.error("[auto-delegate] captura link failed:", linkErr.message);
     return;
