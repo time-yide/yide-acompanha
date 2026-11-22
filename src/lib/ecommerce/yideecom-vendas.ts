@@ -1,5 +1,4 @@
 // Módulo puro (sem server-only): formatos da API do Yide Ecom e as contas da aba Vendas.
-import { normalizarNome } from "./yideecom-match";
 
 export type CanalYideEcom = "mercado_livre" | "tray";
 
@@ -153,24 +152,6 @@ export function opcoesClientes(lista: { cliente_id: string; cliente_nome: string
 
 export const formatarReais = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: v >= 1000 ? 0 : 2 });
-
-/**
- * Só os clientes do Yide Ecom com cliente e-commerce de MESMO nome nesta organização
- * (mesma regra dos anúncios publicados). Os outros voltam em `semCliente` para o aviso.
- */
-export function soClientesDaOrg<T extends { cliente_nome: string }>(
-  lista: T[],
-  clientes: { nome: string }[],
-): { dados: T[]; semCliente: string[] } {
-  const nomes = new Set(clientes.map((c) => normalizarNome(c.nome)).filter(Boolean));
-  const dados: T[] = [];
-  const semCliente: string[] = [];
-  for (const c of lista) {
-    if (nomes.has(normalizarNome(c.cliente_nome))) dados.push(c);
-    else semCliente.push(c.cliente_nome);
-  }
-  return { dados, semCliente: semCliente.sort((a, b) => a.localeCompare(b, "pt-BR")) };
-}
 
 /** Link externo só se for https (vem de outro sistema: nada de javascript: etc.). */
 export function linkSeguro(link: string | null | undefined): string | null {

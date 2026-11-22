@@ -68,8 +68,7 @@ export default async function EcommercePage({
     // Automáticos do Yide Ecom não têm assessor: somem quando filtra por assessor.
     assessorId || !lancamentosTab ? Promise.resolve(null) : listPublicadosYideEcom(de, ate),
   ]);
-  const { rows: automaticos, semCliente } =
-    yideEcom?.ok ? casarPublicados(yideEcom.dados, clientes) : { rows: [], semCliente: [] };
+  const { rows: automaticos } = yideEcom?.ok ? casarPublicados(yideEcom.dados, clientes) : { rows: [] };
   const anuncios = juntarAnuncios(manuais, automaticos);
   const agg = aggregateAnuncios(anuncios);
 
@@ -132,12 +131,6 @@ export default async function EcommercePage({
         </p>
       )}
 
-      {chefia && semCliente.length > 0 && (
-        <p className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
-          Clientes do Yide Ecom sem cliente e-commerce com o mesmo nome aqui (os anúncios deles não entram):{" "}
-          <span className="font-medium">{semCliente.join(", ")}</span>. Deixe o nome igual nos dois sistemas.
-        </p>
-      )}
 
       {tab !== "sugestoes" && (
         <FiltroPeriodo
@@ -151,11 +144,11 @@ export default async function EcommercePage({
 
       {tab === "vendas" ? (
         <Suspense key={`${de}-${ate}`} fallback={<CarregandoYideEcom texto="Buscando as vendas no Mercado Livre e na Tray..." />}>
-          <VendasYideEcom de={de} ate={ate} clienteId={clienteYideEcom} canal={parseCanal(sp.canal)} mostrarLucro={chefia} clientesOrg={clientes} />
+          <VendasYideEcom de={de} ate={ate} clienteId={clienteYideEcom} canal={parseCanal(sp.canal)} mostrarLucro={chefia} />
         </Suspense>
       ) : tab === "sugestoes" ? (
         <Suspense fallback={<CarregandoYideEcom texto="Buscando as sugestões do Yide Ecom..." />}>
-          <SugestoesYideEcom clienteId={clienteYideEcom} clientesOrg={clientes} />
+          <SugestoesYideEcom clienteId={clienteYideEcom} />
         </Suspense>
       ) : tab === "painel" && chefia ? (
         <PainelEcommerce agg={agg} />

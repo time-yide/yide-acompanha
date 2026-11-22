@@ -21,15 +21,15 @@ export function normalizarNome(nome: string): string {
 }
 
 /**
- * Liga cada cliente do Yide Ecom ao cliente e-commerce daqui com o MESMO nome
- * (ignorando acento/maiúscula/pontuação). Vira linha da lista sem assessor
- * (origem "yideecom", não editável). Os que não batem voltam em `semCliente`
- * pra tela avisar quem precisa ter o nome acertado.
+ * Vira linha da lista sem assessor (origem "yideecom", não editável). Quando há
+ * cliente e-commerce daqui com o MESMO nome (ignorando acento/maiúscula/pontuação)
+ * usa ele; senão entra com o nome do Yide Ecom (os nomes raramente batem entre
+ * os dois sistemas e o anúncio não pode sumir por isso).
  */
 export function casarPublicados(
   publicados: PublicadoYideEcom[],
   clientes: { id: string; nome: string }[],
-): { rows: AnuncioRow[]; semCliente: string[] } {
+): { rows: AnuncioRow[] } {
   const porNome = new Map<string, { id: string; nome: string }>();
   for (const c of clientes) {
     const k = normalizarNome(c.nome);
@@ -37,14 +37,12 @@ export function casarPublicados(
   }
 
   const rows: AnuncioRow[] = [];
-  const semCliente = new Set<string>();
   for (const p of publicados) {
     if (!p.quantidade) continue;
-    const cliente = porNome.get(normalizarNome(p.cliente_nome));
-    if (!cliente) {
-      semCliente.add(p.cliente_nome);
-      continue;
-    }
+    const cliente = porNome.get(normalizarNome(p.cliente_nome)) ?? {
+      id: `yideecom:${p.cliente_id}`,
+      nome: p.cliente_nome,
+    };
     rows.push({
       id: `yideecom:${p.cliente_id}:${p.data}:${p.marketplace}`,
       origem: "yideecom",
@@ -60,7 +58,7 @@ export function casarPublicados(
       created_at: `${p.data}T00:00:00-03:00`,
     });
   }
-  return { rows, semCliente: [...semCliente].sort((a, b) => a.localeCompare(b, "pt-BR")) };
+  return { rows };
 }
 
 /** Junta manuais + Yide Ecom, mais recentes primeiro. */

@@ -1,6 +1,6 @@
 import { ExternalLink, Lightbulb } from "lucide-react";
 import { listSugestoesYideEcom } from "@/lib/ecommerce/yideecom";
-import { linkSeguro, opcoesClientes, soClientesDaOrg } from "@/lib/ecommerce/yideecom-vendas";
+import { linkSeguro, opcoesClientes } from "@/lib/ecommerce/yideecom-vendas";
 import { FiltroYideEcom } from "./FiltroYideEcom";
 import { AvisoYideEcom } from "./AvisoYideEcom";
 
@@ -24,18 +24,11 @@ function tomNota(nota: number) {
 }
 
 /** Aba Sugestões: o que melhorar hoje em cada cliente (alertas e anúncios com nota baixa no ML). */
-export async function SugestoesYideEcom({
-  clienteId,
-  clientesOrg,
-}: {
-  clienteId: string | null;
-  /** Clientes e-commerce desta organização: só eles aparecem. */
-  clientesOrg: { nome: string }[];
-}) {
+export async function SugestoesYideEcom({ clienteId }: { clienteId: string | null }) {
   const res = await listSugestoesYideEcom();
   if (!res.ok) return <AvisoYideEcom erro={res.erro} oQue="as sugestões" />;
 
-  const { dados } = soClientesDaOrg(res.dados, clientesOrg);
+  const dados = res.dados;
   const clientes = opcoesClientes(dados);
   const cliente = clienteId && clientes.some((c) => c.id === clienteId) ? clienteId : null;
   const lista = dados.filter((c) => !cliente || c.cliente_id === cliente);
