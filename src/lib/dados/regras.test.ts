@@ -50,10 +50,11 @@ describe("dados/regras", () => {
   });
 
   it("e-commerce", () => {
-    expect(avaliarEcommerce({ aplica: false, anuncios: 0, anunciosAnt: 0 }).status).toBe("nao_se_aplica");
-    expect(avaliarEcommerce({ aplica: true, anuncios: 0, anunciosAnt: 3 }).status).toBe("fraco");
-    expect(avaliarEcommerce({ aplica: true, anuncios: 7, anunciosAnt: 10 }).status).toBe("fraco");
-    expect(avaliarEcommerce({ aplica: true, anuncios: 9, anunciosAnt: 10 }).status).toBe("ok");
+    expect(avaliarEcommerce({ aplica: false, dados: null }).status).toBe("nao_se_aplica");
+    expect(avaliarEcommerce({ aplica: true, dados: null }).status).toBe("sem_acesso");
+    expect(avaliarEcommerce({ aplica: true, dados: { anuncios: 0, anunciosAnt: 3 } }).status).toBe("fraco");
+    expect(avaliarEcommerce({ aplica: true, dados: { anuncios: 7, anunciosAnt: 10 } }).status).toBe("fraco");
+    expect(avaliarEcommerce({ aplica: true, dados: { anuncios: 9, anunciosAnt: 10 } }).status).toBe("ok");
   });
 
   it("crm", () => {

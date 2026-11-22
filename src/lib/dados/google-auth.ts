@@ -34,10 +34,16 @@ export function montarAssertion(sa: ServiceAccount, scopes: string[], agoraSeg =
 }
 
 let cache: { token: string; expira: number } | null = null;
+let emVoo: Promise<string | null> | null = null;
 
-/** null = conta de serviço não configurada ou falha na troca. Cache em memória ~55min. */
+/** null = conta de serviço não configurada ou falha na troca. Cache em memória ~55min; 1 troca por vez. */
 export async function getGoogleToken(): Promise<string | null> {
   if (cache && cache.expira > Date.now()) return cache.token;
+  if (!emVoo) emVoo = trocarToken().finally(() => { emVoo = null; });
+  return emVoo;
+}
+
+async function trocarToken(): Promise<string | null> {
   const sa = lerServiceAccount();
   if (!sa) return null;
   try {
@@ -49,7 +55,8 @@ export async function getGoogleToken(): Promise<string | null> {
       signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) { console.error("[dados/google-auth] token HTTP", res.status); return null; }
-    const j = (await res.json()) as { access_token: string; expires_in: number };
+    const j = (await res.json()) as { access_token?: string; expires_in?: number };
+    if (!j.access_token || !j.expires_in) { console.error("[dados/google-auth] resposta sem token"); return null; }
     cache = { token: j.access_token, expira: Date.now() + (j.expires_in - 300) * 1000 };
     return j.access_token;
   } catch (e) {

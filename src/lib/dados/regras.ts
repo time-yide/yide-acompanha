@@ -74,11 +74,12 @@ export function avaliarAnuncios(i: { temConta: boolean; dados?: { gasto: number;
   return r("ok", null, m);
 }
 
-export function avaliarEcommerce(i: { aplica: boolean; anuncios: number; anunciosAnt: number }): ResultadoCanal {
+export function avaliarEcommerce(i: { aplica: boolean; dados: { anuncios: number; anunciosAnt: number } | null }): ResultadoCanal {
   if (!i.aplica) return r("nao_se_aplica", null);
-  const m = { anuncios: i.anuncios, anunciosAnt: i.anunciosAnt };
-  if (i.anuncios === 0) return r("fraco", "Nenhum anúncio novo nos marketplaces", m);
-  const q = queda(i.anuncios, i.anunciosAnt);
+  if (!i.dados) return r("sem_acesso", "Yide Ecom sem acesso");
+  const m = { anuncios: i.dados.anuncios, anunciosAnt: i.dados.anunciosAnt };
+  if (i.dados.anuncios === 0) return r("fraco", "Nenhum anúncio novo nos marketplaces", m);
+  const q = queda(i.dados.anuncios, i.dados.anunciosAnt);
   if (q >= LIMITES.quedaFraco) return r("fraco", `Anúncios novos nos marketplaces caíram ${pct(q)}`, m);
   return r("ok", null, m);
 }
