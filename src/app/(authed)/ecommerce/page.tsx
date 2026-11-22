@@ -52,9 +52,9 @@ export default async function EcommercePage({
   const tab: Tab =
     sp.tab === "painel" && chefia
       ? "painel"
-      : sp.tab === "vendas" || sp.tab === "sugestoes"
+      : sp.tab === "lancar" || sp.tab === "sugestoes"
         ? sp.tab
-        : "lancar";
+        : "vendas";
   const lancamentosTab = tab === "lancar" || tab === "painel";
   const clienteYideEcom = sp.cliente || null;
   const de = sp.de && DATE_RE.test(sp.de) ? sp.de : inicioDoMes();
@@ -84,9 +84,9 @@ export default async function EcommercePage({
     return `/ecommerce?${p.toString()}`;
   };
   const abas: { id: Tab; label: string }[] = [
+    { id: "vendas", label: "Vendas" },
     { id: "lancar", label: "Lançamentos" },
     ...(chefia ? [{ id: "painel" as const, label: "Painel" }] : []),
-    { id: "vendas", label: "Vendas" },
     { id: "sugestoes", label: "Sugestões" },
   ];
 
