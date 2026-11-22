@@ -1,0 +1,96 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
+import { requireAuth } from "@/lib/auth/session";
+import { getOrganizationId } from "@/lib/gerador-leads/queries";
+import { canAccessDados, podeEditarConexoes } from "@/lib/dados/access";
+import { getClienteDados } from "@/lib/dados/queries";
+import { calcularCliente } from "@/lib/dados/calcular";
+import { periodoPadrao } from "@/lib/dados/periodo";
+import { faixaNota } from "@/lib/dados/nota";
+import { emailContaServico } from "@/lib/dados/google-auth";
+import { listarPropriedadesGa4, listarSitesGsc } from "@/lib/dados/coletores/google";
+import { listarEmpresasLyide } from "@/lib/dados/coletores/lyide";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { CanalCards } from "@/components/dados/CanalCards";
+import { PerdasLista } from "@/components/dados/PerdasLista";
+import { AtualizarAgoraButton } from "@/components/dados/AtualizarAgoraButton";
+import { ConexoesCard } from "@/components/dados/ConexoesCard";
+import type { SnapshotDados } from "@/lib/dados/tipos";
+
+export const dynamic = "force-dynamic";
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+type SnapshotRow = SnapshotDados & { calculado_em: string };
+
+export default async function DadosClientePage({
+  params, searchParams,
+}: { params: Promise<{ clientId: string }>; searchParams: Promise<{ de?: string; ate?: string }> }) {
+  const user = await requireAuth();
+  if (!canAccessDados(user.role)) notFound();
+  const orgId = await getOrganizationId(user.id);
+  if (!orgId) notFound();
+  const { clientId } = await params;
+  const sp = await searchParams;
+  const cliente = await getClienteDados(orgId, user, clientId);
+  if (!cliente) notFound();
+
+  const padrao = periodoPadrao();
+  const custom = sp.de && sp.ate && DATE_RE.test(sp.de) && DATE_RE.test(sp.ate) && sp.de <= sp.ate && (sp.de !== padrao.de || sp.ate !== padrao.ate);
+  const periodo = custom ? { de: sp.de!, ate: sp.ate! } : padrao;
+  const editar = podeEditarConexoes(user.role);
+
+  // Período padrão: lê o snapshot gravado. Período escolhido: calcula na hora (só este cliente).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = createServiceRoleClient() as any;
+  const [snapRow, opcoesGa4, opcoesGsc, opcoesLyide] = await Promise.all([
+    custom ? null : sb.from("client_dados_snapshots").select("nota, canais, perdas, calculado_em")
+      .eq("client_id", clientId).order("calculado_em", { ascending: false }).limit(1).maybeSingle().then((r: { data: unknown }) => r.data),
+    editar ? listarPropriedadesGa4() : [],
+    editar ? listarSitesGsc() : [],
+    editar ? listarEmpresasLyide() : [],
+  ]);
+  const snap: SnapshotDados | null = custom ? await calcularCliente(cliente, periodo) : (snapRow as SnapshotRow | null);
+  const cor = { risco: "text-rose-300", atencao: "text-amber-300", bom: "text-emerald-300", sem_dados: "text-white/40" }[faixaNota(snap?.nota ?? null)];
+
+  return (
+    <div className="space-y-5">
+      <Link href="/dados" className="inline-flex items-center gap-1 text-sm text-white/60 hover:text-white"><ArrowLeft className="h-4 w-4" /> Dados</Link>
+      <header className="flex flex-wrap items-end justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+        <div>
+          <h1 className="text-3xl font-extrabold">{cliente.nome}</h1>
+          <p className="text-sm text-white/50">{cliente.website ?? "sem site"} · {periodo.de.split("-").reverse().join("/")} a {periodo.ate.split("-").reverse().join("/")}</p>
+          <form className="mt-3 flex flex-wrap items-end gap-2 text-xs text-white/60">
+            <label>De <input type="date" name="de" defaultValue={periodo.de} className="ml-1 rounded border border-white/15 bg-white/5 px-2 py-1" /></label>
+            <label>Até <input type="date" name="ate" defaultValue={periodo.ate} className="ml-1 rounded border border-white/15 bg-white/5 px-2 py-1" /></label>
+            <button className="rounded border border-white/20 px-2 py-1 hover:bg-white/10">Aplicar</button>
+          </form>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="text-right">
+            <div className="text-xs uppercase tracking-wide text-white/50">Nota de presença</div>
+            <div className={`text-4xl font-extrabold ${cor}`}>{snap?.nota ?? "—"}<span className="text-base font-normal text-white/40">/100</span></div>
+          </div>
+          <AtualizarAgoraButton clientId={clientId} />
+        </div>
+      </header>
+
+      {!snap ? (
+        <div className="rounded-xl border border-dashed border-white/15 p-10 text-center text-white/60">Calculando… clique em Atualizar agora.</div>
+      ) : (
+        <>
+          <CanalCards canais={snap.canais} />
+          <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+            <h2 className="mb-3 text-sm font-medium">Onde está perdendo</h2>
+            <PerdasLista perdas={snap.perdas} />
+          </section>
+        </>
+      )}
+
+      <ConexoesCard
+        clientId={clientId} podeEditar={editar} emailContaServico={editar ? emailContaServico() : null}
+        atual={{ ga4: cliente.ga4_property_id, gsc: cliente.gsc_site_url, lyide: cliente.crm_tipo === "yide" ? cliente.crm_identifier : null }}
+        opcoes={{ ga4: opcoesGa4, gsc: opcoesGsc, lyide: opcoesLyide }}
+      />
+    </div>
+  );
+}
