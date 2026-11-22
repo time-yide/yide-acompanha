@@ -10,6 +10,7 @@ import { resumoLancamentos } from "@/lib/programacao/resumo";
 import { NovoLancamentoButton } from "@/components/programacao/NovoLancamentoButton";
 import { ResumoProgramacao } from "@/components/programacao/ResumoProgramacao";
 import { LancamentosList } from "@/components/programacao/LancamentosList";
+import { DadosTabs } from "@/components/dados/DadosTabs";
 import { FiltroPeriodo } from "@/components/programacao/FiltroPeriodo";
 
 export const dynamic = "force-dynamic";
@@ -76,6 +77,7 @@ export default async function ProgramacaoPage({
           <NovoLancamentoButton clientes={clientes} />
         </div>
       </header>
+      <DadosTabs ativa="programacao" mostrarProgramacao />
 
       {clientes.length === 0 && (
         <p className="rounded-md border bg-muted/40 p-3 text-sm text-muted-foreground">

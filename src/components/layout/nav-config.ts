@@ -2,12 +2,12 @@ import {
   LayoutGrid, Users, ListChecks,
   DollarSign, Calendar, MessageSquare,
   TrendingUp, Video, Trash2, MessageCircle, Phone,
-  IdCard, BookOpen, Layers, Zap, ShoppingCart, Code2,
+  IdCard, BookOpen, Layers, Zap, ShoppingCart, BarChart3,
   type LucideIcon,
 } from "lucide-react";
 import type { Role } from "@/lib/auth/permissions";
 import { canAccessEcommerce } from "@/lib/ecommerce/access";
-import { canAccessProgramacao } from "@/lib/programacao/access";
+import { canAccessDados } from "@/lib/dados/access";
 
 export type NavBadgeKey = "recados" | "escritorio" | "solicitacoes";
 
@@ -84,7 +84,7 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
       { type: "link", href: "/audiovisual", icon: Video, label: "Audiovisual", roles: ["adm", "socio", "coordenador", "assessor", "videomaker", "fast_midia", "audiovisual_chefe"], badgeKey: null },
       { type: "link", href: "/freela-yide", icon: Zap, label: "FreelaYide", roles: ["adm", "socio", "comercial", "coordenador", "assessor", "designer", "videomaker", "fast_midia", "editor", "audiovisual_chefe", "programacao"], badgeKey: null },
       { type: "link", href: "/ecommerce", icon: ShoppingCart, label: "E-commerce", roles: ["adm", "socio", "assessor_ecommerce", "assistente_ecommerce"], badgeKey: null },
-      { type: "link", href: "/programacao", icon: Code2, label: "Programação", roles: ["adm", "socio", "programacao"], badgeKey: null },
+      { type: "link", href: "/dados", icon: BarChart3, label: "Dados", roles: ["adm", "socio", "programacao", "assessor"], badgeKey: null },
       { type: "link", href: "/programacao/clientes", icon: Users, label: "Clientes", roles: ["programacao"], badgeKey: null },
       { type: "link", href: "/painel-cliente", icon: IdCard, label: "Painel do cliente", roles: ["adm", "socio", "coordenador", "assessor", "audiovisual_chefe"], badgeKey: "solicitacoes" },
       // "Satisfação" saiu do menu — agora aparece como aba dentro de Painel do cliente. URL /satisfacao preservada.
@@ -151,8 +151,8 @@ function isLinkVisible(role: Role, link: NavLink, especialidade?: string | null)
   // "ecommerce" também vê (mantém cargo + comissão de assessor). Ver
   // canAccessEcommerce (fonte única com a guarda da página).
   if (link.href === "/ecommerce") return canAccessEcommerce(role, especialidade);
-  // Programação: fonte única com a guarda da página (canAccessProgramacao).
-  if (link.href === "/programacao") return canAccessProgramacao(role);
+  // Dados: fonte única com a guarda da página (canAccessDados).
+  if (link.href === "/dados") return canAccessDados(role);
   return link.roles === "all" || (Array.isArray(link.roles) && link.roles.includes(role));
 }
 
