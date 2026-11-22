@@ -3,6 +3,7 @@ import { Inbox } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import { listAllRequests } from "@/lib/portal-requests/queries";
 import { SolicitacoesList } from "@/components/solicitacoes/SolicitacoesList";
+import { TabsPainelCliente } from "@/components/painel-cliente/TabsPainelCliente";
 
 const ROLES_PERMITIDOS = ["adm", "socio", "coordenador", "assessor", "audiovisual_chefe"];
 
@@ -17,6 +18,7 @@ export default async function SolicitacoesPage() {
 
   return (
     <div className="space-y-6">
+      <TabsPainelCliente active="solicitacoes" />
       <header className="flex items-center gap-3">
         <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
           <Inbox className="h-6 w-6" />
