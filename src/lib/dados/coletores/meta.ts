@@ -1,0 +1,58 @@
+// SERVER ONLY
+import "server-only";
+import type { Periodo } from "../tipos";
+
+/**
+ * Leitura via System User Token da BM Yide. Env: META_SYSTEM_USER_TOKEN
+ * (só leitura; a coleta antiga foi removida no #988, este é o substituto enxuto).
+ */
+const V = process.env.META_GRAPH_API_VERSION?.trim() || "v21.0";
+const BASE = `https://graph.facebook.com/${V}`;
+
+async function graph<T>(path: string, params: Record<string, string>, token = process.env.META_SYSTEM_USER_TOKEN?.trim()): Promise<T | null> {
+  if (!token) return null;
+  try {
+    const qs = new URLSearchParams({ ...params, access_token: token });
+    const res = await fetch(`${BASE}/${path}?${qs.toString()}`, { cache: "no-store", signal: AbortSignal.timeout(8000) });
+    if (!res.ok) { console.error("[dados/meta]", path.split("/")[0], res.status); return null; }
+    return (await res.json()) as T;
+  } catch (e) { console.error("[dados/meta]", e); return null; }
+}
+
+function contarNoPeriodo(datas: string[], p: Periodo): number {
+  const de = new Date(`${p.de}T00:00:00-03:00`).getTime();
+  const ate = new Date(`${p.ate}T23:59:59-03:00`).getTime();
+  return datas.filter((d) => { const t = new Date(d).getTime(); return t >= de && t <= ate; }).length;
+}
+
+export async function coletarInstagram(igId: string, p: Periodo) {
+  const j = await graph<{ data: Array<{ timestamp: string }> }>(`${igId}/media`, { fields: "timestamp", limit: "50" });
+  if (!j) return null;
+  const datas = j.data.map((m) => m.timestamp);
+  return { ultimoPost: datas[0] ?? null, postsPeriodo: contarNoPeriodo(datas, p) };
+}
+
+export async function coletarFacebook(pageId: string, p: Periodo) {
+  const page = await graph<{ access_token?: string }>(pageId, { fields: "access_token" });
+  if (!page?.access_token) return null;
+  const j = await graph<{ data: Array<{ created_time: string }> }>(`${pageId}/published_posts`, { fields: "created_time", limit: "50" }, page.access_token);
+  if (!j) return null;
+  const datas = j.data.map((m) => m.created_time);
+  return { ultimoPost: datas[0] ?? null, postsPeriodo: contarNoPeriodo(datas, p) };
+}
+
+export async function coletarAnuncios(adAccountId: string, p: Periodo, ultimos7: Periodo) {
+  const act = adAccountId.startsWith("act_") ? adAccountId : `act_${adAccountId}`;
+  type R = { data: Array<{ spend?: string; clicks?: string; impressions?: string }> };
+  const [a, b] = await Promise.all([
+    graph<R>(`${act}/insights`, { fields: "spend,clicks,impressions", time_range: JSON.stringify({ since: p.de, until: p.ate }) }),
+    graph<R>(`${act}/insights`, { fields: "spend", time_range: JSON.stringify({ since: ultimos7.de, until: ultimos7.ate }) }),
+  ]);
+  if (!a || !b) return null;
+  return {
+    gasto: Number(a.data[0]?.spend ?? 0),
+    cliques: Number(a.data[0]?.clicks ?? 0),
+    impressoes: Number(a.data[0]?.impressions ?? 0),
+    gasto7d: Number(b.data[0]?.spend ?? 0),
+  };
+}
