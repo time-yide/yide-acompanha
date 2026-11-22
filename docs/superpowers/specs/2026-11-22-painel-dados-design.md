@@ -67,7 +67,7 @@ Cada canal tem um destes status: `ok` (indo bem), `fraco` (fraco ou parado), `au
 | Facebook | `social_media_publicacoes` + `social_media_metricas` | sem `facebook_page_id` | — | último post há mais de 3 dias | "Sem post no Facebook há N dias" |
 | Anúncios (Meta) | `trafego_campanhas` + `trafego_metricas_diarias` | nenhuma campanha ativa no período | `meta_last_sync_error` preenchido | campanha ativa, mas sem gasto nos últimos 7 dias | "Sem anúncios rodando" (Alto) |
 | E-commerce | `anuncios_ecommerce` (Mercado Livre / Tray) | — | — | vendas caíram ≥ 20% | só vale para clientes com e-commerce; nos outros é `nao_se_aplica` |
-| CRM | `clients.crm_tipo` | `nenhum` ou vazio | — | `planilha` | "Leads sem CRM organizado" |
+| CRM | **Lyide (crm-yide)** via API externa, ver seção abaixo | `crm_tipo` = `nenhum` ou vazio | não usa o Lyide (outro CRM ou planilha), sem código do Lyide no cadastro, ou API com erro | leads novos caíram ≥ 20%, nenhum lead novo no período, 5 ou mais leads sem resposta há mais de 24h, ou nenhuma venda no período | "N leads sem resposta há mais de 24h" / "Leads novos caíram X%" / "Nenhuma venda registrada no mês" |
 
 Os limites (20%, 3 dias, 7 dias, 4,3 etc.) ficam como constantes num único arquivo (`src/lib/dados/regras.ts`), assim dá pra ajustar fácil depois.
 
@@ -99,6 +99,22 @@ Calcular tudo na hora deixaria a página lenta (o gargalo do app já é o tempo 
 - **Colunas novas em `clients`:** `ga4_property_id text`, `gsc_site_url text`.
 - **Na edição do cliente**, seção "Conexões de dados": dois campos com lista suspensa preenchida pelas propriedades GA4 e sites do Search Console que a conta de serviço consegue ler. Também mostra o e-mail da conta de serviço, com botão de copiar, para a equipe mandar ao cliente.
 - Enquanto a env var não estiver configurada, os canais Site e Google busca aparecem como `sem_acesso` e nada quebra.
+
+### CRM pelo Lyide (crm-yide)
+
+Usa o mesmo padrão que o `/conversas` já usa: API externa do Lyide, protegida pelo segredo que já existe (`LYIDE_API_URL` + `LYIDE_API_SECRET` aqui, `ACOMPANHA_API_SECRET` lá). Não precisa de chave nova.
+
+- **Ligação cliente ↔ Lyide:** o cadastro do cliente já tem `crm_tipo` e `crm_identifier`. Quando `crm_tipo = 'yide'`, o `crm_identifier` guarda o **slug da empresa no Lyide**. Na seção "Conexões de dados" da edição do cliente, um campo com a lista de empresas clientes da agência no Lyide (vinda da API) preenche isso sem digitar.
+- **Endpoints novos no Lyide** (PR no repo crm-yide, em `apps/web/app/api/external/`):
+  - `GET /api/external/empresas`: lista `{ slug, name }` das empresas clientes da agência Yide (`agencyId` = agência Yide). Serve pra preencher a lista suspensa.
+  - `GET /api/external/empresas/[slug]/resumo?de=YYYY-MM-DD&ate=YYYY-MM-DD`: só responde para empresas da agência Yide. Devolve, no período e no período anterior de mesmo tamanho:
+    - `leadsNovos`: leads criados (sem os apagados)
+    - `vendas` e `valorVendas`: leads `WON` com `convertedAt`/`closedAt` no período
+    - `conversao`: vendas ÷ leads novos
+    - `semResposta24h`: leads abertos cuja última mensagem é do cliente e tem mais de 24h
+    - `origens`: leads novos por canal (`sourceChannel` / UTM: Google, Meta anúncios, Instagram, orgânico, outros)
+- **Na tela do cliente**, o cartão CRM mostra leads novos, vendas (quantidade e R$), conversão, leads sem resposta e **de onde vêm os leads**. Isso cruza com os outros canais: por exemplo, se nenhum lead vem do Google e o site está vermelho, fica claro onde o cliente está perdendo.
+- **Deploy do Lyide:** seguir o jeito que já funciona (`vercel deploy --prod` de um worktree limpo), porque o redeploy normal é cancelado.
 
 ## Menu e rotas
 
