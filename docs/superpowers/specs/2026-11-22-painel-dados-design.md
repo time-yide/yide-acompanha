@@ -48,7 +48,7 @@ A regra fica numa fonte única, `src/lib/dados/access.ts`: `canAccessDados(role)
 - Cartões com os números principais de cada canal que tem dado, sempre com a variação do período
 - **"Onde está perdendo":** lista em frases simples, classificada como Alto ou Médio, com a mais grave primeiro
 - Botão **"Atualizar agora"**: recalcula só esse cliente
-- Link "Conectar" nos canais com status "sem acesso ligado" (leva para a edição do cliente)
+- Cartão "Conexões de dados" (GA4, Search Console, Lyide) nos canais com status "sem acesso ligado"
 
 ### Visual
 
@@ -63,10 +63,10 @@ Cada canal tem um destes status: `ok` (indo bem), `fraco` (fraco ou parado), `au
 | Site | GA4 Data API (`clients.ga4_property_id`) | sem `website` | tem site, mas não tem GA4 ligado ou a API dá erro | sessões caíram ≥ 20% ou ficaram abaixo de 100 no período | "Site perdeu X% das visitas" / "Cliente não tem site" (Alto) |
 | Google busca | Search Console API (`clients.gsc_site_url`) | sem `website` | sem GSC ligado ou erro | cliques caíram ≥ 20% ou posição média acima de 20 | "Cliques vindos do Google caíram X%" |
 | Google Meu Negócio | `clients.gmb_*` + `client_gmb_snapshots` | sem `gmb_place_id` e sem `gmb_link` | — | nota abaixo de 4,3 ou nenhuma avaliação nova no período | "Não aparece no Google Maps" (Alto) |
-| Instagram | `client_instagram_snapshots` (mais recente) | sem `instagram_url` | último scrape com erro | último post há mais de 3 dias | "Sem post no Instagram há N dias" |
-| Facebook | `social_media_publicacoes` + `social_media_metricas` | sem `facebook_page_id` | — | último post há mais de 3 dias | "Sem post no Facebook há N dias" |
-| Anúncios (Meta) | `trafego_campanhas` + `trafego_metricas_diarias` | nenhuma campanha ativa no período | `meta_last_sync_error` preenchido | campanha ativa, mas sem gasto nos últimos 7 dias | "Sem anúncios rodando" (Alto) |
-| E-commerce | `anuncios_ecommerce` (Mercado Livre / Tray) | — | — | vendas caíram ≥ 20% | só vale para clientes com e-commerce; nos outros é `nao_se_aplica` |
+| Instagram | Meta Graph API: `/{instagram_business_id}/media` | sem `instagram_url` e sem `instagram_business_id` | tem Instagram, mas sem `instagram_business_id` ou a API dá erro | último post há mais de 3 dias | "Sem post no Instagram há N dias" |
+| Facebook | Meta Graph API: `/{facebook_page_id}/published_posts` | sem `facebook_page_id` | API com erro | último post há mais de 3 dias | "Sem post no Facebook há N dias" |
+| Anúncios (Meta) | Meta Graph API: `/act_{meta_ad_account_id}/insights` (gasto, cliques, impressões) | sem `meta_ad_account_id` ou gasto zero no período | API com erro | gasto zero nos últimos 7 dias | "Sem anúncios rodando" (Alto) |
+| E-commerce | anúncios publicados: `anuncios_ecommerce` + Yide Ecom (`listPublicadosYideEcom`) | — | — | nenhum anúncio novo no período ou queda ≥ 20% | só vale para clientes com `tipo_pacote = 'ecommerce'`; nos outros é `nao_se_aplica` |
 | CRM | **Lyide (crm-yide)** via API externa, ver seção abaixo | `crm_tipo` = `nenhum` ou vazio | não usa o Lyide (outro CRM ou planilha), sem código do Lyide no cadastro, ou API com erro | leads novos caíram ≥ 20%, nenhum lead novo no período, 5 ou mais leads sem resposta há mais de 24h, ou nenhuma venda no período | "N leads sem resposta há mais de 24h" / "Leads novos caíram X%" / "Nenhuma venda registrada no mês" |
 
 Os limites (20%, 3 dias, 7 dias, 4,3 etc.) ficam como constantes num único arquivo (`src/lib/dados/regras.ts`), assim dá pra ajustar fácil depois.
@@ -93,18 +93,27 @@ Calcular tudo na hora deixaria a página lenta (o gargalo do app já é o tempo 
 4. **"Atualizar agora"**: server action que roda os coletores de um cliente e grava um snapshot novo.
 5. **Período diferente de 30 dias:** a visão geral usa sempre o snapshot mais recente (30 dias). O seletor de período vale só na tela do cliente, que recalcula na hora para aquele cliente.
 
+### Instagram, Facebook e anúncios (Meta)
+
+A coleta antiga (Apify, `social_media_*`, `trafego_*`) foi removida no PR #988, e essas tabelas estão paradas. O painel **não lê** essas tabelas. Ele chama a Meta Graph API direto, com um **token de System User** da BM da Yide (env `META_SYSTEM_USER_TOKEN`, só leitura). Os ids que ela precisa já estão no cadastro do cliente: `instagram_business_id`, `facebook_page_id` e `meta_ad_account_id`, preenchidos pelo PR #954.
+
+- Instagram: `GET /{ig_id}/media?fields=timestamp&limit=50` → data do último post e posts no período.
+- Facebook: pega o token da página com `GET /{page_id}?fields=access_token` e depois `GET /{page_id}/published_posts?fields=created_time&limit=50`.
+- Anúncios: `GET /act_{id}/insights?time_range=...&fields=spend,clicks,impressions` para o período e para os últimos 7 dias.
+- Sem a env var, os três canais ficam `sem_acesso` e nada quebra.
+
 ### Google Analytics e Search Console
 
-- Usa a mesma conta de serviço que já existe no ads-manager. A chave JSON vai na env var `GOOGLE_SERVICE_ACCOUNT_JSON` (Vercel). A autenticação é feita com `google-auth-library` (JWT) chamando a API REST por `fetch`. Não usa o pacote `googleapis` inteiro, porque ele é pesado.
+- Usa a mesma conta de serviço que já existe no ads-manager. A chave JSON vai na env var `GOOGLE_SERVICE_ACCOUNT_JSON` (Vercel). A autenticação assina o JWT com o `node:crypto` e troca por token em `oauth2.googleapis.com`. Não entra nenhuma biblioteca nova.
 - **Colunas novas em `clients`:** `ga4_property_id text`, `gsc_site_url text`.
-- **Na edição do cliente**, seção "Conexões de dados": dois campos com lista suspensa preenchida pelas propriedades GA4 e sites do Search Console que a conta de serviço consegue ler. Também mostra o e-mail da conta de serviço, com botão de copiar, para a equipe mandar ao cliente.
+- **Na tela do cliente em Dados** (não no formulário de edição do cliente), cartão "Conexões de dados" com listas suspensas: propriedade GA4, site do Search Console e empresa do Lyide. As opções vêm das próprias APIs. O cartão também mostra o e-mail da conta de serviço, com botão de copiar, para a equipe mandar ao cliente. Só ADM, Sócio e Programação podem editar.
 - Enquanto a env var não estiver configurada, os canais Site e Google busca aparecem como `sem_acesso` e nada quebra.
 
 ### CRM pelo Lyide (crm-yide)
 
 Usa o mesmo padrão que o `/conversas` já usa: API externa do Lyide, protegida pelo segredo que já existe (`LYIDE_API_URL` + `LYIDE_API_SECRET` aqui, `ACOMPANHA_API_SECRET` lá). Não precisa de chave nova.
 
-- **Ligação cliente ↔ Lyide:** o cadastro do cliente já tem `crm_tipo` e `crm_identifier`. Quando `crm_tipo = 'yide'`, o `crm_identifier` guarda o **slug da empresa no Lyide**. Na seção "Conexões de dados" da edição do cliente, um campo com a lista de empresas clientes da agência no Lyide (vinda da API) preenche isso sem digitar.
+- **Ligação cliente ↔ Lyide:** o cadastro do cliente já tem `crm_tipo` e `crm_identifier`. Quando `crm_tipo = 'yide'`, o `crm_identifier` guarda o **slug da empresa no Lyide**. No cartão "Conexões de dados" da tela do cliente em Dados, um campo com a lista de empresas clientes da agência no Lyide (vinda da API) preenche isso sem digitar.
 - **Endpoints novos no Lyide** (PR no repo crm-yide, em `apps/web/app/api/external/`):
   - `GET /api/external/empresas`: lista `{ slug, name }` das empresas clientes da agência Yide (`agencyId` = agência Yide). Serve pra preencher a lista suspensa.
   - `GET /api/external/empresas/[slug]/resumo?de=YYYY-MM-DD&ate=YYYY-MM-DD`: só responde para empresas da agência Yide. Devolve, no período e no período anterior de mesmo tamanho:
@@ -133,7 +142,7 @@ A página precisa funcionar entre o deploy e a migration: se a tabela não exist
 
 - Cliente sem nenhum snapshot ainda: aparece com "Calculando…" e botão "Atualizar agora".
 - API do Google com limite ou erro: o canal fica `sem_acesso` com o motivo e o resto do painel segue normal.
-- Instagram com erro do Apify (limite mensal): fica `sem_acesso`, não `ausente`.
+- Meta API com token vencido ou sem permissão: o canal fica `sem_acesso` com o motivo, nunca `ausente`.
 
 ## Testes
 
