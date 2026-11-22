@@ -2,13 +2,14 @@ import { notFound } from "next/navigation";
 import { BarChart3 } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
 import { getOrganizationId } from "@/lib/gerador-leads/queries";
-import { canAccessDados, dadosVeTodos } from "@/lib/dados/access";
+import { canAccessDados, dadosVeTodos, podeEditarConexoes } from "@/lib/dados/access";
 import { canAccessProgramacao } from "@/lib/programacao/access";
 import { listVisaoGeral } from "@/lib/dados/queries";
 import { ResumoCards } from "@/components/dados/ResumoCards";
 import { TabelaClientes } from "@/components/dados/TabelaClientes";
 import { DadosTabs } from "@/components/dados/DadosTabs";
 import { LegendaStatus } from "@/components/dados/CanalIcone";
+import { ConectarAutomaticoButton } from "@/components/dados/ConectarAutomaticoButton";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +34,11 @@ export default async function DadosPage() {
           Tudo de cada cliente num lugar só: onde está indo bem e onde está perdendo presença.
           {ultima && <span className="text-white/40"> · Atualizado {new Date(ultima).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })} · últimos 30 dias</span>}
         </p>
+        {podeEditarConexoes(user.role) && (
+          <div className="mt-4 sm:absolute sm:right-6 sm:top-6 sm:mt-0">
+            <ConectarAutomaticoButton />
+          </div>
+        )}
       </header>
 
       <DadosTabs ativa="dados" mostrarProgramacao={canAccessProgramacao(user.role)} />

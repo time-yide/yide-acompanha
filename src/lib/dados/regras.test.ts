@@ -59,7 +59,7 @@ describe("dados/regras", () => {
 
   it("crm", () => {
     expect(avaliarCrm({ crmTipo: null }).status).toBe("sem_acesso");
-    expect(avaliarCrm({ crmTipo: "nenhum" }).status).toBe("ausente");
+    expect(avaliarCrm({ crmTipo: "nenhum" })).toMatchObject({ status: "sem_acesso", motivo: "CRM não cadastrado" });
     expect(avaliarCrm({ crmTipo: "hubspot" }).status).toBe("sem_acesso");
     expect(avaliarCrm({ crmTipo: "yide", dados: null }).status).toBe("sem_acesso");
     const base = { leadsNovos: 20, vendas: 2, valorVendas: 1000, conversao: 0.1, semResposta24h: 0, origens: {} };
