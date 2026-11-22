@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { unstable_cache } from "next/cache";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
@@ -10,8 +9,7 @@ import { calcularCliente } from "@/lib/dados/calcular";
 import { periodoPadrao } from "@/lib/dados/periodo";
 import { faixaNota } from "@/lib/dados/nota";
 import { emailContaServico } from "@/lib/dados/google-auth";
-import { listarPropriedadesGa4, listarSitesGsc } from "@/lib/dados/coletores/google";
-import { listarEmpresasLyide } from "@/lib/dados/coletores/lyide";
+import { ga4Cache, gscCache, lyideCache } from "@/lib/dados/opcoes-conexao";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { CanalCards } from "@/components/dados/CanalCards";
 import { PerdasLista } from "@/components/dados/PerdasLista";
@@ -21,10 +19,6 @@ import type { SnapshotDados } from "@/lib/dados/tipos";
 
 export const dynamic = "force-dynamic";
 
-// Só credenciais de serviço (sem cookies): pode ficar em unstable_cache.
-const ga4Cache = unstable_cache(() => listarPropriedadesGa4(), ["dados-opcoes-ga4"], { revalidate: 900 });
-const gscCache = unstable_cache(() => listarSitesGsc(), ["dados-opcoes-gsc"], { revalidate: 900 });
-const lyideCache = unstable_cache(() => listarEmpresasLyide(), ["dados-opcoes-lyide"], { revalidate: 900 });
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 type SnapshotRow = SnapshotDados & { calculado_em: string };
 

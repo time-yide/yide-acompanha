@@ -8,6 +8,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { canAccessDados, podeEditarConexoes } from "./access";
 import { getClienteDados } from "./queries";
 import { salvarSnapshot } from "./calcular";
+import { ga4Cache, gscCache, lyideCache } from "./opcoes-conexao";
 
 type Result = { success: true } | { error: string };
 
@@ -55,6 +56,19 @@ export async function salvarConexoesAction(input: z.infer<typeof conexoesSchema>
   const orgId = await getOrganizationId(user.id);
   if (!orgId) return { error: "Sem organização" };
   const { clientId, ga4PropertyId, gscSiteUrl, lyideSlug } = parsed.data;
+  const cliente = await getClienteDados(orgId, user, clientId);
+  if (!cliente) return { error: "Cliente não encontrado" };
+
+  // Só aceita valor que existe na listagem (ou o já salvo, se a API estiver fora do ar).
+  const lyideAtual = cliente.crm_tipo === "yide" ? cliente.crm_identifier : null;
+  const [ga4Op, gscOp, lyideOp] = await Promise.all([
+    ga4PropertyId && ga4PropertyId !== cliente.ga4_property_id ? ga4Cache().catch(() => []) : null,
+    gscSiteUrl && gscSiteUrl !== cliente.gsc_site_url ? gscCache().catch((): string[] => []) : null,
+    lyideSlug && lyideSlug !== lyideAtual ? lyideCache().catch(() => []) : null,
+  ]);
+  if (ga4Op && !ga4Op.some((o) => o.id === ga4PropertyId)) return { error: "Opção inválida" };
+  if (gscOp && !gscOp.includes(gscSiteUrl as string)) return { error: "Opção inválida" };
+  if (lyideOp && !lyideOp.some((o) => o.slug === lyideSlug)) return { error: "Opção inválida" };
 
   const patch: Record<string, string | null> = { ga4_property_id: ga4PropertyId, gsc_site_url: gscSiteUrl };
   if (lyideSlug) { patch.crm_tipo = "yide"; patch.crm_identifier = lyideSlug; }
