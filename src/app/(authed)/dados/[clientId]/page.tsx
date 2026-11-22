@@ -27,9 +27,9 @@ export default async function DadosClientePage({
   params, searchParams,
 }: { params: Promise<{ clientId: string }>; searchParams: Promise<{ de?: string; ate?: string }> }) {
   const user = await requireAuth();
-  if (!canAccessDados(user.role)) notFound();
+  if (!canAccessDados(user.role)) { console.error("[dados/cliente] sem acesso", user.role); notFound(); }
   const orgId = await getOrganizationId(user.id);
-  if (!orgId) notFound();
+  if (!orgId) { console.error("[dados/cliente] sem org", user.id); notFound(); }
   const { clientId } = await params;
   const sp = await searchParams;
   const cliente = await getClienteDados(orgId, user, clientId);

@@ -69,8 +69,11 @@ export async function getClienteDados(orgId: string, user: CurrentUser, clientId
     ({ data, error } = await buscar(semNovas));
     if (data) data = { ...data, ga4_property_id: null, gsc_site_url: null };
   }
-  if (error) { console.error("[dados/getClienteDados]", error.message); return null; }
-  if (!data) return null;
-  if (!dadosVeTodos(user.role) && (data as { assessor_id: string | null }).assessor_id !== user.id) return null;
+  if (error) { console.error("[dados/getClienteDados]", error.code, error.message); return null; }
+  if (!data) { console.error("[dados/getClienteDados] cliente não encontrado", { clientId, orgId }); return null; }
+  if (!dadosVeTodos(user.role) && (data as { assessor_id: string | null }).assessor_id !== user.id) {
+    console.error("[dados/getClienteDados] sem permissão", { clientId, role: user.role });
+    return null;
+  }
   return data as ClienteDados & { assessor_id: string | null };
 }
