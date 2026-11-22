@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { diasNoPeriodo, linkSeguro, parseCanal, resumirVendas, soClientesDaOrg, type VendasClienteYideEcom } from "./yideecom-vendas";
+import { diasNoPeriodo, linkSeguro, parseCanal, resumirVendas, type VendasClienteYideEcom } from "./yideecom-vendas";
 
 const canal = (over: Partial<VendasClienteYideEcom["canais"][number]>): VendasClienteYideEcom["canais"][number] => ({
   marketplace: "mercado_livre",
@@ -72,14 +72,6 @@ describe("parseCanal", () => {
     expect(parseCanal("tray")).toBe("tray");
     expect(parseCanal("shopee")).toBeNull();
     expect(parseCanal(undefined)).toBeNull();
-  });
-});
-
-describe("soClientesDaOrg", () => {
-  it("fica só com quem tem o mesmo nome aqui e avisa os outros", () => {
-    const r = soClientesDaOrg([{ cliente_nome: "Loja Á" }, { cliente_nome: "Outra" }], [{ nome: "loja a" }]);
-    expect(r.dados).toEqual([{ cliente_nome: "Loja Á" }]);
-    expect(r.semCliente).toEqual(["Outra"]);
   });
 });
 

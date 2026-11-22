@@ -16,14 +16,13 @@ describe("normalizarNome", () => {
 
 describe("casarPublicados", () => {
   it("liga pelo nome e marca a origem como yideecom", () => {
-    const { rows, semCliente } = casarPublicados(
+    const { rows } = casarPublicados(
       [
         { cliente_id: "y1", cliente_nome: "MR CAPY", data: "2026-11-10", marketplace: "mercado_livre", quantidade: 12 },
         { cliente_id: "y2", cliente_nome: "loja sao joao", data: "2026-11-11", marketplace: "tray", quantidade: 3 },
       ],
       clientes,
     );
-    expect(semCliente).toEqual([]);
     expect(rows.map((r) => [r.client_id, r.client_nome, r.marketplace, r.quantidade, r.origem])).toEqual([
       ["c1", "Mr. Capy", "mercado_livre", 12, "yideecom"],
       ["c2", "Loja São João", "tray", 3, "yideecom"],
@@ -31,8 +30,8 @@ describe("casarPublicados", () => {
     expect(rows[0].colaborador_id).toBeNull();
   });
 
-  it("devolve os clientes sem par (sem repetir) e ignora quantidade zero", () => {
-    const { rows, semCliente } = casarPublicados(
+  it("sem par entra com o nome do Yide Ecom e ignora quantidade zero", () => {
+    const { rows } = casarPublicados(
       [
         { cliente_id: "y9", cliente_nome: "Outra Loja", data: "2026-11-10", marketplace: "mercado_livre", quantidade: 2 },
         { cliente_id: "y9", cliente_nome: "Outra Loja", data: "2026-11-11", marketplace: "tray", quantidade: 1 },
@@ -40,8 +39,10 @@ describe("casarPublicados", () => {
       ],
       clientes,
     );
-    expect(rows).toEqual([]);
-    expect(semCliente).toEqual(["Outra Loja"]);
+    expect(rows.map((r) => [r.client_id, r.client_nome, r.quantidade])).toEqual([
+      ["yideecom:y9", "Outra Loja", 2],
+      ["yideecom:y9", "Outra Loja", 1],
+    ]);
   });
 });
 
