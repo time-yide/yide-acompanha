@@ -169,9 +169,10 @@ export async function autoAssignEditor(
   capturaId: string,
   actorId: string,
   actorNome: string,
+  opts: { sistema?: boolean } = {},
 ): Promise<void> {
   try {
-    await _autoAssignEditorImpl(capturaId, actorId, actorNome);
+    await _autoAssignEditorImpl(capturaId, actorId, actorNome, opts.sistema ?? false);
   } catch (e) {
     console.error("[auto-delegate] autoAssignEditor failed:", e);
   }
@@ -181,6 +182,7 @@ async function _autoAssignEditorImpl(
   capturaId: string,
   actorId: string,
   actorNome: string,
+  sistema: boolean,
 ): Promise<void> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
@@ -292,13 +294,16 @@ async function _autoAssignEditorImpl(
     return;
   }
 
-  const { error: linkErr } = await sb
+  const { data: linked, error: linkErr } = await sb
     .from("audiovisual_capturas")
     .update({ task_id: createdTask.id })
     .eq("id", capturaId)
-    .is("task_id", null);
-  if (linkErr) {
-    console.error("[auto-delegate] captura link failed:", linkErr.message);
+    .is("task_id", null)
+    .select("id");
+  if (linkErr || !linked || linked.length === 0) {
+    // Outra delegação ganhou a corrida (ou falhou): desfaz a tarefa criada.
+    if (linkErr) console.error("[auto-delegate] captura link failed:", linkErr.message);
+    await sb.from("tasks").delete().eq("id", createdTask.id);
     return;
   }
 
@@ -309,7 +314,7 @@ async function _autoAssignEditorImpl(
       mensagem: `Edição delegada automaticamente a você por ${actorNome}`,
       link: `/tarefas/${createdTask.id}`,
       user_ids_extras: [chosen.id],
-      source_user_id: actorId,
+      ...(sistema ? {} : { source_user_id: actorId }),
     });
   } catch {}
 
@@ -322,7 +327,8 @@ async function _autoAssignEditorImpl(
       task_id: createdTask.id,
       editor_id: chosen.id,
     } as Record<string, unknown>,
-    ator_id: actorId,
+    ator_id: sistema ? null : actorId,
+    ...(sistema ? { justificativa: "cron audiovisual-auto-delegar-edicao" } : {}),
   });
 }
 

@@ -36,7 +36,8 @@ export async function GET(request: NextRequest) {
     .slice(0, MAX_PER_RUN);
 
   for (const c of pendentes) {
-    await autoAssignEditor(c.id, c.videomaker_id, "Sistema");
+    // criado_por da tarefa precisa de alguém: usa quem gravou. Auditoria sai como sistema.
+    await autoAssignEditor(c.id, c.videomaker_id, "Sistema", { sistema: true });
   }
 
   if (pendentes.length > 0) revalidateTag(AUDIOVISUAL_CAPTURAS_TAG, "default");
