@@ -52,8 +52,17 @@ describe("similaridade", () => {
     expect(s).toBeGreaterThanOrEqual(0.75);
     expect(s).toBeLessThan(1);
   });
-  it("Kaipo vs KaipoKesandrolls é no máximo médio", () => {
-    const s = similaridade("Kaipo", "KaipoKesandrolls");
+  it("Kaipo vs KaipoKesandrolls nunca é certeza (termina no meio da palavra → não casa)", () => {
+    expect(similaridade("Kaipo", "KaipoKesandrolls")).toBeLessThan(0.75);
+  });
+  it("prefixo que termina no meio da palavra não casa", () => {
+    expect(similaridade("Bella", "Bellavista")).toBeLessThan(0.75);
+    expect(similaridade("Atena", "Atenas Turismo")).toBeLessThan(0.75);
+    expect(similaridade("Porto", "Portobello")).toBeLessThan(0.75);
+    expect(similaridade("Dra Ana", "Dra Anabela Costa")).toBeLessThan(0.75);
+  });
+  it("Atena vs Atena RH Carreiras continua casando (médio)", () => {
+    const s = similaridade("Atena", "Atena RH Carreiras");
     expect(s).toBeGreaterThanOrEqual(0.75);
     expect(s).toBeLessThan(1);
   });
@@ -98,9 +107,23 @@ describe("sugerirParaCliente", () => {
     expect(s.find((x) => x.campo === "crm_identifier")).toMatchObject({ valor: "nazca", confianca: "alta" });
     expect(s.find((x) => x.campo === "gsc_site_url")).toMatchObject({ valor: "sc-domain:nazcasushi.com.br", confianca: "alta" });
   });
-  it("Kaipo vs conta KaipoKesandrolls → só MEDIA", () => {
+  it("Kaipo vs conta KaipoKesandrolls → nunca ALTA", () => {
     const s = sugerirParaCliente(cli({ nome: "Kaipo" }), fontes({ contas: [{ id: "act_2", nome: "KaipoKesandrolls", empresa: null }] }));
-    expect(s[0]?.confianca).toBe("media");
+    expect(s.some((x) => x.confianca === "alta")).toBe(false);
+  });
+  it("@ cadastrado diferente do Instagram da página → nem Facebook nem Instagram", () => {
+    const s = sugerirParaCliente(
+      cli({ nome: "Atena", instagram_url: "@atena.oficial" }),
+      fontes({ paginas: [{ pageId: "111", nome: "Atena", igId: "999", igUsername: "outra.atena" }] }),
+    );
+    expect(s).toEqual([]);
+  });
+  it("página já cadastrada → Instagram dessa página com ALTA", () => {
+    const s = sugerirParaCliente(cli({ nome: "X", facebook_page_id: "111" }), fontes({ paginas: [{ pageId: "111", nome: "Outra", igId: "999", igUsername: "y" }] }));
+    expect(s).toEqual([expect.objectContaining({ campo: "instagram_business_id", valor: "999", confianca: "alta", motivo: "Página já cadastrada" })]);
+  });
+  it("campo só com espaço conta como preenchido", () => {
+    expect(sugerirParaCliente(cli({ nome: "Atena", meta_ad_account_id: " " }), fontes({ contas: [{ id: "act_1", nome: "Atena", empresa: null }] }))).toEqual([]);
   });
   it("nunca sobrescreve campo preenchido", () => {
     const s = sugerirParaCliente(
@@ -111,7 +134,11 @@ describe("sugerirParaCliente", () => {
   });
   it("não sugere Lyide quando o cliente usa outro CRM", () => {
     expect(sugerirParaCliente(cli({ nome: "Atena", crm_tipo: "rdstation" }), fontes({ lyide: [{ slug: "atena", name: "Atena" }] }))).toEqual([]);
-    expect(sugerirParaCliente(cli({ nome: "Atena", crm_tipo: "nenhum" }), fontes({ lyide: [{ slug: "atena", name: "Atena" }] }))).toEqual([]);
+  });
+  it("crm_tipo 'nenhum' (padrão do formulário) conta como livre, se não tem identificador", () => {
+    const lyide = [{ slug: "atena", name: "Atena" }];
+    expect(sugerirParaCliente(cli({ nome: "Atena", crm_tipo: "nenhum" }), fontes({ lyide }))).toEqual([expect.objectContaining({ campo: "crm_identifier", valor: "atena" })]);
+    expect(sugerirParaCliente(cli({ nome: "Atena", crm_tipo: "nenhum", crm_identifier: "x" }), fontes({ lyide }))).toEqual([]);
   });
   it("nomes sem relação → nada", () => {
     expect(sugerirParaCliente(cli({ nome: "Ludi Bolos" }), fontes({ contas: [{ id: "act_3", nome: "Gudu's Burger", empresa: null }] }))).toEqual([]);
@@ -121,16 +148,23 @@ describe("sugerirParaCliente", () => {
 describe("sugerirConexoes (unicidade)", () => {
   const contas = [{ id: "act_1", nome: "Atena RH", empresa: null }];
   it("empate entre dois clientes → ninguém recebe", () => {
-    const r = sugerirConexoes([cli({ id: "a", nome: "Atena Rh" }), cli({ id: "b", nome: "Atena RH" })], fontes({ contas }), new Set());
+    const r = sugerirConexoes([cli({ id: "a", nome: "Atena Rh" }), cli({ id: "b", nome: "Atena RH" })], fontes({ contas }), new Map());
     expect(r).toEqual([]);
   });
   it("fica com quem tem maior pontuação", () => {
-    const r = sugerirConexoes([cli({ id: "a", nome: "Atena" }), cli({ id: "b", nome: "Atena RH" })], fontes({ contas }), new Set());
+    const r = sugerirConexoes([cli({ id: "a", nome: "Atena" }), cli({ id: "b", nome: "Atena RH" })], fontes({ contas }), new Map());
     expect(r).toHaveLength(1);
     expect(r[0].clientId).toBe("b");
   });
   it("pula conta já usada por outro cliente (com ou sem act_)", () => {
     const usados = idsUsados([cli({ id: "z", meta_ad_account_id: "1" })]);
     expect(sugerirConexoes([cli({ id: "b", nome: "Atena RH" })], fontes({ contas }), usados)).toEqual([]);
+  });
+  it("página e Instagram andam juntos: Facebook de um cliente bloqueia o Instagram pra outros", () => {
+    const paginas = [{ pageId: "111", nome: "Atena RH", igId: "999", igUsername: "atenarh" }];
+    const dono = cli({ id: "z", nome: "Atena RH", facebook_page_id: "111" });
+    const outro = cli({ id: "b", nome: "Atena RH" });
+    const r = sugerirConexoes([dono, outro], fontes({ paginas }), idsUsados([dono, outro]));
+    expect(r).toEqual([{ clientId: "z", clienteNome: "Atena RH", itens: [expect.objectContaining({ campo: "instagram_business_id", valor: "999" })] }]);
   });
 });

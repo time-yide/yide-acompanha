@@ -54,8 +54,9 @@ async function listarMe<T>(edge: string, fields: string): Promise<T[] | null> {
     if (!j) return null;
     itens.push(...(j.data ?? []));
     after = j.paging?.cursors?.after;
-    if (!j.paging?.next || !after) break;
+    if (!j.paging?.next || !after) return itens;
   }
+  console.warn("[dados/meta]", `/me/${edge}`, `parou em ${MAX_PAGINAS} páginas (${itens.length} itens); pode haver mais`);
   return itens;
 }
 
@@ -82,7 +83,8 @@ export async function listarContasAnunciosMeta(): Promise<ContaAnuncioMeta[] | n
   type R = { id: string; name?: string; business_name?: string; account_status?: number };
   const r = await listarMe<R>("adaccounts", "id,name,business_name,account_status");
   if (!r) return null;
-  return r.filter((c) => contaAnunciosValida(c.id)).map((c) => ({
+  // account_status 1 = ativa (2 desativada, 3 sem pagamento, 101 fechada…).
+  return r.filter((c) => c.account_status === 1 && contaAnunciosValida(c.id)).map((c) => ({
     id: c.id.startsWith("act_") ? c.id : `act_${c.id}`, nome: c.name ?? "", empresa: c.business_name || null,
   }));
 }

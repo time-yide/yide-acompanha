@@ -3,6 +3,7 @@ import "server-only";
 import { unstable_cache } from "next/cache";
 import { listarPropriedadesGa4, listarSitesGsc } from "./coletores/google";
 import { listarEmpresasLyide } from "./coletores/lyide";
+import { listarContasAnunciosMeta, listarPaginasMeta } from "./coletores/meta";
 
 /** Falha vira exceção: unstable_cache não guarda erro, então uma falha momentânea não fica 15 min em cache como lista vazia. */
 function ouFalha<T>(fn: () => Promise<T | null>, nome: string) {
@@ -18,3 +19,5 @@ function ouFalha<T>(fn: () => Promise<T | null>, nome: string) {
 export const ga4Cache = unstable_cache(ouFalha(listarPropriedadesGa4, "ga4"), ["dados-opcoes-ga4"], { revalidate: 900 });
 export const gscCache = unstable_cache(ouFalha(listarSitesGsc, "gsc"), ["dados-opcoes-gsc"], { revalidate: 900 });
 export const lyideCache = unstable_cache(ouFalha(listarEmpresasLyide, "lyide"), ["dados-opcoes-lyide"], { revalidate: 900 });
+export const metaPaginasCache = unstable_cache(ouFalha(listarPaginasMeta, "meta-paginas"), ["dados-meta-paginas"], { revalidate: 300 });
+export const metaContasCache = unstable_cache(ouFalha(listarContasAnunciosMeta, "meta-contas"), ["dados-meta-contas"], { revalidate: 300 });

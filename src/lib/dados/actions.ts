@@ -125,7 +125,7 @@ const aplicarSchema = z.array(itemConexaoSchema).min(1).max(1000);
  * Grava as sugestões marcadas. Refaz a busca no servidor e só aplica o que aparece nela
  * (o navegador não consegue injetar id qualquer). Só preenche campo ainda vazio.
  */
-export async function aplicarConexoesAction(itens: z.infer<typeof aplicarSchema>): Promise<{ success: true; aplicados: number } | { error: string }> {
+export async function aplicarConexoesAction(itens: z.infer<typeof aplicarSchema>): Promise<{ success: true; aplicados: number; ignorados: number } | { error: string }> {
   const user = await requireAuth();
   if (!podeEditarConexoes(user.role)) return { error: "Sem permissão" };
   const parsed = aplicarSchema.safeParse(itens);
@@ -156,7 +156,7 @@ export async function aplicarConexoesAction(itens: z.infer<typeof aplicarSchema>
     for (const vazio of [null, ""] as const) {
       let q = sb.from("clients").update(patch).eq("id", i.clientId).eq("organization_id", orgId).is("deleted_at", null);
       q = vazio === null ? q.is(i.campo, null) : q.eq(i.campo, "");
-      if (i.campo === "crm_identifier") q = q.or("crm_tipo.is.null,crm_tipo.eq.yide");
+      if (i.campo === "crm_identifier") q = q.or("crm_tipo.is.null,crm_tipo.eq.yide,crm_tipo.eq.nenhum");
       const { data, error } = await q.select("id");
       if (error) { console.error("[dados/aplicarConexoes]", i.campo, error.message); return false; }
       if (data && data.length > 0) return true;
@@ -169,5 +169,6 @@ export async function aplicarConexoesAction(itens: z.infer<typeof aplicarSchema>
     aplicados += r.filter(Boolean).length;
   }
   revalidatePath("/dados");
-  return { success: true, aplicados };
+  // Pedidos que não viraram gravação: sumiram da busca nova ou o UPDATE não pegou linha.
+  return { success: true, aplicados, ignorados: parsed.data.length - aplicados };
 }

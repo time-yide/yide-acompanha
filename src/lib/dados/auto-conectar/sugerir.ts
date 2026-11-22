@@ -1,8 +1,7 @@
 // SERVER ONLY
 import "server-only";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { listarContasAnunciosMeta, listarPaginasMeta } from "../coletores/meta";
-import { ga4Cache, gscCache, lyideCache } from "../opcoes-conexao";
+import { ga4Cache, gscCache, lyideCache, metaContasCache, metaPaginasCache } from "../opcoes-conexao";
 import { idsUsados, sugerirConexoes, type ClienteConexao, type FontesConexao } from "./matching";
 import type { ResultadoSugestoes } from "./tipos";
 
@@ -15,8 +14,8 @@ export async function sugerirConexoesOrg(orgId: string): Promise<ResultadoSugest
   const sb = createServiceRoleClient() as any;
   const [clientesRes, paginas, contas, ga4, gsc, lyide] = await Promise.all([
     sb.from("clients").select(COLS).eq("organization_id", orgId).is("deleted_at", null),
-    listarPaginasMeta(),
-    listarContasAnunciosMeta(),
+    metaPaginasCache().catch(() => null),
+    metaContasCache().catch(() => null),
     ga4Cache().catch(() => null),
     gscCache().catch(() => null),
     lyideCache().catch(() => null),

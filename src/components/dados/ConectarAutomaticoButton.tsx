@@ -51,7 +51,12 @@ export function ConectarAutomaticoButton() {
     if (itens.length === 0) return;
     const r = await aplicarConexoesAction(itens);
     if ("error" in r) { toast.error(r.error); return; }
-    toast.success(`${r.aplicados} ${r.aplicados === 1 ? "conexão salva" : "conexões salvas"}. Clique em Atualizar agora nos clientes ou espere o cálculo da madrugada.`);
+    const salvas = `${r.aplicados} ${r.aplicados === 1 ? "conexão salva" : "conexões salvas"}. Clique em Atualizar agora nos clientes ou espere o cálculo da madrugada.`;
+    const ignoradas = r.ignorados > 0
+      ? ` ${r.ignorados} não ${r.ignorados === 1 ? "foi salva" : "foram salvas"} (a conta mudou ou a fonte não respondeu) — procure de novo.`
+      : "";
+    if (r.aplicados === 0 && r.ignorados > 0) toast.warning(salvas + ignoradas);
+    else toast.success(salvas + ignoradas);
     setAberto(false);
     router.refresh();
   });

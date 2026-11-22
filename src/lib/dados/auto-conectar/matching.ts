@@ -28,10 +28,11 @@ const LIMIAR_GOOGLE = 0.85;
 
 const STOPWORDS = new Set([
   "de", "da", "do", "dos", "das", "e", "ca", "conta", "loja", "oficial", "mt", "cuiaba", "vg",
-  "ltda", "me", "eireli", "pix", "01", "02", "03", "the",
+  "ltda", "me", "eireli", "pix", "01", "02", "03", "the", "dr", "dra", "studio",
 ]);
 
-const vazio = (v: string | null | undefined) => !v || !v.trim();
+/** Só null/"" é vazio. Espaço em branco conta como preenchido (nunca sugere: a guarda do UPDATE não casaria). */
+const vazio = (v: string | null | undefined) => v == null || v === "";
 
 /** @ do Instagram a partir da URL/handle cadastrado. "https://www.instagram.com/foo_bar/?hl=pt" → "foo_bar". */
 export function handleInstagram(url: string | null): string | null {
@@ -54,17 +55,17 @@ export function tokens(nome: string): string[] {
     .filter((t) => t.length > 1 && !STOPWORDS.has(t));
 }
 
-/** Tokens colados com a posição onde cada um começa (pra containment só em início de palavra). */
-function compactado(ts: string[]): { s: string; inicios: number[] } {
+/** Tokens colados + posições de fronteira de palavra (início de cada token e o fim). */
+function compactado(ts: string[]): { s: string; inicios: number[]; fronteiras: Set<number> } {
   const inicios: number[] = [];
   let s = "";
   for (const t of ts) { inicios.push(s.length); s += t; }
-  return { s, inicios };
+  return { s, inicios, fronteiras: new Set([...inicios, s.length]) };
 }
 
 /**
  * 0..1. Nome normalizado igual = 1; mesmas palavras coladas = 0.95;
- * menor colado dentro do maior (≥5 letras, começando em início de palavra) = 0.85;
+ * menor colado dentro do maior (≥5 letras, começando E terminando em fronteira de palavra) = 0.85;
  * todas as palavras do menor (≥2) dentro do maior = 0.8; senão Jaccard das palavras.
  */
 export function similaridade(a: string, b: string): number {
@@ -86,7 +87,9 @@ export function similaridade(a: string, b: string): number {
   let score = uniao ? inter / uniao : 0;
 
   const [menor, maior] = ca.s.length <= cb.s.length ? [ca, cb] : [cb, ca];
-  if (menor.s.length >= 5 && maior.inicios.some((i) => maior.s.startsWith(menor.s, i))) score = Math.max(score, 0.85);
+  if (menor.s.length >= 5 && maior.inicios.some((i) => maior.s.startsWith(menor.s, i) && maior.fronteiras.has(i + menor.s.length))) {
+    score = Math.max(score, 0.85);
+  }
 
   const [tMenor, tMaior] = sa.size <= sb.size ? [sa, sb] : [sb, sa];
   if (tMenor.size >= 2 && [...tMenor].every((t) => tMaior.has(t))) score = Math.max(score, 0.8);
@@ -137,9 +140,9 @@ export function chaveUso(campo: CampoConexao, valor: string): string {
   return `${campo}:${v}`;
 }
 
-/** Chaves (campo:valor) já gravadas em clientes da organização. */
-export function idsUsados(clientes: ClienteConexao[]): Set<string> {
-  const s = new Set<string>();
+/** Chaves (campo:valor) já gravadas em clientes da organização → id do cliente dono. */
+export function idsUsados(clientes: ClienteConexao[]): Map<string, string> {
+  const s = new Map<string, string>();
   for (const c of clientes) {
     const pares: Array<[CampoConexao, string | null]> = [
       ["instagram_business_id", c.instagram_business_id],
@@ -149,7 +152,7 @@ export function idsUsados(clientes: ClienteConexao[]): Set<string> {
       ["gsc_site_url", c.gsc_site_url],
       ["crm_identifier", c.crm_tipo === "yide" ? c.crm_identifier : null],
     ];
-    for (const [campo, v] of pares) if (!vazio(v)) s.add(chaveUso(campo, v as string));
+    for (const [campo, v] of pares) if (!vazio(v) && !s.has(chaveUso(campo, v as string))) s.set(chaveUso(campo, v as string), c.id);
   }
   return s;
 }
@@ -177,23 +180,27 @@ export function candidatosDoCliente(c: ClienteConexao, f: FontesConexao): Candid
   if (f.paginas && (vazio(c.instagram_business_id) || vazio(c.facebook_page_id))) {
     const handle = handleInstagram(c.instagram_url);
     const pelaIg = f.paginas.filter((p) =>
-      (handle && p.igUsername === handle) || (!vazio(c.instagram_business_id) && p.igId === c.instagram_business_id));
+      (handle && p.igUsername === handle)
+      || (!vazio(c.instagram_business_id) && p.igId === c.instagram_business_id)
+      || (!vazio(c.facebook_page_id) && p.pageId === c.facebook_page_id));
     const igCands: Candidato[] = [];
     const fbCands: Candidato[] = [];
     if (pelaIg.length > 0) {
       for (const p of pelaIg) {
-        const motivo = handle && p.igUsername === handle ? `Mesmo @ do Instagram cadastrado (@${handle})` : "Instagram já cadastrado é desta página";
+        const motivo = handle && p.igUsername === handle ? `Mesmo @ do Instagram cadastrado (@${handle})`
+          : p.pageId === c.facebook_page_id ? "Página já cadastrada" : "Instagram já cadastrado é desta página";
         if (p.igId) igCands.push({ campo: "instagram_business_id", valor: p.igId, rotulo: `Instagram: @${p.igUsername ?? p.igId}`, confianca: "alta", motivo, score: 1.1 });
         fbCands.push({ campo: "facebook_page_id", valor: p.pageId, rotulo: `Facebook: ${p.nome || p.pageId}`, confianca: "alta", motivo, score: 1.1 });
       }
     } else {
       for (const p of f.paginas) {
+        // @ cadastrado diferente do Instagram da página = é outra empresa: nem Facebook nem Instagram.
+        if (handle && p.igUsername && p.igUsername !== handle) continue;
         const s = similaridade(nome, p.nome);
         if (s < LIMIAR_NOME) continue;
         const motivo = `Nome parecido com a página “${p.nome}”`;
         fbCands.push({ campo: "facebook_page_id", valor: p.pageId, rotulo: `Facebook: ${p.nome || p.pageId}`, confianca: "media", motivo, score: s });
-        // Se o cliente tem um @ cadastrado diferente do Instagram da página, não sugere o Instagram.
-        if (p.igId && (!handle || !p.igUsername || p.igUsername === handle)) {
+        if (p.igId) {
           igCands.push({ campo: "instagram_business_id", valor: p.igId, rotulo: `Instagram: @${p.igUsername ?? p.igId}`, confianca: "media", motivo, score: s });
         }
       }
@@ -246,8 +253,8 @@ export function candidatosDoCliente(c: ClienteConexao, f: FontesConexao): Candid
     if (m) out.push(m);
   }
 
-  // Lyide: só se não há outro CRM configurado.
-  const crmLivre = vazio(c.crm_tipo) || (c.crm_tipo === "yide" && vazio(c.crm_identifier));
+  // Lyide: só se não há outro CRM configurado ("nenhum" é o padrão do formulário, conta como livre).
+  const crmLivre = (vazio(c.crm_tipo) || c.crm_tipo === "yide" || c.crm_tipo === "nenhum") && vazio(c.crm_identifier);
   if (f.lyide && crmLivre) {
     const cands: Candidato[] = [];
     for (const e of f.lyide) {
@@ -269,14 +276,26 @@ export function sugerirParaCliente(cliente: ClienteConexao, fontes: FontesConexa
 
 /**
  * Sugestões pra todos: cada conta externa vai pra UM cliente só (maior pontuação;
- * empate = ninguém) e nunca pra uma conta já gravada em outro cliente (`usados`).
+ * empate = ninguém) e nunca pra uma conta já gravada em OUTRO cliente (`usados`: chave → dono).
+ * Página e Instagram andam juntos: se um dos dois já é de alguém, o par todo é dele.
  */
-export function sugerirConexoes(clientes: ClienteConexao[], fontes: FontesConexao, usados: Set<string>): SugestoesCliente[] {
+export function sugerirConexoes(clientes: ClienteConexao[], fontes: FontesConexao, usados: Map<string, string>): SugestoesCliente[] {
+  const dono = new Map(usados);
+  for (const p of fontes.paginas ?? []) {
+    if (!p.igId) continue;
+    const kFb = chaveUso("facebook_page_id", p.pageId);
+    const kIg = chaveUso("instagram_business_id", p.igId);
+    const d = dono.get(kFb) ?? dono.get(kIg);
+    if (d) { if (!dono.has(kFb)) dono.set(kFb, d); if (!dono.has(kIg)) dono.set(kIg, d); }
+  }
+  const livre = (chave: string, clientId: string) => { const d = dono.get(chave); return !d || d === clientId; };
+
   const porCliente = clientes.map((c) => ({ c, cands: candidatosDoCliente(c, fontes) }));
   const porChave = new Map<string, Array<{ clientId: string; score: number }>>();
   for (const { c, cands } of porCliente) {
     for (const k of cands) {
       const chave = chaveUso(k.campo, k.valor);
+      if (!livre(chave, c.id)) continue;
       const l = porChave.get(chave) ?? [];
       l.push({ clientId: c.id, score: k.score });
       porChave.set(chave, l);
@@ -290,9 +309,7 @@ export function sugerirConexoes(clientes: ClienteConexao[], fontes: FontesConexa
   }
   const out: SugestoesCliente[] = [];
   for (const { c, cands } of porCliente) {
-    const itens = cands
-      .filter((k) => { const chave = chaveUso(k.campo, k.valor); return !usados.has(chave) && vencedor.get(chave) === c.id; })
-      .map(semScore);
+    const itens = cands.filter((k) => vencedor.get(chaveUso(k.campo, k.valor)) === c.id).map(semScore);
     if (itens.length) out.push({ clientId: c.id, clienteNome: c.nome, itens });
   }
   return out;
