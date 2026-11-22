@@ -1,8 +1,11 @@
 import { DollarSign, ShoppingCart, Receipt, Package, TrendingUp, XCircle } from "lucide-react";
 import { listVendasYideEcom } from "@/lib/ecommerce/yideecom";
 import {
+  diasNoPeriodo,
   formatarReais,
+  MAX_DIAS_VENDAS,
   opcoesClientes,
+  soClientesDaOrg,
   resumirVendas,
   type CanalYideEcom,
 } from "@/lib/ecommerce/yideecom-vendas";
@@ -18,16 +21,27 @@ interface Props {
   canal: CanalYideEcom | null;
   /** Lucro e tarifas só para a chefia. */
   mostrarLucro: boolean;
+  /** Clientes e-commerce desta organização: só eles aparecem. */
+  clientesOrg: { nome: string }[];
 }
 
 /** Aba Vendas: pedidos do Mercado Livre e da Tray vindos do Yide Ecom. */
-export async function VendasYideEcom({ de, ate, clienteId, canal, mostrarLucro }: Props) {
+export async function VendasYideEcom({ de, ate, clienteId, canal, mostrarLucro, clientesOrg }: Props) {
+  const dias = diasNoPeriodo(de, ate);
+  if (dias < 1 || dias > MAX_DIAS_VENDAS) {
+    return (
+      <p className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
+        Escolha um período de até 3 meses (com &quot;De&quot; antes de &quot;Até&quot;) para ver as vendas.
+      </p>
+    );
+  }
   const res = await listVendasYideEcom(de, ate);
   if (!res.ok) return <AvisoYideEcom erro={res.erro} oQue="as vendas" />;
 
-  const clientes = opcoesClientes(res.dados);
+  const { dados, semCliente } = soClientesDaOrg(res.dados, clientesOrg);
+  const clientes = opcoesClientes(dados);
   const cliente = clienteId && clientes.some((c) => c.id === clienteId) ? clienteId : null;
-  const r = resumirVendas(res.dados, { clienteId: cliente, canal }, { de, ate });
+  const r = resumirVendas(dados, { clienteId: cliente, canal }, { de, ate });
 
   const cards = [
     { label: "Faturamento", value: formatarReais(r.faturamento), icon: DollarSign, destaque: true },
@@ -42,6 +56,12 @@ export async function VendasYideEcom({ de, ate, clienteId, canal, mostrarLucro }
     <div className="space-y-5">
       <FiltroYideEcom tab="vendas" clientes={clientes} clienteAtual={cliente} canalAtual={canal} />
 
+      {mostrarLucro && semCliente.length > 0 && (
+        <p className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
+          Clientes do Yide Ecom sem cliente e-commerce com o mesmo nome aqui (as vendas deles não aparecem):{" "}
+          <span className="font-medium">{semCliente.join(", ")}</span>. Deixe o nome igual nos dois sistemas.
+        </p>
+      )}
       {r.parcial && (
         <p className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
           Algum cliente passou de 1.000 pedidos no período: os números dele estão parciais. Diminua o período para ver tudo.

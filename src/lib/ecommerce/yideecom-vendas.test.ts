@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseCanal, resumirVendas, type VendasClienteYideEcom } from "./yideecom-vendas";
+import { diasNoPeriodo, linkSeguro, parseCanal, resumirVendas, soClientesDaOrg, type VendasClienteYideEcom } from "./yideecom-vendas";
 
 const canal = (over: Partial<VendasClienteYideEcom["canais"][number]>): VendasClienteYideEcom["canais"][number] => ({
   marketplace: "mercado_livre",
@@ -72,5 +72,29 @@ describe("parseCanal", () => {
     expect(parseCanal("tray")).toBe("tray");
     expect(parseCanal("shopee")).toBeNull();
     expect(parseCanal(undefined)).toBeNull();
+  });
+});
+
+describe("soClientesDaOrg", () => {
+  it("fica só com quem tem o mesmo nome aqui e avisa os outros", () => {
+    const r = soClientesDaOrg([{ cliente_nome: "Loja Á" }, { cliente_nome: "Outra" }], [{ nome: "loja a" }]);
+    expect(r.dados).toEqual([{ cliente_nome: "Loja Á" }]);
+    expect(r.semCliente).toEqual(["Outra"]);
+  });
+});
+
+describe("linkSeguro", () => {
+  it("só https", () => {
+    expect(linkSeguro("https://produto.mercadolivre.com.br/x")).toBe("https://produto.mercadolivre.com.br/x");
+    expect(linkSeguro("javascript:alert(1)")).toBeNull();
+    expect(linkSeguro("lixo")).toBeNull();
+    expect(linkSeguro(null)).toBeNull();
+  });
+});
+
+describe("diasNoPeriodo", () => {
+  it("conta os dois extremos", () => {
+    expect(diasNoPeriodo("2026-11-01", "2026-11-01")).toBe(1);
+    expect(diasNoPeriodo("2026-11-01", "2026-11-30")).toBe(30);
   });
 });

@@ -151,11 +151,11 @@ export default async function EcommercePage({
 
       {tab === "vendas" ? (
         <Suspense key={`${de}-${ate}`} fallback={<CarregandoYideEcom texto="Buscando as vendas no Mercado Livre e na Tray..." />}>
-          <VendasYideEcom de={de} ate={ate} clienteId={clienteYideEcom} canal={parseCanal(sp.canal)} mostrarLucro={chefia} />
+          <VendasYideEcom de={de} ate={ate} clienteId={clienteYideEcom} canal={parseCanal(sp.canal)} mostrarLucro={chefia} clientesOrg={clientes} />
         </Suspense>
       ) : tab === "sugestoes" ? (
         <Suspense fallback={<CarregandoYideEcom texto="Buscando as sugestões do Yide Ecom..." />}>
-          <SugestoesYideEcom clienteId={clienteYideEcom} />
+          <SugestoesYideEcom clienteId={clienteYideEcom} clientesOrg={clientes} />
         </Suspense>
       ) : tab === "painel" && chefia ? (
         <PainelEcommerce agg={agg} />

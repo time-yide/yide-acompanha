@@ -1,6 +1,6 @@
 import { ExternalLink, Lightbulb } from "lucide-react";
 import { listSugestoesYideEcom } from "@/lib/ecommerce/yideecom";
-import { opcoesClientes } from "@/lib/ecommerce/yideecom-vendas";
+import { linkSeguro, opcoesClientes, soClientesDaOrg } from "@/lib/ecommerce/yideecom-vendas";
 import { FiltroYideEcom } from "./FiltroYideEcom";
 import { AvisoYideEcom } from "./AvisoYideEcom";
 
@@ -24,13 +24,21 @@ function tomNota(nota: number) {
 }
 
 /** Aba Sugestões: o que melhorar hoje em cada cliente (alertas e anúncios com nota baixa no ML). */
-export async function SugestoesYideEcom({ clienteId }: { clienteId: string | null }) {
+export async function SugestoesYideEcom({
+  clienteId,
+  clientesOrg,
+}: {
+  clienteId: string | null;
+  /** Clientes e-commerce desta organização: só eles aparecem. */
+  clientesOrg: { nome: string }[];
+}) {
   const res = await listSugestoesYideEcom();
   if (!res.ok) return <AvisoYideEcom erro={res.erro} oQue="as sugestões" />;
 
-  const clientes = opcoesClientes(res.dados);
+  const { dados } = soClientesDaOrg(res.dados, clientesOrg);
+  const clientes = opcoesClientes(dados);
   const cliente = clienteId && clientes.some((c) => c.id === clienteId) ? clienteId : null;
-  const lista = res.dados.filter((c) => !cliente || c.cliente_id === cliente);
+  const lista = dados.filter((c) => !cliente || c.cliente_id === cliente);
   const total = lista.reduce((n, c) => n + c.alertas.reduce((m, a) => m + a.quantidade, 0) + c.anuncios.length, 0);
   const novosHoje = lista.reduce((n, c) => n + c.alertas.reduce((m, a) => m + a.novos_hoje, 0), 0);
 
@@ -82,9 +90,9 @@ export async function SugestoesYideEcom({ clienteId }: { clienteId: string | nul
                           <span className="font-medium">{e.titulo}</span>
                           <span className="text-muted-foreground"> — {e.mensagem}</span>
                         </div>
-                        {e.link && (
+                        {linkSeguro(e.link) && (
                           <a
-                            href={e.link}
+                            href={linkSeguro(e.link)!}
                             target="_blank"
                             rel="noreferrer"
                             className="inline-flex shrink-0 items-center gap-1 text-xs text-primary hover:underline"
@@ -124,9 +132,9 @@ export async function SugestoesYideEcom({ clienteId }: { clienteId: string | nul
                         </ul>
                       )}
                     </div>
-                    {p.link && (
+                    {linkSeguro(p.link) && (
                       <a
-                        href={p.link}
+                        href={linkSeguro(p.link)!}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex shrink-0 items-center gap-1 text-xs text-primary hover:underline"
