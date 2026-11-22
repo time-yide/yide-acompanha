@@ -1,5 +1,6 @@
 "use client";
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Copy } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ export function ConexoesCard({ clientId, podeEditar, emailContaServico, atual, o
   const [gsc, setGsc] = useState(atual.gsc ?? "");
   const [lyide, setLyide] = useState(atual.lyide ?? "");
   const [pending, start] = useTransition();
+  const router = useRouter();
   const sel = "h-9 w-full rounded-md border border-white/15 bg-white/5 px-2 text-sm disabled:opacity-60";
 
   return (
@@ -56,7 +58,9 @@ export function ConexoesCard({ clientId, podeEditar, emailContaServico, atual, o
       {podeEditar && (
         <Button size="sm" disabled={pending} onClick={() => start(async () => {
           const r = await salvarConexoesAction({ clientId, ga4PropertyId: ga4 || null, gscSiteUrl: gsc || null, lyideSlug: lyide || null });
-          if ("error" in r) toast.error(r.error); else toast.success("Conexões salvas. Clique em Atualizar agora pra ver os dados.");
+          if ("error" in r) { toast.error(r.error); return; }
+          toast.success("Conexões salvas. Clique em Atualizar agora pra ver os dados.");
+          router.refresh();
         })}>{pending ? "Salvando…" : "Salvar conexões"}</Button>
       )}
     </div>
