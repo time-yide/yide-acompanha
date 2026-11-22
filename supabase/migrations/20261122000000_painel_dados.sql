@@ -23,6 +23,9 @@ create table if not exists public.client_dados_snapshots (
 create index if not exists idx_client_dados_snapshots_client
   on public.client_dados_snapshots (client_id, calculado_em desc);
 
+create unique index if not exists uq_client_dados_snapshots_dia
+  on public.client_dados_snapshots (client_id, periodo_fim);
+
 alter table public.client_dados_snapshots enable row level security;
 
 -- Leitura: chefia/programação da org vê tudo; assessor vê os próprios clientes.

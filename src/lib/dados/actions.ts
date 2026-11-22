@@ -18,7 +18,12 @@ export async function atualizarAgoraAction(clientId: string): Promise<Result> {
   if (!orgId) return { error: "Sem organização" };
   const cliente = await getClienteDados(orgId, user, clientId);
   if (!cliente) return { error: "Cliente não encontrado" };
-  await salvarSnapshot(cliente);
+  try {
+    await salvarSnapshot(cliente);
+  } catch (e) {
+    console.error("[dados/atualizarAgora]", e instanceof Error ? e.message : "erro");
+    return { error: "Não deu pra atualizar. Tente de novo." };
+  }
   revalidatePath("/dados");
   revalidatePath(`/dados/${clientId}`);
   return { success: true };

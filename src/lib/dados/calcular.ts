@@ -38,7 +38,7 @@ export async function calcularCliente(c: ClienteDados, periodo: Periodo = period
     c.meta_ad_account_id ? coletarAnuncios(c.meta_ad_account_id, periodo, ultimos7(periodo)) : null,
     c.crm_tipo === "yide" && c.crm_identifier ? coletarCrmLyide(c.crm_identifier, periodo) : null,
     c.gmb_place_id || c.gmb_link ? avaliacoesGmnNoInicio(c.id, periodo) : null,
-    c.tipo_pacote === "ecommerce" ? contarAnunciosEcommerce(c.id, c.nome, periodo, ant) : null,
+    c.tipo_pacote === "ecommerce" ? contarAnunciosEcommerce(c.id, c.organization_id, c.nome, periodo, ant) : null,
   ]);
 
   const canais: CanaisResultado = {
@@ -48,27 +48,28 @@ export async function calcularCliente(c: ClienteDados, periodo: Periodo = period
     instagram: avaliarRede("Instagram", { temPerfil: !!(c.instagram_url || c.instagram_business_id), dados: ig }, agora),
     facebook: avaliarRede("Facebook", { temPerfil: !!c.facebook_page_id, dados: fb }, agora),
     anuncios: avaliarAnuncios({ temConta: !!c.meta_ad_account_id, dados: ads }),
-    ecommerce: avaliarEcommerce({ aplica: c.tipo_pacote === "ecommerce", anuncios: ecom?.anuncios ?? 0, anunciosAnt: ecom?.anunciosAnt ?? 0 }),
+    ecommerce: avaliarEcommerce({ aplica: c.tipo_pacote === "ecommerce", dados: ecom }),
     crm: avaliarCrm({ crmTipo: c.crm_tipo, dados: crm }),
   };
   return { nota: calcularNota(canais), canais, perdas: listarPerdas(canais) };
 }
 
-/** Calcula e grava. `nota_anterior` = nota do snapshot anterior mais recente. */
+/** Calcula e grava (1 linha por cliente+periodo_fim; re-execução atualiza). `nota_anterior` = nota do snapshot de ~30 dias atrás. Lança em erro de banco. */
 export async function salvarSnapshot(c: ClienteDados): Promise<SnapshotDados> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
   const periodo = periodoPadrao();
   const snap = await calcularCliente(c, periodo);
-  const { data: ultimo } = await sb.from("client_dados_snapshots").select("nota")
-    .eq("client_id", c.id).lt("calculado_em", new Date(Date.now() - 20 * 86_400_000).toISOString())
+  const { data: ultimo, error: errUltimo } = await sb.from("client_dados_snapshots").select("nota")
+    .eq("client_id", c.id).lt("calculado_em", new Date(Date.now() - 29 * 86_400_000).toISOString())
     .order("calculado_em", { ascending: false }).limit(1).maybeSingle();
-  const { error } = await sb.from("client_dados_snapshots").insert({
+  if (errUltimo) throw new Error(`[dados/salvarSnapshot] leitura: ${errUltimo.message}`);
+  const { error } = await sb.from("client_dados_snapshots").upsert({
     organization_id: c.organization_id, client_id: c.id,
     periodo_inicio: periodo.de, periodo_fim: periodo.ate,
     nota: snap.nota, nota_anterior: (ultimo as { nota: number | null } | null)?.nota ?? null,
-    canais: snap.canais, perdas: snap.perdas,
-  });
-  if (error) console.error("[dados/salvarSnapshot]", c.id, error.message);
+    canais: snap.canais, perdas: snap.perdas, calculado_em: new Date().toISOString(),
+  }, { onConflict: "client_id,periodo_fim" });
+  if (error) throw new Error(`[dados/salvarSnapshot] gravação: ${error.message}`);
   return snap;
 }
