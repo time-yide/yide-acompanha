@@ -2,7 +2,7 @@ import {
   LayoutGrid, Users, ListChecks,
   DollarSign, Calendar, MessageSquare,
   TrendingUp, Video, Trash2, MessageCircle, Phone,
-  IdCard, BookOpen, Inbox, Layers, Zap, ShoppingCart, Code2,
+  IdCard, BookOpen, Layers, Zap, ShoppingCart, Code2,
   type LucideIcon,
 } from "lucide-react";
 import type { Role } from "@/lib/auth/permissions";
@@ -86,9 +86,9 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
       { type: "link", href: "/ecommerce", icon: ShoppingCart, label: "E-commerce", roles: ["adm", "socio", "assessor_ecommerce", "assistente_ecommerce"], badgeKey: null },
       { type: "link", href: "/programacao", icon: Code2, label: "Programação", roles: ["adm", "socio", "programacao"], badgeKey: null },
       { type: "link", href: "/programacao/clientes", icon: Users, label: "Clientes", roles: ["programacao"], badgeKey: null },
-      { type: "link", href: "/painel-cliente", icon: IdCard, label: "Painel do cliente", roles: ["adm", "socio", "coordenador", "assessor", "audiovisual_chefe"], badgeKey: null },
+      { type: "link", href: "/painel-cliente", icon: IdCard, label: "Painel do cliente", roles: ["adm", "socio", "coordenador", "assessor", "audiovisual_chefe"], badgeKey: "solicitacoes" },
       // "Satisfação" saiu do menu — agora aparece como aba dentro de Painel do cliente. URL /satisfacao preservada.
-      { type: "link", href: "/solicitacoes", icon: Inbox, label: "Solicitações", roles: ["adm", "socio", "coordenador", "assessor", "audiovisual_chefe"], badgeKey: "solicitacoes" },
+      // "Solicitações" também virou aba do Painel do cliente (o contador foi junto). URL /solicitacoes preservada.
       { type: "link", href: "/calendario", icon: Calendar, label: "Calendário Interno", roles: "all", badgeKey: null },
     ],
   },
