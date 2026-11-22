@@ -43,7 +43,8 @@ export function avaliarGoogle(i: { temSite: boolean; dados?: { cliques: number; 
 }
 
 export function avaliarGmn(i: { temPerfil: boolean; nota: number | null; avaliacoes: number | null; avaliacoesAnt: number | null }): ResultadoCanal {
-  if (!i.temPerfil) return r("ausente", "Não aparece no Google Maps");
+  // Campo vazio no cadastro = não conectado (cinza), nunca "não tem": não dá pra afirmar ausência.
+  if (!i.temPerfil) return r("sem_acesso", "Google Meu Negócio não cadastrado");
   const m = { nota: i.nota, avaliacoes: i.avaliacoes, avaliacoesNovas: i.avaliacoes != null && i.avaliacoesAnt != null ? i.avaliacoes - i.avaliacoesAnt : null };
   if (i.nota != null && i.nota < LIMITES.notaGmnMinima) return r("fraco", `Nota no Google baixa (${i.nota.toFixed(1)})`, m);
   if (i.avaliacoes != null && i.avaliacoesAnt != null && i.avaliacoes <= i.avaliacoesAnt)
@@ -56,7 +57,7 @@ export function avaliarRede(
   i: { temPerfil: boolean; dados?: { ultimoPost: string | null; postsPeriodo: number } | null },
   agora: Date = new Date(),
 ): ResultadoCanal {
-  if (!i.temPerfil) return r("ausente", `Cliente não tem ${nome}`);
+  if (!i.temPerfil) return r("sem_acesso", `${nome} não cadastrado`);
   if (!i.dados) return r("sem_acesso", `${nome} não conectado`);
   const m = { ultimoPost: i.dados.ultimoPost, postsPeriodo: i.dados.postsPeriodo };
   if (!i.dados.ultimoPost) return r("fraco", `Nenhum post no ${nome}`, m);
@@ -66,7 +67,7 @@ export function avaliarRede(
 }
 
 export function avaliarAnuncios(i: { temConta: boolean; dados?: { gasto: number; gasto7d: number; cliques: number; impressoes: number } | null }): ResultadoCanal {
-  if (!i.temConta) return r("ausente", "Sem anúncios rodando");
+  if (!i.temConta) return r("sem_acesso", "Conta de anúncios não cadastrada");
   if (!i.dados) return r("sem_acesso", "Conta de anúncios sem acesso");
   const m = { ...i.dados };
   if (i.dados.gasto <= 0) return r("ausente", "Sem anúncios rodando", m);
@@ -90,7 +91,8 @@ export interface ResumoCrm {
 }
 
 export function avaliarCrm(i: { crmTipo: string | null; dados?: { atual: ResumoCrm; anterior: ResumoCrm } | null }): ResultadoCanal {
-  if (!i.crmTipo || i.crmTipo === "nenhum") return r("ausente", "Cliente não usa CRM: leads se perdem");
+  if (!i.crmTipo) return r("sem_acesso", "CRM não cadastrado");
+  if (i.crmTipo === "nenhum") return r("ausente", "Cliente não usa CRM: leads se perdem");
   if (i.crmTipo !== "yide") return r("sem_acesso", "CRM fora do Lyide (sem leitura)");
   if (!i.dados) return r("sem_acesso", "Lyide não conectado");
   const { atual, anterior } = i.dados;

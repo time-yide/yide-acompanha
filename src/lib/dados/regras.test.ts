@@ -24,7 +24,7 @@ describe("dados/regras", () => {
   });
 
   it("gmn", () => {
-    expect(avaliarGmn({ temPerfil: false, nota: null, avaliacoes: null, avaliacoesAnt: null }).status).toBe("ausente");
+    expect(avaliarGmn({ temPerfil: false, nota: null, avaliacoes: null, avaliacoesAnt: null }).status).toBe("sem_acesso");
     expect(avaliarGmn({ temPerfil: true, nota: 4.1, avaliacoes: 50, avaliacoesAnt: 40 }).status).toBe("fraco");
     expect(avaliarGmn({ temPerfil: true, nota: 4.8, avaliacoes: 50, avaliacoesAnt: 50 }).motivo)
       .toBe("Nenhuma avaliação nova no Google");
@@ -32,7 +32,7 @@ describe("dados/regras", () => {
   });
 
   it("instagram/facebook: mais de 3 dias sem post = fraco", () => {
-    expect(avaliarRede("Instagram", { temPerfil: false }, agora).status).toBe("ausente");
+    expect(avaliarRede("Instagram", { temPerfil: false }, agora).status).toBe("sem_acesso");
     expect(avaliarRede("Instagram", { temPerfil: true, dados: null }, agora).status).toBe("sem_acesso");
     const r = avaliarRede("Instagram", { temPerfil: true, dados: { ultimoPost: "2026-11-18T10:00:00Z", postsPeriodo: 9 } }, agora);
     expect(r.status).toBe("fraco");
@@ -43,7 +43,7 @@ describe("dados/regras", () => {
   });
 
   it("anúncios", () => {
-    expect(avaliarAnuncios({ temConta: false }).status).toBe("ausente");
+    expect(avaliarAnuncios({ temConta: false }).status).toBe("sem_acesso");
     expect(avaliarAnuncios({ temConta: true, dados: { gasto: 0, gasto7d: 0, cliques: 0, impressoes: 0 } }).status).toBe("ausente");
     expect(avaliarAnuncios({ temConta: true, dados: { gasto: 500, gasto7d: 0, cliques: 10, impressoes: 900 } }).status).toBe("fraco");
     expect(avaliarAnuncios({ temConta: true, dados: { gasto: 500, gasto7d: 80, cliques: 10, impressoes: 900 } }).status).toBe("ok");
@@ -58,7 +58,7 @@ describe("dados/regras", () => {
   });
 
   it("crm", () => {
-    expect(avaliarCrm({ crmTipo: null }).status).toBe("ausente");
+    expect(avaliarCrm({ crmTipo: null }).status).toBe("sem_acesso");
     expect(avaliarCrm({ crmTipo: "nenhum" }).status).toBe("ausente");
     expect(avaliarCrm({ crmTipo: "hubspot" }).status).toBe("sem_acesso");
     expect(avaliarCrm({ crmTipo: "yide", dados: null }).status).toBe("sem_acesso");
