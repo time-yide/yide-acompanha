@@ -91,8 +91,8 @@ export interface ResumoCrm {
 }
 
 export function avaliarCrm(i: { crmTipo: string | null; dados?: { atual: ResumoCrm; anterior: ResumoCrm } | null }): ResultadoCanal {
-  if (!i.crmTipo) return r("sem_acesso", "CRM não cadastrado");
-  if (i.crmTipo === "nenhum") return r("ausente", "Cliente não usa CRM: leads se perdem");
+  // "nenhum" é o padrão do formulário, não uma ausência confirmada: trata como não cadastrado.
+  if (!i.crmTipo || i.crmTipo === "nenhum") return r("sem_acesso", "CRM não cadastrado");
   if (i.crmTipo !== "yide") return r("sem_acesso", "CRM fora do Lyide (sem leitura)");
   if (!i.dados) return r("sem_acesso", "Lyide não conectado");
   const { atual, anterior } = i.dados;
