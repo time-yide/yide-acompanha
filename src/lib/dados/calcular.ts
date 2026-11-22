@@ -11,11 +11,11 @@ import { avaliacoesGmnNoInicio, contarAnunciosEcommerce } from "./coletores/loca
 import type { CanaisResultado, Periodo, SnapshotDados } from "./tipos";
 
 export const CLIENTE_DADOS_SELECT =
-  "id, organization_id, nome, website, instagram_url, instagram_business_id, facebook_page_id, meta_ad_account_id, " +
+  "id, organization_id, nome, instagram_url, instagram_business_id, facebook_page_id, meta_ad_account_id, " +
   "gmb_place_id, gmb_link, gmb_rating, gmb_review_count, crm_tipo, crm_identifier, tipo_pacote, ga4_property_id, gsc_site_url";
 
 export interface ClienteDados {
-  id: string; organization_id: string; nome: string; website: string | null;
+  id: string; organization_id: string; nome: string;
   instagram_url: string | null; instagram_business_id: string | null; facebook_page_id: string | null;
   meta_ad_account_id: string | null; gmb_place_id: string | null; gmb_link: string | null;
   gmb_rating: number | null; gmb_review_count: number | null; crm_tipo: string | null;
@@ -29,10 +29,12 @@ const ultimos7 = (p: Periodo): Periodo => ({ de: addDias(p.ate, -6), ate: p.ate 
 
 export async function calcularCliente(c: ClienteDados, periodo: Periodo = periodoPadrao(), agora = new Date()): Promise<SnapshotDados> {
   const ant = periodoAnterior(periodo);
-  const temSite = !!c.website?.trim();
+  // O cadastro de clientes não tem campo de site: sem GA4/GSC ligado o canal fica sem_acesso
+  // (nunca "ausente"), pra não punir o cliente por falta de conexão nossa.
+  const temSite = true;
   const [ga4, gsc, ig, fb, ads, crm, gmnIni, ecom] = await Promise.all([
-    temSite && c.ga4_property_id ? coletarGa4(c.ga4_property_id, periodo, ant) : null,
-    temSite && c.gsc_site_url ? coletarGsc(c.gsc_site_url, periodo, ant) : null,
+    c.ga4_property_id ? coletarGa4(c.ga4_property_id, periodo, ant) : null,
+    c.gsc_site_url ? coletarGsc(c.gsc_site_url, periodo, ant) : null,
     c.instagram_business_id ? coletarInstagram(c.instagram_business_id, periodo) : null,
     c.facebook_page_id ? coletarFacebook(c.facebook_page_id, periodo) : null,
     c.meta_ad_account_id ? coletarAnuncios(c.meta_ad_account_id, periodo, ultimos7(periodo)) : null,

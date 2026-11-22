@@ -73,7 +73,7 @@ export default async function DadosClientePage({
       <header className="flex flex-wrap items-end justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-6">
         <div>
           <h1 className="text-3xl font-extrabold">{cliente.nome}</h1>
-          <p className="text-sm text-white/50">{cliente.website ?? "sem site"} · {periodo.de.split("-").reverse().join("/")} a {periodo.ate.split("-").reverse().join("/")}</p>
+          <p className="text-sm text-white/50">{cliente.gsc_site_url ? `${cliente.gsc_site_url.replace(/^sc-domain:/, "")} · ` : ""}{periodo.de.split("-").reverse().join("/")} a {periodo.ate.split("-").reverse().join("/")}</p>
           <form className="mt-3 flex flex-wrap items-end gap-2 text-xs text-white/60">
             <label>De <input type="date" name="de" defaultValue={periodo.de} className="ml-1 rounded border border-white/15 bg-white/5 px-2 py-1" /></label>
             <label>Até <input type="date" name="ate" defaultValue={periodo.ate} className="ml-1 rounded border border-white/15 bg-white/5 px-2 py-1" /></label>
