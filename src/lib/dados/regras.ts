@@ -86,7 +86,7 @@ export function avaliarEcommerce(i: { aplica: boolean; dados: { anuncios: number
 
 export interface ResumoCrm {
   leadsNovos: number; vendas: number; valorVendas: number; conversao: number | null;
-  semResposta24h: number; origens: Record<string, number>;
+  semResposta24h: number | null; origens: Record<string, number>;
 }
 
 export function avaliarCrm(i: { crmTipo: string | null; dados?: { atual: ResumoCrm; anterior: ResumoCrm } | null }): ResultadoCanal {
@@ -99,7 +99,7 @@ export function avaliarCrm(i: { crmTipo: string | null; dados?: { atual: ResumoC
     valorVendas: atual.valorVendas, conversao: atual.conversao, semResposta24h: atual.semResposta24h,
     origens: JSON.stringify(atual.origens),
   };
-  if (atual.semResposta24h >= LIMITES.semRespostaMax) return r("fraco", `${atual.semResposta24h} leads sem resposta há mais de 24h`, m);
+  if ((atual.semResposta24h ?? 0) >= LIMITES.semRespostaMax) return r("fraco", `${atual.semResposta24h} leads sem resposta há mais de 24h`, m);
   if (atual.leadsNovos === 0) return r("fraco", "Nenhum lead novo no período", m);
   const q = queda(atual.leadsNovos, anterior.leadsNovos);
   if (q >= LIMITES.quedaFraco) return r("fraco", `Leads novos caíram ${pct(q)}`, m);

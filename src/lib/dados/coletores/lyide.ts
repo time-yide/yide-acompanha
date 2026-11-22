@@ -22,10 +22,13 @@ async function lget<T>(path: string): Promise<T | null> {
 export async function coletarCrmLyide(slug: string, p: Periodo): Promise<{ atual: ResumoCrm; anterior: ResumoCrm } | null> {
   const qs = new URLSearchParams({ de: p.de, ate: p.ate });
   const j = await lget<{ atual: ResumoCrm; anterior: ResumoCrm }>(`/api/external/empresas/${encodeURIComponent(slug)}/resumo?${qs.toString()}`);
-  return j ? { atual: j.atual, anterior: j.anterior } : null;
+  // Resposta 200 com formato inesperado (versão diferente, proxy) = sem acesso, não quebra o snapshot.
+  if (!j || typeof j.atual?.leadsNovos !== "number" || typeof j.anterior?.leadsNovos !== "number") return null;
+  return { atual: j.atual, anterior: j.anterior };
 }
 
-export async function listarEmpresasLyide(): Promise<Array<{ slug: string; name: string }>> {
+/** null = falha. */
+export async function listarEmpresasLyide(): Promise<Array<{ slug: string; name: string }> | null> {
   const j = await lget<{ empresas: Array<{ slug: string; name: string }> }>("/api/external/empresas");
-  return j?.empresas ?? [];
+  return j ? (j.empresas ?? []) : null;
 }

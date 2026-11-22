@@ -91,14 +91,17 @@ export async function coletarGsc(siteUrl: string, atual: Periodo, anterior: Peri
 }
 
 /** Opções para o cartão de conexões. */
-export async function listarPropriedadesGa4(): Promise<Array<{ id: string; nome: string }>> {
+/** null = falha (não confundir com "nenhuma propriedade"). */
+export async function listarPropriedadesGa4(): Promise<Array<{ id: string; nome: string }> | null> {
   const j = await gget<{ accountSummaries?: Array<{ displayName: string; propertySummaries?: Array<{ property: string; displayName: string }> }> }>(
     "https://analyticsadmin.googleapis.com/v1beta/accountSummaries?pageSize=200",
   );
-  return (j?.accountSummaries ?? []).flatMap((a) =>
+  if (!j) return null;
+  return (j.accountSummaries ?? []).flatMap((a) =>
     (a.propertySummaries ?? []).map((p) => ({ id: p.property.replace("properties/", ""), nome: `${a.displayName} — ${p.displayName}` })));
 }
-export async function listarSitesGsc(): Promise<string[]> {
+export async function listarSitesGsc(): Promise<string[] | null> {
   const j = await gget<{ siteEntry?: Array<{ siteUrl: string }> }>("https://www.googleapis.com/webmasters/v3/sites");
-  return (j?.siteEntry ?? []).map((s) => s.siteUrl).sort();
+  if (!j) return null;
+  return (j.siteEntry ?? []).map((s) => s.siteUrl).sort();
 }

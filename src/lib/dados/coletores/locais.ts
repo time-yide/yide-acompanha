@@ -2,7 +2,7 @@
 import "server-only";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { listPublicadosYideEcom, type YideEcomResultado } from "@/lib/ecommerce/yideecom";
-import { normalizarNome } from "@/lib/ecommerce/yideecom-match";
+import { normalizarNome, type PublicadoYideEcom } from "@/lib/ecommerce/yideecom-match";
 import type { Periodo } from "../tipos";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -25,11 +25,12 @@ const TTL_MS = 5 * 60_000;
 function memo<T>(cache: Map<string, { exp: number; p: Promise<T> }>, key: string, fn: () => Promise<T>): Promise<T> {
   const hit = cache.get(key);
   if (hit && hit.exp > Date.now()) return hit.p;
+  if (hit) cache.delete(key);
   const p = fn();
   cache.set(key, { exp: Date.now() + TTL_MS, p });
   return p;
 }
-const cachePublicados = new Map<string, { exp: number; p: Promise<YideEcomResultado> }>();
+const cachePublicados = new Map<string, { exp: number; p: Promise<YideEcomResultado<PublicadoYideEcom[]>> }>();
 /** Uma chamada ao Yide Ecom por (de|ate), reaproveitada por ~5 min (um cron = 1 chamada). */
 const publicadosMemo = (de: string, ate: string) =>
   memo(cachePublicados, `${de}|${ate}`, () => listPublicadosYideEcom(de, ate));
@@ -63,7 +64,7 @@ export async function contarAnunciosEcommerce(clientId: string, orgId: string, c
   const ambiguo = nomes.filter((n) => n === alvo).length > 1;
   let e1 = 0, e2 = 0;
   if (!ambiguo) {
-    for (const pub of ecom.publicados) {
+    for (const pub of ecom.dados) {
       if (normalizarNome(pub.cliente_nome) !== alvo) continue;
       if (pub.data >= atual.de && pub.data <= atual.ate) e1 += pub.quantidade;
       else if (pub.data >= anterior.de && pub.data <= anterior.ate) e2 += pub.quantidade;

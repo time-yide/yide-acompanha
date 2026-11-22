@@ -20,6 +20,7 @@ import type { SnapshotDados } from "@/lib/dados/tipos";
 export const dynamic = "force-dynamic";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const MAX_DIAS_PERIODO = 400;
 type SnapshotRow = SnapshotDados & { calculado_em: string };
 
 export default async function DadosClientePage({
@@ -35,7 +36,11 @@ export default async function DadosClientePage({
   if (!cliente) notFound();
 
   const padrao = periodoPadrao();
-  const custom = sp.de && sp.ate && DATE_RE.test(sp.de) && DATE_RE.test(sp.ate) && sp.de <= sp.ate && (sp.de !== padrao.de || sp.ate !== padrao.ate);
+  // Máx. 400 dias (mesmo teto do Lyide): período maior cai no padrão.
+  const dentroDoLimite = (de: string, ate: string) =>
+    (new Date(`${ate}T12:00:00Z`).getTime() - new Date(`${de}T12:00:00Z`).getTime()) / 86_400_000 <= MAX_DIAS_PERIODO;
+  const custom = sp.de && sp.ate && DATE_RE.test(sp.de) && DATE_RE.test(sp.ate) && sp.de <= sp.ate
+    && dentroDoLimite(sp.de, sp.ate) && (sp.de !== padrao.de || sp.ate !== padrao.ate);
   const periodo = custom ? { de: sp.de!, ate: sp.ate! } : padrao;
   const editar = podeEditarConexoes(user.role);
 
@@ -56,9 +61,9 @@ export default async function DadosClientePage({
   };
   const [snap, opcoesGa4, opcoesGsc, opcoesLyide] = await Promise.all([
     custom ? calcularCliente(cliente, periodo) : lerSnapshot(),
-    editar ? ga4Cache() : [],
-    editar ? gscCache() : [],
-    editar ? lyideCache() : [],
+    editar ? ga4Cache().catch(() => []) : [],
+    editar ? gscCache().catch((): string[] => []) : [],
+    editar ? lyideCache().catch(() => []) : [],
   ]);
   const cor = { risco: "text-rose-300", atencao: "text-amber-300", bom: "text-emerald-300", sem_dados: "text-white/40" }[faixaNota(snap?.nota ?? null)];
 
