@@ -260,7 +260,7 @@ export function candidatosDoCliente(c: ClienteConexao, f: FontesConexao): Candid
   return out;
 }
 
-const semScore = ({ score: _score, ...s }: Candidato): Sugestao => s;
+const semScore = (c: Candidato): Sugestao => ({ campo: c.campo, valor: c.valor, rotulo: c.rotulo, confianca: c.confianca, motivo: c.motivo });
 
 /** Sugestões de UM cliente (sem checar conflito com outros clientes). */
 export function sugerirParaCliente(cliente: ClienteConexao, fontes: FontesConexao): Sugestao[] {
