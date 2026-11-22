@@ -63,13 +63,13 @@ Cada canal tem um destes status: `ok` (indo bem), `fraco` (fraco ou parado), `au
 | Site | GA4 Data API (`clients.ga4_property_id`) | sem `website` | tem site, mas não tem GA4 ligado ou a API dá erro | sessões caíram ≥ 20% ou ficaram abaixo de 100 no período | "Site perdeu X% das visitas" / "Cliente não tem site" (Alto) |
 | Google busca | Search Console API (`clients.gsc_site_url`) | sem `website` | sem GSC ligado ou erro | cliques caíram ≥ 20% ou posição média acima de 20 | "Cliques vindos do Google caíram X%" |
 | Google Meu Negócio | `clients.gmb_*` + `client_gmb_snapshots` | sem `gmb_place_id` e sem `gmb_link` | — | nota abaixo de 4,3 ou nenhuma avaliação nova no período | "Não aparece no Google Maps" (Alto) |
-| Instagram | `client_instagram_snapshots` (mais recente) | sem `instagram_url` | último scrape com erro | último post há mais de 7 dias ou menos de 8 posts no período | "Sem post no Instagram há N dias" |
-| Facebook | `social_media_publicacoes` + `social_media_metricas` | sem `facebook_page_id` | — | menos de 4 posts no período | "Facebook com N posts no mês" |
+| Instagram | `client_instagram_snapshots` (mais recente) | sem `instagram_url` | último scrape com erro | último post há mais de 3 dias | "Sem post no Instagram há N dias" |
+| Facebook | `social_media_publicacoes` + `social_media_metricas` | sem `facebook_page_id` | — | último post há mais de 3 dias | "Sem post no Facebook há N dias" |
 | Anúncios (Meta) | `trafego_campanhas` + `trafego_metricas_diarias` | nenhuma campanha ativa no período | `meta_last_sync_error` preenchido | campanha ativa, mas sem gasto nos últimos 7 dias | "Sem anúncios rodando" (Alto) |
 | E-commerce | `anuncios_ecommerce` (Mercado Livre / Tray) | — | — | vendas caíram ≥ 20% | só vale para clientes com e-commerce; nos outros é `nao_se_aplica` |
 | CRM | `clients.crm_tipo` | `nenhum` ou vazio | — | `planilha` | "Leads sem CRM organizado" |
 
-Os limites (20%, 7 dias, 8 posts, 4,3 etc.) ficam como constantes num único arquivo (`src/lib/dados/regras.ts`), assim dá pra ajustar fácil depois.
+Os limites (20%, 3 dias, 7 dias, 4,3 etc.) ficam como constantes num único arquivo (`src/lib/dados/regras.ts`), assim dá pra ajustar fácil depois.
 
 **Gravidade das perdas:** status `ausente` gera perda **Alta**. Status `fraco` gera perda **Média**. `sem_acesso` não conta como perda, só entra na cobertura de dados.
 
