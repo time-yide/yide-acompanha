@@ -11,13 +11,24 @@ import { salvarSnapshot } from "./calcular";
 
 type Result = { success: true } | { error: string };
 
+const DEBOUNCE_MS = 2 * 60_000;
+
 export async function atualizarAgoraAction(clientId: string): Promise<Result> {
+  if (!z.string().uuid().safeParse(clientId).success) return { error: "Cliente inválido" };
   const user = await requireAuth();
   if (!canAccessDados(user.role)) return { error: "Sem permissão" };
   const orgId = await getOrganizationId(user.id);
   if (!orgId) return { error: "Sem organização" };
   const cliente = await getClienteDados(orgId, user, clientId);
   if (!cliente) return { error: "Cliente não encontrado" };
+  // Debounce no servidor: snapshot com menos de 2 min não recalcula.
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: ult } = await (createServiceRoleClient() as any).from("client_dados_snapshots").select("calculado_em")
+      .eq("client_id", clientId).order("calculado_em", { ascending: false }).limit(1).maybeSingle();
+    const t = ult?.calculado_em ? new Date(ult.calculado_em as string).getTime() : 0;
+    if (t && Date.now() - t < DEBOUNCE_MS) return { success: true };
+  } catch { /* sem debounce se não deu pra ler */ }
   try {
     await salvarSnapshot(cliente);
   } catch (e) {
@@ -32,7 +43,7 @@ export async function atualizarAgoraAction(clientId: string): Promise<Result> {
 const conexoesSchema = z.object({
   clientId: z.string().uuid(),
   ga4PropertyId: z.string().regex(/^\d+$/).nullable(),
-  gscSiteUrl: z.string().max(300).nullable(),
+  gscSiteUrl: z.string().max(300).regex(/^(https?:\/\/|sc-domain:)/).nullable(),
   lyideSlug: z.string().max(120).nullable(),
 });
 
@@ -50,9 +61,15 @@ export async function salvarConexoesAction(input: z.infer<typeof conexoesSchema>
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
-  const { data, error } = await sb.from("clients").update(patch).eq("id", clientId).eq("organization_id", orgId).select("id");
+  const { data, error } = await sb.from("clients").update(patch).eq("id", clientId).eq("organization_id", orgId).is("deleted_at", null).select("id");
   if (error) return { error: "Não deu pra salvar. Tente de novo." };
   if (!data || data.length === 0) return { error: "Cliente não encontrado" };
+  if (!lyideSlug) {
+    // Desconectar Lyide sem apagar outro CRM configurado.
+    const { error: e2 } = await sb.from("clients").update({ crm_tipo: "nenhum", crm_identifier: null })
+      .eq("id", clientId).eq("organization_id", orgId).eq("crm_tipo", "yide");
+    if (e2) return { error: "Não deu pra salvar. Tente de novo." };
+  }
   revalidatePath(`/dados/${clientId}`);
   return { success: true };
 }

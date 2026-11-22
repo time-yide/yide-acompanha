@@ -33,7 +33,7 @@ export async function listVisaoGeral(orgId: string, user: CurrentUser): Promise<
     .select("client_id, nota, nota_anterior, canais, perdas, calculado_em")
     .in("client_id", ids).gte("calculado_em", desde).order("calculado_em", { ascending: false });
   if (e2) {
-    if (/client_dados_snapshots/.test(e2.message)) return { ok: false, motivo: "sem_tabela" };
+    if (e2.code === "42P01" || e2.code === "PGRST205" || /client_dados_snapshots/.test(e2.message)) return { ok: false, motivo: "sem_tabela" };
     console.error("[dados/listVisaoGeral] snapshots", e2.message);
   }
   const assessorIds = [...new Set(((clientes ?? []) as Array<{ assessor_id: string | null }>).map((c) => c.assessor_id).filter(Boolean))];
@@ -58,10 +58,18 @@ export async function listVisaoGeral(orgId: string, user: CurrentUser): Promise<
   return { ok: true, linhas };
 }
 
-/** Garante que o usuário pode ver o cliente. Devolve a linha do cliente (com conexões) ou null. */
+/** Garante que o usuário pode ver o cliente. Devolve a linha do cliente (com conexões) ou null.
+ *  Antes da migration (colunas ga4/gsc ausentes) refaz o select sem elas e devolve null nelas. */
 export async function getClienteDados(orgId: string, user: CurrentUser, clientId: string) {
-  const { data } = await sb().from("clients").select(`${CLIENTE_DADOS_SELECT}, assessor_id`)
+  const buscar = (cols: string) => sb().from("clients").select(`${cols}, assessor_id`)
     .eq("id", clientId).eq("organization_id", orgId).is("deleted_at", null).maybeSingle();
+  let { data, error } = await buscar(CLIENTE_DADOS_SELECT);
+  if (error && (error.code === "42703" || /ga4_property_id|gsc_site_url/.test(error.message ?? ""))) {
+    const semNovas = CLIENTE_DADOS_SELECT.replace(", ga4_property_id, gsc_site_url", "");
+    ({ data, error } = await buscar(semNovas));
+    if (data) data = { ...data, ga4_property_id: null, gsc_site_url: null };
+  }
+  if (error) { console.error("[dados/getClienteDados]", error.message); return null; }
   if (!data) return null;
   if (!dadosVeTodos(user.role) && (data as { assessor_id: string | null }).assessor_id !== user.id) return null;
   return data as ClienteDados & { assessor_id: string | null };

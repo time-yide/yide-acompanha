@@ -16,7 +16,7 @@ async function lget<T>(path: string): Promise<T | null> {
     const res = await fetch(`${c.url}${path}`, { headers: { authorization: `Bearer ${c.secret}` }, cache: "no-store", signal: AbortSignal.timeout(8000) });
     if (!res.ok) { console.error("[dados/lyide]", path.split("?")[0], res.status); return null; }
     return (await res.json()) as T;
-  } catch (e) { console.error("[dados/lyide]", e); return null; }
+  } catch (e) { console.error("[dados/lyide]", e instanceof Error ? `${e.name}: ${e.message}` : "erro"); return null; }
 }
 
 export async function coletarCrmLyide(slug: string, p: Periodo): Promise<{ atual: ResumoCrm; anterior: ResumoCrm } | null> {

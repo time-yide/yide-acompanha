@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { unstable_cache } from "next/cache";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { requireAuth } from "@/lib/auth/session";
@@ -19,6 +20,11 @@ import { ConexoesCard } from "@/components/dados/ConexoesCard";
 import type { SnapshotDados } from "@/lib/dados/tipos";
 
 export const dynamic = "force-dynamic";
+
+// Só credenciais de serviço (sem cookies): pode ficar em unstable_cache.
+const ga4Cache = unstable_cache(() => listarPropriedadesGa4(), ["dados-opcoes-ga4"], { revalidate: 900 });
+const gscCache = unstable_cache(() => listarSitesGsc(), ["dados-opcoes-gsc"], { revalidate: 900 });
+const lyideCache = unstable_cache(() => listarEmpresasLyide(), ["dados-opcoes-lyide"], { revalidate: 900 });
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 type SnapshotRow = SnapshotDados & { calculado_em: string };
 
@@ -42,14 +48,24 @@ export default async function DadosClientePage({
   // Período padrão: lê o snapshot gravado. Período escolhido: calcula na hora (só este cliente).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
-  const [snapRow, opcoesGa4, opcoesGsc, opcoesLyide] = await Promise.all([
-    custom ? null : sb.from("client_dados_snapshots").select("nota, canais, perdas, calculado_em")
-      .eq("client_id", clientId).order("calculado_em", { ascending: false }).limit(1).maybeSingle().then((r: { data: unknown }) => r.data),
-    editar ? listarPropriedadesGa4() : [],
-    editar ? listarSitesGsc() : [],
-    editar ? listarEmpresasLyide() : [],
+  const lerSnapshot = async (): Promise<SnapshotRow | null> => {
+    const { data, error } = await sb.from("client_dados_snapshots").select("nota, canais, perdas, calculado_em")
+      .eq("client_id", clientId).order("calculado_em", { ascending: false }).limit(1).maybeSingle();
+    if (error) {
+      // Tabela ausente (antes da migration): tratado como sem snapshot.
+      if (!(error.code === "42P01" || error.code === "PGRST205" || /client_dados_snapshots/.test(error.message ?? ""))) {
+        console.error("[dados/cliente] snapshot", error.message);
+      }
+      return null;
+    }
+    return (data as SnapshotRow | null) ?? null;
+  };
+  const [snap, opcoesGa4, opcoesGsc, opcoesLyide] = await Promise.all([
+    custom ? calcularCliente(cliente, periodo) : lerSnapshot(),
+    editar ? ga4Cache() : [],
+    editar ? gscCache() : [],
+    editar ? lyideCache() : [],
   ]);
-  const snap: SnapshotDados | null = custom ? await calcularCliente(cliente, periodo) : (snapRow as SnapshotRow | null);
   const cor = { risco: "text-rose-300", atencao: "text-amber-300", bom: "text-emerald-300", sem_dados: "text-white/40" }[faixaNota(snap?.nota ?? null)];
 
   return (

@@ -34,18 +34,21 @@ export function ConexoesCard({ clientId, podeEditar, emailContaServico, atual, o
         <label className="space-y-1 text-xs text-white/60">Google Analytics (GA4)
           <select className={sel} value={ga4} disabled={!podeEditar} onChange={(e) => setGa4(e.target.value)}>
             <option value="">Não conectado</option>
+            {ga4 && !opcoes.ga4.some((o) => o.id === ga4) && <option value={ga4}>{ga4} (atual)</option>}
             {opcoes.ga4.map((o) => <option key={o.id} value={o.id}>{o.nome}</option>)}
           </select>
         </label>
         <label className="space-y-1 text-xs text-white/60">Search Console
           <select className={sel} value={gsc} disabled={!podeEditar} onChange={(e) => setGsc(e.target.value)}>
             <option value="">Não conectado</option>
+            {gsc && !opcoes.gsc.includes(gsc) && <option value={gsc}>{gsc} (atual)</option>}
             {opcoes.gsc.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
         </label>
         <label className="space-y-1 text-xs text-white/60">Empresa no Lyide
           <select className={sel} value={lyide} disabled={!podeEditar} onChange={(e) => setLyide(e.target.value)}>
             <option value="">Não conectado</option>
+            {lyide && !opcoes.lyide.some((o) => o.slug === lyide) && <option value={lyide}>{lyide} (atual)</option>}
             {opcoes.lyide.map((o) => <option key={o.slug} value={o.slug}>{o.name}</option>)}
           </select>
         </label>
