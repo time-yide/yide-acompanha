@@ -13,11 +13,12 @@ const BASE = `https://graph.facebook.com/${V}`;
 export const idMetaValido = (id: string) => /^\d{1,25}$/.test(id);
 export const contaAnunciosValida = (id: string) => /^(act_)?\d{1,25}$/.test(id);
 
-async function graph<T>(id: string, sufixo: string, params: Record<string, string>, token = process.env.META_SYSTEM_USER_TOKEN?.trim()): Promise<T | null> {
+/** `caminho` já vem montado (ids passam por encodeURIComponent em quem chama). */
+async function graphCaminho<T>(caminho: string, rotulo: string, params: Record<string, string>, token = process.env.META_SYSTEM_USER_TOKEN?.trim()): Promise<T | null> {
   if (!token) return null;
   try {
     const qs = new URLSearchParams(params);
-    const url = `${BASE}/${encodeURIComponent(id)}${sufixo}?${qs.toString()}`;
+    const url = `${BASE}/${caminho}?${qs.toString()}`;
     const res = await fetch(url, { headers: { authorization: `Bearer ${token}` }, cache: "no-store", signal: AbortSignal.timeout(8000) });
     if (!res.ok) {
       let detalhe = "";
@@ -25,7 +26,7 @@ async function graph<T>(id: string, sufixo: string, params: Record<string, strin
         const j = (await res.json()) as { error?: { code?: number; message?: string } };
         detalhe = [j.error?.code, j.error?.message].filter(Boolean).join(" ");
       } catch { /* corpo não-JSON */ }
-      console.error("[dados/meta]", sufixo || "node", res.status, detalhe);
+      console.error("[dados/meta]", rotulo, res.status, detalhe);
       return null;
     }
     return (await res.json()) as T;
@@ -33,6 +34,57 @@ async function graph<T>(id: string, sufixo: string, params: Record<string, strin
     console.error("[dados/meta]", e instanceof Error ? `${e.name}: ${e.message}` : "erro");
     return null;
   }
+}
+
+function graph<T>(id: string, sufixo: string, params: Record<string, string>, token = process.env.META_SYSTEM_USER_TOKEN?.trim()): Promise<T | null> {
+  return graphCaminho<T>(`${encodeURIComponent(id)}${sufixo}`, sufixo || "node", params, token);
+}
+
+type Pagina<T> = { data?: T[]; paging?: { cursors?: { after?: string }; next?: string } };
+const MAX_PAGINAS = 10;
+
+/** Percorre `/me/<edge>` pelo cursor `after` (100 por página, até 10 páginas). null = falha em qualquer página. */
+async function listarMe<T>(edge: string, fields: string): Promise<T[] | null> {
+  const itens: T[] = [];
+  let after: string | undefined;
+  for (let i = 0; i < MAX_PAGINAS; i++) {
+    const params: Record<string, string> = { fields, limit: "100" };
+    if (after) params.after = after;
+    const j = await graphCaminho<Pagina<T>>(`me/${edge}`, `/me/${edge}`, params);
+    if (!j) return null;
+    itens.push(...(j.data ?? []));
+    after = j.paging?.cursors?.after;
+    if (!j.paging?.next || !after) break;
+  }
+  return itens;
+}
+
+export interface PaginaMeta { pageId: string; nome: string; igId: string | null; igUsername: string | null }
+export interface ContaAnuncioMeta { id: string; nome: string; empresa: string | null }
+
+/** Páginas que o System User enxerga + Instagram ligado a cada uma. null = falha/sem token. */
+export async function listarPaginasMeta(): Promise<PaginaMeta[] | null> {
+  type R = { id: string; name?: string; instagram_business_account?: { id?: string; username?: string } };
+  const r = await listarMe<R>("accounts", "id,name,instagram_business_account{id,username}");
+  if (!r) return null;
+  return r.filter((p) => idMetaValido(p.id)).map((p) => {
+    const igId = p.instagram_business_account?.id;
+    return {
+      pageId: p.id, nome: p.name ?? "",
+      igId: igId && idMetaValido(igId) ? igId : null,
+      igUsername: p.instagram_business_account?.username?.toLowerCase() ?? null,
+    };
+  });
+}
+
+/** Contas de anúncio que o System User enxerga. null = falha/sem token. */
+export async function listarContasAnunciosMeta(): Promise<ContaAnuncioMeta[] | null> {
+  type R = { id: string; name?: string; business_name?: string; account_status?: number };
+  const r = await listarMe<R>("adaccounts", "id,name,business_name,account_status");
+  if (!r) return null;
+  return r.filter((c) => contaAnunciosValida(c.id)).map((c) => ({
+    id: c.id.startsWith("act_") ? c.id : `act_${c.id}`, nome: c.name ?? "", empresa: c.business_name || null,
+  }));
 }
 
 function contarNoPeriodo(datas: string[], p: Periodo): number {
