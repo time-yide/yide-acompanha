@@ -157,3 +157,15 @@ A página precisa funcionar entre o deploy e a migration: se a tabela não exist
 - TikTok, LinkedIn, YouTube
 - Mostrar o painel no portal do cliente
 - Alertas automáticos por WhatsApp quando a nota cai
+
+## Site do cliente, criação de GA4 e verificação do Search Console (etapa 1.1)
+
+- **Campo de site.** O cartão "Conexões de dados" ganha "Site do cliente" (endereço, salvo como origem, ex. `https://exemplo.com.br`) e a caixa "Cliente não tem site" (marcar limpa o endereço). Colunas novas em `clients`: `site_url`, `sem_site`, `ga4_measurement_id`.
+- **Regras.** "Cliente não tem site" marcado = perda real (Site e Google em vermelho, gravidade alta). Site não cadastrado = cinza "Site não cadastrado". Site cadastrado sem GA4/GSC = cinza "Google Analytics não conectado" / "Search Console não conectado". Com dados, os limites de sempre.
+- **Criar Google Analytics.** Botão no cartão "Google do site" (só ADM/Sócio/Programação, só com site cadastrado). A conta de serviço cria a propriedade na conta GA4 da Yide (`GA4_ACCOUNT_ID`, padrão `415402377`, fuso America/Cuiaba, BRL) e um fluxo web com o endereço do site. Grava `ga4_property_id` + `ga4_measurement_id` e mostra o código gtag.js pra colar no `<head>` do site (fica disponível pra copiar depois).
+- **Search Console.** Como o domínio é do cliente, a verificação é por TXT no DNS: "Gerar verificação do Search Console" pede o token à Site Verification API e mostra uma mensagem pronta pra enviar ao cliente. Depois que ele adiciona, "Já adicionaram — verificar agora" verifica o domínio e adiciona a propriedade `sc-domain:<domínio>` no Search Console da conta de serviço, gravando `gsc_site_url`. Se o TXT ainda não propagou, avisa e pode tentar de novo depois.
+- **Permissões no Google (manual, uma vez).**
+  - A conta de serviço `yide-dados` precisa ser **Editor** na conta do Google Analytics da Yide (Administrador > Gerenciamento de acesso da conta).
+  - No projeto do Google Cloud da conta de serviço, ativar **Site Verification API**, **Google Analytics Admin API** e **Google Search Console API**.
+  - Escopos usados na escrita: `analytics.edit`, `siteverification`, `webmasters` (o token de leitura continua só com os escopos read-only).
+- **Migration manual:** `20261123000000_dados_site_cliente.sql` no SQL Editor após o merge. Até lá a tela, o cron e o "Salvar conexões" seguem funcionando sem as colunas novas (o site só passa a ser salvo depois da migration).

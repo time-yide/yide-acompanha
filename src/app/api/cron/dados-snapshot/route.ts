@@ -1,7 +1,9 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { CLIENTE_DADOS_SELECT, salvarSnapshot, type ClienteDados } from "@/lib/dados/calcular";
+import {
+  CLIENTE_DADOS_SELECT, CLIENTE_DADOS_SELECT_SEM_SITE, comPadroesSite, erroColunaSite, salvarSnapshot, type ClienteDados,
+} from "@/lib/dados/calcular";
 
 /**
  * Cron: 1 snapshot do painel Dados por cliente ativo/em onboarding.
@@ -27,8 +29,14 @@ export async function GET(request: NextRequest) {
   const inicio = Date.now();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
-  const { data, error } = await sb.from("clients").select(CLIENTE_DADOS_SELECT)
+  const buscar = (cols: string) => sb.from("clients").select(cols)
     .in("status", ["ativo", "em_onboarding"]).is("deleted_at", null).order("nome");
+  let { data, error } = await buscar(CLIENTE_DADOS_SELECT);
+  // Migration do site (20261123) ainda não aplicada: segue sem as colunas novas.
+  if (erroColunaSite(error)) {
+    ({ data, error } = await buscar(CLIENTE_DADOS_SELECT_SEM_SITE));
+    if (data) data = (data as object[]).map(comPadroesSite);
+  }
   if (error) {
     // Migration ainda não aplicada (coluna nova ausente): sai sem erro.
     console.error("[cron/dados-snapshot]", error.message);
