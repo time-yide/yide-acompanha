@@ -16,6 +16,10 @@ export interface ConteudoServico {
   etapas: Etapa[];
   paraQuem: string[];
   faq: Pergunta[];
+  /** Linha de preço própria (serviço avulso, como cobertura de evento). Quando existe,
+   *  substitui "Planos a partir de R$ 1.000. Verba de anúncios à parte." e a pergunta
+   *  automática de preço, e o preço vai no próprio FAQ do serviço. */
+  precoProprio?: string;
 }
 
 export const CONTEUDO_SERVICOS: ConteudoServico[] = [
@@ -296,6 +300,40 @@ export const CONTEUDO_SERVICOS: ConteudoServico[] = [
       { pergunta: "Como subir no ranking do iFood?", resposta: "Ranking depende de avaliação, tempo de entrega, taxa de conversão do cardápio e participação em campanhas. Trabalhamos cada um desses pontos." },
       { pergunta: "Vocês fazem as fotos dos pratos?", resposta: "Sim. A Yide tem estúdio e equipe de audiovisual, e também grava no seu restaurante." },
       { pergunta: "Vocês atendem empresas de outros estados?", resposta: "Sim. O trabalho no iFood e no delivery próprio é feito a distância, para restaurantes de qualquer cidade. As fotos podem ser feitas por um fotógrafo local seguindo o nosso roteiro." },
+    ],
+  },
+  {
+    slug: "fotos-e-video-para-eventos",
+    titulo: "Fotos e vídeo para eventos em Cuiabá",
+    precoProprio: "Orçamento sob medida pelo WhatsApp, conforme a duração e o tamanho do evento.",
+    metaTitulo: "Fotos e Vídeo para Eventos em Cuiabá | Yide Digital",
+    metaDescricao: "Cobertura de fotos e vídeo para eventos corporativos, inaugurações, lançamentos e confraternizações em Cuiabá, com entrega rápida para as redes.",
+    resposta: "A Yide faz a cobertura de fotos e vídeo do seu evento em Cuiabá e Várzea Grande: inaugurações, lançamentos, palestras, feiras e confraternizações de empresa. Além das fotos e do vídeo completo, entregamos stories e reels prontos para postar ainda no dia, porque evento bom é o que continua vendendo depois que acaba.",
+    entregas: [
+      "Fotógrafo e videomaker no local, com equipamento profissional",
+      "Fotos tratadas em alta resolução, em galeria online para baixar",
+      "Vídeo resumo (aftermovie) do evento",
+      "Stories e reels editados para postar no mesmo dia",
+      "Depoimentos curtos de convidados, palestrantes e clientes",
+      "Cortes do evento para usar em anúncios e no site",
+    ],
+    etapas: [
+      { titulo: "Briefing", texto: "Entendemos o objetivo do evento, o roteiro do dia e os momentos que não podem faltar." },
+      { titulo: "Cobertura", texto: "Fotografamos e filmamos o evento, com captação de stories ao vivo se você quiser." },
+      { titulo: "Edição", texto: "Tratamos as fotos e editamos o vídeo resumo, os reels e os cortes." },
+      { titulo: "Entrega e divulgação", texto: "Entregamos tudo em galeria online e, se quiser, o melhor material vira post e anúncio." },
+    ],
+    paraQuem: [
+      "Empresas com inaugurações e lançamentos",
+      "Palestras, workshops e eventos de associação",
+      "Feiras, estandes e ativações de marca",
+      "Confraternizações e festas de fim de ano de empresa",
+    ],
+    faq: [
+      { pergunta: "Vocês cobrem eventos em Cuiabá e Várzea Grande?", resposta: "Sim. A equipe de audiovisual da Yide fica em Cuiabá e vai até o local do evento. Para outras cidades de Mato Grosso, combinamos o deslocamento no orçamento." },
+      { pergunta: "Em quanto tempo recebo as fotos e o vídeo?", resposta: "Stories e uma prévia das fotos podem sair no mesmo dia. A galeria completa e o vídeo resumo são entregues em poucos dias, com o prazo combinado no orçamento conforme o tamanho do evento." },
+      { pergunta: "Quanto custa a cobertura de um evento?", resposta: "Depende da duração, do número de profissionais e do que você quer receber (só fotos, fotos e vídeo, stories ao vivo). Fazemos o orçamento pelo WhatsApp a partir do roteiro do evento." },
+      { pergunta: "Dá para usar o material em anúncios?", resposta: "Sim. Além do vídeo resumo, editamos cortes curtos pensados para anúncio e para as redes, e a Yide também pode cuidar da divulgação." },
     ],
   },
 ];
