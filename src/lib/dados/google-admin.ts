@@ -45,6 +45,8 @@ async function chamar<T>(metodo: "POST" | "PUT", url: string, body?: unknown): P
   }
 }
 
+const falhouVerificacao = (m: string) =>
+  /verification token could not be found|failed to verify|could not be verified|verification failed/i.test(m);
 const apiDesligada = (m: string) => /has not been used|is disabled|API not enabled|SERVICE_DISABLED|accessNotConfigured/i.test(m);
 
 /** Traduz a falha numa mensagem pra tela. `contexto` muda a mensagem do 403. */
@@ -73,8 +75,8 @@ function contaGa4(): string {
   return env && /^\d+$/.test(env) ? env : GA4_ACCOUNT_PADRAO;
 }
 
-/** Cria propriedade GA4 + fluxo web do site. Devolve o id da propriedade (só o número) e o G-XXXX. */
-export async function criarPropriedadeGa4(i: { nomeCliente: string; siteUrl: string }): Promise<ResultadoAdmin<{ propertyId: string; measurementId: string }>> {
+/** Cria só a propriedade GA4 na conta da Yide. Devolve o id (só o número). */
+export async function criarPropriedadeGa4(i: { nomeCliente: string }): Promise<ResultadoAdmin<{ propertyId: string }>> {
   try {
     const prop = await chamar<{ name?: string }>("POST", "https://analyticsadmin.googleapis.com/v1beta/properties", {
       parent: `accounts/${contaGa4()}`,
@@ -89,22 +91,30 @@ export async function criarPropriedadeGa4(i: { nomeCliente: string; siteUrl: str
       console.error("[dados/google-admin] propriedade sem name");
       return { ok: false, erro: ERRO_GENERICO };
     }
+    return { ok: true, propertyId };
+  } catch (e) {
+    console.error("[dados/google-admin] ga4 propriedade", e instanceof Error ? e.message : "erro");
+    return { ok: false, erro: ERRO_GENERICO };
+  }
+}
+
+/** Cria o fluxo web do site numa propriedade existente. Devolve o G-XXXX. */
+export async function criarFluxoGa4(propertyId: string, siteUrl: string): Promise<ResultadoAdmin<{ measurementId: string }>> {
+  try {
+    if (!/^\d+$/.test(propertyId)) return { ok: false, erro: "Propriedade do Google Analytics inválida." };
     const stream = await chamar<{ webStreamData?: { measurementId?: string } }>(
       "POST", `https://analyticsadmin.googleapis.com/v1beta/properties/${propertyId}/dataStreams`,
-      { type: "WEB_DATA_STREAM", displayName: "Site", webStreamData: { defaultUri: i.siteUrl } },
+      { type: "WEB_DATA_STREAM", displayName: "Site", webStreamData: { defaultUri: siteUrl } },
     );
-    if (!stream.ok) {
-      // A propriedade já existe: devolve erro citando o id pra ninguém criar de novo às cegas.
-      return { ok: false, erro: `Propriedade ${propertyId} criada, mas o fluxo do site falhou: ${traduzir(stream, "ga4")}` };
-    }
+    if (!stream.ok) return { ok: false, erro: traduzir(stream, "ga4") };
     const measurementId = stream.json.webStreamData?.measurementId;
-    if (!measurementId) {
+    if (!measurementId || !/^G-[A-Z0-9]+$/i.test(measurementId)) {
       console.error("[dados/google-admin] fluxo sem measurementId", propertyId);
-      return { ok: false, erro: `Propriedade ${propertyId} criada, mas o Google não devolveu o ID de medição.` };
+      return { ok: false, erro: "O Google não devolveu o ID de medição." };
     }
-    return { ok: true, propertyId, measurementId };
+    return { ok: true, measurementId };
   } catch (e) {
-    console.error("[dados/google-admin] ga4", e instanceof Error ? e.message : "erro");
+    console.error("[dados/google-admin] ga4 fluxo", e instanceof Error ? e.message : "erro");
     return { ok: false, erro: ERRO_GENERICO };
   }
 }
@@ -133,8 +143,8 @@ export async function verificarEAdicionarSearchConsole(dominio: string): Promise
       { site: { type: "INET_DOMAIN", identifier: dominio } },
     );
     if (!v.ok) {
-      // 400 na verificação = o Google não achou o TXT (ainda).
-      if ("erro" in v && v.erro.status === 400 && !apiDesligada(v.erro.message)) return { ok: false, erro: ERRO_TXT_AUSENTE };
+      // Só vira "TXT não apareceu" quando o Google diz que a verificação falhou; outro 400 segue a tradução normal.
+      if ("erro" in v && v.erro.status === 400 && falhouVerificacao(v.erro.message)) return { ok: false, erro: ERRO_TXT_AUSENTE };
       return { ok: false, erro: traduzir(v, "verificacao") };
     }
     const gscSiteUrl = `sc-domain:${dominio}`;

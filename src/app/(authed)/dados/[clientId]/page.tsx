@@ -112,8 +112,8 @@ export default async function DadosClientePage({
       />
       {editar && cliente.site_url && !cliente.sem_site && (
         <SiteGoogleCard
-          key={`${cliente.ga4_property_id ?? ""}|${cliente.gsc_site_url ?? ""}`}
-          clientId={clientId} ga4PropertyId={cliente.ga4_property_id}
+          key={`${cliente.ga4_property_id ?? ""}|${cliente.ga4_measurement_id ?? ""}|${cliente.gsc_site_url ?? ""}`}
+          clientId={clientId} siteUrl={cliente.site_url} ga4PropertyId={cliente.ga4_property_id}
           ga4MeasurementId={cliente.ga4_measurement_id} gscSiteUrl={cliente.gsc_site_url}
         />
       )}
