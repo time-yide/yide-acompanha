@@ -18,7 +18,7 @@ const ERRO_TXT_AUSENTE = "O registro TXT ainda não apareceu no DNS. Pode levar 
 type ErroGoogle = { status: number; code?: number; gstatus?: string; message: string };
 type Resposta<T> = { ok: true; json: T } | { ok: false; erro: ErroGoogle } | { ok: false; semToken: true } | { ok: false; rede: true };
 
-async function chamar<T>(metodo: "POST" | "PUT", url: string, body?: unknown): Promise<Resposta<T>> {
+async function chamar<T>(metodo: "GET" | "POST" | "PUT", url: string, body?: unknown): Promise<Resposta<T>> {
   const token = await getGoogleToken(SCOPES_ADMIN);
   if (!token) return { ok: false, semToken: true };
   try {
@@ -102,6 +102,14 @@ export async function criarPropriedadeGa4(i: { nomeCliente: string }): Promise<R
 export async function criarFluxoGa4(propertyId: string, siteUrl: string): Promise<ResultadoAdmin<{ measurementId: string }>> {
   try {
     if (!/^\d+$/.test(propertyId)) return { ok: false, erro: "Propriedade do Google Analytics inválida." };
+    // Propriedade já existente (ligada à mão): reaproveita o fluxo web que já existe em vez de duplicar.
+    const lista = await chamar<{ dataStreams?: Array<{ type?: string; webStreamData?: { measurementId?: string } }> }>(
+      "GET", `https://analyticsadmin.googleapis.com/v1beta/properties/${propertyId}/dataStreams`,
+    );
+    if (!lista.ok) return { ok: false, erro: traduzir(lista, "ga4") };
+    const existente = (lista.json.dataStreams ?? [])
+      .find((d) => d.type === "WEB_DATA_STREAM" && /^G-[A-Z0-9]+$/i.test(d.webStreamData?.measurementId ?? ""));
+    if (existente?.webStreamData?.measurementId) return { ok: true, measurementId: existente.webStreamData.measurementId };
     const stream = await chamar<{ webStreamData?: { measurementId?: string } }>(
       "POST", `https://analyticsadmin.googleapis.com/v1beta/properties/${propertyId}/dataStreams`,
       { type: "WEB_DATA_STREAM", displayName: "Site", webStreamData: { defaultUri: siteUrl } },
