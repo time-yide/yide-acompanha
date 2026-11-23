@@ -6,21 +6,32 @@ import {
 const agora = new Date("2026-11-22T12:00:00Z");
 
 describe("dados/regras", () => {
+  const comSite = { semSite: false, siteUrl: "https://exemplo.com.br" };
+  const semCadastro = { semSite: false, siteUrl: null };
+
   it("site", () => {
-    expect(avaliarSite({ temSite: false }).status).toBe("ausente");
-    expect(avaliarSite({ temSite: true, dados: null }).status).toBe("sem_acesso");
-    expect(avaliarSite({ temSite: true, dados: { sessoes: 80, sessoesAnt: 70 } }).status).toBe("fraco");
-    const queda = avaliarSite({ temSite: true, dados: { sessoes: 700, sessoesAnt: 1000 } });
+    expect(avaliarSite({ semSite: true, siteUrl: null })).toMatchObject({ status: "ausente", motivo: "Cliente não tem site" });
+    expect(avaliarSite({ ...semCadastro, dados: null })).toMatchObject({ status: "sem_acesso", motivo: "Site não cadastrado" });
+    expect(avaliarSite({ ...comSite, dados: null })).toMatchObject({ status: "sem_acesso", motivo: "Google Analytics não conectado" });
+    expect(avaliarSite({ ...comSite, dados: { sessoes: 80, sessoesAnt: 70 } }).status).toBe("fraco");
+    const queda = avaliarSite({ ...comSite, dados: { sessoes: 700, sessoesAnt: 1000 } });
     expect(queda.status).toBe("fraco");
     expect(queda.motivo).toBe("Site perdeu 30% das visitas");
-    expect(avaliarSite({ temSite: true, dados: { sessoes: 1000, sessoesAnt: 1000 } }).status).toBe("ok");
+    expect(avaliarSite({ ...comSite, dados: { sessoes: 1000, sessoesAnt: 1000 } }).status).toBe("ok");
+    // Dados existem mesmo sem site cadastrado: avalia normal.
+    expect(avaliarSite({ ...semCadastro, dados: { sessoes: 1000, sessoesAnt: 1000 } }).status).toBe("ok");
   });
 
   it("google busca", () => {
-    expect(avaliarGoogle({ temSite: true, dados: { cliques: 100, cliquesAnt: 100, posicao: 25 } }).status).toBe("fraco");
-    expect(avaliarGoogle({ temSite: true, dados: { cliques: 79, cliquesAnt: 100, posicao: 8 } }).motivo)
+    expect(avaliarGoogle({ semSite: true, siteUrl: null }))
+      .toMatchObject({ status: "ausente", motivo: "Sem site, não aparece na busca do Google" });
+    expect(avaliarGoogle({ ...semCadastro, dados: null })).toMatchObject({ status: "sem_acesso", motivo: "Site não cadastrado" });
+    expect(avaliarGoogle({ ...comSite, dados: null })).toMatchObject({ status: "sem_acesso", motivo: "Search Console não conectado" });
+    expect(avaliarGoogle({ ...comSite, dados: { cliques: 100, cliquesAnt: 100, posicao: 25 } }).status).toBe("fraco");
+    expect(avaliarGoogle({ ...comSite, dados: { cliques: 79, cliquesAnt: 100, posicao: 8 } }).motivo)
       .toBe("Cliques vindos do Google caíram 21%");
-    expect(avaliarGoogle({ temSite: true, dados: { cliques: 100, cliquesAnt: 90, posicao: 8 } }).status).toBe("ok");
+    expect(avaliarGoogle({ ...comSite, dados: { cliques: 100, cliquesAnt: 90, posicao: 8 } }).status).toBe("ok");
+    expect(avaliarGoogle({ ...semCadastro, dados: { cliques: 100, cliquesAnt: 90, posicao: 8 } }).status).toBe("ok");
   });
 
   it("gmn", () => {

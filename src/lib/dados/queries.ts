@@ -2,7 +2,7 @@
 import "server-only";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import type { CurrentUser } from "@/lib/auth/session";
-import { CLIENTE_DADOS_SELECT, type ClienteDados } from "./calcular";
+import { CLIENTE_DADOS_SELECT, CLIENTE_DADOS_SELECT_SEM_SITE, comPadroesSite, erroColunaSite, type ClienteDados } from "./calcular";
 import { dadosVeTodos } from "./access";
 import type { CanaisResultado, Perda } from "./tipos";
 
@@ -59,15 +59,20 @@ export async function listVisaoGeral(orgId: string, user: CurrentUser): Promise<
 }
 
 /** Garante que o usuário pode ver o cliente. Devolve a linha do cliente (com conexões) ou null.
- *  Antes da migration (colunas ga4/gsc ausentes) refaz o select sem elas e devolve null nelas. */
+ *  Antes das migrations (colunas ga4/gsc ou do site ausentes) refaz o select sem elas e devolve os padrões. */
 export async function getClienteDados(orgId: string, user: CurrentUser, clientId: string) {
   const buscar = (cols: string) => sb().from("clients").select(`${cols}, assessor_id`)
     .eq("id", clientId).eq("organization_id", orgId).is("deleted_at", null).maybeSingle();
   let { data, error } = await buscar(CLIENTE_DADOS_SELECT);
+  // Antes da migration do site (20261123): refaz sem site_url/sem_site/ga4_measurement_id.
+  if (erroColunaSite(error)) {
+    ({ data, error } = await buscar(CLIENTE_DADOS_SELECT_SEM_SITE));
+    if (data) data = comPadroesSite(data);
+  }
   if (error && (error.code === "42703" || /ga4_property_id|gsc_site_url/.test(error.message ?? ""))) {
-    const semNovas = CLIENTE_DADOS_SELECT.replace(", ga4_property_id, gsc_site_url", "");
+    const semNovas = CLIENTE_DADOS_SELECT_SEM_SITE.replace(", ga4_property_id, gsc_site_url", "");
     ({ data, error } = await buscar(semNovas));
-    if (data) data = { ...data, ga4_property_id: null, gsc_site_url: null };
+    if (data) data = comPadroesSite({ ...data, ga4_property_id: null, gsc_site_url: null });
   }
   if (error) { console.error("[dados/getClienteDados]", error.code, error.message); return null; }
   if (!data) { console.error("[dados/getClienteDados] cliente não encontrado", { clientId, orgId }); return null; }

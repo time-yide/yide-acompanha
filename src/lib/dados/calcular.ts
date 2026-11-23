@@ -12,7 +12,17 @@ import type { CanaisResultado, Periodo, SnapshotDados } from "./tipos";
 
 export const CLIENTE_DADOS_SELECT =
   "id, organization_id, nome, instagram_url, instagram_business_id, facebook_page_id, meta_ad_account_id, " +
-  "gmb_place_id, gmb_link, gmb_rating, gmb_review_count, crm_tipo, crm_identifier, tipo_pacote, ga4_property_id, gsc_site_url";
+  "gmb_place_id, gmb_link, gmb_rating, gmb_review_count, crm_tipo, crm_identifier, tipo_pacote, ga4_property_id, gsc_site_url, " +
+  "site_url, sem_site, ga4_measurement_id";
+
+/** Colunas da migration 20261123 (site do cliente). Antes dela, o select cai pra versão sem elas. */
+export const COLUNAS_SITE = ", site_url, sem_site, ga4_measurement_id";
+export const CLIENTE_DADOS_SELECT_SEM_SITE = CLIENTE_DADOS_SELECT.replace(COLUNAS_SITE, "");
+/** Erro de coluna ausente (migration do site ainda não aplicada). */
+export const erroColunaSite = (e: { code?: string; message?: string } | null | undefined) =>
+  !!e && (e.code === "42703" || /site_url|sem_site|ga4_measurement_id/.test(e.message ?? ""));
+/** Padrões das colunas do site quando a migration ainda não foi aplicada. */
+export const comPadroesSite = <T extends object>(row: T) => ({ site_url: null, sem_site: false, ga4_measurement_id: null, ...row });
 
 export interface ClienteDados {
   id: string; organization_id: string; nome: string;
@@ -20,6 +30,7 @@ export interface ClienteDados {
   meta_ad_account_id: string | null; gmb_place_id: string | null; gmb_link: string | null;
   gmb_rating: number | null; gmb_review_count: number | null; crm_tipo: string | null;
   crm_identifier: string | null; tipo_pacote: string | null; ga4_property_id: string | null; gsc_site_url: string | null;
+  site_url: string | null; sem_site: boolean; ga4_measurement_id: string | null;
 }
 
 function addDias(ymd: string, n: number): string {
@@ -29,9 +40,8 @@ const ultimos7 = (p: Periodo): Periodo => ({ de: addDias(p.ate, -6), ate: p.ate 
 
 export async function calcularCliente(c: ClienteDados, periodo: Periodo = periodoPadrao(), agora = new Date()): Promise<SnapshotDados> {
   const ant = periodoAnterior(periodo);
-  // O cadastro de clientes não tem campo de site: sem GA4/GSC ligado o canal fica sem_acesso
-  // (nunca "ausente"), pra não punir o cliente por falta de conexão nossa.
-  const temSite = true;
+  // Só "Cliente não tem site" marcado vira perda; site não cadastrado ou sem GA4/GSC fica sem_acesso.
+  const site = { semSite: !!c.sem_site, siteUrl: c.site_url ?? null };
   const [ga4, gsc, ig, fb, ads, crm, gmnIni, ecom] = await Promise.all([
     c.ga4_property_id ? coletarGa4(c.ga4_property_id, periodo, ant) : null,
     c.gsc_site_url ? coletarGsc(c.gsc_site_url, periodo, ant) : null,
@@ -44,8 +54,8 @@ export async function calcularCliente(c: ClienteDados, periodo: Periodo = period
   ]);
 
   const canais: CanaisResultado = {
-    site: avaliarSite({ temSite, dados: ga4 }),
-    google: avaliarGoogle({ temSite, dados: gsc }),
+    site: avaliarSite({ ...site, dados: ga4 }),
+    google: avaliarGoogle({ ...site, dados: gsc }),
     gmn: avaliarGmn({ temPerfil: !!(c.gmb_place_id || c.gmb_link), nota: c.gmb_rating, avaliacoes: c.gmb_review_count, avaliacoesAnt: gmnIni }),
     instagram: avaliarRede("Instagram", { temPerfil: !!(c.instagram_url || c.instagram_business_id), dados: ig }, agora),
     facebook: avaliarRede("Facebook", { temPerfil: !!c.facebook_page_id, dados: fb }, agora),

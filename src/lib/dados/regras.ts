@@ -21,9 +21,12 @@ export function queda(atual: number, anterior: number): number {
 }
 const pct = (q: number) => `${Math.round(q * 100)}%`;
 
-export function avaliarSite(i: { temSite: boolean; dados?: { sessoes: number; sessoesAnt: number } | null }): ResultadoCanal {
-  if (!i.temSite) return r("ausente", "Cliente não tem site");
-  if (!i.dados) return r("sem_acesso", "Google Analytics não conectado");
+/** Situação do site no cadastro. `semSite` = confirmado que não tem (perda real). */
+export interface EntradaSite { semSite: boolean; siteUrl: string | null }
+
+export function avaliarSite(i: EntradaSite & { dados?: { sessoes: number; sessoesAnt: number } | null }): ResultadoCanal {
+  if (i.semSite) return r("ausente", "Cliente não tem site");
+  if (!i.dados) return r("sem_acesso", i.siteUrl ? "Google Analytics não conectado" : "Site não cadastrado");
   const m = { sessoes: i.dados.sessoes, sessoesAnt: i.dados.sessoesAnt };
   const q = queda(i.dados.sessoes, i.dados.sessoesAnt);
   if (q >= LIMITES.quedaFraco) return r("fraco", `Site perdeu ${pct(q)} das visitas`, m);
@@ -31,9 +34,9 @@ export function avaliarSite(i: { temSite: boolean; dados?: { sessoes: number; se
   return r("ok", null, m);
 }
 
-export function avaliarGoogle(i: { temSite: boolean; dados?: { cliques: number; cliquesAnt: number; posicao: number | null } | null }): ResultadoCanal {
-  if (!i.temSite) return r("ausente", "Sem site, não aparece na busca do Google");
-  if (!i.dados) return r("sem_acesso", "Search Console não conectado");
+export function avaliarGoogle(i: EntradaSite & { dados?: { cliques: number; cliquesAnt: number; posicao: number | null } | null }): ResultadoCanal {
+  if (i.semSite) return r("ausente", "Sem site, não aparece na busca do Google");
+  if (!i.dados) return r("sem_acesso", i.siteUrl ? "Search Console não conectado" : "Site não cadastrado");
   const m = { cliques: i.dados.cliques, cliquesAnt: i.dados.cliquesAnt, posicao: i.dados.posicao };
   const q = queda(i.dados.cliques, i.dados.cliquesAnt);
   if (q >= LIMITES.quedaFraco) return r("fraco", `Cliques vindos do Google caíram ${pct(q)}`, m);
