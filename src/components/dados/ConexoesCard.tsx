@@ -5,10 +5,11 @@ import { Copy } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { salvarConexoesAction } from "@/lib/dados/actions";
+import { normalizarSiteUrl } from "@/lib/dados/site";
 
 interface Props {
   clientId: string; podeEditar: boolean; emailContaServico: string | null;
-  atual: { ga4: string | null; gsc: string | null; lyide: string | null };
+  atual: { ga4: string | null; gsc: string | null; lyide: string | null; site: string | null; semSite: boolean };
   opcoes: { ga4: Array<{ id: string; nome: string }>; gsc: string[]; lyide: Array<{ slug: string; name: string }> };
 }
 
@@ -16,6 +17,8 @@ export function ConexoesCard({ clientId, podeEditar, emailContaServico, atual, o
   const [ga4, setGa4] = useState(atual.ga4 ?? "");
   const [gsc, setGsc] = useState(atual.gsc ?? "");
   const [lyide, setLyide] = useState(atual.lyide ?? "");
+  const [site, setSite] = useState(atual.site ?? "");
+  const [semSite, setSemSite] = useState(atual.semSite);
   const [pending, start] = useTransition();
   const router = useRouter();
   const sel = "h-9 w-full rounded-md border border-white/15 bg-white/5 px-2 text-sm disabled:opacity-60";
@@ -32,6 +35,22 @@ export function ConexoesCard({ clientId, podeEditar, emailContaServico, atual, o
           </button>
         </div>
       )}
+      <div className="space-y-2">
+        <label className="block space-y-1 text-xs text-white/60">Site do cliente
+          <input
+            type="url" inputMode="url" placeholder="https://exemplo.com.br" className={sel}
+            value={site} disabled={!podeEditar || semSite} onChange={(e) => setSite(e.target.value)}
+            onBlur={() => { const n = normalizarSiteUrl(site); if (n) setSite(n); }}
+          />
+        </label>
+        <label className="flex items-center gap-2 text-xs text-white/70">
+          <input
+            type="checkbox" className="h-4 w-4" checked={semSite} disabled={!podeEditar}
+            onChange={(e) => { setSemSite(e.target.checked); if (e.target.checked) setSite(""); }}
+          />
+          Cliente não tem site
+        </label>
+      </div>
       <div className="grid gap-3 md:grid-cols-3">
         <label className="space-y-1 text-xs text-white/60">Google Analytics (GA4)
           <select className={sel} value={ga4} disabled={!podeEditar} onChange={(e) => setGa4(e.target.value)}>
@@ -57,7 +76,11 @@ export function ConexoesCard({ clientId, podeEditar, emailContaServico, atual, o
       </div>
       {podeEditar && (
         <Button size="sm" disabled={pending} onClick={() => start(async () => {
-          const r = await salvarConexoesAction({ clientId, ga4PropertyId: ga4 || null, gscSiteUrl: gsc || null, lyideSlug: lyide || null });
+          const siteUrl = semSite || !site.trim() ? null : normalizarSiteUrl(site);
+          if (!semSite && site.trim() && !siteUrl) { toast.error("Endereço do site inválido (use algo como https://exemplo.com.br)"); return; }
+          const r = await salvarConexoesAction({
+            clientId, ga4PropertyId: ga4 || null, gscSiteUrl: gsc || null, lyideSlug: lyide || null, siteUrl, semSite,
+          });
           if ("error" in r) { toast.error(r.error); return; }
           toast.success("Conexões salvas. Clique em Atualizar agora pra ver os dados.");
           router.refresh();

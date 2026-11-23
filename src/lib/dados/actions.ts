@@ -7,10 +7,12 @@ import { getOrganizationId } from "@/lib/gerador-leads/queries";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { canAccessDados, podeEditarConexoes } from "./access";
 import { getClienteDados } from "./queries";
-import { salvarSnapshot } from "./calcular";
+import { erroColunaSite, salvarSnapshot } from "./calcular";
 import { ga4Cache, gscCache, lyideCache } from "./opcoes-conexao";
 import { contaAnunciosValida, idMetaValido } from "./coletores/meta";
 import { sugerirConexoesOrg } from "./auto-conectar/sugerir";
+import { criarPropriedadeGa4, gerarTokenVerificacao, verificarEAdicionarSearchConsole } from "./google-admin";
+import { dominioDoSite, normalizarSiteUrl } from "./site";
 import { CAMPOS_CONEXAO, type ResultadoSugestoes } from "./auto-conectar/tipos";
 
 type Result = { success: true } | { error: string };
@@ -49,6 +51,8 @@ const conexoesSchema = z.object({
   ga4PropertyId: z.string().regex(/^\d+$/).nullable(),
   gscSiteUrl: z.string().max(300).regex(/^(https?:\/\/|sc-domain:)/).nullable(),
   lyideSlug: z.string().max(120).nullable(),
+  siteUrl: z.string().trim().max(300).nullable(),
+  semSite: z.boolean(),
 });
 
 export async function salvarConexoesAction(input: z.infer<typeof conexoesSchema>): Promise<Result> {
@@ -58,7 +62,10 @@ export async function salvarConexoesAction(input: z.infer<typeof conexoesSchema>
   if (!parsed.success) return { error: "Dados inválidos" };
   const orgId = await getOrganizationId(user.id);
   if (!orgId) return { error: "Sem organização" };
-  const { clientId, ga4PropertyId, gscSiteUrl, lyideSlug } = parsed.data;
+  const { clientId, ga4PropertyId, gscSiteUrl, lyideSlug, semSite } = parsed.data;
+  // "Não tem site" e endereço são exclusivos: marcar a caixa limpa o endereço.
+  const siteUrl = semSite || !parsed.data.siteUrl ? null : normalizarSiteUrl(parsed.data.siteUrl);
+  if (!semSite && parsed.data.siteUrl && !siteUrl) return { error: "Endereço do site inválido (use algo como https://exemplo.com.br)" };
   const cliente = await getClienteDados(orgId, user, clientId);
   if (!cliente) return { error: "Cliente não encontrado" };
 
@@ -73,13 +80,29 @@ export async function salvarConexoesAction(input: z.infer<typeof conexoesSchema>
   if (gscOp && !gscOp.includes(gscSiteUrl as string)) return { error: "Opção inválida" };
   if (lyideOp && !lyideOp.some((o) => o.slug === lyideSlug)) return { error: "Opção inválida" };
 
-  const patch: Record<string, string | null> = { ga4_property_id: ga4PropertyId, gsc_site_url: gscSiteUrl };
+  const patch: Record<string, string | boolean | null> = {
+    ga4_property_id: ga4PropertyId, gsc_site_url: gscSiteUrl, site_url: siteUrl, sem_site: semSite,
+  };
+  // Trocou/limpou a propriedade GA4: o G-XXXX guardado era da antiga.
+  if (ga4PropertyId !== cliente.ga4_property_id) patch.ga4_measurement_id = null;
   if (lyideSlug) { patch.crm_tipo = "yide"; patch.crm_identifier = lyideSlug; }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
-  const { data, error } = await sb.from("clients").update(patch).eq("id", clientId).eq("organization_id", orgId).is("deleted_at", null).select("id");
-  if (error) return { error: "Não deu pra salvar. Tente de novo." };
+  const gravar = (p: typeof patch) => sb.from("clients").update(p).eq("id", clientId).eq("organization_id", orgId).is("deleted_at", null).select("id");
+  let { data, error } = await gravar(patch);
+  let siteFicouDeFora = false;
+  if (erroColunaSite(error)) {
+    // Migration do site (20261123) ainda não aplicada: salva o resto e avisa.
+    const { site_url: _s, sem_site: _n, ga4_measurement_id: _m, ...semSiteCols } = patch;
+    void _s; void _n; void _m;
+    ({ data, error } = await gravar(semSiteCols));
+    siteFicouDeFora = !!siteUrl || semSite;
+  }
+  if (error) {
+    console.error("[dados/salvarConexoes]", error.code, error.message);
+    return { error: "Não deu pra salvar. Tente de novo." };
+  }
   if (!data || data.length === 0) return { error: "Cliente não encontrado" };
   if (!lyideSlug) {
     // Desconectar Lyide sem apagar outro CRM configurado.
@@ -88,6 +111,7 @@ export async function salvarConexoesAction(input: z.infer<typeof conexoesSchema>
     if (e2) return { error: "Não deu pra salvar. Tente de novo." };
   }
   revalidatePath(`/dados/${clientId}`);
+  if (siteFicouDeFora) return { error: "Conexões salvas, mas o site não: falta aplicar a migration do site (20261123)." };
   return { success: true };
 }
 
@@ -171,4 +195,83 @@ export async function aplicarConexoesAction(itens: z.infer<typeof aplicarSchema>
   revalidatePath("/dados");
   // Pedidos que não viraram gravação: sumiram da busca nova ou o UPDATE não pegou linha.
   return { success: true, aplicados, ignorados: parsed.data.length - aplicados };
+}
+
+// ---------------------------------------------------------------------------
+// Site do cliente: criar GA4 e verificar Search Console pela conta de serviço.
+// ---------------------------------------------------------------------------
+
+type Contexto = { orgId: string; cliente: NonNullable<Awaited<ReturnType<typeof getClienteDados>>> };
+
+async function contextoEditor(clientId: string): Promise<Contexto | { error: string }> {
+  if (!z.string().uuid().safeParse(clientId).success) return { error: "Cliente inválido" };
+  const user = await requireAuth();
+  if (!podeEditarConexoes(user.role)) return { error: "Sem permissão" };
+  const orgId = await getOrganizationId(user.id);
+  if (!orgId) return { error: "Sem organização" };
+  const cliente = await getClienteDados(orgId, user, clientId);
+  if (!cliente) return { error: "Cliente não encontrado" };
+  return { orgId, cliente };
+}
+
+/** Cria a propriedade GA4 (conta da Yide) + fluxo web do site e grava no cliente. */
+export async function criarGa4Action(clientId: string): Promise<{ success: true; measurementId: string } | { error: string }> {
+  const ctx = await contextoEditor(clientId);
+  if ("error" in ctx) return ctx;
+  const { orgId, cliente } = ctx;
+  if (cliente.sem_site || !cliente.site_url) return { error: "Cadastre o site do cliente primeiro." };
+  if (cliente.ga4_property_id) return { error: "Este cliente já tem Google Analytics conectado." };
+
+  const r = await criarPropriedadeGa4({ nomeCliente: cliente.nome, siteUrl: cliente.site_url });
+  if (!r.ok) return { error: r.erro };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = createServiceRoleClient() as any;
+  const { data, error } = await sb.from("clients")
+    .update({ ga4_property_id: r.propertyId, ga4_measurement_id: r.measurementId })
+    .eq("id", cliente.id).eq("organization_id", orgId).is("deleted_at", null).is("ga4_property_id", null)
+    .select("id");
+  if (error || !data || data.length === 0) {
+    console.error("[dados/criarGa4] gravação", error?.code, error?.message, { propertyId: r.propertyId });
+    return { error: `Propriedade ${r.propertyId} criada no Google, mas não deu pra salvar no cliente. Selecione-a em Conexões.` };
+  }
+  revalidatePath(`/dados/${cliente.id}`);
+  return { success: true, measurementId: r.measurementId };
+}
+
+/** Gera o TXT de verificação do domínio do site (o cliente adiciona no DNS dele). */
+export async function gerarVerificacaoGscAction(clientId: string): Promise<{ success: true; dominio: string; txt: string } | { error: string }> {
+  const ctx = await contextoEditor(clientId);
+  if ("error" in ctx) return ctx;
+  const { cliente } = ctx;
+  const dominio = cliente.sem_site ? null : dominioDoSite(cliente.site_url);
+  if (!dominio) return { error: "Cadastre o site do cliente primeiro." };
+  const r = await gerarTokenVerificacao(dominio);
+  if (!r.ok) return { error: r.erro };
+  return { success: true, dominio, txt: r.token };
+}
+
+/** Confere o TXT no DNS; se ok, adiciona o domínio no Search Console e grava no cliente. */
+export async function verificarGscAction(clientId: string): Promise<Result> {
+  const ctx = await contextoEditor(clientId);
+  if ("error" in ctx) return ctx;
+  const { orgId, cliente } = ctx;
+  const dominio = cliente.sem_site ? null : dominioDoSite(cliente.site_url);
+  if (!dominio) return { error: "Cadastre o site do cliente primeiro." };
+  if (cliente.gsc_site_url) return { error: "Este cliente já tem Search Console conectado." };
+
+  const r = await verificarEAdicionarSearchConsole(dominio);
+  if (!r.ok) return { error: r.erro };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = createServiceRoleClient() as any;
+  const { data, error } = await sb.from("clients").update({ gsc_site_url: r.gscSiteUrl })
+    .eq("id", cliente.id).eq("organization_id", orgId).is("deleted_at", null).is("gsc_site_url", null)
+    .select("id");
+  if (error || !data || data.length === 0) {
+    console.error("[dados/verificarGsc] gravação", error?.code, error?.message);
+    return { error: "Domínio verificado no Google, mas não deu pra salvar no cliente. Selecione-o em Conexões." };
+  }
+  revalidatePath(`/dados/${cliente.id}`);
+  return { success: true };
 }

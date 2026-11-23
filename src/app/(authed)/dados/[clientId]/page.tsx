@@ -15,6 +15,7 @@ import { CanalCards } from "@/components/dados/CanalCards";
 import { PerdasLista } from "@/components/dados/PerdasLista";
 import { AtualizarAgoraButton } from "@/components/dados/AtualizarAgoraButton";
 import { ConexoesCard } from "@/components/dados/ConexoesCard";
+import { SiteGoogleCard } from "@/components/dados/SiteGoogleCard";
 import type { SnapshotDados } from "@/lib/dados/tipos";
 
 export const dynamic = "force-dynamic";
@@ -73,7 +74,7 @@ export default async function DadosClientePage({
       <header className="flex flex-wrap items-end justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-6">
         <div>
           <h1 className="text-3xl font-extrabold">{cliente.nome}</h1>
-          <p className="text-sm text-white/50">{cliente.gsc_site_url ? `${cliente.gsc_site_url.replace(/^sc-domain:/, "")} · ` : ""}{periodo.de.split("-").reverse().join("/")} a {periodo.ate.split("-").reverse().join("/")}</p>
+          <p className="text-sm text-white/50">{cliente.site_url ? `${cliente.site_url.replace(/^https?:\/\//, "")} · ` : cliente.gsc_site_url ? `${cliente.gsc_site_url.replace(/^sc-domain:/, "")} · ` : ""}{periodo.de.split("-").reverse().join("/")} a {periodo.ate.split("-").reverse().join("/")}</p>
           <form className="mt-3 flex flex-wrap items-end gap-2 text-xs text-white/60">
             <label>De <input type="date" name="de" defaultValue={periodo.de} className="ml-1 rounded border border-white/15 bg-white/5 px-2 py-1" /></label>
             <label>Até <input type="date" name="ate" defaultValue={periodo.ate} className="ml-1 rounded border border-white/15 bg-white/5 px-2 py-1" /></label>
@@ -103,9 +104,19 @@ export default async function DadosClientePage({
 
       <ConexoesCard
         clientId={clientId} podeEditar={editar} emailContaServico={editar ? emailContaServico() : null}
-        atual={{ ga4: cliente.ga4_property_id, gsc: cliente.gsc_site_url, lyide: cliente.crm_tipo === "yide" ? cliente.crm_identifier : null }}
+        atual={{
+          ga4: cliente.ga4_property_id, gsc: cliente.gsc_site_url, lyide: cliente.crm_tipo === "yide" ? cliente.crm_identifier : null,
+          site: cliente.site_url, semSite: cliente.sem_site,
+        }}
         opcoes={{ ga4: opcoesGa4, gsc: opcoesGsc, lyide: opcoesLyide }}
       />
+      {editar && cliente.site_url && !cliente.sem_site && (
+        <SiteGoogleCard
+          key={`${cliente.ga4_property_id ?? ""}|${cliente.gsc_site_url ?? ""}`}
+          clientId={clientId} ga4PropertyId={cliente.ga4_property_id}
+          ga4MeasurementId={cliente.ga4_measurement_id} gscSiteUrl={cliente.gsc_site_url}
+        />
+      )}
     </div>
   );
 }
