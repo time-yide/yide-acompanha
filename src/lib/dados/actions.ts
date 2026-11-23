@@ -274,7 +274,7 @@ export async function criarGa4Action(clientId: string): Promise<{ success: true;
     await liberar();
     revalidatePath(`/dados/${cliente.id}`);
     console.error("[dados/criarGa4] fluxo", fluxo.erro);
-    return { error: "Propriedade criada, mas faltou o fluxo do site — clique em Criar fluxo do site" };
+    return { error: "Propriedade criada, mas faltou o fluxo do site — clique em Pegar código do site" };
   }
   const { error: eFluxo } = await upd({ ga4_measurement_id: fluxo.measurementId }).eq("ga4_property_id", prop.propertyId);
   if (eFluxo) console.error("[dados/criarGa4] gravar fluxo", eFluxo.code, eFluxo.message);

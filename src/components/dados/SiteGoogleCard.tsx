@@ -70,9 +70,9 @@ export function SiteGoogleCard({ clientId, siteUrl, ga4PropertyId, ga4Measuremen
         </div>
       ) : semFluxo ? (
         <div className="space-y-2">
-          <p className="text-xs text-white/60">A propriedade do Google Analytics existe, mas falta o fluxo do site (é ele que gera o código).</p>
+          <p className="text-xs text-white/60">O Google Analytics está ligado. Clique pra pegar o código do site (se não existir fluxo do site, ele é criado).</p>
           <Button size="sm" disabled={pendGa4} onClick={() => criar(criarFluxoGa4Action)}>
-            {pendGa4 ? "Criando…" : "Criar fluxo do site"}
+            {pendGa4 ? "Buscando…" : "Pegar código do site"}
           </Button>
         </div>
       ) : null}
