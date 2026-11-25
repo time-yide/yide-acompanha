@@ -418,7 +418,7 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
     // Auto-delega videomaker pra cada ocorrência da série (best-effort).
     if (isVideomaker) {
       for (const row of createdRows as { id: string }[]) {
-        after(autoAssignVideomaker(row.id, actor.id));
+        after(autoAssignVideomaker(row.id, actor.id, { avisarSeFalhar: true }));
       }
     }
 
@@ -516,7 +516,7 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
   if (isVideomaker) {
     revalidatePath("/audiovisual");
     if (!videomakerId) {
-      after(autoAssignVideomaker(created.id, actor.id));
+      after(autoAssignVideomaker(created.id, actor.id, { avisarSeFalhar: true }));
     }
   }
   redirect(`/calendario`);
@@ -766,6 +766,15 @@ export async function updateEventAction(_prevState: ActionResult, formData: Form
       actorId: actor.id,
       actorNome: actor.nome,
     }));
+  }
+
+  // Gravação que segue (ou voltou) sem videomaker → tenta delegar sozinha de
+  // novo. A função ignora o que já está delegado.
+  if (isVideomaker) {
+    for (const row of updatedRows as { id: string }[]) {
+      after(autoAssignVideomaker(row.id, actor.id, { avisarSeFalhar: true }));
+    }
+    revalidatePath("/audiovisual");
   }
 
   revalidatePath("/calendario");

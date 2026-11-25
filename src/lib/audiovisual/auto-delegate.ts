@@ -19,28 +19,90 @@ interface VideomakerCandidate {
   scheduledCount: number;
 }
 
+export type AutoAssignVideomakerResult =
+  | "delegada"
+  | "sem_candidato" // ninguém do rodízio livre no horário
+  | "ignorada"; // evento não existe / não é gravação / não está pendente
+
 /**
  * Tenta auto-delegar um videomaker a um evento pending_delegation.
  * Escolhe o videomaker ativo com MENOS gravações agendadas nos próximos
  * 30 dias e sem conflito de horário/freela.
  *
+ * Roda ao criar, editar e remarcar a gravação, e de novo pelo cron
+ * `audiovisual-auto-delegar-gravacao` (pega o que ficou pra trás).
+ *
+ * `avisarSeFalhar`: se ninguém do rodízio estiver livre, avisa os
+ * coordenadores do audiovisual pra delegarem na mão. O cron não avisa
+ * (senão repetiria o aviso a cada execução).
+ *
  * Best-effort: se falhar, o evento fica pending_delegation pro manual.
  */
 export async function autoAssignVideomaker(
   eventId: string,
-  actorId: string,
-): Promise<void> {
+  actorId: string | null,
+  opts: { avisarSeFalhar?: boolean } = {},
+): Promise<AutoAssignVideomakerResult> {
   try {
-    await _autoAssignVideomakerImpl(eventId, actorId);
+    const res = await _autoAssignVideomakerImpl(eventId, actorId);
+    if (res.resultado === "sem_candidato" && opts.avisarSeFalhar && res.event) {
+      await avisarGravacaoSemVideomaker(res.event, actorId);
+    }
+    return res.resultado;
   } catch (e) {
     console.error("[auto-delegate] autoAssignVideomaker failed:", e);
+    return "ignorada";
+  }
+}
+
+interface EventoGravacao {
+  id: string;
+  titulo: string;
+  inicio: string;
+  fim: string;
+  sub_calendar: string;
+  videomaker_status: string | null;
+  participantes_ids: string[] | null;
+}
+
+async function avisarGravacaoSemVideomaker(
+  event: EventoGravacao,
+  actorId: string | null,
+): Promise<void> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = createServiceRoleClient() as any;
+    const { data: coords } = await sb
+      .from("profiles")
+      .select("id")
+      .in("role", ["audiovisual_chefe", "socio"])
+      .eq("ativo", true);
+    const ids = ((coords ?? []) as { id: string }[]).map((c) => c.id);
+    if (ids.length === 0) return;
+    const quando = new Date(event.inicio).toLocaleString("pt-BR", {
+      timeZone: "America/Cuiaba",
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    await dispatchNotification({
+      evento_tipo: "task_assigned",
+      titulo: "Gravação sem videomaker",
+      mensagem: `Ninguém do rodízio está livre em "${event.titulo}" (${quando}). Delegue manualmente.`,
+      link: "/audiovisual?tab=aguardando_videomaker",
+      user_ids_extras: ids,
+      ...(actorId ? { source_user_id: actorId } : {}),
+    });
+  } catch (e) {
+    console.error("[auto-delegate] aviso gravação sem videomaker falhou:", e);
   }
 }
 
 async function _autoAssignVideomakerImpl(
   eventId: string,
-  actorId: string,
-): Promise<void> {
+  actorId: string | null,
+): Promise<{ resultado: AutoAssignVideomakerResult; event?: EventoGravacao }> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
 
@@ -48,10 +110,10 @@ async function _autoAssignVideomakerImpl(
     .from("calendar_events")
     .select("id, titulo, inicio, fim, sub_calendar, videomaker_status, participantes_ids")
     .eq("id", eventId)
-    .single();
-  if (!event) return;
-  if (event.sub_calendar !== "videomakers") return;
-  if (event.videomaker_status !== "pending_delegation") return;
+    .maybeSingle();
+  if (!event) return { resultado: "ignorada" };
+  if (event.sub_calendar !== "videomakers") return { resultado: "ignorada" };
+  if (event.videomaker_status !== "pending_delegation") return { resultado: "ignorada" };
 
   const { data: allProfiles } = await sb
     .from("profiles")
@@ -60,7 +122,7 @@ async function _autoAssignVideomakerImpl(
   const videomakers = (allProfiles ?? []).filter((p: { nome: string }) =>
     NOMES_RODIZIO_GRAVACAO.some((n) => p.nome?.includes(n)),
   );
-  if (videomakers.length === 0) return;
+  if (videomakers.length === 0) return { resultado: "sem_candidato", event };
 
   const now = new Date();
   const windowEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
@@ -114,7 +176,7 @@ async function _autoAssignVideomakerImpl(
       ? participantes
       : [...participantes, candidate.id];
 
-    const { error } = await sb
+    const { data: atualizados, error } = await sb
       .from("calendar_events")
       .update({
         videomaker_assigned_id: candidate.id,
@@ -124,11 +186,14 @@ async function _autoAssignVideomakerImpl(
         participantes_ids: novosParticipantes,
       })
       .eq("id", eventId)
-      .eq("videomaker_status", "pending_delegation");
+      .eq("videomaker_status", "pending_delegation")
+      .select("id");
     if (error) {
       console.warn("[auto-delegate] update failed, skipping:", error.message);
       continue;
     }
+    // 0 linhas = outra delegação (manual ou cron) chegou antes. Não notifica.
+    if (!atualizados || atualizados.length === 0) return { resultado: "ignorada" };
 
     try {
       await dispatchNotification({
@@ -137,7 +202,7 @@ async function _autoAssignVideomakerImpl(
         mensagem: `"${event.titulo}" foi atribuída a você`,
         link: `/calendario?event=${eventId}`,
         user_ids_extras: [candidate.id],
-        source_user_id: actorId,
+        ...(actorId ? { source_user_id: actorId } : {}),
       });
     } catch {}
 
@@ -150,10 +215,12 @@ async function _autoAssignVideomakerImpl(
         videomaker_assigned_id: candidate.id,
       } as Record<string, unknown>,
       ator_id: actorId,
+      ...(actorId ? {} : { justificativa: "cron audiovisual-auto-delegar-gravacao" }),
     });
 
-    return; // delegou com sucesso
+    return { resultado: "delegada" }; // delegou com sucesso
   }
+  return { resultado: "sem_candidato", event };
 }
 
 // ─── Auto-delegação de edição a editor/videomaker ───────────────────────────

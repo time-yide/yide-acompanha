@@ -10,6 +10,7 @@
     { "path": "/api/cron/cleanup-old-review-videos", "schedule": "0 5 * * *" },
     { "path": "/api/cron/audiovisual-auto-marcar-entregue", "schedule": "0 5 * * *" },
     { "path": "/api/cron/audiovisual-auto-delegar-edicao", "schedule": "*/15 * * * *" },
+    { "path": "/api/cron/audiovisual-auto-delegar-gravacao", "schedule": "20 * * * *" },
     { "path": "/api/cron/refresh-gmb", "schedule": "0 6 * * *" },
     { "path": "/api/cron/dados-snapshot", "schedule": "0 7 * * *" },
     { "path": "/api/cron/editor-ia-worker", "schedule": "*/15 * * * *" },
