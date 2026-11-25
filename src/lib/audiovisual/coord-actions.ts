@@ -8,6 +8,8 @@ import { logActivityInternal } from "@/lib/produtividade/actions";
 import { dispatchNotification } from "@/lib/notificacoes/dispatch";
 import { brtInputToUtcIso } from "@/lib/calendario/timezone";
 import { checarFreelaVideomaker } from "@/lib/calendario/freela-check";
+import { after } from "next/server";
+import { autoAssignVideomaker } from "./auto-delegate";
 
 interface ActionResult { success?: boolean; error?: string }
 
@@ -575,7 +577,8 @@ export async function cancelCaptureAction(
 
 /**
  * Reagenda uma captação: muda inicio/fim, limpa o videomaker e volta pra
- * pending_delegation pra o coord re-delegar com a nova data.
+ * pending_delegation; em seguida a auto-delegação tenta de novo com a nova
+ * data (se ninguém estiver livre, o coord delega na mão).
  *
  * - Apenas roles autorizados
  * - Evento precisa estar em scheduled ou pending_delegation
@@ -668,6 +671,9 @@ export async function rescheduleCaptureAction(
     entityId: eventId,
     metadata: { acao: "reschedule_capture", titulo: event.titulo },
   });
+
+  // Nova data → tenta delegar sozinha de novo (rodízio).
+  after(autoAssignVideomaker(eventId, actor.id, { avisarSeFalhar: true }));
 
   revalidateAudiovisual();
   return { success: true };
