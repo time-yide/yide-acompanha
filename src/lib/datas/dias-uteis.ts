@@ -29,3 +29,27 @@ export function addDiasUteis(ymd: string, n: number): string {
 export function prazoEdicaoPadrao(dataGravacaoYmd: string): string {
   return addDiasUteis(dataGravacaoYmd, PRAZO_EDICAO_DIAS_UTEIS);
 }
+
+function isFimDeSemana(dt: Date): boolean {
+  const dow = dt.getUTCDay();
+  return dow === 0 || dow === 6;
+}
+
+/** Último dia útil (seg–sex) do mês da data "YYYY-MM-DD". */
+export function ultimoDiaUtilDoMes(ymd: string): string {
+  if (!isYmd(ymd)) throw new Error(`Data inválida: ${ymd}`);
+  const [y, m] = ymd.split("-").map(Number);
+  // Dia 0 do mês seguinte = último dia deste mês.
+  const dt = new Date(Date.UTC(y, m, 0));
+  while (isFimDeSemana(dt)) dt.setUTCDate(dt.getUTCDate() - 1);
+  return dt.toISOString().slice(0, 10);
+}
+
+/** Primeiro dia útil (seg–sex) do mês da data "YYYY-MM-DD". */
+export function primeiroDiaUtilDoMes(ymd: string): string {
+  if (!isYmd(ymd)) throw new Error(`Data inválida: ${ymd}`);
+  const [y, m] = ymd.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, 1));
+  while (isFimDeSemana(dt)) dt.setUTCDate(dt.getUTCDate() + 1);
+  return dt.toISOString().slice(0, 10);
+}
