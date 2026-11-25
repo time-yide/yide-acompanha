@@ -7,6 +7,7 @@ import { downloadRecording } from "@/lib/reunioes/storage";
 import { wordsToSegments } from "@/lib/reunioes/transcript";
 import { transcribeAudio } from "@/lib/editor-ia/services/groq-whisper";
 import { summarizeMeeting } from "@/lib/reunioes/ai/summarizer";
+import { checkDaReuniao, processarCheckin } from "@/lib/check/processar";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -108,6 +109,19 @@ async function processarResumo(sb: SB, job: any): Promise<string> {
   const { data: tr } = await sb.from("meeting_transcripts").select("texto_completo").eq("meeting_id", job.meeting_id).order("created_at", { ascending: false }).limit(1).maybeSingle();
   if (!tr?.texto_completo) throw new Error("sem transcrição pra resumir");
 
+  // Gravação de check-in semanal: a IA monta o checklist do assessor (página
+  // /check). As tarefas NÃO vão pra meeting_extracted_tasks, senão o cron
+  // auto-tarefas-reuniao as transformaria em /tarefas.
+  const check = await checkDaReuniao(sb, job.meeting_id);
+  // Só extrai uma vez (retry do job após "skip" do resumo não duplica itens).
+  if (check && (check.status === "aberto" || check.status === "processando")) {
+    const r = await processarCheckin(sb, check, tr.texto_completo);
+    if (r === "skip") {
+      await sb.from("meeting_processing_jobs").update({ status: "pending", started_at: null }).eq("id", job.id);
+      return "skip:anthropic-nao-configurado";
+    }
+  }
+
   const { data: mt } = await sb.from("meetings").select("titulo, client:clients(nome)").eq("id", job.meeting_id).maybeSingle();
 
   const result = await summarizeMeeting({
@@ -135,7 +149,7 @@ async function processarResumo(sb: SB, job: any): Promise<string> {
     custo_estimado_centavos: result.custo_estimado_centavos,
   });
 
-  if (d.tarefas.length > 0) {
+  if (!check && d.tarefas.length > 0) {
     await sb.from("meeting_extracted_tasks").insert(
       d.tarefas.map((t) => ({
         meeting_id: job.meeting_id,

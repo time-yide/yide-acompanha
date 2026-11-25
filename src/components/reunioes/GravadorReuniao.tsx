@@ -10,10 +10,18 @@ import { criarReuniaoGravacaoAction, registrarGravacaoAction } from "@/lib/reuni
 
 type Modo = "presencial" | "online";
 
-export function GravadorReuniao({ clientId, tituloInicial = "", autoAbrir = false }: { clientId?: string; tituloInicial?: string; autoAbrir?: boolean }) {
+export function GravadorReuniao({ clientId, tituloInicial = "", autoAbrir = false, checkSemanalId, modoInicial = "presencial", rotuloBotao = "Gravar reunião" }: {
+  clientId?: string;
+  tituloInicial?: string;
+  autoAbrir?: boolean;
+  /** Gravação do check-in semanal (/check). */
+  checkSemanalId?: string;
+  modoInicial?: Modo;
+  rotuloBotao?: string;
+}) {
   const router = useRouter();
   const [aberto, setAberto] = useState(autoAbrir);
-  const [modo, setModo] = useState<Modo>("presencial");
+  const [modo, setModo] = useState<Modo>(modoInicial);
   const [titulo, setTitulo] = useState(tituloInicial);
   const [consentiu, setConsentiu] = useState(false);
   const [gravando, setGravando] = useState(false);
@@ -96,7 +104,7 @@ export function GravadorReuniao({ clientId, tituloInicial = "", autoAbrir = fals
     if (blob.size === 0) { toast.error("Gravação vazia."); return; }
 
     start(async () => {
-      const r = await criarReuniaoGravacaoAction({ clientId: clientId ?? null, titulo, consentiu: true, online: modo === "online" });
+      const r = await criarReuniaoGravacaoAction({ clientId: clientId ?? null, titulo, consentiu: true, online: modo === "online", checkSemanalId: checkSemanalId ?? null });
       if ("error" in r) { toast.error(r.error); return; }
 
       const supabase = createClient();
@@ -118,7 +126,7 @@ export function GravadorReuniao({ clientId, tituloInicial = "", autoAbrir = fals
   if (!aberto) {
     return (
       <Button type="button" onClick={() => setAberto(true)} size="sm">
-        <Mic className="mr-2 h-4 w-4" /> Gravar reunião
+        <Mic className="mr-2 h-4 w-4" /> {rotuloBotao}
       </Button>
     );
   }
