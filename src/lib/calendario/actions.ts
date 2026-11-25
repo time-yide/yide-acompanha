@@ -11,6 +11,14 @@ import { brtInputToUtcIso } from "./timezone";
 import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 import { autoAssignVideomaker } from "@/lib/audiovisual/auto-delegate";
 import {
+  parseEdicaoUrgente,
+  validarEdicaoUrgente,
+  edicaoUrgenteColunas,
+  isErroColunaEdicaoUrgente,
+  semColunasEdicaoUrgente,
+  EDICAO_URGENTE_COLUNAS,
+} from "@/lib/audiovisual/edicao-urgente";
+import {
   createEventSchema,
   editEventSchema,
   comParticipanteVideomaker,
@@ -270,6 +278,17 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
   // atribuição direta de videomaker só roda pra evento único (!recurrence).
   const recurrence: RecurrenceRule | null = parseRecurrenceFromForm(formData);
 
+  // Edição urgente: pergunta obrigatória na gravação. Série recorrente só
+  // aceita "Não" (uma data urgente não serve pra várias datas).
+  const urg = isVideomaker ? parseEdicaoUrgente(formData) : null;
+  if (urg) {
+    if (recurrence && urg.urgente) {
+      return { error: "Gravação que se repete não pode ter edição urgente. Marque \"Não\" e marque a urgência depois, abrindo a gravação do dia." };
+    }
+    const urgErr = validarEdicaoUrgente(urg, dataLocal);
+    if (urgErr) return { error: urgErr };
+  }
+
   let videomakerId: string | null = null;
   if (isVideomaker && podeDelegar && !recurrence) {
     videomakerId = parsed.data.videomaker_assigned_id ?? null;
@@ -314,6 +333,7 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
     roteiro_tipo: parsed.data.roteiro_tipo ?? null,
     roteiro_pdf_path: parsed.data.roteiro_pdf_path ?? null,
     observacoes_gravacao: parsed.data.observacoes_gravacao?.trim() || null,
+    ...(urg ? edicaoUrgenteColunas(urg) : {}),
   };
   // Com videomaker escolhido → nasce agendado (scheduled) direto pra ele.
   // Sem videomaker (ou quem não delega) → fila do coordenador (pending_delegation).
@@ -358,10 +378,19 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
     // "id" no retorno e ordenar por "inicio" dá "column ... inicio does not
     // exist". Selecionamos id+inicio e ordenamos no JS pra achar o mestre
     // (1ª ocorrência = a que carrega a recurrence_rule).
-    const { data: createdRows, error: recErr } = await sb
+    let recResult = await sb
       .from("calendar_events")
       .insert(rows)
       .select("id, inicio");
+    // Fallback: migration edicao_urgente ainda não aplicada.
+    if (recResult.error && isErroColunaEdicaoUrgente(recResult.error.message)) {
+      console.warn("[calendario] migration edicao_urgente não aplicada - série sem o campo");
+      recResult = await sb
+        .from("calendar_events")
+        .insert(rows.map((r) => semColunasEdicaoUrgente(r)))
+        .select("id, inicio");
+    }
+    const { data: createdRows, error: recErr } = recResult;
     if (recErr || !createdRows || createdRows.length === 0) {
       return { error: recErr?.message ?? "Falha ao criar a série de eventos" };
     }
@@ -404,6 +433,17 @@ export async function createEventAction(_prevState: ActionResult, formData: Form
     .insert(insertPayload)
     .select("id")
     .single();
+
+  // Fallback: migration edicao_urgente ainda não aplicada → insere sem os
+  // campos. Vem ANTES do fallback de videomaker (a msg também cita "schema cache").
+  if (createResult.error && isErroColunaEdicaoUrgente(createResult.error.message)) {
+    console.warn("[calendario] migration edicao_urgente não aplicada - insert sem o campo");
+    createResult = await sb
+      .from("calendar_events")
+      .insert(semColunasEdicaoUrgente(insertPayload))
+      .select("id")
+      .single();
+  }
 
   if (createResult.error) {
     const msg = String(createResult.error.message ?? "");
@@ -598,6 +638,14 @@ export async function updateEventAction(_prevState: ActionResult, formData: Form
     }
   }
 
+  // Edição urgente (só gravação). Data é relativa à gravação, então em edição
+  // de série ("este e os seguintes"/"todos") a urgência não se propaga.
+  const urgUpd = isVideomaker ? parseEdicaoUrgente(formData) : null;
+  if (urgUpd) {
+    const urgErr = validarEdicaoUrgente(urgUpd, dataLocal);
+    if (urgErr) return { error: urgErr };
+  }
+
   const updatePayload = {
     titulo: parsed.data.titulo,
     descricao: parsed.data.descricao || null,
@@ -615,6 +663,7 @@ export async function updateEventAction(_prevState: ActionResult, formData: Form
     roteiro_pdf_path: parsed.data.roteiro_pdf_path ?? null,
     observacoes_gravacao: parsed.data.observacoes_gravacao?.trim() || null,
     ...videomakerUpdate,
+    ...(urgUpd ? edicaoUrgenteColunas(urgUpd) : {}),
   };
 
   // Se o PDF do roteiro foi trocado/removido, apaga o arquivo antigo do storage.
@@ -649,6 +698,7 @@ export async function updateEventAction(_prevState: ActionResult, formData: Form
     delete rest.inicio;
     delete rest.fim;
     delete rest.reminded_30min_at;
+    for (const c of EDICAO_URGENTE_COLUNAS) delete rest[c];
     return rest;
   };
 
@@ -657,6 +707,13 @@ export async function updateEventAction(_prevState: ActionResult, formData: Form
   let { error, rows: updatedRows } = await applyScopedUpdate(sbUpd, {
     id, seriesId, inicioAtualUtc, scope, patch: buildScopedPatch(updatePayload),
   });
+  // Fallback: migration edicao_urgente ainda não aplicada → atualiza sem os campos.
+  if (error && isErroColunaEdicaoUrgente(error)) {
+    console.warn("[calendario] migration edicao_urgente não aplicada - update sem o campo");
+    ({ error, rows: updatedRows } = await applyScopedUpdate(sbUpd, {
+      id, seriesId, inicioAtualUtc, scope, patch: buildScopedPatch(semColunasEdicaoUrgente(updatePayload)),
+    }));
+  }
   // Fallback: migration cliente_avulso ainda não aplicada → atualiza sem o campo.
   if (error && String(error ?? "").includes("cliente_avulso")) {
     console.warn("[calendario] migration cliente_avulso não aplicada - update sem o campo");

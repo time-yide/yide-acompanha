@@ -193,6 +193,9 @@ export function PendenteEntregaAba({ rows, showVideomaker, canDeliver, canQuickM
                 inicio: openEvent.inicio,
                 client_id: openEvent.client_id,
                 client_nome: openEvent.client_nome,
+                edicao_urgente: openEvent.edicao_urgente ?? null,
+                edicao_urgente_data: openEvent.edicao_urgente_data ?? null,
+                edicao_urgente_qtd: openEvent.edicao_urgente_qtd ?? null,
               }]}
               hidePendenteSelect
             />

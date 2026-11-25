@@ -98,6 +98,8 @@ export interface CalendarEvent {
   videomaker_leu_em?: string | null;
   /** Quando o videomaker marcou que imprimiu o roteiro. */
   videomaker_imprimiu_em?: string | null;
+  /** Gravação com edição que precisa sair antes do prazo (selo laranja). */
+  edicao_urgente?: boolean | null;
   /** Marca de indisponibilidade (bloqueio de agenda aprovado). Read-only, sem link. */
   bloqueio?: {
     /** Nome do videomaker que ficou indisponível. */

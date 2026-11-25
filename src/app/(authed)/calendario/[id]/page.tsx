@@ -172,6 +172,9 @@ export default async function EventoPage({ params }: { params: Promise<{ id: str
               link_roteiro: event.link_roteiro ?? null,
               observacoes_gravacao: event.observacoes_gravacao ?? null,
               videomaker_assigned_id: event.videomaker_assigned_id ?? null,
+              edicao_urgente: event.edicao_urgente ?? null,
+              edicao_urgente_data: event.edicao_urgente_data ?? null,
+              edicao_urgente_qtd: event.edicao_urgente_qtd ?? null,
             }}
             profiles={profiles ?? []}
             clientes={clientes ?? []}

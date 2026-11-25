@@ -60,6 +60,7 @@ export function PendenteDelegacaoAba({ rows, editores, canDelegate, canDelete = 
             </div>
             <DelegarCapturaButton
               capturaId={r.id}
+          dataCaptacao={r.data_captacao}
               delegated={null}
               concluidaEm={null}
               editores={editores}

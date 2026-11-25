@@ -112,6 +112,9 @@ async function _listEventsForWeekImpl(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabaseAny = supabase as any;
   const fullSelect = `id, titulo, descricao, inicio, fim, sub_calendar, client_id, lead_id, criado_por, participantes_ids, localizacao_endereco, localizacao_maps_url, link_roteiro, observacoes_gravacao, videomaker_status, videomaker_assigned_id, roteiro_tipo, videomaker_leu_em, videomaker_imprimiu_em`;
+  // Tenta primeiro com edicao_urgente (migration 20261124000000); se a coluna
+  // ainda não existe, cai pro fullSelect sem ela.
+  const urgSelect = `${fullSelect}, edicao_urgente`;
   const legacySelect = `id, titulo, descricao, inicio, fim, sub_calendar, client_id, lead_id, criado_por, participantes_ids, localizacao_endereco, localizacao_maps_url, link_roteiro, observacoes_gravacao`;
 
   const buildManualQuery = (selectStr: string) => {
@@ -142,7 +145,11 @@ async function _listEventsForWeekImpl(
 
   // 1) Manual events (+ nomes dos videomakers designados, batch, sem N+1)
   const manualPromise = (async () => {
-    let manualResult = await buildManualQuery(fullSelect);
+    let manualResult = await buildManualQuery(urgSelect);
+    if (manualResult.error && String(manualResult.error.message ?? "").includes("edicao_urgente")) {
+      console.warn("[calendario] migration edicao_urgente não aplicada - select sem a coluna");
+      manualResult = await buildManualQuery(fullSelect);
+    }
 
     // Fallback: se a migration 20260603000000 (videomaker_status etc) ainda não
     // foi aplicada nesse ambiente, o select dispara erro de coluna inexistente.
@@ -307,6 +314,7 @@ async function _listEventsForWeekImpl(
       roteiro_tipo: m.roteiro_tipo ?? null,
       videomaker_leu_em: m.videomaker_leu_em ?? null,
       videomaker_imprimiu_em: m.videomaker_imprimiu_em ?? null,
+      edicao_urgente: m.edicao_urgente ?? null,
     });
   }
 
@@ -428,7 +436,8 @@ export async function listEventsForWeek(
     },
     // v5: shape ganhou roteiro_tipo, videomaker_leu_em, videomaker_imprimiu_em (badge de status no card)
     // v6: recorrência — mutations agora inserem múltiplas linhas; bump evita servir cache antigo entre deploy e migration
-    ["calendario-week-events-v6"],
+    // v7: shape ganhou edicao_urgente (selo laranja no card de gravação)
+    ["calendario-week-events-v7"],
     { revalidate: 60, tags: ["calendar"] },
   );
   return cached(

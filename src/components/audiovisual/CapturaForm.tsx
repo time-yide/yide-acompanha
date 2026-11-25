@@ -13,11 +13,22 @@ import { RATING_FIELDS } from "@/lib/audiovisual/constants";
 import { cn } from "@/lib/utils";
 import { formatBrtDateOnly } from "@/lib/calendario/timezone";
 import { formatDateBR, getTodayDate } from "@/lib/datetime/timezone";
+import { EdicaoUrgenteField } from "./EdicaoUrgenteField";
 
 type ActionResult = { error?: string } | undefined;
 
 interface ClienteOption { id: string; nome: string; }
-interface PendenteOption { event_id: string; titulo: string; inicio: string; client_id: string | null; client_nome: string | null; }
+interface PendenteOption {
+  event_id: string;
+  titulo: string;
+  inicio: string;
+  client_id: string | null;
+  client_nome: string | null;
+  /** Resposta do assessor no agendamento — pré-preenche a pergunta. */
+  edicao_urgente?: boolean | null;
+  edicao_urgente_data?: string | null;
+  edicao_urgente_qtd?: number | null;
+}
 
 interface Props {
   clientes: ClienteOption[];
@@ -216,6 +227,28 @@ export function CapturaForm({ clientes, pendentes, hidePendenteSelect = false }:
             />
           </div>
         </div>
+
+        {(() => {
+          const ev = pendentes.find((p) => p.event_id === eventId);
+          return (
+            <EdicaoUrgenteField
+              // key: remonta ao trocar de gravação pra pegar a resposta dela
+              key={eventId || "avulsa"}
+              dataGravacao={dataCaptacao}
+              defaultUrgente={ev?.edicao_urgente ?? null}
+              defaultData={ev?.edicao_urgente_data ?? null}
+              defaultQtd={ev?.edicao_urgente_qtd ?? null}
+              qtdVideosMax={qtdVideos}
+              hint={
+                ev?.edicao_urgente === true
+                  ? "O assessor marcou que tem edição urgente nesta gravação. Confirme ou ajuste."
+                  : ev?.edicao_urgente === false
+                    ? "O assessor marcou que não tem edição urgente. Mude se o cliente pediu algo pra antes."
+                    : undefined
+              }
+            />
+          );
+        })()}
 
         <div className="space-y-2">
           <Label htmlFor="observacoes">Observações gerais (opcional)</Label>

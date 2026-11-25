@@ -6,6 +6,8 @@ import { logAudit } from "@/lib/audit/log";
 import { checarFreelaVideomaker } from "@/lib/calendario/freela-check";
 import { getCoordenadoresAudiovisualIds } from "@/lib/tarefas/client-team";
 import { escolherEditor } from "./escolher-editor";
+import { carregarCapturaParaEdicao, criarTarefasEdicao } from "./tarefas-edicao";
+import { formatYmdBr } from "./edicao-urgente";
 
 // ─── Auto-delegação de videomaker a gravação ────────────────────────────────
 
@@ -187,16 +189,7 @@ async function _autoAssignEditorImpl(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceRoleClient() as any;
 
-  const { data: captura } = await sb
-    .from("audiovisual_capturas")
-    .select(`
-      id, client_id, drive_url, qtd_videos, qtd_fotos,
-      pontos_positivos, pontos_dificuldade, sugestoes, observacoes,
-      task_id, data_captacao, concluida_em,
-      cliente:clients(id, nome, assessor_id)
-    `)
-    .eq("id", capturaId)
-    .maybeSingle();
+  const captura = await carregarCapturaParaEdicao(sb, capturaId);
   if (!captura || captura.task_id || captura.concluida_em) return;
 
   const { data: editores } = await sb
@@ -248,22 +241,6 @@ async function _autoAssignEditorImpl(
   if (!chosen) return;
 
   const clienteNome = captura.cliente?.nome ?? "";
-  const dataBr = captura.data_captacao
-    ? new Date(captura.data_captacao + "T12:00:00Z").toLocaleDateString("pt-BR")
-    : "";
-  const titulo = `Editar: ${clienteNome}${dataBr ? ` (${dataBr})` : ""}`;
-
-  const descricaoLines: string[] = [];
-  descricaoLines.push(`📹 ${captura.qtd_videos} vídeo(s) · 📷 ${captura.qtd_fotos} foto(s)`);
-  if (captura.drive_url) descricaoLines.push(`Drive: ${captura.drive_url}`);
-  if (captura.pontos_positivos) descricaoLines.push(`✅ Positivos: ${captura.pontos_positivos}`);
-  if (captura.pontos_dificuldade) descricaoLines.push(`⚠️ Dificuldades: ${captura.pontos_dificuldade}`);
-  if (captura.sugestoes) descricaoLines.push(`💡 Sugestões: ${captura.sugestoes}`);
-  if (captura.observacoes) descricaoLines.push(`Obs.: ${captura.observacoes}`);
-  const descricao = descricaoLines.join("\n\n");
-
-  // Due date: 5 dias úteis a partir de hoje (pula sáb/dom)
-  const dueDate = addBusinessDays(now, 5);
 
   const coordenadoresAv = await getCoordenadoresAudiovisualIds();
   const assessorId: string | null = captura.cliente?.assessor_id ?? null;
@@ -274,44 +251,38 @@ async function _autoAssignEditorImpl(
     (id, i, arr) => id !== chosen.id && id !== actorId && arr.indexOf(id) === i,
   );
 
-  const { data: createdTask, error: taskErr } = await sb
-    .from("tasks")
-    .insert({
-      titulo,
-      descricao,
-      prioridade: "media",
-      status: "aberta",
-      atribuido_a: chosen.id,
-      criado_por: actorId,
-      client_id: captura.client_id,
-      due_date: dueDate,
-      participantes_ids: participantesAuto,
-    })
-    .select("id")
-    .single();
-  if (taskErr || !createdTask) {
-    console.error("[auto-delegate] task insert failed:", taskErr?.message);
+  // Prazo fixo de 3 dias úteis da gravação; com edição urgente nascem 2 tarefas.
+  const result = await criarTarefasEdicao(sb, captura, {
+    atribuido_a: chosen.id,
+    criado_por: actorId,
+    participantes_ids: participantesAuto,
+  });
+  if (!result.ok) {
+    // corrida = outra delegação ganhou; o resto é erro real.
+    if (!result.corrida) console.error("[auto-delegate] criar tarefas falhou:", result.error);
     return;
   }
+  const createdTask = { id: result.taskUrgenteId ?? result.taskId };
 
-  const { data: linked, error: linkErr } = await sb
-    .from("audiovisual_capturas")
-    .update({ task_id: createdTask.id })
-    .eq("id", capturaId)
-    .is("task_id", null)
-    .select("id");
-  if (linkErr || !linked || linked.length === 0) {
-    // Outra delegação ganhou a corrida (ou falhou): desfaz a tarefa criada.
-    if (linkErr) console.error("[auto-delegate] captura link failed:", linkErr.message);
-    await sb.from("tasks").delete().eq("id", createdTask.id);
-    return;
+  if (result.taskUrgenteId) {
+    await avisarEdicaoUrgente({
+      taskUrgenteId: result.taskUrgenteId,
+      clienteNome,
+      editorNome: chosen.nome,
+      dueDate: result.planos.find((p) => p.tipo === "urgente")?.due_date ?? null,
+      destinatarios: [...coordenadoresAv, ...(assessorId ? [assessorId] : [])],
+      sistema,
+      actorId,
+    });
   }
 
   try {
     await dispatchNotification({
       evento_tipo: "task_assigned",
       titulo: `Nova edição: ${clienteNome}`,
-      mensagem: `Edição delegada automaticamente a você por ${actorNome}`,
+      mensagem: result.taskUrgenteId
+        ? `Edição delegada automaticamente a você por ${actorNome} — tem vídeo URGENTE`
+        : `Edição delegada automaticamente a você por ${actorNome}`,
       link: `/tarefas/${createdTask.id}`,
       user_ids_extras: [chosen.id],
       ...(sistema ? {} : { source_user_id: actorId }),
@@ -324,7 +295,8 @@ async function _autoAssignEditorImpl(
     acao: "update",
     dados_depois: {
       acao: "auto_delegate_editor",
-      task_id: createdTask.id,
+      task_id: result.taskId,
+      task_urgente_id: result.taskUrgenteId,
       editor_id: chosen.id,
     } as Record<string, unknown>,
     ator_id: sistema ? null : actorId,
@@ -332,13 +304,32 @@ async function _autoAssignEditorImpl(
   });
 }
 
-function addBusinessDays(from: Date, days: number): string {
-  const d = new Date(from);
-  let added = 0;
-  while (added < days) {
-    d.setDate(d.getDate() + 1);
-    const dow = d.getDay();
-    if (dow !== 0 && dow !== 6) added++;
+/**
+ * Avisa assessor do cliente + coordenadores audiovisuais que nasceu uma
+ * edição urgente (notificação com prioridade "urgente"). Best-effort.
+ */
+export async function avisarEdicaoUrgente(args: {
+  taskUrgenteId: string;
+  clienteNome: string;
+  editorNome: string;
+  dueDate: string | null;
+  destinatarios: string[];
+  sistema: boolean;
+  actorId: string;
+}): Promise<void> {
+  const ids = [...new Set(args.destinatarios)].filter((id) => args.sistema || id !== args.actorId);
+  if (ids.length === 0) return;
+  try {
+    await dispatchNotification({
+      evento_tipo: "task_assigned",
+      titulo: `Edição URGENTE: ${args.clienteNome}`,
+      mensagem: `${args.editorNome} ficou com a edição urgente${args.dueDate ? ` (até ${formatYmdBr(args.dueDate)})` : ""}.`,
+      link: `/tarefas/${args.taskUrgenteId}`,
+      user_ids_extras: ids,
+      prioridade: "urgente",
+      ...(args.sistema ? {} : { source_user_id: args.actorId }),
+    });
+  } catch (e) {
+    console.error("[auto-delegate] aviso edição urgente falhou:", e);
   }
-  return d.toISOString().slice(0, 10);
 }

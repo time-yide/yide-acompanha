@@ -1,5 +1,8 @@
 "use client";
 
+import { prazoPadraoDaCaptura } from "@/lib/audiovisual/prazo-edicao";
+import { formatYmdBr } from "@/lib/audiovisual/edicao-urgente";
+import { PRAZO_EDICAO_DIAS_UTEIS } from "@/lib/datas/dias-uteis";
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -33,6 +36,8 @@ interface Props {
   canDelegate: boolean;
   /** Permite excluir a captação. coord/audiovisual_chefe/adm/sócio. */
   canDelete?: boolean;
+  /** Data da gravação "YYYY-MM-DD" — mostra o prazo fixo de 3 dias úteis. */
+  dataCaptacao?: string | null;
 }
 
 /**
@@ -53,11 +58,10 @@ function StatusBadge({ tone, children }: { tone: "amber" | "sky" | "emerald"; ch
   );
 }
 
-export function DelegarCapturaButton({ capturaId, delegated, concluidaEm, editores, canDelegate, canDelete = false }: Props) {
+export function DelegarCapturaButton({ capturaId, delegated, concluidaEm, editores, canDelegate, canDelete = false, dataCaptacao = null }: Props) {
   const [open, setOpen] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [editorId, setEditorId] = useState<string>("");
-  const [dueDate, setDueDate] = useState<string>("");
   const [linkAdicional, setLinkAdicional] = useState<string>("");
   const [pending, startTransition] = useTransition();
   const router = useRouter();
@@ -290,16 +294,13 @@ export function DelegarCapturaButton({ capturaId, delegated, concluidaEm, editor
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="due_date">Prazo</Label>
-              <Input
-                id="due_date"
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                disabled={pending}
-              />
+              <Label>Prazo</Label>
+              <p className="text-sm font-medium">
+                {formatYmdBr(prazoPadraoDaCaptura(dataCaptacao ?? null))}
+              </p>
               <p className="text-xs text-muted-foreground">
-                Deixar em branco = sem prazo.
+                Fixo: {PRAZO_EDICAO_DIAS_UTEIS} dias úteis a partir da gravação. Se a captação tiver
+                edição urgente, nasce também uma tarefa URGENTE com a data marcada.
               </p>
             </div>
 
@@ -332,7 +333,6 @@ export function DelegarCapturaButton({ capturaId, delegated, concluidaEm, editor
                 const fd = new FormData();
                 fd.set("captura_id", capturaId);
                 fd.set("editor_id", editorId);
-                if (dueDate) fd.set("due_date", dueDate);
                 if (linkAdicional.trim()) fd.set("link_adicional", linkAdicional.trim());
                 startTransition(async () => {
                   const r = await delegateCapturaAction(fd);
@@ -343,7 +343,6 @@ export function DelegarCapturaButton({ capturaId, delegated, concluidaEm, editor
                   toast.success("Captação delegada, tarefa criada");
                   setOpen(false);
                   setEditorId("");
-                  setDueDate("");
                   setLinkAdicional("");
                   router.refresh();
                 });
