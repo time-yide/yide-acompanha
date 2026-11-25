@@ -10,8 +10,12 @@ import { revalidateTag } from "next/cache";
 //   (mesmo status, mesma pessoa). Tarefa que já tem prazo mais pra frente
 //   fica como está.
 
-/** Status que contam como "finalizada" — o resto é tarefa em aberto. */
-const STATUS_FINALIZADOS = "(concluida,postada)";
+/**
+ * Status que não pedem mais ação de quem é responsável — o resto é tarefa
+ * em aberto. Mesmo critério das outras rotinas de atraso (aprovada/agendado
+ * já estão só esperando a postagem).
+ */
+const STATUS_FINALIZADOS = '("concluida","aprovada","agendado","postada")';
 
 export async function avisarUltimoDiaUtil(): Promise<{ avisados: number }> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -20,7 +24,8 @@ export async function avisarUltimoDiaUtil(): Promise<{ avisados: number }> {
   const { data: tarefas, error } = await sb
     .from("tasks")
     .select("atribuido_a")
-    .not("status", "in", STATUS_FINALIZADOS);
+    .not("status", "in", STATUS_FINALIZADOS)
+    .is("deleted_at", null);
   if (error) throw new Error(`[virada-mes] listar tarefas: ${error.message}`);
 
   const porPessoa = new Map<string, number>();
@@ -89,6 +94,7 @@ export async function passarTarefasProMes(novoPrazo: string): Promise<{ movidas:
     .from("tasks")
     .select("id")
     .not("status", "in", STATUS_FINALIZADOS)
+    .is("deleted_at", null)
     .or(`due_date.is.null,due_date.lt.${novoPrazo}`);
   if (error) throw new Error(`[virada-mes] listar tarefas: ${error.message}`);
 
@@ -99,6 +105,7 @@ export async function passarTarefasProMes(novoPrazo: string): Promise<{ movidas:
       .from("tasks")
       .update({ due_date: novoPrazo })
       .in("id", ids.slice(i, i + 100))
+      .is("deleted_at", null)
       .select("id");
     if (upErr) throw new Error(`[virada-mes] atualizar prazo: ${upErr.message}`);
     movidas += (up ?? []).length;
