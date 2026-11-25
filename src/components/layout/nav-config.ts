@@ -2,7 +2,7 @@ import {
   LayoutGrid, Users, ListChecks,
   DollarSign, Calendar, MessageSquare,
   TrendingUp, Video, Trash2, MessageCircle, Phone,
-  IdCard, BookOpen, Layers, Zap, ShoppingCart, BarChart3,
+  IdCard, BookOpen, Layers, Zap, ShoppingCart, BarChart3, ClipboardCheck,
   type LucideIcon,
 } from "lucide-react";
 import type { Role } from "@/lib/auth/permissions";
@@ -81,6 +81,8 @@ export const NAV_STRUCTURE: readonly NavEntry[] = [
       // Clientes no topo da Operação (decisão Yasmin: é o coração do dia-a-dia operacional).
       { type: "link", href: "/clientes", icon: Users, label: "Clientes", roles: "all", badgeKey: null },
       { type: "link", href: "/tarefas", icon: ListChecks, label: "Tarefas", roles: "all", badgeKey: null },
+      // Check-in (segunda) / check-out (quinta) com os assessores. Sócio/adm conduzem; assessor vê o próprio.
+      { type: "link", href: "/check", icon: ClipboardCheck, label: "Check", roles: ["adm", "socio", "assessor"], badgeKey: null },
       { type: "link", href: "/audiovisual", icon: Video, label: "Audiovisual", roles: ["adm", "socio", "coordenador", "assessor", "videomaker", "fast_midia", "audiovisual_chefe"], badgeKey: null },
       { type: "link", href: "/freela-yide", icon: Zap, label: "FreelaYide", roles: ["adm", "socio", "comercial", "coordenador", "assessor", "designer", "videomaker", "fast_midia", "editor", "audiovisual_chefe", "programacao"], badgeKey: null },
       { type: "link", href: "/ecommerce", icon: ShoppingCart, label: "E-commerce", roles: ["adm", "socio", "assessor_ecommerce", "assistente_ecommerce"], badgeKey: null },

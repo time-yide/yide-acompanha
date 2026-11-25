@@ -19,6 +19,8 @@ export async function criarReuniaoGravacaoAction(input: {
   titulo: string;
   consentiu: boolean;
   online: boolean;
+  /** Gravação do check-in semanal (página /check): liga a reunião ao check. */
+  checkSemanalId?: string | null;
 }): Promise<Res<{ meetingId: string; path: string; token: string }>> {
   const user = await requireAuth();
   if (!canRecordMeeting(user.role)) return { error: "Sem permissão pra gravar reunião" };
@@ -45,6 +47,21 @@ export async function criarReuniaoGravacaoAction(input: {
     .select("id")
     .single();
   if (error || !mt) return { error: "Falha ao criar a reunião" };
+
+  if (input.checkSemanalId) {
+    const { podeConduzirCheck } = await import("@/lib/check/core");
+    if (!podeConduzirCheck(user.role)) return { error: "Só sócio/adm gravam o check-in" };
+    const { data: linked, error: linkErr } = await sb
+      .from("check_semanais")
+      .update({ meeting_id: mt.id, status: "processando", updated_at: new Date().toISOString() })
+      .eq("id", input.checkSemanalId)
+      .in("status", ["aberto", "processando", "em_revisao"])
+      .select("id");
+    if (linkErr || !linked || linked.length === 0) {
+      await sb.from("meetings").delete().eq("id", mt.id);
+      return { error: "Não deu pra ligar a gravação ao check (ele já foi liberado?)" };
+    }
+  }
 
   // Sem cliente → pasta "interno" no storage (o path exige um segmento).
   const path = recordingPath(org.id, input.clientId ?? "interno", mt.id, "webm");
