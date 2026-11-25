@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { autoAssignEditor } from "./auto-delegate";
+import { autoAssignEditor, avisarEdicaoUrgente } from "./auto-delegate";
 import { requireAuth } from "@/lib/auth/session";
 import { logAudit } from "@/lib/audit/log";
 import { logActivityInternal } from "@/lib/produtividade/actions";
@@ -18,6 +18,14 @@ import { avgRating } from "./queries";
 import { ROLES_QUE_EDITAM } from "./roles";
 import { getCoordenadoresAudiovisualIds } from "@/lib/tarefas/client-team";
 import { sendFollowupGravacao } from "@/lib/followup-gravacao/send";
+import {
+  parseEdicaoUrgente,
+  validarEdicaoUrgente,
+  edicaoUrgenteColunas,
+  isErroColunaEdicaoUrgente,
+  semColunasEdicaoUrgente,
+} from "./edicao-urgente";
+import { carregarCapturaParaEdicao, criarTarefasEdicao } from "./tarefas-edicao";
 
 const RATING_LABEL_BY_NAME = new Map<string, string>(
   RATING_FIELDS.map((f) => [f.name, f.label]),
@@ -96,6 +104,12 @@ export async function createCapturaAction(_prev: ActionResult, formData: FormDat
 
   if (!parsed.success) return { error: friendlyZodError(parsed.error.issues[0]) };
 
+  // Edição urgente: obrigatória. Vem pré-preenchida com o que o assessor marcou
+  // no agendamento; vale o que o videomaker enviar aqui.
+  const urg = parseEdicaoUrgente(formData);
+  const urgErr = validarEdicaoUrgente(urg, parsed.data.data_captacao, parsed.data.qtd_videos);
+  if (urgErr) return { error: urgErr };
+
   const supabase = await createClient();
   const insertPayload = {
     event_id: parsed.data.event_id || null,
@@ -116,15 +130,27 @@ export async function createCapturaAction(_prev: ActionResult, formData: FormDat
     pontos_positivos: parsed.data.pontos_positivos ?? null,
     pontos_dificuldade: parsed.data.pontos_dificuldade ?? null,
     sugestoes: parsed.data.sugestoes ?? null,
+    ...edicaoUrgenteColunas(urg),
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
-  const { data: created, error } = await sb
+  let insertResult = await sb
     .from("audiovisual_capturas")
     .insert(insertPayload)
     .select("id, client_id")
     .single();
+  // Fallback: migration edicao_urgente ainda não aplicada → entrega sem o campo
+  // (não pode travar a entrega do videomaker).
+  if (insertResult.error && isErroColunaEdicaoUrgente(insertResult.error.message)) {
+    console.warn("[createCapturaAction] migration edicao_urgente não aplicada - insert sem o campo");
+    insertResult = await sb
+      .from("audiovisual_capturas")
+      .insert(semColunasEdicaoUrgente(insertPayload))
+      .select("id, client_id")
+      .single();
+  }
+  const { data: created, error } = insertResult;
   if (error || !created) return { error: error?.message ?? "Falha ao registrar captação" };
 
   await logAudit({
@@ -256,7 +282,7 @@ export async function delegateCapturaAction(formData: FormData): Promise<Delegat
 
   const capturaId = String(formData.get("captura_id") ?? "");
   const editorId = String(formData.get("editor_id") ?? "");
-  const dueDateRaw = String(formData.get("due_date") ?? "").trim();
+  // Prazo NÃO vem mais do form: é fixo (3 dias úteis da gravação).
   const linkAdicionalRaw = String(formData.get("link_adicional") ?? "").trim();
   if (!capturaId) return { error: "Captação não informada" };
   if (!editorId) return { error: "Selecione um editor" };
@@ -275,16 +301,7 @@ export async function delegateCapturaAction(formData: FormData): Promise<Delegat
   const sb = supabase as any;
 
   // Carrega captura
-  const { data: captura } = await sb
-    .from("audiovisual_capturas")
-    .select(`
-      id, client_id, drive_url, qtd_videos, qtd_fotos,
-      pontos_positivos, pontos_dificuldade, sugestoes, observacoes,
-      task_id, data_captacao,
-      cliente:clients(id, nome, assessor_id)
-    `)
-    .eq("id", capturaId)
-    .maybeSingle();
+  const captura = await carregarCapturaParaEdicao(sb, capturaId);
   if (!captura) return { error: "Captação não encontrada" };
   if (captura.task_id) return { error: "Captação já foi delegada" };
 
@@ -299,23 +316,6 @@ export async function delegateCapturaAction(formData: FormData): Promise<Delegat
     return { error: "Pessoa selecionada não pode receber edição (precisa ser editor, videomaker ou assistente)" };
   }
 
-  // Monta título e descrição da task
-  const clienteNome = captura.cliente?.nome ?? "";
-  const dataBr = captura.data_captacao
-    ? new Date(captura.data_captacao + "T12:00:00Z").toLocaleDateString("pt-BR")
-    : "";
-  const titulo = `Editar: ${clienteNome}${dataBr ? ` (${dataBr})` : ""}`;
-
-  const descricaoLines: string[] = [];
-  descricaoLines.push(`📹 ${captura.qtd_videos} vídeo(s) · 📷 ${captura.qtd_fotos} foto(s)`);
-  if (captura.drive_url) descricaoLines.push(`Drive: ${captura.drive_url}`);
-  if (captura.pontos_positivos) descricaoLines.push(`✅ Positivos: ${captura.pontos_positivos}`);
-  if (captura.pontos_dificuldade) descricaoLines.push(`⚠️ Dificuldades: ${captura.pontos_dificuldade}`);
-  if (captura.sugestoes) descricaoLines.push(`💡 Sugestões: ${captura.sugestoes}`);
-  if (captura.observacoes) descricaoLines.push(`Obs.: ${captura.observacoes}`);
-  const descricao = descricaoLines.join("\n\n");
-
-  // Cria a task. tipo="geral" pra evitar exigência de formatos.
   const linksJson = linkAdicionalRaw
     ? [{ label: "Link adicional", url: linkAdicionalRaw }]
     : [];
@@ -331,30 +331,28 @@ export async function delegateCapturaAction(formData: FormData): Promise<Delegat
   ].filter(
     (id, i, arr) => id !== editorId && id !== actor.id && arr.indexOf(id) === i,
   );
-  const { data: createdTask, error: taskErr } = await sb
-    .from("tasks")
-    .insert({
-      titulo,
-      descricao,
-      prioridade: "media",
-      status: "aberta",
-      atribuido_a: editorId,
-      criado_por: actor.id,
-      client_id: captura.client_id,
-      due_date: dueDateRaw || null,
-      links: linksJson,
-      participantes_ids: participantesAuto,
-    })
-    .select("id")
-    .single();
-  if (taskErr || !createdTask) return { error: taskErr?.message ?? "Falha ao criar tarefa" };
+  // Cria 1 tarefa (ou 2, com edição urgente) e liga na captação.
+  const result = await criarTarefasEdicao(sb, captura, {
+    atribuido_a: editorId,
+    criado_por: actor.id,
+    participantes_ids: participantesAuto,
+    links: linksJson,
+  });
+  if (!result.ok) return { error: result.error };
+  const createdTask = { id: result.taskUrgenteId ?? result.taskId };
+  const titulo = result.planos[0].titulo;
 
-  // Linka a captação à task
-  const { error: linkErr } = await sb
-    .from("audiovisual_capturas")
-    .update({ task_id: createdTask.id })
-    .eq("id", capturaId);
-  if (linkErr) return { error: linkErr.message };
+  if (result.taskUrgenteId) {
+    after(avisarEdicaoUrgente({
+      taskUrgenteId: result.taskUrgenteId,
+      clienteNome: captura.cliente?.nome ?? "",
+      editorNome: editor.nome ?? "Editor",
+      dueDate: result.planos.find((p) => p.tipo === "urgente")?.due_date ?? null,
+      destinatarios: [...coordenadoresAv, ...(assessorId ? [assessorId] : [])],
+      sistema: false,
+      actorId: actor.id,
+    }));
+  }
 
   // Notifica o editor (já existe regra task_assigned no sistema)
   try {
@@ -374,7 +372,7 @@ export async function delegateCapturaAction(formData: FormData): Promise<Delegat
     entidade: "audiovisual_capturas",
     entidade_id: capturaId,
     acao: "update",
-    dados_depois: { task_id: createdTask.id, editor_id: editorId } as unknown as Record<string, unknown>,
+    dados_depois: { task_id: result.taskId, task_urgente_id: result.taskUrgenteId, editor_id: editorId } as unknown as Record<string, unknown>,
     ator_id: actor.id,
   });
 

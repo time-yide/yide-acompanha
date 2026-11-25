@@ -109,6 +109,14 @@ export function EventCell({ event, podeGravar = false }: { event: CalendarEvent;
             />
           );
         })()}
+        {isVm && event.edicao_urgente && (
+          <span
+            className="inline-block flex-shrink-0 rounded bg-orange-500 px-1 text-[9px] font-bold uppercase leading-3 text-white"
+            title="Tem edição que precisa sair antes do prazo"
+          >
+            Urgente
+          </span>
+        )}
         <span className="truncate">{event.titulo}</span>
       </div>
       <div className="opacity-70">{formatBrtTime(event.inicio)}</div>

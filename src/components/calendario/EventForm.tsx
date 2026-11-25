@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Video, MapPin, Link as LinkIcon, Users as UsersIcon } from "lucide-react";
 import { RoteiroToggle } from "./RoteiroToggle";
+import { EdicaoUrgenteField } from "@/components/audiovisual/EdicaoUrgenteField";
 import { RecurrenceFields } from "@/components/calendario/RecurrenceFields";
 import { SELECTABLE_SUBS, type SelectableSub } from "@/lib/calendario/constants";
 import { clienteObrigatorio } from "@/lib/calendario/reuniao-gravacao";
@@ -37,6 +38,9 @@ interface Props {
     roteiro_pdf_path: string | null;
     observacoes_gravacao: string | null;
     videomaker_assigned_id: string | null;
+    edicao_urgente: boolean | null;
+    edicao_urgente_data: string | null;
+    edicao_urgente_qtd: number | null;
   }>;
   profiles: ProfileOption[];
   clientes: ClientOption[];
@@ -310,6 +314,13 @@ export function EventForm({ action, defaults = {}, profiles, clientes, videomake
               um videomaker, ou dar contexto: equipamentos, horário de chegada, contato no local, etc.
             </p>
           </div>
+
+          <EdicaoUrgenteField
+            dataGravacao={inicio.slice(0, 10)}
+            defaultUrgente={defaults.edicao_urgente ?? null}
+            defaultData={defaults.edicao_urgente_data ?? null}
+            defaultQtd={defaults.edicao_urgente_qtd ?? null}
+          />
         </div>
       )}
 

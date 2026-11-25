@@ -13,7 +13,38 @@ export type { CapturaRow } from "./captura-utils";
 export { avgRating } from "./captura-utils";
 import type { CapturaRow } from "./captura-utils";
 
-export interface PendenteEvento {
+/** Resposta do assessor no agendamento (pré-preenche a captação). */
+export interface UrgenciaEvento {
+  edicao_urgente?: boolean | null;
+  edicao_urgente_data?: string | null;
+  edicao_urgente_qtd?: number | null;
+}
+
+/**
+ * Busca a edição urgente marcada no agendamento. Query à parte e tolerante:
+ * se a migration 20261124000000 ainda não foi aplicada, volta vazio em vez de
+ * derrubar a lista de pendentes (que trava o videomaker no lock gate).
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function fetchUrgenciaEventos(sb: any, eventIds: string[]): Promise<Map<string, UrgenciaEvento>> {
+  const map = new Map<string, UrgenciaEvento>();
+  if (eventIds.length === 0) return map;
+  const { data, error } = await sb
+    .from("calendar_events")
+    .select("id, edicao_urgente, edicao_urgente_data, edicao_urgente_qtd")
+    .in("id", eventIds);
+  if (error || !data) return map;
+  for (const r of data as Array<UrgenciaEvento & { id: string }>) {
+    map.set(r.id, {
+      edicao_urgente: r.edicao_urgente ?? null,
+      edicao_urgente_data: r.edicao_urgente_data ?? null,
+      edicao_urgente_qtd: r.edicao_urgente_qtd ?? null,
+    });
+  }
+  return map;
+}
+
+export interface PendenteEvento extends UrgenciaEvento {
   event_id: string;
   titulo: string;
   inicio: string;
@@ -54,7 +85,8 @@ function getDeadline(eventInicioIso: string): Date {
 export async function listPendenteParaVideomaker(userId: string): Promise<PendenteEvento[]> {
   const cached = unstable_cache(
     async (uid: string) => _listPendenteParaVideomakerImpl(uid),
-    ["audiovisual-pendente-videomaker-v2"],
+    // v3: shape ganhou edicao_urgente* (pré-preenche a captação)
+    ["audiovisual-pendente-videomaker-v3"],
     { revalidate: 30, tags: [AUDIOVISUAL_PENDENTE_TAG] },
   );
   return cached(userId);
@@ -85,6 +117,7 @@ async function _listPendenteParaVideomakerImpl(userId: string): Promise<Pendente
     .select("event_id")
     .in("event_id", eventIds);
   const captured = new Set(((capturas ?? []) as Array<{ event_id: string | null }>).map((c) => c.event_id));
+  const urgencia = await fetchUrgenciaEventos(sb, eventIds);
 
   return (events as Array<{
     id: string;
@@ -102,6 +135,7 @@ async function _listPendenteParaVideomakerImpl(userId: string): Promise<Pendente
       client_nome: e.cliente?.nome ?? null,
       videomaker_id: userId,
       isOverdue: now > getDeadline(e.inicio),
+      ...urgencia.get(e.id),
     }));
 }
 
@@ -111,7 +145,7 @@ export async function countOverdueParaVideomaker(userId: string): Promise<number
   return pendentes.filter((p) => p.isOverdue).length;
 }
 
-export interface EventoSemCapturaRow {
+export interface EventoSemCapturaRow extends UrgenciaEvento {
   event_id: string;
   titulo: string;
   inicio: string;
@@ -132,7 +166,8 @@ export interface EventoSemCapturaRow {
 export async function listEventosSemCaptura(options: { videomakerId?: string } = {}): Promise<EventoSemCapturaRow[]> {
   const cached = unstable_cache(
     async (videomakerId: string | undefined) => _listEventosSemCapturaImpl({ videomakerId }),
-    ["audiovisual-eventos-sem-captura-v2"],
+    // v3: shape ganhou edicao_urgente*
+    ["audiovisual-eventos-sem-captura-v3"],
     { revalidate: 30, tags: [AUDIOVISUAL_PENDENTE_TAG, AUDIOVISUAL_CAPTURAS_TAG] },
   );
   return cached(options.videomakerId);
@@ -172,6 +207,8 @@ async function _listEventosSemCapturaImpl(options: { videomakerId?: string }): P
   // Filtra só videomakers - calendar_events.participantes_ids pode incluir
   // não-videomakers (ex.: coord que acompanhou a gravação), e a aba deve
   // listar apenas quem efetivamente devia entregar captura.
+  const urgencia = await fetchUrgenciaEventos(sb, eventIds);
+
   const profileIds = new Set<string>();
   for (const e of events as Array<{ participantes_ids: string[] | null }>) {
     for (const pid of e.participantes_ids ?? []) profileIds.add(pid);
@@ -217,6 +254,7 @@ async function _listEventosSemCapturaImpl(options: { videomakerId?: string }): P
         videomaker_id: pid,
         videomaker_nome: profilesMap.get(pid) ?? null,
         isOverdue: now > getDeadline(e.inicio),
+        ...urgencia.get(e.id),
       });
     }
   }
