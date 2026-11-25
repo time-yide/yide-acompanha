@@ -11,11 +11,10 @@ import { revalidateTag } from "next/cache";
 //   fica como está.
 
 /**
- * Status que não pedem mais ação de quem é responsável — o resto é tarefa
- * em aberto. Mesmo critério das outras rotinas de atraso (aprovada/agendado
- * já estão só esperando a postagem).
+ * Só concluída/postada contam como finalizada. Aprovada e agendado também
+ * precisam ser movidas pra concluída, então entram no aviso e na virada.
  */
-const STATUS_FINALIZADOS = '("concluida","aprovada","agendado","postada")';
+const STATUS_FINALIZADOS = '("concluida","postada")';
 
 export async function avisarUltimoDiaUtil(): Promise<{ avisados: number }> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
