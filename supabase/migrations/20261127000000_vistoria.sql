@@ -50,3 +50,24 @@ alter table public.vistorias enable row level security;
 alter table public.vistoria_leituras enable row level security;
 
 notify pgrst, 'reload schema';
+
+-- Foto do equipamento (bucket público, igual ao de recados: a URL final vai direto no registro).
+alter table public.equipamentos add column if not exists foto_url text;
+
+insert into storage.buckets (id, name, public)
+values ('vistoria-equipamentos', 'vistoria-equipamentos', true)
+on conflict (id) do nothing;
+
+create policy "vistoria-equipamentos read"
+  on storage.objects for select to authenticated
+  using (bucket_id = 'vistoria-equipamentos');
+
+create policy "vistoria-equipamentos insert"
+  on storage.objects for insert to authenticated
+  with check (bucket_id = 'vistoria-equipamentos');
+
+create policy "vistoria-equipamentos delete own"
+  on storage.objects for delete to authenticated
+  using (bucket_id = 'vistoria-equipamentos' and owner = auth.uid());
+
+notify pgrst, 'reload schema';

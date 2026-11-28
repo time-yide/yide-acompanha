@@ -17,6 +17,7 @@ export interface EquipamentoRow {
   responsavel_id: string | null;
   responsavel_nome: string | null;
   observacao: string | null;
+  foto_url: string | null;
 }
 
 export interface PessoaOpcao {
@@ -40,7 +41,7 @@ export interface ConferenciaPessoa {
 }
 
 const COLUNAS_EQUIPAMENTO =
-  "id, codigo, nome, categoria, marca, modelo, numero_serie, status, responsavel_id, observacao, responsavel:profiles!equipamentos_responsavel_id_fkey(nome)";
+  "id, codigo, nome, categoria, marca, modelo, numero_serie, status, responsavel_id, observacao, foto_url, responsavel:profiles!equipamentos_responsavel_id_fkey(nome)";
 
 type EquipamentoBruto = Omit<EquipamentoRow, "responsavel_nome"> & { responsavel: { nome: string } | null };
 

@@ -8,7 +8,8 @@ import { Loader2, Pencil, Plus, Printer, Search } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { criarEquipamentoAction, editarEquipamentoAction } from "@/lib/vistoria/actions";
+import { criarEquipamentoAction, editarEquipamentoAction, prepareFotoEquipamentoUpload } from "@/lib/vistoria/actions";
+import { createClient } from "@/lib/supabase/client";
 import {
   CATEGORIAS_EQUIPAMENTO, CATEGORIA_LABEL, STATUS_EQUIPAMENTO, STATUS_EQUIPAMENTO_LABEL,
   progressoVistoria, resumoEstoque, type CategoriaEquipamento, type StatusEquipamento,
@@ -33,11 +34,15 @@ type Form = {
   status: StatusEquipamento;
   responsavel_id: string;
   observacao: string;
+  foto_url: string;
+  /** Arquivo escolhido agora (ainda não subiu). */
+  fotoArquivo: File | null;
+  fotoPreview: string | null;
 };
 
 const VAZIO: Form = {
   nome: "", categoria: "outro", marca: "", modelo: "", numero_serie: "",
-  status: "ativo", responsavel_id: "", observacao: "",
+  status: "ativo", responsavel_id: "", observacao: "", foto_url: "", fotoArquivo: null, fotoPreview: null,
 };
 
 const CAMPO = "flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
@@ -61,24 +66,53 @@ export function VistoriaGestao({ equipamentos, pessoas, conferencia, semanaLabel
     });
   }, [equipamentos, busca, filtroCategoria]);
 
+  function escolherFoto(arquivo: File | null) {
+    if (!form) return;
+    setForm({ ...form, fotoArquivo: arquivo, fotoPreview: arquivo ? URL.createObjectURL(arquivo) : null });
+  }
+
   function salvar() {
     if (!form) return;
-    const payload = {
-      nome: form.nome,
-      categoria: form.categoria,
-      marca: form.marca || null,
-      modelo: form.modelo || null,
-      numero_serie: form.numero_serie || null,
-      status: form.status,
-      responsavel_id: form.responsavel_id || null,
-      observacao: form.observacao || null,
-    };
     start(async () => {
+      // 1) Foto: sobe direto pro Storage (o Server Action não aceita arquivo grande).
+      let fotoUrl: string | null = form.foto_url || null;
+      if (form.fotoArquivo) {
+        const arquivo = form.fotoArquivo;
+        const prep = await prepareFotoEquipamentoUpload(arquivo.name, arquivo.type, arquivo.size);
+        if ("error" in prep) { toast.error(prep.error); return; }
+        const supabase = createClient();
+        const { error: upErr } = await supabase.storage
+          .from("vistoria-equipamentos")
+          .uploadToSignedUrl(prep.path, prep.token, arquivo, { contentType: arquivo.type });
+        if (upErr) { toast.error(`Falha no upload da foto: ${upErr.message}`); return; }
+        fotoUrl = prep.url;
+      }
+      if (!form.id && !fotoUrl) { toast.error("Adicione a foto do equipamento"); return; }
+
+      // 2) Dados + QR: o código é gerado no servidor ao cadastrar.
+      const payload = {
+        nome: form.nome,
+        categoria: form.categoria,
+        marca: form.marca || null,
+        modelo: form.modelo || null,
+        numero_serie: form.numero_serie || null,
+        status: form.status,
+        responsavel_id: form.responsavel_id || null,
+        observacao: form.observacao || null,
+        foto_url: fotoUrl,
+      };
       const r = form.id
         ? await editarEquipamentoAction({ ...payload, id: form.id })
         : await criarEquipamentoAction(payload);
       if ("error" in r && r.error) { toast.error(r.error); return; }
-      toast.success(form.id ? "Equipamento atualizado" : `Cadastrado com o código ${"codigo" in r ? r.codigo : ""}`);
+      if (form.id) {
+        toast.success("Equipamento atualizado");
+      } else {
+        toast.success(`Cadastrado. QR ${"codigo" in r ? r.codigo : ""}`, {
+          description: "Imprima a etiqueta e cole no equipamento.",
+          action: { label: "Imprimir etiqueta", onClick: () => router.push("/vistoria/etiquetas") },
+        });
+      }
       setForm(null);
       router.refresh();
     });
@@ -95,6 +129,9 @@ export function VistoriaGestao({ equipamentos, pessoas, conferencia, semanaLabel
       status: e.status,
       responsavel_id: e.responsavel_id ?? "",
       observacao: e.observacao ?? "",
+      foto_url: e.foto_url ?? "",
+      fotoArquivo: null,
+      fotoPreview: null,
     });
   }
 
@@ -141,6 +178,7 @@ export function VistoriaGestao({ equipamentos, pessoas, conferencia, semanaLabel
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
               <tr>
+                <th className="px-3 py-2">Foto</th>
                 <th className="px-3 py-2">Código</th>
                 <th className="px-3 py-2">Equipamento</th>
                 <th className="px-3 py-2">Categoria</th>
@@ -151,10 +189,13 @@ export function VistoriaGestao({ equipamentos, pessoas, conferencia, semanaLabel
             </thead>
             <tbody className="divide-y">
               {filtrados.length === 0 && (
-                <tr><td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">Nenhum equipamento encontrado.</td></tr>
+                <tr><td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">Nenhum equipamento encontrado.</td></tr>
               )}
               {filtrados.map((e) => (
                 <tr key={e.id} className={cn(e.status === "baixado" && "text-muted-foreground line-through")}>
+                  <td className="px-3 py-2">
+                    <Miniatura src={e.foto_url} />
+                  </td>
                   <td className="px-3 py-2 font-mono text-xs">{e.codigo}</td>
                   <td className="px-3 py-2">
                     <p className="font-medium">{e.nome}</p>
@@ -229,6 +270,25 @@ export function VistoriaGestao({ equipamentos, pessoas, conferencia, semanaLabel
           </DialogHeader>
           {form && (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-1 text-sm sm:col-span-2">
+                <span className="text-xs font-medium text-muted-foreground">
+                  Foto {form.id ? "(opcional, troca a atual)" : "*"}
+                </span>
+                <div className="flex items-center gap-3">
+                  {(form.fotoPreview || form.foto_url) ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img src={form.fotoPreview ?? form.foto_url} alt="" className="h-20 w-20 rounded-md object-cover" />
+                  ) : (
+                    <div className="flex h-20 w-20 items-center justify-center rounded-md border border-dashed text-xs text-muted-foreground">sem foto</div>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="text-sm file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-1.5"
+                    onChange={(e) => escolherFoto(e.target.files?.[0] ?? null)}
+                  />
+                </div>
+              </div>
               <label className="space-y-1 text-sm sm:col-span-2">
                 <span className="text-xs font-medium text-muted-foreground">Nome *</span>
                 <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} placeholder="Ex: Sony A7 III" />
@@ -272,7 +332,7 @@ export function VistoriaGestao({ equipamentos, pessoas, conferencia, semanaLabel
           )}
           <DialogFooter>
             <Button variant="ghost" onClick={() => setForm(null)} disabled={pending}>Cancelar</Button>
-            <Button onClick={salvar} disabled={pending || !form?.nome.trim()}>
+            <Button onClick={salvar} disabled={pending || !form?.nome.trim() || (!form.id && !form.foto_url && !form.fotoArquivo)}>
               {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Salvar
             </Button>
@@ -281,6 +341,12 @@ export function VistoriaGestao({ equipamentos, pessoas, conferencia, semanaLabel
       </Dialog>
     </div>
   );
+}
+
+function Miniatura({ src }: { src: string | null }) {
+  if (!src) return <div className="h-10 w-10 rounded bg-muted" />;
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={src} alt="" className="h-10 w-10 rounded object-cover" />;
 }
 
 function Stat({ titulo, valor, destaque }: { titulo: string; valor: number; destaque?: boolean }) {

@@ -121,6 +121,10 @@ export function MinhaVistoria({ semanaLabel, equipamentos, lidosIds, concluida }
                   ) : (
                     <Circle className="h-5 w-5 shrink-0 text-muted-foreground" />
                   )}
+                  {e.foto_url && (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img src={e.foto_url} alt="" className="h-12 w-12 shrink-0 rounded-md object-cover" />
+                  )}
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{e.nome}</p>
                     <p className="text-xs text-muted-foreground">

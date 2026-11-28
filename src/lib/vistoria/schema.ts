@@ -12,6 +12,7 @@ export const equipamentoSchema = z.object({
   status: z.enum(STATUS_EQUIPAMENTO).default("ativo"),
   responsavel_id: z.string().uuid().optional().nullable().transform((v) => v ?? null),
   observacao: opcional(2000),
+  foto_url: z.string().trim().url("Foto inválida").max(500).optional().nullable().transform((v) => v ?? null),
 });
 
 export const editarEquipamentoSchema = equipamentoSchema.extend({

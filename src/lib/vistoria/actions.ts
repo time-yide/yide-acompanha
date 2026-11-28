@@ -13,6 +13,10 @@ import { editarEquipamentoSchema, equipamentoSchema, type EquipamentoInput } fro
 type SB = any;
 type Res = { error?: string; ok?: boolean };
 
+const BUCKET_FOTOS = "vistoria-equipamentos";
+const ALLOWED_FOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_FOTO_BYTES = 10 * 1024 * 1024;
+
 function revalidar() {
   revalidatePath("/vistoria");
 }
@@ -34,12 +38,38 @@ async function inserirComCodigoUnico(sb: SB, dados: Record<string, unknown>) {
   return { id: null, codigo: null, error: ultimoErro };
 }
 
+/**
+ * Prepara o upload da foto do equipamento. O arquivo NÃO passa pelo Server Action
+ * (limite de 2MB): o browser sobe direto pro Storage via uploadToSignedUrl.
+ */
+export async function prepareFotoEquipamentoUpload(
+  fileName: string,
+  fileType: string,
+  fileSize: number,
+): Promise<{ error: string } | { path: string; token: string; url: string }> {
+  const user = await requireAuth();
+  if (!podeGerenciarVistoria(user.role)) return { error: "Sem permissão" };
+  if (!ALLOWED_FOTO_TYPES.includes(fileType)) return { error: "Só imagem (JPG, PNG ou WebP)" };
+  if (fileSize <= 0) return { error: "Arquivo vazio" };
+  if (fileSize > MAX_FOTO_BYTES) return { error: "Máximo 10MB por foto" };
+
+  const ext = (fileName.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+  const path = `equipamento/${crypto.randomUUID()}.${ext}`;
+  const sb = createServiceRoleClient() as SB;
+  const { data, error } = await sb.storage.from(BUCKET_FOTOS).createSignedUploadUrl(path);
+  if (error || !data?.token) return { error: error?.message ?? "Erro ao preparar upload" };
+  const { data: pub } = sb.storage.from(BUCKET_FOTOS).getPublicUrl(data.path ?? path);
+  return { path: data.path ?? path, token: data.token, url: pub.publicUrl };
+}
+
 export async function criarEquipamentoAction(input: EquipamentoInput): Promise<Res & { codigo?: string }> {
   const user = await requireAuth();
   if (!podeGerenciarVistoria(user.role)) return { error: "Sem permissão" };
 
   const parsed = equipamentoSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos" };
+  // Cadastro exige foto: é o que a pessoa confere visualmente na conferência.
+  if (!parsed.data.foto_url) return { error: "Adicione a foto do equipamento" };
 
   const sb = createServiceRoleClient() as SB;
   const { id, codigo, error } = await inserirComCodigoUnico(sb, {
