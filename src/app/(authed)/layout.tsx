@@ -11,6 +11,8 @@ import { checkPesquisaLock } from "@/lib/pesquisas/lock";
 import { PesquisaLockGate } from "@/components/pesquisas/PesquisaLockGate";
 import { listPendenteParaVideomaker } from "@/lib/audiovisual/queries";
 import { CapturaPendenteLockGate } from "@/components/audiovisual/CapturaPendenteLockGate";
+import { checkVistoriaLock } from "@/lib/vistoria/lock";
+import { VistoriaLockGate } from "@/components/vistoria/VistoriaLockGate";
 import { countChannelsWithUnread } from "@/lib/escritorio/queries";
 import { HeartbeatProvider } from "@/components/produtividade/HeartbeatProvider";
 import { PowerDialerListener } from "@/components/power-dialer/PowerDialerListener";
@@ -55,10 +57,12 @@ async function resolveBadges(user: CurrentUser): Promise<SidebarBadges> {
  */
 async function LockGatesStreamed({ user }: { user: CurrentUser }) {
   const isVideomaker = user.role === "videomaker";
-  const [lockState, audiovisualPendentes, pesquisaLock] = await Promise.all([
+  const [lockState, audiovisualPendentes, pesquisaLock, vistoriaLock] = await Promise.all([
     checkSatisfactionLock(user.id, user.role),
     isVideomaker ? listPendenteParaVideomaker(user.id) : Promise.resolve([]),
     checkPesquisaLock(user.id).catch(() => ({ blocked: false as const, pesquisa: null, perguntas: [] })),
+    // Trava da Vistoria: falha aqui não deve travar ninguém.
+    checkVistoriaLock(user.id).catch(() => ({ blocked: false, total: 0 })),
   ]);
   const audiovisualOverdue = audiovisualPendentes.filter((p) => p.isOverdue);
 
@@ -83,6 +87,7 @@ async function LockGatesStreamed({ user }: { user: CurrentUser }) {
       <SatisfactionLockGate state={lockState} />
       <CapturaPendenteLockGate overdue={audiovisualOverdue} clientes={clientesAtivos} />
       <PesquisaLockGate state={pesquisaLock} />
+      <VistoriaLockGate blocked={vistoriaLock.blocked} total={vistoriaLock.total} />
     </>
   );
 }
