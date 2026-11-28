@@ -3,6 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/lib/auth/session";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import {
+  validarJanelaHorario,
+  LIGACAO_LIMITE_MIN,
+  LIGACAO_LIMITE_MAX,
+} from "@/lib/motor-prospeccao/categorias";
+import { AUTO_CAMPANHA_HORARIO_PADRAO } from "./horario";
 
 interface ActionResult { success?: true; error?: string }
 
@@ -36,8 +42,13 @@ export async function saveAutoCampanhaConfigAction(
   }
 
   const metaAtendidas = Math.min(50, Math.max(1, parseInt(formData.get("auto_campanha_meta_atendidas") as string) || 10));
-  const horarioInicio = (formData.get("auto_campanha_horario_inicio") as string) || "08:00";
-  const horarioFim = (formData.get("auto_campanha_horario_fim") as string) || "18:00";
+  const horarioInicio = (formData.get("auto_campanha_horario_inicio") as string) || AUTO_CAMPANHA_HORARIO_PADRAO.inicio;
+  const horarioFim = (formData.get("auto_campanha_horario_fim") as string) || AUTO_CAMPANHA_HORARIO_PADRAO.fim;
+  const erroHorario = validarJanelaHorario("Campanha automática", horarioInicio, horarioFim, {
+    min: LIGACAO_LIMITE_MIN,
+    max: LIGACAO_LIMITE_MAX,
+  });
+  if (erroHorario) return { error: erroHorario };
 
   const payload = {
     auto_campanha_ativo: formData.get("auto_campanha_ativo") === "true",

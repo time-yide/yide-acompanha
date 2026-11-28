@@ -4,6 +4,11 @@ import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/lib/auth/session";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { ROLES_CONFIG_VOZ_IA } from "./types";
+import {
+  validarJanelaHorario,
+  LIGACAO_LIMITE_MIN,
+  LIGACAO_LIMITE_MAX,
+} from "@/lib/motor-prospeccao/categorias";
 
 interface ActionOk { success: true }
 interface ActionErr { error: string }
@@ -29,6 +34,24 @@ export async function saveVoiceConfigAction(
   const systemPrompt = formData.get("system_prompt") as string;
   if (!systemPrompt?.trim()) return { error: "Prompt é obrigatório" };
 
+  const horarios = {
+    horario_inicio: (formData.get("horario_inicio") as string) || "08:00",
+    horario_fim: (formData.get("horario_fim") as string) || "20:00",
+    horario_inicio_fds: (formData.get("horario_inicio_fds") as string) || "09:00",
+    horario_fim_fds: (formData.get("horario_fim_fds") as string) || "17:00",
+    horario_inicio_ligacao: (formData.get("horario_inicio_ligacao") as string) || "08:30",
+    horario_fim_ligacao: (formData.get("horario_fim_ligacao") as string) || "19:00",
+    horario_inicio_ligacao_fds: (formData.get("horario_inicio_ligacao_fds") as string) || "09:00",
+    horario_fim_ligacao_fds: (formData.get("horario_fim_ligacao_fds") as string) || "17:00",
+  };
+  const limitesLigacao = { min: LIGACAO_LIMITE_MIN, max: LIGACAO_LIMITE_MAX };
+  const erroHorario =
+    validarJanelaHorario("WhatsApp (seg-sex)", horarios.horario_inicio, horarios.horario_fim) ??
+    validarJanelaHorario("WhatsApp (sáb-dom)", horarios.horario_inicio_fds, horarios.horario_fim_fds) ??
+    validarJanelaHorario("Ligações IA (seg-sex)", horarios.horario_inicio_ligacao, horarios.horario_fim_ligacao, limitesLigacao) ??
+    validarJanelaHorario("Ligações IA (sáb-dom)", horarios.horario_inicio_ligacao_fds, horarios.horario_fim_ligacao_fds, limitesLigacao);
+  if (erroHorario) return { error: erroHorario };
+
   const payload = {
     organization_id: orgId,
     nome: (formData.get("nome") as string)?.trim() || "Padrão",
@@ -43,10 +66,7 @@ export async function saveVoiceConfigAction(
     motor_ativo: formData.get("motor_ativo") === "true",
     max_wpp_dia: parseInt((formData.get("max_wpp_dia") as string) || "50"),
     max_chamadas_dia: parseInt((formData.get("max_chamadas_dia") as string) || "30"),
-    horario_inicio: (formData.get("horario_inicio") as string) || "08:00",
-    horario_fim: (formData.get("horario_fim") as string) || "18:00",
-    horario_inicio_fds: (formData.get("horario_inicio_fds") as string) || "09:00",
-    horario_fim_fds: (formData.get("horario_fim_fds") as string) || "17:00",
+    ...horarios,
     wpp_primeiro_contato_prompt: (formData.get("wpp_primeiro_contato_prompt") as string)?.trim() || null,
     wpp_system_prompt: (formData.get("wpp_system_prompt") as string)?.trim() || null,
     twilio_wpp_from: (formData.get("twilio_wpp_from") as string)?.trim() || null,

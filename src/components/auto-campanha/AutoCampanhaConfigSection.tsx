@@ -92,6 +92,8 @@ export function AutoCampanhaConfigSection({ config, colaboradores }: Props) {
               name="auto_campanha_horario_inicio"
               type="time"
               defaultValue={config.auto_campanha_horario_inicio ?? "08:00"}
+              min="08:00"
+              max="20:00"
               className="w-full rounded-md border bg-background px-3 py-2 text-sm"
             />
           </div>
@@ -105,6 +107,8 @@ export function AutoCampanhaConfigSection({ config, colaboradores }: Props) {
               name="auto_campanha_horario_fim"
               type="time"
               defaultValue={config.auto_campanha_horario_fim ?? "18:00"}
+              min="08:00"
+              max="20:00"
               className="w-full rounded-md border bg-background px-3 py-2 text-sm"
             />
           </div>

@@ -9,6 +9,8 @@ import {
   temLigacaoAtivaCampanha,
   type AutoCampanhaConfig,
 } from "./queries";
+import { minutosNaJanelaLigacao } from "@/lib/motor-prospeccao/categorias";
+import { AUTO_CAMPANHA_HORARIO_PADRAO } from "./horario";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function sb() { return createServiceRoleClient() as any; }
@@ -21,13 +23,16 @@ function agora() {
   return cuiaba;
 }
 
-function horaStr(d: Date): string {
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-}
-
 export function dentroDoHorario(config: AutoCampanhaConfig): boolean {
-  const h = horaStr(agora());
-  return h >= config.auto_campanha_horario_inicio && h < config.auto_campanha_horario_fim;
+  const d = agora();
+  // Compara em minutos (não string: coluna time vem "08:00:00"), fail closed em
+  // valor malformado e limitado a 08:00–20:00 mesmo se o banco tiver outra coisa.
+  return minutosNaJanelaLigacao(
+    d.getHours() * 60 + d.getMinutes(),
+    config.auto_campanha_horario_inicio,
+    config.auto_campanha_horario_fim,
+    AUTO_CAMPANHA_HORARIO_PADRAO,
+  );
 }
 
 interface ProximoLead {
