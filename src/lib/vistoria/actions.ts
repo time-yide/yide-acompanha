@@ -7,7 +7,7 @@ import { logAudit } from "@/lib/audit/log";
 import { getTodayDate } from "@/lib/datetime/timezone";
 import { resolverSemana } from "@/lib/check/core";
 import { gerarCodigoEquipamento, normalizarCodigo, podeGerenciarVistoria } from "./core";
-import { editarEquipamentoSchema, equipamentoSchema, type EquipamentoInput } from "./schema";
+import { comprovacaoSchema, editarEquipamentoSchema, equipamentoSchema, type ComprovacaoInput, type EquipamentoInput } from "./schema";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SB = any;
@@ -60,6 +60,45 @@ export async function prepareFotoEquipamentoUpload(
   if (error || !data?.token) return { error: error?.message ?? "Erro ao preparar upload" };
   const { data: pub } = sb.storage.from(BUCKET_FOTOS).getPublicUrl(data.path ?? path);
   return { path: data.path ?? path, token: data.token, url: pub.publicUrl };
+}
+
+/** Foto da conferência: sobe na pasta da própria pessoa (ver policy na migration). */
+export async function prepareFotoConferenciaUpload(
+  fileType: string,
+  fileSize: number,
+): Promise<{ error: string } | { path: string; token: string; url: string }> {
+  const user = await requireAuth();
+  if (!ALLOWED_FOTO_TYPES.includes(fileType)) return { error: "Só imagem (JPG, PNG ou WebP)" };
+  if (fileSize <= 0) return { error: "Arquivo vazio" };
+  if (fileSize > MAX_FOTO_BYTES) return { error: "Máximo 10MB por foto" };
+  const ext = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" }[fileType] ?? "jpg";
+  const path = `conferencia/${user.id}/${crypto.randomUUID()}.${ext}`;
+  const sb = createServiceRoleClient() as SB;
+  const { data, error } = await sb.storage.from(BUCKET_FOTOS).createSignedUploadUrl(path);
+  if (error || !data?.token) return { error: error?.message ?? "Erro ao preparar upload" };
+  const { data: pub } = sb.storage.from(BUCKET_FOTOS).getPublicUrl(data.path ?? path);
+  return { path: data.path ?? path, token: data.token, url: pub.publicUrl };
+}
+
+/** Liga/desliga a comprovação. Só gestor. */
+export async function setExigirComprovacaoAction(ligado: boolean): Promise<Res> {
+  const user = await requireAuth();
+  if (!podeGerenciarVistoria(user.role)) return { error: "Sem permissão" };
+  const sb = createServiceRoleClient() as SB;
+  const { error } = await sb
+    .from("vistoria_config")
+    .update({ exigir_comprovacao: ligado, atualizado_em: new Date().toISOString(), atualizado_por: user.id })
+    .eq("id", 1);
+  if (error) return { error: error.message };
+  await logAudit({
+    entidade: "vistoria_config",
+    entidade_id: "1",
+    acao: "update",
+    dados_depois: { exigir_comprovacao: ligado },
+    ator_id: user.id,
+  });
+  revalidar();
+  return { ok: true };
 }
 
 export async function criarEquipamentoAction(input: EquipamentoInput): Promise<Res & { codigo?: string }> {
@@ -123,6 +162,7 @@ export async function editarEquipamentoAction(input: EquipamentoInput & { id: st
 /** Lê um QR da pessoa logada. Só vale pra equipamento que está com ela. */
 export async function registrarLeituraAction(
   codigoLido: string,
+  comprovacao?: ComprovacaoInput,
 ): Promise<Res & { equipamentoId?: string; nome?: string; jaLido?: boolean }> {
   const user = await requireAuth();
   const codigo = normalizarCodigo(codigoLido);
@@ -141,6 +181,18 @@ export async function registrarLeituraAction(
       return { error: `${eq.nome} está com ${eq.responsavel?.nome ?? "outra pessoa"}, não com você` };
     }
     return { error: `${eq.nome} está no estoque — um gestor precisa atribuir a você` };
+  }
+
+  // Comprovação: se a gestão ligou, a leitura só vale com foto e estado.
+  const { data: cfg } = await sb.from("vistoria_config").select("exigir_comprovacao").eq("id", 1).maybeSingle();
+  let comp: ComprovacaoInput | null = null;
+  if (comprovacao) {
+    const parsed = comprovacaoSchema.safeParse(comprovacao);
+    if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Comprovação inválida" };
+    comp = parsed.data;
+  }
+  if (cfg?.exigir_comprovacao && !comp) {
+    return { error: "A conferência exige foto e estado do equipamento" };
   }
 
   const semana = resolverSemana(null, getTodayDate());
@@ -183,7 +235,11 @@ export async function registrarLeituraAction(
   if (!jaExiste) {
     const { error } = await sb
       .from("vistoria_leituras")
-      .insert({ vistoria_id: vistoria.id, equipamento_id: eq.id });
+      .insert({
+        vistoria_id: vistoria.id,
+        equipamento_id: eq.id,
+        ...(comp ? { foto_url: comp.fotoUrl, estado: comp.estado, observacao: comp.observacao } : {}),
+      });
     if (error && !String(error.message).includes("duplicate")) return { error: error.message };
   }
 

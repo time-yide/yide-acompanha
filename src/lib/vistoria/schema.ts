@@ -19,4 +19,12 @@ export const editarEquipamentoSchema = equipamentoSchema.extend({
   id: z.string().uuid(),
 });
 
+export const comprovacaoSchema = z.object({
+  fotoUrl: z.string().trim().url("Foto inválida").max(500),
+  estado: z.enum(["ok", "defeito"]),
+  observacao: opcional(500),
+});
+
+export type ComprovacaoInput = z.infer<typeof comprovacaoSchema>;
+
 export type EquipamentoInput = z.infer<typeof equipamentoSchema>;

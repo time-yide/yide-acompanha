@@ -25,6 +25,13 @@ export const CATEGORIA_LABEL: Record<CategoriaEquipamento, string> = {
   outro: "Outro",
 };
 
+export const ESTADOS_CONFERENCIA = ["ok", "defeito"] as const;
+export type EstadoConferencia = (typeof ESTADOS_CONFERENCIA)[number];
+export const ESTADO_CONFERENCIA_LABEL: Record<EstadoConferencia, string> = {
+  ok: "Funcionando",
+  defeito: "Com defeito",
+};
+
 export const STATUS_EQUIPAMENTO = ["ativo", "manutencao", "baixado"] as const;
 export type StatusEquipamento = (typeof STATUS_EQUIPAMENTO)[number];
 

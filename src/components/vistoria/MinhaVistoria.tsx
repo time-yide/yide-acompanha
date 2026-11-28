@@ -1,14 +1,16 @@
 "use client";
 
 import { useMemo, useRef, useState, useTransition } from "react";
+import { Input } from "@/components/ui/input";
+import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { CheckCircle2, Circle, Loader2, ScanLine, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { QrScanner } from "./QrScanner";
-import { registrarLeituraAction, concluirVistoriaAction } from "@/lib/vistoria/actions";
-import { CATEGORIA_LABEL, progressoVistoria, type CategoriaEquipamento } from "@/lib/vistoria/core";
+import { registrarLeituraAction, concluirVistoriaAction, prepareFotoConferenciaUpload } from "@/lib/vistoria/actions";
+import { CATEGORIA_LABEL, ESTADO_CONFERENCIA_LABEL, normalizarCodigo, progressoVistoria, type CategoriaEquipamento, type EstadoConferencia } from "@/lib/vistoria/core";
 import type { EquipamentoRow } from "@/lib/vistoria/queries";
 
 interface Props {
@@ -16,12 +18,14 @@ interface Props {
   equipamentos: EquipamentoRow[];
   lidosIds: string[];
   concluida: boolean;
+  /** Gestão ligou a comprovação: cada leitura exige foto e estado. */
+  exigirComprovacao: boolean;
 }
 
 /** Mesmo QR lido de novo em até 3s é o scanner repetindo a leitura: ignora. */
 const JANELA_DUPLICATA_MS = 3000;
 
-export function MinhaVistoria({ semanaLabel, equipamentos, lidosIds, concluida }: Props) {
+export function MinhaVistoria({ semanaLabel, equipamentos, lidosIds, concluida, exigirComprovacao }: Props) {
   const router = useRouter();
   const [pending, start] = useTransition();
   // Leituras feitas nesta tela. Junto com lidosIds (do servidor) forma o conjunto atual;
@@ -30,6 +34,13 @@ export function MinhaVistoria({ semanaLabel, equipamentos, lidosIds, concluida }
   const lidos = useMemo(() => new Set([...lidosIds, ...lidosLocais]), [lidosIds, lidosLocais]);
   const [scannerAberto, setScannerAberto] = useState(false);
   const ultimaLeitura = useRef<{ codigo: string; em: number } | null>(null);
+  // Comprovação: código lido esperando foto/estado. Enquanto existe, o scanner fecha.
+  const [codigoPendente, setCodigoPendente] = useState<string | null>(null);
+  const [estado, setEstado] = useState<EstadoConferencia>("ok");
+  const [observacao, setObservacao] = useState("");
+  const [foto, setFoto] = useState<File | null>(null);
+  const [fotoPreview, setFotoPreview] = useState<string | null>(null);
+  const pendente = codigoPendente ? equipamentos.find((e) => e.codigo === codigoPendente) ?? null : null;
 
   const progresso = useMemo(
     () => progressoVistoria(equipamentos.length, equipamentos.filter((e) => lidos.has(e.id)).length),
@@ -38,6 +49,18 @@ export function MinhaVistoria({ semanaLabel, equipamentos, lidosIds, concluida }
   const podeLer = !concluida && equipamentos.length > 0;
 
   function lerCodigo(texto: string) {
+    if (exigirComprovacao) {
+      const codigo = normalizarCodigo(texto);
+      const eq = equipamentos.find((e) => e.codigo === codigo);
+      if (!eq) { toast.error(`${codigo} não está na sua lista`); return; }
+      if (lidos.has(eq.id)) { toast.message(`${eq.nome} já estava conferido`); return; }
+      setCodigoPendente(codigo);
+      setEstado("ok");
+      setObservacao("");
+      setFoto(null);
+      setFotoPreview(null);
+      return;
+    }
     const agora = Date.now();
     const chave = texto.trim().toUpperCase();
     const anterior = ultimaLeitura.current;
@@ -56,6 +79,37 @@ export function MinhaVistoria({ semanaLabel, equipamentos, lidosIds, concluida }
       }
       if (r.jaLido) toast.message(`${r.nome} já estava conferido`);
       else toast.success(`✓ ${r.nome}`);
+    });
+  }
+
+  function escolherFoto(arquivo: File | null) {
+    setFoto(arquivo);
+    setFotoPreview(arquivo ? URL.createObjectURL(arquivo) : null);
+  }
+
+  function confirmarComprovacao() {
+    if (!codigoPendente || !foto) { toast.error("Tire a foto do equipamento"); return; }
+    const arquivo = foto;
+    start(async () => {
+      const prep = await prepareFotoConferenciaUpload(arquivo.type, arquivo.size);
+      if ("error" in prep) { toast.error(prep.error); return; }
+      const supabase = createClient();
+      const { error: upErr } = await supabase.storage
+        .from("vistoria-equipamentos")
+        .uploadToSignedUrl(prep.path, prep.token, arquivo, { contentType: arquivo.type });
+      if (upErr) { toast.error(`Falha no upload da foto: ${upErr.message}`); return; }
+      const r = await registrarLeituraAction(codigoPendente, {
+        fotoUrl: prep.url,
+        estado,
+        observacao: observacao.trim() || null,
+      });
+      if ("error" in r && r.error) { toast.error(r.error); return; }
+      if (r.equipamentoId) {
+        const id = r.equipamentoId;
+        setLidosLocais((prev) => (prev.includes(id) ? prev : [...prev, id]));
+      }
+      toast.success(`✓ ${r.nome}`);
+      setCodigoPendente(null);
     });
   }
 
@@ -159,7 +213,53 @@ export function MinhaVistoria({ semanaLabel, equipamentos, lidosIds, concluida }
             <DialogTitle>Escanear equipamento</DialogTitle>
             <DialogDescription>Aponte a câmera pro QR colado no equipamento. Cada leitura conta na hora.</DialogDescription>
           </DialogHeader>
-          {scannerAberto && <QrScanner onCode={lerCodigo} />}
+          {scannerAberto && pendente && (
+            <div className="space-y-3">
+              <p className="text-sm font-medium">{pendente.nome} <span className="font-mono text-xs text-muted-foreground">{pendente.codigo}</span></p>
+              <div className="space-y-1 text-sm">
+                <span className="text-xs font-medium text-muted-foreground">Foto do equipamento *</span>
+                <div className="flex items-center gap-3">
+                  {fotoPreview ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img src={fotoPreview} alt="" className="h-20 w-20 rounded-md object-cover" />
+                  ) : (
+                    <div className="flex h-20 w-20 items-center justify-center rounded-md border border-dashed text-xs text-muted-foreground">sem foto</div>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    capture="environment"
+                    className="text-sm file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-1.5"
+                    onChange={(e) => escolherFoto(e.target.files?.[0] ?? null)}
+                  />
+                </div>
+              </div>
+              <label className="block space-y-1 text-sm">
+                <span className="text-xs font-medium text-muted-foreground">Estado</span>
+                <select
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  value={estado}
+                  onChange={(e) => setEstado(e.target.value as EstadoConferencia)}
+                >
+                  {(Object.keys(ESTADO_CONFERENCIA_LABEL) as EstadoConferencia[]).map((k) => (
+                    <option key={k} value={k}>{ESTADO_CONFERENCIA_LABEL[k]}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="block space-y-1 text-sm">
+                <span className="text-xs font-medium text-muted-foreground">Observação (opcional)</span>
+                <Input value={observacao} onChange={(e) => setObservacao(e.target.value)} placeholder="Ex: bateria fraca, tela riscada" />
+              </label>
+              <div className="flex justify-end gap-2">
+                <Button variant="ghost" onClick={() => setCodigoPendente(null)} disabled={pending}>Voltar ao scanner</Button>
+                <Button onClick={confirmarComprovacao} disabled={pending || !foto}>
+                  {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Confirmar leitura
+                </Button>
+              </div>
+            </div>
+          )}
+          {scannerAberto && !pendente && <QrScanner onCode={lerCodigo} />}
           <div className="flex justify-end">
             <Button variant="ghost" onClick={() => setScannerAberto(false)}>
               <X className="mr-2 h-4 w-4" /> Fechar

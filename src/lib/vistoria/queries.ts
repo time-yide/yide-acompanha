@@ -20,6 +20,17 @@ export interface EquipamentoRow {
   foto_url: string | null;
 }
 
+export interface LeituraSemana {
+  id: string;
+  lida_em: string;
+  codigo: string;
+  equipamento_nome: string;
+  pessoa_nome: string;
+  foto_url: string | null;
+  estado: string | null;
+  observacao: string | null;
+}
+
 export interface PessoaOpcao {
   id: string;
   nome: string;
@@ -149,6 +160,41 @@ export async function listConferenciaSemana(semana: string): Promise<Conferencia
   }
 
   return [...porPessoa.values()].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+}
+
+/** Quem conferiu o quê na semana, com a comprovação (foto/estado). */
+export async function listLeiturasSemana(semana: string): Promise<LeituraSemana[]> {
+  const sb = createServiceRoleClient() as SB;
+  const { data, error } = await sb
+    .from("vistoria_leituras")
+    .select(
+      "id, lida_em, foto_url, estado, observacao, vistoria:vistorias!inner(semana_inicio, pessoa:profiles!vistorias_responsavel_id_fkey(nome)), equipamento:equipamentos!vistoria_leituras_equipamento_id_fkey(codigo, nome)",
+    )
+    .eq("vistoria.semana_inicio", semana)
+    .order("lida_em", { ascending: false })
+    .limit(300);
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as Array<{
+    id: string; lida_em: string; foto_url: string | null; estado: string | null; observacao: string | null;
+    vistoria: { pessoa: { nome: string } | null };
+    equipamento: { codigo: string; nome: string };
+  }>).map((l) => ({
+    id: l.id,
+    lida_em: l.lida_em,
+    codigo: l.equipamento.codigo,
+    equipamento_nome: l.equipamento.nome,
+    pessoa_nome: l.vistoria.pessoa?.nome ?? "—",
+    foto_url: l.foto_url,
+    estado: l.estado,
+    observacao: l.observacao,
+  }));
+}
+
+/** Liga/desliga a comprovação obrigatória na conferência. */
+export async function getExigirComprovacao(): Promise<boolean> {
+  const sb = createServiceRoleClient() as SB;
+  const { data } = await sb.from("vistoria_config").select("exigir_comprovacao").eq("id", 1).maybeSingle();
+  return Boolean(data?.exigir_comprovacao);
 }
 
 /** Etiquetas precisam só de código + nome + categoria. */

@@ -8,19 +8,23 @@ import { Loader2, Pencil, Plus, Printer, Search } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { criarEquipamentoAction, editarEquipamentoAction, prepareFotoEquipamentoUpload } from "@/lib/vistoria/actions";
+import { criarEquipamentoAction, editarEquipamentoAction, prepareFotoEquipamentoUpload, setExigirComprovacaoAction } from "@/lib/vistoria/actions";
+import { Switch } from "@/components/ui/switch";
+import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 import { createClient } from "@/lib/supabase/client";
 import {
   CATEGORIAS_EQUIPAMENTO, CATEGORIA_LABEL, STATUS_EQUIPAMENTO, STATUS_EQUIPAMENTO_LABEL,
-  progressoVistoria, resumoEstoque, type CategoriaEquipamento, type StatusEquipamento,
+  ESTADO_CONFERENCIA_LABEL, progressoVistoria, resumoEstoque, type CategoriaEquipamento, type EstadoConferencia, type StatusEquipamento,
 } from "@/lib/vistoria/core";
-import type { ConferenciaPessoa, EquipamentoRow, PessoaOpcao } from "@/lib/vistoria/queries";
+import type { ConferenciaPessoa, EquipamentoRow, LeituraSemana, PessoaOpcao } from "@/lib/vistoria/queries";
 import { cn } from "@/lib/utils";
 
 interface Props {
   equipamentos: EquipamentoRow[];
   pessoas: PessoaOpcao[];
   conferencia: ConferenciaPessoa[];
+  leituras: LeituraSemana[];
+  exigirComprovacao: boolean;
   semanaLabel: string;
 }
 
@@ -47,7 +51,7 @@ const VAZIO: Form = {
 
 const CAMPO = "flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
-export function VistoriaGestao({ equipamentos, pessoas, conferencia, semanaLabel }: Props) {
+export function VistoriaGestao({ equipamentos, pessoas, conferencia, leituras, exigirComprovacao, semanaLabel }: Props) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [form, setForm] = useState<Form | null>(null);
@@ -65,6 +69,15 @@ export function VistoriaGestao({ equipamentos, pessoas, conferencia, semanaLabel
         .some((v) => (v ?? "").toLowerCase().includes(termo));
     });
   }, [equipamentos, busca, filtroCategoria]);
+
+  function alternarComprovacao(ligado: boolean) {
+    start(async () => {
+      const r = await setExigirComprovacaoAction(ligado);
+      if ("error" in r && r.error) { toast.error(r.error); return; }
+      toast.success(ligado ? "Comprovação ligada: cada leitura exige foto e estado" : "Comprovação desligada");
+      router.refresh();
+    });
+  }
 
   function escolherFoto(arquivo: File | null) {
     if (!form) return;
@@ -216,6 +229,19 @@ export function VistoriaGestao({ equipamentos, pessoas, conferencia, semanaLabel
         </div>
       </section>
 
+      <section className="flex flex-wrap items-center justify-between gap-4 rounded-xl border bg-card p-4">
+        <div className="max-w-xl">
+          <p className="font-medium">Comprovação na conferência</p>
+          <p className="text-sm text-muted-foreground">
+            Quando ligada, cada leitura exige foto do equipamento e o estado (funcionando ou com defeito). Desligada por padrão.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">{exigirComprovacao ? "Ligada" : "Desligada"}</span>
+          <Switch checked={exigirComprovacao} onCheckedChange={alternarComprovacao} disabled={pending} aria-label="Exigir comprovação na conferência" />
+        </div>
+      </section>
+
       <section className="space-y-3">
         <header>
           <h2 className="text-lg font-semibold tracking-tight">Conferência da semana</h2>
@@ -254,6 +280,55 @@ export function VistoriaGestao({ equipamentos, pessoas, conferencia, semanaLabel
                     </tr>
                   );
                 })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <header>
+          <h2 className="text-lg font-semibold tracking-tight">Leituras da semana</h2>
+          <p className="text-sm text-muted-foreground">Cada QR lido, com quem leu e a comprovação quando houver.</p>
+        </header>
+        {leituras.length === 0 ? (
+          <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">Nenhuma leitura ainda nesta semana.</p>
+        ) : (
+          <div className="overflow-x-auto rounded-xl border">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
+                <tr>
+                  <th className="px-3 py-2">Foto</th>
+                  <th className="px-3 py-2">Equipamento</th>
+                  <th className="px-3 py-2">Quem leu</th>
+                  <th className="px-3 py-2">Quando</th>
+                  <th className="px-3 py-2">Estado</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {leituras.map((l) => (
+                  <tr key={l.id}>
+                    <td className="px-3 py-2"><Miniatura src={l.foto_url} /></td>
+                    <td className="px-3 py-2">
+                      <p className="font-medium">{l.equipamento_nome}</p>
+                      <p className="font-mono text-xs text-muted-foreground">{l.codigo}</p>
+                    </td>
+                    <td className="px-3 py-2">{l.pessoa_nome}</td>
+                    <td className="px-3 py-2 whitespace-nowrap">
+                      {new Date(l.lida_em).toLocaleString("pt-BR", { timeZone: APP_TIMEZONE, day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                    </td>
+                    <td className="px-3 py-2">
+                      {l.estado ? (
+                        <span className={l.estado === "defeito" ? "text-amber-700 dark:text-amber-400" : ""}>
+                          {ESTADO_CONFERENCIA_LABEL[l.estado as EstadoConferencia] ?? l.estado}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">sem comprovação</span>
+                      )}
+                      {l.observacao && <p className="text-xs text-muted-foreground">{l.observacao}</p>}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

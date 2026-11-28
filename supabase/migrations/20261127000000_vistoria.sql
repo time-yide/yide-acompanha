@@ -49,7 +49,6 @@ alter table public.equipamentos enable row level security;
 alter table public.vistorias enable row level security;
 alter table public.vistoria_leituras enable row level security;
 
-notify pgrst, 'reload schema';
 
 -- Foto do equipamento (bucket público, igual ao de recados: a URL final vai direto no registro).
 alter table public.equipamentos add column if not exists foto_url text;
@@ -81,5 +80,31 @@ create policy "vistoria-equipamentos insert"
 create policy "vistoria-equipamentos delete own"
   on storage.objects for delete to authenticated
   using (bucket_id = 'vistoria-equipamentos' and owner = auth.uid());
+
+-- Comprovação na conferência: quando ligada, cada leitura exige foto e estado do equipamento.
+-- Desligada por padrão; só gestor liga.
+create table if not exists public.vistoria_config (
+  id int primary key default 1 check (id = 1),
+  exigir_comprovacao boolean not null default false,
+  atualizado_em timestamptz not null default now(),
+  atualizado_por uuid references public.profiles(id) on delete set null
+);
+insert into public.vistoria_config (id, exigir_comprovacao) values (1, false)
+on conflict (id) do nothing;
+alter table public.vistoria_config enable row level security;
+
+alter table public.vistoria_leituras add column if not exists foto_url text;
+alter table public.vistoria_leituras add column if not exists estado text
+  check (estado in ('ok', 'defeito'));
+alter table public.vistoria_leituras add column if not exists observacao text;
+
+-- Quem confere sobe a própria foto, só dentro da pasta conferencia/<seu uid>/.
+create policy "vistoria-equipamentos insert conferencia"
+  on storage.objects for insert to authenticated
+  with check (
+    bucket_id = 'vistoria-equipamentos'
+    and (storage.foldername(name))[1] = 'conferencia'
+    and (storage.foldername(name))[2] = auth.uid()::text
+  );
 
 notify pgrst, 'reload schema';

@@ -2,7 +2,7 @@ import { requireAuth } from "@/lib/auth/session";
 import { getTodayDate } from "@/lib/datetime/timezone";
 import { resolverSemana, rotuloSemana } from "@/lib/check/core";
 import { podeGerenciarVistoria } from "@/lib/vistoria/core";
-import { getMinhaVistoria, listConferenciaSemana, listEquipamentos, listPessoasAtivas } from "@/lib/vistoria/queries";
+import { getExigirComprovacao, getMinhaVistoria, listConferenciaSemana, listEquipamentos, listLeiturasSemana, listPessoasAtivas } from "@/lib/vistoria/queries";
 import { TabsManual } from "@/components/manual/TabsManual";
 import { podeVerColaboradores } from "@/lib/colaboradores/access";
 import { MinhaVistoria } from "@/components/vistoria/MinhaVistoria";
@@ -15,11 +15,13 @@ export default async function VistoriaPage() {
   const semanaLabel = rotuloSemana(semana);
   const gestor = podeGerenciarVistoria(user.role);
 
-  const [minha, equipamentos, pessoas, conferencia] = await Promise.all([
+  const [minha, equipamentos, pessoas, conferencia, leituras, exigirComprovacao] = await Promise.all([
     getMinhaVistoria(user.id, semana),
     gestor ? listEquipamentos() : Promise.resolve([]),
     gestor ? listPessoasAtivas() : Promise.resolve([]),
     gestor ? listConferenciaSemana(semana) : Promise.resolve([]),
+    gestor ? listLeiturasSemana(semana) : Promise.resolve([]),
+    getExigirComprovacao(),
   ]);
 
   return (
@@ -44,6 +46,7 @@ export default async function VistoriaPage() {
         equipamentos={minha.equipamentos}
         lidosIds={minha.lidosIds}
         concluida={Boolean(minha.concluidaEm)}
+        exigirComprovacao={exigirComprovacao}
       />
 
       {gestor && (
@@ -51,6 +54,8 @@ export default async function VistoriaPage() {
           equipamentos={equipamentos}
           pessoas={pessoas}
           conferencia={conferencia}
+          leituras={leituras}
+          exigirComprovacao={exigirComprovacao}
           semanaLabel={semanaLabel}
         />
       )}
