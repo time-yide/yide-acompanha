@@ -43,7 +43,6 @@ async function inserirComCodigoUnico(sb: SB, dados: Record<string, unknown>) {
  * (limite de 2MB): o browser sobe direto pro Storage via uploadToSignedUrl.
  */
 export async function prepareFotoEquipamentoUpload(
-  fileName: string,
   fileType: string,
   fileSize: number,
 ): Promise<{ error: string } | { path: string; token: string; url: string }> {
@@ -53,7 +52,8 @@ export async function prepareFotoEquipamentoUpload(
   if (fileSize <= 0) return { error: "Arquivo vazio" };
   if (fileSize > MAX_FOTO_BYTES) return { error: "Máximo 10MB por foto" };
 
-  const ext = (fileName.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+  // Extensão vem do tipo validado, não do nome que o usuário escolheu.
+  const ext = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" }[fileType] ?? "jpg";
   const path = `equipamento/${crypto.randomUUID()}.${ext}`;
   const sb = createServiceRoleClient() as SB;
   const { data, error } = await sb.storage.from(BUCKET_FOTOS).createSignedUploadUrl(path);

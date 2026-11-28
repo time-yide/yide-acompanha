@@ -54,17 +54,29 @@ notify pgrst, 'reload schema';
 -- Foto do equipamento (bucket público, igual ao de recados: a URL final vai direto no registro).
 alter table public.equipamentos add column if not exists foto_url text;
 
-insert into storage.buckets (id, name, public)
-values ('vistoria-equipamentos', 'vistoria-equipamentos', true)
-on conflict (id) do nothing;
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'vistoria-equipamentos', 'vistoria-equipamentos', true,
+  10485760, array['image/jpeg', 'image/png', 'image/webp']
+)
+on conflict (id) do update
+  set file_size_limit = excluded.file_size_limit,
+      allowed_mime_types = excluded.allowed_mime_types;
 
 create policy "vistoria-equipamentos read"
   on storage.objects for select to authenticated
   using (bucket_id = 'vistoria-equipamentos');
 
+-- Só gestores da Vistoria sobem foto (mesmos papéis de ROLES_GERENCIAM_VISTORIA).
 create policy "vistoria-equipamentos insert"
   on storage.objects for insert to authenticated
-  with check (bucket_id = 'vistoria-equipamentos');
+  with check (
+    bucket_id = 'vistoria-equipamentos'
+    and exists (
+      select 1 from public.profiles p
+      where p.id = auth.uid() and p.role in ('adm', 'socio', 'audiovisual_chefe')
+    )
+  );
 
 create policy "vistoria-equipamentos delete own"
   on storage.objects for delete to authenticated

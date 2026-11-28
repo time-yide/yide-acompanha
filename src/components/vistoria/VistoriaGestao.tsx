@@ -78,7 +78,7 @@ export function VistoriaGestao({ equipamentos, pessoas, conferencia, semanaLabel
       let fotoUrl: string | null = form.foto_url || null;
       if (form.fotoArquivo) {
         const arquivo = form.fotoArquivo;
-        const prep = await prepareFotoEquipamentoUpload(arquivo.name, arquivo.type, arquivo.size);
+        const prep = await prepareFotoEquipamentoUpload(arquivo.type, arquivo.size);
         if ("error" in prep) { toast.error(prep.error); return; }
         const supabase = createClient();
         const { error: upErr } = await supabase.storage
