@@ -7,12 +7,15 @@ import { Toaster } from "@/components/ui/sonner";
 import { PWARegister } from "@/components/pwa/PWARegister";
 import { IOSInstallBanner } from "@/components/pwa/IOSInstallBanner";
 import { ChunkErrorRecovery } from "@/components/pwa/ChunkErrorRecovery";
+import { SITE_URL } from "@/lib/blog/config";
 
 
 // Ícones vêm dos arquivos em src/app/: icon.svg (favicon), apple-icon.tsx
 // (180x180), icon0.tsx (192x192), icon1.tsx (512x512). Não definir
 // `metadata.icons` aqui - sobrescreveria a convenção.
 export const metadata: Metadata = {
+  // Base das URLs relativas de metadados (ex.: /opengraph-image) no domínio do site.
+  metadataBase: new URL(SITE_URL),
   title: "Yide Digital",
   description: "Sistema de acompanhamento da Yide Digital",
   manifest: "/manifest.webmanifest",

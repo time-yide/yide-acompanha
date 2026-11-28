@@ -42,7 +42,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       title, description, type: "article",
       publishedTime: post.published_at ?? undefined,
       modifiedTime: post.updated_at,
-      images: post.cover_image_url ? [post.cover_image_url] : undefined,
+      images: post.cover_image_url ? [post.cover_image_url] : ["/opengraph-image"],
     },
     twitter: { card: "summary_large_image", title, description, images: post.cover_image_url ? [post.cover_image_url] : undefined },
     keywords: post.keywords.length ? post.keywords : undefined,

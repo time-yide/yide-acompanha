@@ -67,7 +67,20 @@ export const PRACAS = [
   { nome: "Vitória e Vila Velha (ES)", contexto: "porto e logística, comércio, serviços, Grande Vitória com cidades muito próximas" },
 ] as const;
 
-/** PURA. Escolhe a praça do artigo: as três com equipe presencial em rodízio. */
-export function escolherPraca(aleatorio: () => number = Math.random) {
+// Nomes que, citados no tema, fixam a praça (índice em PRACAS).
+const PRACA_POR_NOME: [RegExp, number][] = [
+  [/cuiab[aá]|v[aá]rzea grande|mato grosso/i, 0],
+  [/salvador|bahia/i, 1],
+  [/vit[oó]ria|vila velha|esp[ií]rito santo/i, 2],
+];
+
+/**
+ * PURA. Escolhe a praça do artigo. Se o tema cita uma das cidades, usa a praça
+ * dela (um artigo "em Cuiabá" não pode sair com contexto de Salvador); senão,
+ * as três com equipe presencial em rodízio.
+ */
+export function escolherPraca(aleatorio: () => number = Math.random, tema = "") {
+  const fixa = PRACA_POR_NOME.find(([re]) => re.test(tema));
+  if (fixa) return PRACAS[fixa[1]];
   return PRACAS[Math.floor(aleatorio() * PRACAS.length) % PRACAS.length];
 }

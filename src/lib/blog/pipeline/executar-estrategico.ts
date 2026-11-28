@@ -34,7 +34,7 @@ export async function executarPipelineEstrategico(orgId: string, quantos = 1, pu
   for (const tema of temasNaoUsados) {
     try {
       const keywordsAlvo = selecionarKeywordsAlvo(4); // SEO local, varia por post
-      const praca = escolherPraca(); // Cuiabá/VG, Salvador ou Vitória/Vila Velha
+      const praca = escolherPraca(Math.random, tema.pergunta); // cidade do tema ou rodízio Cuiabá/VG, Salvador, Vitória/Vila Velha
       const artigo = await gerarArtigoEstrategico(tema.pergunta, keywordsAlvo, praca);
       if (!artigo) { erros++; continue; }
       const capa = await buscarImagemStock(artigo.keywords);

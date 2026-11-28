@@ -12,6 +12,14 @@ describe("praças do blog", () => {
     expect(escolherPraca(() => 0.5).nome).toContain("Salvador");
     expect(escolherPraca(() => 0.99).nome).toContain("Vitória");
   });
+  it("tema que cita a cidade usa a praça dela, sem sorteio", () => {
+    expect(escolherPraca(() => 0.99, "Criação de loja virtual em Cuiabá: quanto custa?").nome).toContain("Cuiabá");
+    expect(escolherPraca(() => 0, "Agência de marketing em Várzea Grande: o que avaliar?").nome).toContain("Cuiabá");
+    expect(escolherPraca(() => 0, "Agência de marketing em Mato Grosso: como escolher?").nome).toContain("Cuiabá");
+    expect(escolherPraca(() => 0, "Delivery em Salvador vende mais no Carnaval?").nome).toContain("Salvador");
+    expect(escolherPraca(() => 0, "Loja em Vila Velha precisa de site?").nome).toContain("Vitória");
+    expect(escolherPraca(() => 0.5, "Como vender mais em janeiro?").nome).toContain("Salvador");
+  });
   it("às vezes entra uma cidade de fora das praças", () => {
     const ks = selecionarKeywordsAlvo(4, () => 0.1);
     expect(CIDADES_BRASIL.some((c) => ks.some((k) => k.includes(c)))).toBe(true);
