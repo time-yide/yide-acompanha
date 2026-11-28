@@ -78,3 +78,23 @@ describe("progressoVistoria", () => {
     expect(progressoVistoria(2, 5).conferidos).toBe(2);
   });
 });
+
+describe("caminhos de foto", () => {
+  const uid = "11111111-2222-3333-4444-555555555555";
+  const foto = "66666666-7777-8888-9999-aaaaaaaaaaaa";
+
+  it("aceita só o caminho de equipamento gerado pelo servidor", async () => {
+    const { caminhoFotoEquipamentoValido } = await import("./core");
+    expect(caminhoFotoEquipamentoValido(`equipamento/${foto}.jpg`)).toBe(true);
+    expect(caminhoFotoEquipamentoValido(`conferencia/${uid}/${foto}.jpg`)).toBe(false);
+    expect(caminhoFotoEquipamentoValido("https://evil.example/x.jpg")).toBe(false);
+    expect(caminhoFotoEquipamentoValido(`equipamento/${foto}.jpg/../../x`)).toBe(false);
+  });
+
+  it("conferência só aceita a própria pasta", async () => {
+    const { caminhoFotoConferenciaValido } = await import("./core");
+    expect(caminhoFotoConferenciaValido(`conferencia/${uid}/${foto}.png`, uid)).toBe(true);
+    expect(caminhoFotoConferenciaValido(`conferencia/${uid}/${foto}.png`, "outra")).toBe(false);
+    expect(caminhoFotoConferenciaValido(`equipamento/${foto}.png`, uid)).toBe(false);
+  });
+});

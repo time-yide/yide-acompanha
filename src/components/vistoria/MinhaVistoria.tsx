@@ -99,7 +99,7 @@ export function MinhaVistoria({ semanaLabel, equipamentos, lidosIds, concluida, 
         .uploadToSignedUrl(prep.path, prep.token, arquivo, { contentType: arquivo.type });
       if (upErr) { toast.error(`Falha no upload da foto: ${upErr.message}`); return; }
       const r = await registrarLeituraAction(codigoPendente, {
-        fotoUrl: prep.url,
+        fotoPath: prep.path,
         estado,
         observacao: observacao.trim() || null,
       });

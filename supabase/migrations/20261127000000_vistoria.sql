@@ -86,6 +86,8 @@ create policy "vistoria-equipamentos delete own"
 create table if not exists public.vistoria_config (
   id int primary key default 1 check (id = 1),
   exigir_comprovacao boolean not null default false,
+  -- Trava semanal: quem tem equipamento só usa o sistema depois de conferir. Desligada até a gestão ligar.
+  trava_semanal_ativa boolean not null default false,
   atualizado_em timestamptz not null default now(),
   atualizado_por uuid references public.profiles(id) on delete set null
 );

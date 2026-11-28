@@ -18,6 +18,8 @@ export interface VistoriaLockState {
  */
 export async function checkVistoriaLock(userId: string): Promise<VistoriaLockState> {
   const sb = createServiceRoleClient() as SB;
+  const { data: cfg } = await sb.from("vistoria_config").select("trava_semanal_ativa").eq("id", 1).maybeSingle();
+  if (!cfg?.trava_semanal_ativa) return { blocked: false, total: 0 };
   const { count: total } = await sb
     .from("equipamentos")
     .select("id", { count: "exact", head: true })

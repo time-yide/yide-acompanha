@@ -8,7 +8,7 @@ import { Loader2, Pencil, Plus, Printer, Search } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { criarEquipamentoAction, editarEquipamentoAction, prepareFotoEquipamentoUpload, setExigirComprovacaoAction } from "@/lib/vistoria/actions";
+import { criarEquipamentoAction, editarEquipamentoAction, prepareFotoEquipamentoUpload, setExigirComprovacaoAction, setTravaSemanalAction } from "@/lib/vistoria/actions";
 import { Switch } from "@/components/ui/switch";
 import { APP_TIMEZONE } from "@/lib/datetime/timezone";
 import { createClient } from "@/lib/supabase/client";
@@ -25,6 +25,7 @@ interface Props {
   conferencia: ConferenciaPessoa[];
   leituras: LeituraSemana[];
   exigirComprovacao: boolean;
+  travaAtiva: boolean;
   semanaLabel: string;
 }
 
@@ -51,7 +52,7 @@ const VAZIO: Form = {
 
 const CAMPO = "flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
-export function VistoriaGestao({ equipamentos, pessoas, conferencia, leituras, exigirComprovacao, semanaLabel }: Props) {
+export function VistoriaGestao({ equipamentos, pessoas, conferencia, leituras, exigirComprovacao, travaAtiva, semanaLabel }: Props) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [form, setForm] = useState<Form | null>(null);
@@ -69,6 +70,15 @@ export function VistoriaGestao({ equipamentos, pessoas, conferencia, leituras, e
         .some((v) => (v ?? "").toLowerCase().includes(termo));
     });
   }, [equipamentos, busca, filtroCategoria]);
+
+  function alternarTrava(ligada: boolean) {
+    start(async () => {
+      const r = await setTravaSemanalAction(ligada);
+      if ("error" in r && r.error) { toast.error(r.error); return; }
+      toast.success(ligada ? "Trava semanal ligada: quem tem equipamento precisa conferir" : "Trava semanal desligada");
+      router.refresh();
+    });
+  }
 
   function alternarComprovacao(ligado: boolean) {
     start(async () => {
@@ -88,7 +98,7 @@ export function VistoriaGestao({ equipamentos, pessoas, conferencia, leituras, e
     if (!form) return;
     start(async () => {
       // 1) Foto: sobe direto pro Storage (o Server Action não aceita arquivo grande).
-      let fotoUrl: string | null = form.foto_url || null;
+      let fotoPath: string | null = null;
       if (form.fotoArquivo) {
         const arquivo = form.fotoArquivo;
         const prep = await prepareFotoEquipamentoUpload(arquivo.type, arquivo.size);
@@ -98,9 +108,9 @@ export function VistoriaGestao({ equipamentos, pessoas, conferencia, leituras, e
           .from("vistoria-equipamentos")
           .uploadToSignedUrl(prep.path, prep.token, arquivo, { contentType: arquivo.type });
         if (upErr) { toast.error(`Falha no upload da foto: ${upErr.message}`); return; }
-        fotoUrl = prep.url;
+        fotoPath = prep.path;
       }
-      if (!form.id && !fotoUrl) { toast.error("Adicione a foto do equipamento"); return; }
+      if (!form.id && !fotoPath) { toast.error("Adicione a foto do equipamento"); return; }
 
       // 2) Dados + QR: o código é gerado no servidor ao cadastrar.
       const payload = {
@@ -112,7 +122,7 @@ export function VistoriaGestao({ equipamentos, pessoas, conferencia, leituras, e
         status: form.status,
         responsavel_id: form.responsavel_id || null,
         observacao: form.observacao || null,
-        foto_url: fotoUrl,
+        foto_path: fotoPath,
       };
       const r = form.id
         ? await editarEquipamentoAction({ ...payload, id: form.id })
@@ -226,6 +236,19 @@ export function VistoriaGestao({ equipamentos, pessoas, conferencia, leituras, e
               ))}
             </tbody>
           </table>
+        </div>
+      </section>
+
+      <section className="flex flex-wrap items-center justify-between gap-4 rounded-xl border bg-card p-4">
+        <div className="max-w-xl">
+          <p className="font-medium">Trava semanal (conferência obrigatória)</p>
+          <p className="text-sm text-muted-foreground">
+            Ligada, quem tem equipamento fica travado no sistema toda segunda até concluir a conferência. Desligada, ninguém é travado.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">{travaAtiva ? "Ligada" : "Desligada"}</span>
+          <Switch checked={travaAtiva} onCheckedChange={alternarTrava} disabled={pending} aria-label="Trava semanal da conferência" />
         </div>
       </section>
 

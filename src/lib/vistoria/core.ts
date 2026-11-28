@@ -1,5 +1,19 @@
 // Vistoria — regras puras (client-safe): categorias, permissões, código do QR e resumos.
 
+const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+const RE_FOTO_EQUIPAMENTO = new RegExp(`^equipamento/${UUID}\\.(jpg|png|webp)$`);
+
+/** Caminho de foto de equipamento: só `equipamento/<uuid>.<ext>` (o que o servidor gera). */
+export function caminhoFotoEquipamentoValido(path: string): boolean {
+  return RE_FOTO_EQUIPAMENTO.test(path);
+}
+
+/** Caminho de foto de conferência: só `conferencia/<uid da pessoa>/<uuid>.<ext>`. */
+export function caminhoFotoConferenciaValido(path: string, userId: string): boolean {
+  const re = new RegExp(`^conferencia/${userId.replace(/[^0-9a-f-]/gi, "")}/${UUID}\\.(jpg|png|webp)$`);
+  return re.test(path);
+}
+
 export const CATEGORIAS_EQUIPAMENTO = [
   "computador",
   "camera",

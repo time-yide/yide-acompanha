@@ -12,7 +12,8 @@ export const equipamentoSchema = z.object({
   status: z.enum(STATUS_EQUIPAMENTO).default("ativo"),
   responsavel_id: z.string().uuid().optional().nullable().transform((v) => v ?? null),
   observacao: opcional(2000),
-  foto_url: z.string().trim().url("Foto inválida").max(500).optional().nullable().transform((v) => v ?? null),
+  // Caminho da foto (vem do upload). Ausente na edição = mantém a foto atual.
+  foto_path: z.string().trim().max(200).optional().nullable().transform((v) => v || null),
 });
 
 export const editarEquipamentoSchema = equipamentoSchema.extend({
@@ -20,7 +21,8 @@ export const editarEquipamentoSchema = equipamentoSchema.extend({
 });
 
 export const comprovacaoSchema = z.object({
-  fotoUrl: z.string().trim().url("Foto inválida").max(500),
+  // Caminho no Storage, não URL: o servidor confere a pasta e monta a URL.
+  fotoPath: z.string().trim().min(1, "Foto obrigatória").max(200),
   estado: z.enum(["ok", "defeito"]),
   observacao: opcional(500),
 });

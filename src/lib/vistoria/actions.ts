@@ -6,7 +6,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { logAudit } from "@/lib/audit/log";
 import { getTodayDate } from "@/lib/datetime/timezone";
 import { resolverSemana } from "@/lib/check/core";
-import { gerarCodigoEquipamento, normalizarCodigo, podeGerenciarVistoria } from "./core";
+import { caminhoFotoConferenciaValido, caminhoFotoEquipamentoValido, gerarCodigoEquipamento, normalizarCodigo, podeGerenciarVistoria } from "./core";
 import { comprovacaoSchema, editarEquipamentoSchema, equipamentoSchema, type ComprovacaoInput, type EquipamentoInput } from "./schema";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -16,6 +16,20 @@ type Res = { error?: string; ok?: boolean };
 const BUCKET_FOTOS = "vistoria-equipamentos";
 const ALLOWED_FOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_FOTO_BYTES = 10 * 1024 * 1024;
+
+/**
+ * Confere que o arquivo existe no bucket e devolve a URL pública montada aqui.
+ * Impede registrar foto com URL inventada: só vale o que o upload de fato criou.
+ */
+async function urlDeFotoExistente(sb: SB, path: string): Promise<string | null> {
+  const slash = path.lastIndexOf("/");
+  const pasta = path.slice(0, slash);
+  const nome = path.slice(slash + 1);
+  const { data } = await sb.storage.from(BUCKET_FOTOS).list(pasta, { search: nome, limit: 5 });
+  if (!(data ?? []).some((f: { name: string }) => f.name === nome)) return null;
+  const { data: pub } = sb.storage.from(BUCKET_FOTOS).getPublicUrl(path);
+  return pub.publicUrl as string;
+}
 
 function revalidar() {
   revalidatePath("/vistoria");
@@ -80,6 +94,27 @@ export async function prepareFotoConferenciaUpload(
   return { path: data.path ?? path, token: data.token, url: pub.publicUrl };
 }
 
+/** Liga/desliga a trava semanal (quem tem equipamento fica travado até conferir). Só gestor. */
+export async function setTravaSemanalAction(ligada: boolean): Promise<Res> {
+  const user = await requireAuth();
+  if (!podeGerenciarVistoria(user.role)) return { error: "Sem permissão" };
+  const sb = createServiceRoleClient() as SB;
+  const { error } = await sb
+    .from("vistoria_config")
+    .update({ trava_semanal_ativa: ligada, atualizado_em: new Date().toISOString(), atualizado_por: user.id })
+    .eq("id", 1);
+  if (error) return { error: error.message };
+  await logAudit({
+    entidade: "vistoria_config",
+    entidade_id: "1",
+    acao: "update",
+    dados_depois: { trava_semanal_ativa: ligada },
+    ator_id: user.id,
+  });
+  revalidar();
+  return { ok: true };
+}
+
 /** Liga/desliga a comprovação. Só gestor. */
 export async function setExigirComprovacaoAction(ligado: boolean): Promise<Res> {
   const user = await requireAuth();
@@ -108,11 +143,16 @@ export async function criarEquipamentoAction(input: EquipamentoInput): Promise<R
   const parsed = equipamentoSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos" };
   // Cadastro exige foto: é o que a pessoa confere visualmente na conferência.
-  if (!parsed.data.foto_url) return { error: "Adicione a foto do equipamento" };
+  const { foto_path, ...campos } = parsed.data;
+  if (!foto_path || !caminhoFotoEquipamentoValido(foto_path)) return { error: "Adicione a foto do equipamento" };
 
   const sb = createServiceRoleClient() as SB;
+  const fotoUrl = await urlDeFotoExistente(sb, foto_path);
+  if (!fotoUrl) return { error: "A foto não chegou ao servidor. Tente enviar de novo." };
+
   const { id, codigo, error } = await inserirComCodigoUnico(sb, {
-    ...parsed.data,
+    ...campos,
+    foto_url: fotoUrl,
     criado_por: user.id,
   });
   if (!id || !codigo) return { error: error ?? "Falha ao cadastrar" };
@@ -135,15 +175,23 @@ export async function editarEquipamentoAction(input: EquipamentoInput & { id: st
   const parsed = editarEquipamentoSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos" };
 
-  const { id, ...campos } = parsed.data;
+  const { id, foto_path, ...campos } = parsed.data;
   const sb = createServiceRoleClient() as SB;
 
   const { data: antes } = await sb.from("equipamentos").select("responsavel_id, status").eq("id", id).maybeSingle();
   if (!antes) return { error: "Equipamento não encontrado" };
 
+  let novaFoto: { foto_url?: string } = {};
+  if (foto_path) {
+    if (!caminhoFotoEquipamentoValido(foto_path)) return { error: "Foto inválida" };
+    const url = await urlDeFotoExistente(sb, foto_path);
+    if (!url) return { error: "A foto não chegou ao servidor. Tente enviar de novo." };
+    novaFoto = { foto_url: url };
+  }
+
   const { error } = await sb
     .from("equipamentos")
-    .update({ ...campos, updated_at: new Date().toISOString() })
+    .update({ ...campos, ...novaFoto, updated_at: new Date().toISOString() })
     .eq("id", id);
   if (error) return { error: error.message };
 
@@ -185,11 +233,15 @@ export async function registrarLeituraAction(
 
   // Comprovação: se a gestão ligou, a leitura só vale com foto e estado.
   const { data: cfg } = await sb.from("vistoria_config").select("exigir_comprovacao").eq("id", 1).maybeSingle();
-  let comp: ComprovacaoInput | null = null;
+  let comp: { fotoUrl: string; estado: "ok" | "defeito"; observacao: string | null } | null = null;
   if (comprovacao) {
     const parsed = comprovacaoSchema.safeParse(comprovacao);
     if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Comprovação inválida" };
-    comp = parsed.data;
+    // A foto precisa estar na pasta da própria pessoa e existir de verdade.
+    if (!caminhoFotoConferenciaValido(parsed.data.fotoPath, user.id)) return { error: "Foto inválida" };
+    const fotoUrl = await urlDeFotoExistente(sb, parsed.data.fotoPath);
+    if (!fotoUrl) return { error: "A foto não chegou ao servidor. Tente de novo." };
+    comp = { ...parsed.data, fotoUrl };
   }
   if (cfg?.exigir_comprovacao && !comp) {
     return { error: "A conferência exige foto e estado do equipamento" };

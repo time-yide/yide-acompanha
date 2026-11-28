@@ -190,6 +190,13 @@ export async function listLeiturasSemana(semana: string): Promise<LeituraSemana[
   }));
 }
 
+/** Trava semanal ligada/desligada (a gestão decide quando ativar). */
+export async function getTravaAtiva(): Promise<boolean> {
+  const sb = createServiceRoleClient() as SB;
+  const { data } = await sb.from("vistoria_config").select("trava_semanal_ativa").eq("id", 1).maybeSingle();
+  return Boolean(data?.trava_semanal_ativa);
+}
+
 /** Liga/desliga a comprovação obrigatória na conferência. */
 export async function getExigirComprovacao(): Promise<boolean> {
   const sb = createServiceRoleClient() as SB;
