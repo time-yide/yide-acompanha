@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { BookOpen, GraduationCap, Gamepad2, UserCog, ClipboardList, type LucideIcon } from "lucide-react";
+import { BookOpen, GraduationCap, Gamepad2, UserCog, ClipboardList, ScanLine, type LucideIcon } from "lucide-react";
 
-export type ManualTabKey = "manual" | "academy" | "time" | "colaboradores" | "pesquisas";
+export type ManualTabKey = "manual" | "academy" | "time" | "colaboradores" | "pesquisas" | "vistoria";
 
 interface Props {
   active: ManualTabKey;
@@ -11,7 +11,7 @@ interface Props {
 
 /**
  * Barra de abas do "Bastidores": Bastidores + Yide Academy + Time + Colaboradores
- * (só gestor) + Pesquisas. Todos saíram do menu lateral e viram abas daqui,
+ * (só gestor) + Pesquisas + Vistoria. Todos saíram do menu lateral e viram abas daqui,
  * com as URLs preservadas.
  */
 export function TabsManual({ active, canVerColaboradores = false }: Props) {
@@ -23,6 +23,7 @@ export function TabsManual({ active, canVerColaboradores = false }: Props) {
       ? [{ key: "colaboradores" as const, label: "Colaboradores", href: "/colaboradores", Icon: UserCog }]
       : []),
     { key: "pesquisas", label: "Pesquisas", href: "/pesquisas", Icon: ClipboardList },
+    { key: "vistoria", label: "Vistoria", href: "/vistoria", Icon: ScanLine },
   ];
 
   return (
